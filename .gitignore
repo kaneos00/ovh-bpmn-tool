@@ -140,5 +140,4 @@ reports/
 coverage/
 
 # project
-yarn.lock
 package-lock.json

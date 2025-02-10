@@ -146,5 +146,4 @@ docs/.vale/styles/config/vocabularies/default
 
 # project
 tsconfig.tsbuildinfo
-yarn.lock
 package-lock.json
