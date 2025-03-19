@@ -401,7 +401,7 @@ camunda-bpmn-js-behaviors@1.9.1; MIT
 camunda-bpmn-js@3.13.0; MIT
 camunda-bpmn-moddle@7.0.1; MIT
 caniuse-lite@1.0.30001698; CC-BY-4.0
-canvg@4.0.2; MIT
+canvg@4.0.3; MIT
 chalk@2.4.2; MIT
 chalk@4.1.2; MIT
 chalk@5.4.1; MIT
