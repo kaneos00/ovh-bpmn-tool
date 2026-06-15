@@ -53,6 +53,9 @@ build/Release
 node_modules/
 jspm_packages/
 
+# pnpm project-local store (created by the CI cache install)
+.pnpm-store/
+
 # TypeScript v1 declaration files
 typings/
 

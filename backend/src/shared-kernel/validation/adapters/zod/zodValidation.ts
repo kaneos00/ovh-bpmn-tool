@@ -1,5 +1,4 @@
-import { ZodIssue } from 'zod';
-import { ZodType, ZodTypeDef } from 'zod/lib/types';
+import { ZodIssue, ZodType, ZodTypeDef } from 'zod';
 
 import { zodConfigurator } from './zodConfig';
 import { GenericValidatorResult } from '../../core/validation';

@@ -1,0 +1,8 @@
+autoInstallPeers: false
+engineStrict: true
+trustPolicy: no-downgrade
+minimumReleaseAge: 7200
+overrides:
+  semver: 7.8.2
+allowBuilds:
+  '@nestjs/core': false
