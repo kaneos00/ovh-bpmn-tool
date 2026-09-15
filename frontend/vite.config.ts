@@ -18,6 +18,7 @@ export default ({ mode }) => {
       outDir: resolve(process.cwd(), 'dist'),
     },
     server: {
+      allowedHosts: ['ovh-bpmn.vps-yma.ovh'],
       proxy: {
         '/bpmn-api': {
           target: process.env.DEV_API_PROXY_TARGET,
