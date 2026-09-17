@@ -1,5 +1,5 @@
-import model from './wiki-model.json';
+import wikiModel from './wiki-model.json';
 
 export default {
-  ...model
+  wiki: wikiModel,
 };
