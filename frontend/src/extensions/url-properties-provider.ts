@@ -1,7 +1,4 @@
-import {
-  is,
-  isAny,
-} from 'bpmn-js/lib/util/ModelUtil';
+import { is } from 'bpmn-js/lib/util/ModelUtil';
 
 import {
   TextFieldEntry,
@@ -10,15 +7,13 @@ import {
 
 import { useService } from 'bpmn-js-properties-panel';
 
-const LOW_PRIORITY = 500;
 
-function UrlPropertiesProvider(propertiesPanel: any, translate: any) {
-  this.getGroups = function(element: any) {
-    return function(groups: any[]) {
+class UrlPropertiesProvider {
 
-      if (!isAny(element, [
-        'bpmn:BaseElement'
-      ])) {
+  getGroups(element: any) {
+    return (groups: any[]) => {
+
+      if (!is(element, 'bpmn:BaseElement')) {
         return groups;
       }
 
@@ -27,7 +22,7 @@ function UrlPropertiesProvider(propertiesPanel: any, translate: any) {
         label: 'URL',
         entries: [
           {
-            id: 'url',
+            id: 'url-link',
             element,
             component: UrlEntry,
             isEdited: isTextFieldEntryEdited
@@ -37,13 +32,10 @@ function UrlPropertiesProvider(propertiesPanel: any, translate: any) {
 
       return groups;
     };
-  };
+  }
+
 }
 
-UrlPropertiesProvider.$inject = [
-  'propertiesPanel',
-  'translate'
-];
 
 function UrlEntry(props: any) {
   const { element, id } = props;
@@ -69,12 +61,5 @@ function UrlEntry(props: any) {
   });
 }
 
-export default {
-  __init__: [
-    'urlPropertiesProvider'
-  ],
-  urlPropertiesProvider: [
-    'type',
-    UrlPropertiesProvider
-  ]
-};
+
+export default UrlPropertiesProvider;
