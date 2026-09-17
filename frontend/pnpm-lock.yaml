@@ -49,6 +49,9 @@ importers:
       '@tanstack/react-table':
         specifier: ^8.10.1
         version: 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@bpmn-io/properties-panel':
+        specifier: ^3.44.1
+        version: 3.44.1
       bpmn-js:
         specifier: ^16.4.0
         version: 16.5.0
