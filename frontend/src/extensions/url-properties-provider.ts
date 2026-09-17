@@ -39,7 +39,7 @@ function UrlEntry(props: any) {
   const debounce = useService('debounceInput');
 
   const getValue = () => {
-    return element.businessObject.get('url:link') || '';
+     return element.businessObject['url:link'] || '';
   };
 
   const setValue = (value: string) => {
