@@ -7,12 +7,9 @@ import {
 
 import { useService } from 'bpmn-js-properties-panel';
 
-
 class UrlPropertiesProvider {
-
   getGroups(element: any) {
     return (groups: any[]) => {
-
       if (!is(element, 'bpmn:BaseElement')) {
         return groups;
       }
@@ -25,30 +22,29 @@ class UrlPropertiesProvider {
             id: 'url-link',
             element,
             component: UrlEntry,
-            isEdited: isTextFieldEntryEdited
-          }
-        ]
+            isEdited: isTextFieldEntryEdited,
+          },
+        ],
       });
 
       return groups;
     };
   }
-
 }
-
 
 function UrlEntry(props: any) {
   const { element, id } = props;
 
   const modeling = useService('modeling');
+  const debounce = useService('debounceInput');
 
   const getValue = () => {
     return element.businessObject.get('url:link') || '';
   };
 
   const setValue = (value: string) => {
-    modeling.updateProperties(element, {
-      'url:link': value || undefined
+    return modeling.updateProperties(element, {
+      'url:link': value || undefined,
     });
   };
 
@@ -57,9 +53,9 @@ function UrlEntry(props: any) {
     id,
     label: 'URL',
     getValue,
-    setValue
+    setValue,
+    debounce,
   });
 }
-
 
 export default UrlPropertiesProvider;
