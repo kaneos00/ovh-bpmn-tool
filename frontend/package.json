@@ -33,6 +33,7 @@
     "@react-spring/rafz": "^9.7.4",
     "@react-spring/web": "^9.7.4",
     "@tanstack/react-table": "^8.10.1",
+    "@bpmn-io/properties-panel": "^3.44.1",
     "bpmn-js": "^16.4.0",
     "bpmn-js-color-picker": "^0.7.0",
     "bpmn-js-differ": "^2.0.2",
