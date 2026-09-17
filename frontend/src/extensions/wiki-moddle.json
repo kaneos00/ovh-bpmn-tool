@@ -1,0 +1,20 @@
+{
+  "name": "Wiki",
+  "uri": "http://example.com/schema/wiki",
+  "prefix": "wiki",
+  "types": [
+    {
+      "name": "WikiTask",
+      "extends": [
+        "bpmn:Task"
+      ],
+      "properties": [
+        {
+          "name": "procedureUrl",
+          "isAttr": true,
+          "type": "String"
+        }
+      ]
+    }
+  ]
+}
