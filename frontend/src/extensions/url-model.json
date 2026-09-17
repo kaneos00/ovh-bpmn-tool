@@ -1,16 +1,16 @@
 {
-  "name": "Wiki",
-  "uri": "http://example.com/schema/wiki",
-  "prefix": "wiki",
+  "name": "URL",
+  "uri": "http://example.com/schema/url",
+  "prefix": "url",
   "types": [
     {
-      "name": "WikiTask",
+      "name": "UrlElement",
       "extends": [
-        "bpmn:Task"
+        "bpmn:BaseElement"
       ],
       "properties": [
         {
-          "name": "procedureUrl",
+          "name": "link",
           "isAttr": true,
           "type": "String"
         }
