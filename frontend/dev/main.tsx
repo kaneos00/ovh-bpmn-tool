@@ -1,8 +1,14 @@
 import { bootstrapBpmnTool } from '../src/main';
-import WikiModel from '../src/extensions/url-model';
+import UrlModel from '../src/extensions/url-model';
+import UrlPropertiesProvider from '../src/extensions/url-properties-provider';
 
 bootstrapBpmnTool({
   modelerOptions: {
-    extensions: WikiModel,
+    extensions: UrlModel,
+    modules: [
+      {
+        declaration: UrlPropertiesProvider,
+      },
+    ],
   },
 });
