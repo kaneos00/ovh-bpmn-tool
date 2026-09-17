@@ -1,5 +1,5 @@
 import { bootstrapBpmnTool } from '../src/main';
-import WikiModel from '../src/extensions/my-bpmn-module';
+import WikiModel from '../src/extensions/url-model';
 
 bootstrapBpmnTool({
   modelerOptions: {
