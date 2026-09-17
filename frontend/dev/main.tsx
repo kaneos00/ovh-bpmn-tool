@@ -5,9 +5,10 @@ import UrlPropertiesProvider from '../src/extensions/url-properties-provider';
 bootstrapBpmnTool({
   modelerOptions: {
     extensions: UrlModel,
-    modules: [
+    providers: [
       {
-        declaration: UrlPropertiesProvider,
+        priority: 500,
+        instance: UrlPropertiesProvider,
       },
     ],
   },
