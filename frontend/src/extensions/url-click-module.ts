@@ -1,3 +1,4 @@
+```ts
 import { is } from 'bpmn-js/lib/util/ModelUtil';
 
 /*
@@ -38,7 +39,8 @@ import { is } from 'bpmn-js/lib/util/ModelUtil';
  *
  * - uniquement les bpmn:Task
  * - le clic sur le Task reste normal
- * - une petite flèche bleue apparaît si une URL existe
+ * - une petite flèche apparaît en bas à droite si une URL existe
+ * - le rendu reprend le contrôle Drilldown natif de bpmn-js
  * - seul le clic sur cette flèche ouvre l'URL
  * - les SubProcess et CallActivity ne sont pas concernés
  */
@@ -48,13 +50,53 @@ function UrlClickHandler(
   overlays: any,
 ) {
 
+  /*
+   * SVG utilisé par bpmn-js pour son contrôle Drilldown.
+   *
+   * Source :
+   * bpmn-js/lib/features/drilldown/DrilldownOverlayBehavior
+   *
+   * Nous conservons exactement la même géométrie.
+   */
+  const ARROW_DOWN_SVG = `
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="20"
+      height="20"
+      viewBox="0 0 16 16"
+    >
+      <path
+        fill-rule="evenodd"
+        d="M4.81801948,3.50735931
+           L10.4996894,9.1896894
+           L10.5,4
+           L12,4
+           L12,12
+           L4,12
+           L4,10.5
+           L9.6896894,10.4996894
+           L3.75735931,4.56801948
+           C3.46446609,4.27512627
+           3.46446609,3.80025253
+           3.75735931,3.50735931
+           C4.05025253,3.21446609
+           4.52512627,3.21446609
+           4.81801948,3.50735931
+           Z"
+      />
+    </svg>
+  `;
+
+
   function getUrl(element: any) {
     return element?.businessObject?.link || '';
   }
 
+
   function isUrlTask(element: any) {
     return is(element, 'bpmn:Task') && !!getUrl(element);
   }
+
 
   function openUrl(url: string) {
 
@@ -69,6 +111,7 @@ function UrlClickHandler(
     );
   }
 
+
   function addOverlay(element: any) {
 
     if (!isUrlTask(element)) {
@@ -77,7 +120,7 @@ function UrlClickHandler(
 
     const url = getUrl(element);
 
-    
+
     /*
      * ============================================================
      * ANCIEN RENDU — conservé pour comparaison / retour arrière
@@ -85,8 +128,8 @@ function UrlClickHandler(
      *
      * overlays.add(element, 'url-link', {
      *   position: {
-     *     top: -8,
-     *     right: -8,
+     *     bottom: -7,
+     *     left: '50%',
      *   },
      *
      *   html: `
@@ -94,19 +137,20 @@ function UrlClickHandler(
      *       class="url-link-overlay"
      *       title="Ouvrir le lien"
      *       style="
-     *         width: 18px;
-     *         height: 18px;
-     *         border-radius: 50%;
+     *         width: 14px;
+     *         height: 14px;
+     *         border-radius: 2px;
      *         background: #1976d2;
      *         color: white;
      *         display: flex;
      *         align-items: center;
      *         justify-content: center;
      *         cursor: pointer;
-     *         font-size: 12px;
+     *         font-size: 10px;
      *         font-weight: bold;
      *         box-shadow: 0 1px 3px rgba(0,0,0,0.3);
      *         user-select: none;
+     *         transform: translateX(-50%);
      *       "
      *     >
      *       ↗
@@ -117,35 +161,34 @@ function UrlClickHandler(
      * ============================================================
      */
 
+
+    /*
+     * Rendu basé directement sur le contrôle Drilldown
+     * natif de bpmn-js.
+     *
+     * Position identique au contrôle natif :
+     *
+     *   bottom: -7
+     *   right:  -8
+     */
     overlays.add(element, 'url-link', {
+
       position: {
         bottom: -7,
-        left: '50%',
+        right: -8,
       },
 
       html: `
-        <div
-          class="url-link-overlay"
+        <button
+          type="button"
+          class="bjs-drilldown url-link-overlay"
           title="Ouvrir le lien"
           style="
-            width: 14px;
-            height: 14px;
-            border-radius: 2px;
-            background: #1976d2;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 10px;
-            font-weight: bold;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-            user-select: none;
-            transform: translateX(-50%);
+            color: #1976d2;
           "
         >
-          ↗
-        </div>
+          ${ARROW_DOWN_SVG}
+        </button>
       `,
     });
 
@@ -168,6 +211,7 @@ function UrlClickHandler(
         return;
       }
 
+
       overlayElement.onclick = (event) => {
 
         /*
@@ -182,9 +226,11 @@ function UrlClickHandler(
     }, 0);
   }
 
+
   eventBus.on('shape.added', (event: any) => {
     addOverlay(event.element);
   });
+
 
   eventBus.on('element.changed', (event: any) => {
 
@@ -199,6 +245,7 @@ function UrlClickHandler(
       return;
     }
 
+
     /*
      * Suppression de l'ancien overlay avant reconstruction.
      */
@@ -207,14 +254,17 @@ function UrlClickHandler(
       type: 'url-link',
     });
 
+
     addOverlay(element);
   });
 }
+
 
 UrlClickHandler.$inject = [
   'eventBus',
   'overlays',
 ];
+
 
 export default {
   __init__: [
@@ -226,3 +276,4 @@ export default {
     UrlClickHandler,
   ],
 };
+```
