@@ -7,6 +7,8 @@ import {
 
 import { useService } from 'bpmn-js-properties-panel';
 
+import { createElement } from 'react';
+
 
 /*
 ============================================================
@@ -134,35 +136,48 @@ function UrlField(props: any) {
 
   };
 
-  return (
-    <div>
+  /*
+   * On utilise React.createElement au lieu du JSX.
+   *
+   * Le fichier reste donc en .ts et non en .tsx.
+   */
 
-      <TextFieldEntry
-        id={id}
-        element={element}
-        label="Procedure URL"
-        getValue={() => value}
-        setValue={setValue}
-      />
+  const textField = createElement(TextFieldEntry, {
+    id,
+    element,
+    label: 'Procedure URL',
+    getValue: () => value,
+    setValue
+  });
 
-      {value && (
-        <div style={{ marginTop: '8px' }}>
-
-          <a
-            href={value}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
+  const openLink = value
+    ? createElement(
+        'div',
+        {
+          style: {
+            marginTop: '8px'
+          }
+        },
+        createElement(
+          'a',
+          {
+            href: value,
+            target: '_blank',
+            rel: 'noopener noreferrer',
+            style: {
               cursor: 'pointer'
-            }}
-          >
-            Ouvrir la procédure ↗
-          </a>
+            }
+          },
+          'Ouvrir la procédure ↗'
+        )
+      )
+    : null;
 
-        </div>
-      )}
-
-    </div>
+  return createElement(
+    'div',
+    null,
+    textField,
+    openLink
   );
 }
 
