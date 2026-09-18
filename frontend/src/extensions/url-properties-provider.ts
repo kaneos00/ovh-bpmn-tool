@@ -70,14 +70,21 @@ function UrlEntry(props: any) {
 
   const debounce = useService('debounceInput');
 
-
+ /*
   const getValue = () => {
-    /*
-    ANCIEN CODE :  
-    return element.businessObject['url:link'] || '';
-    */
     return element.businessObject.$attrs?.['url:link'] || '';
+   return element.businessObject.$attrs?.['url:link'] || '';
+  };
+  */
+  const getValue = () => {
+    console.log('URL DEBUG', {
+        element,
+        businessObject: element.businessObject,
+        attrs: element.businessObject?.$attrs,
+        urlLink: element.businessObject?.['url:link'],
+      });
   
+    return element.businessObject?.['url:link'] || '';
   };
 
 
