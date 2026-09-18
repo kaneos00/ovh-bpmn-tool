@@ -31,13 +31,19 @@ export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
             },
           ],
 
-          // ANCIEN CODE :
-          // additionalModules n'existait pas ici.
+          // ANCIEN CODE INCORRECT :
+          // additionalModules: [
+          //   ...(options.modelerOptions?.additionalModules ?? []),
+          //   UrlClickModule,
+          // ],
 
-          // AJOUT : chargement du module de gestion du clic sur les éléments BPMN
-          additionalModules: [
-            ...(options.modelerOptions?.additionalModules ?? []),
-            UrlClickModule,
+          // AJOUT : enregistrement du module personnalisé.
+          // BpmnToolOptions utilise "modules".
+          modules: [
+            ...(options.modelerOptions?.modules ?? []),
+            {
+              declaration: UrlClickModule,
+            },
           ],
         },
       }}
