@@ -72,9 +72,12 @@ function UrlEntry(props: any) {
 
 
   const getValue = () => {
-
+    /*
+    ANCIEN CODE :  
     return element.businessObject['url:link'] || '';
-
+    */
+    return element.businessObject.$attrs?.['url:link'] || '';
+  
   };
 
 
