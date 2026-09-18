@@ -1,4 +1,3 @@
-```ts
 import { is } from 'bpmn-js/lib/util/ModelUtil';
 
 /*
