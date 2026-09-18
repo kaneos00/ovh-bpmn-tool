@@ -49,6 +49,8 @@ function UrlEntry(props: any) {
       businessObject: element.businessObject,
       attrs: element.businessObject?.$attrs,
       urlLink: element.businessObject?.['url:link'],
+      type: element.businessObject?.$type,
+      model: element.businessObject?.$model,
     });
   
     return element.businessObject?.['url:link'] || '';
