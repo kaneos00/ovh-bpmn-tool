@@ -7,12 +7,10 @@ import {
 
 import { useService } from 'bpmn-js-properties-panel';
 
-import { createElement } from 'react';
-
 
 /*
 ============================================================
-ANCIEN CODE
+ANCIEN CODE - VERSION QUI FONCTIONNAIT
 ============================================================
 
 import { is } from 'bpmn-js/lib/util/ModelUtil';
@@ -115,7 +113,7 @@ class UrlPropertiesProvider {
 
       return groups;
     };
-  }
+  };
 }
 
 
@@ -125,10 +123,6 @@ function UrlField(props: any) {
 
   const modeling = useService('modeling');
 
-  /*
-   * IMPORTANT :
-   * La propriété utilisée dans le XML est url:link.
-   */
   const value =
     element.businessObject.get('url:link') || '';
 
@@ -141,51 +135,23 @@ function UrlField(props: any) {
   };
 
   /*
-   * Le fichier est en .ts et non .tsx.
-   * On utilise donc createElement() au lieu du JSX.
+   * On conserve exactement le TextFieldEntry
+   * qui fonctionnait auparavant.
+   *
+   * Le lien est ajouté dans la description du champ.
    */
 
-  const textField = createElement(TextFieldEntry, {
+  return TextFieldEntry({
     id,
     element,
     label: 'URL',
     getValue: () => value,
-    setValue
-  });
+    setValue,
 
-  /*
-   * Affichage du lien cliquable uniquement
-   * lorsqu'une URL existe.
-   */
-  const openLink = value
-    ? createElement(
-        'div',
-        {
-          style: {
-            marginTop: '8px'
-          }
-        },
-        createElement(
-          'a',
-          {
-            href: value,
-            target: '_blank',
-            rel: 'noopener noreferrer',
-            style: {
-              cursor: 'pointer'
-            }
-          },
-          'Ouvrir la procédure ↗'
-        )
-      )
-    : null;
-
-  return createElement(
-    'div',
-    null,
-    textField,
-    openLink
-  );
+    description: value
+      ? `Ouvrir la procédure : ${value}`
+      : undefined
+  } as any);
 }
 
 
