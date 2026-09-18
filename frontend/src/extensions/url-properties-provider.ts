@@ -2,7 +2,7 @@ import { is } from 'bpmn-js/lib/util/ModelUtil';
 
 import {
   TextFieldEntry,
-  isTextFieldEntryEdited
+  isTextFieldEntryEdited,
 } from '@bpmn-io/properties-panel';
 
 import { useService } from 'bpmn-js-properties-panel';
@@ -10,80 +10,12 @@ import { useService } from 'bpmn-js-properties-panel';
 
 /*
 ============================================================
-ANCIEN CODE - VERSION QUI FONCTIONNAIT
+ANCIEN CODE / VERSION FONCTIONNELLE RETROUVÉE
 ============================================================
 
-import { is } from 'bpmn-js/lib/util/ModelUtil';
+Cette version correspond au commit cb67a8d
+et affichait correctement la propriété URL.
 
-import {
-  TextFieldEntry,
-  isTextFieldEntryEdited,
-} from '@bpmn-io/properties-panel';
-
-import { useService } from 'bpmn-js-properties-panel';
-
-class UrlPropertiesProvider {
-
-  getGroups(element: any) {
-
-    return (groups: any[]) => {
-
-      if (!is(element, 'bpmn:Task')) {
-        return groups;
-      }
-
-      groups.push({
-        id: 'url',
-        label: 'Procédure',
-        entries: [
-          {
-            id: 'link',
-            element,
-            component: UrlField,
-            isEdited: isTextFieldEntryEdited
-          }
-        ]
-      });
-
-      return groups;
-    };
-  }
-}
-
-
-function UrlField(props: any) {
-
-  const { element, id } = props;
-
-  const modeling = useService('modeling');
-
-  const value =
-    element.businessObject.get('url:link') || '';
-
-  const setValue = (value: string) => {
-
-    modeling.updateProperties(element, {
-      'url:link': value
-    });
-
-  };
-
-  return (
-    <TextFieldEntry
-      id={id}
-      element={element}
-      label="URL"
-      getValue={() => value}
-      setValue={setValue}
-    />
-  );
-}
-
-
-export default UrlPropertiesProvider;
-
-============================================================
-FIN ANCIEN CODE
 ============================================================
 */
 
@@ -94,64 +26,85 @@ class UrlPropertiesProvider {
 
     return (groups: any[]) => {
 
-      if (!is(element, 'bpmn:Task')) {
+      if (!is(element, 'bpmn:BaseElement')) {
         return groups;
       }
 
       groups.push({
+
         id: 'url',
-        label: 'Procédure',
+
+        label: 'URL',
+
         entries: [
+
           {
-            id: 'link',
+            id: 'url-link',
+
             element,
-            component: UrlField,
-            isEdited: isTextFieldEntryEdited
-          }
-        ]
+
+            component: UrlEntry,
+
+            isEdited: isTextFieldEntryEdited,
+
+          },
+
+        ],
+
       });
 
       return groups;
+
     };
-  };
+
+  }
+
 }
 
 
-function UrlField(props: any) {
+function UrlEntry(props: any) {
 
   const { element, id } = props;
 
   const modeling = useService('modeling');
 
-  const value =
-    element.businessObject.get('url:link') || '';
+  const debounce = useService('debounceInput');
+
+
+  const getValue = () => {
+
+    return element.businessObject['url:link'] || '';
+
+  };
+
 
   const setValue = (value: string) => {
 
-    modeling.updateProperties(element, {
-      'url:link': value
+    return modeling.updateProperties(element, {
+
+      'url:link': value || undefined,
+
     });
 
   };
 
-  /*
-   * On conserve exactement le TextFieldEntry
-   * qui fonctionnait auparavant.
-   *
-   * Le lien est ajouté dans la description du champ.
-   */
 
   return TextFieldEntry({
-    id,
+
     element,
+
+    id,
+
     label: 'URL',
-    getValue: () => value,
+
+    getValue,
+
     setValue,
 
-    description: value
-      ? `Ouvrir la procédure : ${value}`
-      : undefined
-  } as any);
+    debounce,
+
+  });
+
 }
 
 
