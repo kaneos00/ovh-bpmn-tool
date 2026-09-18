@@ -1,3 +1,9 @@
+/*
+============================================================
+Version sui affiche et sauvegarde bien le champ url 
+============================================================
+*/
+
 import { is } from 'bpmn-js/lib/util/ModelUtil';
 
 import {
@@ -6,19 +12,6 @@ import {
 } from '@bpmn-io/properties-panel';
 
 import { useService } from 'bpmn-js-properties-panel';
-
-
-/*
-============================================================
-ANCIEN CODE / VERSION FONCTIONNELLE RETROUVÉE
-============================================================
-
-Cette version correspond au commit cb67a8d
-et affichait correctement la propriété URL.
-
-============================================================
-*/
-
 
 class UrlPropertiesProvider {
 
@@ -70,12 +63,6 @@ function UrlEntry(props: any) {
 
   const debounce = useService('debounceInput');
 
- /*
-  const getValue = () => {
-    return element.businessObject.$attrs?.['url:link'] || '';
-   return element.businessObject.$attrs?.['url:link'] || '';
-  };
-  */
   const getValue = () => {
     console.log('URL DEBUG', {
       element,
