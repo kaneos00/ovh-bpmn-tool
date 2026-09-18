@@ -1,3 +1,11 @@
+  function addOverlay(element: any) {
+
+    if (!isUrlTask(element)) {
+      return;
+    }
+
+    const url = getUrl(element);
+
     /*
      * ============================================================
      * ANCIEN RENDU — conservé pour comparaison / retour arrière
@@ -6,20 +14,32 @@
      * overlays.add(element, 'url-link', {
      *   position: {
      *     bottom: -7,
-     *     right: -8,
+     *     left: '50%',
      *   },
      *
      *   html: `
-     *     <button
-     *       type="button"
-     *       class="bjs-drilldown url-link-overlay"
+     *     <div
+     *       class="url-link-overlay"
      *       title="Ouvrir le lien"
      *       style="
-     *         color: #1976d2;
+     *         width: 14px;
+     *         height: 14px;
+     *         border-radius: 2px;
+     *         background: #1976d2;
+     *         color: white;
+     *         display: flex;
+     *         align-items: center;
+     *         justify-content: center;
+     *         cursor: pointer;
+     *         font-size: 10px;
+     *         font-weight: bold;
+     *         box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+     *         user-select: none;
+     *         transform: translateX(-50%);
      *       "
      *     >
-     *       ${ARROW_DOWN_SVG}
-     *     </button>
+     *       ↗
+     *     </div>
      *   `,
      * });
      *
@@ -28,12 +48,16 @@
 
 
     /*
-     * Flèche diagonale :
+     * Même structure que le contrôle Drilldown natif de bpmn-js.
      *
-     * départ  = bas-gauche
-     * arrivée = haut-droite
+     * La flèche est orientée :
      *
-     * Même zone graphique que le contrôle natif bpmn-js.
+     *       ↗
+     *      /
+     *     /
+     *    ↙
+     *
+     * bas-gauche -> haut-droite
      */
     const ARROW_UP_RIGHT_SVG = `
       <svg
@@ -63,6 +87,10 @@
 
     overlays.add(element, 'url-link', {
 
+      /*
+       * Position exactement comme le contrôle Drilldown
+       * natif de bpmn-js.
+       */
       position: {
         bottom: -7,
         right: -8,
@@ -84,11 +112,11 @@
 
 
     /*
-     * Laisser bpmn-js terminer la création de l'overlay,
-     * puis rechercher le bouton correspondant au Task.
+     * Récupération du bouton après création de l'overlay.
      *
-     * On utilise l'overlay container associé à l'élément
-     * plutôt que le dernier bouton trouvé dans tout le document.
+     * IMPORTANT :
+     * on reste à l'intérieur de addOverlay(), donc element,
+     * url et openUrl() sont bien dans leur portée.
      */
     setTimeout(() => {
 
@@ -96,25 +124,8 @@
         '.url-link-overlay',
       );
 
-      let overlayElement: HTMLElement | null = null;
-
-      for (let i = 0; i < overlayElements.length; i++) {
-
-        const candidate =
-          overlayElements[i] as HTMLElement;
-
-        /*
-         * Le bouton doit appartenir au même overlay
-         * que celui que nous venons de créer.
-         */
-        const parentOverlay =
-          candidate.closest('.djs-overlay');
-
-        if (parentOverlay) {
-          overlayElement = candidate;
-          break;
-        }
-      }
+      const overlayElement =
+        overlayElements[overlayElements.length - 1] as HTMLElement;
 
       if (!overlayElement) {
         return;
@@ -124,7 +135,8 @@
       overlayElement.onclick = (event) => {
 
         /*
-         * Empêche le clic de remonter vers le diagramme BPMN.
+         * Le clic reste uniquement sur le contrôle URL.
+         * Il ne sélectionne donc pas le Task.
          */
         event.preventDefault();
         event.stopPropagation();
@@ -133,3 +145,4 @@
       };
 
     }, 0);
+  }
