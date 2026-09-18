@@ -39,7 +39,7 @@ class UrlPropertiesProvider {
         label: 'Procédure',
         entries: [
           {
-            id: 'procedureUrl',
+            id: 'link',
             element,
             component: UrlField,
             isEdited: isTextFieldEntryEdited
@@ -60,12 +60,12 @@ function UrlField(props: any) {
   const modeling = useService('modeling');
 
   const value =
-    element.businessObject.get('wiki:procedureUrl') || '';
+    element.businessObject.get('url:link') || '';
 
   const setValue = (value: string) => {
 
     modeling.updateProperties(element, {
-      'wiki:procedureUrl': value
+      'url:link': value
     });
 
   };
@@ -74,7 +74,7 @@ function UrlField(props: any) {
     <TextFieldEntry
       id={id}
       element={element}
-      label="Procedure URL"
+      label="URL"
       getValue={() => value}
       setValue={setValue}
     />
@@ -105,7 +105,7 @@ class UrlPropertiesProvider {
         label: 'Procédure',
         entries: [
           {
-            id: 'procedureUrl',
+            id: 'link',
             element,
             component: UrlField,
             isEdited: isTextFieldEntryEdited
@@ -125,31 +125,38 @@ function UrlField(props: any) {
 
   const modeling = useService('modeling');
 
+  /*
+   * IMPORTANT :
+   * La propriété utilisée dans le XML est url:link.
+   */
   const value =
-    element.businessObject.get('wiki:procedureUrl') || '';
+    element.businessObject.get('url:link') || '';
 
   const setValue = (value: string) => {
 
     modeling.updateProperties(element, {
-      'wiki:procedureUrl': value
+      'url:link': value
     });
 
   };
 
   /*
-   * On utilise React.createElement au lieu du JSX.
-   *
-   * Le fichier reste donc en .ts et non en .tsx.
+   * Le fichier est en .ts et non .tsx.
+   * On utilise donc createElement() au lieu du JSX.
    */
 
   const textField = createElement(TextFieldEntry, {
     id,
     element,
-    label: 'Procedure URL',
+    label: 'URL',
     getValue: () => value,
     setValue
   });
 
+  /*
+   * Affichage du lien cliquable uniquement
+   * lorsqu'une URL existe.
+   */
   const openLink = value
     ? createElement(
         'div',
