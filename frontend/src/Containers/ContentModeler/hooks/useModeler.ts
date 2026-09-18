@@ -1,5 +1,3 @@
-import { useEffect, useRef, useState } from 'react';
-
 import { useSnackbar } from '../../../shared/hooks/useSnackbar';
 import {
   BpmnLintIssues,
@@ -16,6 +14,8 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
 
   const { getModelerProviders } = useBpmnToolOptions();
 
+  const providersRegisteredRef = useRef(false);
+  
   const propertiesPanel: PropertiesPanel =
     bpmnModelerInstance.get('propertiesPanel');
 
@@ -32,10 +32,15 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
 
     bpmnModelerInstance.attachTo(diagramContainerRef.current);
 
-    const providers = getModelerProviders();
-    providers.forEach(({ priority, instance: ProviderInstance }) => {
-      propertiesPanel.registerProvider(priority, new ProviderInstance());
-    });
+    if (!providersRegisteredRef.current) {
+      const providers = getModelerProviders();
+    
+      providers.forEach(({ priority, instance: ProviderInstance }) => {
+        propertiesPanel.registerProvider(priority, new ProviderInstance());
+      });
+    
+      providersRegisteredRef.current = true;
+    }    
 
     propertiesPanel.attachTo(diagramPropertiesRef.current);
   };
