@@ -56,9 +56,16 @@ function UrlEntry(props: any) {
     return element.businessObject?.['url:link'] || '';
   };
 
+  /*
   const setValue = (value: string) => {
     return modeling.updateProperties(element, {
       'url:link': value || undefined,
+    });
+  };
+  */
+  const setValue = (value: string) => {
+    return modeling.updateProperties(element, {
+      link: value || undefined,
     });
   };
 
