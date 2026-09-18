@@ -77,10 +77,50 @@ function UrlClickHandler(
 
     const url = getUrl(element);
 
+    
+    /*
+     * ============================================================
+     * ANCIEN RENDU — conservé pour comparaison / retour arrière
+     * ============================================================
+     *
+     * overlays.add(element, 'url-link', {
+     *   position: {
+     *     top: -8,
+     *     right: -8,
+     *   },
+     *
+     *   html: `
+     *     <div
+     *       class="url-link-overlay"
+     *       title="Ouvrir le lien"
+     *       style="
+     *         width: 18px;
+     *         height: 18px;
+     *         border-radius: 50%;
+     *         background: #1976d2;
+     *         color: white;
+     *         display: flex;
+     *         align-items: center;
+     *         justify-content: center;
+     *         cursor: pointer;
+     *         font-size: 12px;
+     *         font-weight: bold;
+     *         box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+     *         user-select: none;
+     *       "
+     *     >
+     *       ↗
+     *     </div>
+     *   `,
+     * });
+     *
+     * ============================================================
+     */
+
     overlays.add(element, 'url-link', {
       position: {
-        top: -8,
-        right: -8,
+        bottom: -7,
+        left: '50%',
       },
 
       html: `
@@ -88,25 +128,27 @@ function UrlClickHandler(
           class="url-link-overlay"
           title="Ouvrir le lien"
           style="
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
+            width: 14px;
+            height: 14px;
+            border-radius: 2px;
             background: #1976d2;
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 10px;
             font-weight: bold;
             box-shadow: 0 1px 3px rgba(0,0,0,0.3);
             user-select: none;
+            transform: translateX(-50%);
           "
         >
           ↗
         </div>
       `,
     });
+
 
     /*
      * Récupération de l'élément HTML créé par l'overlay.
