@@ -6,7 +6,7 @@
     {
       "name": "UrlElement",
       "extends": [
-        "bpmn:BaseElement"
+        "bpmn:Task"
       ],
       "properties": [
         {
