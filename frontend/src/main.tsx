@@ -10,6 +10,9 @@ import UrlPropertiesProvider from './extensions/url-properties-provider';
 // AJOUT : module qui détecte le clic sur un élément BPMN
 import UrlClickModule from './extensions/url-click-module';
 
+// AJOUT : module qui gere l'orientation du lane
+import LaneOrientationPropertiesProvider from './extensions/lane-orientation-properties-provider';
+
 export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
   createRoot(document.getElementById('root')!).render(
     <MainContainer
@@ -29,6 +32,10 @@ export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
               priority: 500,
               instance: UrlPropertiesProvider,
             },
+            {
+	      priority: 500,
+	      instance: LaneOrientationPropertiesProvider,
+	    },
           ],
 
           // ANCIEN CODE INCORRECT :
