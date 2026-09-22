@@ -33,7 +33,7 @@ export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
               instance: UrlPropertiesProvider,
             },
             {
-	      priority: 500,
+	      priority: 501,
 	      instance: LaneOrientationPropertiesProvider,
 	    },
           ],
