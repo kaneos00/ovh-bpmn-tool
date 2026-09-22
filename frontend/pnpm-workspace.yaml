@@ -18,3 +18,8 @@ allowBuilds:
   '@carbon/icons': false
   '@parcel/watcher': false
   unrs-resolver: false
+minimumReleaseAgeExclude:
+  - bpmn-js@18.29.1
+  - bpmn-moddle@10.3.1
+  - moddle-xml@12.3.1
+  - saxen@11.2.0
