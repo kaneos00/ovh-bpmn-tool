@@ -104,6 +104,7 @@ const parseProcess = (
       processName: resource.name,
       resourceId: resource.id,
       resourceType: resource.type,
+      resourceName: resource.name,
       link: `/${resource.id}/modeler`,
       metadata: {
         source: 'repository',
