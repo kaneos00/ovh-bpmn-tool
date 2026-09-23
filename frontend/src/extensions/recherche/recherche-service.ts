@@ -151,6 +151,8 @@ FIN ANCIENNE VERSION
 ============================================================
 */
 
+import { RechercheIndex } from './recherche-index';
+
 export type RechercheSourceType =
   | 'process'
   | 'bpmn'
@@ -195,16 +197,21 @@ export type RechercheProvider = (
   context?: RechercheContext,
 ) => Promise<RechercheResult[]>;
 
+const attributeText = (businessObject: any, names: string[]) =>
+  names
+    .flatMap(name => [businessObject?.[name], businessObject?.`camunda:${name}`])
+    .filter(Boolean)
+    .map(value => String(value))
+    .join(', ');
+
+const documentationText = (businessObject: any) =>
+  Array.isArray(businessObject?.documentation)
+    ? businessObject.documentation.map((item: any) => item?.text || '').join(' ')
+    : businessObject?.documentation?.text || '';
+
 export class RechercheService {
   private provider?: RechercheProvider;
   private context: RechercheContext = {};
-
-  private normalize(value: unknown): string {
-    return String(value ?? '')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase();
-  }
 
   setProvider(provider?: RechercheProvider) {
     this.provider = provider;
@@ -223,8 +230,7 @@ export class RechercheService {
     elementRegistry: any,
     context: RechercheContext = {},
   ): Promise<RechercheResult[]> {
-    const normalizedQuery = this.normalize(query.trim());
-    if (!normalizedQuery) return [];
+    if (!query.trim()) return [];
 
     const effectiveContext = { ...this.context, ...context };
 
@@ -232,69 +238,62 @@ export class RechercheService {
       try {
         return (await this.provider(query, effectiveContext)).slice(0, 50);
       } catch {
-        // Fallback to the local BPMN index when the provider is unavailable.
+        // Fallback to the local BPMN index when the repository provider is unavailable.
       }
     }
 
-    const elements = elementRegistry.getAll();
+    const index = new RechercheIndex();
 
-    return elements
+    elementRegistry
+      .getAll()
       .filter((element: any) => element?.businessObject)
-      .map((element: any) => {
+      .forEach((element: any) => {
         const businessObject = element.businessObject;
-        const documentation = Array.isArray(businessObject.documentation)
-          ? businessObject.documentation.map((item: any) => item?.text || '').join(' ')
-          : businessObject.documentation?.text || '';
+        const role = attributeText(businessObject, [
+          'assignee',
+          'candidateGroup',
+          'candidateGroups',
+          'candidateUser',
+          'candidateUsers',
+          'owner',
+          'role',
+        ]);
+        const raci = attributeText(businessObject, [
+          'raci',
+          'responsible',
+          'accountable',
+          'consulted',
+          'informed',
+        ]);
+        const sourceType: RechercheSourceType = role
+          ? 'role'
+          : raci
+            ? 'raci'
+            : 'bpmn';
 
-        const result: RechercheResult = {
+        index.add({
           element,
           id: element.id,
           type: businessObject.$type || '',
           name: businessObject.name || '',
           link: businessObject.link,
-          documentation,
+          documentation: documentationText(businessObject),
+          role: role || undefined,
+          raci: raci || undefined,
           processId: effectiveContext.processId,
           processName: effectiveContext.processName,
           resourceId: effectiveContext.resourceId,
           resourceType: effectiveContext.resourceType,
           resourceName: effectiveContext.resourceName,
-          sourceType: result.role ? 'role' : result.raci ? 'raci' : 'bpmn',
+          sourceType,
           metadata: {
             source: 'local-bpmn',
-            role: result.role,
-            raci: result.raci,
+            role: role || undefined,
+            raci: raci || undefined,
           },
-        };
+        });
+      });
 
-        const fields = {
-          id: this.normalize(result.id),
-          name: this.normalize(result.name),
-          type: this.normalize(result.type),
-          link: this.normalize(result.link),
-          documentation: this.normalize(result.documentation),
-          processName: this.normalize(result.processName),
-          resourceName: this.normalize(result.resourceName),
-        };
-
-        const score =
-          fields.name === normalizedQuery ? 100 :
-          fields.id === normalizedQuery ? 90 :
-          fields.name.startsWith(normalizedQuery) ? 80 :
-          fields.id.startsWith(normalizedQuery) ? 70 :
-          fields.processName === normalizedQuery ? 65 :
-          fields.name.includes(normalizedQuery) ? 60 :
-          fields.id.includes(normalizedQuery) ? 50 :
-          fields.processName.includes(normalizedQuery) ? 45 :
-          fields.type.includes(normalizedQuery) ? 30 :
-          fields.link.includes(normalizedQuery) ? 20 :
-          fields.documentation.includes(normalizedQuery) ? 10 :
-          fields.resourceName.includes(normalizedQuery) ? 10 : 0;
-
-        return { result, score };
-      })
-      .filter(({ score }) => score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 50)
-      .map(({ result }) => result);
+    return index.search(query, effectiveContext, 50);
   }
 }
