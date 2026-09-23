@@ -1,3 +1,8 @@
+/*
+============================================================
+ANCIENNE VERSION — conservée pour comparaison / retour arrière
+============================================================
+
 import { apiClient } from '../../queryClient';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import { ContentStatusEnum, type Content, type Resource } from '../../Types';
@@ -120,4 +125,101 @@ export const createRepositoryRechercheProvider = (): RechercheProvider => async 
     catch { results.push(createResourceResult(resource, context)); }
   }
   return results.map(result => ({ result, score: scoreResult(result, query) })).filter(({ score }) => score > 0).sort((a, b) => b.score - a.score).slice(0, MAX_RESULTS).map(({ result }) => result);
+};
+
+
+============================================================
+FIN ANCIENNE VERSION
+============================================================
+*/
+
+import { apiClient } from '../../queryClient';
+import { ResourceType } from '../../shared/types/BpmnResource';
+import { ContentStatusEnum, type Content, type Resource } from '../../Types';
+import { RechercheIndex } from './recherche-index';
+import type { RechercheContext, RechercheProvider, RechercheResult } from './recherche-service';
+
+const MAX_RESOURCES = 100;
+const MAX_RESULTS = 50;
+const CACHE_TTL_MS = 2 * 60 * 1000;
+
+let resourceCache: { expiresAt: number; resources: Resource[] } | undefined;
+const processCache = new Map<string, { expiresAt: number; results: RechercheResult[] }>();
+
+const documentationText = (node: Element) =>
+  Array.from(node.querySelectorAll('bpmn\\:documentation, documentation'))
+    .map(item => item.textContent || '')
+    .join(' ');
+
+const attributeText = (node: Element, names: string[]) =>
+  names
+    .flatMap(name => [node.getAttribute(name), node.getAttribute(`camunda:${name}`)])
+    .filter(Boolean)
+    .join(', ');
+
+const raciData = (node: Element) => ({
+  role: attributeText(node, ['assignee', 'candidateGroup', 'candidateGroups', 'candidateUser', 'candidateUsers', 'owner', 'role']),
+  raci: attributeText(node, ['raci', 'responsible', 'accountable', 'consulted', 'informed']),
+});
+
+const latestSearchableContent = async (resource: Resource) => {
+  const contents = (await apiClient.get(`/resources/${resource.id}/contents`)) as Content[];
+  return contents.find(({ status }) => status === ContentStatusEnum.Published) || contents.find(({ status }) => status === ContentStatusEnum.Draft);
+};
+
+const createResourceResult = (resource: Resource, context: RechercheContext): RechercheResult => ({
+  element: undefined, id: resource.id, type: String(resource.type), name: resource.name,
+  documentation: resource.description || '', processId: resource.id, processName: resource.name,
+  resourceId: resource.id, resourceType: resource.type, resourceName: resource.name, sourceType: 'process',
+  link: `/${resource.id}/modeler`,
+  metadata: { source: 'repository', kind: 'process-resource', depth: resource.depth, parentId: resource.parentId, ...context },
+});
+
+const parseProcess = (xml: string, resource: Resource, context: RechercheContext): RechercheResult[] => {
+  const document = new DOMParser().parseFromString(xml, 'application/xml');
+  const nodes = Array.from(document.getElementsByTagName('*')).filter(node =>
+    node.localName?.startsWith('task') || ['process','startEvent','endEvent','userTask','serviceTask','manualTask','scriptTask','sendTask','receiveTask','businessRuleTask','exclusiveGateway','parallelGateway','inclusiveGateway','complexGateway','eventBasedGateway','subProcess','callActivity'].includes(node.localName),
+  );
+  return nodes.map(node => {
+    const { role, raci } = raciData(node);
+    const id = node.getAttribute('id') || '';
+    const sourceType = role ? 'role' : raci ? 'raci' : 'bpmn';
+    return {
+      element: undefined, id, type: node.localName ? `bpmn:${node.localName}` : '', name: node.getAttribute('name') || '',
+      documentation: documentationText(node), role: role || undefined, raci: raci || undefined,
+      processId: context.processId, processName: resource.name, resourceId: resource.id, resourceType: resource.type, resourceName: resource.name,
+      sourceType, link: `/${resource.id}/modeler?element=${encodeURIComponent(id)}`,
+      metadata: { source: 'repository', kind: 'bpmn-element', raci: raci || undefined, role: role || undefined },
+    };
+  });
+};
+
+const getResources = async (): Promise<Resource[]> => {
+  if (resourceCache && resourceCache.expiresAt > Date.now()) return resourceCache.resources;
+  const resources = (await apiClient.get(`/resources?filter.type=${ResourceType.Process}&filter.depth=100`)) as Resource[];
+  const limited = resources.slice(0, MAX_RESOURCES);
+  resourceCache = { expiresAt: Date.now() + CACHE_TTL_MS, resources: limited };
+  return limited;
+};
+
+const getProcessIndex = async (resource: Resource, context: RechercheContext): Promise<RechercheResult[]> => {
+  const cached = processCache.get(resource.id);
+  if (cached && cached.expiresAt > Date.now()) return cached.results;
+  const content = await latestSearchableContent(resource);
+  if (!content) { const result = createResourceResult(resource, context); processCache.set(resource.id, { expiresAt: Date.now() + CACHE_TTL_MS, results: [result] }); return [result]; }
+  const xml = await apiClient.get(`/resources/${resource.id}/contents/${content.id}/content`);
+  const results = [createResourceResult(resource, context), ...parseProcess(xml, resource, { ...context, processId: resource.id, processName: resource.name })];
+  processCache.set(resource.id, { expiresAt: Date.now() + CACHE_TTL_MS, results });
+  return results;
+};
+
+export const createRepositoryRechercheProvider = (): RechercheProvider => async (query, context = {}) => {
+  if (context.scope !== 'all-processes') throw new Error('Repository provider is used for all-processes scope only');
+  const resources = await getResources();
+  const index = new RechercheIndex();
+  for (const resource of resources) {
+    try { index.addMany(await getProcessIndex(resource, context)); }
+    catch { index.add(createResourceResult(resource, context)); }
+  }
+  return index.search(query, context, MAX_RESULTS);
 };
