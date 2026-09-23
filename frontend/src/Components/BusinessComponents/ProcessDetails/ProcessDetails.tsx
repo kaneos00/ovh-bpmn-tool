@@ -93,7 +93,7 @@ export const ProcessDetails = ({
       <ConditionalRender
         condition={Boolean(draftContent) || Boolean(publishedContent)}
       >
-        <Card
+        <Card accordion
           title="Versions history"
           actions={
             <IconButton
