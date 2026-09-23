@@ -148,12 +148,14 @@ function RechercheModule(eventBus: any, elementRegistry: any, selection: any, ca
       const selected = selection.get();
       const currentElement = selected?.[0];
       const businessObject = currentElement?.businessObject;
+      const baseContext = rechercheService.getContext();
       const context: RechercheContext = {
+        ...baseContext,
         scope: scope.value as RechercheScope,
         currentElementId: currentElement?.id,
         currentElementType: businessObject?.$type,
-        processId: businessObject?.processRef?.id,
-        processName: businessObject?.processRef?.name,
+        processId: baseContext.processId ?? baseContext.resourceId ?? businessObject?.processRef?.id,
+        processName: baseContext.processName ?? baseContext.resourceName ?? businessObject?.processRef?.name,
       };
       const found = await rechercheService.search(input.value, elementRegistry, context);
       const filtered = source.value === 'all'
