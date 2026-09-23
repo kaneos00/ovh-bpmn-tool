@@ -25,6 +25,34 @@ const documentationText = (node: Element) =>
     .map(item => item.textContent || '')
     .join(' ');
 
+const attributeText = (node: Element, names: string[]) =>
+  names
+    .flatMap(name => [node.getAttribute(name), node.getAttribute(`camunda:${name}`)])
+    .filter(Boolean)
+    .join(', ');
+
+const raciData = (node: Element) => {
+  const role = attributeText(node, [
+    'assignee',
+    'candidateGroup',
+    'candidateGroups',
+    'candidateUser',
+    'candidateUsers',
+    'owner',
+    'role',
+  ]);
+
+  const raci = attributeText(node, [
+    'raci',
+    'responsible',
+    'accountable',
+    'consulted',
+    'informed',
+  ]);
+
+  return { role, raci };
+};
+
 const scoreResult = (result: RechercheResult, query: string) => {
   const q = normalize(query);
   const fields = [
@@ -105,20 +133,33 @@ const parseProcess = (
     ].includes(node.localName),
   );
 
-  return nodes.map(node => ({
-    element: undefined,
-    id: node.getAttribute('id') || '',
-    type: node.localName ? `bpmn:${node.localName}` : '',
-    name: node.getAttribute('name') || '',
-    documentation: documentationText(node),
-    processId: context.processId,
-    processName: resource.name,
-    resourceId: resource.id,
-    resourceType: resource.type,
-    resourceName: resource.name,
-    link: `/${resource.id}/modeler?element=${encodeURIComponent(node.getAttribute('id') || '')}`,
-    metadata: { source: 'repository', kind: 'bpmn-element', contentSearch: true },
-  }));
+  return nodes.map(node => {
+    const { role, raci } = raciData(node);
+    const id = node.getAttribute('id') || '';
+
+    return {
+      element: undefined,
+      id,
+      type: node.localName ? `bpmn:${node.localName}` : '',
+      name: node.getAttribute('name') || '',
+      documentation: documentationText(node),
+      role: role || undefined,
+      raci: raci || undefined,
+      processId: context.processId,
+      processName: resource.name,
+      resourceId: resource.id,
+      resourceType: resource.type,
+      resourceName: resource.name,
+      link: `/${resource.id}/modeler?element=${encodeURIComponent(id)}`,
+      metadata: {
+        source: 'repository',
+        kind: 'bpmn-element',
+        contentSearch: true,
+        raci: raci || undefined,
+        role: role || undefined,
+      },
+    };
+  });
 };
 
 const getResources = async (): Promise<Resource[]> => {
@@ -180,7 +221,6 @@ export const createRepositoryRechercheProvider = (): RechercheProvider =>
       try {
         results.push(...await getProcessIndex(resource, context));
       } catch {
-        // Continue when one process cannot be read.
         results.push(createResourceResult(resource, context));
       }
     }
