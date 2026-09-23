@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo,useState } from 'react';
 import { Await, Outlet, useParams } from 'react-router-dom';
 import { Sheet } from '@mui/joy';
 
@@ -25,6 +25,7 @@ export const Component = () => {
   const { resourceId } = useParams() as BpmnLayoutRouteParams;
 
   const { resource, contents, navigationFns, callbacks } = useBpmnLayout();
+  const [folderTreeCollapsed, setFolderTreeCollapsed] = useState(false);
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
 
   const actions = useMemo(() => {
@@ -50,13 +51,13 @@ export const Component = () => {
   return (
     <div className="mainContainer">
       <Sheet
-        className="folderTree"
+        className={`folderTree ${folderTreeCollapsed ? 'collapsed' : ''}`}
         sx={{
           position: 'sticky',
           borderRight: '1px solid',
           borderColor: 'divider',
         }}
-      >
+        >
         <FolderTree
           selectedId={resourceId}
           onNodeClick={callbacks.folderTree.onFolderTreeItemClick}
