@@ -3,24 +3,16 @@
 ANCIENNE VERSION — conservée pour comparaison / retour arrière
 ============================================================
 
-/*
-============================================================
-ANCIENNE VERSION — conservée pour comparaison / retour arrière
-============================================================
-
 import { useContext } from 'react';
 import { BpmnToolOptionsContext } from './BpmnToolOptions.provider';
 
 export const useBpmnToolOptions = () => {
   const { modelerOptions } = useContext(BpmnToolOptionsContext);
 
-  const getModelerExtensions = () => {
-    return modelerOptions?.extensions ?? {};
-  };
+  const getModelerExtensions = () => modelerOptions?.extensions ?? {};
 
   const getModelerModules = (forViewer: boolean = false) => {
     let modules = modelerOptions?.modules ?? [];
-
     if (forViewer) {
       modules = modules.filter(({ disabledInViewer }) => !disabledInViewer);
     }
@@ -28,25 +20,21 @@ export const useBpmnToolOptions = () => {
   };
 
   const getModelerProviders = () => {
-    return (modelerOptions?.providers ?? []).map(provider => {
-      return {
-        priority: 500,
-        ...provider,
-      };
-    });
+    return (modelerOptions?.providers ?? []).map(provider => ({
+      priority: 500,
+      ...provider,
+    }));
   };
 
   const getModelerDiffChangeHandler = () => {
     return modelerOptions?.diff?.changeHandler;
   };
 
-  const getModelerLinting = () => {
-    return (
-      modelerOptions?.linting || {
-        active: false,
-      }
-    );
-  };
+  const getRechercheProvider = () => modelerOptions?.rechercheProvider;
+
+  const getModelerLinting = () => (
+    modelerOptions?.linting || { active: false }
+  );
 
   return {
     getModelerExtensions,
@@ -54,69 +42,9 @@ export const useBpmnToolOptions = () => {
     getModelerProviders,
     getModelerDiffChangeHandler,
     getModelerLinting,
+    getRechercheProvider,
   };
 };
-
-
-============================================================
-FIN ANCIENNE VERSION
-============================================================
-*/
-
-/*
-============================================================
-ANCIENNE VERSION — conservée pour comparaison / retour arrière
-============================================================
-
-import { useCallback, useContext } from 'react';
-import { BpmnToolOptionsContext } from './BpmnToolOptions.provider';
-
-export const useBpmnToolOptions = () => {
-  const { modelerOptions } = useContext(BpmnToolOptionsContext);
-
-  const getModelerExtensions = () => {
-    return modelerOptions?.extensions ?? {};
-  };
-
-  const getModelerModules = (forViewer: boolean = false) => {
-    let modules = modelerOptions?.modules ?? [];
-
-    if (forViewer) {
-      modules = modules.filter(({ disabledInViewer }) => !disabledInViewer);
-    }
-    return modules.map(({ declaration }) => declaration);
-  };
-
-  const getModelerProviders = () => {
-    return (modelerOptions?.providers ?? []).map(provider => {
-      return {
-        priority: 500,
-        ...provider,
-      };
-    });
-  };
-
-  const getModelerDiffChangeHandler = () => {
-    return modelerOptions?.diff?.changeHandler;
-  };
-
-  const getModelerLinting = () => {
-    return (
-      modelerOptions?.linting || {
-        active: false,
-      }
-    );
-  };
-
-  return {
-    getModelerExtensions,
-    getModelerModules,
-    getModelerProviders,
-    getModelerDiffChangeHandler,
-    getModelerLinting,
-  };
-};
-
 
 ============================================================
 FIN ANCIENNE VERSION
@@ -129,13 +57,10 @@ import { BpmnToolOptionsContext } from './BpmnToolOptions.provider';
 export const useBpmnToolOptions = () => {
   const { modelerOptions } = useContext(BpmnToolOptionsContext);
 
-  const getModelerExtensions = () => {
-    return modelerOptions?.extensions ?? {};
-  };
+  const getModelerExtensions = () => modelerOptions?.extensions ?? {};
 
   const getModelerModules = (forViewer: boolean = false) => {
     let modules = modelerOptions?.modules ?? [];
-
     if (forViewer) {
       modules = modules.filter(({ disabledInViewer }) => !disabledInViewer);
     }
@@ -143,12 +68,10 @@ export const useBpmnToolOptions = () => {
   };
 
   const getModelerProviders = () => {
-    return (modelerOptions?.providers ?? []).map(provider => {
-      return {
-        priority: 500,
-        ...provider,
-      };
-    });
+    return (modelerOptions?.providers ?? []).map(provider => ({
+      priority: 500,
+      ...provider,
+    }));
   };
 
   const getModelerDiffChangeHandler = () => {
@@ -160,13 +83,9 @@ export const useBpmnToolOptions = () => {
     [modelerOptions?.rechercheProvider],
   );
 
-  const getModelerLinting = () => {
-    return (
-      modelerOptions?.linting || {
-        active: false,
-      }
-    );
-  };
+  const getModelerLinting = () => (
+    modelerOptions?.linting || { active: false }
+  );
 
   return {
     getModelerExtensions,
