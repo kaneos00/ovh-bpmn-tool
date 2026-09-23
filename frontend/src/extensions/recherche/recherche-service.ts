@@ -199,7 +199,7 @@ export type RechercheProvider = (
 
 const attributeText = (businessObject: any, names: string[]) =>
   names
-    .flatMap(name => [businessObject?.[name], businessObject?.`camunda:${name}`])
+    .flatMap(name => [businessObject?.[name], businessObject?.[`camunda:${name}`]])
     .filter(Boolean)
     .map(value => String(value))
     .join(', ');
