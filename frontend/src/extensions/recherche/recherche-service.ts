@@ -15,6 +15,8 @@ export type RechercheResult = {
   role?: string;
   raci?: string;
   metadata?: Record<string, unknown>;
+  resourceId?: string;
+  resourceType?: string;
 };
 
 export type RechercheContext = {
