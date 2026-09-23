@@ -1,6 +1,7 @@
-import React, { useMemo,useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Await, Outlet, useParams } from 'react-router-dom';
 import { Sheet } from '@mui/joy';
+import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 
 import { ResourceExplorer } from '../../Components/BusinessComponents/ResourceExplorer';
 import { ProcessDetails } from '../../Components/BusinessComponents/ProcessDetails';
@@ -58,6 +59,14 @@ export const Component = () => {
           borderColor: 'divider',
         }}
         >
+        <IconButton
+          size="sm"
+          variant="plain"
+          onClick={() => setFolderTreeCollapsed(!folderTreeCollapsed)}
+          sx={{ alignSelf: 'flex-end' }}
+         >
+          {folderTreeCollapsed ? <ChevronRight /> : <ChevronLeft />}
+        </IconButton>
         <FolderTree
           selectedId={resourceId}
           onNodeClick={callbacks.folderTree.onFolderTreeItemClick}
