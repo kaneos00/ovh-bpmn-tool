@@ -129,6 +129,7 @@ export type RechercheResult = {
   metadata?: Record<string, unknown>;
   resourceId?: string;
   resourceType?: string;
+  resourceName?: string;
 };
 
 export type RechercheScope = 'current-process' | 'all-processes';
