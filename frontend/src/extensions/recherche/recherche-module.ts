@@ -13,7 +13,11 @@ ANCIENNE VERSION — conservée pour comparaison / retour arrière
 ANCIENNE VERSION — conservée pour comparaison / retour arrière
 ============================================================
 
-import { RechercheService, RechercheResult } from './recherche-service';
+import {
+  RechercheContext,
+  RechercheService,
+  RechercheResult,
+} from './recherche-service';
 
 const PANEL_ID = 'bpmn-recherche-panel';
 
@@ -1794,7 +1798,22 @@ function RechercheModule(
 
     input.addEventListener('input', async () => {
       const currentRequest = ++request;
-      const found = await rechercheService.search(input.value, elementRegistry);
+      const selected = selection.get();
+      const currentElement = selected?.[0];
+      const businessObject = currentElement?.businessObject;
+
+      const context: RechercheContext = {
+        currentElementId: currentElement?.id,
+        currentElementType: businessObject?.$type,
+        processId: businessObject?.processRef?.id,
+        processName: businessObject?.processRef?.name,
+      };
+
+      const found = await rechercheService.search(
+        input.value,
+        elementRegistry,
+        context,
+      );
 
       if (currentRequest !== request) {
         return;
