@@ -87,8 +87,8 @@ export const Component = () => {
   const { getModelerInstance } = useModelerInstance();
   const bpmnModelerInstance = getModelerInstance();
   const { getRechercheProvider } = useBpmnToolOptions();
-  const { resourceId } = useParams() as ContentModelerRouteParams;
-  const { resource } = useResource(resourceId);
+  const { resourceId: routeResourceId } = useParams() as ContentModelerRouteParams;
+  const { resource } = useResource(routeResourceId);
 
   React.useEffect(() => {
     const provider = getRechercheProvider();
