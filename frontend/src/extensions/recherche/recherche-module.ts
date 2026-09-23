@@ -1643,7 +1643,13 @@ FIN ANCIENNE VERSION
 ============================================================
 */
 
-import { RechercheService, RechercheResult } from './recherche-service';
+
+import {
+  RechercheContext,
+  RechercheResult,
+  RechercheScope,
+  RechercheService,
+} from './recherche-service';
 
 const PANEL_ID = 'bpmn-recherche-panel';
 
@@ -1665,7 +1671,6 @@ function RechercheModule(
     } else if (result.link) {
       window.open(result.link, '_blank', 'noopener,noreferrer');
     }
-
     closePanel();
   }
 
@@ -1694,13 +1699,15 @@ function RechercheModule(
       button.style.cursor = 'pointer';
 
       const title = document.createElement('div');
-      title.textContent = result.name || result.id || result.processName || 'Résultat';
+      title.textContent =
+        result.name || result.id || result.processName || 'Résultat';
       title.style.fontWeight = '600';
 
       const details = document.createElement('div');
       details.textContent = [
         result.type,
         result.processName,
+        result.resourceName,
         result.role,
         result.raci,
       ]
@@ -1725,7 +1732,6 @@ function RechercheModule(
       button.appendChild(title);
       button.appendChild(details);
       button.addEventListener('click', () => selectResult(result));
-
       container.appendChild(button);
     });
   }
@@ -1733,58 +1739,87 @@ function RechercheModule(
   function openPanel() {
     const existing = document.getElementById(PANEL_ID);
     if (existing) {
-      const input = existing.querySelector('input') as HTMLInputElement | null;
-      input?.focus();
+      (existing.querySelector('input') as HTMLInputElement | null)?.focus();
       return;
     }
 
     const panel = document.createElement('div');
     panel.id = PANEL_ID;
-    panel.style.position = 'absolute';
-    panel.style.top = '16px';
-    panel.style.right = '16px';
-    panel.style.width = '360px';
-    panel.style.maxHeight = '70vh';
-    panel.style.zIndex = '100';
-    panel.style.background = '#fff';
-    panel.style.border = '1px solid #ddd';
-    panel.style.borderRadius = '6px';
-    panel.style.boxShadow = '0 4px 16px rgba(0,0,0,.18)';
-    panel.style.overflow = 'hidden';
-    panel.style.fontFamily = 'Arial, sans-serif';
+    Object.assign(panel.style, {
+      position: 'absolute',
+      top: '16px',
+      right: '16px',
+      width: '380px',
+      maxHeight: '70vh',
+      zIndex: '100',
+      background: '#fff',
+      border: '1px solid #ddd',
+      borderRadius: '6px',
+      boxShadow: '0 4px 16px rgba(0,0,0,.18)',
+      overflow: 'hidden',
+      fontFamily: 'Arial, sans-serif',
+    });
 
     const header = document.createElement('div');
-    header.style.display = 'flex';
-    header.style.alignItems = 'center';
-    header.style.gap = '8px';
-    header.style.padding = '10px';
-    header.style.borderBottom = '1px solid #ddd';
+    Object.assign(header.style, {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      padding: '10px',
+      borderBottom: '1px solid #ddd',
+    });
+
+    const scope = document.createElement('select');
+    scope.setAttribute('aria-label', 'Périmètre de recherche');
+    scope.title = 'Périmètre de recherche';
+    Object.assign(scope.style, {
+      padding: '8px 6px',
+      border: '1px solid #ccc',
+      borderRadius: '4px',
+      background: '#fff',
+    });
+
+    const currentOption = document.createElement('option');
+    currentOption.value = 'current-process';
+    currentOption.textContent = 'Ce processus';
+
+    const allOption = document.createElement('option');
+    allOption.value = 'all-processes';
+    allOption.textContent = 'Tous les processus';
+
+    scope.appendChild(currentOption);
+    scope.appendChild(allOption);
 
     const input = document.createElement('input');
     input.type = 'search';
-    input.placeholder = 'Rechercher dans le processus…';
+    input.placeholder = 'Rechercher…';
     input.autocomplete = 'off';
-    input.setAttribute('aria-label', 'Recherche dans le processus');
-    input.style.flex = '1';
-    input.style.padding = '8px';
-    input.style.border = '1px solid #ccc';
-    input.style.borderRadius = '4px';
-    input.style.outline = 'none';
+    input.setAttribute('aria-label', 'Recherche');
+    Object.assign(input.style, {
+      flex: '1',
+      padding: '8px',
+      border: '1px solid #ccc',
+      borderRadius: '4px',
+      outline: 'none',
+    });
 
     const close = document.createElement('button');
     close.type = 'button';
     close.textContent = '×';
     close.title = 'Fermer';
-    close.style.border = '0';
-    close.style.background = 'transparent';
-    close.style.fontSize = '20px';
-    close.style.cursor = 'pointer';
+    Object.assign(close.style, {
+      border: '0',
+      background: 'transparent',
+      fontSize: '20px',
+      cursor: 'pointer',
+    });
     close.addEventListener('click', closePanel);
 
     const results = document.createElement('div');
     results.style.maxHeight = '55vh';
     results.style.overflowY = 'auto';
 
+    header.appendChild(scope);
     header.appendChild(input);
     header.appendChild(close);
     panel.appendChild(header);
@@ -1796,13 +1831,14 @@ function RechercheModule(
 
     let request = 0;
 
-    input.addEventListener('input', async () => {
+    const runSearch = async () => {
       const currentRequest = ++request;
       const selected = selection.get();
       const currentElement = selected?.[0];
       const businessObject = currentElement?.businessObject;
 
       const context: RechercheContext = {
+        scope: scope.value as RechercheScope,
         currentElementId: currentElement?.id,
         currentElementType: businessObject?.$type,
         processId: businessObject?.processRef?.id,
@@ -1815,17 +1851,15 @@ function RechercheModule(
         context,
       );
 
-      if (currentRequest !== request) {
-        return;
-      }
-
+      if (currentRequest !== request) return;
       renderResults(results, found);
-    });
+    };
+
+    input.addEventListener('input', runSearch);
+    scope.addEventListener('change', runSearch);
 
     input.addEventListener('keydown', event => {
-      if (event.key === 'Escape') {
-        closePanel();
-      }
+      if (event.key === 'Escape') closePanel();
     });
 
     input.focus();
@@ -1833,22 +1867,22 @@ function RechercheModule(
 
   eventBus.on('diagram.init', () => {
     const container = canvas.getContainer();
-
     const button = document.createElement('button');
     button.type = 'button';
     button.textContent = 'Recherche';
     button.title = 'Rechercher dans le processus (Ctrl+K)';
-    button.style.position = 'absolute';
-    button.style.top = '16px';
-    button.style.left = '16px';
-    button.style.zIndex = '90';
-    button.style.padding = '7px 12px';
-    button.style.border = '1px solid #ccc';
-    button.style.borderRadius = '4px';
-    button.style.background = '#fff';
-    button.style.cursor = 'pointer';
+    Object.assign(button.style, {
+      position: 'absolute',
+      top: '16px',
+      left: '16px',
+      zIndex: '90',
+      padding: '7px 12px',
+      border: '1px solid #ccc',
+      borderRadius: '4px',
+      background: '#fff',
+      cursor: 'pointer',
+    });
     button.addEventListener('click', openPanel);
-
     container.appendChild(button);
   });
 
