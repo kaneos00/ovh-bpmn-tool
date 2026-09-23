@@ -26,7 +26,7 @@ export const useModelerInstance = () => {
 
   const getViewerInstance = (additionalOptions = {}) => {
     return new BpmnViewer({
-      additionalModules: [...getModelerModules(true)],
+      additionalModules: [...getModelerModules(true),minimapModule],
       moddleExtensions: getModelerExtensions(),
       ...additionalOptions,
     });
