@@ -25,7 +25,7 @@ class LaneOrientationPropertiesProvider {
         groups.map(group => group.id)
       );	
 
-      if (!is(element, 'bpmn:Lane')) {
+      if (!is(element, 'bpmn:Participant')) {
         return groups;
       }
 
