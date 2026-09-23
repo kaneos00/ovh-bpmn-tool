@@ -221,5 +221,5 @@ export const createRepositoryRechercheProvider = (): RechercheProvider => async 
     try { index.addMany(await getProcessIndex(resource, context)); }
     catch { index.add(createResourceResult(resource, context)); }
   }
-  return index.search(query, context, MAX_RESULTS);
+  return index.search(query, { ...context, processId: undefined, processName: undefined }, MAX_RESULTS);
 };
