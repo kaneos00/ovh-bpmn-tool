@@ -1,5 +1,4 @@
 import { apiClient } from '../../queryClient';
-import { getXmlContentQuery } from '../../api/contents/contents.queries';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import { ContentStatusEnum, type Content, type Resource } from '../../Types';
 import type {
@@ -18,7 +17,7 @@ const normalize = (value: unknown) =>
     .toLowerCase();
 
 const documentationText = (node: Element) =>
-  Array.from(node.querySelectorAll('bpmn\:documentation, documentation'))
+  Array.from(node.querySelectorAll('bpmn\\:documentation, documentation'))
     .map(item => item.textContent || '')
     .join(' ');
 
@@ -68,50 +67,28 @@ const parseProcess = (
   const nodes = Array.from(document.getElementsByTagName('*')).filter(node =>
     node.localName?.startsWith('task') ||
     [
-      'process',
-      'startEvent',
-      'endEvent',
-      'userTask',
-      'serviceTask',
-      'manualTask',
-      'scriptTask',
-      'sendTask',
-      'receiveTask',
-      'businessRuleTask',
-      'exclusiveGateway',
-      'parallelGateway',
-      'inclusiveGateway',
-      'complexGateway',
-      'eventBasedGateway',
-      'subProcess',
-      'callActivity',
+      'process', 'startEvent', 'endEvent', 'userTask', 'serviceTask',
+      'manualTask', 'scriptTask', 'sendTask', 'receiveTask',
+      'businessRuleTask', 'exclusiveGateway', 'parallelGateway',
+      'inclusiveGateway', 'complexGateway', 'eventBasedGateway',
+      'subProcess', 'callActivity',
     ].includes(node.localName),
   );
 
-  return nodes.map(node => {
-    const type = node.localName
-      ? `bpmn:${node.localName}`
-      : '';
-    const documentation = documentationText(node);
-
-    return {
-      element: undefined,
-      id: node.getAttribute('id') || '',
-      type,
-      name: node.getAttribute('name') || '',
-      documentation,
-      processId: context.processId,
-      processName: resource.name,
-      resourceId: resource.id,
-      resourceType: resource.type,
-      resourceName: resource.name,
-      link: `/${resource.id}/modeler`,
-      metadata: {
-        source: 'repository',
-        contentSearch: true,
-      },
-    };
-  });
+  return nodes.map(node => ({
+    element: undefined,
+    id: node.getAttribute('id') || '',
+    type: node.localName ? `bpmn:${node.localName}` : '',
+    name: node.getAttribute('name') || '',
+    documentation: documentationText(node),
+    processId: context.processId,
+    processName: resource.name,
+    resourceId: resource.id,
+    resourceType: resource.type,
+    resourceName: resource.name,
+    link: `/${resource.id}/modeler?element=${encodeURIComponent(node.getAttribute('id') || '')}`,
+    metadata: { source: 'repository', contentSearch: true },
+  }));
 };
 
 export const createRepositoryRechercheProvider = (): RechercheProvider =>
@@ -124,25 +101,22 @@ export const createRepositoryRechercheProvider = (): RechercheProvider =>
       `/resources?filter.type=${ResourceType.Process}&filter.depth=100`,
     )) as Resource[];
 
-    const candidates = resources.slice(0, MAX_RESOURCES);
     const results: RechercheResult[] = [];
 
-    for (const resource of candidates) {
+    for (const resource of resources.slice(0, MAX_RESOURCES)) {
       try {
         const content = await latestSearchableContent(resource);
         if (!content) continue;
-
         const xml = await apiClient.get(
           `/resources/${resource.id}/contents/${content.id}/content`,
         );
-
         results.push(...parseProcess(xml, resource, {
           ...context,
           processId: resource.id,
           processName: resource.name,
         }));
       } catch {
-        // One unreadable process must not prevent the global search.
+        // Continue when one process cannot be read.
       }
     }
 
