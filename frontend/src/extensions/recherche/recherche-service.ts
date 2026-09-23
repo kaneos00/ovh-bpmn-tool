@@ -17,8 +17,16 @@ export type RechercheResult = {
   metadata?: Record<string, unknown>;
 };
 
+export type RechercheContext = {
+  processId?: string;
+  processName?: string;
+  currentElementId?: string;
+  currentElementType?: string;
+};
+
 export type RechercheProvider = (
   query: string,
+  context?: RechercheContext,
 ) => Promise<RechercheResult[]>;
 
 export class RechercheService {
@@ -35,7 +43,11 @@ export class RechercheService {
     this.provider = provider;
   }
 
-  async search(query: string, elementRegistry: any): Promise<RechercheResult[]> {
+  async search(
+    query: string,
+    elementRegistry: any,
+    context: RechercheContext = {},
+  ): Promise<RechercheResult[]> {
     const normalizedQuery = this.normalize(query.trim());
 
     if (!normalizedQuery) {
@@ -131,7 +143,7 @@ export class RechercheService {
 
     if (this.provider) {
       try {
-        return (await this.provider(query)).slice(0, 50);
+        return (await this.provider(query, context)).slice(0, 50);
       } catch {
         // The local BPMN index remains available if the future API/AI provider
         // is temporarily unavailable.
