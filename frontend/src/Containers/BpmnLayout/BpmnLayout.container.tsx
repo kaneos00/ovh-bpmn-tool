@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Await, Outlet, useParams } from 'react-router-dom';
-import { Sheet } from '@mui/joy';
+import { Sheet, IconButton } from '@mui/joy';
 import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 
 import { ResourceExplorer } from '../../Components/BusinessComponents/ResourceExplorer';
