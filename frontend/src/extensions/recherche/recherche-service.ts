@@ -116,14 +116,31 @@ export type RechercheResult = {
   role?: string;
   raci?: string;
   metadata?: Record<string, unknown>;
+  resourceId?: string;
+  resourceType?: string;
+};
+
+export type RechercheScope = 'current-process' | 'all-processes';
+
+export type RechercheContext = {
+  scope?: RechercheScope;
+  processId?: string;
+  processName?: string;
+  currentElementId?: string;
+  currentElementType?: string;
+  resourceId?: string;
+  resourceName?: string;
+  resourceType?: string;
 };
 
 export type RechercheProvider = (
   query: string,
+  context?: RechercheContext,
 ) => Promise<RechercheResult[]>;
 
 export class RechercheService {
   private provider?: RechercheProvider;
+  private context: RechercheContext = {};
 
   private normalize(value: unknown): string {
     return String(value ?? '')
@@ -136,16 +153,33 @@ export class RechercheService {
     this.provider = provider;
   }
 
-  async search(query: string, elementRegistry: any): Promise<RechercheResult[]> {
+  setContext(context: RechercheContext = {}) {
+    this.context = { ...context };
+  }
+
+  getContext(): RechercheContext {
+    return { ...this.context };
+  }
+
+  async search(
+    query: string,
+    elementRegistry: any,
+    context: RechercheContext = {},
+  ): Promise<RechercheResult[]> {
     const normalizedQuery = this.normalize(query.trim());
 
     if (!normalizedQuery) {
       return [];
     }
 
+    const effectiveContext = {
+      ...this.context,
+      ...context,
+    };
+
     if (this.provider) {
       try {
-        return (await this.provider(query, context)).slice(0, 50);
+        return (await this.provider(query, effectiveContext)).slice(0, 50);
       } catch {
         // The local BPMN index remains available if the future API/AI provider
         // is temporarily unavailable.
@@ -171,6 +205,10 @@ export class RechercheService {
           name: businessObject.name || '',
           link: businessObject.link,
           documentation,
+          processId: effectiveContext.processId,
+          processName: effectiveContext.processName,
+          resourceId: effectiveContext.resourceId,
+          resourceType: effectiveContext.resourceType,
         };
 
         const fields = {
@@ -179,6 +217,8 @@ export class RechercheService {
           type: this.normalize(result.type),
           link: this.normalize(result.link),
           documentation: this.normalize(result.documentation),
+          processName: this.normalize(result.processName),
+          resourceName: this.normalize(effectiveContext.resourceName),
         };
 
         const score =
@@ -190,17 +230,25 @@ export class RechercheService {
                 ? 80
                 : fields.id.startsWith(normalizedQuery)
                   ? 70
-                  : fields.name.includes(normalizedQuery)
-                    ? 60
-                    : fields.id.includes(normalizedQuery)
-                      ? 50
-                      : fields.type.includes(normalizedQuery)
-                        ? 30
-                        : fields.link.includes(normalizedQuery)
-                          ? 20
-                          : fields.documentation.includes(normalizedQuery)
-                            ? 10
-                            : 0;
+                  : fields.processName === normalizedQuery
+                    ? 65
+                    : fields.processName.startsWith(normalizedQuery)
+                      ? 55
+                      : fields.name.includes(normalizedQuery)
+                        ? 60
+                        : fields.id.includes(normalizedQuery)
+                          ? 50
+                          : fields.processName.includes(normalizedQuery)
+                            ? 45
+                            : fields.type.includes(normalizedQuery)
+                              ? 30
+                              : fields.link.includes(normalizedQuery)
+                                ? 20
+                                : fields.documentation.includes(normalizedQuery)
+                                  ? 10
+                                  : fields.resourceName.includes(normalizedQuery)
+                                    ? 10
+                                    : 0;
 
         return { result, score };
       })
