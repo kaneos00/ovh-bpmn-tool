@@ -33,6 +33,7 @@ const scoreResult = (result: RechercheResult, query: string) => {
     normalize(result.type),
     normalize(result.documentation),
     normalize(result.processName),
+    normalize(result.resourceName),
     normalize(result.role),
     normalize(result.raci),
   ];
@@ -41,12 +42,12 @@ const scoreResult = (result: RechercheResult, query: string) => {
   if (fields[1] === q) return 90;
   if (fields[0].startsWith(q)) return 80;
   if (fields[1].startsWith(q)) return 70;
-  if (fields[4] === q) return 65;
+  if (fields[4] === q || fields[5] === q) return 65;
   if (fields[0].includes(q)) return 60;
   if (fields[1].includes(q)) return 50;
-  if (fields[4].includes(q)) return 45;
+  if (fields[4].includes(q) || fields[5].includes(q)) return 45;
   if (fields[2].includes(q)) return 30;
-  if (fields[5].includes(q) || fields[6].includes(q)) return 20;
+  if (fields[6].includes(q) || fields[7].includes(q)) return 20;
   if (fields[3].includes(q)) return 10;
   return 0;
 };
@@ -61,6 +62,31 @@ const latestSearchableContent = async (resource: Resource) => {
     contents.find(({ status }) => status === ContentStatusEnum.Draft)
   );
 };
+
+const createResourceResult = (
+  resource: Resource,
+  context: RechercheContext,
+): RechercheResult => ({
+  element: undefined,
+  id: resource.id,
+  type: String(resource.type),
+  name: resource.name,
+  documentation: resource.description || '',
+  processId: resource.id,
+  processName: resource.name,
+  resourceId: resource.id,
+  resourceType: resource.type,
+  resourceName: resource.name,
+  link: `/${resource.id}/modeler`,
+  metadata: {
+    source: 'repository',
+    kind: 'process-resource',
+    depth: resource.depth,
+    parentId: resource.parentId,
+    searchableDescription: true,
+    ...context,
+  },
+});
 
 const parseProcess = (
   xml: string,
@@ -91,7 +117,7 @@ const parseProcess = (
     resourceType: resource.type,
     resourceName: resource.name,
     link: `/${resource.id}/modeler?element=${encodeURIComponent(node.getAttribute('id') || '')}`,
-    metadata: { source: 'repository', contentSearch: true },
+    metadata: { source: 'repository', kind: 'bpmn-element', contentSearch: true },
   }));
 };
 
@@ -119,16 +145,19 @@ const getProcessIndex = async (
   }
 
   const content = await latestSearchableContent(resource);
-  if (!content) return [];
+  if (!content) return [createResourceResult(resource, context)];
 
   const xml = await apiClient.get(
     `/resources/${resource.id}/contents/${content.id}/content`,
   );
-  const results = parseProcess(xml, resource, {
-    ...context,
-    processId: resource.id,
-    processName: resource.name,
-  });
+  const results = [
+    createResourceResult(resource, context),
+    ...parseProcess(xml, resource, {
+      ...context,
+      processId: resource.id,
+      processName: resource.name,
+    }),
+  ];
 
   processCache.set(resource.id, {
     expiresAt: Date.now() + CACHE_TTL_MS,
@@ -152,6 +181,7 @@ export const createRepositoryRechercheProvider = (): RechercheProvider =>
         results.push(...await getProcessIndex(resource, context));
       } catch {
         // Continue when one process cannot be read.
+        results.push(createResourceResult(resource, context));
       }
     }
 
