@@ -16,8 +16,14 @@ import { useService } from 'bpmn-js-properties-panel';
 class LaneOrientationPropertiesProvider {
 
   getGroups(element: any) {
+    console.log('LANE ORIENTATION PROVIDER', element?.type);
 
     return (groups: any[]) => {
+
+      console.log(
+        'LaneOrientation groups:',
+        groups.map(group => group.id)
+      );	
 
       if (!is(element, 'bpmn:Lane')) {
         return groups;
