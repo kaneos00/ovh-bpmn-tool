@@ -62,6 +62,7 @@ FIN ANCIENNE VERSION
 ============================================================
 */
 
+
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 
@@ -74,6 +75,7 @@ import UrlPropertiesProvider from './extensions/url-properties-provider';
 // AJOUT : module qui détecte le clic sur un élément BPMN
 import UrlClickModule from './extensions/url-click-module';
 import RechercheModule from './extensions/recherche/recherche-module';
+import { createRepositoryRechercheProvider } from './extensions/recherche/recherche-repository-provider';
 
 export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
   createRoot(document.getElementById('root')!).render(
@@ -104,6 +106,10 @@ export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
 
           // AJOUT : enregistrement du module personnalisé.
           // BpmnToolOptions utilise "modules".
+          rechercheProvider:
+            options.modelerOptions?.rechercheProvider ??
+            createRepositoryRechercheProvider(),
+
           modules: [
             ...(options.modelerOptions?.modules ?? []),
             {
