@@ -75,7 +75,7 @@ export const ProcessDetails = ({
             </IconButton>
           }
         >
-          <Box marginY={2} height="30vh">
+          <Box marginY={2} height="50vh">
             <ProcessViewer
               resourceId={resourceId}
               contentId={publishedContent?.id as string}
