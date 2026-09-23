@@ -23,6 +23,16 @@ const sourceLabels: Record<string, string> = {
   ai: 'IA',
 };
 
+const sourceFilters = [
+  ['all', 'Tous'],
+  ['process', 'Processus'],
+  ['bpmn', 'BPMN'],
+  ['procedure', 'Procédures'],
+  ['role', 'Rôles'],
+  ['raci', 'RACI'],
+  ['ai', 'IA'],
+] as const;
+
 function RechercheModule(eventBus: any, elementRegistry: any, selection: any, canvas: any, rechercheService: RechercheService) {
   function closePanel() { document.getElementById(PANEL_ID)?.remove(); }
 
@@ -99,6 +109,17 @@ function RechercheModule(eventBus: any, elementRegistry: any, selection: any, ca
     const header = document.createElement('div');
     Object.assign(header.style, { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', borderBottom: '1px solid #ddd' });
 
+    const source = document.createElement('select');
+    source.setAttribute('aria-label', 'Type de résultat');
+    source.title = 'Type de résultat';
+    source.style.padding = '8px 6px';
+    sourceFilters.forEach(([value, label]) => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = label;
+      source.appendChild(option);
+    });
+
     const scope = document.createElement('select');
     scope.setAttribute('aria-label', 'Périmètre de recherche');
     scope.title = 'Périmètre de recherche';
@@ -118,7 +139,7 @@ function RechercheModule(eventBus: any, elementRegistry: any, selection: any, ca
 
     const results = document.createElement('div');
     results.style.maxHeight = '55vh'; results.style.overflowY = 'auto';
-    header.appendChild(scope); header.appendChild(input); header.appendChild(close); panel.appendChild(header); panel.appendChild(results);
+    header.appendChild(source); header.appendChild(scope); header.appendChild(input); header.appendChild(close); panel.appendChild(header); panel.appendChild(results);
     const container = canvas.getContainer(); container.style.position = container.style.position || 'relative'; container.appendChild(panel);
 
     let request = 0;
@@ -135,11 +156,15 @@ function RechercheModule(eventBus: any, elementRegistry: any, selection: any, ca
         processName: businessObject?.processRef?.name,
       };
       const found = await rechercheService.search(input.value, elementRegistry, context);
-      if (currentRequest === request) renderResults(results, found);
+      const filtered = source.value === 'all'
+        ? found
+        : found.filter(result => result.sourceType === source.value);
+      if (currentRequest === request) renderResults(results, filtered);
     };
 
     input.addEventListener('input', runSearch);
     scope.addEventListener('change', runSearch);
+    source.addEventListener('change', runSearch);
     input.addEventListener('keydown', event => { if (event.key === 'Escape') closePanel(); });
     input.focus();
   }
