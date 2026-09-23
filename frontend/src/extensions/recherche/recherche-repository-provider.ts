@@ -1,5 +1,4 @@
 import { apiClient } from '../../queryClient';
-import { resourcesQuery } from '../../api/resources/resources.queries';
 import { getXmlContentQuery } from '../../api/contents/contents.queries';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import { ContentStatusEnum, type Content, type Resource } from '../../Types';
