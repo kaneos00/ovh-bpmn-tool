@@ -87,7 +87,6 @@ export const Component = () => {
 
   React.useEffect(() => {
     const provider = getRechercheProvider();
-    if (!provider) return;
     const service = bpmnModelerInstance.get('rechercheService', false) as any;
     service?.setProvider(provider);
   }, [bpmnModelerInstance, getRechercheProvider]);
