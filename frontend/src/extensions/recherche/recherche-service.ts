@@ -15,20 +15,10 @@ export type RechercheResult = {
   role?: string;
   raci?: string;
   metadata?: Record<string, unknown>;
-  resourceId?: string;
-  resourceType?: string;
-};
-
-export type RechercheContext = {
-  processId?: string;
-  processName?: string;
-  currentElementId?: string;
-  currentElementType?: string;
 };
 
 export type RechercheProvider = (
   query: string,
-  context?: RechercheContext,
 ) => Promise<RechercheResult[]>;
 
 export class RechercheService {
@@ -45,11 +35,7 @@ export class RechercheService {
     this.provider = provider;
   }
 
-  async search(
-    query: string,
-    elementRegistry: any,
-    context: RechercheContext = {},
-  ): Promise<RechercheResult[]> {
+  async search(query: string, elementRegistry: any): Promise<RechercheResult[]> {
     const normalizedQuery = this.normalize(query.trim());
 
     if (!normalizedQuery) {
@@ -57,7 +43,12 @@ export class RechercheService {
     }
 
     if (this.provider) {
-      return this.provider(query);
+      try {
+        return (await this.provider(query)).slice(0, 50);
+      } catch {
+        // The local BPMN index remains available if the future API/AI provider
+        // is temporarily unavailable.
+      }
     }
 
     const elements = elementRegistry.getAll();
@@ -72,7 +63,7 @@ export class RechercheService {
               .join(' ')
           : businessObject.documentation?.text || '';
 
-        return {
+        const result: RechercheResult = {
           element,
           id: element.id,
           type: businessObject.$type || '',
@@ -80,24 +71,44 @@ export class RechercheService {
           link: businessObject.link,
           documentation,
         };
-      })
-      .filter((result: RechercheResult) => {
-        const haystack = [
-          result.id,
-          result.type,
-          result.name,
-          result.link || '',
-          result.documentation || '',
-        ]
-          .join(' ')
-          .toLowerCase();
 
-        return this.normalize(haystack).includes(normalizedQuery);
+        const fields = {
+          id: this.normalize(result.id),
+          name: this.normalize(result.name),
+          type: this.normalize(result.type),
+          link: this.normalize(result.link),
+          documentation: this.normalize(result.documentation),
+        };
+
+        const score =
+          fields.name === normalizedQuery
+            ? 100
+            : fields.id === normalizedQuery
+              ? 90
+              : fields.name.startsWith(normalizedQuery)
+                ? 80
+                : fields.id.startsWith(normalizedQuery)
+                  ? 70
+                  : fields.name.includes(normalizedQuery)
+                    ? 60
+                    : fields.id.includes(normalizedQuery)
+                      ? 50
+                      : fields.type.includes(normalizedQuery)
+                        ? 30
+                        : fields.link.includes(normalizedQuery)
+                          ? 20
+                          : fields.documentation.includes(normalizedQuery)
+                            ? 10
+                            : 0;
+
+        return { result, score };
       })
-      .slice(0, 50);
+      .filter(({ score }) => score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 50)
+      .map(({ result }) => result);
   }
 }
-
 
 ============================================================
 FIN ANCIENNE VERSION
@@ -258,3 +269,4 @@ export class RechercheService {
       .map(({ result }) => result);
   }
 }
+
