@@ -9,6 +9,10 @@ import type {
 
 const MAX_RESOURCES = 100;
 const MAX_RESULTS = 50;
+const CACHE_TTL_MS = 2 * 60 * 1000;
+
+let resourceCache: { expiresAt: number; resources: Resource[] } | undefined;
+const processCache = new Map<string, { expiresAt: number; results: RechercheResult[] }>();
 
 const normalize = (value: unknown) =>
   String(value ?? '')
@@ -91,30 +95,61 @@ const parseProcess = (
   }));
 };
 
+const getResources = async (): Promise<Resource[]> => {
+  if (resourceCache && resourceCache.expiresAt > Date.now()) {
+    return resourceCache.resources;
+  }
+
+  const resources = (await apiClient.get(
+    `/resources?filter.type=${ResourceType.Process}&filter.depth=100`,
+  )) as Resource[];
+
+  const limited = resources.slice(0, MAX_RESOURCES);
+  resourceCache = { expiresAt: Date.now() + CACHE_TTL_MS, resources: limited };
+  return limited;
+};
+
+const getProcessIndex = async (
+  resource: Resource,
+  context: RechercheContext,
+): Promise<RechercheResult[]> => {
+  const cached = processCache.get(resource.id);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.results;
+  }
+
+  const content = await latestSearchableContent(resource);
+  if (!content) return [];
+
+  const xml = await apiClient.get(
+    `/resources/${resource.id}/contents/${content.id}/content`,
+  );
+  const results = parseProcess(xml, resource, {
+    ...context,
+    processId: resource.id,
+    processName: resource.name,
+  });
+
+  processCache.set(resource.id, {
+    expiresAt: Date.now() + CACHE_TTL_MS,
+    results,
+  });
+
+  return results;
+};
+
 export const createRepositoryRechercheProvider = (): RechercheProvider =>
   async (query, context = {}) => {
     if (context.scope !== 'all-processes') {
       throw new Error('Repository provider is used for all-processes scope only');
     }
 
-    const resources = (await apiClient.get(
-      `/resources?filter.type=${ResourceType.Process}&filter.depth=100`,
-    )) as Resource[];
-
+    const resources = await getResources();
     const results: RechercheResult[] = [];
 
-    for (const resource of resources.slice(0, MAX_RESOURCES)) {
+    for (const resource of resources) {
       try {
-        const content = await latestSearchableContent(resource);
-        if (!content) continue;
-        const xml = await apiClient.get(
-          `/resources/${resource.id}/contents/${content.id}/content`,
-        );
-        results.push(...parseProcess(xml, resource, {
-          ...context,
-          processId: resource.id,
-          processName: resource.name,
-        }));
+        results.push(...await getProcessIndex(resource, context));
       } catch {
         // Continue when one process cannot be read.
       }
