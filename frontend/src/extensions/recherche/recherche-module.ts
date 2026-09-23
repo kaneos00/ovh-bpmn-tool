@@ -1444,21 +1444,21 @@ function RechercheModule(
   elementRegistry: any,
   selection: any,
   canvas: any,
+  rechercheService: RechercheService,
 ) {
-  const service = new RechercheService();
-
   function closePanel() {
     document.getElementById(PANEL_ID)?.remove();
   }
 
   function selectResult(result: RechercheResult) {
-    selection.select(result.element);
-    canvas.scrollToElement(result.element);
-
-    const panel = document.getElementById(PANEL_ID);
-    if (panel) {
-      panel.remove();
+    if (result.element) {
+      selection.select(result.element);
+      canvas.scrollToElement(result.element);
+    } else if (result.link) {
+      window.open(result.link, '_blank', 'noopener,noreferrer');
     }
+
+    closePanel();
   }
 
   function renderResults(container: HTMLElement, results: RechercheResult[]) {
@@ -1486,16 +1486,33 @@ function RechercheModule(
       button.style.cursor = 'pointer';
 
       const title = document.createElement('div');
-      title.textContent = result.name || result.id;
+      title.textContent = result.name || result.id || result.processName || 'Résultat';
       title.style.fontWeight = '600';
 
       const details = document.createElement('div');
-      details.textContent = result.name
-        ? `${result.id} · ${result.type}`
-        : result.type;
+      details.textContent = [
+        result.type,
+        result.processName,
+        result.role,
+        result.raci,
+      ]
+        .filter(Boolean)
+        .join(' · ');
       details.style.fontSize = '11px';
       details.style.color = '#777';
       details.style.marginTop = '2px';
+
+      if (result.documentation) {
+        const documentation = document.createElement('div');
+        documentation.textContent = result.documentation;
+        documentation.style.fontSize = '11px';
+        documentation.style.color = '#555';
+        documentation.style.marginTop = '4px';
+        documentation.style.whiteSpace = 'nowrap';
+        documentation.style.overflow = 'hidden';
+        documentation.style.textOverflow = 'ellipsis';
+        button.appendChild(documentation);
+      }
 
       button.appendChild(title);
       button.appendChild(details);
@@ -1539,6 +1556,7 @@ function RechercheModule(
     input.type = 'search';
     input.placeholder = 'Rechercher dans le processus…';
     input.autocomplete = 'off';
+    input.setAttribute('aria-label', 'Recherche dans le processus');
     input.style.flex = '1';
     input.style.padding = '8px';
     input.style.border = '1px solid #ccc';
@@ -1572,13 +1590,19 @@ function RechercheModule(
 
     input.addEventListener('input', async () => {
       const currentRequest = ++request;
-      const found = await service.search(input.value, elementRegistry);
+      const found = await rechercheService.search(input.value, elementRegistry);
 
       if (currentRequest !== request) {
         return;
       }
 
       renderResults(results, found);
+    });
+
+    input.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        closePanel();
+      }
     });
 
     input.focus();
@@ -1612,7 +1636,7 @@ function RechercheModule(
     }
   });
 
-  (eventBus as any).on('diagram.destroy', closePanel);
+  eventBus.on('diagram.destroy', closePanel);
 }
 
 RechercheModule.$inject = [
@@ -1620,6 +1644,7 @@ RechercheModule.$inject = [
   'elementRegistry',
   'selection',
   'canvas',
+  'rechercheService',
 ];
 
 export default {
