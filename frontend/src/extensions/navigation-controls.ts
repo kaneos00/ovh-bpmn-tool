@@ -1,5 +1,4 @@
 function NavigationControls(eventBus: any, canvas: any) {
-  let controls: HTMLDivElement | null = null;
   let panning = false;
   let lastX = 0;
   let lastY = 0;
@@ -23,46 +22,6 @@ function NavigationControls(eventBus: any, canvas: any) {
 
   function resetZoom() {
     canvas.zoom(1);
-  }
-
-  function createButton(
-    label: string,
-    title: string,
-    action: () => void,
-  ): HTMLButtonElement {
-    const button = document.createElement('button');
-
-    button.type = 'button';
-    button.className = 'bpmn-tool-navigation-button';
-    button.textContent = label;
-    button.title = title;
-
-    button.addEventListener('click', event => {
-      event.preventDefault();
-      event.stopPropagation();
-      action();
-    });
-
-    return button;
-  }
-
-  function createControls() {
-    if (controls) {
-      return;
-    }
-
-    const container = document.body;
-
-    controls = document.createElement('div');
-    controls.className = 'bpmn-tool-navigation-controls';
-    controls.setAttribute('aria-label', 'Navigation du diagramme');
-
-    controls.appendChild(createButton('+', 'Zoom avant', () => zoom(zoomStep)));
-    controls.appendChild(createButton('−', 'Zoom arrière', () => zoom(1 / zoomStep)));
-    controls.appendChild(createButton('1:1', 'Réinitialiser le zoom', resetZoom));
-    controls.appendChild(createButton('⛶', 'Ajuster le diagramme à la fenêtre', fitViewport));
-
-    container.appendChild(controls);
   }
 
   function startPan(event: MouseEvent) {
@@ -104,9 +63,6 @@ function NavigationControls(eventBus: any, canvas: any) {
     panning = false;
   }
 
-  // Create the controls immediately: the module can be initialized before canvas.init.
-  createControls();
-
   eventBus.on('canvas.init', () => {
 
     const container = canvas.getContainer();
@@ -119,8 +75,6 @@ function NavigationControls(eventBus: any, canvas: any) {
   });
 
   eventBus.on('destroy', () => {
-    controls?.remove();
-    controls = null;
     panning = false;
   });
 }
