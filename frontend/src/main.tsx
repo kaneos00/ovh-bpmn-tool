@@ -67,7 +67,7 @@ export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
           ],
         },
       }}
-    />,
+    />
   );
 };
 
@@ -90,6 +90,8 @@ import CommentsModule from 'bpmn-js-embedded-comments';
 import MinimapModule from 'diagram-js-minimap';
 import { createRepositoryRechercheProvider } from './extensions/recherche/recherche-repository-provider';
 import LaneOrientationPropertiesProvider from './extensions/lane-orientation-properties-provider';
+import CommentsPropertiesProvider from './extensions/comments-properties-provider';
+import CommentsOverlayVisibilityModule from './extensions/comments-overlay-visibility';
 
 export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
   createRoot(document.getElementById('root')!).render(
@@ -114,6 +116,10 @@ export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
               priority: 501,
               instance: LaneOrientationPropertiesProvider,
             },
+            {
+              priority: 499,
+              instance: CommentsPropertiesProvider,
+            },
           ],
 
           rechercheProvider:
@@ -135,6 +141,10 @@ export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
             {
               disabledInViewer: true,
               declaration: CommentsModule,
+            },
+            {
+              disabledInViewer: true,
+              declaration: CommentsOverlayVisibilityModule,
             },
           ],
         },
