@@ -48,7 +48,9 @@
     "react-virtuoso": "^4.10.1",
     "react-window": "^1.8.10",
     "styled-components": "^6.1.12",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "diagram-js-grid": "^1.0.0",
+    "diagram-js-minimap": "^5.1.0"
   },
   "devDependencies": {
     "@spotify/eslint-config": "^15.0.0",
