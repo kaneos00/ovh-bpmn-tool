@@ -56,8 +56,11 @@
   position: absolute;
   right: 10px;
   bottom: 10px;
-  z-index: 1000;
+  z-index: 1100;
   display: flex;
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
   align-items: center;
   gap: 2px;
   padding: 4px;
