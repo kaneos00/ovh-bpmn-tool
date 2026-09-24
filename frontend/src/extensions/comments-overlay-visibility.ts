@@ -1,8 +1,12 @@
-function CommentsOverlayVisibility(eventBus, overlays, comments) {
-  function setVisibility(element, visible) {
+function CommentsOverlayVisibility(
+  eventBus: any,
+  overlays: any,
+  comments: any,
+) {
+  function setVisibility(element: any, visible: boolean) {
     const overlay = overlays.get({
       element,
-      type: 'comments'
+      type: 'comments',
     })[0];
 
     if (!overlay || !overlay.html) {
@@ -12,14 +16,14 @@ function CommentsOverlayVisibility(eventBus, overlays, comments) {
     overlay.html[visible ? 'addClass' : 'removeClass']('with-comments');
   }
 
-  eventBus.on('comments.added', function(event) {
+  eventBus.on('comments.added', function(event: any) {
     setVisibility(event.element, true);
   });
 
-  eventBus.on('comments.removed', function(event) {
+  eventBus.on('comments.removed', function(event: any) {
     setVisibility(
       event.element,
-      comments.getComments(event.element).length > 0
+      comments.getComments(event.element).length > 0,
     );
   });
 }
@@ -28,5 +32,5 @@ CommentsOverlayVisibility.$inject = [ 'eventBus', 'overlays', 'comments' ];
 
 export default {
   __init__: [ 'commentsOverlayVisibility' ],
-  commentsOverlayVisibility: [ 'type', CommentsOverlayVisibility ]
+  commentsOverlayVisibility: [ 'type', CommentsOverlayVisibility ],
 };
