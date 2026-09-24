@@ -90,7 +90,6 @@ import CommentsModule from 'bpmn-js-embedded-comments';
 import MinimapModule from 'diagram-js-minimap';
 import { createRepositoryRechercheProvider } from './extensions/recherche/recherche-repository-provider';
 import LaneOrientationPropertiesProvider from './extensions/lane-orientation-properties-provider';
-import CommentsModule from 'bpmn-js-embedded-comments';
 
 export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
   createRoot(document.getElementById('root')!).render(
