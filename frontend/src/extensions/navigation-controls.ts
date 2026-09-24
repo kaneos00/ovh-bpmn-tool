@@ -66,12 +66,17 @@ function NavigationControls(eventBus: any, canvas: any) {
   }
 
   function startPan(event: MouseEvent) {
-    if (event.button !== 2 && event.button !== 1) {
+    if (event.button !== 0 && event.button !== 2) {
       return;
     }
 
-    if (event.button === 1 && !event.shiftKey && !event.ctrlKey && !event.metaKey) {
-      return;
+    // Left click pans only when the user starts on an empty canvas.
+    if (event.button === 0) {
+      const target = event.target as HTMLElement;
+
+      if (target.closest('.djs-visual, .djs-element, .djs-connection, .bpmn-tool-navigation-controls')) {
+        return;
+      }
     }
 
     panning = true;
