@@ -1,4 +1,4 @@
-function CommentsOverlayVisibility(eventBus, overlays) {
+function CommentsOverlayVisibility(eventBus, overlays, comments) {
   function setVisibility(element, visible) {
     const overlay = overlays.get({
       element,
@@ -17,11 +17,14 @@ function CommentsOverlayVisibility(eventBus, overlays) {
   });
 
   eventBus.on('comments.removed', function(event) {
-    setVisibility(event.element, event.comments?.length > 0);
+    setVisibility(
+      event.element,
+      comments.getComments(event.element).length > 0
+    );
   });
 }
 
-CommentsOverlayVisibility.$inject = [ 'eventBus', 'overlays' ];
+CommentsOverlayVisibility.$inject = [ 'eventBus', 'overlays', 'comments' ];
 
 export default {
   __init__: [ 'commentsOverlayVisibility' ],
