@@ -104,8 +104,10 @@ function NavigationControls(eventBus: any, canvas: any) {
     panning = false;
   }
 
+  // Create the controls immediately: the module can be initialized before canvas.init.
+  createControls();
+
   eventBus.on('canvas.init', () => {
-    createControls();
 
     const container = canvas.getContainer();
 
