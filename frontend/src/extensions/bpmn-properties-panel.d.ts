@@ -36,10 +36,13 @@ declare module '@bpmn-io/properties-panel' {
 declare module 'bpmn-js-properties-panel' {
   export function useService(type: string, strict?: boolean): any;
 }
+
 declare module 'bpmn-js-embedded-comments' {
   const module: any;
   export default module;
-}declare module 'diagram-js-minimap' {
+}
+
+declare module 'diagram-js-minimap' {
   const module: any;
   export default module;
 }
