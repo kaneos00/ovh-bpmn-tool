@@ -24,8 +24,12 @@ const asArray = <T,>(value: unknown): T[] => {
     const record = value as Record<string, unknown>;
 
     for (const key of ['items', 'resources', 'contents', 'data']) {
-      if (Array.isArray(record[key])) {
-        return record[key] as T[];
+      const candidate = record[key];
+      if (Array.isArray(candidate)) return candidate as T[];
+
+      if (candidate && typeof candidate === 'object') {
+        const nested = asArray<T>(candidate);
+        if (nested.length > 0) return nested;
       }
     }
   }
