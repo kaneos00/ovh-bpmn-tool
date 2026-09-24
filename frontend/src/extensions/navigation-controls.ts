@@ -108,7 +108,7 @@ function NavigationControls(eventBus: any, canvas: any) {
     container.addEventListener('mousemove', movePan);
     container.addEventListener('mouseup', stopPan);
     container.addEventListener('mouseleave', stopPan);
-    container.addEventListener('contextmenu', event => event.preventDefault());
+    container.addEventListener('contextmenu', (event: MouseEvent) => event.preventDefault());
   });
 
   eventBus.on('destroy', () => {
