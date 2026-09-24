@@ -45,6 +45,40 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
     }    
 
     propertiesPanel.attachTo(diagramPropertiesRef.current);
+
+    const canvas = bpmnModelerInstance.get('canvas') as any;
+    const controls = diagramContainerRef.current.querySelector(
+      '.bpmn-tool-navigation-controls',
+    );
+
+    if (controls) {
+      const zoom = (factor: number) => {
+        const current = canvas.zoom();
+        const rect = diagramContainerRef.current!.getBoundingClientRect();
+        canvas.zoom(current * factor, {
+          x: rect.width / 2,
+          y: rect.height / 2,
+        });
+      };
+
+      const handlers: Record<string, () => void> = {
+        'zoom-in': () => zoom(1.2),
+        'zoom-out': () => zoom(1 / 1.2),
+        reset: () => canvas.zoom(1),
+        fit: () => canvas.zoom('fit-viewport'),
+      };
+
+      controls.querySelectorAll<HTMLButtonElement>(
+        '[data-navigation-action]',
+      ).forEach(button => {
+        const action = button.dataset.navigationAction;
+        const handler = action ? handlers[action] : undefined;
+
+        if (handler) {
+          button.addEventListener('click', handler);
+        }
+      });
+    }
   };
 
   useEffect(() => {
