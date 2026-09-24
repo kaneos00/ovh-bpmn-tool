@@ -3,13 +3,6 @@
 ANCIENNE VERSION — conservée pour comparaison / retour arrière
 ============================================================
 
-[ancienne version conservée dans le commit précédent]
-
-============================================================
-FIN ANCIENNE VERSION
-============================================================
-*/
-
 import React from 'react';
 import { Box, IconButton, Skeleton, Stack, List, ListItem } from '@mui/joy';
 import { Compare, FileCopy } from '@mui/icons-material';
@@ -50,9 +43,7 @@ export const ProcessDetails = ({
     contentIdsToCompare,
     onFilesUploaded,
     onContentChecked,
-  } = useProcessDetails(resourceId, {
-    onContentUpload,
-  });
+  } = useProcessDetails(resourceId, { onContentUpload });
 
   if (isLoading) {
     return (
@@ -66,63 +57,19 @@ export const ProcessDetails = ({
   return (
     <>
       <ConditionalRender condition={Boolean(publishedContent)}>
-        <Card
-          title={`Last published version: ${
-            publishedContent?.version ?? 'N/A'
-          }`}
-          actions={
-            <IconButton
-              title="Copy link"
-              variant="plain"
-              color="neutral"
-              size="sm"
-              sx={{ position: 'absolute', top: '0.875rem', right: '0.5rem' }}
-              onClick={() => {
-                if (publishedContent) {
-                  onContentViewerLinkCopy(publishedContent.id);
-                }
-              }}
-            >
-              <FileCopy />
-            </IconButton>
-          }
-        >
+        <Card title={`Last published version: ${publishedContent?.version ?? 'N/A'}`}>
           <Box marginY={2} height="30vh">
-            <ProcessViewer
-              resourceId={resourceId}
-              contentId={publishedContent?.id as string}
-            />
+            <ProcessViewer resourceId={resourceId} contentId={publishedContent?.id as string} />
           </Box>
         </Card>
       </ConditionalRender>
-
       <ConditionalRender condition={Boolean(!contents.length)}>
         <Card title="Upload a Draft Diagram">
           <DropZone onFileUploaded={onFilesUploaded} />
         </Card>
       </ConditionalRender>
-
-      <ConditionalRender
-        condition={Boolean(draftContent) || Boolean(publishedContent)}
-      >
-        <Card
-          title="Versions history"
-          actions={
-            <IconButton
-              title="Compare"
-              variant="plain"
-              color="neutral"
-              size="sm"
-              disabled={isCompareDisabled}
-              sx={{ position: 'absolute', top: '0.875rem', right: '0.5rem' }}
-              onClick={() =>
-                onCompareClick(contentIdsToCompare[0], contentIdsToCompare[1])
-              }
-            >
-              <Compare />
-            </IconButton>
-          }
-        >
+      <ConditionalRender condition={Boolean(draftContent) || Boolean(publishedContent)}>
+        <Card title="Versions history">
           <ProcessContentList
             contents={contents}
             onContentChecked={onContentChecked}
@@ -132,7 +79,6 @@ export const ProcessDetails = ({
           />
         </Card>
       </ConditionalRender>
-
       <ConditionalRender condition={Boolean(tasks.length)}>
         <Card accordion title={`Activities (${tasks.length})`}>
           <List>
@@ -210,9 +156,7 @@ export const ProcessDetails = ({
     <>
       <ConditionalRender condition={Boolean(publishedContent)}>
         <Card
-          title={`Last published version: ${
-            publishedContent?.version ?? 'N/A'
-          }`}
+          title={`Last published version: ${publishedContent?.version ?? 'N/A'}`}
           actions={
             <IconButton
               title="Copy link"
@@ -220,11 +164,7 @@ export const ProcessDetails = ({
               color="neutral"
               size="sm"
               sx={{ position: 'absolute', top: '0.875rem', right: '0.5rem' }}
-              onClick={() => {
-                if (publishedContent) {
-                  onContentViewerLinkCopy(publishedContent.id);
-                }
-              }}
+              onClick={() => publishedContent && onContentViewerLinkCopy(publishedContent.id)}
             >
               <FileCopy />
             </IconButton>
@@ -245,10 +185,9 @@ export const ProcessDetails = ({
         </Card>
       </ConditionalRender>
 
-      <ConditionalRender
-        condition={Boolean(draftContent) || Boolean(publishedContent)}
-      >
-        <Card accordion
+      <ConditionalRender condition={Boolean(draftContent) || Boolean(publishedContent)}>
+        <Card
+          accordion
           title="Versions history"
           actions={
             <IconButton
@@ -258,9 +197,7 @@ export const ProcessDetails = ({
               size="sm"
               disabled={isCompareDisabled}
               sx={{ position: 'absolute', top: '0.875rem', right: '0.5rem' }}
-              onClick={() =>
-                onCompareClick(contentIdsToCompare[0], contentIdsToCompare[1])
-              }
+              onClick={() => onCompareClick(contentIdsToCompare[0], contentIdsToCompare[1])}
             >
               <Compare />
             </IconButton>
