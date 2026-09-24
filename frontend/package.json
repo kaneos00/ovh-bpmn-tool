@@ -17,8 +17,7 @@
     "build": "tsc && vite build",
     "format": "prettier --write \"src/**/*.{ts,js}\"",
     "format:check": "prettier --check \"src/**/*.{ts,js}\"",
-    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "build:legacy-comment": "echo \"ANCIENNE VERSION: camunda-bpmn-js ^5.34.0 était déclaré dans package.json mais non synchronisé avec pnpm-lock.yaml\""
+    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
     "@emotion/react": "^11.13.3",
@@ -46,7 +45,7 @@
     "react-hook-form": "^7.53.0",
     "react-query": "^3.39.3",
     "react-router-dom": "^6.26.1",
-    "react-virtuoso": "^4.10.0",
+    "react-virtuoso": "^4.10.1",
     "react-window": "^1.8.10",
     "styled-components": "^6.1.12",
     "uuid": "^9.0.0"
@@ -66,7 +65,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.1",
     "prettier": "^2.8.8",
-    "react-dom": "^18.3.1",
+    "react-dom": "^18.3.0",
     "sass": "^1.77.8",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.5.4",
@@ -74,5 +73,8 @@
     "vite-plugin-ejs": "1.6.4",
     "vite-tsconfig-paths": "^4.2.0"
   },
-  "prettier": "@spotify/prettier-config"
+  "prettier": "@spotify/prettier-config",
+  "ANCIENNE VERSION": {
+    "camunda-bpmn-js": "^5.34.0"
+  }
 }
