@@ -5,7 +5,6 @@ function RechercheModule(
   elementRegistry: any,
   selection: any,
   canvas: any,
-  rechercheService: RechercheService,
 ) {
   function focusElementFromUrl() {
     const elementId = new URLSearchParams(window.location.search).get('element');
