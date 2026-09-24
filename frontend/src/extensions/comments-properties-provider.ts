@@ -6,11 +6,6 @@ import { useService } from 'bpmn-js-properties-panel';
 const PRIORITY = 499;
 
 class CommentsPropertiesProvider {
-  constructor(propertiesPanel: any, translate: any) {
-    propertiesPanel.registerProvider(PRIORITY, this);
-    this.translate = translate;
-  }
-
   getGroups(element: any) {
     return (groups: any[]) => {
       if (!is(element, 'bpmn:FlowNode')) {
@@ -19,7 +14,7 @@ class CommentsPropertiesProvider {
 
       groups.push({
         id: 'comments',
-        label: this.translate('Commentaires'),
+        label: 'Commentaires',
         entries: [
           {
             id: 'comments-entry',
@@ -33,8 +28,6 @@ class CommentsPropertiesProvider {
     };
   }
 }
-
-CommentsPropertiesProvider.$inject = [ 'propertiesPanel', 'translate' ];
 
 function CommentsEntry(props: any) {
   const { element } = props;
@@ -54,7 +47,7 @@ function CommentsEntry(props: any) {
     const events = [
       'comments.added',
       'comments.removed',
-      'comments.updated'
+      'comments.updated',
     ];
 
     events.forEach(event => eventBus.on(event, refresh));
@@ -73,7 +66,7 @@ function CommentsEntry(props: any) {
 
     comments.addComment(element, {
       author: '',
-      text
+      text,
     });
 
     setValue('');
