@@ -119,7 +119,10 @@ export const invalidateRepositoryRechercheIndex = () => {
 };
 
 export const createRepositoryRechercheProvider = (): RechercheProvider => async (query, context = {}) => {
-  if (context.scope !== 'all-processes') throw new Error('Repository provider is used for all-processes scope only');
   const index = await getRepositoryIndex();
-  return index.search(query, { ...context, processId: undefined, processName: undefined }, MAX_RESULTS);
+  return index.search(query, {
+    ...context,
+    processId: context.scope === 'current-process' ? context.processId : undefined,
+    processName: context.scope === 'current-process' ? context.processName : undefined,
+  }, MAX_RESULTS);
 };
