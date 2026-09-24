@@ -51,7 +51,7 @@ function NavigationControls(eventBus: any, canvas: any) {
       return;
     }
 
-    const container = canvas.getContainer();
+    const container = document.body;
 
     controls = document.createElement('div');
     controls.className = 'bpmn-tool-navigation-controls';
