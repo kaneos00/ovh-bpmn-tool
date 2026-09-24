@@ -79,7 +79,9 @@ const parseProcess = (xml: string, resource: Resource): RechercheResult[] => {
 
 const getResources = async (): Promise<Resource[]> => {
   if (resourceCache && resourceCache.expiresAt > Date.now()) return resourceCache.resources;
-  const resources = (await apiClient.get(`/resources?filter.type=${ResourceType.Process}&filter.depth=100`)) as Resource[];
+  const rawResources = await apiClient.get(`/resources?filter.type=${ResourceType.Process}&filter.depth=100`);
+  const resources = Array.isArray(rawResources) ? rawResources : [];
+  console.debug('[Recherche] repository:resources', { rawType: typeof rawResources, rawKeys: rawResources && typeof rawResources === 'object' ? Object.keys(rawResources) : [], count: resources.length });
   const limited = resources.slice(0, MAX_RESOURCES);
   resourceCache = { expiresAt: Date.now() + CACHE_TTL_MS, resources: limited };
   repositoryIndexCache = undefined;
@@ -106,6 +108,7 @@ const getRepositoryIndex = async (): Promise<RechercheIndex> => {
 
   const resources = await getResources();
   const index = new RechercheIndex();
+  console.debug('[Recherche] repository:index:start', { resources: resources.length });
   for (const resource of resources) {
     try {
       index.addMany(await getProcessIndex(resource));
@@ -114,6 +117,7 @@ const getRepositoryIndex = async (): Promise<RechercheIndex> => {
     }
   }
   repositoryIndexCache = { expiresAt: Date.now() + CACHE_TTL_MS, index };
+  console.debug('[Recherche] repository:index:done', { entries: index.all().length, sample: index.all().slice(0, 3) });
   return index;
 };
 
@@ -125,9 +129,11 @@ export const invalidateRepositoryRechercheIndex = () => {
 
 export const createRepositoryRechercheProvider = (): RechercheProvider => async (query, context = {}) => {
   const index = await getRepositoryIndex();
-  return index.search(query, {
+  const results = index.search(query, {
     ...context,
     processId: context.scope === 'current-process' ? context.processId : undefined,
     processName: context.scope === 'current-process' ? context.processName : undefined,
   }, MAX_RESULTS);
+  console.debug('[Recherche] repository:search', { query, context, entries: index.all().length, count: results.length, results });
+  return results;
 };
