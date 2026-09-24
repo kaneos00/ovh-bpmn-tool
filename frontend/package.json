@@ -73,7 +73,7 @@
     "typescript": "^5.5.4",
     "vite": "^4.4.0",
     "vite-plugin-ejs": "1.6.4",
-    "vite-tsconfig-paths": "^4.0.0"
+    "vite-tsconfig-paths": "^4.2.0"
   },
   "prettier": "@spotify/prettier-config"
 }
