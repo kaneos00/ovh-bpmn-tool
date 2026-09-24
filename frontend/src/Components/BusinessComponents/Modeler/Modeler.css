@@ -50,6 +50,45 @@
   padding: 4px;
 }
 
+/* Zoom / navigation controls */
+
+.bpmn-tool-navigation-controls {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  background: white;
+  border: 1px solid #cdd7e1;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.bpmn-tool-navigation-button {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 4px;
+  background: white;
+  color: #32383e;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bpmn-tool-navigation-button:hover {
+  background: #eef3f8;
+  color: #185ea5;
+}
+
+.bpmn-tool-navigation-button:active {
+  background: #dfe8f0;
+}
+
 .djs-palette {
   background-color: white;
   border-radius: 6px;
