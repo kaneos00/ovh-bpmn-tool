@@ -180,7 +180,8 @@ function RechercheModule(eventBus: any, elementRegistry: any, selection: any, ca
       if (currentRequest === request) renderResults(results, filtered);
     };
 
-    input.addEventListener('input', runSearch);\n    searchButton.addEventListener('click', runSearch);
+    input.addEventListener('input', runSearch);
+    searchButton.addEventListener('click', runSearch);
     scope.addEventListener('change', runSearch);
     source.addEventListener('change', runSearch);
     input.addEventListener('keydown', event => { if (event.key === 'Escape') closePanel(); });
