@@ -1,14 +1,51 @@
+import { RechercheService } from './recherche-service';
+
+function RechercheModule(
+  eventBus: any,
+  elementRegistry: any,
+  selection: any,
+  canvas: any,
+  rechercheService: RechercheService,
+) {
+  function focusElementFromUrl() {
+    const elementId = new URLSearchParams(window.location.search).get('element');
+    if (!elementId) return;
+
+    const element = elementRegistry.get(elementId);
+    if (!element) return;
+
+    selection.select(element);
+    canvas.scrollToElement(element);
+  }
+
+  eventBus.on('import.done', focusElementFromUrl);
+
+  eventBus.on('keyboard.keydown', (event: any) => {
+    if ((event.ctrlKey || event.metaKey) && event.key?.toLowerCase() === 'k') {
+      event.preventDefault();
+      window.dispatchEvent(new Event('recherche:focus'));
+    }
+  });
+}
+
+RechercheModule.$inject = [
+  'eventBus',
+  'elementRegistry',
+  'selection',
+  'canvas',
+  'rechercheService',
+];
+
+export default {
+  __init__: ['rechercheModule', 'rechercheService'],
+  rechercheService: ['type', RechercheService],
+  rechercheModule: ['type', RechercheModule],
+};
+
 /*
 ============================================================
-ANCIENNE VERSION — conservée pour comparaison / retour arrière
+ANCIENNE VERSION
 ============================================================
-
-Voir l'historique Git pour la version précédente.
-
-============================================================
-FIN ANCIENNE VERSION
-============================================================
-*/
 
 import { RechercheService } from './recherche-service';
 import type { RechercheContext, RechercheResult, RechercheScope } from './recherche-service';
@@ -202,3 +239,8 @@ function RechercheModule(eventBus: any, elementRegistry: any, selection: any, ca
 RechercheModule.$inject = ['eventBus', 'elementRegistry', 'selection', 'canvas', 'rechercheService'];
 
 export default { __init__: ['rechercheModule', 'rechercheService'], rechercheService: ['type', RechercheService], rechercheModule: ['type', RechercheModule] };
+
+============================================================
+FIN ANCIENNE VERSION
+============================================================
+*/
