@@ -17,6 +17,11 @@ import { RechercheIndex } from './recherche-index';
 import type { RechercheProvider, RechercheResult } from './recherche-service';
 
 const MAX_RESOURCES = 100;
+
+const appPath = (path: string) => {
+  const basePath = String(import.meta.env.VITE_APP_BASE_PATH || '').replace(/\/$/, '');
+  return `${basePath}/${path.replace(/^\//, '')}`;
+};
 const MAX_RESULTS = 50;
 const CACHE_TTL_MS = 2 * 60 * 1000;
 
@@ -49,7 +54,7 @@ const createResourceResult = (resource: Resource): RechercheResult => ({
   element: undefined, id: resource.id, type: String(resource.type), name: resource.name,
   documentation: resource.description || '', processId: resource.id, processName: resource.name,
   resourceId: resource.id, resourceType: resource.type, resourceName: resource.name, sourceType: 'process',
-  link: `/${resource.id}/modeler`,
+  link: appPath(`/${resource.id}/modeler`),
   metadata: { source: 'repository', kind: 'process-resource', depth: resource.depth, parentId: resource.parentId },
 });
 
@@ -66,7 +71,7 @@ const parseProcess = (xml: string, resource: Resource): RechercheResult[] => {
       element: undefined, id, type: node.localName ? `bpmn:${node.localName}` : '', name: node.getAttribute('name') || '',
       documentation: documentationText(node), role: role || undefined, raci: raci || undefined,
       processId: resource.id, processName: resource.name, resourceId: resource.id, resourceType: resource.type, resourceName: resource.name,
-      sourceType, link: `/${resource.id}/modeler?element=${encodeURIComponent(id)}`,
+      sourceType, link: appPath(`/${resource.id}/modeler?element=${encodeURIComponent(id)}`),
       metadata: { source: 'repository', kind: 'bpmn-element', raci: raci || undefined, role: role || undefined },
     };
   });
