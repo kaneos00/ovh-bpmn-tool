@@ -13,11 +13,8 @@
   right: 20px;
   width: 20vw;
   height: auto;
-  z-index: 1000;
+  z-index: 999;
   position: absolute;
-  pointer-events: auto;
-  overflow: auto;
-  max-height: calc(90vh - 40px);
   background: hsl(225, 10%, 97%);
 }
 
