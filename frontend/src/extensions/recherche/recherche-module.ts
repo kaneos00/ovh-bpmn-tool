@@ -105,7 +105,7 @@ function RechercheModule(eventBus: any, elementRegistry: any, selection: any, ca
 
     const panel = document.createElement('div');
     panel.id = PANEL_ID;
-    Object.assign(panel.style, { position: 'absolute', top: '16px', right: '16px', width: '420px', maxHeight: '70vh', zIndex: '100', background: '#fff', border: '1px solid #ddd', borderRadius: '6px', boxShadow: '0 4px 16px rgba(0,0,0,.18)', overflow: 'hidden', fontFamily: 'Arial, sans-serif' });
+    Object.assign(panel.style, { position: 'absolute', top: '10px', left: '10px', right: '10px', zIndex: '100', background: '#fff', border: '1px solid #ddd', borderRadius: '6px', boxShadow: '0 4px 16px rgba(0,0,0,.18)', overflow: 'hidden', fontFamily: 'Arial, sans-serif' });
 
     const header = document.createElement('div');
     Object.assign(header.style, { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', borderBottom: '1px solid #ddd' });
@@ -133,6 +133,21 @@ function RechercheModule(eventBus: any, elementRegistry: any, selection: any, ca
     input.type = 'search'; input.placeholder = 'Rechercher…'; input.autocomplete = 'off'; input.setAttribute('aria-label', 'Recherche');
     Object.assign(input.style, { flex: '1', padding: '8px', border: '1px solid #ccc', borderRadius: '4px', outline: 'none' });
 
+    const searchButton = document.createElement('button');
+    searchButton.type = 'button';
+    searchButton.textContent = '🔍';
+    searchButton.title = 'Lancer la recherche';
+    searchButton.setAttribute('aria-label', 'Lancer la recherche');
+    Object.assign(searchButton.style, {
+      width: '38px',
+      height: '38px',
+      border: '1px solid #ccc',
+      borderRadius: '4px',
+      background: '#fff',
+      cursor: 'pointer',
+      fontSize: '17px',
+    });
+
     const close = document.createElement('button');
     close.type = 'button'; close.textContent = '×'; close.title = 'Fermer';
     Object.assign(close.style, { border: '0', background: 'transparent', fontSize: '20px', cursor: 'pointer' });
@@ -140,7 +155,7 @@ function RechercheModule(eventBus: any, elementRegistry: any, selection: any, ca
 
     const results = document.createElement('div');
     results.style.maxHeight = '55vh'; results.style.overflowY = 'auto';
-    header.appendChild(source); header.appendChild(scope); header.appendChild(input); header.appendChild(close); panel.appendChild(header); panel.appendChild(results);
+    header.appendChild(input); header.appendChild(searchButton); header.appendChild(source); header.appendChild(scope); header.appendChild(close); panel.appendChild(header); panel.appendChild(results);
     const container = canvas.getContainer(); container.style.position = container.style.position || 'relative'; container.appendChild(panel);
 
     let request = 0;
@@ -165,7 +180,7 @@ function RechercheModule(eventBus: any, elementRegistry: any, selection: any, ca
       if (currentRequest === request) renderResults(results, filtered);
     };
 
-    input.addEventListener('input', runSearch);
+    input.addEventListener('input', runSearch);\n    searchButton.addEventListener('click', runSearch);
     scope.addEventListener('change', runSearch);
     source.addEventListener('change', runSearch);
     input.addEventListener('keydown', event => { if (event.key === 'Escape') closePanel(); });
@@ -173,11 +188,7 @@ function RechercheModule(eventBus: any, elementRegistry: any, selection: any, ca
   }
 
   eventBus.on('diagram.init', () => {
-    const container = canvas.getContainer();
-    const button = document.createElement('button');
-    button.type = 'button'; button.textContent = 'Recherche'; button.title = 'Rechercher dans le processus (Ctrl+K)';
-    Object.assign(button.style, { position: 'absolute', top: '16px', left: '16px', zIndex: '90', padding: '7px 12px', border: '1px solid #ccc', borderRadius: '4px', background: '#fff', cursor: 'pointer' });
-    button.addEventListener('click', openPanel); container.appendChild(button);
+    openPanel();
   });
 
   eventBus.on('import.done', focusElementFromUrl);
