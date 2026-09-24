@@ -33,7 +33,6 @@ RechercheModule.$inject = [
   'elementRegistry',
   'selection',
   'canvas',
-  'rechercheService',
 ];
 
 export default {
