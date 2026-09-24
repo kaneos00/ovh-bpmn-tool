@@ -3,8 +3,6 @@ import { html } from 'htm/preact';
 import { useEffect, useState } from '@bpmn-io/properties-panel/preact/hooks';
 import { useService } from 'bpmn-js-properties-panel';
 
-const PRIORITY = 499;
-
 class CommentsPropertiesProvider {
   getGroups(element: any) {
     return (groups: any[]) => {
