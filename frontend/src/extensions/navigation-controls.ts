@@ -3,27 +3,6 @@ function NavigationControls(eventBus: any, canvas: any) {
   let lastX = 0;
   let lastY = 0;
 
-  const zoomStep = 1.2;
-
-  function zoom(factor: number) {
-    const current = canvas.zoom();
-    const container = canvas.getContainer();
-    const rect = container.getBoundingClientRect();
-
-    canvas.zoom(current * factor, {
-      x: rect.width / 2,
-      y: rect.height / 2,
-    });
-  }
-
-  function fitViewport() {
-    canvas.zoom('fit-viewport');
-  }
-
-  function resetZoom() {
-    canvas.zoom(1);
-  }
-
   function startPan(event: MouseEvent) {
     if (event.button !== 0 && event.button !== 2) {
       return;
