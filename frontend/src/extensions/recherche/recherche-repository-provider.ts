@@ -1,15 +1,3 @@
-/*
-============================================================
-ANCIENNE VERSION — conservée pour comparaison / retour arrière
-============================================================
-
-[ancienne version conservée dans l'historique du commit précédent]
-
-============================================================
-FIN ANCIENNE VERSION
-============================================================
-*/
-
 import { apiClient } from '../../queryClient';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import { ContentStatusEnum, type Content, type Resource } from '../../Types';
@@ -29,6 +17,22 @@ let resourceCache: { expiresAt: number; resources: Resource[] } | undefined;
 const processCache = new Map<string, { expiresAt: number; results: RechercheResult[] }>();
 let repositoryIndexCache: { expiresAt: number; index: RechercheIndex } | undefined;
 
+const asArray = <T,>(value: unknown): T[] => {
+  if (Array.isArray(value)) return value as T[];
+
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+
+    for (const key of ['items', 'resources', 'contents', 'data']) {
+      if (Array.isArray(record[key])) {
+        return record[key] as T[];
+      }
+    }
+  }
+
+  return [];
+};
+
 const documentationText = (node: Element) =>
   Array.from(node.querySelectorAll('bpmn\\:documentation, documentation'))
     .map(item => item.textContent || '')
@@ -46,8 +50,12 @@ const raciData = (node: Element) => ({
 });
 
 const latestSearchableContent = async (resource: Resource) => {
-  const contents = (await apiClient.get(`/resources/${resource.id}/contents`)) as Content[];
-  return contents.find(({ status }) => status === ContentStatusEnum.Published) || contents.find(({ status }) => status === ContentStatusEnum.Draft);
+  const rawContents = await apiClient.get(`/resources/${resource.id}/contents`);
+  const contents = asArray<Content>(rawContents);
+  return (
+    contents.find(({ status }) => status === ContentStatusEnum.Published) ||
+    contents.find(({ status }) => status === ContentStatusEnum.Draft)
+  );
 };
 
 const createResourceResult = (resource: Resource): RechercheResult => ({
@@ -79,9 +87,19 @@ const parseProcess = (xml: string, resource: Resource): RechercheResult[] => {
 
 const getResources = async (): Promise<Resource[]> => {
   if (resourceCache && resourceCache.expiresAt > Date.now()) return resourceCache.resources;
-  const rawResources = await apiClient.get(`/resources?filter.type=${ResourceType.Process}&filter.depth=100`);
-  const resources = Array.isArray(rawResources) ? rawResources : [];
-  console.debug('[Recherche] repository:resources', { rawType: typeof rawResources, rawKeys: rawResources && typeof rawResources === 'object' ? Object.keys(rawResources) : [], count: resources.length });
+  const rawResources = await apiClient.get(
+    `/resources?filter.type=${ResourceType.Process}&filter.depth=100`,
+  );
+  const resources = asArray<Resource>(rawResources);
+
+  console.info('[Recherche] repository:resources', {
+    rawType: typeof rawResources,
+    rawKeys:
+      rawResources && typeof rawResources === 'object'
+        ? Object.keys(rawResources)
+        : [],
+    count: resources.length,
+  });
   const limited = resources.slice(0, MAX_RESOURCES);
   resourceCache = { expiresAt: Date.now() + CACHE_TTL_MS, resources: limited };
   repositoryIndexCache = undefined;
@@ -108,7 +126,9 @@ const getRepositoryIndex = async (): Promise<RechercheIndex> => {
 
   const resources = await getResources();
   const index = new RechercheIndex();
-  console.debug('[Recherche] repository:index:start', { resources: resources.length });
+  console.info('[Recherche] repository:index:start', {
+    resources: resources.length,
+  });
   for (const resource of resources) {
     try {
       index.addMany(await getProcessIndex(resource));
@@ -117,7 +137,10 @@ const getRepositoryIndex = async (): Promise<RechercheIndex> => {
     }
   }
   repositoryIndexCache = { expiresAt: Date.now() + CACHE_TTL_MS, index };
-  console.debug('[Recherche] repository:index:done', { entries: index.all().length, sample: index.all().slice(0, 3) });
+  console.info('[Recherche] repository:index:done', {
+    entries: index.all().length,
+    sample: index.all().slice(0, 3),
+  });
   return index;
 };
 
@@ -134,6 +157,12 @@ export const createRepositoryRechercheProvider = (): RechercheProvider => async 
     processId: context.scope === 'current-process' ? context.processId : undefined,
     processName: context.scope === 'current-process' ? context.processName : undefined,
   }, MAX_RESULTS);
-  console.debug('[Recherche] repository:search', { query, context, entries: index.all().length, count: results.length, results });
+  console.info('[Recherche] repository:search', {
+    query,
+    context,
+    entries: index.all().length,
+    count: results.length,
+    results,
+  });
   return results;
 };
