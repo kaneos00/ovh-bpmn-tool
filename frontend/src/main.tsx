@@ -86,12 +86,11 @@ import UrlModel from './extensions/url-model';
 import UrlPropertiesProvider from './extensions/url-properties-provider';
 import UrlClickModule from './extensions/url-click-module';
 import RechercheModule from './extensions/recherche/recherche-module';
+import CommentsModule from 'bpmn-js-embedded-comments';
+import MinimapModule from 'diagram-js-minimap';
 import { createRepositoryRechercheProvider } from './extensions/recherche/recherche-repository-provider';
 import LaneOrientationPropertiesProvider from './extensions/lane-orientation-properties-provider';
-import BpmnColorPickerModule from 'bpmn-js-color-picker';
 import CommentsModule from 'bpmn-js-embedded-comments';
-import GridModule from 'diagram-js-grid';
-import MinimapModule from 'diagram-js-minimap';
 
 export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
   createRoot(document.getElementById('root')!).render(
@@ -129,6 +128,14 @@ export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
             },
             {
               declaration: RechercheModule,
+            },
+            {
+              disabledInViewer: true,
+              declaration: MinimapModule,
+            },
+            {
+              disabledInViewer: true,
+              declaration: CommentsModule,
             },
           ],
         },
