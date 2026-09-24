@@ -10,7 +10,8 @@ FIN ANCIENNE VERSION
 ============================================================
 */
 
-import { RechercheContext, RechercheResult, RechercheScope, RechercheService } from './recherche-service';
+import { RechercheService } from './recherche-service';
+import type { RechercheContext, RechercheResult, RechercheScope } from './recherche-service';
 
 const PANEL_ID = 'bpmn-recherche-panel';
 
