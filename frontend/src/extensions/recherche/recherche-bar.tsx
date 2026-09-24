@@ -47,8 +47,11 @@ const getResourceIdFromPath = () => {
 };
 
 const navigateToResult = (result: RechercheResult) => {
+  console.debug('[Recherche] navigate', result.link, result);
   if (result.link) {
     window.location.assign(result.link);
+  } else {
+    console.warn('[Recherche] result has no link', result);
   }
 };
 
@@ -69,6 +72,7 @@ export const RechercheBar = () => {
   ) => {
     const currentRequest = ++requestRef.current;
     const trimmedQuery = nextQuery.trim();
+    console.debug('[Recherche] runSearch', { query: trimmedQuery, scope: nextScope, source: nextSource });
 
     if (!trimmedQuery) {
       setLoading(false);
@@ -84,16 +88,21 @@ export const RechercheBar = () => {
     };
 
     try {
+      console.debug('[Recherche] provider:start', context);
       const found = await providerRef.current(trimmedQuery, context);
+      console.debug('[Recherche] provider:done', { count: found.length, results: found });
       const filtered = nextSource === 'all'
         ? found
         : found.filter(result => result.sourceType === nextSource);
+
+      console.debug('[Recherche] filtered', { count: filtered.length, results: filtered });
 
       if (currentRequest === requestRef.current) {
         setResults(filtered);
         setLoading(false);
       }
-    } catch {
+    } catch (error) {
+      console.error('[Recherche] search:error', error);
       if (currentRequest === requestRef.current) {
         setResults([]);
         setLoading(false);
