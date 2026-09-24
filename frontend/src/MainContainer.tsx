@@ -88,8 +88,10 @@ export function MainContainer(props: MainContainerProps) {
       <SnackbarProvider>
         <QueryClientProvider client={queryClient}>
           <BpmnToolOptionsProvider options={props.options}>
-            <RechercheBar />
-            <RouterProvider router={router} />
+            <>
+              <RechercheBar />
+              <RouterProvider router={router} />
+            </>
           </BpmnToolOptionsProvider>
         </QueryClientProvider>
       </SnackbarProvider>
