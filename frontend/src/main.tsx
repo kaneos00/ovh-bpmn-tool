@@ -87,6 +87,7 @@ import UrlPropertiesProvider from './extensions/url-properties-provider';
 import UrlClickModule from './extensions/url-click-module';
 import RechercheModule from './extensions/recherche/recherche-module';
 import MinimapModule from 'diagram-js-minimap';
+import NavigationControlsModule from './extensions/navigation-controls';
 import { createRepositoryRechercheProvider } from './extensions/recherche/recherche-repository-provider';
 import LaneOrientationPropertiesProvider from './extensions/lane-orientation-properties-provider';
 
@@ -130,6 +131,10 @@ export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
             {
               disabledInViewer: true,
               declaration: MinimapModule,
+            },
+            {
+              disabledInViewer: true,
+              declaration: NavigationControlsModule,
             },
           ],
         },
