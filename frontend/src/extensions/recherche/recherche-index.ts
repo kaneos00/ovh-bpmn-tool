@@ -1,4 +1,4 @@
-import type { RechercheContext, RechercheResult, RechercheSourceType } from './recherche-service';
+import type { RechercheContext, RechercheResult } from './recherche-service';
 
 export type RechercheIndexKind =
   | 'process'
@@ -116,13 +116,7 @@ export class RechercheIndex {
       ? this.byProcess(context.processId)
       : this.entries;
 
-    const allowedSourceTypes: RechercheSourceType[] | undefined =
-      context.metadata && Array.isArray(context.metadata.sourceTypes)
-        ? context.metadata.sourceTypes as RechercheSourceType[]
-        : undefined;
-
     return scoped
-      .filter(entry => !allowedSourceTypes || allowedSourceTypes.includes(entry.sourceType || 'bpmn'))
       .map(entry => ({ entry, score: scoreRechercheResult(entry, query) }))
       .filter(({ score }) => score > 0)
       .sort((a, b) => b.score - a.score)
