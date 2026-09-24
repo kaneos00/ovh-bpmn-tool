@@ -1,3 +1,8 @@
+/*
+============================================================
+ANCIENNE VERSION — conservée pour comparaison / retour arrière
+============================================================
+
 .mainContainer {
   display: flex;
 
@@ -15,5 +20,41 @@
     width: 80%;
     padding: 24px;
     gap: 8px;
+  }
+}
+
+============================================================
+FIN ANCIENNE VERSION
+============================================================
+*/
+
+.mainContainer {
+  display: flex;
+
+  .folderTree {
+    height: 100vh;
+    width: 20%;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    transition: width 0.2s ease;
+
+    &.collapsed {
+      width: 48px;
+      overflow: hidden;
+    }
+  }
+
+  .innerContent {
+    display: flex;
+    flex-direction: column;
+    width: 80%;
+    padding: 24px;
+    gap: 8px;
+    transition: width 0.2s ease;
+  }
+
+  .folderTree.collapsed + .innerContent {
+    width: calc(100% - 48px);
   }
 }
