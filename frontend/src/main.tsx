@@ -47,6 +47,21 @@ export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
           modules: [
             ...(options.modelerOptions?.modules ?? []),
             {
+              declaration: MinimapModule,
+            },
+            {
+              disabledInViewer: true,
+              declaration: GridModule,
+            },
+            {
+              disabledInViewer: true,
+              declaration: BpmnColorPickerModule,
+            },
+            {
+              disabledInViewer: true,
+              declaration: CommentsModule,
+            },
+            {
               declaration: UrlClickModule,
             },
           ],
@@ -73,6 +88,10 @@ import UrlClickModule from './extensions/url-click-module';
 import RechercheModule from './extensions/recherche/recherche-module';
 import { createRepositoryRechercheProvider } from './extensions/recherche/recherche-repository-provider';
 import LaneOrientationPropertiesProvider from './extensions/lane-orientation-properties-provider';
+import BpmnColorPickerModule from 'bpmn-js-color-picker';
+import CommentsModule from 'bpmn-js-embedded-comments';
+import GridModule from 'diagram-js-grid';
+import MinimapModule from 'diagram-js-minimap';
 
 export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
   createRoot(document.getElementById('root')!).render(
