@@ -86,7 +86,12 @@ const parseProcess = (xml: string, resource: Resource): RechercheResult[] => {
 };
 
 const getResources = async (): Promise<Resource[]> => {
-  if (resourceCache && resourceCache.expiresAt > Date.now()) return resourceCache.resources;
+  const cacheValid = Boolean(resourceCache && resourceCache.expiresAt > Date.now());
+  console.info('[Recherche] repository:resources:request', {
+    cacheValid,
+    cachedCount: resourceCache?.resources.length ?? 0,
+  });
+  if (cacheValid) return resourceCache!.resources;
   const rawResources = await apiClient.get(
     `/resources?filter.type=${ResourceType.Process}&filter.depth=100`,
   );
@@ -101,7 +106,11 @@ const getResources = async (): Promise<Resource[]> => {
     count: resources.length,
   });
   const limited = resources.slice(0, MAX_RESOURCES);
-  resourceCache = { expiresAt: Date.now() + CACHE_TTL_MS, resources: limited };
+  if (limited.length > 0) {
+    resourceCache = { expiresAt: Date.now() + CACHE_TTL_MS, resources: limited };
+  } else {
+    resourceCache = undefined;
+  }
   repositoryIndexCache = undefined;
   return limited;
 };
@@ -122,7 +131,12 @@ const getProcessIndex = async (resource: Resource): Promise<RechercheResult[]> =
 };
 
 const getRepositoryIndex = async (): Promise<RechercheIndex> => {
-  if (repositoryIndexCache && repositoryIndexCache.expiresAt > Date.now()) return repositoryIndexCache.index;
+  const cacheValid = Boolean(repositoryIndexCache && repositoryIndexCache.expiresAt > Date.now());
+  console.info('[Recherche] repository:index:request', {
+    cacheValid,
+    cachedEntries: repositoryIndexCache?.index.all().length ?? 0,
+  });
+  if (cacheValid) return repositoryIndexCache!.index;
 
   const resources = await getResources();
   const index = new RechercheIndex();
@@ -136,7 +150,11 @@ const getRepositoryIndex = async (): Promise<RechercheIndex> => {
       index.add(createResourceResult(resource));
     }
   }
-  repositoryIndexCache = { expiresAt: Date.now() + CACHE_TTL_MS, index };
+  if (index.all().length > 0) {
+    repositoryIndexCache = { expiresAt: Date.now() + CACHE_TTL_MS, index };
+  } else {
+    repositoryIndexCache = undefined;
+  }
   console.info('[Recherche] repository:index:done', {
     entries: index.all().length,
     sample: index.all().slice(0, 3),
