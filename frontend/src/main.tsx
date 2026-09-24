@@ -56,12 +56,10 @@ export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
   );
 };
 
-
 ============================================================
 FIN ANCIENNE VERSION
 ============================================================
 */
-
 
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -71,11 +69,10 @@ import { BpmnToolOptions } from './Providers/BpmnToolOptions';
 
 import UrlModel from './extensions/url-model';
 import UrlPropertiesProvider from './extensions/url-properties-provider';
-
-// AJOUT : module qui détecte le clic sur un élément BPMN
 import UrlClickModule from './extensions/url-click-module';
 import RechercheModule from './extensions/recherche/recherche-module';
 import { createRepositoryRechercheProvider } from './extensions/recherche/recherche-repository-provider';
+import LaneOrientationPropertiesProvider from './extensions/lane-orientation-properties-provider';
 
 export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
   createRoot(document.getElementById('root')!).render(
@@ -96,16 +93,12 @@ export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
               priority: 500,
               instance: UrlPropertiesProvider,
             },
+            {
+              priority: 501,
+              instance: LaneOrientationPropertiesProvider,
+            },
           ],
 
-          // ANCIEN CODE INCORRECT :
-          // additionalModules: [
-          //   ...(options.modelerOptions?.additionalModules ?? []),
-          //   UrlClickModule,
-          // ],
-
-          // AJOUT : enregistrement du module personnalisé.
-          // BpmnToolOptions utilise "modules".
           rechercheProvider:
             options.modelerOptions?.rechercheProvider ??
             createRepositoryRechercheProvider(),
