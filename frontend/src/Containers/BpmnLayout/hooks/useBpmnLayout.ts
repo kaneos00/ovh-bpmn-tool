@@ -61,6 +61,10 @@ export const useBpmnLayout = () => {
     }
   };
 
+  const onFolderTreeItemDelete = useCallback((id: string) => {
+    if (resourceId === id) navigate('/');
+  }, [resourceId, navigate]);
+
   /**
    * Manage click on modeler button
    */
@@ -220,6 +224,7 @@ export const useBpmnLayout = () => {
     callbacks: {
       folderTree: {
         onFolderTreeItemClick,
+        onFolderTreeItemDelete,
       },
       header: {
         onModelerBtnClick,
