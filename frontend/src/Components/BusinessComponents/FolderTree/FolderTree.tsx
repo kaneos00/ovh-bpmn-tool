@@ -34,17 +34,21 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
         onDrop={event => onDrop(event, node.id, node.type)}
         onDragEnd={onDragEnd}
         title={node.name}
+        aria-label={node.name}
         style={{
           padding: '8px',
           paddingLeft: 0,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
-          cursor: isRoot ? 'default' : 'grab',
+          cursor: isRoot
+            ? draggedNodeId ? 'copy' : 'default'
+            : draggedNodeId === node.id ? 'grabbing' : 'grab',
           opacity: draggedNodeId === node.id ? 0.45 : 1,
           borderRadius: 4,
           outline: isDropTarget ? '2px solid #1976d2' : 'none',
           background: isDropTarget ? 'rgba(25, 118, 210, 0.08)' : 'transparent',
+          transition: 'background-color 120ms ease, outline-color 120ms ease, opacity 120ms ease',
         }}
       >
         {`${isFolder ? '📁' : '📄'} ${node.name}`}
@@ -56,7 +60,6 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
         key={node.id}
         itemId={node.id}
         label={label}
-
       >
         {Array.isArray(node.children) ? node.children.map(childNode => renderTree(childNode)) : null}
       </FolderTreeItem>
@@ -69,7 +72,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
         Processus
       </ListSubheader>
       {isLoading ? new Array(10).fill('').map((_, index) => (
-        <ListItem key={`skel-${index}`}><ListItemContent><Skeleton animation="wave" sx={{ width: '90%' }} height={24} /></ListItemContent></ListItem>
+        <ListItem key={String(index)}><ListItemContent><Skeleton animation="wave" sx={{ width: '90%' }} height={24} /></ListItemContent></ListItem>
       )) : (
         <ListItem>
           <ListItemContent>
