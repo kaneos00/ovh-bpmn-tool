@@ -134,7 +134,8 @@ export const useFolderTree = (selectedResourceId: string, { onNodeClick, onNodeD
   };
 
   const onDragOver = (event: DragEvent, nodeId: string, type: ResourceType) => {
-    if (!canDrop(draggedNodeId, nodeId, type)) {
+    const sourceId = draggedNodeId ?? event.dataTransfer.getData('text/plain');
+    if (!canDrop(sourceId, nodeId, type)) {
       setDropTargetId(null);
       return;
     }
