@@ -1,5 +1,4 @@
 import React from 'react';
-import type Canvas from 'diagram-js/lib/core/Canvas';
 import { useProcessViewer } from './hooks/useProcessViewer';
 import '../Modeler/Modeler.css';
 
@@ -13,7 +12,9 @@ export const ProcessViewer = ({
   contentId,
 }: ProcessViewerProps) => {
   const { viewerRef, viewer } = useProcessViewer(resourceId, contentId);
-  const canvas = viewer.get('canvas') as Canvas;
+  const canvas = viewer.get('canvas') as {
+    zoom: (level?: number | string, center?: { x: number; y: number }) => number;
+  };
 
   const zoom = (factor: number) => {
     const current = canvas.zoom();
