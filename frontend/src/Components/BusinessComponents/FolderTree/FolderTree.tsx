@@ -30,7 +30,8 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
       <div
         draggable={!isRoot}
         onDragStart={event => { if (!isRoot) onDragStart(event, node.id); }}
-        onDragEnd={onDragEnd}
+        onDragOver={event => onDragOver(event, node.id, node.type)}
+        onDrop={event => onDrop(event, node.id, node.type)}
         title={node.name}
         style={{
           padding: '8px',
@@ -54,9 +55,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
         key={node.id}
         itemId={node.id}
         label={label}
-        onDragOver={event => onDragOver(event, node.id, node.type)}
-        onDrop={event => onDrop(event, node.id, node.type)}
-        onDragEnd={onDragEnd}
+
       >
         {Array.isArray(node.children) ? node.children.map(childNode => renderTree(childNode)) : null}
       </FolderTreeItem>
