@@ -1,4 +1,5 @@
 import { useMemo, SyntheticEvent, useState, useEffect } from 'react';
+import type { DragEvent } from 'react';
 import { treeItemClasses } from '@mui/x-tree-view/TreeItem';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 
@@ -96,13 +97,13 @@ export const useFolderTree = (selectedResourceId: string, { onNodeClick }: UseFo
     if (!isLabelClick(event)) setExpandedNodes(nodeIds);
   };
 
-  const onDragStart = (event: React.DragEvent, nodeId: string) => {
+  const onDragStart = (event: DragEvent, nodeId: string) => {
     setDraggedNodeId(nodeId);
     event.dataTransfer.effectAllowed = 'move';
     event.dataTransfer.setData('text/plain', nodeId);
   };
 
-  const onDragOver = (event: React.DragEvent, nodeId: string, type: ResourceType) => {
+  const onDragOver = (event: DragEvent, nodeId: string, type: ResourceType) => {
     if (!draggedNodeId || draggedNodeId === nodeId) return;
     if (nodeId !== 'root' && type !== ResourceType.Folder) return;
     event.preventDefault();
@@ -110,7 +111,7 @@ export const useFolderTree = (selectedResourceId: string, { onNodeClick }: UseFo
     setDropTargetId(nodeId);
   };
 
-  const onDrop = (event: React.DragEvent, targetId: string, targetType: ResourceType) => {
+  const onDrop = (event: DragEvent, targetId: string, targetType: ResourceType) => {
     event.preventDefault();
     const sourceId = draggedNodeId ?? event.dataTransfer.getData('text/plain');
     setDropTargetId(null);
