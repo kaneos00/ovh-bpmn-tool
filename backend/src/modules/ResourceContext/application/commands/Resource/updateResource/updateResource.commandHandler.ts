@@ -40,42 +40,72 @@ export class UpdateResourceCommandHandler {
         return fail(new Error('A resource cannot be moved inside itself'));
       }
 
+      const allResourcesResult = await this.resourceRepository.find();
+      if (!allResourcesResult.ok) {
+        return fail(new Error('Cannot load resources to validate the move'));
+      }
+
+      const allResources = allResourcesResult.ok;
+      const childrenByParent = new Map<string | null, Resource[]>();
+
+      for (const candidate of allResources) {
+        const children = childrenByParent.get(candidate.parentId) ?? [];
+        children.push(candidate);
+        childrenByParent.set(candidate.parentId, children);
+      }
+
       let parentDepth: number | undefined;
 
       if (command.parentId) {
-        const parentResult = await this.resourceRepository.findOne(command.parentId);
-        if (!parentResult.ok) {
-          return fail(new CannotFindResourceError(command.parentId, parentResult.fail as Error));
+        const parentResult = allResources.find(candidate => candidate.id.value === command.parentId);
+        if (!parentResult) {
+          return fail(new CannotFindResourceError(command.parentId, new Error('Parent resource not found')));
         }
 
-        parentDepth = parentResult.ok.depth;
+        parentDepth = parentResult.depth;
 
-        const allResourcesResult = await this.resourceRepository.find();
-        if (allResourcesResult.ok) {
-          const childrenByParent = new Map<string | null, Resource[]>();
-          for (const candidate of allResourcesResult.ok) {
-            const children = childrenByParent.get(candidate.parentId) ?? [];
-            children.push(candidate);
-            childrenByParent.set(candidate.parentId, children);
+        const descendants = new Set<string>();
+        const collectDescendants = (parentId: string) => {
+          for (const child of childrenByParent.get(parentId) ?? []) {
+            if (descendants.has(child.id.value)) continue;
+            descendants.add(child.id.value);
+            collectDescendants(child.id.value);
           }
+        };
 
-          const descendants = new Set<string>();
-          const visit = (parentId: string) => {
-            for (const child of childrenByParent.get(parentId) ?? []) {
-              if (descendants.has(child.id.value)) continue;
-              descendants.add(child.id.value);
-              visit(child.id.value);
-            }
-          };
-          visit(resource.id.value);
+        collectDescendants(resource.id.value);
 
-          if (descendants.has(command.parentId)) {
-            return fail(new Error('A folder cannot be moved inside one of its descendants'));
-          }
+        if (descendants.has(command.parentId)) {
+          return fail(new Error('A folder cannot be moved inside one of its descendants'));
         }
       }
 
       resource.move(command.parentId, parentDepth);
+
+      const subtree = new Map<string, Resource>();
+      const collectSubtree = (parentId: string) => {
+        for (const child of childrenByParent.get(parentId) ?? []) {
+          subtree.set(child.id.value, child);
+          collectSubtree(child.id.value);
+        }
+      };
+      collectSubtree(resource.id.value);
+
+      const updateDepths = (parentId: string, parentDepthValue: number) => {
+        for (const child of childrenByParent.get(parentId) ?? []) {
+          child.move(child.parentId, parentDepthValue);
+          updateDepths(child.id.value, child.depth);
+        }
+      };
+
+      updateDepths(resource.id.value, resource.depth);
+
+      for (const child of subtree.values()) {
+        const result = await this.resourceRepository.save(child);
+        if (!result.ok) {
+          return fail(new CannotSaveResourceError(child.id.value, result.fail));
+        }
+      }
     }
 
     if (command.name) resource.rename(command.name);
