@@ -55,8 +55,10 @@ export const useBpmnLayout = () => {
    * Callbacks
    */
 
-  const onFolderTreeItemClick = (id: string) => {
-    return navigate(`/${id}`);
+  const onFolderTreeItemClick = (id: string, type: ResourceType) => {
+    if (type === ResourceType.Process) {
+      navigate(`/${id}`);
+    }
   };
 
   /**
@@ -123,9 +125,7 @@ export const useBpmnLayout = () => {
           : '';
 
       void navigator.clipboard.writeText(
-        `${baseUrl}${
-          import.meta.env.VITE_API_URL as string
-        }/export/${resourceId}.png?authToken=${resource.authToken}`,
+        `${baseUrl}${import.meta.env.VITE_API_URL as string}/export/${resourceId}.png?authToken=${resource.authToken}`,
       );
 
       showAlert({
