@@ -95,6 +95,7 @@ export const Component = () => {
           <FolderTree
             selectedId={resourceId}
             onNodeClick={callbacks.folderTree.onFolderTreeItemClick}
+            onNodeDelete={callbacks.folderTree.onFolderTreeItemDelete}
           />
         )}
       </Sheet>
