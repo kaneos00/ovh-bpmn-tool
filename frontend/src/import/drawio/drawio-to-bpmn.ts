@@ -200,6 +200,8 @@ export function drawioToBpmn(xml: string): DrawioImportResult {
     node => node.type !== 'bpmn:participant' && node.type !== 'bpmn:lane',
   );
 
+  const processElementIds = new Set(processNodes.map(node => node.id));
+
   const processXml = processNodes
     .map(node => {
       const tag = elementTag(node.type);
@@ -209,7 +211,12 @@ export function drawioToBpmn(xml: string): DrawioImportResult {
     .join('\n');
 
   const flowXml = flows
-    .filter(flow => flow.type === 'sequenceFlow')
+    .filter(
+      flow =>
+        flow.type === 'sequenceFlow' &&
+        processElementIds.has(flow.source) &&
+        processElementIds.has(flow.target),
+    )
     .map(
       flow =>
         `    <bpmn:sequenceFlow id="${escapeXml(flow.id)}" sourceRef="${escapeXml(flow.source)}" targetRef="${escapeXml(flow.target)}"/>`,
@@ -220,9 +227,17 @@ export function drawioToBpmn(xml: string): DrawioImportResult {
     node => node.type === 'bpmn:participant',
   );
 
+  const laneNodes = nodes.filter(node => node.type === 'bpmn:lane');
+
   if (participantNodes.length) {
     warnings.push(
-      'Les pools Draw.io sont importés comme participants visuels; leur rattachement à plusieurs processus devra être ajusté dans le modeler.',
+      'Les pools Draw.io sont importés comme participants. Le rattachement automatique des lanes et des processus sera complété dans une prochaine étape.',
+    );
+  }
+
+  if (laneNodes.length) {
+    warnings.push(
+      'Les lanes Draw.io sont détectées mais leur rattachement BPMN reste volontairement conservateur dans cette première version.',
     );
   }
 
