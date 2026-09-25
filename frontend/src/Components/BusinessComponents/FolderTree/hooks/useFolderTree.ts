@@ -32,11 +32,15 @@ export const useFolderTree = (
     resourcesQuery(),
   );
 
+  const hasParent = (resourceParentId: string | null | undefined, parentId?: string) =>
+    (resourceParentId ?? undefined) === parentId;
+
   const createDataTree = (parentId?: string): FolderTreeItem[] => {
     return resources
-      .filter(({ parentId: resourceParentId, type }) => {
-        return resourceParentId === parentId && type === ResourceType.Folder;
-      })
+      .filter(
+        ({ parentId: resourceParentId, type }) =>
+          hasParent(resourceParentId, parentId) && type === ResourceType.Folder,
+      )
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((folder: Resource): FolderTreeItem => ({
         id: folder.id,
@@ -64,20 +68,38 @@ export const useFolderTree = (
       }));
 
     const children = folder.children.map(addProcesses);
+
     return {
       ...folder,
       children: [...children, ...processes],
     };
   };
 
+  const createProcessNodes = (parentId?: string): FolderTreeItem[] => {
+    return resources
+      .filter(
+        resource =>
+          hasParent(resource.parentId, parentId) &&
+          resource.type === ResourceType.Process,
+      )
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map(resource => ({
+        id: resource.id,
+        name: resource.name,
+        type: resource.type,
+        children: [],
+      }));
+  };
+
   const dataTree: RenderTree = useMemo(() => {
     const rootFolders = createDataTree(undefined).map(addProcesses);
+    const rootProcesses = createProcessNodes(undefined);
 
     return {
       id: 'root',
       name: 'Root',
       type: ResourceType.Folder,
-      children: rootFolders,
+      children: [...rootFolders, ...rootProcesses],
     };
   }, [resources]);
 
