@@ -66,7 +66,7 @@ const createResourceResult = (resource: Resource): RechercheResult => ({
   element: undefined, id: resource.id, type: String(resource.type), name: resource.name,
   documentation: resource.description || '', processId: resource.id, processName: resource.name,
   resourceId: resource.id, resourceType: resource.type, resourceName: resource.name, sourceType: 'process',
-  link: appPath(`/${resource.id}/modeler`),
+  link: appPath(`/${resource.id}`),
   metadata: { source: 'repository', kind: 'process-resource', depth: resource.depth, parentId: resource.parentId },
 });
 
