@@ -133,7 +133,6 @@ export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
               declaration: MinimapModule,
             },
             {
-              disabledInViewer: true,
               declaration: NavigationControlsModule,
             },
           ],
