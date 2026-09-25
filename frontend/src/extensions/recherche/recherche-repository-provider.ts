@@ -56,9 +56,19 @@ const raciData = (node: Element) => ({
 const latestSearchableContent = async (resource: Resource) => {
   const rawContents = await apiClient.get(`/resources/${resource.id}/contents`);
   const contents = asArray<Content>(rawContents);
+  /*
+  ANCIENNE PRIORITÉ — conservée pour comparaison / retour arrière
   return (
     contents.find(({ status }) => status === ContentStatusEnum.Published) ||
     contents.find(({ status }) => status === ContentStatusEnum.Draft)
+  );
+  */
+
+  // Le Modeler ouvre actuellement le Draft : la Recherche doit donc indexer
+  // le même XML afin que resourceId et elementId correspondent au diagramme affiché.
+  return (
+    contents.find(({ status }) => status === ContentStatusEnum.Draft) ||
+    contents.find(({ status }) => status === ContentStatusEnum.Published)
   );
 };
 
