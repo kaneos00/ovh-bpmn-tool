@@ -267,7 +267,8 @@ export const RechercheBar = () => {
                 cursor: 'pointer',
               }}
             >
-              <span
+              {/*
+                ANCIEN STYLE DU BADGE — conservé pour comparaison / retour arrière
                 style={{
                   display: 'inline-block',
                   fontSize: '10px',
@@ -276,6 +277,38 @@ export const RechercheBar = () => {
                   border: '1px solid #ddd',
                   borderRadius: '10px',
                   color: '#666',
+                }}
+              */}
+              <span
+                style={{
+                  display: 'inline-block',
+                  fontSize: '10px',
+                  fontWeight: 600,
+                  padding: '2px 7px',
+                  marginBottom: '4px',
+                  border: '1px solid',
+                  borderRadius: '10px',
+                  background:
+                    result.sourceType === 'process' ? '#e8f1fb' :
+                    result.sourceType === 'bpmn' ? '#fff0df' :
+                    result.sourceType === 'procedure' ? '#eaf6ee' :
+                    result.sourceType === 'role' ? '#f1ebf8' :
+                    result.sourceType === 'raci' ? '#fdf1e8' :
+                    result.sourceType === 'ai' ? '#e9f5f5' : '#fff0df',
+                  borderColor:
+                    result.sourceType === 'process' ? '#bfd5ec' :
+                    result.sourceType === 'bpmn' ? '#efd0a8' :
+                    result.sourceType === 'procedure' ? '#c5e3ce' :
+                    result.sourceType === 'role' ? '#d8c9e8' :
+                    result.sourceType === 'raci' ? '#efd5c1' :
+                    result.sourceType === 'ai' ? '#c5dfdf' : '#efd0a8',
+                  color:
+                    result.sourceType === 'process' ? '#315f8c' :
+                    result.sourceType === 'bpmn' ? '#8a5a22' :
+                    result.sourceType === 'procedure' ? '#3d704b' :
+                    result.sourceType === 'role' ? '#69507f' :
+                    result.sourceType === 'raci' ? '#875f42' :
+                    result.sourceType === 'ai' ? '#3f7070' : '#8a5a22',
                 }}
               >
                 {sourceLabels[result.sourceType || 'bpmn'] || result.sourceType || 'BPMN'}
