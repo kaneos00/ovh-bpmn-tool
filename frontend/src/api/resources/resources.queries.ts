@@ -7,7 +7,7 @@ export const QUERY_KEY = 'resources';
 type ResourceAttrs = {
   name: string;
   description?: string;
-  parentId?: string;
+  parentId?: string | null;
 };
 
 type ResourceQueryFilters = {
