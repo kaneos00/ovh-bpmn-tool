@@ -56,15 +56,23 @@ export class UpdateResourceCommandHandler {
         childrenByParent.set(candidate.parentId, children);
       }
 
+      const targetParent = command.parentId
+        ? allResources.find(candidate => candidate.id.value === command.parentId)
+        : null;
+
+      if (command.parentId && !targetParent) {
+        return fail(new CannotFindResourceError(command.parentId, new Error('Parent resource not found')));
+      }
+
+      const targetSiblings = childrenByParent.get(command.parentId) ?? [];
+      if (targetSiblings.some(candidate => candidate.id.value !== resource.id.value && candidate.name === resource.name)) {
+        return fail(new ResourceNameExistError({ name: resource.name }));
+      }
+
       let parentDepth: number | undefined;
 
-      if (command.parentId) {
-        const parentResult = allResources.find(candidate => candidate.id.value === command.parentId);
-        if (!parentResult) {
-          return fail(new CannotFindResourceError(command.parentId, new Error('Parent resource not found')));
-        }
-
-        parentDepth = parentResult.depth;
+      if (targetParent) {
+        parentDepth = targetParent.depth;
 
         const descendantIds = new Set<string>();
         const collectDescendants = (parentId: string) => {
