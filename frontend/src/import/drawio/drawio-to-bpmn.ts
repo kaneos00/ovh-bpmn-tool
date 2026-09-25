@@ -87,15 +87,39 @@ const bpmnTypeFromStyle = (style: string): string | undefined => {
 
 const eventType = (style: string) => {
   const normalized = style.toLowerCase();
-  if (normalized.includes('endevent')) return 'bpmn:endEvent';
-  if (normalized.includes('intermediate')) return 'bpmn:intermediateCatchEvent';
+  if (
+    normalized.includes('endevent') ||
+    normalized.includes('end_event') ||
+    normalized.includes('end')
+  ) {
+    return 'bpmn:endEvent';
+  }
+  if (
+    normalized.includes('intermediate') ||
+    normalized.includes('intermediateevent') ||
+    normalized.includes('intermediate_event')
+  ) {
+    return 'bpmn:intermediateCatchEvent';
+  }
   return 'bpmn:startEvent';
 };
 
 const gatewayType = (style: string) => {
   const normalized = style.toLowerCase();
-  if (normalized.includes('parallel')) return 'bpmn:parallelGateway';
-  if (normalized.includes('inclusive')) return 'bpmn:inclusiveGateway';
+  if (
+    normalized.includes('parallel') ||
+    normalized.includes('parallelgateway') ||
+    normalized.includes('parallel_gateway')
+  ) {
+    return 'bpmn:parallelGateway';
+  }
+  if (
+    normalized.includes('inclusive') ||
+    normalized.includes('inclusivegateway') ||
+    normalized.includes('inclusive_gateway')
+  ) {
+    return 'bpmn:inclusiveGateway';
+  }
   return 'bpmn:exclusiveGateway';
 };
 
