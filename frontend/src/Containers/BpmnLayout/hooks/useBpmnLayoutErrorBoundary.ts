@@ -11,11 +11,18 @@ export const useBpmnLayoutErrorBoundary = () => {
     return navigate(`/${id}`);
   };
 
+  const onFolderTreeItemDelete = (id: string) => {
+    if (resourceId === id) {
+      navigate('/');
+    }
+  };
+
   return {
     resourceId,
     error,
     callbacks: {
       onFolderTreeItemClick,
+      onFolderTreeItemDelete,
     },
   };
 };
