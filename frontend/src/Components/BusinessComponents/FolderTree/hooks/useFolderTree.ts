@@ -1,6 +1,5 @@
 import { useMemo, SyntheticEvent, useState, useEffect } from 'react';
 import type { DragEvent } from 'react';
-import { treeItemClasses } from '@mui/x-tree-view/TreeItem';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 
 import { useFolders } from '../../../../shared/hooks/useFolders';
@@ -81,20 +80,14 @@ export const useFolderTree = (selectedResourceId: string, { onNodeClick }: UseFo
     children: [...createDataTree(undefined).map(addProcesses), ...createProcessNodes(undefined)],
   }), [resources]);
 
-  const isLabelClick = (event: SyntheticEvent) =>
-    (event.target as HTMLElement).classList.contains(treeItemClasses.label);
-
-  const onNodeSelect = (event: SyntheticEvent, nodeId: string | null) => {
-    if (!nodeId || !isLabelClick(event)) return;
+  const onNodeSelect = (_event: SyntheticEvent, nodeId: string | null) => {
+    if (!nodeId) return;
     const node = resources.find(item => item.id === nodeId);
     if (node) onNodeClick(nodeId, node.type);
-    if (node?.type === ResourceType.Folder && !expandedNodes.includes(nodeId)) {
-      setExpandedNodes([...expandedNodes, nodeId]);
-    }
   };
 
-  const onNodeToggle = (event: SyntheticEvent, nodeIds: string[]) => {
-    if (!isLabelClick(event)) setExpandedNodes(nodeIds);
+  const onNodeToggle = (_event: SyntheticEvent, nodeIds: string[]) => {
+    setExpandedNodes(nodeIds);
   };
 
   const onDragStart = (event: DragEvent, nodeId: string) => {
