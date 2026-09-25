@@ -6,15 +6,32 @@ function RechercheModule(
   selection: any,
   canvas: any,
 ) {
-  function focusElementFromUrl() {
+  function focusElementFromUrl(attempt = 0) {
     const elementId = new URLSearchParams(window.location.search).get('element');
     if (!elementId) return;
 
     const element = elementRegistry.get(elementId);
-    if (!element) return;
+
+    /*
+      ANCIEN COMPORTEMENT — conservé pour comparaison / retour arrière
+
+      const element = elementRegistry.get(elementId);
+      if (!element) return;
+      selection.select(element);
+      canvas.scrollToElement(element);
+    */
+
+    // Le diagramme peut encore être en cours d'import lorsque import.done est reçu.
+    // On attend donc que l'élément soit réellement présent dans l'elementRegistry.
+    if (!element) {
+      if (attempt < 20) {
+        window.setTimeout(() => focusElementFromUrl(attempt + 1), 100);
+      }
+      return;
+    }
 
     selection.select(element);
-    canvas.scrollToElement(element);
+    window.setTimeout(() => canvas.scrollToElement(element, 80), 0);
   }
 
   eventBus.on('import.done', focusElementFromUrl);
