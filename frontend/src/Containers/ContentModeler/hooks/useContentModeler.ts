@@ -75,7 +75,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
       try {
         const processContent = await files[0].text();
         const importContent = isDrawioXml(processContent)
-          ? drawioToBpmn(processContent)
+          ? await drawioToBpmn(processContent)
           : { xml: processContent, warnings: [] as string[] };
 
         await bpmnModelerInstance.importXML(importContent.xml);
