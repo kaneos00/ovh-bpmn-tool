@@ -24,6 +24,7 @@ export const ErrorBoundary = () => {
         <FolderTree
           selectedId={resourceId}
           onNodeClick={callbacks.onFolderTreeItemClick}
+          onNodeDelete={callbacks.onFolderTreeItemDelete}
         />
       </Sheet>
       <Sheet className="innerContent">
