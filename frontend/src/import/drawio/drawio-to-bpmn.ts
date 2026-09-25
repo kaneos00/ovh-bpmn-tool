@@ -234,6 +234,20 @@ export function drawioToBpmn(xml: string): DrawioImportResult {
     })
     .join('\n');
 
+  const laneSetXml = laneNodes.length
+    ? `    <bpmn:laneSet id="LaneSet_1">
+${laneNodes
+  .map(
+    lane =>
+      `      <bpmn:lane id="${escapeXml(lane.id)}"${lane.name ? ` name="${escapeXml(lane.name)}"` : ''}>${processNodes
+        .filter(node => node.parent === lane.id)
+        .map(node => `<bpmn:flowNodeRef>${escapeXml(node.id)}</bpmn:flowNodeRef>`)
+        .join('')}</bpmn:lane>`,
+  )
+  .join('\n')}
+    </bpmn:laneSet>`
+    : '';
+
   const flowXml = flows
     .filter(
       flow =>
@@ -323,6 +337,7 @@ ${flows
     xml: `<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="${BPMN_NS}" xmlns:bpmndi="${BPMNDI_NS}" xmlns:dc="${DC_NS}" xmlns:di="${DI_NS}" id="Definitions_Drawio" targetNamespace="http://bpmn.io/schema/bpmn">
   <bpmn:process id="Process_1" isExecutable="false">
+${laneSetXml}
 ${processXml}
 ${flowXml}
   </bpmn:process>${collaboration}
