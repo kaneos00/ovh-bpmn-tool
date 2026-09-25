@@ -10,12 +10,12 @@ export class UpdateResourceBody {
   name?: string;
 
   description?: string;
-  parentId?: string;
+  parentId?: string | null;
 }
 
 export class UpdateResourceCommand {
   resourceId: string;
   name?: string;
   description?: string;
-  parentId?: string;
+  parentId?: string | null;
 }
