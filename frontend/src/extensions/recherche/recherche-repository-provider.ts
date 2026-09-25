@@ -70,8 +70,19 @@ const createResourceResult = (resource: Resource): RechercheResult => ({
   metadata: { source: 'repository', kind: 'process-resource', depth: resource.depth, parentId: resource.parentId },
 });
 
-const parseProcess = (xml: string, resource: Resource): RechercheResult[] => {
+const parseProcess = (
+  xml: string,
+  resource: Resource,
+  content: Content,
+): RechercheResult[] => {
   const document = new DOMParser().parseFromString(xml, 'application/xml');
+
+  console.info('[Recherche] repository:parse-process', {
+    resourceId: resource.id,
+    resourceName: resource.name,
+    contentId: content.id,
+    contentStatus: content.status,
+  });
   const nodes = Array.from(document.getElementsByTagName('*')).filter(node =>
     node.localName?.startsWith('task') || ['process','startEvent','endEvent','userTask','serviceTask','manualTask','scriptTask','sendTask','receiveTask','businessRuleTask','exclusiveGateway','parallelGateway','inclusiveGateway','complexGateway','eventBasedGateway','subProcess','callActivity'].includes(node.localName),
   );
@@ -83,7 +94,12 @@ const parseProcess = (xml: string, resource: Resource): RechercheResult[] => {
       element: undefined, id, type: node.localName ? `bpmn:${node.localName}` : '', name: node.getAttribute('name') || '',
       documentation: documentationText(node), role: role || undefined, raci: raci || undefined,
       processId: resource.id, processName: resource.name, resourceId: resource.id, resourceType: resource.type, resourceName: resource.name,
-      sourceType, link: appPath(`/${resource.id}/modeler?element=${encodeURIComponent(id)}`),
+      sourceType,
+      /*
+      ANCIENNE CONSTRUCTION — conservée pour comparaison / retour arrière
+      link: appPath(`/${resource.id}/modeler?element=${encodeURIComponent(id)}`),
+      */
+      link: appPath(`/${resource.id}/modeler?element=${encodeURIComponent(id)}`),
       metadata: { source: 'repository', kind: 'bpmn-element', raci: raci || undefined, role: role || undefined },
     };
   });
@@ -129,7 +145,32 @@ const getProcessIndex = async (resource: Resource): Promise<RechercheResult[]> =
     return [result];
   }
   const xml = await apiClient.get(`/resources/${resource.id}/contents/${content.id}/content`);
+
+  console.info('[Recherche] repository:process-target', {
+    resourceId: resource.id,
+    resourceName: resource.name,
+    contentId: content.id,
+    contentStatus: content.status,
+  });
+
+  /*
+  ANCIEN APPEL — conservé pour comparaison / retour arrière
   const results = [createResourceResult(resource), ...parseProcess(xml, resource)];
+  */
+  const results = [createResourceResult(resource), ...parseProcess(xml, resource, content)];
+
+  console.info('[Recherche] repository:process-results', {
+    resourceId: resource.id,
+    contentId: content.id,
+    count: results.length,
+    sample: results.slice(1, 4).map(result => ({
+      id: result.id,
+      name: result.name,
+      processId: result.processId,
+      resourceId: result.resourceId,
+      link: result.link,
+    })),
+  });
   processCache.set(resource.id, { expiresAt: Date.now() + CACHE_TTL_MS, results });
   return results;
 };
