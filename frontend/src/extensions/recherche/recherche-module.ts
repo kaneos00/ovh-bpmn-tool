@@ -31,7 +31,32 @@ function RechercheModule(
     }
 
     selection.select(element);
-    window.setTimeout(() => canvas.scrollToElement(element, 80), 0);
+
+    window.setTimeout(() => {
+      /*
+        ANCIEN COMPORTEMENT — conservé pour comparaison / retour arrière
+
+        canvas.scrollToElement(element, 80);
+      */
+
+      // scrollToElement dépend du conteneur scrollable. Pour garantir le
+      // centrage même lorsque l'élément est très éloigné dans le diagramme,
+      // on recentre aussi explicitement la viewbox sans modifier le niveau de zoom.
+      canvas.scrollToElement(element, 80);
+
+      const viewbox = canvas.viewbox();
+      if (viewbox && element.x !== undefined && element.y !== undefined) {
+        const elementCenterX = element.x + (element.width || 0) / 2;
+        const elementCenterY = element.y + (element.height || 0) / 2;
+
+        canvas.viewbox({
+          x: elementCenterX - viewbox.width / 2,
+          y: elementCenterY - viewbox.height / 2,
+          width: viewbox.width,
+          height: viewbox.height,
+        });
+      }
+    }, 100);
   }
 
   eventBus.on('import.done', focusElementFromUrl);
