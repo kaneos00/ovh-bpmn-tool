@@ -299,5 +299,5 @@ ${edges}
 }
 
 export function isDrawioXml(xml: string): boolean {
-  return /<mx(GraphModel|file|Cell)\\b/i.test(xml);
+  return /<mx(GraphModel|file|Cell)\b/i.test(xml);
 }
