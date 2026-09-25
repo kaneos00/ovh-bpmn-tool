@@ -28,6 +28,7 @@ export const useProcessViewer = (resourceId: string, contentId: string) => {
 
   return {
     viewerRef,
+    viewer,
     content: xmlContent ?? '',
   };
 };
