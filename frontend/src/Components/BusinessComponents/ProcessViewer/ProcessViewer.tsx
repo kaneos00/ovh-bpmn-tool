@@ -1,4 +1,5 @@
 import React from 'react';
+import type Canvas from 'diagram-js/lib/core/Canvas';
 import { useProcessViewer } from './hooks/useProcessViewer';
 import '../Modeler/Modeler.css';
 
@@ -12,19 +13,20 @@ export const ProcessViewer = ({
   contentId,
 }: ProcessViewerProps) => {
   const { viewerRef, viewer } = useProcessViewer(resourceId, contentId);
+  const canvas = viewer.get('canvas') as Canvas;
 
   const zoom = (factor: number) => {
-    const current = viewer.get('canvas').zoom();
+    const current = canvas.zoom();
     const rect = viewerRef.current?.getBoundingClientRect();
 
-    viewer.get('canvas').zoom(current * factor, {
+    canvas.zoom(current * factor, {
       x: (rect?.width ?? 0) / 2,
       y: (rect?.height ?? 0) / 2,
     });
   };
 
-  const resetZoom = () => viewer.get('canvas').zoom(1);
-  const fitViewport = () => viewer.get('canvas').zoom('fit-viewport');
+  const resetZoom = () => canvas.zoom(1);
+  const fitViewport = () => canvas.zoom('fit-viewport');
 
   return (
     <div
