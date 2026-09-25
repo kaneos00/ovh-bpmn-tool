@@ -3,7 +3,7 @@ import type { DragEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 
 import { useFolders } from '../../../../shared/hooks/useFolders';
-import { resourcesQuery, updateResource } from '../../../../api/resources/resources.queries';
+import { deleteResource, resourcesQuery, updateResource } from '../../../../api/resources/resources.queries';
 
 import type { RenderTree } from '..';
 import type { Resource } from '../../../../Types';
@@ -12,6 +12,7 @@ import { useResource } from '../../../../shared/hooks/useResource';
 
 type UseFolderTreeCallbacks = {
   onNodeClick: (nodeId: string, type: ResourceType) => void;
+  onNodeDelete: (nodeId: string) => void;
 };
 
 type FolderTreeItem = {
@@ -21,7 +22,7 @@ type FolderTreeItem = {
   children: FolderTreeItem[];
 };
 
-export const useFolderTree = (selectedResourceId: string, { onNodeClick }: UseFolderTreeCallbacks) => {
+export const useFolderTree = (selectedResourceId: string, { onNodeClick, onNodeDelete }: UseFolderTreeCallbacks) => {
   const [expandedNodes, setExpandedNodes] = useState<string[]>([]);
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
@@ -29,6 +30,16 @@ export const useFolderTree = (selectedResourceId: string, { onNodeClick }: UseFo
   const { resource } = useResource(selectedResourceId);
   const queryClient = useQueryClient();
   const { data: resources = [], isLoading: resourcesLoading } = useQuery(resourcesQuery());
+
+  const deleteMutation = useMutation(
+    (resourceId: string) => deleteResource(resourceId),
+    {
+      onSuccess: async (_, resourceId) => {
+        await queryClient.invalidateQueries('resources');
+        if (selectedResourceId === resourceId) onNodeDelete(resourceId);
+      },
+    },
+  );
 
   const moveMutation = useMutation(
     ({ resourceId, parentId }: { resourceId: string; parentId: string | null }) => {
@@ -108,6 +119,13 @@ export const useFolderTree = (selectedResourceId: string, { onNodeClick }: UseFo
     setExpandedNodes(nodeIds);
   };
 
+  const onDelete = (nodeId: string) => {
+    const node = resources.find(item => item.id === nodeId);
+    if (!node || node.type !== ResourceType.Process || deleteMutation.isLoading) return;
+    if (!window.confirm(`Supprimer définitivement le processus « ${node.name} » ?`)) return;
+    deleteMutation.mutate(nodeId);
+  };
+
   const onDragStart = (event: DragEvent, nodeId: string) => {
     setDraggedNodeId(nodeId);
     setDropTargetId(null);
@@ -161,7 +179,7 @@ export const useFolderTree = (selectedResourceId: string, { onNodeClick }: UseFo
 
   return {
     dataTree, onNodeSelect, onNodeToggle, expandedNodes,
-    onDragStart, onDragOver, onDrop, onDragEnd, draggedNodeId, dropTargetId,
+    onDelete, onDragStart, onDragOver, onDrop, onDragEnd, draggedNodeId, dropTargetId,
     isLoading: foldersLoading || resourcesLoading,
   };
 };
