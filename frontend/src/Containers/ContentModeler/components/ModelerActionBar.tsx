@@ -63,12 +63,28 @@ export const ModelerActionBar = ({
           Upload
         </Button>
 
+        {/*
+          // ANCIEN CODE — conservé pour comparaison / retour arrière.
+          <input
+            ref={fileInputRef}
+            type="file"
+            style={{ display: 'none' }}
+            multiple={false}
+            accept=".bpmn"
+            onChange={event => {
+              event.preventDefault();
+              if (event.target.files && event.target.files[0]) {
+                onFileUpload(event.target.files);
+              }
+            }}
+          />
+        */}
         <input
           ref={fileInputRef}
           type="file"
           style={{ display: 'none' }}
           multiple={false}
-          accept=".bpmn"
+          accept=".bpmn,.drawio,.xml"
           onChange={event => {
             event.preventDefault();
             if (event.target.files && event.target.files[0]) {
