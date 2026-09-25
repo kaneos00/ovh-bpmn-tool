@@ -88,6 +88,7 @@ const bpmnTypeFromStyle = (style: string): string | undefined => {
 const eventType = (style: string) => {
   const normalized = style.toLowerCase();
   if (
+    normalized.includes('outline=end') ||
     normalized.includes('endevent') ||
     normalized.includes('end_event') ||
     normalized.includes('end')
@@ -95,6 +96,8 @@ const eventType = (style: string) => {
     return 'bpmn:endEvent';
   }
   if (
+    normalized.includes('outline=catching') ||
+    normalized.includes('outline=throwing') ||
     normalized.includes('intermediate') ||
     normalized.includes('intermediateevent') ||
     normalized.includes('intermediate_event')
