@@ -32,6 +32,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
         onDragStart={event => { if (!isRoot) onDragStart(event, node.id); }}
         onDragOver={event => onDragOver(event, node.id, node.type)}
         onDrop={event => onDrop(event, node.id, node.type)}
+        onDragEnd={onDragEnd}
         title={node.name}
         style={{
           padding: '8px',
