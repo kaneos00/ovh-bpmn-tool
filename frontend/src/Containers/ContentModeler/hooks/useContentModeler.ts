@@ -13,6 +13,7 @@ import { ActionResponse } from '../../../shared/types/ActionResponse';
 import { ContentStatusEnum, type Content } from '../../../Types';
 import { useResource } from '../../../shared/hooks/useResource';
 import Modeler from 'camunda-bpmn-js/lib/base/Modeler';
+import { drawioToBpmn, isDrawioXml } from '../../../import/drawio/drawio-to-bpmn';
 
 export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   const { resourceId } = useParams() as ContentModelerRouteParams;
@@ -51,6 +52,8 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     );
   }, [contents]);
 
+  /*
+  // ANCIEN CODE — conservé pour comparaison / retour arrière.
   const onFileUpload = useCallback(
     async (files: FileList) => {
       try {
@@ -64,6 +67,36 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
       }
     },
     [resourceId, bpmnModelerInstance],
+  );
+  */
+
+  const onFileUpload = useCallback(
+    async (files: FileList) => {
+      try {
+        const processContent = await files[0].text();
+        const importContent = isDrawioXml(processContent)
+          ? drawioToBpmn(processContent)
+          : { xml: processContent, warnings: [] as string[] };
+
+        await bpmnModelerInstance.importXML(importContent.xml);
+
+        if (importContent.warnings.length) {
+          showAlert({
+            message: importContent.warnings.join(' '),
+            severity: 'warning',
+          });
+        }
+      } catch (error) {
+        showAlert({
+          message:
+            error instanceof Error
+              ? error.message
+              : 'An error occurs during file upload.',
+          severity: 'danger',
+        });
+      }
+    },
+    [bpmnModelerInstance, showAlert],
   );
 
   /**
