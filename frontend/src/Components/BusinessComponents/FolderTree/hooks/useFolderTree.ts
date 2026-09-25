@@ -1,9 +1,9 @@
 import { useMemo, SyntheticEvent, useState, useEffect } from 'react';
 import { treeItemClasses } from '@mui/x-tree-view/TreeItem';
-import { useQuery } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 
 import { useFolders } from '../../../../shared/hooks/useFolders';
-import { resourcesQuery } from '../../../../api/resources/resources.queries';
+import { resourcesQuery, updateResource } from '../../../../api/resources/resources.queries';
 
 import type { RenderTree } from '..';
 import type { Resource } from '../../../../Types';
@@ -21,136 +21,126 @@ type FolderTreeItem = {
   children: FolderTreeItem[];
 };
 
-export const useFolderTree = (
-  selectedResourceId: string,
-  { onNodeClick }: UseFolderTreeCallbacks,
-) => {
+export const useFolderTree = (selectedResourceId: string, { onNodeClick }: UseFolderTreeCallbacks) => {
   const [expandedNodes, setExpandedNodes] = useState<string[]>([]);
+  const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const { isLoading: foldersLoading, getFolderHierarchy } = useFolders();
   const { resource } = useResource(selectedResourceId);
-  const { data: resources = [], isLoading: resourcesLoading } = useQuery(
-    resourcesQuery(),
+  const queryClient = useQueryClient();
+  const { data: resources = [], isLoading: resourcesLoading } = useQuery(resourcesQuery());
+
+  const moveMutation = useMutation(
+    ({ resourceId, parentId }: { resourceId: string; parentId: string | null }) => {
+      const movingResource = resources.find(item => item.id === resourceId);
+      if (!movingResource) return Promise.reject(new Error('Resource introuvable'));
+      return updateResource(resourceId, {
+        name: movingResource.name,
+        description: movingResource.description,
+        parentId,
+      });
+    },
+    {
+      onSuccess: async () => {
+        await queryClient.invalidateQueries('resources');
+      },
+    },
   );
 
   const hasParent = (resourceParentId: string | null | undefined, parentId?: string) =>
     (resourceParentId ?? undefined) === parentId;
 
-  const createDataTree = (parentId?: string): FolderTreeItem[] => {
-    return resources
-      .filter(
-        ({ parentId: resourceParentId, type }) =>
-          hasParent(resourceParentId, parentId) && type === ResourceType.Folder,
-      )
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .map((folder: Resource): FolderTreeItem => ({
-        id: folder.id,
-        name: folder.name,
-        type: folder.type,
-        children: createDataTree(folder.id),
-      }));
-  };
+  const createDataTree = (parentId?: string): FolderTreeItem[] => resources
+    .filter(({ parentId: resourceParentId, type }) => hasParent(resourceParentId, parentId) && type === ResourceType.Folder)
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((folder: Resource): FolderTreeItem => ({
+      id: folder.id,
+      name: folder.name,
+      type: folder.type,
+      children: createDataTree(folder.id),
+    }));
 
-  const addProcesses = (
-    folder: FolderTreeItem,
-  ): FolderTreeItem => {
+  const addProcesses = (folder: FolderTreeItem): FolderTreeItem => {
     const processes = resources
-      .filter(
-        resource =>
-          resource.parentId === folder.id &&
-          resource.type === ResourceType.Process,
-      )
+      .filter(resource => resource.parentId === folder.id && resource.type === ResourceType.Process)
       .sort((a, b) => a.name.localeCompare(b.name))
-      .map(resource => ({
-        id: resource.id,
-        name: resource.name,
-        type: resource.type,
-        children: [],
-      }));
-
-    const children = folder.children.map(addProcesses);
-
-    return {
-      ...folder,
-      children: [...children, ...processes],
-    };
+      .map(resource => ({ id: resource.id, name: resource.name, type: resource.type, children: [] }));
+    return { ...folder, children: [...folder.children.map(addProcesses), ...processes] };
   };
 
-  const createProcessNodes = (parentId?: string): FolderTreeItem[] => {
-    return resources
-      .filter(
-        resource =>
-          hasParent(resource.parentId, parentId) &&
-          resource.type === ResourceType.Process,
-      )
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .map(resource => ({
-        id: resource.id,
-        name: resource.name,
-        type: resource.type,
-        children: [],
-      }));
-  };
+  const createProcessNodes = (parentId?: string): FolderTreeItem[] => resources
+    .filter(resource => hasParent(resource.parentId, parentId) && resource.type === ResourceType.Process)
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(resource => ({ id: resource.id, name: resource.name, type: resource.type, children: [] }));
 
-  const dataTree: RenderTree = useMemo(() => {
-    const rootFolders = createDataTree(undefined).map(addProcesses);
-    const rootProcesses = createProcessNodes(undefined);
+  const dataTree: RenderTree = useMemo(() => ({
+    id: 'root',
+    name: 'Root',
+    type: ResourceType.Folder,
+    children: [...createDataTree(undefined).map(addProcesses), ...createProcessNodes(undefined)],
+  }), [resources]);
 
-    return {
-      id: 'root',
-      name: 'Root',
-      type: ResourceType.Folder,
-      children: [...rootFolders, ...rootProcesses],
-    };
-  }, [resources]);
-
-  const isLabelClick = (event: SyntheticEvent) => {
-    return (event.target as HTMLElement).classList.contains(
-      treeItemClasses.label,
-    );
-  };
+  const isLabelClick = (event: SyntheticEvent) =>
+    (event.target as HTMLElement).classList.contains(treeItemClasses.label);
 
   const onNodeSelect = (event: SyntheticEvent, nodeId: string | null) => {
-    if (!nodeId || !isLabelClick(event)) {
-      return;
-    }
-
-    const node = resources.find(resource => resource.id === nodeId);
-
-    if (node) {
-      onNodeClick(nodeId, node.type);
-    }
-
+    if (!nodeId || !isLabelClick(event)) return;
+    const node = resources.find(item => item.id === nodeId);
+    if (node) onNodeClick(nodeId, node.type);
     if (node?.type === ResourceType.Folder && !expandedNodes.includes(nodeId)) {
       setExpandedNodes([...expandedNodes, nodeId]);
     }
   };
 
   const onNodeToggle = (event: SyntheticEvent, nodeIds: string[]) => {
-    if (!isLabelClick(event)) {
-      setExpandedNodes(nodeIds);
+    if (!isLabelClick(event)) setExpandedNodes(nodeIds);
+  };
+
+  const onDragStart = (event: React.DragEvent, nodeId: string) => {
+    setDraggedNodeId(nodeId);
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', nodeId);
+  };
+
+  const onDragOver = (event: React.DragEvent, nodeId: string, type: ResourceType) => {
+    if (!draggedNodeId || draggedNodeId === nodeId) return;
+    if (nodeId !== 'root' && type !== ResourceType.Folder) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    setDropTargetId(nodeId);
+  };
+
+  const onDrop = (event: React.DragEvent, targetId: string, targetType: ResourceType) => {
+    event.preventDefault();
+    const sourceId = draggedNodeId ?? event.dataTransfer.getData('text/plain');
+    setDropTargetId(null);
+    setDraggedNodeId(null);
+    if (!sourceId || sourceId === targetId || moveMutation.isLoading) return;
+
+    const parentId = targetId === 'root' ? null : targetType === ResourceType.Folder ? targetId : undefined;
+    if (parentId === undefined) return;
+
+    moveMutation.mutate({ resourceId: sourceId, parentId });
+    if (parentId && !expandedNodes.includes(parentId)) {
+      setExpandedNodes(current => [...current, parentId]);
     }
+  };
+
+  const onDragEnd = () => {
+    setDraggedNodeId(null);
+    setDropTargetId(null);
   };
 
   useEffect(() => {
     if (resources.length && resource) {
-      const hierarchy = getFolderHierarchy(
-        resource.parentId ? resource.parentId : selectedResourceId,
-      );
-
-      setExpandedNodes(current => [
-        ...current,
-        ...hierarchy
-          .filter(({ id }) => !current.includes(id))
-          .map(({ id }) => id),
-      ]);
+      const hierarchy = getFolderHierarchy(resource.parentId ? resource.parentId : selectedResourceId);
+      setExpandedNodes(current => [...current, ...hierarchy.filter(({ id }) => !current.includes(id)).map(({ id }) => id)]);
     }
   }, [selectedResourceId, resources, resource, getFolderHierarchy]);
 
   return {
-    dataTree,
-    onNodeSelect,
-    onNodeToggle,
-    expandedNodes,
+    dataTree, onNodeSelect, onNodeToggle, expandedNodes,
+    onDragStart, onDragOver, onDrop, onDragEnd, draggedNodeId, dropTargetId,
     isLoading: foldersLoading || resourcesLoading,
   };
 };
