@@ -72,6 +72,7 @@ export const ProcessDetails = ({
         <TabList>
           <Tab>Processus</Tab>
           <Tab disabled={!contents.length}>Historique des versions</Tab>
+          <Tab disabled={!tasks.length}>Activités ({tasks.length})</Tab>
         </TabList>
 
         <TabPanel value={0} sx={{ px: 0 }}>
@@ -147,19 +148,20 @@ export const ProcessDetails = ({
             </Card>
           </ConditionalRender>
         </TabPanel>
+        <TabPanel value={2} sx={{ px: 0 }}>
+          <ConditionalRender condition={Boolean(tasks.length)}>
+            <Card accordion title={`Activités (${tasks.length})`}>
+              <List>
+                {tasks.map((task, index) => (
+                  <ListItem key={`task_${index.toString()}`}>
+                    {task.getAttribute('name')}
+                  </ListItem>
+                ))}
+              </List>
+            </Card>
+          </ConditionalRender>
+        </TabPanel>
       </Tabs>
-
-      <ConditionalRender condition={Boolean(tasks.length)}>
-        <Card accordion title={`Activités (${tasks.length})`}>
-          <List>
-            {tasks.map((task, index) => (
-              <ListItem key={`task_${index.toString()}`}>
-                {task.getAttribute('name')}
-              </ListItem>
-            ))}
-          </List>
-        </Card>
-      </ConditionalRender>
     </>
   );
 };
