@@ -31,6 +31,13 @@ export const FolderTree = ({ selectedId, onNodeClick, onNodeDelete }: FolderTree
       <div
         title={node.name}
         aria-label={node.name}
+        draggable={!isRoot}
+        onDragStart={event => {
+          if (!isRoot) onDragStart(event, node.id);
+        }}
+        onDragOver={event => onDragOver(event, node.id, node.type)}
+        onDrop={event => onDrop(event, node.id, node.type)}
+        onDragEnd={onDragEnd}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -69,13 +76,6 @@ export const FolderTree = ({ selectedId, onNodeClick, onNodeDelete }: FolderTree
         key={node.id}
         itemId={node.id}
         label={label}
-        draggable={!isRoot}
-        onDragStart={event => {
-          if (!isRoot) onDragStart(event, node.id);
-        }}
-        onDragOver={event => onDragOver(event, node.id, node.type)}
-        onDrop={event => onDrop(event, node.id, node.type)}
-        onDragEnd={onDragEnd}
         sx={{
           '& > .MuiTreeItem-content': {
             cursor: isRoot
