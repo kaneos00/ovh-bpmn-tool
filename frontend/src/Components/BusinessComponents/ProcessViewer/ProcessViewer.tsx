@@ -1,5 +1,6 @@
 import React from 'react';
 import { useProcessViewer } from './hooks/useProcessViewer';
+import '../Modeler/Modeler.css';
 
 type ProcessViewerProps = {
   resourceId: string;
