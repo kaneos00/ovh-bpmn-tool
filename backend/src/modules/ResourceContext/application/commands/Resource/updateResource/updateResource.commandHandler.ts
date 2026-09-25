@@ -35,6 +35,8 @@ export class UpdateResourceCommandHandler {
       }
     }
 
+    let descendants: Resource[] = [];
+
     if (command.parentId !== undefined) {
       if (command.parentId === resource.id.value) {
         return fail(new Error('A resource cannot be moved inside itself'));
@@ -64,32 +66,32 @@ export class UpdateResourceCommandHandler {
 
         parentDepth = parentResult.depth;
 
-        const descendants = new Set<string>();
+        const descendantIds = new Set<string>();
         const collectDescendants = (parentId: string) => {
           for (const child of childrenByParent.get(parentId) ?? []) {
-            if (descendants.has(child.id.value)) continue;
-            descendants.add(child.id.value);
+            if (descendantIds.has(child.id.value)) continue;
+            descendantIds.add(child.id.value);
             collectDescendants(child.id.value);
           }
         };
 
         collectDescendants(resource.id.value);
 
-        if (descendants.has(command.parentId)) {
+        if (descendantIds.has(command.parentId)) {
           return fail(new Error('A folder cannot be moved inside one of its descendants'));
         }
       }
 
       resource.move(command.parentId, parentDepth);
 
-      const subtree = new Map<string, Resource>();
-      const collectSubtree = (parentId: string) => {
+      const collectDescendants = (parentId: string) => {
         for (const child of childrenByParent.get(parentId) ?? []) {
-          subtree.set(child.id.value, child);
-          collectSubtree(child.id.value);
+          descendants.push(child);
+          collectDescendants(child.id.value);
         }
       };
-      collectSubtree(resource.id.value);
+
+      collectDescendants(resource.id.value);
 
       const updateDepths = (parentId: string, parentDepthValue: number) => {
         for (const child of childrenByParent.get(parentId) ?? []) {
@@ -99,13 +101,6 @@ export class UpdateResourceCommandHandler {
       };
 
       updateDepths(resource.id.value, resource.depth);
-
-      for (const child of subtree.values()) {
-        const result = await this.resourceRepository.save(child);
-        if (!result.ok) {
-          return fail(new CannotSaveResourceError(child.id.value, result.fail));
-        }
-      }
     }
 
     if (command.name) resource.rename(command.name);
@@ -113,6 +108,14 @@ export class UpdateResourceCommandHandler {
 
     const result = await this.resourceRepository.save(resource);
     if (!result.ok) return fail(new CannotSaveResourceError(command.resourceId, result.fail));
+
+    for (const descendant of descendants) {
+      const descendantResult = await this.resourceRepository.save(descendant);
+      if (!descendantResult.ok) {
+        return fail(new CannotSaveResourceError(descendant.id.value, descendantResult.fail));
+      }
+    }
+
     return ok(result.ok);
   }
 }
