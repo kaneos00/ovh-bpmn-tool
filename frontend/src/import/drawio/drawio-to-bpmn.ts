@@ -131,9 +131,18 @@ const decodeBase64 = (value: string): Uint8Array => {
 };
 
 const inflateRaw = async (value: string): Promise<string> => {
-  const encoded = decodeURIComponent(value);
-  const bytes = Uint8Array.from(encoded, char => char.charCodeAt(0));
-  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  let bytes: Uint8Array;
+
+  try {
+    bytes = decodeBase64(value.trim());
+  } catch {
+    const encoded = decodeURIComponent(value);
+    bytes = Uint8Array.from(encoded, char => char.charCodeAt(0));
+  }
+
+  const stream = new Blob([bytes])
+    .stream()
+    .pipeThrough(new DecompressionStream('deflate-raw'));
   const buffer = await new Response(stream).arrayBuffer();
   return new TextDecoder().decode(buffer);
 };
