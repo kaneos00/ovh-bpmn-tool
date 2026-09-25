@@ -50,6 +50,24 @@ export const useFolderTree = (selectedResourceId: string, { onNodeClick }: UseFo
   const hasParent = (resourceParentId: string | null | undefined, parentId?: string) =>
     (resourceParentId ?? undefined) === parentId;
 
+  const isDescendant = (candidateId: string, ancestorId: string) => {
+    let current = resources.find(item => item.id === candidateId);
+
+    while (current?.parentId) {
+      if (current.parentId === ancestorId) return true;
+      current = resources.find(item => item.id === current?.parentId);
+    }
+
+    return false;
+  };
+
+  const canDrop = (sourceId: string | null, targetId: string, targetType: ResourceType) => {
+    if (!sourceId || sourceId === targetId) return false;
+    if (targetId !== 'root' && targetType !== ResourceType.Folder) return false;
+    if (targetId !== 'root' && isDescendant(targetId, sourceId)) return false;
+    return true;
+  };
+
   const createDataTree = (parentId?: string): FolderTreeItem[] => resources
     .filter(({ parentId: resourceParentId, type }) => hasParent(resourceParentId, parentId) && type === ResourceType.Folder)
     .sort((a, b) => a.name.localeCompare(b.name))
@@ -92,13 +110,17 @@ export const useFolderTree = (selectedResourceId: string, { onNodeClick }: UseFo
 
   const onDragStart = (event: DragEvent, nodeId: string) => {
     setDraggedNodeId(nodeId);
+    setDropTargetId(null);
     event.dataTransfer.effectAllowed = 'move';
     event.dataTransfer.setData('text/plain', nodeId);
   };
 
   const onDragOver = (event: DragEvent, nodeId: string, type: ResourceType) => {
-    if (!draggedNodeId || draggedNodeId === nodeId) return;
-    if (nodeId !== 'root' && type !== ResourceType.Folder) return;
+    if (!canDrop(draggedNodeId, nodeId, type)) {
+      setDropTargetId(null);
+      return;
+    }
+
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
     setDropTargetId(nodeId);
@@ -106,15 +128,20 @@ export const useFolderTree = (selectedResourceId: string, { onNodeClick }: UseFo
 
   const onDrop = (event: DragEvent, targetId: string, targetType: ResourceType) => {
     event.preventDefault();
+
     const sourceId = draggedNodeId ?? event.dataTransfer.getData('text/plain');
+    if (!canDrop(sourceId, targetId, targetType) || moveMutation.isLoading) {
+      setDropTargetId(null);
+      setDraggedNodeId(null);
+      return;
+    }
+
+    const parentId = targetId === 'root' ? null : targetId;
+
     setDropTargetId(null);
     setDraggedNodeId(null);
-    if (!sourceId || sourceId === targetId || moveMutation.isLoading) return;
-
-    const parentId = targetId === 'root' ? null : targetType === ResourceType.Folder ? targetId : undefined;
-    if (parentId === undefined) return;
-
     moveMutation.mutate({ resourceId: sourceId, parentId });
+
     if (parentId && !expandedNodes.includes(parentId)) {
       setExpandedNodes(current => [...current, parentId]);
     }
