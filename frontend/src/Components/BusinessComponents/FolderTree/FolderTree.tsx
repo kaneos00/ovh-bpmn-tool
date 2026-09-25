@@ -13,10 +13,11 @@ import { useFolderTree } from './hooks/useFolderTree';
 import { FolderTreeItem } from './components/FolderTreeItem';
 
 import type { RenderTree } from '.';
+import { ResourceType } from '../../../shared/types/BpmnResource';
 
 type FolderTreeProps = {
   selectedId: string;
-  onNodeClick: (nodeId: string) => void;
+  onNodeClick: (nodeId: string, type: ResourceType) => void;
 };
 
 export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
@@ -24,12 +25,15 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
     useFolderTree(selectedId, { onNodeClick });
 
   const renderTree = (node: RenderTree) => {
+    const isFolder = node.type === ResourceType.Folder;
+
     return (
       <FolderTreeItem
         key={node.id}
         itemId={node.id}
-        label={`📁 ${node.name}`}
+        label={`${isFolder ? '📁' : '📄'} ${node.name}`}
         title={node.name}
+        isProcess={!isFolder}
       >
         {Array.isArray(node.children)
           ? node.children.map(childNode => renderTree(childNode))
@@ -47,7 +51,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
       }}
     >
       <ListSubheader role="presentation" sx={{ color: 'text.primary' }}>
-        Folders
+        Processus
       </ListSubheader>
 
       {isLoading ? (
