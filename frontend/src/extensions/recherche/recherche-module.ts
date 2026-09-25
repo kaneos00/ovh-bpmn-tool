@@ -46,13 +46,20 @@ function RechercheModule(eventBus: any, elementRegistry: any, selection: any, ca
     if (result.link) window.location.assign(result.link);
   }
 
-  function focusElementFromUrl() {
+  function focusElementFromUrl(attempt = 0) {
     const elementId = new URLSearchParams(window.location.search).get('element');
     if (!elementId) return;
+
     const element = elementRegistry.get(elementId);
-    if (!element) return;
+    if (!element) {
+      // The diagram may still be importing when import.done is emitted.
+      // Retry briefly so navigation from Recherche reliably lands on the matched BPMN element.
+      if (attempt < 20) window.setTimeout(() => focusElementFromUrl(attempt + 1), 100);
+      return;
+    }
+
     selection.select(element);
-    canvas.scrollToElement(element);
+    window.setTimeout(() => canvas.scrollToElement(element, 80), 0);
   }
 
   function renderResults(container: HTMLElement, results: RechercheResult[]) {
@@ -72,8 +79,28 @@ function RechercheModule(eventBus: any, elementRegistry: any, selection: any, ca
       Object.assign(button.style, { display: 'block', width: '100%', padding: '9px 12px', border: '0', borderBottom: '1px solid #eee', background: '#fff', textAlign: 'left', cursor: 'pointer' });
 
       const badge = document.createElement('span');
-      badge.textContent = sourceLabels[result.sourceType || 'bpmn'] || result.sourceType || 'BPMN';
-      Object.assign(badge.style, { display: 'inline-block', fontSize: '10px', padding: '2px 6px', marginBottom: '4px', border: '1px solid #ddd', borderRadius: '10px', color: '#666' });
+      const sourceType = result.sourceType || 'bpmn';
+      const badgeColors: Record<string, { background: string; border: string; color: string }> = {
+        process: { background: '#e8f1fb', border: '#bfd5ec', color: '#315f8c' },
+        bpmn: { background: '#fff0df', border: '#efd0a8', color: '#8a5a22' },
+        procedure: { background: '#eaf6ee', border: '#c5e3ce', color: '#3d704b' },
+        role: { background: '#f1ebf8', border: '#d8c9e8', color: '#69507f' },
+        raci: { background: '#fdf1e8', border: '#efd5c1', color: '#875f42' },
+        ai: { background: '#e9f5f5', border: '#c5dfdf', color: '#3f7070' },
+      };
+      badge.textContent = sourceLabels[sourceType] || sourceType || 'BPMN';
+      const badgeColor = badgeColors[sourceType] || badgeColors.bpmn;
+      Object.assign(badge.style, {
+        display: 'inline-block',
+        fontSize: '10px',
+        fontWeight: '600',
+        padding: '2px 7px',
+        marginBottom: '4px',
+        border: `1px solid ${badgeColor.border}`,
+        borderRadius: '10px',
+        background: badgeColor.background,
+        color: badgeColor.color,
+      });
       button.appendChild(badge);
 
       const title = document.createElement('div');
