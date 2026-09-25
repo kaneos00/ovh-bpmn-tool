@@ -33,7 +33,6 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
         itemId={node.id}
         label={`${isFolder ? '📁' : '📄'} ${node.name}`}
         title={node.name}
-        isProcess={!isFolder}
       >
         {Array.isArray(node.children)
           ? node.children.map(childNode => renderTree(childNode))
