@@ -97,7 +97,7 @@ const getResources = async (): Promise<Resource[]> => {
   });
   if (cacheValid) return resourceCache!.resources;
   const rawResources = await apiClient.get(
-    `/resources?filter.type=${ResourceType.Process}&filter.depth=100`,
+    `/resources?filter.type=${ResourceType.Process}`,
   );
   const resources = asArray<Resource>(rawResources);
 
