@@ -123,13 +123,47 @@ const gatewayType = (style: string) => {
   return 'bpmn:exclusiveGateway';
 };
 
-const elementTag = (type: string) => type.replace('bpmn:', '');
+const elementTag = (type: string) => type;
 
-export function drawioToBpmn(xml: string): DrawioImportResult {
+const decodeBase64 = (value: string): Uint8Array => {
+  const binary = atob(value);
+  return Uint8Array.from(binary, char => char.charCodeAt(0));
+};
+
+const inflateRaw = async (value: string): Promise<string> => {
+  const encoded = decodeURIComponent(value);
+  const bytes = Uint8Array.from(encoded, char => char.charCodeAt(0));
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  const buffer = await new Response(stream).arrayBuffer();
+  return new TextDecoder().decode(buffer);
+};
+
+const getMxGraphModel = async (xml: string): Promise<Document> => {
   const document = new DOMParser().parseFromString(xml, 'application/xml');
   const parserError = document.querySelector('parsererror');
   if (parserError) throw new Error('Le fichier Draw.io est un XML invalide.');
 
+  const directModel = document.querySelector('mxGraphModel');
+  if (directModel) return document;
+
+  const diagram = document.querySelector('mxfile > diagram');
+  if (!diagram) throw new Error('Le fichier ne contient pas de diagramme Draw.io.');
+
+  const content = diagram.textContent?.trim() ?? '';
+  if (!content) throw new Error('Le diagramme Draw.io est vide.');
+
+  const decoded = content.startsWith('<mxGraphModel')
+    ? content
+    : await inflateRaw(content);
+  const modelDocument = new DOMParser().parseFromString(decoded, 'application/xml');
+  if (modelDocument.querySelector('parsererror') || !modelDocument.querySelector('mxGraphModel')) {
+    throw new Error('Impossible de décoder le diagramme Draw.io compressé.');
+  }
+  return modelDocument;
+};
+
+export async function drawioToBpmn(xml: string): Promise<DrawioImportResult> {
+  const document = await getMxGraphModel(xml);
   const model = document.querySelector('mxGraphModel');
   if (!model) {
     throw new Error('Le fichier ne contient pas de mxGraphModel Draw.io.');
@@ -212,7 +246,7 @@ export function drawioToBpmn(xml: string): DrawioImportResult {
     }
 
     flows.push({
-      id: attr(cell, 'id') || `Flow_${Math.random().toString(36).slice(2, 10)}`,
+      id: attr(cell, 'id') || `Flow_${flows.length + 1}`,
       type,
       source,
       target,
@@ -225,6 +259,7 @@ export function drawioToBpmn(xml: string): DrawioImportResult {
   );
 
   const processElementIds = new Set(processNodes.map(node => node.id));
+  const laneNodes = nodes.filter(node => node.type === 'bpmn:lane');
 
   const processXml = processNodes
     .map(node => {
@@ -264,8 +299,6 @@ ${laneNodes
   const participantNodes = nodes.filter(
     node => node.type === 'bpmn:participant',
   );
-
-  const laneNodes = nodes.filter(node => node.type === 'bpmn:lane');
 
   if (participantNodes.length) {
     warnings.push(
