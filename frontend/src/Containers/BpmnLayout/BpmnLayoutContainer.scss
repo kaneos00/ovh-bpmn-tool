@@ -17,6 +17,10 @@
     border-right: 0;
     transition: width 0.2s ease, flex-basis 0.2s ease;
 
+    > button {
+      align-self: flex-start !important;
+    }
+
     &.collapsed {
       width: 48px;
       flex-basis: 48px;
