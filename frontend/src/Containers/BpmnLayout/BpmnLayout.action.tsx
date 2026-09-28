@@ -91,10 +91,23 @@ export const action = async ({
       formAction &&
       ['createContent', 'createContentFromClone'].includes(formAction as string)
     ) {
+      /*
+      ANCIEN REDIRECT — conservé pour comparaison / retour arrière
       const elementQuery = targetElementId
         ? `?element=${encodeURIComponent(targetElementId)}`
         : '';
       return redirect(`/${resourceId}/modeler${elementQuery}`);
+      */
+
+      // Le clone/création vient de produire le Draft. On transmet son ID au
+      // Modeler afin qu'il charge exactement ce contenu, sans dépendre du
+      // cache React Query encore en cours d'invalidation.
+      const contentId = response?.id as string | undefined;
+      const params = new URLSearchParams();
+      if (contentId) params.set('contentId', contentId);
+      if (targetElementId) params.set('element', targetElementId);
+      const query = params.toString();
+      return redirect(`/${resourceId}/modeler${query ? `?${query}` : ''}`);
     }
 
     return {
