@@ -31,7 +31,7 @@ export const Component = () => {
   } = useContentModeler(bpmnModelerInstance);
 
   const { diagramContainerRef, diagramPropertiesRef, hasLintError } =
-    useModeler(bpmnModelerInstance, draftXmlContent);
+    useModeler(bpmnModelerInstance, draftXmlContent, draftXmlLoading);
 
   return (
     <>
