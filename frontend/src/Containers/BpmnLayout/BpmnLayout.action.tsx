@@ -54,6 +54,7 @@ export const action = async ({
 
   const formData = await request.formData();
   const formAction = formData.get('action');
+  const targetElementId = formData.get('targetElementId') as string | null;
   let actionPromise;
 
   try {
@@ -74,6 +75,9 @@ export const action = async ({
     }
 
     const response = await actionPromise;
+
+    /*
+    ANCIEN REDIRECT — conservé pour comparaison / retour arrière
     return formAction &&
       ['createContent', 'createContentFromClone'].includes(formAction as string)
       ? redirect(`/${resourceId}/modeler`)
@@ -81,6 +85,22 @@ export const action = async ({
           ...response,
           formAction,
         };
+    */
+
+    if (
+      formAction &&
+      ['createContent', 'createContentFromClone'].includes(formAction as string)
+    ) {
+      const elementQuery = targetElementId
+        ? `?element=${encodeURIComponent(targetElementId)}`
+        : '';
+      return redirect(`/${resourceId}/modeler${elementQuery}`);
+    }
+
+    return {
+      ...response,
+      formAction,
+    };
   } catch (error) {
     return {
       formAction,
