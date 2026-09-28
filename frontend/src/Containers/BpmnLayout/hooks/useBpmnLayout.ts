@@ -45,18 +45,12 @@ export const useBpmnLayout = () => {
     enabled: Boolean(resource && resource.type === ResourceType.Process),
   });
 
-  /**
-   * Navigation functions
-   */
   const getResourceLink = (id: string) => `/${id}`;
 
   const getResourceActionLink = (id: string, action: ResourceAction) => {
     return `/${resourceId}/${action}?targetResourceId=${id}`;
   };
 
-  /**
-   * Callbacks
-   */
   const onFolderTreeItemClick = (id: string, type: ResourceType) => {
     if (type === ResourceType.Process) navigate(`/${id}`);
   };
@@ -93,7 +87,7 @@ export const useBpmnLayout = () => {
         actionPayload = {
           action: 'createContentFromClone',
           contentId: lastVersionContent.id,
-          targetElementId,
+          ...(targetElementId ? { targetElementId } : {}),
         };
       }
     } else {
@@ -109,7 +103,7 @@ export const useBpmnLayout = () => {
       actionPayload = {
         action: 'createContent',
         content: xmlContent,
-        targetElementId,
+        ...(targetElementId ? { targetElementId } : {}),
       };
     }
 
@@ -118,14 +112,6 @@ export const useBpmnLayout = () => {
 
   /**
    * Recherche navigation entry point.
-   *
-   * A Recherche result points to /<resourceId>?element=<elementId>.
-   * We deliberately handle it only on the resource page, not on /modeler,
-   * so the navigation cannot recursively reopen the Modeler.
-   *
-   * We also wait for the contents query to finish. Without this guard an
-   * empty query result could be mistaken for a process with no content and
-   * create a blank BPMN before the real contents arrive.
    */
   useEffect(() => {
     const targetElementId = new URLSearchParams(location.search).get('element');
@@ -146,9 +132,6 @@ export const useBpmnLayout = () => {
     onModelerBtnClick,
   ]);
 
-  /**
-   * Manage compare button click
-   */
   const onCompareClick = useCallback(
     (leftContentId: string, rightContentId: string) => {
       navigate(`/${resourceId}/compare/${leftContentId}/${rightContentId}`);
@@ -156,9 +139,6 @@ export const useBpmnLayout = () => {
     [resourceId, navigate],
   );
 
-  /**
-   * Manage click on copy link
-   */
   const onContentViewerLinkCopy = useCallback(() => {
     if (resource) {
       const baseUrl =
@@ -191,9 +171,6 @@ export const useBpmnLayout = () => {
     return submit({ action: 'cloneContent', contentId }, { method: 'post' });
   };
 
-  /**
-   * Action return management
-   */
   const processActionMessages: Record<string, string> = {
     uploadContent: 'Content has been successfully uploaded.',
     publishContent: 'Content has been successfully published.',
