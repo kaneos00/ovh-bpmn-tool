@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Await, Outlet, useParams } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Await, Outlet, useLocation, useParams } from 'react-router-dom';
 import { Sheet, IconButton } from '@mui/joy';
 import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 
@@ -24,9 +24,22 @@ import './BpmnLayoutContainer.scss';
 
 export const Component = () => {
   const { resourceId } = useParams() as BpmnLayoutRouteParams;
+  const location = useLocation();
   const { resource, contents, navigationFns, callbacks } = useBpmnLayout();
   const [folderTreeCollapsed, setFolderTreeCollapsed] = useState(false);
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
+
+  useEffect(() => {
+    if (!resource || resource.type !== ResourceType.Process) return;
+    if (location.pathname !== `/${resourceId}`) return;
+
+    const targetElementId = new URLSearchParams(location.search).get('element');
+    if (!targetElementId) return;
+
+    // A search result must use the same creation/clone flow as the normal
+    // Modeler button. Direct navigation to /modeler can create an empty BPMN.
+    void callbacks.header.onModelerBtnClick(targetElementId);
+  }, [resource, resourceId, location.pathname, location.search, callbacks.header]);
 
   const actions = useMemo(() => {
     const isRootFolder = isRoot(resourceId);
