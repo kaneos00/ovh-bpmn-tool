@@ -18,7 +18,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   const { resourceId } = useParams() as ContentModelerRouteParams;
   const [searchParams] = useSearchParams();
   const requestedContentId = searchParams.get('contentId');
-  const actionData/ = useActionData() as Content & ActionResponse;
+  const actionData = useActionData() as Content & ActionResponse;
 
   const submit = useSubmit();
   const { showAlert } = useSnackbar();
@@ -82,6 +82,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   /**
    * File export action
    */
+
   const triggerDownload = useCallback(
     (content: string, exportType: 'svg' | 'bpmn'): void => {
       if (resource && draftContent) {
