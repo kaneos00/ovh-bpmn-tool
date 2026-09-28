@@ -16,6 +16,7 @@ const CACHE_TTL_MS = 2 * 60 * 1000;
 let resourceCache: { expiresAt: number; resources: Resource[] } | undefined;
 const processCache = new Map<string, { expiresAt: number; results: RechercheResult[] }>();
 let repositoryIndexCache: { expiresAt: number; index: RechercheIndex } | undefined;
+let repositoryIndexPromise: Promise<RechercheIndex> | undefined;
 
 const asArray = <T,>(value: unknown): T[] => {
   if (Array.isArray(value)) return value as T[];
@@ -188,6 +189,19 @@ const getProcessIndex = async (resource: Resource): Promise<RechercheResult[]> =
 };
 
 const getRepositoryIndex = async (): Promise<RechercheIndex> => {
+  // Plusieurs frappes rapides ne doivent pas lancer plusieurs constructions
+  // complètes de l'index en parallèle.
+  if (repositoryIndexPromise) return repositoryIndexPromise;
+
+  repositoryIndexPromise = buildRepositoryIndex();
+  try {
+    return await repositoryIndexPromise;
+  } finally {
+    repositoryIndexPromise = undefined;
+  }
+};
+
+const buildRepositoryIndex = async (): Promise<RechercheIndex> => {
   const cacheValid = Boolean(repositoryIndexCache && repositoryIndexCache.expiresAt > Date.now());
   console.info('[Recherche] repository:index:request', {
     cacheValid,
@@ -223,6 +237,7 @@ export const getRepositoryRechercheIndex = getRepositoryIndex;
 
 export const invalidateRepositoryRechercheIndex = () => {
   repositoryIndexCache = undefined;
+  repositoryIndexPromise = undefined;
 };
 
 export const createRepositoryRechercheProvider = (): RechercheProvider => async (query, context = {}) => {
