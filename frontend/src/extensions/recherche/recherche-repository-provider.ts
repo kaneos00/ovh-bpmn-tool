@@ -109,7 +109,9 @@ const parseProcess = (
       ANCIENNE CONSTRUCTION — conservée pour comparaison / retour arrière
       link: appPath(`/${resource.id}/modeler?element=${encodeURIComponent(id)}`),
       */
-      link: appPath(`/${resource.id}/modeler?element=${encodeURIComponent(id)}`),
+      // Ne pas ouvrir directement /modeler : le Modeler doit d'abord passer
+      // par son flux normal de création/clonage du Draft.
+      link: appPath(`/${resource.id}?element=${encodeURIComponent(id)}`),
       metadata: { source: 'repository', kind: 'bpmn-element', raci: raci || undefined, role: role || undefined },
     };
   });
