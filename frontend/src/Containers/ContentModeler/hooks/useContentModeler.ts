@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useActionData, useParams, useSubmit } from 'react-router-dom';
+import { useActionData, useParams, useSearchParams, useSubmit } from 'react-router-dom';
 import { useQuery } from 'react-query';
 
 import type { ContentModelerRouteParams } from '..';
@@ -16,7 +16,9 @@ import Modeler from 'camunda-bpmn-js/lib/base/Modeler';
 
 export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   const { resourceId } = useParams() as ContentModelerRouteParams;
-  const actionData = useActionData() as Content & ActionResponse;
+  const [searchParams] = useSearchParams();
+  const requestedContentId = searchParams.get('contentId');
+  const actionData/ = useActionData() as Content & ActionResponse;
 
   const submit = useSubmit();
   const { showAlert } = useSnackbar();
@@ -36,9 +38,20 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     );
   }, [contents]);
 
+  /*
+  ANCIEN CHARGEMENT — conservé pour comparaison / retour arrière
   const { data: draftXmlContent } = useQuery({
     ...getXmlContentQuery(resourceId, draftContent?.id as string),
     enabled: !!draftContent?.id,
+  });
+  */
+
+  // Recherche transmet le Draft réellement créé/cloné. On charge donc
+  // directement son XML, sans attendre le rafraîchissement du cache contents.
+  const xmlContentId = requestedContentId || draftContent?.id;
+  const { data: draftXmlContent, isLoading: draftXmlLoading } = useQuery({
+    ...getXmlContentQuery(resourceId, xmlContentId as string),
+    enabled: !!xmlContentId,
   });
 
   const contentData = useMemo(() => {
@@ -199,6 +212,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   return {
     resourceId,
     draftXmlContent: draftXmlContent ?? '',
+    draftXmlLoading,
     isShortcurtModalOpen,
     actionData,
     setIsShortcurtModalOpen,
