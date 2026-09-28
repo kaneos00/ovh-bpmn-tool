@@ -1,8 +1,9 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useQuery } from 'react-query';
 import {
   useActionData,
   useLoaderData,
+  useLocation,
   useNavigate,
   useParams,
   useSubmit,
@@ -23,6 +24,7 @@ import { useModelerInstance } from '../../../shared/hooks/useModelerInstance';
 
 export const useBpmnLayout = () => {
   const { resourceId } = useParams() as BpmnLayoutRouteParams;
+  const location = useLocation();
   const actionData = useActionData() as Resource & ActionResponse;
   const loaderData = useLoaderData() as BpmnLayoutLoaderData;
 
@@ -32,6 +34,7 @@ export const useBpmnLayout = () => {
   const navigate = useNavigate();
   const submit = useSubmit();
   const { showAlert } = useSnackbar();
+  const handledSearchTargetRef = useRef<string | null>(null);
 
   const { resource } = useResource(resourceId);
   const { data: contents } = useQuery({
@@ -42,10 +45,7 @@ export const useBpmnLayout = () => {
   /**
    * Navigation functions
    */
-
-  const getResourceLink = (id: string) => {
-    return `/${id}`;
-  };
+  const getResourceLink = (id: string) => `/${id}`;
 
   const getResourceActionLink = (id: string, action: ResourceAction) => {
     return `/${resourceId}/${action}?targetResourceId=${id}`;
@@ -54,11 +54,8 @@ export const useBpmnLayout = () => {
   /**
    * Callbacks
    */
-
   const onFolderTreeItemClick = (id: string, type: ResourceType) => {
-    if (type === ResourceType.Process) {
-      navigate(`/${id}`);
-    }
+    if (type === ResourceType.Process) navigate(`/${id}`);
   };
 
   const onFolderTreeItemDelete = useCallback((id: string) => {
@@ -66,7 +63,8 @@ export const useBpmnLayout = () => {
   }, [resourceId, navigate]);
 
   /**
-   * Manage click on modeler button
+   * Open the Modeler using the same workflow as the normal Modeler button.
+   * Recherche may optionally provide the BPMN element to select afterwards.
    */
   const onModelerBtnClick = useCallback(async (targetElementId?: string) => {
     const lastVersionContent = (contents || []).find(
@@ -95,12 +93,12 @@ export const useBpmnLayout = () => {
         };
       }
     } else {
-      let xmlContent;
+      let xmlContent = '';
       try {
         await bpmnModelerInstance.createDiagram();
         const draftContentXml = await bpmnModelerInstance.saveXML();
         xmlContent = draftContentXml.xml || '';
-      } catch (error) {
+      } catch {
         xmlContent = '';
       }
 
@@ -115,13 +113,32 @@ export const useBpmnLayout = () => {
   }, [contents, bpmnModelerInstance, navigate, submit]);
 
   /**
+   * Recherche navigation entry point.
+   *
+   * A Recherche result points to /<resourceId>?element=<elementId>.
+   * We deliberately handle it only on the resource page, not on /modeler,
+   * so the navigation cannot recursively reopen the Modeler.
+   */
+  useEffect(() => {
+    const targetElementId = new URLSearchParams(location.search).get('element');
+    const isModelerRoute = location.pathname.endsWith('/modeler');
+
+    if (!targetElementId || isModelerRoute) return;
+    if (handledSearchTargetRef.current === targetElementId) return;
+    if (!resource || resource.type !== ResourceType.Process) return;
+
+    handledSearchTargetRef.current = targetElementId;
+    void onModelerBtnClick(targetElementId);
+  }, [location.pathname, location.search, resource, onModelerBtnClick]);
+
+  /**
    * Manage compare button click
    */
   const onCompareClick = useCallback(
     (leftContentId: string, rightContentId: string) => {
       navigate(`/${resourceId}/compare/${leftContentId}/${rightContentId}`);
     },
-    [contents],
+    [resourceId, navigate],
   );
 
   /**
@@ -143,44 +160,20 @@ export const useBpmnLayout = () => {
         severity: 'success',
       });
     }
-  }, [resourceId, resource]);
+  }, [resourceId, resource, showAlert]);
 
   const onContentUpload = (content: string) => {
-    return submit(
-      {
-        action: 'uploadContent',
-        content,
-      },
-      { method: 'post' },
-    );
+    return submit({ action: 'uploadContent', content }, { method: 'post' });
   };
 
-  const onContentPublish = () => {
-    navigate(`/${resourceId}/publish`);
-  };
+  const onContentPublish = () => navigate(`/${resourceId}/publish`);
 
   const onContentErase = (contentId: string) => {
-    return submit(
-      {
-        action: 'eraseContent',
-        contentId,
-      },
-      {
-        method: 'delete',
-      },
-    );
+    return submit({ action: 'eraseContent', contentId }, { method: 'delete' });
   };
 
   const onContentClone = (contentId: string) => {
-    return submit(
-      {
-        action: 'cloneContent',
-        contentId,
-      },
-      {
-        method: 'post',
-      },
-    );
+    return submit({ action: 'cloneContent', contentId }, { method: 'post' });
   };
 
   /**
@@ -202,22 +195,17 @@ export const useBpmnLayout = () => {
 
   useEffect(() => {
     if (actionData && !actionData.error && actionData.formAction) {
-      const message = processActionMessages[actionData.formAction as string];
-
       showAlert({
-        message,
+        message: processActionMessages[actionData.formAction as string],
         severity: 'success',
       });
     } else if (actionData?.error && actionData?.formAction) {
-      const message =
-        processActionErrorMessages[actionData.formAction as string];
-
       showAlert({
-        message,
+        message: processActionErrorMessages[actionData.formAction as string],
         severity: 'danger',
       });
     }
-  }, [actionData]);
+  }, [actionData, showAlert]);
 
   return {
     resource,
