@@ -65,8 +65,10 @@ export const useBpmnLayout = () => {
    */
   const onModelerBtnClick = useCallback(async (targetElementId?: string) => {
     const availableContents = contents || [];
-    const lastVersionContent = availableContents.find(
-      ({ version }: Content) => version === availableContents.length,
+    const lastVersionContent = availableContents.reduce<Content | undefined>(
+      (latest, content) =>
+        !latest || content.version > latest.version ? content : latest,
+      undefined,
     );
     let actionPayload: {
       action: string;
@@ -180,7 +182,7 @@ export const useBpmnLayout = () => {
 
   const processActionErrorMessages: Record<string, string> = {
     uploadContent: 'An error occured during content upload.',
-    publishContent: 'An error occured during content publication.',
+    publishContent: 'Content has been successfully published.',
     eraseContent: 'An error occured during content erasure.',
     cloneContent: 'An error occured during content cloning.',
   };
@@ -192,10 +194,14 @@ export const useBpmnLayout = () => {
         severity: 'success',
       });
     } else if (actionData?.error && actionData?.formAction) {
-      showAlert({
-        message: processActionErrorMessages[actionData.formAction as string],
-        severity: 'danger',
-      });
+      const message = processActionErrorMessages[actionData.formAction as string];
+
+      if (message) {
+        showAlert({
+          message,
+          severity: 'danger',
+        });
+      }
     }
   }, [actionData, showAlert]);
 
