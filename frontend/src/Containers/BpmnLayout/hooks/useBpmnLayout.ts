@@ -37,7 +37,10 @@ export const useBpmnLayout = () => {
   const handledSearchTargetRef = useRef<string | null>(null);
 
   const { resource } = useResource(resourceId);
-  const { data: contents } = useQuery({
+  const {
+    data: contents,
+    isLoading: contentsLoading,
+  } = useQuery({
     ...contentsQuery(resourceId),
     enabled: Boolean(resource && resource.type === ResourceType.Process),
   });
@@ -67,8 +70,9 @@ export const useBpmnLayout = () => {
    * Recherche may optionally provide the BPMN element to select afterwards.
    */
   const onModelerBtnClick = useCallback(async (targetElementId?: string) => {
-    const lastVersionContent = (contents || []).find(
-      ({ version }: Content) => version === contents?.length,
+    const availableContents = contents || [];
+    const lastVersionContent = availableContents.find(
+      ({ version }: Content) => version === availableContents.length,
     );
     let actionPayload: {
       action: string;
@@ -118,6 +122,10 @@ export const useBpmnLayout = () => {
    * A Recherche result points to /<resourceId>?element=<elementId>.
    * We deliberately handle it only on the resource page, not on /modeler,
    * so the navigation cannot recursively reopen the Modeler.
+   *
+   * We also wait for the contents query to finish. Without this guard an
+   * empty query result could be mistaken for a process with no content and
+   * create a blank BPMN before the real contents arrive.
    */
   useEffect(() => {
     const targetElementId = new URLSearchParams(location.search).get('element');
@@ -126,10 +134,17 @@ export const useBpmnLayout = () => {
     if (!targetElementId || isModelerRoute) return;
     if (handledSearchTargetRef.current === targetElementId) return;
     if (!resource || resource.type !== ResourceType.Process) return;
+    if (contentsLoading) return;
 
     handledSearchTargetRef.current = targetElementId;
     void onModelerBtnClick(targetElementId);
-  }, [location.pathname, location.search, resource, onModelerBtnClick]);
+  }, [
+    location.pathname,
+    location.search,
+    resource,
+    contentsLoading,
+    onModelerBtnClick,
+  ]);
 
   /**
    * Manage compare button click
