@@ -175,7 +175,8 @@ export const useBpmnLayout = () => {
 
   const processActionMessages: Record<string, string> = {
     uploadContent: 'Content has been successfully uploaded.',
-    publishContent: 'Content has been successfully published.',
+    publishContent:
+      "An error occured during publishing content. Content can't be saved.",
     eraseContent: 'Content has been successfully erased.',
     cloneContent: 'Content has been successfully cloned.',
   };
