@@ -67,7 +67,9 @@ export const useBpmnLayout = () => {
     const availableContents = contents || [];
     const lastVersionContent = availableContents.reduce<Content | undefined>(
       (latest, content) =>
-        !latest || content.version > latest.version ? content : latest,
+        !latest || (content.version ?? 0) > (latest.version ?? 0)
+          ? content
+          : latest,
       undefined,
     );
     let actionPayload: {
