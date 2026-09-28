@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import { useSnackbar } from '../../../shared/hooks/useSnackbar';
 import {
   BpmnLintIssues,
   PropertiesPanel,
@@ -23,12 +22,9 @@ export const useModeler = (
   const [hasLintError, setHasLintError] = useState(false);
 
   const { getModelerProviders } = useBpmnToolOptions();
-
   const providersRegisteredRef = useRef(false);
-  
   const propertiesPanel: PropertiesPanel =
     bpmnModelerInstance.get('propertiesPanel');
-
   const { showAlert } = useSnackbar();
 
   const attachModeler = () => {
@@ -44,49 +40,16 @@ export const useModeler = (
 
     if (!providersRegisteredRef.current) {
       const providers = getModelerProviders();
-    
       providers.forEach(({ priority, instance: ProviderInstance }) => {
         propertiesPanel.registerProvider(priority, new ProviderInstance());
       });
-    
       providersRegisteredRef.current = true;
-    }    
+    }
 
     propertiesPanel.attachTo(diagramPropertiesRef.current);
 
     const canvas = bpmnModelerInstance.get('canvas') as any;
-    const controls = diagramContainerRef.current.querySelector(
-      '.bpmn-tool-navigation-controls',
-    );
-
-    if (controls) {
-      const zoom = (factor: number) => {
-        const current = canvas.zoom();
-        const rect = diagramContainerRef.current!.getBoundingClientRect();
-        canvas.zoom(current * factor, {
-          x: rect.width / 2,
-          y: rect.height / 2,
-        });
-      };
-
-      const handlers: Record<string, () => void> = {
-        'zoom-in': () => zoom(1.2),
-        'zoom-out': () => zoom(1 / 1.2),
-        reset: () => canvas.zoom(1),
-        fit: () => canvas.zoom('fit-viewport'),
-      };
-
-      controls.querySelectorAll<HTMLButtonElement>(
-        '[data-navigation-action]',
-      ).forEach(button => {
-        const action = button.dataset.navigationAction;
-        const handler = action ? handlers[action] : undefined;
-
-        if (handler) {
-          button.addEventListener('click', handler);
-        }
-      });
-    }
+    canvas.zoom('fit-viewport');
   };
 
   useEffect(() => {
@@ -99,33 +62,32 @@ export const useModeler = (
         bpmnModelerInstance
           .createDiagram()
           .then(() => attachModeler())
-          .catch(() =>
+          .catch((error: unknown) => {
+            console.error('[Modeler] Failed to create diagram', error);
             showAlert({
               message: 'Failed to render file',
               severity: 'danger',
-            }),
-          );
+            });
+          });
       } else {
+        /*
+        ANCIEN COMPORTEMENT — conservé pour comparaison / retour arrière
+        Import direct du XML sans nettoyage explicite du diagramme précédent.
+        bpmnModelerInstance.importXML(content)
+        */
+
+        // Un Modeler peut conserver un diagramme précédent (notamment après
+        // navigation depuis le Viewer ou après un premier createDiagram).
+        // On le détruit explicitement avant de charger le XML demandé.
+        // Cela évite qu'un root implicite ou un ancien diagramme empêche
+        // l'import du BPMN 2.0 importé.
+        bpmnModelerInstance.clear();
+
         bpmnModelerInstance
           .importXML(content)
           .then(() => {
             attachModeler();
 
-            /*
-            ANCIEN COMPORTEMENT — conservé pour comparaison / retour arrière
-            L'import du XML était terminé ici sans exploiter le paramètre
-            ?element=... transmis par Recherche.
-            */
-
-            /*
-            ANCIEN COMPORTEMENT — conservé pour comparaison / retour arrière
-            L'import du XML était terminé ici sans exploiter le paramètre
-            ?element=... transmis par Recherche.
-            */
-
-            // Recherche demande l'ouverture directe d'un élément BPMN.
-            // La sélection est différée d'une frame afin de laisser bpmn-js
-            // terminer le rendu graphique après importXML().
             if (targetElementId) {
               const locateTargetElement = () => {
                 const elementRegistry = bpmnModelerInstance.get('elementRegistry') as any;
@@ -142,9 +104,6 @@ export const useModeler = (
 
                 selection.select(element);
                 canvas.scrollToElement(element);
-
-                // Marqueur visuel temporaire : permet également de confirmer
-                // que la résolution de l'élément a bien fonctionné.
                 canvas.addMarker(element, 'recherche-target');
                 window.setTimeout(() => {
                   canvas.removeMarker(element, 'recherche-target');
@@ -154,12 +113,13 @@ export const useModeler = (
               window.requestAnimationFrame(locateTargetElement);
             }
           })
-          .catch(() =>
+          .catch((error: unknown) => {
+            console.error('[Modeler] Failed to import BPMN 2.0 XML', error);
             showAlert({
               message: 'Failed to import file',
               severity: 'danger',
-            }),
-          );
+            });
+          });
       }
 
       bpmnModelerInstance.on(
