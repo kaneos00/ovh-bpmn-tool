@@ -30,7 +30,7 @@ export const useModeler = (
   const attachModeler = () => {
     if (!diagramContainerRef.current || !diagramPropertiesRef.current) {
       showAlert({
-        message: 'Diagram or Properties ref are undefined',
+        message: 'Diagram or Properties refs are undefined',
         severity: 'danger',
       });
       return;
@@ -120,7 +120,13 @@ export const useModeler = (
         },
       );
     }
-  }, [bpmnModelerInstance, diagramContainerRef, diagramPropertiesRef, content]);
+  }, [
+    bpmnModelerInstance,
+    diagramContainerRef,
+    diagramPropertiesRef,
+    content,
+    contentLoading,
+  ]);
 
   return {
     diagramContainerRef,
