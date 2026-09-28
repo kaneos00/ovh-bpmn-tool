@@ -111,6 +111,14 @@ export const RechercheBar = () => {
   }, [query, scope, source]);
 
   React.useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void runSearch(query, scope, source);
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [query, scope, source, runSearch]);
+
+  React.useEffect(() => {
     const focusSearch = () => inputRef.current?.focus();
 
     window.addEventListener('recherche:focus', focusSearch);
@@ -169,9 +177,7 @@ export const RechercheBar = () => {
           autoComplete="off"
           aria-label="Recherche"
           onChange={event => {
-            const value = event.target.value;
-            setQuery(value);
-            void runSearch(value, scope, source);
+            setQuery(event.target.value);
           }}
           onKeyDown={event => {
             if (event.key === 'Enter') {
