@@ -9,7 +9,11 @@ import {
 import Modeler from 'camunda-bpmn-js/lib/base/Modeler';
 import { useBpmnToolOptions } from '../../../Providers/BpmnToolOptions/useBpmnToolOptions';
 
-export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
+export const useModeler = (
+  bpmnModelerInstance: Modeler,
+  content?: string,
+  contentLoading = false,
+) => {
   const diagramContainerRef = useRef<HTMLDivElement>(null);
   const diagramPropertiesRef = useRef<HTMLDivElement>(null);
   const [hasLintError, setHasLintError] = useState(false);
@@ -82,6 +86,10 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
   };
 
   useEffect(() => {
+    // Ne pas créer un diagramme vide pendant que le XML demandé par Recherche
+    // est encore en cours de chargement.
+    if (contentLoading) return;
+
     if (diagramContainerRef.current && diagramPropertiesRef.current) {
       if (!content) {
         bpmnModelerInstance
