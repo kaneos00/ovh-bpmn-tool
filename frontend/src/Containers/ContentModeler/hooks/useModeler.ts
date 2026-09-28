@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 import { useSnackbar } from '../../../shared/hooks/useSnackbar';
 import {
@@ -14,6 +15,9 @@ export const useModeler = (
   content?: string,
   contentLoading = false,
 ) => {
+  const [searchParams] = useSearchParams();
+  const targetElementId = searchParams.get('element');
+
   const diagramContainerRef = useRef<HTMLDivElement>(null);
   const diagramPropertiesRef = useRef<HTMLDivElement>(null);
   const [hasLintError, setHasLintError] = useState(false);
@@ -104,7 +108,34 @@ export const useModeler = (
       } else {
         bpmnModelerInstance
           .importXML(content)
-          .then(() => attachModeler())
+          .then(() => {
+            attachModeler();
+
+            /*
+            ANCIEN COMPORTEMENT — conservé pour comparaison / retour arrière
+            L'import du XML était terminé ici sans exploiter le paramètre
+            ?element=... transmis par Recherche.
+            */
+
+            // Recherche peut demander l'ouverture directe d'un élément BPMN.
+            // On attend importXML() puis on résout l'id dans l'ElementRegistry.
+            if (targetElementId) {
+              const elementRegistry = bpmnModelerInstance.get('elementRegistry') as any;
+              const canvas = bpmnModelerInstance.get('canvas') as any;
+              const selection = bpmnModelerInstance.get('selection') as any;
+              const element = elementRegistry.get(targetElementId);
+
+              if (element) {
+                selection.select(element);
+                canvas.scrollToElement(element);
+              } else {
+                console.warn(
+                  '[Recherche] BPMN element not found in imported diagram',
+                  targetElementId,
+                );
+              }
+            }
+          })
           .catch(() =>
             showAlert({
               message: 'Failed to import file',
@@ -126,6 +157,7 @@ export const useModeler = (
     diagramPropertiesRef,
     content,
     contentLoading,
+    targetElementId,
   ]);
 
   return {
