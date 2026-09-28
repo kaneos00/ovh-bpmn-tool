@@ -8,6 +8,7 @@ import {
 } from '../../../Components/BusinessComponents/Modeler/helpers';
 import Modeler from 'camunda-bpmn-js/lib/base/Modeler';
 import { useBpmnToolOptions } from '../../../Providers/BpmnToolOptions/useBpmnToolOptions';
+import { useSnackbar } from '../../../shared/hooks/useSnackbar';
 
 export const useModeler = (
   bpmnModelerInstance: Modeler,
