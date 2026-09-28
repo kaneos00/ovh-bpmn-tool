@@ -68,7 +68,8 @@ import {
   BpmnToolOptions,
   BpmnToolOptionsProvider,
 } from './Providers/BpmnToolOptions';
-import RechercheBar from './extensions/recherche/recherche-bar';
+// DIAGNOSTIC : RechercheBar désactivée temporairement pour isoler le gel de l'interface.
+// import RechercheBar from './extensions/recherche/recherche-bar';
 
 import './styles.css';
 import '@fontsource/public-sans';
@@ -88,10 +89,14 @@ export function MainContainer(props: MainContainerProps) {
       <SnackbarProvider>
         <QueryClientProvider client={queryClient}>
           <BpmnToolOptionsProvider options={props.options}>
+            {/*
+            DIAGNOSTIC — ancienne configuration active conservée pour comparaison / retour arrière :
             <>
               <RechercheBar />
               <RouterProvider router={router} />
             </>
+            */}
+            <RouterProvider router={router} />
           </BpmnToolOptionsProvider>
         </QueryClientProvider>
       </SnackbarProvider>
