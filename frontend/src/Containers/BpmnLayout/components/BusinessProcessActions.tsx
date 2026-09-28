@@ -20,12 +20,16 @@ export const BusinessProcessActions = ({
       />
       <ActionButton
         to="./edit"
-        content="Edit"
+        content="Edit Business Process"
         label="Edit Business Process"
         leftIcon={<Edit fontSize="small" />}
       />
+      {/*
+      ANCIEN APPEL — conservé pour comparaison / retour arrière
+      onClick={onModelerBtnClick}
+      */}
       <ActionButton
-        onClick={onModelerBtnClick}
+        onClick={() => onModelerBtnClick()}
         content="Modeler"
         label="Model Business Process"
         rightIcon={<ChevronRight fontSize="small" />}
