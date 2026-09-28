@@ -68,7 +68,7 @@ export const useBpmnLayout = () => {
   /**
    * Manage click on modeler button
    */
-  const onModelerBtnClick = useCallback(async () => {
+  const onModelerBtnClick = useCallback(async (targetElementId?: string) => {
     const lastVersionContent = (contents || []).find(
       ({ version }: Content) => version === contents?.length,
     );
@@ -76,17 +76,22 @@ export const useBpmnLayout = () => {
       action: string;
       contentId?: string;
       content?: string;
+      targetElementId?: string;
     } = { action: '' };
 
     if (lastVersionContent) {
       if (lastVersionContent.status === ContentStatusEnum.Draft) {
-        return navigate('./modeler');
+        const elementQuery = targetElementId
+          ? `?element=${encodeURIComponent(targetElementId)}`
+          : '';
+        return navigate(`./modeler${elementQuery}`);
       }
 
       if (lastVersionContent.status === ContentStatusEnum.Published) {
         actionPayload = {
           action: 'createContentFromClone',
           contentId: lastVersionContent.id,
+          targetElementId,
         };
       }
     } else {
@@ -102,11 +107,12 @@ export const useBpmnLayout = () => {
       actionPayload = {
         action: 'createContent',
         content: xmlContent,
+        targetElementId,
       };
     }
 
     return submit(actionPayload, { method: 'post' });
-  }, [contents, bpmnModelerInstance]);
+  }, [contents, bpmnModelerInstance, navigate, submit]);
 
   /**
    * Manage compare button click
