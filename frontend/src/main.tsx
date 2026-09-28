@@ -36,14 +36,6 @@ export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
             },
           ],
 
-          // ANCIEN CODE INCORRECT :
-          // additionalModules: [
-          //   ...(options.modelerOptions?.additionalModules ?? []),
-          //   UrlClickModule,
-          // ],
-
-          // AJOUT : enregistrement du module personnalisé.
-          // BpmnToolOptions utilise "modules".
           modules: [
             ...(options.modelerOptions?.modules ?? []),
             {
@@ -120,22 +112,22 @@ export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
             options.modelerOptions?.rechercheProvider ??
             createRepositoryRechercheProvider(),
 
+          /*
+          TEST DIAGNOSTIQUE : tous les modules ajoutés par cette branche
+          sont temporairement désactivés pour vérifier l'éditabilité native
+          du Modeler. Les modules éventuellement fournis par l'intégration
+          hôte restent conservés.
+
+          ANCIENNE CONFIGURATION ACTIVE :
           modules: [
             ...(options.modelerOptions?.modules ?? []),
-            {
-              declaration: UrlClickModule,
-            },
-            {
-              declaration: RechercheModule,
-            },
-            {
-              disabledInViewer: true,
-              declaration: MinimapModule,
-            },
-            {
-              declaration: NavigationControlsModule,
-            },
+            { declaration: UrlClickModule },
+            { declaration: RechercheModule },
+            { disabledInViewer: true, declaration: MinimapModule },
+            { declaration: NavigationControlsModule },
           ],
+          */
+          modules: [...(options.modelerOptions?.modules ?? [])],
         },
       }}
     />,
