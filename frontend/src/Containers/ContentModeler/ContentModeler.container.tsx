@@ -68,7 +68,6 @@ FIN ANCIENNE VERSION
 ============================================================
 */
 
-
 import React from 'react';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
 
@@ -104,6 +103,7 @@ export const Component = () => {
   const {
     resourceId,
     draftXmlContent,
+    draftXmlLoading,
     isShortcurtModalOpen,
     setIsShortcurtModalOpen,
     onFileUpload,
@@ -113,8 +113,14 @@ export const Component = () => {
     actionData,
   } = useContentModeler(bpmnModelerInstance);
 
+  /*
+  ANCIEN APPEL — conservé pour comparaison / retour arrière
   const { diagramContainerRef, diagramPropertiesRef, hasLintError } =
     useModeler(bpmnModelerInstance, draftXmlContent);
+  */
+
+  const { diagramContainerRef, diagramPropertiesRef, hasLintError } =
+    useModeler(bpmnModelerInstance, draftXmlContent, draftXmlLoading);
 
   return (
     <>
