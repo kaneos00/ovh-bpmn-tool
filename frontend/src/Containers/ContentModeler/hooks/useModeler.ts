@@ -117,23 +117,41 @@ export const useModeler = (
             ?element=... transmis par Recherche.
             */
 
-            // Recherche peut demander l'ouverture directe d'un élément BPMN.
-            // On attend importXML() puis on résout l'id dans l'ElementRegistry.
-            if (targetElementId) {
-              const elementRegistry = bpmnModelerInstance.get('elementRegistry') as any;
-              const canvas = bpmnModelerInstance.get('canvas') as any;
-              const selection = bpmnModelerInstance.get('selection') as any;
-              const element = elementRegistry.get(targetElementId);
+            /*
+            ANCIEN COMPORTEMENT — conservé pour comparaison / retour arrière
+            L'import du XML était terminé ici sans exploiter le paramètre
+            ?element=... transmis par Recherche.
+            */
 
-              if (element) {
+            // Recherche demande l'ouverture directe d'un élément BPMN.
+            // La sélection est différée d'une frame afin de laisser bpmn-js
+            // terminer le rendu graphique après importXML().
+            if (targetElementId) {
+              const locateTargetElement = () => {
+                const elementRegistry = bpmnModelerInstance.get('elementRegistry') as any;
+                const canvas = bpmnModelerInstance.get('canvas') as any;
+                const selection = bpmnModelerInstance.get('selection') as any;
+                const element = elementRegistry.get(targetElementId);
+
+                console.info('[Recherche] target element', {
+                  targetElementId,
+                  found: Boolean(element),
+                });
+
+                if (!element) return;
+
                 selection.select(element);
                 canvas.scrollToElement(element);
-              } else {
-                console.warn(
-                  '[Recherche] BPMN element not found in imported diagram',
-                  targetElementId,
-                );
-              }
+
+                // Marqueur visuel temporaire : permet également de confirmer
+                // que la résolution de l'élément a bien fonctionné.
+                canvas.addMarker(element, 'recherche-target');
+                window.setTimeout(() => {
+                  canvas.removeMarker(element, 'recherche-target');
+                }, 2500);
+              };
+
+              window.requestAnimationFrame(locateTargetElement);
             }
           })
           .catch(() =>
