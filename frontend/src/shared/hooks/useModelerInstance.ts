@@ -25,7 +25,13 @@ export const useModelerInstance = () => {
         ...getModelerModules(),
         MinimapModule,
         NavigationControls,
-        VerticalInteractionHitFix,
+
+        /*
+          TEST — VerticalInteractionHitFix désactivé temporairement.
+          Ancienne activation conservée pour comparaison / retour arrière :
+          VerticalInteractionHitFix,
+        */
+
         InteractionDiagnostic,
       ],
       ...(lintingOptions.active ? { linting: lintingOptions } : {}),
