@@ -18,18 +18,39 @@ const publishContentAction = async (
     pngContent,
   });
 
-  queryClient.invalidateQueries({
-    queryKey: getResourceQuery(resourceId).queryKey,
-  });
-  queryClient.invalidateQueries({
-    queryKey: contentsQuery(resourceId).queryKey,
-  });
-  queryClient.invalidateQueries({
-    queryKey: getContentQuery(resourceId, contentId).queryKey,
-  });
-  queryClient.invalidateQueries({
-    queryKey: getXmlContentQuery(resourceId, contentId).queryKey,
-  });
+  /*
+   * ANCIEN CODE — conservé pour comparaison / retour arrière
+   *
+   * queryClient.invalidateQueries({
+   *   queryKey: getResourceQuery(resourceId).queryKey,
+   * });
+   * queryClient.invalidateQueries({
+   *   queryKey: contentsQuery(resourceId).queryKey,
+   * });
+   * queryClient.invalidateQueries({
+   *   queryKey: getContentQuery(resourceId, contentId).queryKey,
+   * });
+   * queryClient.invalidateQueries({
+   *   queryKey: getXmlContentQuery(resourceId, contentId).queryKey,
+   * });
+   */
+
+  // Attend la fin des invalidations avant de retourner vers le viewer.
+  // Cela évite que le viewer soit monté avec les anciennes données en cache.
+  await Promise.all([
+    queryClient.invalidateQueries({
+      queryKey: getResourceQuery(resourceId).queryKey,
+    }),
+    queryClient.invalidateQueries({
+      queryKey: contentsQuery(resourceId).queryKey,
+    }),
+    queryClient.invalidateQueries({
+      queryKey: getContentQuery(resourceId, contentId).queryKey,
+    }),
+    queryClient.invalidateQueries({
+      queryKey: getXmlContentQuery(resourceId, contentId).queryKey,
+    }),
+  ]);
 
   return response;
 };
