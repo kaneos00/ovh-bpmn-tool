@@ -19,7 +19,10 @@ FIN FIX
 */
 
 const LOW_PRIORITY = -1000;
-const LABEL_WIDTH = 30;
+/*
+  ANCIENNE CONSTANTE — conservée pour comparaison / retour arrière
+  const LABEL_WIDTH = 30;
+*/
 const LABEL_HEIGHT = 30;
 
 function VerticalInteractionHitFix(eventBus: any, interactionEvents: any) {
