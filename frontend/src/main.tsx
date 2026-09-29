@@ -7,6 +7,7 @@ import { BpmnToolOptions } from './Providers/BpmnToolOptions';
 import UrlModel from './extensions/url-model';
 import UrlPropertiesProvider from './extensions/url-properties-provider';
 import UrlClickModule from './extensions/url-click-module';
+import LaneOrientationPropertiesProvider from './extensions/lane-orientation-properties-provider';
 
 export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
   createRoot(document.getElementById('root')!).render(
@@ -28,6 +29,10 @@ export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
             {
               priority: 500,
               instance: UrlPropertiesProvider,
+            },
+            {
+              priority: 501,
+              instance: LaneOrientationPropertiesProvider,
             },
           ],
           modules: [
