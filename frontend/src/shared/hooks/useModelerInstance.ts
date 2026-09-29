@@ -46,6 +46,7 @@ export const useModelerInstance = () => {
       additionalModules: [
         ...getModelerModules(true),
         MinimapModule,
+        NavigationControls,
       ],
       moddleExtensions: getModelerExtensions(),
       // Ouvre automatiquement la minimap dans le visualiseur.
