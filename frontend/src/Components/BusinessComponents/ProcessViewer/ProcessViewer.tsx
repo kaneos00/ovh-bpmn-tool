@@ -1,5 +1,6 @@
 import React from 'react';
 import { useProcessViewer } from './hooks/useProcessViewer';
+import 'diagram-js-minimap/assets/diagram-js-minimap.css';
 
 type ProcessViewerProps = {
   resourceId: string;
