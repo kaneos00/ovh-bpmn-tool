@@ -32,7 +32,6 @@ import { is } from 'bpmn-js/lib/util/ModelUtil';
  * ============================================================
  */
 
-
 /*
  * ============================================================
  * NOUVELLE VERSION
@@ -54,40 +53,15 @@ function UrlClickHandler(
   selection: any,
 ) {
 
-  /*
-   * ============================================================
-   * Récupération de l'URL
-   * ============================================================
-   */
-
   function getUrl(element: any) {
     return element?.businessObject?.link || '';
   }
-
-
-  /*
-   * ============================================================
-   * Vérifie que l'élément est une Task avec une URL
-   *
-   * IMPORTANT :
-   * is(element, 'bpmn:Task') permet de ne pas afficher
-   * le bouton sur les SubProcess / CallActivity.
-   * ============================================================
-   */
 
   function isUrlTask(element: any) {
     return is(element, 'bpmn:Task') && !!getUrl(element);
   }
 
-
-  /*
-   * ============================================================
-   * Ouverture de l'URL
-   * ============================================================
-   */
-
   function openUrl(url: string) {
-
     const normalizedUrl = /^https?:\/\//i.test(url)
       ? url
       : `https://${url}`;
@@ -99,13 +73,6 @@ function UrlClickHandler(
     );
   }
 
-
-  /*
-   * ============================================================
-   * Création du bouton URL
-   * ============================================================
-   */
-
   function addOverlay(element: any) {
 
     if (!isUrlTask(element)) {
@@ -113,7 +80,6 @@ function UrlClickHandler(
     }
 
     const url = getUrl(element);
-
 
     /*
      * ============================================================
@@ -155,40 +121,6 @@ function UrlClickHandler(
      * ============================================================
      */
 
-
-    /*
-     * ============================================================
-     * ANCIENNE VERSION DU RENDU NATIF
-     * ============================================================
-     *
-     * C'était la flèche native de bpmn-js :
-     *
-     * var ARROW_DOWN_SVG =
-     * '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 16 16">' +
-     * '<path fill-rule="evenodd" d="M4.81801948,3.50735931 L10.4996894,9.1896894 L10.5,4 L12,4 L12,12 L4,12 L4,10.5 L9.6896894,10.4996894 L3.75735931,4.56801948 C3.46446609,4.27512627 3.46446609,3.80025253 3.75735931,3.50735931 C4.05025253,3.21446609 4.52512627,3.21446609 4.81801948,3.50735931 Z"/>' +
-     * '</svg>';
-     *
-     * ============================================================
-     */
-
-
-    /*
-     * ============================================================
-     * NOUVELLE FLÈCHE
-     *
-     * Flèche orientée :
-     *
-     *          ↗
-     *         /
-     *        /
-     *       /
-     *
-     * de bas-gauche vers haut-droite.
-     *
-     * On conserve la taille SVG native 20 x 20.
-     * ============================================================
-     */
-
     const ARROW_UP_RIGHT_SVG = `
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -215,17 +147,7 @@ function UrlClickHandler(
       </svg>
     `;
 
-
-    /*
-     * ============================================================
-     * CRÉATION DE L'OVERLAY
-     *
-     * Même position que le Drilldown natif de bpmn-js.
-     * ============================================================
-     */
-
     overlays.add(element, 'url-link', {
-
       position: {
         bottom: -7,
         right: -8,
@@ -247,11 +169,8 @@ function UrlClickHandler(
       `,
     });
 
-
     /*
-     * ============================================================
-     * ANCIEN CODE DE RÉCUPÉRATION DU BOUTON
-     * ============================================================
+     * ANCIEN CODE — conservé pour comparaison / retour arrière
      *
      * setTimeout(() => {
      *
@@ -273,25 +192,6 @@ function UrlClickHandler(
      *   };
      *
      * }, 0);
-     *
-     * ============================================================
-     *
-     * PROBLÈME :
-     *
-     * Cette méthode prenait le dernier bouton trouvé dans le DOM.
-     * Avec plusieurs Tasks ayant une URL, elle pouvait donc
-     * associer le mauvais lien au mauvais bouton.
-     *
-     * ============================================================
-     */
-
-
-    /*
-     * ============================================================
-     * NOUVEAU CODE
-     *
-     * On identifie précisément le bouton correspondant au Task.
-     * ============================================================
      */
 
     setTimeout(() => {
@@ -300,124 +200,86 @@ function UrlClickHandler(
         `.url-link-overlay[data-url-task-id="${element.id}"]`,
       ) as HTMLButtonElement | null;
 
-
       if (!overlayElement) {
         return;
       }
 
-
       overlayElement.onclick = (event) => {
-
-        /*
-         * Empêche le clic sur la flèche de sélectionner
-         * ou de propager l'événement au Task.
-         */
-
         event.preventDefault();
         event.stopPropagation();
-
         openUrl(url);
       };
 
     }, 0);
   }
 
-
   /*
    * ============================================================
-   * CRÉATION DE L'OVERLAY LORSQU'UNE FORME EST AJOUTÉE
+   * ANCIEN COMPORTEMENT DE SÉLECTION
+   * ============================================================
+   *
+   * eventBus.on('selection.changed', (event: any) => {
+   *   refreshSelection(event.newSelection || []);
+   * });
+   *
+   * Le problème était que refreshSelection supprimait les
+   * overlays de la nouvelle sélection, et non ceux de la
+   * sélection précédente.
    * ============================================================
    */
 
-  /*
-   * ============================================================
-   * AFFICHAGE UNIQUEMENT SUR LA TASK SÉLECTIONNÉE
-   * ============================================================
-   *
-   * Ancien comportement — conservé pour comparaison / retour arrière :
-   *
-   *   eventBus.on('shape.added', (event: any) => {
-   * 
-   *     addOverlay(event.element);
-   * 
-   *   });
-   * 
-   * 
-   *   //
-   *    * ============================================================
-   *    * MISE À JOUR DE L'OVERLAY
-   *    *
-   *    * Nécessaire lorsque la propriété "link" est modifiée.
-   *    * ============================================================
-   *    //
-   * 
-   *   eventBus.on('element.changed', (event: any) => {
-   * 
-   *     const element = event.element;
-   * 
-   * 
-   *     //
-   *      * Seules les Tasks sont concernées.
-   *      //
-   * 
-   *     if (!is(element, 'bpmn:Task')) {
-   *       return;
-   *     }
-   * 
-   * 
-   *     //
-   *      * Suppression de l'ancien overlay.
-   *      //
-   * 
-   *     overlays.remove({
-   *       element,
-   *       type: 'url-link',
-   *     });
-   * 
-   * 
-   *     //
-   *      * Recréation si une URL existe toujours.
-   *      //
-   * 
-   *     addOverlay(element);
-   * 
-   *   });
-   * }
-   *
-   * ============================================================
-   */
+  function removeUrlOverlay(element: any) {
+    if (!element) {
+      return;
+    }
 
-  function refreshSelection(selectedElements: any[]) {
-    const selected = selectedElements?.[0];
+    overlays.remove({
+      element,
+      type: 'url-link',
+    });
+  }
 
-    // Supprime les flèches existantes de la sélection précédente.
-    selectedElements?.forEach((element: any) => {
-      overlays.remove({
-        element,
-        type: 'url-link',
-      });
+  eventBus.on('selection.changed', (event: any) => {
+
+    const oldSelection = event.oldSelection || [];
+    const newSelection = event.newSelection || [];
+
+    /*
+     * Supprime systématiquement l'overlay de l'ancienne sélection.
+     * Ainsi, dès qu'on sélectionne une Lane, un Participant, un
+     * Gateway, etc., la flèche de la Task précédente disparaît.
+     */
+    oldSelection.forEach((element: any) => {
+      removeUrlOverlay(element);
     });
 
-    if (!selected || !is(selected, 'bpmn:Task')) {
+    /*
+     * Sécurité : supprime également tout overlay éventuellement
+     * présent sur les éléments de la nouvelle sélection qui ne
+     * sont pas des Tasks.
+     */
+    newSelection.forEach((element: any) => {
+      if (!is(element, 'bpmn:Task')) {
+        removeUrlOverlay(element);
+      }
+    });
+
+    const selected = newSelection[0];
+
+    if (!selected || !isUrlTask(selected)) {
       return;
     }
 
     addOverlay(selected);
-  }
-
-  eventBus.on('selection.changed', (event: any) => {
-    refreshSelection(event.newSelection || []);
   });
 
   eventBus.on('element.changed', (event: any) => {
+
     const element = event.element;
 
     if (!is(element, 'bpmn:Task')) {
       return;
     }
-
-    // Si la Task est sélectionnée, on rafraîchit sa flèche après
-    // modification de l'URL ou de l'élément.
 
     /*
      * ANCIEN CODE — conservé pour comparaison / retour arrière
@@ -441,25 +303,11 @@ function UrlClickHandler(
 
 }
 
-
-/*
- * ============================================================
- * INJECTION DES DÉPENDANCES
- * ============================================================
- */
-
 UrlClickHandler.$inject = [
   'eventBus',
   'overlays',
   'selection',
 ];
-
-
-/*
- * ============================================================
- * MODULE BPMN-JS
- * ============================================================
- */
 
 export default {
   __init__: [
