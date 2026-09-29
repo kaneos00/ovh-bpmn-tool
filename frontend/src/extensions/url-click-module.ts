@@ -342,31 +342,31 @@ function UrlClickHandler(
    *   });
    * 
    * 
-   *   /*
+   *   //
    *    * ============================================================
    *    * MISE À JOUR DE L'OVERLAY
    *    *
    *    * Nécessaire lorsque la propriété "link" est modifiée.
    *    * ============================================================
-   *    */
+   *    //
    * 
    *   eventBus.on('element.changed', (event: any) => {
    * 
    *     const element = event.element;
    * 
    * 
-   *     /*
+   *     //
    *      * Seules les Tasks sont concernées.
-   *      */
+   *      //
    * 
    *     if (!is(element, 'bpmn:Task')) {
    *       return;
    *     }
    * 
    * 
-   *     /*
+   *     //
    *      * Suppression de l'ancien overlay.
-   *      */
+   *      //
    * 
    *     overlays.remove({
    *       element,
@@ -374,9 +374,9 @@ function UrlClickHandler(
    *     });
    * 
    * 
-   *     /*
+   *     //
    *      * Recréation si une URL existe toujours.
-   *      */
+   *      //
    * 
    *     addOverlay(element);
    * 
