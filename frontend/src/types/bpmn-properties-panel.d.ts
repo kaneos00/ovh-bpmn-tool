@@ -3,6 +3,8 @@
 declare module '@bpmn-io/properties-panel' {
   export const TextFieldEntry: any;
   export const isTextFieldEntryEdited: any;
+  export const CheckboxEntry: any;
+  export const isCheckboxEntryEdited: any;
 }
 
 declare module 'bpmn-js-properties-panel' {
