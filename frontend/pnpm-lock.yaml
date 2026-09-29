@@ -1779,9 +1779,6 @@ packages:
   diagram-js-minimap@4.1.0:
     resolution: {integrity: sha512-osuQ7ETbhmlqoMU2g7OsXRYEeyXJihGbhv5WtcsSAN4vvxSrqZm7ndwXoHPV1Q1j3e2kfOuBRU2X4WUG0qewig==}
 
-  diagram-js-minimap@4.1.0:
-    resolution: {integrity: sha512-osuQ7ETbhmlqoMU2g7OsXRYEeyXJihGbhv5WtcsSAN4vvxSrqZm7ndwXoHPV1Q1j3e2kfOuBRU2X4WUG0qewig==}
-
   diagram-js-origin@1.4.0:
     resolution: {integrity: sha512-qMX6jWsn26DJ4JMTXb+mIcuryosSZEsDaX2BrOk3roZ9peHLITOt4kg467/I6zVQZRWnQDq1PEuf1lIXCMDLkg==}
     peerDependencies:
@@ -4913,8 +4910,6 @@ snapshots:
       min-dash: 4.2.3
       min-dom: 4.2.1
       tiny-svg: 3.1.3
-
-  diagram-js-minimap@4.1.0: {}
 
   diagram-js-origin@1.4.0(diagram-js@13.4.0):
     dependencies:
