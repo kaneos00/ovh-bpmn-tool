@@ -18,7 +18,24 @@ FIN FIX
 ============================================================
 */
 
-const LOW_PRIORITY = -1000;
+/*
+  ANCIENNE CONFIGURATION — conservée pour comparaison / retour arrière
+
+  const LOW_PRIORITY = -1000;
+
+  Le listener était exécuté après le listener natif de
+  BpmnInteractionEvents de bpmn-js.
+*/
+
+/*
+  CORRECTION :
+  diagram-js utilise 1000 comme priorité par défaut.
+  On exécute donc ce correctif avant le listener natif,
+  puis return true arrête la propagation et empêche le
+  listener 16.x de recréer les anciennes hit zones.
+*/
+const HIGH_PRIORITY = 1500;
+
 /*
   ANCIENNE CONSTANTE — conservée pour comparaison / retour arrière
   const LABEL_WIDTH = 30;
@@ -31,7 +48,7 @@ function VerticalInteractionHitFix(eventBus: any, interactionEvents: any) {
       'interactionEvents.createHit',
       'interactionEvents.updateHit',
     ],
-    LOW_PRIORITY,
+    HIGH_PRIORITY,
     (context: any) => {
       const element = context.element;
       const gfx = context.gfx;
