@@ -196,6 +196,7 @@ function UrlClickHandler(
         viewBox="0 0 16 16"
       >
         <path
+          fill="#1976d2"
           fill-rule="evenodd"
           d="
             M3.5,12.5
