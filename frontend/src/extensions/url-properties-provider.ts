@@ -23,6 +23,12 @@ class UrlPropertiesProvider {
         return groups;
       }
 
+      // Évite de créer plusieurs groupes URL si le provider est initialisé
+      // plus d'une fois par bpmn-js / React StrictMode.
+      if (groups.some((group: any) => group.id === 'url')) {
+        return groups;
+      }
+
       groups.push({
 
         id: 'url',
