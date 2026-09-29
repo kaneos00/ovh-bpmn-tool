@@ -1,0 +1,20 @@
+{
+  "name": "URL",
+  "uri": "http://example.com/schema/url",
+  "prefix": "url",
+  "types": [
+    {
+      "name": "UrlElement",
+      "extends": [
+        "bpmn:BaseElement"
+      ],
+      "properties": [
+        {
+          "name": "link",
+          "isAttr": true,
+          "type": "String"
+        }
+      ]
+    }
+  ]
+}
