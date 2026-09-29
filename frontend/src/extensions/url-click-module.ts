@@ -196,7 +196,7 @@ function UrlClickHandler(
         viewBox="0 0 16 16"
       >
         <path
-          fill="#1976d2"
+          fill="white"
           fill-rule="evenodd"
           d="
             M3.5,12.5
@@ -237,7 +237,8 @@ function UrlClickHandler(
           data-url-task-id="${element.id}"
           title="Ouvrir le lien"
           style="
-            color: #1976d2;
+            color: white;
+            background: #1976d2;
           "
         >
           ${ARROW_UP_RIGHT_SVG}
@@ -327,53 +328,107 @@ function UrlClickHandler(
    * ============================================================
    */
 
-  eventBus.on('shape.added', (event: any) => {
-
-    addOverlay(event.element);
-
-  });
-
-
   /*
    * ============================================================
-   * MISE À JOUR DE L'OVERLAY
+   * AFFICHAGE UNIQUEMENT SUR LA TASK SÉLECTIONNÉE
+   * ============================================================
    *
-   * Nécessaire lorsque la propriété "link" est modifiée.
+   * Ancien comportement — conservé pour comparaison / retour arrière :
+   *
+   *   eventBus.on('shape.added', (event: any) => {
+   * 
+   *     addOverlay(event.element);
+   * 
+   *   });
+   * 
+   * 
+   *   /*
+   *    * ============================================================
+   *    * MISE À JOUR DE L'OVERLAY
+   *    *
+   *    * Nécessaire lorsque la propriété "link" est modifiée.
+   *    * ============================================================
+   *    */
+   * 
+   *   eventBus.on('element.changed', (event: any) => {
+   * 
+   *     const element = event.element;
+   * 
+   * 
+   *     /*
+   *      * Seules les Tasks sont concernées.
+   *      */
+   * 
+   *     if (!is(element, 'bpmn:Task')) {
+   *       return;
+   *     }
+   * 
+   * 
+   *     /*
+   *      * Suppression de l'ancien overlay.
+   *      */
+   * 
+   *     overlays.remove({
+   *       element,
+   *       type: 'url-link',
+   *     });
+   * 
+   * 
+   *     /*
+   *      * Recréation si une URL existe toujours.
+   *      */
+   * 
+   *     addOverlay(element);
+   * 
+   *   });
+   * }
+   *
    * ============================================================
    */
 
+  function refreshSelection(selectedElements: any[]) {
+    const selected = selectedElements?.[0];
+
+    // Supprime les flèches existantes de la sélection précédente.
+    selectedElements?.forEach((element: any) => {
+      overlays.remove({
+        element,
+        type: 'url-link',
+      });
+    });
+
+    if (!selected || !is(selected, 'bpmn:Task')) {
+      return;
+    }
+
+    addOverlay(selected);
+  }
+
+  eventBus.on('selection.changed', (event: any) => {
+    refreshSelection(event.newSelection || []);
+  });
+
   eventBus.on('element.changed', (event: any) => {
-
     const element = event.element;
-
-
-    /*
-     * Seules les Tasks sont concernées.
-     */
 
     if (!is(element, 'bpmn:Task')) {
       return;
     }
 
-
-    /*
-     * Suppression de l'ancien overlay.
-     */
+    // Si la Task est sélectionnée, on rafraîchit sa flèche après
+    // modification de l'URL ou de l'élément.
+    const selection = eventBus.get('selection').get();
+    const isSelected = selection?.includes(element);
 
     overlays.remove({
       element,
       type: 'url-link',
     });
 
-
-    /*
-     * Recréation si une URL existe toujours.
-     */
-
-    addOverlay(element);
-
+    if (isSelected) {
+      addOverlay(element);
+    }
   });
-}
 
 
 /*
