@@ -10,6 +10,34 @@ import UrlClickModule from './extensions/url-click-module';
 
 export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
   createRoot(document.getElementById('root')!).render(
-    <MainContainer options={options} />,
+    /*
+      ANCIENNE CONFIGURATION — conservée pour comparaison / retour arrière
+      <MainContainer options={options} />
+    */
+    <MainContainer
+      options={{
+        ...options,
+        modelerOptions: {
+          ...options.modelerOptions,
+          extensions: {
+            ...options.modelerOptions?.extensions,
+            ...UrlModel,
+          },
+          providers: [
+            ...(options.modelerOptions?.providers ?? []),
+            {
+              priority: 500,
+              instance: UrlPropertiesProvider,
+            },
+          ],
+          modules: [
+            ...(options.modelerOptions?.modules ?? []),
+            {
+              declaration: UrlClickModule,
+            },
+          ],
+        },
+      }}
+    />,
   );
 };
