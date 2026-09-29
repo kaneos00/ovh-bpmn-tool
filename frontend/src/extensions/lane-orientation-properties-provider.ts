@@ -34,6 +34,27 @@ class LaneOrientationPropertiesProvider {
         return groups;
       }
 
+      /*
+        ANCIEN CODE — conservé pour comparaison / retour arrière
+
+        generalGroup.entries.push({
+          id: 'lane-orientation-horizontal',
+          element,
+          component: LaneOrientationEntry,
+          isEdited: isCheckboxEntryEdited,
+        });
+      */
+
+      // Évite d'ajouter plusieurs fois la même entrée à chaque
+      // rafraîchissement du panneau de propriétés.
+      if (
+        generalGroup.entries.some(
+          (entry: any) => entry.id === 'lane-orientation-horizontal',
+        )
+      ) {
+        return groups;
+      }
+
       generalGroup.entries.push({
         id: 'lane-orientation-horizontal',
         element,
