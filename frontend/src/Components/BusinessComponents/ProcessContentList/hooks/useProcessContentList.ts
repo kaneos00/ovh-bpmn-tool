@@ -7,16 +7,12 @@ import {
 
 import { ContentStatusEnum, type Content } from '../../../../Types';
 import { formatDateTime } from '../../../../shared/helpers/date';
-import { BpmnLintIssues, checkForLinterIssues } from '../../Modeler/helpers';
 import { useQuery } from 'react-query';
 import { getXmlContentQuery } from '../../../../api/contents/contents.queries';
-import { useModelerInstance } from '../../../../shared/hooks/useModelerInstance';
 
 export const useProcessContentList = (contents: Content[]) => {
   const [checkedContents, setCheckedContents] = useState<string[]>([]);
   const [hasDraftLintError, setHasDraftLintError] = useState(false);
-
-  const { getModelerInstance } = useModelerInstance();
 
   const columnHelper = createColumnHelper<Content>();
   const columns = [
