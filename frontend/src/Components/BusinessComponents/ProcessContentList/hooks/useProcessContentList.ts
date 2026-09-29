@@ -87,47 +87,32 @@ export const useProcessContentList = (contents: Content[]) => {
     return contentIds;
   };
 
+  // Ancien code désactivé :
+  // useEffect(() => {
+  //   const bpmnInstance = getModelerInstance();
+  //
+  //   if (!draftXmlContent) {
+  //     setHasDraftLintError(false);
+  //   } else {
+  //     bpmnInstance.importXML(draftXmlContent).then(() => {
+  //       bpmnInstance.on(
+  //         'linting.completed',
+  //         ({ issues }: { issues: BpmnLintIssues }) => {
+  //           setHasDraftLintError(checkForLinterIssues(issues));
+  //         },
+  //       );
+  //     });
+  //   }
+  //
+  //   return () => {
+  //     bpmnInstance.clear();
+  //   };
+  // }, [draftXmlContent]);
+
   useEffect(() => {
-    const bpmnInstance = getModelerInstance();
-
-    if (!draftXmlContent) {
-      setHasDraftLintError(false);
-    } else {
-      console.log(
-        '[BPMN DEBUG] draftXmlContent:',
-        typeof draftXmlContent,
-        draftXmlContent,
-      );
-
-      // Ancien code :
-      // bpmnInstance.importXML(draftXmlContent).then(() => {
-      //   bpmnInstance.on(
-      //     'linting.completed',
-      //     ({ issues }: { issues: BpmnLintIssues }) => {
-      //       setHasDraftLintError(checkForLinterIssues(issues));
-      //     },
-      //   );
-      // });
-
-      bpmnInstance
-        .importXML(draftXmlContent)
-        .then(() => {
-          console.log('[BPMN DEBUG] importXML: success');
-          bpmnInstance.on(
-            'linting.completed',
-            ({ issues }: { issues: BpmnLintIssues }) => {
-              setHasDraftLintError(checkForLinterIssues(issues));
-            },
-          );
-        })
-        .catch(error => {
-          console.error('[BPMN DEBUG] importXML: FAILED', error);
-        });
-    }
-
-    return () => {
-      bpmnInstance.clear();
-    };
+    // Le lint du draft est temporairement désactivé afin de ne pas réimporter
+    // le BPMN dans l'instance principale du Modeler.
+    setHasDraftLintError(false);
   }, [draftXmlContent]);
 
   return {
