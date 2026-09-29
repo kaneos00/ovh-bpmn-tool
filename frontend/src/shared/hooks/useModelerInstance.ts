@@ -4,6 +4,7 @@ import BpmnViewer from 'camunda-bpmn-js/lib/camunda-platform/NavigatedViewer';
 import MinimapModule from 'diagram-js-minimap';
 import NavigationControls from '../../extensions/navigation-controls';
 import VerticalInteractionHitFix from '../../extensions/vertical-interaction-hit-fix';
+import InteractionDiagnostic from '../../extensions/interaction-diagnostic';
 
 import { useBpmnToolOptions } from '../../Providers/BpmnToolOptions/useBpmnToolOptions';
 
@@ -25,6 +26,7 @@ export const useModelerInstance = () => {
         MinimapModule,
         NavigationControls,
         VerticalInteractionHitFix,
+        InteractionDiagnostic,
       ],
       ...(lintingOptions.active ? { linting: lintingOptions } : {}),
       moddleExtensions: getModelerExtensions(),
