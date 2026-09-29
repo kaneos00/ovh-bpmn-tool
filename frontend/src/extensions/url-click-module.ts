@@ -51,6 +51,7 @@ import { is } from 'bpmn-js/lib/util/ModelUtil';
 function UrlClickHandler(
   eventBus: any,
   overlays: any,
+  selection: any,
 ) {
 
   /*
@@ -417,8 +418,16 @@ function UrlClickHandler(
 
     // Si la Task est sélectionnée, on rafraîchit sa flèche après
     // modification de l'URL ou de l'élément.
-    const selection = eventBus.get('selection').get();
-    const isSelected = selection?.includes(element);
+
+    /*
+     * ANCIEN CODE — conservé pour comparaison / retour arrière
+     *
+     * const selection = eventBus.get('selection').get();
+     * const isSelected = selection?.includes(element);
+     */
+
+    const currentSelection = selection.get();
+    const isSelected = currentSelection?.includes(element);
 
     overlays.remove({
       element,
@@ -442,6 +451,7 @@ function UrlClickHandler(
 UrlClickHandler.$inject = [
   'eventBus',
   'overlays',
+  'selection',
 ];
 
 
