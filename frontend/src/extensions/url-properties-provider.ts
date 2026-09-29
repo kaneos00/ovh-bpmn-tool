@@ -1,9 +1,3 @@
-/*
-============================================================
-Version sui affiche et sauvegarde bien le champ url 
-============================================================
-*/
-
 import { is } from 'bpmn-js/lib/util/ModelUtil';
 
 import {
@@ -19,12 +13,15 @@ class UrlPropertiesProvider {
 
     return (groups: any[]) => {
 
-      if (!is(element, 'bpmn:BaseElement')) {
+      /*
+       * Le champ URL est spécifique aux Tasks.
+       * Il ne doit donc pas apparaître dans le panneau de propriétés
+       * lorsqu'une Lane, un Participant ou un autre élément est sélectionné.
+       */
+      if (!is(element, 'bpmn:Task')) {
         return groups;
       }
 
-      // Évite de créer plusieurs groupes URL si le provider est initialisé
-      // plus d'une fois par bpmn-js / React StrictMode.
       if (groups.some((group: any) => group.id === 'url')) {
         return groups;
       }
@@ -70,12 +67,6 @@ function UrlEntry(props: any) {
   const debounce = useService('debounceInput');
 
   const getValue = () => {
-    console.log('URL DEBUG', {
-      element,
-      businessObject: element.businessObject,
-      link: element.businessObject?.link,
-    });
-  
     return element.businessObject?.link || '';
   };
 
