@@ -45,8 +45,6 @@ class LaneOrientationPropertiesProvider {
         });
       */
 
-      // Évite d'ajouter plusieurs fois la même entrée à chaque
-      // rafraîchissement du panneau de propriétés.
       if (
         generalGroup.entries.some(
           (entry: any) => entry.id === 'lane-orientation-horizontal',
@@ -76,13 +74,38 @@ function LaneOrientationEntry(props: any) {
   };
 
   const setValue = (value: boolean) => {
-    return modeling.updateModdleProperties(
-      element,
-      getDi(element),
-      {
-        isHorizontal: value,
-      },
-    );
+    /*
+      ANCIEN CODE — conservé pour comparaison / retour arrière
+
+      return modeling.updateModdleProperties(
+        element,
+        getDi(element),
+        {
+          isHorizontal: value,
+        },
+      );
+    */
+
+    // L'orientation doit être cohérente entre le Participant
+    // et toutes ses Lane DI. Sinon les règles de déplacement
+    // et de redimensionnement utilisent des axes différents.
+    const updateOrientation = (shape: any) => {
+      modeling.updateModdleProperties(
+        shape,
+        getDi(shape),
+        {
+          isHorizontal: value,
+        },
+      );
+
+      shape.children?.forEach((child: any) => {
+        if (is(child, 'bpmn:Lane')) {
+          updateOrientation(child);
+        }
+      });
+    };
+
+    return updateOrientation(element);
   };
 
   return CheckboxEntry({
