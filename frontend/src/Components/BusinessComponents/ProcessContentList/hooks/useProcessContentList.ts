@@ -93,6 +93,12 @@ export const useProcessContentList = (contents: Content[]) => {
     if (!draftXmlContent) {
       setHasDraftLintError(false);
     } else {
+      console.log(
+        '[BPMN DEBUG] draftXmlContent:',
+        typeof draftXmlContent,
+        draftXmlContent,
+      );
+
       bpmnInstance.importXML(draftXmlContent).then(() => {
         bpmnInstance.on(
           'linting.completed',
