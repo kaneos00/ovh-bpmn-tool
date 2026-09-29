@@ -50,6 +50,12 @@
   padding: 4px;
 }
 
+/* Taille fixe de la carte : évite que la minimap recouvre toute la zone d'édition. */
+.djs-minimap .map {
+  width: 240px !important;
+  height: 135px !important;
+}
+
 .djs-palette {
   background-color: white;
   border-radius: 6px;
