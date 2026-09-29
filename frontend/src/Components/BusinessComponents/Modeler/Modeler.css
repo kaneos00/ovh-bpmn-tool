@@ -50,7 +50,12 @@
   padding: 4px;
 }
 
-/* Taille fixe de la carte : évite que la minimap recouvre toute la zone d'édition. */
+/* Taille fixe de la fenêtre et de la carte : évite que la minimap recouvre la zone d'édition. */
+.djs-minimap {
+  width: 248px !important;
+  height: 143px !important;
+}
+
 .djs-minimap .map {
   width: 240px !important;
   height: 135px !important;
