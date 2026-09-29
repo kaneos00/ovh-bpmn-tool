@@ -99,14 +99,30 @@ export const useProcessContentList = (contents: Content[]) => {
         draftXmlContent,
       );
 
-      bpmnInstance.importXML(draftXmlContent).then(() => {
-        bpmnInstance.on(
-          'linting.completed',
-          ({ issues }: { issues: BpmnLintIssues }) => {
-            setHasDraftLintError(checkForLinterIssues(issues));
-          },
-        );
-      });
+      // Ancien code :
+      // bpmnInstance.importXML(draftXmlContent).then(() => {
+      //   bpmnInstance.on(
+      //     'linting.completed',
+      //     ({ issues }: { issues: BpmnLintIssues }) => {
+      //       setHasDraftLintError(checkForLinterIssues(issues));
+      //     },
+      //   );
+      // });
+
+      bpmnInstance
+        .importXML(draftXmlContent)
+        .then(() => {
+          console.log('[BPMN DEBUG] importXML: success');
+          bpmnInstance.on(
+            'linting.completed',
+            ({ issues }: { issues: BpmnLintIssues }) => {
+              setHasDraftLintError(checkForLinterIssues(issues));
+            },
+          );
+        })
+        .catch(error => {
+          console.error('[BPMN DEBUG] importXML: FAILED', error);
+        });
     }
 
     return () => {
