@@ -3,6 +3,7 @@ import React, { FC, RefObject } from 'react';
 import 'camunda-bpmn-js/dist/assets/camunda-platform-modeler.css';
 import 'bpmn-js-color-picker/colors/color-picker.css';
 import 'bpmn-js-embedded-comments/assets/comments.css';
+import 'diagram-js-minimap/assets/diagram-js-minimap.css';
 import './Modeler.css';
 
 type ModelerProps = {
