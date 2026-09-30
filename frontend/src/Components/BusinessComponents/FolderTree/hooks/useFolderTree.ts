@@ -26,7 +26,7 @@ export const useFolderTree = (
   { onNodeClick }: UseFolderTreeCallbacks,
 ) => {
   const [expandedNodes, setExpandedNodes] = useState<string[]>([]);
-  const { folders, getFolderHierarchy } = useFolders();
+  const { getFolderHierarchy } = useFolders();
   const { resource } = useResource(selectedResourceId);
   const { data: resources, isLoading } = useQuery(resourcesQuery());
 
