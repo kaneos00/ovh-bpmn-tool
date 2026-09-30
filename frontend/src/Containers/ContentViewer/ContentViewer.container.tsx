@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
+  Button,
   Divider,
   IconButton,
   Sheet,
@@ -117,6 +118,14 @@ export const Component = () => {
 
       <Sheet className="viewerInfoPanel" variant="outlined">
         <Stack spacing={1.5} className="viewerInfoHeader">
+          <Button
+            size="lg"
+            variant="solid"
+            color="primary"
+            fullWidth
+          >
+            RACI
+          </Button>
           <Typography level="title-lg">Process information</Typography>
 
           {lastPublishedContent ? (
