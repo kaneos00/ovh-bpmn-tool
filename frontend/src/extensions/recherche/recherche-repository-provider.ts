@@ -45,10 +45,10 @@ const latestSearchableContent = async (resource: Resource) => {
   return contents.find(({ status }) => status === ContentStatusEnum.Published) || contents.find(({ status }) => status === ContentStatusEnum.Draft);
 };
 
-const createResourceResult = (resource: Resource): RechercheResult => ({
+const createResourceResult = (resource: Resource, sourceType: 'process' | 'subprocess' = 'process'): RechercheResult => ({
   element: undefined, id: resource.id, type: String(resource.type), name: resource.name,
   documentation: resource.description || '', processId: resource.id, processName: resource.name,
-  resourceId: resource.id, resourceType: resource.type, resourceName: resource.name, sourceType: 'process',
+  resourceId: resource.id, resourceType: resource.type, resourceName: resource.name, sourceType,
   link: `/${resource.id}/modeler`,
   metadata: { source: 'repository', kind: 'process-resource', depth: resource.depth, parentId: resource.parentId },
 });
@@ -76,7 +76,7 @@ const parseProcess = (xml: string, resource: Resource): RechercheResult[] => {
 const getResources = async (): Promise<Resource[]> => {
   console.log('[Recherche][Repository] getResources()');
   if (resourceCache && resourceCache.expiresAt > Date.now()) return resourceCache.resources;
-  const url = `/resources?filter.type=${ResourceType.Process}&filter.depth=100`;
+  const url = '/resources?filter.depth=100';
   console.log('[Recherche][Repository] GET', url);
   const raw = await apiClient.get(url);
   console.log('[Recherche][Repository] réponse brute resources:', raw);
@@ -107,6 +107,7 @@ const getResources = async (): Promise<Resource[]> => {
       .filter(resource => resource?.type === ResourceType.Process);
   }
 
+  resources = resources.filter(resource => resource?.type === ResourceType.Process || resource?.type === ResourceType.Folder);
   console.log('[Recherche][Repository] resources normalisées:', resources.length, resources.slice(0, 5));
   const limited = resources.slice(0, MAX_RESOURCES);
   resourceCache = { expiresAt: Date.now() + CACHE_TTL_MS, resources: limited };
@@ -114,18 +115,18 @@ const getResources = async (): Promise<Resource[]> => {
   return limited;
 };
 
-const getProcessIndex = async (resource: Resource): Promise<RechercheResult[]> => {
+const getProcessIndex = async (resource: Resource, sourceType: 'process' | 'subprocess'): Promise<RechercheResult[]> => {
   const cached = processCache.get(resource.id);
   if (cached && cached.expiresAt > Date.now()) return cached.results;
   console.log('[Recherche][Repository] process', resource.id, resource.name);
   const content = await latestSearchableContent(resource);
   if (!content) {
-    const result = createResourceResult(resource);
+    const result = createResourceResult(resource, sourceType);
     processCache.set(resource.id, { expiresAt: Date.now() + CACHE_TTL_MS, results: [result] });
     return [result];
   }
   const xml = await apiClient.get(`/resources/${resource.id}/contents/${content.id}/content`);
-  const results = [createResourceResult(resource), ...parseProcess(xml, resource)];
+  const results = [createResourceResult(resource, sourceType), ...parseProcess(xml, resource)];
   processCache.set(resource.id, { expiresAt: Date.now() + CACHE_TTL_MS, results });
   return results;
 };
@@ -134,12 +135,28 @@ const getRepositoryIndex = async (): Promise<RechercheIndex> => {
   if (repositoryIndexCache && repositoryIndexCache.expiresAt > Date.now()) return repositoryIndexCache.index;
 
   const resources = await getResources();
+  const byId = new Map(resources.map(resource => [resource.id, resource]));
+  const isSubprocess = (resource: Resource) => {
+    const visited = new Set<string>();
+    let parentId = resource.parentId;
+
+    while (parentId && !visited.has(parentId)) {
+      visited.add(parentId);
+      const parent = byId.get(parentId);
+      if (!parent) return false;
+      if (parent.type === ResourceType.Process) return true;
+      parentId = parent.parentId;
+    }
+    return false;
+  };
+
   const index = new RechercheIndex();
-  for (const resource of resources) {
+  for (const resource of resources.filter(item => item.type === ResourceType.Process)) {
+    const sourceType = isSubprocess(resource) ? 'subprocess' : 'process';
     try {
-      index.addMany(await getProcessIndex(resource));
+      index.addMany(await getProcessIndex(resource, sourceType));
     } catch {
-      index.add(createResourceResult(resource));
+      index.add(createResourceResult(resource, sourceType));
     }
   }
   repositoryIndexCache = { expiresAt: Date.now() + CACHE_TTL_MS, index };
