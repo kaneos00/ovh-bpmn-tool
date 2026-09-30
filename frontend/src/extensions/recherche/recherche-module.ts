@@ -89,8 +89,10 @@ function RechercheModule(
 
   function createSearchBar() {
     const viewerLayout = document.querySelector('.viewerLayout') as HTMLElement | null;
+    const searchHostElement = document.querySelector('#bpmn-recherche-host') as HTMLElement | null;
     const existing = document.getElementById(BAR_ID);
-    if (existing && viewerLayout && !viewerLayout.contains(existing)) existing.remove();
+    if (existing && searchHostElement && !searchHostElement.contains(existing)) existing.remove();
+    if (existing && viewerLayout && !viewerLayout.contains(existing) && !searchHostElement) existing.remove();
     if (existing) { inputElement = existing.querySelector('input') as HTMLInputElement | undefined; return existing; }
     const bar = document.createElement('div'); bar.id = BAR_ID;
     Object.assign(bar.style, { position: 'absolute', top: '0', left: '0', width: '100%', maxWidth: 'none', height: '54px', zIndex: '90', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', boxSizing: 'border-box', background: '#fff', border: '1px solid #ddd', borderRadius: '4px', boxShadow: '0 1px 4px rgba(0,0,0,.12)', fontFamily: 'Arial, sans-serif' });
@@ -137,35 +139,22 @@ function RechercheModule(
     inputElement = input; return bar;
   }
 
-  let searchObserver: MutationObserver | undefined;
-
-  const ensureSearchBar = () => {
+  const ensureSearchBar = (attempt = 0) => {
+    const searchHost = document.querySelector('#bpmn-recherche-host');
     const viewerLayout = document.querySelector('.viewerLayout');
-    if (!viewerLayout) return false;
-    const bar = document.getElementById(BAR_ID);
-    if (!bar || !viewerLayout.contains(bar)) createSearchBar();
-    else inputElement = bar.querySelector('input') as HTMLInputElement | undefined;
-    return true;
+    const existing = document.getElementById(BAR_ID);
+    if (searchHost || viewerLayout || existing) {
+      if (!existing || (searchHost && !searchHost.contains(existing))) createSearchBar();
+      else inputElement = existing.querySelector('input') as HTMLInputElement | undefined;
+      return;
+    }
+    // The React Viewer host is mounted just before ProcessViewer, but allow
+    // a short retry window during route transitions.
+    if (attempt < 20) window.setTimeout(() => ensureSearchBar(attempt + 1), 100);
   };
 
   eventBus.on('diagram.init', () => {
     ensureSearchBar();
-    if (!searchObserver) {
-      searchObserver = new MutationObserver(() => {
-        if (ensureSearchBar()) {
-          // The React Viewer layout can be mounted after diagram.init.
-          // Once found, no further polling is necessary.
-          searchObserver?.disconnect();
-          searchObserver = undefined;
-        }
-      });
-      searchObserver.observe(document.body, { childList: true, subtree: true });
-      window.setTimeout(() => {
-        ensureSearchBar();
-        searchObserver?.disconnect();
-        searchObserver = undefined;
-      }, 3000);
-    }
   });
   eventBus.on('import.done', focusElementFromUrl);
   eventBus.on('keyboard.keydown', (event: any) => { if ((event.ctrlKey || event.metaKey) && event.key?.toLowerCase() === 'k') { event.preventDefault(); createSearchBar(); inputElement?.focus(); inputElement?.select(); } });
