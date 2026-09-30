@@ -73,8 +73,12 @@ const parseProcess = (xml: string, resource: Resource): RechercheResult[] => {
 };
 
 const getResources = async (): Promise<Resource[]> => {
+  console.log('[Recherche][Repository] getResources()');
   if (resourceCache && resourceCache.expiresAt > Date.now()) return resourceCache.resources;
-  const resources = (await apiClient.get(`/resources?filter.type=${ResourceType.Process}&filter.depth=100`)) as Resource[];
+  const url = `/resources?filter.type=${ResourceType.Process}&filter.depth=100`;
+  console.log('[Recherche][Repository] GET', url);
+  const resources = (await apiClient.get(url)) as Resource[];
+  console.log('[Recherche][Repository] resources reçues:', resources?.length, resources?.slice?.(0, 5));
   const limited = resources.slice(0, MAX_RESOURCES);
   resourceCache = { expiresAt: Date.now() + CACHE_TTL_MS, resources: limited };
   repositoryIndexCache = undefined;
@@ -84,6 +88,7 @@ const getResources = async (): Promise<Resource[]> => {
 const getProcessIndex = async (resource: Resource): Promise<RechercheResult[]> => {
   const cached = processCache.get(resource.id);
   if (cached && cached.expiresAt > Date.now()) return cached.results;
+  console.log('[Recherche][Repository] process', resource.id, resource.name);
   const content = await latestSearchableContent(resource);
   if (!content) {
     const result = createResourceResult(resource);
@@ -119,7 +124,15 @@ export const invalidateRepositoryRechercheIndex = () => {
 };
 
 export const createRepositoryRechercheProvider = (): RechercheProvider => async (query, context = {}) => {
-  if (context.scope !== 'all-processes') throw new Error('Repository provider is used for all-processes scope only');
+  console.log('[Recherche][Repository] provider appelé', { query, context });
+  if (context.scope !== 'all-processes') {
+    console.log('[Recherche][Repository] scope non global → erreur');
+    throw new Error('Repository provider is used for all-processes scope only');
+  }
+  console.log('[Recherche][Repository] chargement index repository…');
   const index = await getRepositoryIndex();
-  return index.search(query, { ...context, processId: undefined, processName: undefined }, MAX_RESULTS);
+  console.log('[Recherche][Repository] index chargé:', index.all().length, 'entrées');
+  const results = index.search(query, { ...context, processId: undefined, processName: undefined }, MAX_RESULTS);
+  console.log('[Recherche][Repository] résultats:', results.length, results.slice(0, 5));
+  return results;
 };
