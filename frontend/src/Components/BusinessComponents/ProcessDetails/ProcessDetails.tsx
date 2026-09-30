@@ -66,70 +66,73 @@ export const ProcessDetails = ({
 
   return (
     <Box className="processViewerLayout">
-      <Sheet className="processViewerDiagram" variant="outlined">
-        {publishedContent ? (
-          <>
-            <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent="space-between"
-              className="processViewerDiagramHeader"
-            >
-              <Typography level="title-md">
-                Published version v{publishedContent.version ?? 'N/A'}
-              </Typography>
-              <IconButton
-                title="Copy link"
-                variant="plain"
-                color="neutral"
-                size="sm"
-                onClick={() => onContentViewerLinkCopy(publishedContent.id)}
-              >
-                <FileCopy />
-              </IconButton>
+      <Tabs defaultValue={0} className="processViewerTabs">
+        <TabList sticky="top">
+          <Tab value={0}>Process view</Tab>
+          <Tab value={1}>Version history</Tab>
+          <Tab value={2}>Activities ({tasks.length})</Tab>
+        </TabList>
+
+        <TabPanel value={0} className="processViewerTabPanel processViewerProcessTab">
+          <Sheet className="processViewerDiagram" variant="outlined">
+            {publishedContent ? (
+              <>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  className="processViewerDiagramHeader"
+                >
+                  <Stack spacing={0.25}>
+                    <Typography level="title-md">
+                      Published version v{publishedContent.version ?? 'N/A'}
+                    </Typography>
+                    <Typography level="body-xs" textColor="neutral">
+                      Published by {publishedContent.updatedBy}
+                    </Typography>
+                  </Stack>
+                  <IconButton
+                    title="Copy link"
+                    variant="plain"
+                    color="neutral"
+                    size="sm"
+                    onClick={() => onContentViewerLinkCopy(publishedContent.id)}
+                  >
+                    <FileCopy />
+                  </IconButton>
+                </Stack>
+                <Divider />
+                <Box className="processViewerCanvas">
+                  <ProcessViewer
+                    resourceId={resourceId}
+                    contentId={publishedContent.id}
+                  />
+                </Box>
+              </>
+            ) : (
+              <Stack spacing={2} padding={2}>
+                <Typography level="title-md">No published version</Typography>
+                <ConditionalRender condition={Boolean(!contents.length)}>
+                  <DropZone onFileUploaded={onFilesUploaded} />
+                </ConditionalRender>
+              </Stack>
+            )}
+          </Sheet>
+        </TabPanel>
+
+        <TabPanel value={1} className="processViewerTabPanel">
+          <Sheet className="processViewerInfo" variant="outlined">
+            <Stack spacing={1.5} className="processViewerInfoHeader">
+              <Typography level="title-lg">Version history</Typography>
+              {publishedContent && (
+                <Typography level="body-sm">
+                  Last published version: v{publishedContent.version ?? 'N/A'} —{' '}
+                  {publishedContent.updatedBy}
+                </Typography>
+              )}
             </Stack>
             <Divider />
-            <Box className="processViewerCanvas">
-              <ProcessViewer
-                resourceId={resourceId}
-                contentId={publishedContent.id}
-              />
-            </Box>
-          </>
-        ) : (
-          <Stack spacing={2} padding={2}>
-            <Typography level="title-md">No published version</Typography>
-            <ConditionalRender condition={Boolean(!contents.length)}>
-              <DropZone onFileUploaded={onFilesUploaded} />
-            </ConditionalRender>
-          </Stack>
-        )}
-      </Sheet>
-
-      <Sheet className="processViewerInfo" variant="outlined">
-        <Stack spacing={1.5} className="processViewerInfoHeader">
-          <Typography level="title-lg">Process information</Typography>
-          {publishedContent ? (
-            <Typography level="body-sm">
-              Last published version: v{publishedContent.version ?? 'N/A'}
-            </Typography>
-          ) : (
-            <Typography level="body-sm" textColor="neutral">
-              No published version
-            </Typography>
-          )}
-        </Stack>
-
-        <Divider />
-
-        <Tabs defaultValue={0} className="processViewerTabs">
-          <TabList sticky="top">
-            <Tab value={0}>Version history</Tab>
-            <Tab value={1}>Activities ({tasks.length})</Tab>
-          </TabList>
-
-          <TabPanel value={0} className="processViewerTabPanel">
-            <Stack spacing={1}>
+            <Stack spacing={1} padding={1}>
               <ConditionalRender condition={Boolean(draftContent) || Boolean(publishedContent)}>
                 <Stack direction="row" justifyContent="flex-end">
                   <IconButton
@@ -158,9 +161,15 @@ export const ProcessDetails = ({
                 <DropZone onFileUploaded={onFilesUploaded} />
               </ConditionalRender>
             </Stack>
-          </TabPanel>
+          </Sheet>
+        </TabPanel>
 
-          <TabPanel value={1} className="processViewerTabPanel">
+        <TabPanel value={2} className="processViewerTabPanel">
+          <Sheet className="processViewerInfo" variant="outlined">
+            <Stack spacing={1.5} className="processViewerInfoHeader">
+              <Typography level="title-lg">Activities</Typography>
+            </Stack>
+            <Divider />
             {tasks.length ? (
               <List>
                 {tasks.map((task, index) => (
@@ -174,9 +183,9 @@ export const ProcessDetails = ({
                 No activities found
               </Typography>
             )}
-          </TabPanel>
-        </Tabs>
-      </Sheet>
+          </Sheet>
+        </TabPanel>
+      </Tabs>
     </Box>
   );
 };
