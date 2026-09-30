@@ -91,7 +91,7 @@ function RechercheModule(
     const existing = document.getElementById(BAR_ID);
     if (existing) { inputElement = existing.querySelector('input') as HTMLInputElement | undefined; return existing; }
     const bar = document.createElement('div'); bar.id = BAR_ID;
-    Object.assign(bar.style, { position: 'fixed', top: '56px', left: '0', right: '0', height: '54px', zIndex: '100', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', boxSizing: 'border-box', background: '#fff', borderBottom: '1px solid #ddd', boxShadow: '0 1px 4px rgba(0,0,0,.12)', fontFamily: 'Arial, sans-serif' });
+    Object.assign(bar.style, { position: 'absolute', top: '16px', left: '16px', width: '720px', height: '54px', zIndex: '90', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', boxSizing: 'border-box', background: '#fff', border: '1px solid #ddd', borderRadius: '4px', boxShadow: '0 1px 4px rgba(0,0,0,.12)', fontFamily: 'Arial, sans-serif' });
     const source = document.createElement('select'); source.setAttribute('aria-label', 'Type de résultat'); source.title = 'Type de résultat'; source.style.padding = '8px 6px';
     sourceFilters.forEach(([value, label]) => { const option = document.createElement('option'); option.value = value; option.textContent = label; source.appendChild(option); }); source.value = 'all';
     const scope = document.createElement('select'); scope.setAttribute('aria-label', 'Périmètre de recherche'); scope.title = 'Périmètre de recherche'; scope.style.padding = '8px 6px';
@@ -99,19 +99,22 @@ function RechercheModule(
     const input = document.createElement('input'); input.type = 'search'; input.placeholder = 'Rechercher dans tous les processus…'; input.autocomplete = 'off'; input.setAttribute('aria-label', 'Recherche dans tous les processus');
     Object.assign(input.style, { flex: '1', minWidth: '120px', padding: '9px 12px', border: '1px solid #bbb', borderRadius: '4px', outline: 'none', fontSize: '14px' });
     const hint = document.createElement('span'); hint.textContent = 'Ctrl+K'; Object.assign(hint.style, { fontSize: '11px', color: '#777', whiteSpace: 'nowrap' });
-    bar.appendChild(source); bar.appendChild(scope); bar.appendChild(input); bar.appendChild(hint); document.body.appendChild(bar);
+    bar.appendChild(source); bar.appendChild(scope); bar.appendChild(input); bar.appendChild(hint); const viewerContainer = canvas.getContainer(); viewerContainer.style.position = viewerContainer.style.position || 'relative'; viewerContainer.appendChild(bar);
     const resultsPanel = document.createElement('div'); resultsPanel.id = PANEL_ID;
-    Object.assign(resultsPanel.style, { position: 'fixed', top: '110px', left: '16px', right: '16px', maxHeight: '60vh', zIndex: '99', background: '#fff', border: '1px solid #ddd', borderTop: '0', boxShadow: '0 4px 12px rgba(0,0,0,.15)', overflowY: 'auto', fontFamily: 'Arial, sans-serif', display: 'none' });
-    document.body.appendChild(resultsPanel);
+    Object.assign(resultsPanel.style, { position: 'absolute', top: '70px', left: '16px', width: '720px', maxHeight: '60vh', zIndex: '89', background: '#fff', border: '1px solid #ddd', borderTop: '0', boxShadow: '0 4px 12px rgba(0,0,0,.15)', overflowY: 'auto', fontFamily: 'Arial, sans-serif', display: 'none' });
+    viewerContainer.appendChild(resultsPanel);
     let request = 0;
     const runSearch = async () => {
       const query = input.value.trim();
+      console.log('[Recherche][UI] input', { query, scope: scope.value, source: source.value });
       const currentRequest = ++request;
       if (!query) { resultsPanel.style.display = 'none'; resultsPanel.innerHTML = ''; return; }
       resultsPanel.style.display = 'block';
       const selected = selection.get(); const currentElement = selected?.[0]; const businessObject = currentElement?.businessObject; const baseContext = rechercheService.getContext();
       const context: RechercheContext = { ...baseContext, scope: scope.value as RechercheScope, currentElementId: currentElement?.id, currentElementType: businessObject?.$type, processId: baseContext.processId ?? baseContext.resourceId ?? businessObject?.processRef?.id, processName: baseContext.processName ?? baseContext.resourceName ?? businessObject?.processRef?.name };
+      console.log('[Recherche][UI] context', context);
       const found = await rechercheService.search(query, elementRegistry, context);
+      console.log('[Recherche][UI] found', found.length, found.slice(0, 5));
       const filtered = source.value === 'all' ? found : found.filter(result => result.sourceType === source.value);
       if (currentRequest === request) renderResults(resultsPanel, filtered);
     };
