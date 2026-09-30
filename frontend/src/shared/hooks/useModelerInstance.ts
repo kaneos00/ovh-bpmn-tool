@@ -3,6 +3,7 @@ import BpmnModeler from 'camunda-bpmn-js/lib/camunda-platform/Modeler';
 import BpmnViewer from 'camunda-bpmn-js/lib/camunda-platform/NavigatedViewer';
 import MinimapModule from 'diagram-js-minimap';
 import NavigationControls from '../../extensions/navigation-controls';
+import VerticalInteractionHitFix from '../../extensions/vertical-interaction-hit-fix';
 
 import { useBpmnToolOptions } from '../../Providers/BpmnToolOptions/useBpmnToolOptions';
 
@@ -47,6 +48,7 @@ export const useModelerInstance = () => {
         ...getModelerModules(true),
         MinimapModule,
         NavigationControls,
+        VerticalInteractionHitFix,
       ],
       moddleExtensions: getModelerExtensions(),
       // Ouvre automatiquement la minimap dans le visualiseur.
