@@ -238,18 +238,9 @@ function RechercheModule(
     return bar;
   }
 
-  const onSearchHostReady = (event: Event) => {
-    const host = (event as CustomEvent<{ host?: HTMLElement }>).detail?.host;
-    if (!host) return;
-
-    console.log('[Recherche][MODULE] search host ready');
-    createSearchBar(host);
-  };
-
-  window.addEventListener('bpmn-search-host-ready', onSearchHostReady);
-
   eventBus.on('diagram.init', () => {
     console.log('[Recherche][MODULE] diagram.init');
+    createSearchBar();
   });
 
   eventBus.on('import.done', () => {
@@ -261,7 +252,6 @@ function RechercheModule(
   eventBus.on('diagram.destroy', () => {
     console.log('[Recherche][MODULE] diagram.destroy');
     closePanel();
-    window.removeEventListener('bpmn-search-host-ready', onSearchHostReady);
     const viewerLayout = document.querySelector('.viewerLayout');
     if (!viewerLayout) document.getElementById(BAR_ID)?.remove();
     inputElement = undefined;
