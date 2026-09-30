@@ -238,7 +238,13 @@ export class RechercheService {
 
     if (this.provider) {
       try {
-        return (await this.provider(query, effectiveContext)).slice(0, 50);
+        const providerResults = await this.provider(query, effectiveContext);
+
+        // Si le fournisseur distant ne trouve rien, on conserve le fallback
+        // local afin de ne jamais rendre la recherche inutilisable.
+        if (providerResults.length > 0) {
+          return providerResults.slice(0, 50);
+        }
       } catch {
         // Fallback to the local BPMN index when the repository provider is unavailable.
       }
