@@ -48,7 +48,12 @@ export const useModelerInstance = () => {
         ...getModelerModules(true),
         MinimapModule,
         NavigationControls,
-        VerticalInteractionHitFix,
+        /*
+          TEST — VerticalInteractionHitFix désactivé temporairement.
+          Si la sélection fonctionne au premier chargement du Viewer,
+          ce module est probablement à l'origine du problème.
+          VerticalInteractionHitFix,
+        */
       ],
       moddleExtensions: getModelerExtensions(),
       // Ouvre automatiquement la minimap dans le visualiseur.
