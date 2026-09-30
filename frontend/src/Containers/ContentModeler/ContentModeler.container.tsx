@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 
 import { ModelerActionBar } from './components/ModelerActionBar';
+import { RaciMatrix } from './components/RaciMatrix';
 import { ModelerShortcuts } from '../../Components/BusinessComponents/ModelerShortcuts/ModelerShortcuts';
 import { useContentModeler } from './hooks/useContentModeler';
 import { useModeler } from './hooks/useModeler';
@@ -9,6 +10,8 @@ import { Modeler } from '../../Components/BusinessComponents/Modeler/Modeler';
 import { useModelerInstance } from '../../shared/hooks/useModelerInstance';
 
 export const Component = () => {
+  const [isRaciOpen, setIsRaciOpen] = useState(false);
+
   // share modeler instance in order to avoid create instance in useContentModeler and useModeler
   const { getModelerInstance } = useModelerInstance();
   const bpmnModelerInstance = getModelerInstance();
@@ -41,6 +44,12 @@ export const Component = () => {
         onDiagramSave={onDiagramSave}
         onDiagramPublish={onDiagramPublish}
         onShortcutDisplay={() => setIsShortcurtModalOpen(true)}
+        onRaciDisplay={() => setIsRaciOpen(true)}
+      />
+      <RaciMatrix
+        modeler={bpmnModelerInstance}
+        open={isRaciOpen}
+        onClose={() => setIsRaciOpen(false)}
       />
       <Modeler
         diagramContainerRef={diagramContainerRef}
