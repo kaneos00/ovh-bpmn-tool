@@ -44,7 +44,7 @@ const statusPropertyByCode: Record<RaciCode, string> = {
 
 const codeLabel: Record<RaciCode, string> = {
   R: 'R — Responsable',
-  A: 'A — Accountable',
+  A: 'A — Acteur',
   C: 'C — Consulté',
   I: 'I — Informé',
 };
@@ -210,7 +210,7 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
             <h2>Matrice RACI</h2>
             <div className="raci-legend">
               <span><b>R</b> Responsable</span>
-              <span><b>A</b> Accountable</span>
+              <span><b>A</b> Acteur</span>
               <span><b>C</b> Consulté</span>
               <span><b>I</b> Informé</span>
             </div>
