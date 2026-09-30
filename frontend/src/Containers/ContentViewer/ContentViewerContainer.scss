@@ -9,6 +9,23 @@
   box-sizing: border-box;
 }
 
+.viewerSearchBarHost {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 54px;
+  z-index: 10000;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.viewerSearchBarHost #bpmn-recherche-bar,
+.viewerSearchBarHost #bpmn-recherche-panel {
+  pointer-events: auto;
+  z-index: 10001;
+}
+
 .viewerFolderPanel {
   min-width: 0;
   height: calc(100vh - 54px);
@@ -71,7 +88,3 @@
   border-radius: 8px;
 }
 
-.viewerLayout #bpmn-recherche-bar,
-.viewerLayout #bpmn-recherche-panel {
-  z-index: 2000;
-}
