@@ -24,7 +24,7 @@ import './BpmnLayoutContainer.scss';
 
 export const Component = () => {
   const { resourceId } = useParams() as BpmnLayoutRouteParams;
-  const [folderOpen, setFolderOpen] = useState(true);
+  const [folderOpen, setFolderOpen] = useState(false);
 
   const { resource, contents, navigationFns, callbacks } = useBpmnLayout();
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
