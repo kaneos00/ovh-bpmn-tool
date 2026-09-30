@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import BpmnModeler from 'camunda-bpmn-js/lib/camunda-platform/Modeler';
 import BpmnViewer from 'camunda-bpmn-js/lib/camunda-platform/NavigatedViewer';
+import MinimapModule from 'diagram-js-minimap';
+import NavigationControls from '../../extensions/navigation-controls';
 
 import { useBpmnToolOptions } from '../../Providers/BpmnToolOptions/useBpmnToolOptions';
 
@@ -13,9 +15,21 @@ export const useModelerInstance = () => {
   const modeler = useMemo(() => {
     return new BpmnModeler({
       keyboard: { bindTo: document },
-      additionalModules: getModelerModules(),
+      /*
+        ANCIENNE CONFIGURATION — conservée pour comparaison / retour arrière
+        additionalModules: getModelerModules(),
+      */
+      additionalModules: [
+        ...getModelerModules(),
+        MinimapModule,
+        NavigationControls,
+      ],
       ...(lintingOptions.active ? { linting: lintingOptions } : {}),
       moddleExtensions: getModelerExtensions(),
+      // Ouvre automatiquement la minimap dans l’éditeur.
+      minimap: {
+        open: true,
+      },
     });
   }, []);
 
@@ -25,8 +39,20 @@ export const useModelerInstance = () => {
 
   const getViewerInstance = (additionalOptions = {}) => {
     return new BpmnViewer({
-      additionalModules: [...getModelerModules(true)],
+      /*
+        ANCIENNE CONFIGURATION — conservée pour comparaison / retour arrière
+        additionalModules: [...getModelerModules(true)],
+      */
+      additionalModules: [
+        ...getModelerModules(true),
+        MinimapModule,
+        NavigationControls,
+      ],
       moddleExtensions: getModelerExtensions(),
+      // Ouvre automatiquement la minimap dans le visualiseur.
+      minimap: {
+        open: true,
+      },
       ...additionalOptions,
     });
   };
