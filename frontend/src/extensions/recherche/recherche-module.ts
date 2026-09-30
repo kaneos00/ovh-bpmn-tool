@@ -74,12 +74,17 @@ function RechercheModule(
 
     console.log('[Recherche][NAVIGATION] élément trouvé', elementId, element);
 
-    selection.select(element);
-
-    window.setTimeout(() => {
-      canvas.scrollToElement(element, 80);
+    const selectAndCenter = () => {
       selection.select(element);
-    }, 50);
+      window.setTimeout(() => {
+        canvas.scrollToElement(element, 80);
+        selection.select(element);
+      }, 150);
+    };
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(selectAndCenter);
+    });
   }
 
   function renderResults(container: HTMLElement, results: RechercheResult[]) {
