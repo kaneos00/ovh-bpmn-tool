@@ -41,7 +41,6 @@ export const useProcessViewer = (resourceId: string, contentId: string) => {
       }).catch((error) => {
         console.error('[ProcessViewer] importXML failed', error);
       });
-      });
     }
   }, [xmlContent, resourceId, contentId, viewer]);
 
