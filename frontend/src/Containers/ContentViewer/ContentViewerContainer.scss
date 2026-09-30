@@ -5,11 +5,13 @@
   height: 100vh;
   width: 100%;
   overflow: hidden;
+  padding-top: 54px;
+  box-sizing: border-box;
 }
 
 .viewerFolderPanel {
   min-width: 0;
-  height: 100vh;
+  height: calc(100vh - 54px);
   overflow: hidden;
   transition: width 160ms ease;
 }
@@ -35,13 +37,13 @@
 
 .viewerDiagram {
   min-width: 0;
-  height: 100vh;
+  height: calc(100vh - 54px);
   overflow: hidden;
 }
 
 .viewerInfoPanel {
   min-width: 0;
-  height: 100vh;
+  height: calc(100vh - 54px);
   overflow: hidden;
   display: flex;
   flex-direction: column;
