@@ -59,6 +59,7 @@ export const Component = () => {
 
   return (
     <Box className="viewerLayout">
+      <Box id="bpmn-recherche-host" className="viewerSearchBarHost" aria-label="Recherche BPMN" />
       <Sheet
         className={`viewerFolderPanel ${folderOpen ? 'open' : 'collapsed'}`}
         variant="outlined"
