@@ -91,7 +91,7 @@ function RechercheModule(
     const existing = document.getElementById(BAR_ID);
     if (existing) { inputElement = existing.querySelector('input') as HTMLInputElement | undefined; return existing; }
     const bar = document.createElement('div'); bar.id = BAR_ID;
-    Object.assign(bar.style, { position: 'fixed', top: '0', left: '0', right: '0', height: '54px', zIndex: '100', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', boxSizing: 'border-box', background: '#fff', borderBottom: '1px solid #ddd', boxShadow: '0 1px 4px rgba(0,0,0,.12)', fontFamily: 'Arial, sans-serif' });
+    Object.assign(bar.style, { position: 'fixed', top: '56px', left: '0', right: '0', height: '54px', zIndex: '100', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', boxSizing: 'border-box', background: '#fff', borderBottom: '1px solid #ddd', boxShadow: '0 1px 4px rgba(0,0,0,.12)', fontFamily: 'Arial, sans-serif' });
     const source = document.createElement('select'); source.setAttribute('aria-label', 'Type de résultat'); source.title = 'Type de résultat'; source.style.padding = '8px 6px';
     sourceFilters.forEach(([value, label]) => { const option = document.createElement('option'); option.value = value; option.textContent = label; source.appendChild(option); }); source.value = 'all';
     const scope = document.createElement('select'); scope.setAttribute('aria-label', 'Périmètre de recherche'); scope.title = 'Périmètre de recherche'; scope.style.padding = '8px 6px';
@@ -101,7 +101,7 @@ function RechercheModule(
     const hint = document.createElement('span'); hint.textContent = 'Ctrl+K'; Object.assign(hint.style, { fontSize: '11px', color: '#777', whiteSpace: 'nowrap' });
     bar.appendChild(source); bar.appendChild(scope); bar.appendChild(input); bar.appendChild(hint); document.body.appendChild(bar);
     const resultsPanel = document.createElement('div'); resultsPanel.id = PANEL_ID;
-    Object.assign(resultsPanel.style, { position: 'fixed', top: '54px', left: '16px', right: '16px', maxHeight: '60vh', zIndex: '99', background: '#fff', border: '1px solid #ddd', borderTop: '0', boxShadow: '0 4px 12px rgba(0,0,0,.15)', overflowY: 'auto', fontFamily: 'Arial, sans-serif', display: 'none' });
+    Object.assign(resultsPanel.style, { position: 'fixed', top: '110px', left: '16px', right: '16px', maxHeight: '60vh', zIndex: '99', background: '#fff', border: '1px solid #ddd', borderTop: '0', boxShadow: '0 4px 12px rgba(0,0,0,.15)', overflowY: 'auto', fontFamily: 'Arial, sans-serif', display: 'none' });
     document.body.appendChild(resultsPanel);
     let request = 0;
     const runSearch = async () => {
