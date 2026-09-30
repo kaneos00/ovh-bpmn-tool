@@ -49,7 +49,7 @@ const createResourceResult = (resource: Resource, sourceType: 'process' | 'subpr
   element: undefined, id: resource.id, type: String(resource.type), name: resource.name,
   documentation: resource.description || '', processId: resource.id, processName: resource.name,
   resourceId: resource.id, resourceType: resource.type, resourceName: resource.name, sourceType,
-  link: `/${resource.id}/modeler`,
+  link: `/${resource.id}`,
   metadata: { source: 'repository', kind: 'process-resource', depth: resource.depth, parentId: resource.parentId },
 });
 
@@ -67,7 +67,7 @@ const parseProcess = (xml: string, resource: Resource): RechercheResult[] => {
       element: undefined, id, type: node.localName ? `bpmn:${node.localName}` : '', name: node.getAttribute('name') || '',
       documentation: documentationText(node), role: role || undefined, raci: raci || undefined,
       processId: resource.id, processName: resource.name, resourceId: resource.id, resourceType: resource.type, resourceName: resource.name,
-      sourceType, link: `/${resource.id}/modeler?element=${encodeURIComponent(id)}`,
+      sourceType, link: `/${resource.id}?element=${encodeURIComponent(id)}`,
       metadata: { source: 'repository', kind: 'bpmn-element', raci: raci || undefined, role: role || undefined },
     };
   });
