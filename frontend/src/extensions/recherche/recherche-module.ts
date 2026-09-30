@@ -156,7 +156,12 @@ function RechercheModule(
   eventBus.on('diagram.init', () => {
     ensureSearchBar();
   });
-  eventBus.on('import.done', focusElementFromUrl);
+  eventBus.on('import.done', () => {
+    // In the Viewer, React mounts the dedicated host before/around XML import.
+    // import.done is therefore a reliable final synchronization point.
+    ensureSearchBar();
+    focusElementFromUrl();
+  });
   eventBus.on('keyboard.keydown', (event: any) => { if ((event.ctrlKey || event.metaKey) && event.key?.toLowerCase() === 'k') { event.preventDefault(); createSearchBar(); inputElement?.focus(); inputElement?.select(); } });
   eventBus.on('diagram.destroy', () => {
     closePanel();
