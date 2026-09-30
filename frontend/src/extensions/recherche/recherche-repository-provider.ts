@@ -56,7 +56,8 @@ const createResourceResult = (resource: Resource): RechercheResult => ({
 const parseProcess = (xml: string, resource: Resource): RechercheResult[] => {
   const document = new DOMParser().parseFromString(xml, 'application/xml');
   const nodes = Array.from(document.getElementsByTagName('*')).filter(node =>
-    node.localName?.startsWith('task') || ['process','startEvent','endEvent','userTask','serviceTask','manualTask','scriptTask','sendTask','receiveTask','businessRuleTask','exclusiveGateway','parallelGateway','inclusiveGateway','complexGateway','eventBasedGateway','subProcess','callActivity'].includes(node.localName),
+    !!node.getAttribute('id') &&
+    (!node.namespaceURI || node.namespaceURI.includes('BPMN')),
   );
   return nodes.map(node => {
     const { role, raci } = raciData(node);
@@ -77,8 +78,36 @@ const getResources = async (): Promise<Resource[]> => {
   if (resourceCache && resourceCache.expiresAt > Date.now()) return resourceCache.resources;
   const url = `/resources?filter.type=${ResourceType.Process}&filter.depth=100`;
   console.log('[Recherche][Repository] GET', url);
-  const resources = (await apiClient.get(url)) as Resource[];
-  console.log('[Recherche][Repository] resources reçues:', resources?.length, resources?.slice?.(0, 5));
+  const raw = await apiClient.get(url);
+  console.log('[Recherche][Repository] réponse brute resources:', raw);
+
+  const extractResources = (value: any): Resource[] => {
+    if (Array.isArray(value)) return value;
+    if (Array.isArray(value?.data)) return value.data;
+    if (Array.isArray(value?.items)) return value.items;
+    if (Array.isArray(value?.resources)) return value.resources;
+    return [];
+  };
+
+  let resources = extractResources(raw);
+
+  // Certains déploiements/API peuvent ne pas appliquer le filtre depth.
+  // Si la première requête ne retourne rien, on tente sans depth puis sans filtre,
+  // en filtrant localement les processus.
+  if (!resources.length) {
+    const fallbackUrl = `/resources?filter.type=${ResourceType.Process}`;
+    console.log('[Recherche][Repository] première requête vide → GET', fallbackUrl);
+    resources = extractResources(await apiClient.get(fallbackUrl));
+  }
+
+  if (!resources.length) {
+    const allUrl = '/resources';
+    console.log('[Recherche][Repository] seconde requête vide → GET', allUrl);
+    resources = extractResources(await apiClient.get(allUrl))
+      .filter(resource => resource?.type === ResourceType.Process);
+  }
+
+  console.log('[Recherche][Repository] resources normalisées:', resources.length, resources.slice(0, 5));
   const limited = resources.slice(0, MAX_RESOURCES);
   resourceCache = { expiresAt: Date.now() + CACHE_TTL_MS, resources: limited };
   repositoryIndexCache = undefined;
