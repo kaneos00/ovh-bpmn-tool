@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Await, Outlet, useParams } from 'react-router-dom';
-import { Sheet } from '@mui/joy';
+import { Box, IconButton, Sheet } from '@mui/joy';
+import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 
 import { ResourceExplorer } from '../../Components/BusinessComponents/ResourceExplorer';
 import { ProcessDetails } from '../../Components/BusinessComponents/ProcessDetails';
@@ -23,6 +24,7 @@ import './BpmnLayoutContainer.scss';
 
 export const Component = () => {
   const { resourceId } = useParams() as BpmnLayoutRouteParams;
+  const [folderOpen, setFolderOpen] = useState(true);
 
   const { resource, contents, navigationFns, callbacks } = useBpmnLayout();
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
@@ -48,7 +50,9 @@ export const Component = () => {
   }, [resourceId, resource, contents]);
 
   return (
-    <div className="mainContainer">
+    <div
+      className={`mainContainer ${folderOpen ? 'folderOpen' : 'folderCollapsed'}`}
+    >
       <Sheet
         className="folderTree"
         sx={{
@@ -57,11 +61,31 @@ export const Component = () => {
           borderColor: 'divider',
         }}
       >
-        <FolderTree
-          selectedId={resourceId}
-          onNodeClick={callbacks.folderTree.onFolderTreeItemClick}
-        />
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: folderOpen ? 'flex-end' : 'center',
+            padding: '8px',
+            minHeight: '48px',
+          }}
+        >
+          <IconButton
+            size="sm"
+            variant="plain"
+            onClick={() => setFolderOpen(value => !value)}
+            title={folderOpen ? 'Collapse folders' : 'Open folders'}
+          >
+            {folderOpen ? <ChevronLeft /> : <ChevronRight />}
+          </IconButton>
+        </Box>
+        {folderOpen && (
+          <FolderTree
+            selectedId={resourceId}
+            onNodeClick={callbacks.folderTree.onFolderTreeItemClick}
+          />
+        )}
       </Sheet>
+
       <Sheet className="innerContent">
         <React.Suspense fallback={<BpmnContentLoading />}>
           <Await resolve={resource}>
