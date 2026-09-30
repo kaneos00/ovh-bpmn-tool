@@ -265,7 +265,6 @@ export class RechercheService {
     console.log('[Recherche] index local: éléments BPMN=', elements.length);
 
     elements
-      .getAll()
       .filter((element: any) => element?.businessObject)
       .forEach((element: any) => {
         const businessObject = element.businessObject;
