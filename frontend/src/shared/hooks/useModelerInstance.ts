@@ -3,7 +3,11 @@ import BpmnModeler from 'camunda-bpmn-js/lib/camunda-platform/Modeler';
 import BpmnViewer from 'camunda-bpmn-js/lib/camunda-platform/NavigatedViewer';
 import MinimapModule from 'diagram-js-minimap';
 import NavigationControls from '../../extensions/navigation-controls';
-import VerticalInteractionHitFix from '../../extensions/vertical-interaction-hit-fix';
+/*
+  TEST — VerticalInteractionHitFix désactivé temporairement dans le Viewer.
+  Import conservé en commentaire pour pouvoir le réactiver facilement.
+  import VerticalInteractionHitFix from '../../extensions/vertical-interaction-hit-fix';
+*/
 
 import { useBpmnToolOptions } from '../../Providers/BpmnToolOptions/useBpmnToolOptions';
 
@@ -15,7 +19,6 @@ export const useModelerInstance = () => {
 
   const modeler = useMemo(() => {
     return new BpmnModeler({
-      keyboard: { bindTo: document },
       /*
         ANCIENNE CONFIGURATION — conservée pour comparaison / retour arrière
         additionalModules: getModelerModules(),
