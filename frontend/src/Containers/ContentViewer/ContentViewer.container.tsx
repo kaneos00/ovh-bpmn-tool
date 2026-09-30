@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -32,6 +32,18 @@ export const Component = () => {
   const { resourceId, contentId } = useContentViewer();
   const navigate = useNavigate();
   const [folderOpen, setFolderOpen] = useState(true);
+  const searchHostRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const host = searchHostRef.current;
+    if (!host) return;
+
+    window.dispatchEvent(
+      new CustomEvent('bpmn-search-host-ready', {
+        detail: { host },
+      }),
+    );
+  }, []);
 
   const { data: contents = [] } = useQuery(contentsQuery(resourceId));
   const { data: xmlContent } = useQuery(
@@ -59,7 +71,7 @@ export const Component = () => {
 
   return (
     <Box className="viewerLayout">
-      <Box id="bpmn-recherche-host" className="viewerSearchBarHost" aria-label="Recherche BPMN" />
+      <Box\n        ref={searchHostRef}\n        id="bpmn-recherche-host"\n        className="viewerSearchBarHost"\n        aria-label="Recherche BPMN"\n      />
       <Sheet
         className={`viewerFolderPanel ${folderOpen ? 'open' : 'collapsed'}`}
         variant="outlined"
