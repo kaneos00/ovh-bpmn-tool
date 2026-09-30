@@ -14,7 +14,7 @@ import { apiClient } from '../../queryClient';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import { ContentStatusEnum, type Content, type Resource } from '../../Types';
 import { RechercheIndex } from './recherche-index';
-import type { RechercheContext, RechercheProvider, RechercheResult } from './recherche-service';
+import type { RechercheProvider, RechercheResult } from './recherche-service';
 
 const MAX_RESOURCES = 100;
 const MAX_RESULTS = 50;
