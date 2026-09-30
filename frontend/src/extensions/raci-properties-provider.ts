@@ -22,13 +22,9 @@ class RaciPropertiesProvider {
         label: 'RACI',
         entries: [
           entry('raci-responsible', 'responsible', 'R — Responsable'),
-          entry('raci-accountable', 'accountable', 'A — Accountable'),
+          entry('raci-accountable', 'accountable', 'A — Acteur'),
           entry('raci-consulted', 'consulted', 'C — Consulté'),
           entry('raci-informed', 'informed', 'I — Informé'),
-          entry('raci-responsible-status', 'responsibleStatus', 'Statut R'),
-          entry('raci-accountable-status', 'accountableStatus', 'Statut A'),
-          entry('raci-consulted-status', 'consultedStatus', 'Statut C'),
-          entry('raci-informed-status', 'informedStatus', 'Statut I'),
         ],
       });
 
