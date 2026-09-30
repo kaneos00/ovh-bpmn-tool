@@ -211,10 +211,11 @@ function RechercheModule(
     ensureSearchBar();
     focusElementFromUrl();
   });
-  eventBus.on('viewer.attached', () => {
-    console.log('[Recherche][MODULE] viewer.attached');
+  const onViewerAttached = (event: Event) => {
+    console.log('[Recherche][MODULE] bpmn-viewer-attached');
     ensureSearchBar();
-  });
+  };
+  window.addEventListener('bpmn-viewer-attached', onViewerAttached);
   eventBus.on('keyboard.keydown', (event: any) => { if ((event.ctrlKey || event.metaKey) && event.key?.toLowerCase() === 'k') { event.preventDefault(); createSearchBar(); inputElement?.focus(); inputElement?.select(); } });
   eventBus.on('diagram.destroy', () => {
     console.log('[Recherche][MODULE] diagram.destroy');
