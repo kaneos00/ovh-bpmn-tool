@@ -93,85 +93,149 @@ function RechercheModule(
     });
   }
 
-  function createSearchBar(searchHostOverride?: HTMLElement) {
-    const viewerLayout = document.querySelector('.viewerLayout') as HTMLElement | null;
-    const searchHostElement = searchHostOverride || document.querySelector('#bpmn-recherche-host') as HTMLElement | null;
+  function createSearchBar() {
     const existing = document.getElementById(BAR_ID);
-
-    console.log('[Recherche][MODULE] createSearchBar', {
-      viewerLayout: !!viewerLayout,
-      searchHost: !!searchHostElement,
-      existingBar: !!existing,
-      canvasContainer: !!canvas.getContainer(),
-    });
-
-    if (existing && searchHostElement && !searchHostElement.contains(existing)) existing.remove();
-    if (existing && viewerLayout && !viewerLayout.contains(existing) && !searchHostElement) existing.remove();
-    if (existing) { inputElement = existing.querySelector('input') as HTMLInputElement | undefined; return existing; }
-
-    const bar = document.createElement('div'); bar.id = BAR_ID;
-    Object.assign(bar.style, { position: 'absolute', top: '0', left: '0', width: '100%', maxWidth: 'none', height: '54px', zIndex: '90', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', boxSizing: 'border-box', background: '#fff', border: '1px solid #ddd', borderRadius: '4px', boxShadow: '0 1px 4px rgba(0,0,0,.12)', fontFamily: 'Arial, sans-serif' });
-    const source = document.createElement('select'); source.setAttribute('aria-label', 'Type de résultat'); source.title = 'Type de résultat'; source.style.padding = '8px 6px';
-    sourceFilters.forEach(([value, label]) => { const option = document.createElement('option'); option.value = value; option.textContent = label; source.appendChild(option); }); source.value = 'all';
-    const scope = document.createElement('select'); scope.setAttribute('aria-label', 'Périmètre de recherche'); scope.title = 'Périmètre de recherche'; scope.style.padding = '8px 6px';
-    [['current-process', 'Ce processus'], ['all-processes', 'Tous les processus']].forEach(([value, label]) => { const option = document.createElement('option'); option.value = value; option.textContent = label; scope.appendChild(option); }); scope.value = 'all-processes';
-    const input = document.createElement('input'); input.type = 'search'; input.placeholder = 'Rechercher dans tous les processus…'; input.autocomplete = 'off'; input.setAttribute('aria-label', 'Recherche dans tous les processus');
-    Object.assign(input.style, { flex: '1', minWidth: '120px', padding: '9px 12px', border: '1px solid #bbb', borderRadius: '4px', outline: 'none', fontSize: '14px' });
-    const hint = document.createElement('span'); hint.textContent = 'Ctrl+K'; Object.assign(hint.style, { fontSize: '11px', color: '#777', whiteSpace: 'nowrap' });
-    bar.appendChild(source); bar.appendChild(scope); bar.appendChild(input); bar.appendChild(hint);
-
-    const viewerContainer = canvas.getContainer();
-    const attachedViewerLayout =
-      (viewerContainer?.closest?.('.viewerLayout') as HTMLElement | null) ||
-      viewerLayout;
-    const attachedSearchHost =
-      (attachedViewerLayout?.querySelector?.('#bpmn-recherche-host') as HTMLElement | null) ||
-      searchHostElement;
-    const searchHost = attachedSearchHost || attachedViewerLayout || viewerContainer;
-    searchHost.style.position = searchHost.style.position || 'relative';
-
-    if (attachedSearchHost || attachedViewerLayout) {
-      bar.style.position = 'absolute';
-      bar.style.top = '0';
-      bar.style.left = '0';
-      bar.style.right = '0';
-      bar.style.width = '100%';
-      bar.style.zIndex = '10000';
-      bar.style.pointerEvents = 'auto';
+    if (existing) {
+      inputElement = existing.querySelector('input') as HTMLInputElement | undefined;
+      inputElement?.focus();
+      return existing;
     }
 
-    console.log('[Recherche][MODULE] append bar', {
-      hostId: searchHost.id || null,
-      hostClass: searchHost.className || null,
-      hostTag: searchHost.tagName,
-      attachedViewerLayout: !!attachedViewerLayout,
-      attachedSearchHost: !!attachedSearchHost,
+    const bar = document.createElement('div');
+    bar.id = BAR_ID;
+    Object.assign(bar.style, {
+      position: 'fixed',
+      top: '10px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      width: 'min(900px, calc(100vw - 32px))',
+      height: '54px',
+      zIndex: '10000',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      padding: '8px 12px',
+      boxSizing: 'border-box',
+      background: '#fff',
+      border: '1px solid #ddd',
+      borderRadius: '6px',
+      boxShadow: '0 3px 12px rgba(0,0,0,.18)',
+      fontFamily: 'Arial, sans-serif',
     });
 
-    searchHost.appendChild(bar);
+    const source = document.createElement('select');
+    source.setAttribute('aria-label', 'Type de résultat');
+    source.title = 'Type de résultat';
+    source.style.padding = '8px 6px';
+    sourceFilters.forEach(([value, label]) => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = label;
+      source.appendChild(option);
+    });
+    source.value = 'all';
 
-    const resultsPanel = document.createElement('div'); resultsPanel.id = PANEL_ID;
-    Object.assign(resultsPanel.style, { position: 'absolute', top: '54px', left: '0', width: '100%', maxWidth: 'none', maxHeight: '60vh', zIndex: '89', background: '#fff', border: '1px solid #ddd', borderTop: '0', boxShadow: '0 4px 12px rgba(0,0,0,.15)', overflowY: 'auto', fontFamily: 'Arial, sans-serif', display: 'none' });
-    searchHost.appendChild(resultsPanel);
+    const scope = document.createElement('select');
+    scope.setAttribute('aria-label', 'Périmètre de recherche');
+    scope.title = 'Périmètre de recherche';
+    scope.style.padding = '8px 6px';
+    [['current-process', 'Ce processus'], ['all-processes', 'Tous les processus']].forEach(([value, label]) => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = label;
+      scope.appendChild(option);
+    });
+    scope.value = 'all-processes';
+
+    const input = document.createElement('input');
+    input.type = 'search';
+    input.placeholder = 'Rechercher dans tous les processus…';
+    input.autocomplete = 'off';
+    input.setAttribute('aria-label', 'Recherche dans tous les processus');
+    Object.assign(input.style, {
+      flex: '1',
+      minWidth: '120px',
+      padding: '9px 12px',
+      border: '1px solid #bbb',
+      borderRadius: '4px',
+      outline: 'none',
+      fontSize: '14px',
+    });
+
+    const hint = document.createElement('span');
+    hint.textContent = 'Ctrl+K';
+    Object.assign(hint.style, { fontSize: '11px', color: '#777', whiteSpace: 'nowrap' });
+
+    bar.appendChild(source);
+    bar.appendChild(scope);
+    bar.appendChild(input);
+    bar.appendChild(hint);
+    document.body.appendChild(bar);
+
+    const resultsPanel = document.createElement('div');
+    resultsPanel.id = PANEL_ID;
+    Object.assign(resultsPanel.style, {
+      position: 'fixed',
+      top: '64px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      width: 'min(900px, calc(100vw - 32px))',
+      maxHeight: '60vh',
+      zIndex: '9999',
+      background: '#fff',
+      border: '1px solid #ddd',
+      borderRadius: '0 0 6px 6px',
+      boxShadow: '0 4px 12px rgba(0,0,0,.15)',
+      overflowY: 'auto',
+      fontFamily: 'Arial, sans-serif',
+      display: 'none',
+    });
+    document.body.appendChild(resultsPanel);
 
     let request = 0;
     const runSearch = async () => {
       const query = input.value.trim();
-      console.log('[Recherche][UI] input', { query, scope: scope.value, source: source.value });
       const currentRequest = ++request;
-      if (!query) { resultsPanel.style.display = 'none'; resultsPanel.innerHTML = ''; return; }
+      if (!query) {
+        resultsPanel.style.display = 'none';
+        resultsPanel.innerHTML = '';
+        return;
+      }
+
       resultsPanel.style.display = 'block';
-      const selected = selection.get(); const currentElement = selected?.[0]; const businessObject = currentElement?.businessObject; const baseContext = rechercheService.getContext();
-      const context: RechercheContext = { ...baseContext, scope: scope.value as RechercheScope, currentElementId: currentElement?.id, currentElementType: businessObject?.$type, processId: baseContext.processId ?? baseContext.resourceId ?? businessObject?.processRef?.id, processName: baseContext.processName ?? baseContext.resourceName ?? businessObject?.processRef?.name };
-      console.log('[Recherche][UI] context', context);
+      const selected = selection.get();
+      const currentElement = selected?.[0];
+      const businessObject = currentElement?.businessObject;
+      const baseContext = rechercheService.getContext();
+      const context: RechercheContext = {
+        ...baseContext,
+        scope: scope.value as RechercheScope,
+        currentElementId: currentElement?.id,
+        currentElementType: businessObject?.$type,
+        processId: baseContext.processId ?? baseContext.resourceId ?? businessObject?.processRef?.id,
+        processName: baseContext.processName ?? baseContext.resourceName ?? businessObject?.processRef?.name,
+      };
       const found = await rechercheService.search(query, elementRegistry, context);
-      console.log('[Recherche][UI] found', found.length, found.slice(0, 5));
-      const filtered = source.value === 'all' ? found : found.filter(result => result.sourceType === source.value);
+      const filtered = source.value === 'all'
+        ? found
+        : found.filter(result => result.sourceType === source.value);
       if (currentRequest === request) renderResults(resultsPanel, filtered);
     };
-    input.addEventListener('input', runSearch); scope.addEventListener('change', runSearch); source.addEventListener('change', runSearch);
-    input.addEventListener('keydown', event => { if (event.key === 'Escape') { input.value = ''; ++request; resultsPanel.style.display = 'none'; resultsPanel.innerHTML = ''; } });
-    inputElement = input; return bar;
+
+    input.addEventListener('input', runSearch);
+    scope.addEventListener('change', runSearch);
+    source.addEventListener('change', runSearch);
+    input.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        input.value = '';
+        ++request;
+        resultsPanel.style.display = 'none';
+        resultsPanel.innerHTML = '';
+      }
+    });
+
+    inputElement = input;
+    return bar;
   }
 
   const onSearchHostReady = (event: Event) => {
