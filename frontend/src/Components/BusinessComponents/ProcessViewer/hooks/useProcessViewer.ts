@@ -25,8 +25,14 @@ export const useProcessViewer = (resourceId: string, contentId: string) => {
 
         // The BPMN module is initialized before the React Viewer is attached
         // to the DOM. Notify modules once the real Viewer container exists.
-        // @ts-ignore
-        viewer.get('eventBus').fire('viewer.attached');
+        // Notify the search UI only after React has attached the Viewer to
+        // its real DOM container. This is intentionally a browser event:
+        // the bpmn-js event bus is initialized before React mounts the Viewer.
+        window.dispatchEvent(
+          new CustomEvent('bpmn-viewer-attached', {
+            detail: viewer,
+          }),
+        );
       });
     }
   }, [xmlContent, resourceId, contentId, viewer]);
