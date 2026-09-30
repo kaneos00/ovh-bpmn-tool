@@ -22,6 +22,11 @@ export const useProcessViewer = (resourceId: string, contentId: string) => {
         viewer.attachTo(viewerRef.current as HTMLDivElement);
         // @ts-ignore
         viewer.get('canvas').zoom('fit-viewport');
+
+        // The BPMN module is initialized before the React Viewer is attached
+        // to the DOM. Notify modules once the real Viewer container exists.
+        // @ts-ignore
+        viewer.get('eventBus').fire('viewer.attached');
       });
     }
   }, [xmlContent, resourceId, contentId, viewer]);
