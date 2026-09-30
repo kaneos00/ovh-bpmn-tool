@@ -156,6 +156,7 @@ FIN ANCIENNE VERSION
 import { RechercheIndex } from './recherche-index';
 
 export type RechercheSourceType =
+  | 'subprocess'
   | 'process'
   | 'bpmn'
   | 'procedure'
