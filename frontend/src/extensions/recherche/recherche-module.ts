@@ -211,7 +211,7 @@ function RechercheModule(
     ensureSearchBar();
     focusElementFromUrl();
   });
-  const onViewerAttached = (event: Event) => {
+  const onViewerAttached = () => {
     console.log('[Recherche][MODULE] bpmn-viewer-attached');
     ensureSearchBar();
   };
