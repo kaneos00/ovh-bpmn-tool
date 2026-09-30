@@ -5,6 +5,7 @@ ANCIENNE VERSION — conservée pour comparaison / retour arrière
 
 export type RechercheSourceType =
   | 'process'
+  | 'subprocess'
   | 'bpmn'
   | 'procedure'
   | 'role'
