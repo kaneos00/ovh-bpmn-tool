@@ -121,10 +121,16 @@ function RechercheModule(
     bar.appendChild(source); bar.appendChild(scope); bar.appendChild(input); bar.appendChild(hint);
 
     const viewerContainer = canvas.getContainer();
-    const searchHost = searchHostElement || viewerLayout || viewerContainer;
+    const attachedViewerLayout =
+      (viewerContainer?.closest?.('.viewerLayout') as HTMLElement | null) ||
+      viewerLayout;
+    const attachedSearchHost =
+      (attachedViewerLayout?.querySelector?.('#bpmn-recherche-host') as HTMLElement | null) ||
+      searchHostElement;
+    const searchHost = attachedSearchHost || attachedViewerLayout || viewerContainer;
     searchHost.style.position = searchHost.style.position || 'relative';
 
-    if (searchHostElement || viewerLayout) {
+    if (attachedSearchHost || attachedViewerLayout) {
       bar.style.position = 'absolute';
       bar.style.top = '0';
       bar.style.left = '0';
@@ -138,6 +144,8 @@ function RechercheModule(
       hostId: searchHost.id || null,
       hostClass: searchHost.className || null,
       hostTag: searchHost.tagName,
+      attachedViewerLayout: !!attachedViewerLayout,
+      attachedSearchHost: !!attachedSearchHost,
     });
 
     searchHost.appendChild(bar);
@@ -167,8 +175,14 @@ function RechercheModule(
   }
 
   const ensureSearchBar = (attempt = 0) => {
-    const searchHost = document.querySelector('#bpmn-recherche-host');
-    const viewerLayout = document.querySelector('.viewerLayout');
+    const viewerContainer = canvas.getContainer();
+    const attachedLayout = viewerContainer?.closest?.('.viewerLayout') as HTMLElement | null;
+    const searchHost =
+      (attachedLayout?.querySelector?.('#bpmn-recherche-host') as HTMLElement | null) ||
+      (document.querySelector('#bpmn-recherche-host') as HTMLElement | null);
+    const viewerLayout =
+      attachedLayout ||
+      (document.querySelector('.viewerLayout') as HTMLElement | null);
     const existing = document.getElementById(BAR_ID);
 
     console.log('[Recherche][MODULE] ensureSearchBar', {
@@ -176,6 +190,7 @@ function RechercheModule(
       searchHost: !!searchHost,
       viewerLayout: !!viewerLayout,
       existingBar: !!existing,
+      canvasParent: viewerContainer?.parentElement?.className || null,
     });
 
     if (searchHost || viewerLayout || existing) {
@@ -184,7 +199,7 @@ function RechercheModule(
       return;
     }
 
-    if (attempt < 20) window.setTimeout(() => ensureSearchBar(attempt + 1), 100);
+    if (attempt < 50) window.setTimeout(() => ensureSearchBar(attempt + 1), 100);
   };
 
   eventBus.on('diagram.init', () => {
@@ -195,6 +210,10 @@ function RechercheModule(
     console.log('[Recherche][MODULE] import.done');
     ensureSearchBar();
     focusElementFromUrl();
+  });
+  eventBus.on('viewer.attached', () => {
+    console.log('[Recherche][MODULE] viewer.attached');
+    ensureSearchBar();
   });
   eventBus.on('keyboard.keydown', (event: any) => { if ((event.ctrlKey || event.metaKey) && event.key?.toLowerCase() === 'k') { event.preventDefault(); createSearchBar(); inputElement?.focus(); inputElement?.select(); } });
   eventBus.on('diagram.destroy', () => {
