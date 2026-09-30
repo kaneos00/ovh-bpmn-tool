@@ -18,8 +18,9 @@ export const useProcessViewer = (resourceId: string, contentId: string) => {
     if (!viewerRef.current || !xmlContent) {
       viewer.clear();
     } else {
+      viewer.attachTo(viewerRef.current as HTMLDivElement);
+
       viewer.importXML(xmlContent).then(() => {
-        viewer.attachTo(viewerRef.current as HTMLDivElement);
         // @ts-ignore
         viewer.get('canvas').zoom('fit-viewport');
       });
