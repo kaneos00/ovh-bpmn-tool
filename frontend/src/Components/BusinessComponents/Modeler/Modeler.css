@@ -35,12 +35,11 @@
 }
 
 /* Mini Map */
-
 .djs-minimap {
-  top: auto;
-  right: auto;
-  left: 10px;
-  bottom: 10px;
+  top: auto !important;
+  right: auto !important;
+  left: 10px !important;
+  bottom: 10px !important;
   background-color: white;
   border-radius: 6px;
   border-color: #cdd7e1;
@@ -48,10 +47,6 @@
   color: #32383e !important;
   font-size: 0.875rem;
   padding: 4px;
-}
-
-/* Taille fixe de la fenêtre et de la carte : évite que la minimap recouvre la zone d'édition. */
-.djs-minimap {
   width: 248px !important;
   height: 143px !important;
 }
@@ -59,6 +54,15 @@
 .djs-minimap .map {
   width: 240px !important;
   height: 135px !important;
+}
+
+.djs-minimap .toggle {
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  min-height: 22px !important;
+  padding: 2px !important;
+  font-size: 12px !important;
 }
 
 .djs-palette {
@@ -84,7 +88,6 @@
 .bjsl-button-success {
   background-color: #1f7a1f;
 }
-
 
 /* Navigation controls */
 .bpmn-tool-navigation-controls {
