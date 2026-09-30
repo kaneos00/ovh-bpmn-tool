@@ -40,6 +40,7 @@ export type RechercheContext = {
   resourceId?: string;
   resourceName?: string;
   resourceType?: string;
+  metadata?: Record<string, unknown>;
 };
 
 export type RechercheProvider = (
