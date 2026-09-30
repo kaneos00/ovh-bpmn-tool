@@ -1,0 +1,69 @@
+.viewerLayout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) 340px;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+
+.viewerFolderPanel {
+  min-width: 0;
+  height: 100vh;
+  overflow: hidden;
+  transition: width 160ms ease;
+}
+
+.viewerFolderPanel.open {
+  width: 280px;
+}
+
+.viewerFolderPanel.collapsed {
+  width: 52px;
+}
+
+.viewerFolderHeader {
+  min-height: 52px;
+  padding: 0 8px 0 16px;
+}
+
+.viewerFolderTree {
+  height: calc(100vh - 53px);
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.viewerDiagram {
+  min-width: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.viewerInfoPanel {
+  min-width: 0;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.viewerInfoHeader {
+  padding: 16px;
+}
+
+.viewerTabs {
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.viewerTabPanel {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.versionItem {
+  padding: 10px;
+  border-radius: 8px;
+}
