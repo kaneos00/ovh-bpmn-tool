@@ -22,7 +22,7 @@ const sourceLabels: Record<string, string> = {
 };
 
 const sourceFilters = [
-  ['all', 'Tous'], ['process', 'Processus'], ['bpmn', 'BPMN'], ['procedure', 'Procédures'],
+  ['all', 'Tous'], ['process', 'Processus'], ['subprocess', 'Sous-processus'], ['bpmn', 'BPMN'], ['procedure', 'Procédures'],
   ['role', 'Rôles'], ['raci', 'RACI'], ['ai', 'IA'],
 ] as const;
 
@@ -91,7 +91,7 @@ function RechercheModule(
     const existing = document.getElementById(BAR_ID);
     if (existing) { inputElement = existing.querySelector('input') as HTMLInputElement | undefined; return existing; }
     const bar = document.createElement('div'); bar.id = BAR_ID;
-    Object.assign(bar.style, { position: 'absolute', top: '0', left: '0', width: 'calc(100% - 20px)', maxWidth: '1200px', height: '54px', zIndex: '90', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', boxSizing: 'border-box', background: '#fff', border: '1px solid #ddd', borderRadius: '4px', boxShadow: '0 1px 4px rgba(0,0,0,.12)', fontFamily: 'Arial, sans-serif' });
+    Object.assign(bar.style, { position: 'absolute', top: '0', left: '0', width: '100%', maxWidth: 'none', height: '54px', zIndex: '90', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', boxSizing: 'border-box', background: '#fff', border: '1px solid #ddd', borderRadius: '4px', boxShadow: '0 1px 4px rgba(0,0,0,.12)', fontFamily: 'Arial, sans-serif' });
     const source = document.createElement('select'); source.setAttribute('aria-label', 'Type de résultat'); source.title = 'Type de résultat'; source.style.padding = '8px 6px';
     sourceFilters.forEach(([value, label]) => { const option = document.createElement('option'); option.value = value; option.textContent = label; source.appendChild(option); }); source.value = 'all';
     const scope = document.createElement('select'); scope.setAttribute('aria-label', 'Périmètre de recherche'); scope.title = 'Périmètre de recherche'; scope.style.padding = '8px 6px';
@@ -99,10 +99,14 @@ function RechercheModule(
     const input = document.createElement('input'); input.type = 'search'; input.placeholder = 'Rechercher dans tous les processus…'; input.autocomplete = 'off'; input.setAttribute('aria-label', 'Recherche dans tous les processus');
     Object.assign(input.style, { flex: '1', minWidth: '120px', padding: '9px 12px', border: '1px solid #bbb', borderRadius: '4px', outline: 'none', fontSize: '14px' });
     const hint = document.createElement('span'); hint.textContent = 'Ctrl+K'; Object.assign(hint.style, { fontSize: '11px', color: '#777', whiteSpace: 'nowrap' });
-    bar.appendChild(source); bar.appendChild(scope); bar.appendChild(input); bar.appendChild(hint); const viewerContainer = canvas.getContainer(); viewerContainer.style.position = viewerContainer.style.position || 'relative'; viewerContainer.appendChild(bar);
+    bar.appendChild(source); bar.appendChild(scope); bar.appendChild(input); bar.appendChild(hint); const viewerLayout = document.querySelector('.viewerLayout') as HTMLElement | null;
+    const viewerContainer = canvas.getContainer();
+    const searchHost = viewerLayout || viewerContainer;
+    searchHost.style.position = searchHost.style.position || 'relative';
+    searchHost.appendChild(bar);
     const resultsPanel = document.createElement('div'); resultsPanel.id = PANEL_ID;
-    Object.assign(resultsPanel.style, { position: 'absolute', top: '54px', left: '0', width: 'calc(100% - 20px)', maxWidth: '1200px', maxHeight: '60vh', zIndex: '89', background: '#fff', border: '1px solid #ddd', borderTop: '0', boxShadow: '0 4px 12px rgba(0,0,0,.15)', overflowY: 'auto', fontFamily: 'Arial, sans-serif', display: 'none' });
-    viewerContainer.appendChild(resultsPanel);
+    Object.assign(resultsPanel.style, { position: 'absolute', top: '54px', left: '0', width: '100%', maxWidth: 'none', maxHeight: '60vh', zIndex: '89', background: '#fff', border: '1px solid #ddd', borderTop: '0', boxShadow: '0 4px 12px rgba(0,0,0,.15)', overflowY: 'auto', fontFamily: 'Arial, sans-serif', display: 'none' });
+    searchHost.appendChild(resultsPanel);
     let request = 0;
     const runSearch = async () => {
       const query = input.value.trim();
