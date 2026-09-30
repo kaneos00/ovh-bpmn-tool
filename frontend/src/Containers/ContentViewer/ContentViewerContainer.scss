@@ -1,4 +1,5 @@
 .viewerLayout {
+  position: relative;
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr) 340px;
   height: 100vh;
@@ -66,4 +67,9 @@
 .versionItem {
   padding: 10px;
   border-radius: 8px;
+}
+
+.viewerLayout #bpmn-recherche-bar,
+.viewerLayout #bpmn-recherche-panel {
+  z-index: 2000;
 }
