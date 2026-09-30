@@ -18,8 +18,12 @@ export const useProcessViewer = (resourceId: string, contentId: string) => {
     if (!viewerRef.current || !xmlContent) {
       viewer.clear();
     } else {
+      console.log('[ProcessViewer] importXML start');
       viewer.importXML(xmlContent).then(() => {
+        console.log('[ProcessViewer] importXML resolved');
+        console.log('[ProcessViewer] before attachTo', viewerRef.current);
         viewer.attachTo(viewerRef.current as HTMLDivElement);
+        console.log('[ProcessViewer] after attachTo', viewerRef.current);
         // @ts-ignore
         viewer.get('canvas').zoom('fit-viewport');
 
@@ -33,6 +37,10 @@ export const useProcessViewer = (resourceId: string, contentId: string) => {
             detail: viewer,
           }),
         );
+        console.log('[ProcessViewer] bpmn-viewer-attached dispatched');
+      }).catch((error) => {
+        console.error('[ProcessViewer] importXML failed', error);
+      });
       });
     }
   }, [xmlContent, resourceId, contentId, viewer]);
