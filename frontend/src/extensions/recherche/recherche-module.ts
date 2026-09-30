@@ -48,7 +48,19 @@ function RechercheModule(
 
   function focusElementFromUrl(attempt = 0) {
     const elementId = new URLSearchParams(window.location.search).get('element');
-    if (!elementId) return;
+
+    console.log('[Recherche][NAVIGATION] focusElementFromUrl', {
+      attempt,
+      url: window.location.href,
+      elementId,
+    });
+
+    if (!elementId) {
+      if (attempt < 50) {
+        window.setTimeout(() => focusElementFromUrl(attempt + 1), 100);
+      }
+      return;
+    }
 
     const element = elementRegistry.get(elementId);
     if (!element) {
