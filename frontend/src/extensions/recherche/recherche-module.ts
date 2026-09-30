@@ -104,6 +104,15 @@ function RechercheModule(
     bar.appendChild(source); bar.appendChild(scope); bar.appendChild(input); bar.appendChild(hint); const viewerContainer = canvas.getContainer();
     const searchHost = viewerLayout || viewerContainer;
     searchHost.style.position = searchHost.style.position || 'relative';
+    if (viewerLayout) {
+      bar.style.position = 'absolute';
+      bar.style.top = '0';
+      bar.style.left = '0';
+      bar.style.right = '0';
+      bar.style.width = '100%';
+      bar.style.zIndex = '10000';
+      bar.style.pointerEvents = 'auto';
+    }
     searchHost.appendChild(bar);
     const resultsPanel = document.createElement('div'); resultsPanel.id = PANEL_ID;
     Object.assign(resultsPanel.style, { position: 'absolute', top: '54px', left: '0', width: '100%', maxWidth: 'none', maxHeight: '60vh', zIndex: '89', background: '#fff', border: '1px solid #ddd', borderTop: '0', boxShadow: '0 4px 12px rgba(0,0,0,.15)', overflowY: 'auto', fontFamily: 'Arial, sans-serif', display: 'none' });
@@ -128,21 +137,46 @@ function RechercheModule(
     inputElement = input; return bar;
   }
 
+  let searchObserver: MutationObserver | undefined;
+
+  const ensureSearchBar = () => {
+    const viewerLayout = document.querySelector('.viewerLayout');
+    if (!viewerLayout) return false;
+    const bar = document.getElementById(BAR_ID);
+    if (!bar || !viewerLayout.contains(bar)) createSearchBar();
+    else inputElement = bar.querySelector('input') as HTMLInputElement | undefined;
+    return true;
+  };
+
   eventBus.on('diagram.init', () => {
-    let attempt = 0;
-    const ensureBar = () => {
-      const viewerLayout = document.querySelector('.viewerLayout');
-      if (viewerLayout) {
-        createSearchBar();
-        return;
-      }
-      if (attempt++ < 20) window.setTimeout(ensureBar, 100);
-    };
-    ensureBar();
+    ensureSearchBar();
+    if (!searchObserver) {
+      searchObserver = new MutationObserver(() => {
+        if (ensureSearchBar()) {
+          // The React Viewer layout can be mounted after diagram.init.
+          // Once found, no further polling is necessary.
+          searchObserver?.disconnect();
+          searchObserver = undefined;
+        }
+      });
+      searchObserver.observe(document.body, { childList: true, subtree: true });
+      window.setTimeout(() => {
+        ensureSearchBar();
+        searchObserver?.disconnect();
+        searchObserver = undefined;
+      }, 3000);
+    }
   });
   eventBus.on('import.done', focusElementFromUrl);
   eventBus.on('keyboard.keydown', (event: any) => { if ((event.ctrlKey || event.metaKey) && event.key?.toLowerCase() === 'k') { event.preventDefault(); createSearchBar(); inputElement?.focus(); inputElement?.select(); } });
-  eventBus.on('diagram.destroy', () => { closePanel(); document.getElementById(BAR_ID)?.remove(); inputElement = undefined; });
+  eventBus.on('diagram.destroy', () => {
+    closePanel();
+    // Do not remove the global Viewer search bar when the BPMN diagram
+    // is recreated/unmounted: the React Viewer layout owns its lifetime.
+    const viewerLayout = document.querySelector('.viewerLayout');
+    if (!viewerLayout) document.getElementById(BAR_ID)?.remove();
+    inputElement = undefined;
+  });
 }
 
 RechercheModule.$inject = ['eventBus', 'elementRegistry', 'selection', 'canvas', 'rechercheService', 'rechercheProvider'];
