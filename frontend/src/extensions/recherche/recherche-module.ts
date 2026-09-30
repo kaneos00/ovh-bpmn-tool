@@ -30,6 +30,12 @@ function RechercheModule(
   eventBus: any, elementRegistry: any, selection: any, canvas: any,
   rechercheService: RechercheService, rechercheProvider?: RechercheProvider,
 ) {
+  console.log('[Recherche][MODULE] RechercheModule chargé', {
+    hasProvider: !!rechercheProvider,
+    hasService: !!rechercheService,
+    hasCanvas: !!canvas,
+  });
+
   if (rechercheProvider) rechercheService.setProvider(rechercheProvider);
   let inputElement: HTMLInputElement | undefined;
 
@@ -91,9 +97,18 @@ function RechercheModule(
     const viewerLayout = document.querySelector('.viewerLayout') as HTMLElement | null;
     const searchHostElement = document.querySelector('#bpmn-recherche-host') as HTMLElement | null;
     const existing = document.getElementById(BAR_ID);
+
+    console.log('[Recherche][MODULE] createSearchBar', {
+      viewerLayout: !!viewerLayout,
+      searchHost: !!searchHostElement,
+      existingBar: !!existing,
+      canvasContainer: !!canvas.getContainer(),
+    });
+
     if (existing && searchHostElement && !searchHostElement.contains(existing)) existing.remove();
     if (existing && viewerLayout && !viewerLayout.contains(existing) && !searchHostElement) existing.remove();
     if (existing) { inputElement = existing.querySelector('input') as HTMLInputElement | undefined; return existing; }
+
     const bar = document.createElement('div'); bar.id = BAR_ID;
     Object.assign(bar.style, { position: 'absolute', top: '0', left: '0', width: '100%', maxWidth: 'none', height: '54px', zIndex: '90', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', boxSizing: 'border-box', background: '#fff', border: '1px solid #ddd', borderRadius: '4px', boxShadow: '0 1px 4px rgba(0,0,0,.12)', fontFamily: 'Arial, sans-serif' });
     const source = document.createElement('select'); source.setAttribute('aria-label', 'Type de résultat'); source.title = 'Type de résultat'; source.style.padding = '8px 6px';
@@ -103,10 +118,13 @@ function RechercheModule(
     const input = document.createElement('input'); input.type = 'search'; input.placeholder = 'Rechercher dans tous les processus…'; input.autocomplete = 'off'; input.setAttribute('aria-label', 'Recherche dans tous les processus');
     Object.assign(input.style, { flex: '1', minWidth: '120px', padding: '9px 12px', border: '1px solid #bbb', borderRadius: '4px', outline: 'none', fontSize: '14px' });
     const hint = document.createElement('span'); hint.textContent = 'Ctrl+K'; Object.assign(hint.style, { fontSize: '11px', color: '#777', whiteSpace: 'nowrap' });
-    bar.appendChild(source); bar.appendChild(scope); bar.appendChild(input); bar.appendChild(hint); const viewerContainer = canvas.getContainer();
-    const searchHost = viewerLayout || viewerContainer;
+    bar.appendChild(source); bar.appendChild(scope); bar.appendChild(input); bar.appendChild(hint);
+
+    const viewerContainer = canvas.getContainer();
+    const searchHost = searchHostElement || viewerLayout || viewerContainer;
     searchHost.style.position = searchHost.style.position || 'relative';
-    if (viewerLayout) {
+
+    if (searchHostElement || viewerLayout) {
       bar.style.position = 'absolute';
       bar.style.top = '0';
       bar.style.left = '0';
@@ -115,10 +133,19 @@ function RechercheModule(
       bar.style.zIndex = '10000';
       bar.style.pointerEvents = 'auto';
     }
+
+    console.log('[Recherche][MODULE] append bar', {
+      hostId: searchHost.id || null,
+      hostClass: searchHost.className || null,
+      hostTag: searchHost.tagName,
+    });
+
     searchHost.appendChild(bar);
+
     const resultsPanel = document.createElement('div'); resultsPanel.id = PANEL_ID;
     Object.assign(resultsPanel.style, { position: 'absolute', top: '54px', left: '0', width: '100%', maxWidth: 'none', maxHeight: '60vh', zIndex: '89', background: '#fff', border: '1px solid #ddd', borderTop: '0', boxShadow: '0 4px 12px rgba(0,0,0,.15)', overflowY: 'auto', fontFamily: 'Arial, sans-serif', display: 'none' });
     searchHost.appendChild(resultsPanel);
+
     let request = 0;
     const runSearch = async () => {
       const query = input.value.trim();
@@ -143,30 +170,36 @@ function RechercheModule(
     const searchHost = document.querySelector('#bpmn-recherche-host');
     const viewerLayout = document.querySelector('.viewerLayout');
     const existing = document.getElementById(BAR_ID);
+
+    console.log('[Recherche][MODULE] ensureSearchBar', {
+      attempt,
+      searchHost: !!searchHost,
+      viewerLayout: !!viewerLayout,
+      existingBar: !!existing,
+    });
+
     if (searchHost || viewerLayout || existing) {
       if (!existing || (searchHost && !searchHost.contains(existing))) createSearchBar();
       else inputElement = existing.querySelector('input') as HTMLInputElement | undefined;
       return;
     }
-    // The React Viewer host is mounted just before ProcessViewer, but allow
-    // a short retry window during route transitions.
+
     if (attempt < 20) window.setTimeout(() => ensureSearchBar(attempt + 1), 100);
   };
 
   eventBus.on('diagram.init', () => {
+    console.log('[Recherche][MODULE] diagram.init');
     ensureSearchBar();
   });
   eventBus.on('import.done', () => {
-    // In the Viewer, React mounts the dedicated host before/around XML import.
-    // import.done is therefore a reliable final synchronization point.
+    console.log('[Recherche][MODULE] import.done');
     ensureSearchBar();
     focusElementFromUrl();
   });
   eventBus.on('keyboard.keydown', (event: any) => { if ((event.ctrlKey || event.metaKey) && event.key?.toLowerCase() === 'k') { event.preventDefault(); createSearchBar(); inputElement?.focus(); inputElement?.select(); } });
   eventBus.on('diagram.destroy', () => {
+    console.log('[Recherche][MODULE] diagram.destroy');
     closePanel();
-    // Do not remove the global Viewer search bar when the BPMN diagram
-    // is recreated/unmounted: the React Viewer layout owns its lifetime.
     const viewerLayout = document.querySelector('.viewerLayout');
     if (!viewerLayout) document.getElementById(BAR_ID)?.remove();
     inputElement = undefined;
