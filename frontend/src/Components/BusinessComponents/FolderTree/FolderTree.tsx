@@ -24,11 +24,13 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
     useFolderTree(selectedId, { onNodeClick });
 
   const renderTree = (node: RenderTree) => {
+    const icon = node.type === 'folder' ? '📁' : '📄';
+
     return (
       <FolderTreeItem
         key={node.id}
         itemId={node.id}
-        label={`📁 ${node.name}`}
+        label={`${icon} ${node.name}`}
         title={node.name}
       >
         {Array.isArray(node.children)
@@ -47,7 +49,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
       }}
     >
       <ListSubheader role="presentation" sx={{ color: 'text.primary' }}>
-        Folders
+        Resources
       </ListSubheader>
 
       {isLoading ? (
