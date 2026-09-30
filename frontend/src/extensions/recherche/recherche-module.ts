@@ -18,7 +18,7 @@ const PANEL_ID = 'bpmn-recherche-panel';
 const BAR_ID = 'bpmn-recherche-bar';
 
 const sourceLabels: Record<string, string> = {
-  process: 'Processus', bpmn: 'BPMN', procedure: 'Procédure', role: 'Rôle', raci: 'RACI', ai: 'IA',
+  process: 'Processus', subprocess: 'Sous-processus', bpmn: 'BPMN', procedure: 'Procédure', role: 'Rôle', raci: 'RACI', ai: 'IA',
 };
 
 const sourceFilters = [
@@ -67,11 +67,11 @@ function RechercheModule(
       const badge = document.createElement('span');
       const sourceType = result.sourceType || 'bpmn';
       const badgeColors: Record<string, { background: string; border: string; color: string }> = {
-        process: { background: '#e8f1fb', border: '#bfd5ec', color: '#315f8c' }, bpmn: { background: '#fff0df', border: '#efd0a8', color: '#8a5a22' },
+        process: { background: '#e8f1fb', border: '#bfd5ec', color: '#315f8c' }, subprocess: { background: '#edf1fb', border: '#c9d2ea', color: '#4b5f8c' }, bpmn: { background: '#fff0df', border: '#efd0a8', color: '#8a5a22' },
         procedure: { background: '#eaf6ee', border: '#c5e3ce', color: '#3d704b' }, role: { background: '#f1ebf8', border: '#d8c9e8', color: '#69507f' },
         raci: { background: '#fdf1e8', border: '#efd5c1', color: '#875f42' }, ai: { background: '#e9f5f5', border: '#c5dfdf', color: '#3f7070' },
       };
-      badge.textContent = sourceLabels[sourceType] || sourceType || 'BPMN';
+      badge.textContent = [sourceLabels[sourceType] || sourceType || 'BPMN', result.processName || result.resourceName].filter(Boolean).join(' · ');
       const badgeColor = badgeColors[sourceType] || badgeColors.bpmn;
       Object.assign(badge.style, { display: 'inline-block', fontSize: '10px', fontWeight: '600', padding: '2px 7px', marginBottom: '4px', border: `1px solid ${badgeColor.border}`, borderRadius: '10px', background: badgeColor.background, color: badgeColor.color });
       button.appendChild(badge);
@@ -88,7 +88,9 @@ function RechercheModule(
   }
 
   function createSearchBar() {
+    const viewerLayout = document.querySelector('.viewerLayout') as HTMLElement | null;
     const existing = document.getElementById(BAR_ID);
+    if (existing && viewerLayout && !viewerLayout.contains(existing)) existing.remove();
     if (existing) { inputElement = existing.querySelector('input') as HTMLInputElement | undefined; return existing; }
     const bar = document.createElement('div'); bar.id = BAR_ID;
     Object.assign(bar.style, { position: 'absolute', top: '0', left: '0', width: '100%', maxWidth: 'none', height: '54px', zIndex: '90', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', boxSizing: 'border-box', background: '#fff', border: '1px solid #ddd', borderRadius: '4px', boxShadow: '0 1px 4px rgba(0,0,0,.12)', fontFamily: 'Arial, sans-serif' });
@@ -99,8 +101,7 @@ function RechercheModule(
     const input = document.createElement('input'); input.type = 'search'; input.placeholder = 'Rechercher dans tous les processus…'; input.autocomplete = 'off'; input.setAttribute('aria-label', 'Recherche dans tous les processus');
     Object.assign(input.style, { flex: '1', minWidth: '120px', padding: '9px 12px', border: '1px solid #bbb', borderRadius: '4px', outline: 'none', fontSize: '14px' });
     const hint = document.createElement('span'); hint.textContent = 'Ctrl+K'; Object.assign(hint.style, { fontSize: '11px', color: '#777', whiteSpace: 'nowrap' });
-    bar.appendChild(source); bar.appendChild(scope); bar.appendChild(input); bar.appendChild(hint); const viewerLayout = document.querySelector('.viewerLayout') as HTMLElement | null;
-    const viewerContainer = canvas.getContainer();
+    bar.appendChild(source); bar.appendChild(scope); bar.appendChild(input); bar.appendChild(hint); const viewerContainer = canvas.getContainer();
     const searchHost = viewerLayout || viewerContainer;
     searchHost.style.position = searchHost.style.position || 'relative';
     searchHost.appendChild(bar);
@@ -127,7 +128,18 @@ function RechercheModule(
     inputElement = input; return bar;
   }
 
-  eventBus.on('diagram.init', () => { createSearchBar(); });
+  eventBus.on('diagram.init', () => {
+    let attempt = 0;
+    const ensureBar = () => {
+      const viewerLayout = document.querySelector('.viewerLayout');
+      if (viewerLayout) {
+        createSearchBar();
+        return;
+      }
+      if (attempt++ < 20) window.setTimeout(ensureBar, 100);
+    };
+    ensureBar();
+  });
   eventBus.on('import.done', focusElementFromUrl);
   eventBus.on('keyboard.keydown', (event: any) => { if ((event.ctrlKey || event.metaKey) && event.key?.toLowerCase() === 'k') { event.preventDefault(); createSearchBar(); inputElement?.focus(); inputElement?.select(); } });
   eventBus.on('diagram.destroy', () => { closePanel(); document.getElementById(BAR_ID)?.remove(); inputElement = undefined; });
