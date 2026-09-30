@@ -11,7 +11,7 @@ FIN ANCIENNE VERSION
 ============================================================
 */
 
-import { RechercheContext, RechercheResult, RechercheScope, RechercheService } from './recherche-service';
+import type { RechercheContext, RechercheProvider, RechercheResult, RechercheScope, RechercheService } from './recherche-service';
 
 const PANEL_ID = 'bpmn-recherche-panel';
 const BAR_ID = 'bpmn-recherche-bar';
@@ -41,7 +41,11 @@ function RechercheModule(
   selection: any,
   canvas: any,
   rechercheService: RechercheService,
+  rechercheProvider?: RechercheProvider,
 ) {
+  if (rechercheProvider) {
+    rechercheService.setProvider(rechercheProvider);
+  }
   let inputElement: HTMLInputElement | undefined;
 
   function closePanel() {
@@ -185,7 +189,7 @@ function RechercheModule(
     bar.id = BAR_ID;
 
     Object.assign(bar.style, {
-      position: 'absolute',
+      position: 'fixed',
       top: '0',
       left: '0',
       right: '0',
@@ -257,14 +261,12 @@ function RechercheModule(
     bar.appendChild(input);
     bar.appendChild(hint);
 
-    const container = canvas.getContainer();
-    container.style.position = container.style.position || 'relative';
-    container.appendChild(bar);
+    document.body.appendChild(bar);
 
     const resultsPanel = document.createElement('div');
     resultsPanel.id = PANEL_ID;
     Object.assign(resultsPanel.style, {
-      position: 'absolute',
+      position: 'fixed',
       top: '54px',
       left: '16px',
       right: '16px',
@@ -278,12 +280,14 @@ function RechercheModule(
       fontFamily: 'Arial, sans-serif',
       display: 'none',
     });
-    container.appendChild(resultsPanel);
+    document.body.appendChild(resultsPanel);
 
     let request = 0;
 
     const runSearch = async () => {
       const query = input.value.trim();
+
+      const currentRequest = ++request;
 
       if (!query) {
         resultsPanel.style.display = 'none';
@@ -292,8 +296,6 @@ function RechercheModule(
       }
 
       resultsPanel.style.display = 'block';
-
-      const currentRequest = ++request;
       const selected = selection.get();
       const currentElement = selected?.[0];
       const businessObject = currentElement?.businessObject;
@@ -356,7 +358,7 @@ function RechercheModule(
   });
 }
 
-RechercheModule.$inject = ['eventBus', 'elementRegistry', 'selection', 'canvas', 'rechercheService'];
+RechercheModule.$inject = ['eventBus', 'elementRegistry', 'selection', 'canvas', 'rechercheService', 'rechercheProvider'];
 
 export default {
   __init__: ['rechercheModule', 'rechercheService'],
