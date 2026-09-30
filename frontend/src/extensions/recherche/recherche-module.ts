@@ -49,13 +49,25 @@ function RechercheModule(
   function focusElementFromUrl(attempt = 0) {
     const elementId = new URLSearchParams(window.location.search).get('element');
     if (!elementId) return;
+
     const element = elementRegistry.get(elementId);
     if (!element) {
-      if (attempt < 20) window.setTimeout(() => focusElementFromUrl(attempt + 1), 100);
+      if (attempt < 50) {
+        window.setTimeout(() => focusElementFromUrl(attempt + 1), 100);
+      } else {
+        console.warn('[Recherche][NAVIGATION] élément introuvable', elementId);
+      }
       return;
     }
+
+    console.log('[Recherche][NAVIGATION] élément trouvé', elementId, element);
+
     selection.select(element);
-    window.setTimeout(() => canvas.scrollToElement(element, 80), 0);
+
+    window.setTimeout(() => {
+      canvas.scrollToElement(element, 80);
+      selection.select(element);
+    }, 50);
   }
 
   function renderResults(container: HTMLElement, results: RechercheResult[]) {
