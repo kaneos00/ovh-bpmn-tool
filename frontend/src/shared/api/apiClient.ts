@@ -38,18 +38,29 @@ export const createApiClient = ({
       throw new HttpError(response.status, response.statusText, errorResponse);
     }
 
-    const contentLength = response.headers.get('Content-length');
+    // Ancien code :
+    // const contentLength = response.headers.get('Content-length');
+    // if (contentLength && parseInt(contentLength, 10) > 0) {
+    //   const responseBody = await response.text();
+    //   try {
+    //     return JSON.parse(responseBody);
+    //   } catch (error) {
+    //     return responseBody;
+    //   }
+    // }
+    // return {};
 
-    if (contentLength && parseInt(contentLength, 10) > 0) {
-      const responseBody = await response.text();
-      try {
-        return JSON.parse(responseBody);
-      } catch (error) {
-        return responseBody;
-      }
+    const responseBody = await response.text();
+
+    if (!responseBody) {
+      return {};
     }
 
-    return {};
+    try {
+      return JSON.parse(responseBody);
+    } catch (error) {
+      return responseBody;
+    }
   };
 
   const get = async (url: string | URL, options: RequestInit = {}) => {

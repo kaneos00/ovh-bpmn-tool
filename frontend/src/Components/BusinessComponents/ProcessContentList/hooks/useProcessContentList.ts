@@ -7,16 +7,12 @@ import {
 
 import { ContentStatusEnum, type Content } from '../../../../Types';
 import { formatDateTime } from '../../../../shared/helpers/date';
-import { BpmnLintIssues, checkForLinterIssues } from '../../Modeler/helpers';
 import { useQuery } from 'react-query';
 import { getXmlContentQuery } from '../../../../api/contents/contents.queries';
-import { useModelerInstance } from '../../../../shared/hooks/useModelerInstance';
 
 export const useProcessContentList = (contents: Content[]) => {
   const [checkedContents, setCheckedContents] = useState<string[]>([]);
   const [hasDraftLintError, setHasDraftLintError] = useState(false);
-
-  const { getModelerInstance } = useModelerInstance();
 
   const columnHelper = createColumnHelper<Content>();
   const columns = [
@@ -87,25 +83,32 @@ export const useProcessContentList = (contents: Content[]) => {
     return contentIds;
   };
 
+  // Ancien code désactivé :
+  // useEffect(() => {
+  //   const bpmnInstance = getModelerInstance();
+  //
+  //   if (!draftXmlContent) {
+  //     setHasDraftLintError(false);
+  //   } else {
+  //     bpmnInstance.importXML(draftXmlContent).then(() => {
+  //       bpmnInstance.on(
+  //         'linting.completed',
+  //         ({ issues }: { issues: BpmnLintIssues }) => {
+  //           setHasDraftLintError(checkForLinterIssues(issues));
+  //         },
+  //       );
+  //     });
+  //   }
+  //
+  //   return () => {
+  //     bpmnInstance.clear();
+  //   };
+  // }, [draftXmlContent]);
+
   useEffect(() => {
-    const bpmnInstance = getModelerInstance();
-
-    if (!draftXmlContent) {
-      setHasDraftLintError(false);
-    } else {
-      bpmnInstance.importXML(draftXmlContent).then(() => {
-        bpmnInstance.on(
-          'linting.completed',
-          ({ issues }: { issues: BpmnLintIssues }) => {
-            setHasDraftLintError(checkForLinterIssues(issues));
-          },
-        );
-      });
-    }
-
-    return () => {
-      bpmnInstance.clear();
-    };
+    // Le lint du draft est temporairement désactivé afin de ne pas réimporter
+    // le BPMN dans l'instance principale du Modeler.
+    setHasDraftLintError(false);
   }, [draftXmlContent]);
 
   return {
