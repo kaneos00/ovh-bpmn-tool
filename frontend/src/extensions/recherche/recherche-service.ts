@@ -30,8 +30,9 @@ export type RechercheContext = {
   currentElementId?: string;
   currentElementType?: string;
   resourceId?: string;
-  resourceName?: string;
   resourceType?: string;
+  resourceName?: string;
+  metadata?: Record<string, unknown>;
 };
 
 export type RechercheProvider = (
