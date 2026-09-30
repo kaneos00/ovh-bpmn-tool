@@ -31,11 +31,11 @@ export const useFolderTree = (
   const { data: resources, isLoading } = useQuery(resourcesQuery());
 
   const createDataTree = (
-    parentId?: string,
-    rootResources: Resource[] = resources ?? [],
+    parentId: string,
+    rootResources: Resource[],
   ): FolderTreeItem[] => {
     return rootResources
-      .filter(item => item.parentId === parentId)
+      .filter(item => (item.parentId ?? 'root') === parentId)
       .sort((a, b) => {
         if (a.type !== b.type) {
           return a.type === ResourceType.Folder ? -1 : 1;
@@ -57,7 +57,8 @@ export const useFolderTree = (
     () => ({
       id: 'root',
       name: 'Root',
-      children: createDataTree(undefined),
+      type: ResourceType.Folder,
+      children: createDataTree('root', resources ?? []),
     }),
     [resources],
   );
