@@ -54,11 +54,26 @@ export const useProcessDetails = (
     }
 
     const xml = parser.parseFromString(publishedXmlContent, 'text/xml');
+    const activityLocalNames = new Set([
+      'task',
+      'userTask',
+      'serviceTask',
+      'scriptTask',
+      'manualTask',
+      'businessRuleTask',
+      'sendTask',
+      'receiveTask',
+      'callActivity',
+      'subProcess',
+      'transaction',
+    ]);
 
-    return Array.prototype.slice.call(xml.querySelectorAll('task'));
+    return Array.prototype.slice
+      .call(xml.getElementsByTagName('*'))
+      .filter((element: Element) => activityLocalNames.has(element.localName));
   }, [publishedXmlContent]);
 
-  /**
+  /** 
    * Draft content creation
    */
   const onFilesUploaded = async (files: FileList) => {
