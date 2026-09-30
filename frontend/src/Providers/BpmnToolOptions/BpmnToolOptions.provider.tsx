@@ -1,6 +1,7 @@
 import React, { createContext, ReactElement } from 'react';
 import { ModdleExtensions } from 'bpmn-js/lib/BaseViewer';
 import { ModuleDeclaration } from 'camunda-bpmn-js/lib/base/Modeler';
+import type { RechercheProvider } from '../../extensions/recherche/recherche-service';
 
 export type BpmnToolOptions = {
   modelerOptions?: {
@@ -20,6 +21,7 @@ export type BpmnToolOptions = {
       active?: boolean;
       bpmnlint: unknown;
     };
+    rechercheProvider?: RechercheProvider;
   };
 };
 
