@@ -4,6 +4,11 @@ declare module '@bpmn-io/properties-panel' {
     node: any,
     values: any
   ): boolean;
+  export function CheckboxEntry(props: any): any;
+  export function isCheckboxEntryEdited(
+    node: any,
+    values: any
+  ): boolean;
 }
 
 declare module 'bpmn-js-properties-panel' {

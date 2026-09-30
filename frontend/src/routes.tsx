@@ -48,10 +48,6 @@ export const routes = [
     ],
   },
   {
-    path: '/:resourceId/viewer/:contentId',
-    lazy: () => import('./Containers/ContentViewer'),
-  },
-  {
     path: '/:resourceId/compare/:leftContentId/:rightContentId',
     lazy: () => import('./Containers/ContentCompare'),
   },

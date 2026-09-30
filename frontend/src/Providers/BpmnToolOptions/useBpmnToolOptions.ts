@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useCallback, useContext } from 'react';
 import { BpmnToolOptionsContext } from './BpmnToolOptions.provider';
 
 export const useBpmnToolOptions = () => {
@@ -30,6 +30,11 @@ export const useBpmnToolOptions = () => {
     return modelerOptions?.diff?.changeHandler;
   };
 
+  const getRechercheProvider = useCallback(
+    () => modelerOptions?.rechercheProvider,
+    [modelerOptions?.rechercheProvider],
+  );
+
   const getModelerLinting = () => {
     return (
       modelerOptions?.linting || {
@@ -44,5 +49,6 @@ export const useBpmnToolOptions = () => {
     getModelerProviders,
     getModelerDiffChangeHandler,
     getModelerLinting,
+    getRechercheProvider,
   };
 };
