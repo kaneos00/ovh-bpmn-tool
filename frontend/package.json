@@ -21,6 +21,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@bpmn-io/properties-panel": "^3.44.1",
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
     "@fontsource/public-sans": "^5.0.18",
@@ -41,6 +42,7 @@
     "camunda-bpmn-js": "^3.0.0",
     "canvg": "^4.0.3",
     "date-fns": "^2.30.0",
+    "diagram-js-minimap": "^4.1.0",
     "react": "^18.3.1",
     "react-hook-form": "^7.53.0",
     "react-query": "^3.39.3",
@@ -48,9 +50,7 @@
     "react-virtuoso": "^4.10.1",
     "react-window": "^1.8.10",
     "styled-components": "^6.1.12",
-    "uuid": "^9.0.0",
-    "diagram-js-minimap": "^4.1.0",
-    "@bpmn-io/properties-panel": "^3.44.1"
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@spotify/eslint-config": "^15.0.0",
@@ -73,6 +73,7 @@
     "sass": "^1.77.8",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.5.4",
+    "vite": "^4.5.14",
     "vite-plugin-ejs": "^1.6.4",
     "vite-tsconfig-paths": "^4.2.0"
   },
