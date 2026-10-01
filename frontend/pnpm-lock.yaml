@@ -110,6 +110,9 @@ importers:
       '@spotify/prettier-config':
         specifier: ^12.0.0
         version: 12.0.0(prettier@2.8.8)
+      '@spotify/tsconfig':
+        specifier: ^15.0.0
+        version: 15.0.0(typescript@5.9.3)
       '@types/node':
         specifier: ^24.0.0
         version: 24.13.1
@@ -868,6 +871,12 @@ packages:
     engines: {node: '>=14.17.0'}
     peerDependencies:
       prettier: 2.x
+
+  '@spotify/tsconfig@15.0.0':
+    resolution: {integrity: sha512-MQ5lJXgqVAr6eTJzoXcCVqr95a/+rTmpaIjTT3htpQ6m9aq/mHVnFoS7AbD0vEG7i5qUdaKbnWJWXITE8STLow==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      typescript: '>=5'
 
   '@spotify/web-scripts-utils@15.0.0':
     resolution: {integrity: sha512-x9hX+og4vC4hQguIGU0PdwWn4N+XQWYJXF0QBv59evZHPeuLCAO9xI8cU+RI+WICdexNhRaRK8BznFNo2HdOSw==}
@@ -3718,6 +3727,10 @@ snapshots:
   '@spotify/prettier-config@12.0.0(prettier@2.8.8)':
     dependencies:
       prettier: 2.8.8
+
+  '@spotify/tsconfig@15.0.0(typescript@5.9.3)':
+    dependencies:
+      typescript: 5.9.3
 
   '@spotify/web-scripts-utils@15.0.0':
     dependencies:
