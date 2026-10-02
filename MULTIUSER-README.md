@@ -12,7 +12,7 @@ Elle part strictement de la référence :
 
 Cette référence reste inchangée.
 
-Au moment de cette documentation, la branche multi-utilisateur est en avance de 26 commits sur cette référence et ne présente aucun commit en retard.
+Au moment de cette documentation, la branche multi-utilisateur est en avance de 27 commits sur cette référence et ne présente aucun commit en retard.
 
 ## Profils utilisateurs
 
@@ -211,7 +211,7 @@ La branche a été comparée à la référence :
 Résultat constaté :
 
 - statut : **ahead**
-- commits supplémentaires : **35**
+- commits supplémentaires : **27**
 - commits manquants par rapport à la référence : **0**
 
 Le build complet n'a pas encore été exécuté dans l'environnement de travail utilisé pour cette implémentation.
