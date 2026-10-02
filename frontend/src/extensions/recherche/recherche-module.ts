@@ -74,16 +74,22 @@ function RechercheModule(
 
     console.log('[Recherche][NAVIGATION] élément trouvé', elementId, element);
 
-    const selectAndCenter = () => {
+    const selectAndCenter = (selectionAttempt = 0) => {
       selection.select(element);
-      window.setTimeout(() => {
-        canvas.scrollToElement(element, 80);
-        selection.select(element);
-      }, 150);
+      canvas.scrollToElement(element, 80);
+
+      // Après une navigation inter-processus, le diagramme peut encore
+      // réappliquer son état de sélection. On vérifie donc la sélection
+      // et on réessaie brièvement jusqu'à ce que l'élément soit réellement
+      // sélectionné.
+      const selectedElement = selection.get()?.[0];
+      if (selectedElement?.id !== element.id && selectionAttempt < 10) {
+        window.setTimeout(() => selectAndCenter(selectionAttempt + 1), 100);
+      }
     };
 
     window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(selectAndCenter);
+      window.requestAnimationFrame(() => selectAndCenter());
     });
   }
 
