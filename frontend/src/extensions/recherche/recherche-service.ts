@@ -5,6 +5,7 @@ ANCIENNE VERSION — conservée pour comparaison / retour arrière
 
 export type RechercheSourceType =
   | 'process'
+  | 'subprocess'
   | 'bpmn'
   | 'procedure'
   | 'role'
@@ -155,6 +156,7 @@ FIN ANCIENNE VERSION
 import { RechercheIndex } from './recherche-index';
 
 export type RechercheSourceType =
+  | 'subprocess'
   | 'process'
   | 'bpmn'
   | 'procedure'
@@ -232,22 +234,39 @@ export class RechercheService {
     elementRegistry: any,
     context: RechercheContext = {},
   ): Promise<RechercheResult[]> {
-    if (!query.trim()) return [];
+    console.log('[Recherche] search()', { query, context });
+
+    if (!query.trim()) {
+      console.log('[Recherche] query vide');
+      return [];
+    }
 
     const effectiveContext = { ...this.context, ...context };
+    console.log('[Recherche] effectiveContext', effectiveContext);
+    console.log('[Recherche] provider présent:', !!this.provider);
 
     if (this.provider) {
       try {
-        return (await this.provider(query, effectiveContext)).slice(0, 50);
-      } catch {
-        // Fallback to the local BPMN index when the repository provider is unavailable.
+        console.log('[Recherche] appel provider repository…');
+        const providerResults = await this.provider(query, effectiveContext);
+        console.log('[Recherche] provider résultats:', providerResults.length, providerResults.slice(0, 5));
+
+        // Si le fournisseur distant ne trouve rien, on conserve le fallback
+        // local afin de ne jamais rendre la recherche inutilisable.
+        if (providerResults.length > 0) {
+          return providerResults.slice(0, 50);
+        }
+        console.log('[Recherche] provider vide → fallback index local');
+      } catch (error) {
+        console.error('[Recherche] provider ERREUR → fallback local', error);
       }
     }
 
     const index = new RechercheIndex();
+    const elements = elementRegistry.getAll();
+    console.log('[Recherche] index local: éléments BPMN=', elements.length);
 
-    elementRegistry
-      .getAll()
+    elements
       .filter((element: any) => element?.businessObject)
       .forEach((element: any) => {
         const businessObject = element.businessObject;
@@ -296,6 +315,8 @@ export class RechercheService {
         });
       });
 
-    return index.search(query, effectiveContext, 50);
+    const localResults = index.search(query, effectiveContext, 50);
+    console.log('[Recherche] résultats index local:', localResults.length, localResults.slice(0, 5));
+    return localResults;
   }
 }
