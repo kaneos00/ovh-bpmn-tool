@@ -10,6 +10,10 @@ import { ResourceTypeOrmEntity } from './infrastructure/entities/resource.ormEnt
 import { ContentTypeOrmEntity } from './infrastructure/entities/content.ormEntity';
 import { CommentTypeOrmEntity } from './infrastructure/entities/comment.ormEntity';
 import { TerminusModule } from '@nestjs/terminus';
+import { MultiUserModule } from '../MultiUser/multiUser.module';
+
+// ANCIEN CODE — conservé pour comparaison / retour arrière.
+// import { MultiUserModule } from '../MultiUser/multiUser.module';
 
 @Module({
   controllers: [...getControllers()],
@@ -20,6 +24,7 @@ import { TerminusModule } from '@nestjs/terminus';
       CommentTypeOrmEntity,
     ]),
     TerminusModule,
+    MultiUserModule,
   ],
   providers: [...getCommands(), ...getQueries(), ...getRepositories()],
 })
