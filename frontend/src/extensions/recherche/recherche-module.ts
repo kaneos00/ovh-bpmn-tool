@@ -56,9 +56,6 @@ function RechercheModule(
     });
 
     if (!elementId) {
-      if (attempt < 50) {
-        window.setTimeout(() => focusElementFromUrl(attempt + 1), 100);
-      }
       return;
     }
 
