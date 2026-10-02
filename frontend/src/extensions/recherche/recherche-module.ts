@@ -6,18 +6,75 @@ function RechercheModule(
   selection: any,
   canvas: any,
 ) {
-  function focusElementFromUrl() {
+  /*
+   * Diagnostic volontairement sans retry :
+   * on veut déterminer si le Viewer reçoit bien les événements
+   * d'interaction et si le service de sélection change réellement
+   * son état.
+   */
+  console.debug('[Recherche][DIAGNOSTIC] module initialisé', {
+    canvasContainer: canvas.getContainer?.(),
+    selectionService: !!selection,
+    elementCount: elementRegistry.getAll?.().length,
+  });
+
+  eventBus.on('import.done', (event: any) => {
     const elementId = new URLSearchParams(window.location.search).get('element');
-    if (!elementId) return;
+
+    console.debug('[Recherche][DIAGNOSTIC] import.done', {
+      elementId,
+      error: event?.error ?? null,
+      elementCount: elementRegistry.getAll?.().length,
+      currentSelection: selection.get?.().map((element: any) => element.id),
+    });
+
+    if (!elementId) {
+      return;
+    }
 
     const element = elementRegistry.get(elementId);
-    if (!element) return;
+
+    console.debug('[Recherche][NAVIGATION] cible après import', {
+      elementId,
+      found: !!element,
+      type: element?.type,
+    });
+
+    if (!element) {
+      return;
+    }
 
     selection.select(element);
     canvas.scrollToElement(element);
-  }
 
-  eventBus.on('import.done', focusElementFromUrl);
+    console.debug('[Recherche][NAVIGATION] sélection programmée', {
+      elementId: element.id,
+      selectedElements: selection.get?.().map((selected: any) => selected.id),
+      isSelected: selection.isSelected?.(element),
+    });
+  });
+
+  eventBus.on('selection.changed', (event: any) => {
+    console.debug('[Recherche][DIAGNOSTIC] selection.changed', {
+      oldSelection: event?.oldSelection?.map((element: any) => element.id),
+      newSelection: event?.newSelection?.map((element: any) => element.id),
+    });
+  });
+
+  eventBus.on('element.mousedown', (event: any) => {
+    console.debug('[Recherche][DIAGNOSTIC] element.mousedown', {
+      elementId: event?.element?.id,
+      type: event?.element?.type,
+    });
+  });
+
+  eventBus.on('element.click', (event: any) => {
+    console.debug('[Recherche][DIAGNOSTIC] element.click', {
+      elementId: event?.element?.id,
+      type: event?.element?.type,
+      selectionBefore: selection.get?.().map((element: any) => element.id),
+    });
+  });
 
   eventBus.on('keyboard.keydown', (event: any) => {
     if ((event.ctrlKey || event.metaKey) && event.key?.toLowerCase() === 'k') {
