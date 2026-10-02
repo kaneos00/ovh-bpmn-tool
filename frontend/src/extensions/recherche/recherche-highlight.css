@@ -1,0 +1,13 @@
+/* Highlight used by the BPMN repository search.
+ * It is intentionally independent from diagram-js selection.
+ */
+.djs-element.recherche-highlight .djs-visual > * {
+  stroke: #ff9800 !important;
+  stroke-width: 3px !important;
+  filter: drop-shadow(0 0 4px rgba(255, 152, 0, 0.75));
+}
+
+.djs-element.recherche-highlight .djs-visual > text {
+  stroke: none !important;
+  filter: none !important;
+}
