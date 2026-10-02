@@ -64,3 +64,6 @@ Le DOCX est construit comme une archive Office Open XML directement dans le navi
 - ajouter les commentaires/documentation BPMN ;
 - ajouter une table des matières ;
 - proposer un export PDF à partir du même modèle documentaire.
+
+
+Development base: d6fb8f64a9072c4b7e7d9f66274d477778108a04
