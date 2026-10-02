@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import BpmnModeler from 'camunda-bpmn-js/lib/camunda-platform/Modeler';
 import BpmnViewer from 'camunda-bpmn-js/lib/camunda-platform/NavigatedViewer';
 import MinimapModule from 'diagram-js-minimap';
-import SelectionModule from 'diagram-js/lib/features/selection/index.js';
 import NavigationControls from '../../extensions/navigation-controls';
 import VerticalInteractionHitFix from '../../extensions/vertical-interaction-hit-fix';
 import RechercheModule from '../../extensions/recherche/recherche-module';
@@ -52,7 +51,6 @@ export const useModelerInstance = () => {
         MinimapModule,
         NavigationControls,
         VerticalInteractionHitFix,
-        SelectionModule,
         {
           ...RechercheModule,
           rechercheProvider: [
