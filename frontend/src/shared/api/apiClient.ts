@@ -12,6 +12,24 @@ export type ApiClient = {
   remove: (url: string | URL, options?: RequestInit) => Promise<any>;
 };
 
+const AUTH_TOKEN_STORAGE_KEY = 'bpmn-tool.auth-token';
+
+export const getAuthToken = () => {
+  try {
+    return window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+};
+
+export const setAuthToken = (token: string) => {
+  window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+};
+
+export const clearAuthToken = () => {
+  window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+};
+
 export const createApiClient = ({
   baseUrl,
 }: CreateApiClientOptions): ApiClient => {
@@ -20,25 +38,33 @@ export const createApiClient = ({
   };
 
   const call = async (url: string | URL, options: RequestInit = {}) => {
+    const token = getAuthToken();
+    const headers = new Headers(options.headers);
+    if (token && !headers.has('Authorization')) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+    if ('body' in options && options.body !== undefined) {
+      headers.set('content-type', 'application/json');
+    }
+
     const response = await fetch(
       url instanceof URL ? url.toString() : addUrlPrefix(url),
       {
         ...options,
-        headers:
-          'body' in options
-            ? {
-                ...options.headers,
-                'content-type': 'application/json',
-              }
-            : { ...options.headers },
+        headers,
       },
     );
+
+    if (response.status === 401 && !String(url).includes('/auth/login')) {
+      clearAuthToken();
+    }
+
     if (!response.ok) {
       const errorResponse = await response.json();
       throw new HttpError(response.status, response.statusText, errorResponse);
     }
 
-    // Ancien code :
+    // ANCIEN CODE — conservé pour comparaison / retour arrière.
     // const contentLength = response.headers.get('Content-length');
     // if (contentLength && parseInt(contentLength, 10) > 0) {
     //   const responseBody = await response.text();
