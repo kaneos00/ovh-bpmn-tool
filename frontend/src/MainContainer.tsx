@@ -14,6 +14,7 @@ import {
   BpmnToolOptions,
   BpmnToolOptionsProvider,
 } from './Providers/BpmnToolOptions';
+import { AuthProvider } from './Providers/Auth/Auth.provider';
 
 import './styles.css';
 import '@fontsource/public-sans';
@@ -32,11 +33,18 @@ export function MainContainer(props: MainContainerProps) {
       <CssVarsProvider />
       <SnackbarProvider>
         <QueryClientProvider client={queryClient}>
-          <BpmnToolOptionsProvider options={props.options}>
-            <RouterProvider router={router} />
-          </BpmnToolOptionsProvider>
+          <AuthProvider>
+            <BpmnToolOptionsProvider options={props.options}>
+              <RouterProvider router={router} />
+            </BpmnToolOptionsProvider>
+          </AuthProvider>
         </QueryClientProvider>
       </SnackbarProvider>
     </React.StrictMode>
   );
 }
+
+// ANCIEN CODE — conservé pour comparaison / retour arrière.
+// <BpmnToolOptionsProvider options={props.options}>
+//   <RouterProvider router={router} />
+// </BpmnToolOptionsProvider>
