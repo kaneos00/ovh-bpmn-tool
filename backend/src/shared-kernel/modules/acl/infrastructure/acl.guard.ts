@@ -1,6 +1,7 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -8,47 +9,42 @@ import { Reflector } from '@nestjs/core';
 
 import { metadataKey } from './acl.decorator';
 import { UserGroup } from '../../../utils/UserGroup';
-import { ConfigService } from '@nestjs/config';
+import { UserRole } from '../../../../modules/MultiUser/domain/userRole';
+
+// ANCIEN CODE — conservé pour comparaison / retour arrière.
+// L'ancienne implémentation lisait userHeader/userGroupsHeader depuis le proxy.
 
 @Injectable()
 export class AclGuard implements CanActivate {
-  constructor(
-    private reflector: Reflector,
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const remoteUser =
-      request.headers[this.configService.getOrThrow('userHeader')];
+    const user = request.user;
 
-    const { allowedGroups } = this.reflector.get(
-      metadataKey,
-      context.getHandler(),
-    );
-
-    if (!allowedGroups || !allowedGroups?.length) {
-      if (!remoteUser) {
-        throw new UnauthorizedException();
-      } else {
-        return true;
-      }
+    if (!user) {
+      throw new UnauthorizedException();
     }
 
-    const userGroupsHeader: string | null =
-      request.headers[this.configService.getOrThrow('userGroupsHeader')] ??
-      null;
+    const metadata = this.reflector.get(metadataKey, context.getHandler());
+    const allowedGroups: UserGroup[] | undefined = metadata?.allowedGroups;
 
-    if (!userGroupsHeader) {
-      return false;
+    if (!allowedGroups?.length) {
+      return true;
     }
 
-    const userGroups = userGroupsHeader.split(',');
+    const isReadWrite =
+      user.role === UserRole.EDITOR || user.role === UserRole.ADMIN;
+    const effectiveGroup = isReadWrite ? UserGroup.RW : UserGroup.RO;
 
-    return allowedGroups.some((group: UserGroup) =>
-      userGroups.some((userGroup) =>
-        new RegExp(`${group}-[a-z]+`).test(userGroup),
-      ),
-    );
+    if (!allowedGroups.includes(effectiveGroup)) {
+      throw new ForbiddenException('Insufficient permissions');
+    }
+
+    return true;
   }
+
+  // ANCIEN CODE — conservé pour comparaison / retour arrière.
+  // L'ancien contrôle par en-têtes userHeader/userGroupsHeader est remplacé
+  // par le rôle authentifié porté par request.user.
 }
