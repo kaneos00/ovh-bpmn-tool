@@ -12,6 +12,8 @@ import { ActionResponse } from '../../../shared/types/ActionResponse';
 
 import { ContentStatusEnum, type Content } from '../../../Types';
 import { useResource } from '../../../shared/hooks/useResource';
+import { generatePngFromSvg } from '../../../shared/utils/generatePngFromSvg';
+import { createWordDocument, downloadWordDocument } from '../../../extensions/export-word';
 import Modeler from 'camunda-bpmn-js/lib/base/Modeler';
 
 export const useContentModeler = (bpmnModelerInstance: Modeler) => {
@@ -112,6 +114,32 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     [draftContent, resource, resourceId, bpmnModelerInstance],
   );
 
+  const onWordExport = useCallback(async () => {
+    if (!resource || !draftContent) return;
+    try {
+      const [xmlFile, svgFile] = await Promise.all([
+        bpmnModelerInstance.saveXML({ format: true }),
+        bpmnModelerInstance.saveSVG(),
+      ]);
+      if (!xmlFile.xml) throw new Error('BPMN XML is empty.');
+      const diagramPngDataUrl = await generatePngFromSvg(svgFile.svg);
+      const documentBytes = createWordDocument({
+        processName: resource.name,
+        description: resource.description,
+        version: draftContent.version,
+        createdBy: draftContent.createdBy,
+        updatedAt: draftContent.updatedAt,
+        bpmnXml: xmlFile.xml,
+        diagramPngDataUrl,
+      });
+      const fileName = `${resource.name}_v${draftContent.version ?? 'draft'}.docx`;
+      downloadWordDocument(documentBytes, fileName);
+      showAlert({ message: 'Word document generated successfully.', severity: 'success' });
+    } catch {
+      showAlert({ message: 'Fail to export the process as a Word document.', severity: 'danger' });
+    }
+  }, [bpmnModelerInstance, draftContent, resource, showAlert]);
+
   /**
    * Diagram save action
    */
@@ -204,6 +232,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     setIsShortcurtModalOpen,
     onFileUpload,
     onFileExport,
+    onWordExport,
     onDiagramSave,
     onDiagramPublish,
   };
