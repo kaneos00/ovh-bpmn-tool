@@ -42,7 +42,13 @@ export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
               declaration: UrlClickModule,
             },
             {
-              declaration: RechercheModule,
+              declaration: {
+                ...RechercheModule,
+                rechercheProvider: [
+                  'value',
+                  options.modelerOptions?.rechercheProvider ?? createRepositoryRechercheProvider(),
+                ],
+              },
             },
           ],
         },
