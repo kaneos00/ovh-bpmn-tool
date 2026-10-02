@@ -68,7 +68,7 @@ export const ModelerActionBar = ({
           type="file"
           style={{ display: 'none' }}
           multiple={false}
-          accept=".bpmn"
+          accept=".bpmn,.drawio,.xml"
           onChange={event => {
             event.preventDefault();
             if (event.target.files && event.target.files[0]) {
