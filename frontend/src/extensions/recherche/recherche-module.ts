@@ -1,3 +1,5 @@
+import './recherche-highlight.css';
+
 /*
 ============================================================
 ANCIENNE VERSION — conservée pour comparaison / retour arrière
@@ -38,11 +40,34 @@ function RechercheModule(
 
   if (rechercheProvider) rechercheService.setProvider(rechercheProvider);
   let inputElement: HTMLInputElement | undefined;
+  let highlightedElementId: string | undefined;
+
+  function clearSearchHighlight() {
+    if (!highlightedElementId) return;
+    const element = elementRegistry.get(highlightedElementId);
+    if (element) canvas.removeMarker(element, 'recherche-highlight');
+    highlightedElementId = undefined;
+  }
+
+  function highlightSearchElement(element: any) {
+    if (!element) return;
+    if (highlightedElementId && highlightedElementId !== element.id) {
+      const previous = elementRegistry.get(highlightedElementId);
+      if (previous) canvas.removeMarker(previous, 'recherche-highlight');
+    }
+    canvas.addMarker(element, 'recherche-highlight');
+    highlightedElementId = element.id;
+  }
 
   function closePanel() { document.getElementById(PANEL_ID)?.remove(); }
 
   function navigateToResult(result: RechercheResult) {
-    if (result.element) { selection.select(result.element); canvas.scrollToElement(result.element); return; }
+    if (result.element) {
+      highlightSearchElement(result.element);
+      selection.select(result.element);
+      canvas.scrollToElement(result.element);
+      return;
+    }
     if (result.link) window.location.assign(result.link);
   }
 
@@ -66,6 +91,7 @@ function RechercheModule(
 
     console.log('[Recherche][NAVIGATION] élément trouvé', elementId, element);
 
+    highlightSearchElement(element);
     selection.select(element);
     canvas.scrollToElement(element, 80);
   }
@@ -264,6 +290,7 @@ function RechercheModule(
   eventBus.on('diagram.destroy', () => {
     console.log('[Recherche][MODULE] diagram.destroy');
     closePanel();
+    clearSearchHighlight();
     const viewerLayout = document.querySelector('.viewerLayout');
     if (!viewerLayout) document.getElementById(BAR_ID)?.remove();
     inputElement = undefined;
