@@ -10,34 +10,48 @@ import { useBpmnToolOptions } from '../../Providers/BpmnToolOptions/useBpmnToolO
 import { useModelerInstance } from '../../shared/hooks/useModelerInstance';
 import { useResource } from '../../shared/hooks/useResource';
 import { RaciMatrix } from './components/RaciMatrix';
-import { RaciMatrix } from './components/RaciMatrix';
 import type { ContentModelerRouteParams } from '.';
 
 export const Component = () => {
+  // share modeler instance in order to avoid create instance in useContentModeler and useModeler
   const { getModelerInstance } = useModelerInstance();
   const bpmnModelerInstance = getModelerInstance();
   const { getRechercheProvider } = useBpmnToolOptions();
   const { resourceId: routeResourceId } = useParams() as ContentModelerRouteParams;
   const { resource } = useResource(routeResourceId);
   const [raciOpen, setRaciOpen] = useState(false);
-  const [raciOpen, setRaciOpen] = useState(false);
 
   React.useEffect(() => {
     const provider = getRechercheProvider();
     const service = bpmnModelerInstance.get('rechercheService', false) as any;
     service?.setProvider(provider);
-    service?.setContext({ resourceId: resource?.id, resourceName: resource?.name, resourceType: resource?.type });
+    service?.setContext({
+      resourceId: resource?.id,
+      resourceName: resource?.name,
+      resourceType: resource?.type,
+    });
   }, [bpmnModelerInstance, getRechercheProvider, resource?.id, resource?.name, resource?.type]);
 
   const {
-    resourceId, draftXmlContent, isShortcurtModalOpen, setIsShortcurtModalOpen,
-    onFileUpload, onFileExport, onDiagramSave, onDiagramPublish, actionData,
+    resourceId,
+    draftXmlContent,
+    isShortcurtModalOpen,
+    setIsShortcurtModalOpen,
+    onFileUpload,
+    onFileExport,
+    onDiagramSave,
+    onDiagramPublish,
+    actionData,
   } = useContentModeler(bpmnModelerInstance);
-  const { diagramContainerRef, diagramPropertiesRef, hasLintError } = useModeler(bpmnModelerInstance, draftXmlContent);
+
+  const { diagramContainerRef, diagramPropertiesRef, hasLintError } =
+    useModeler(bpmnModelerInstance, draftXmlContent);
 
   return (
     <>
-      {actionData && actionData.formAction === 'saveContentBeforePublish' && <Navigate to="./publish" />}
+      {actionData && actionData.formAction === 'saveContentBeforePublish' && (
+        <Navigate to="./publish" />
+      )}
       <ModelerActionBar
         resourceId={resourceId}
         hasLintError={hasLintError}
@@ -48,9 +62,19 @@ export const Component = () => {
         onShortcutDisplay={() => setIsShortcurtModalOpen(true)}
         onRaciOpen={() => setRaciOpen(true)}
       />
-      <Modeler diagramContainerRef={diagramContainerRef} diagramPropertiesRef={diagramPropertiesRef} />
-      <RaciMatrix modeler={bpmnModelerInstance} open={raciOpen} onClose={() => setRaciOpen(false)} />
-      <ModelerShortcuts open={isShortcurtModalOpen} onCancelClick={() => setIsShortcurtModalOpen(false)} />
+      <Modeler
+        diagramContainerRef={diagramContainerRef}
+        diagramPropertiesRef={diagramPropertiesRef}
+      />
+      <RaciMatrix
+        modeler={bpmnModelerInstance}
+        open={raciOpen}
+        onClose={() => setRaciOpen(false)}
+      />
+      <ModelerShortcuts
+        open={isShortcurtModalOpen}
+        onCancelClick={() => setIsShortcurtModalOpen(false)}
+      />
       <Outlet />
     </>
   );
