@@ -14,6 +14,7 @@ import {
   UploadFile,
   Image,
   FileDownload,
+  Article,
   Info,
   Done,
   Save,
@@ -26,6 +27,7 @@ type ModelerActionBarProps = {
   hasLintError: boolean;
   onFileUpload: (files: FileList) => void;
   onFileExport: (exportType: 'svg' | 'bpmn') => void;
+  onWordExport: () => void;
   onDiagramSave: () => void;
   onDiagramPublish: () => void;
   onShortcutDisplay: () => void;
@@ -36,6 +38,7 @@ export const ModelerActionBar = ({
   // hasLintError,
   onFileUpload,
   onFileExport,
+  onWordExport,
   onDiagramSave,
   onDiagramPublish,
   onShortcutDisplay,
@@ -93,6 +96,12 @@ export const ModelerActionBar = ({
                 <FileDownload />
               </ListItemDecorator>
               Export as BPMN
+            </MenuItem>
+            <MenuItem onClick={onWordExport}>
+              <ListItemDecorator>
+                <Article />
+              </ListItemDecorator>
+              Export as Word
             </MenuItem>
           </Menu>
         </Dropdown>
