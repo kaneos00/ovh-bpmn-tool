@@ -20,6 +20,7 @@ export const Component = () => {
     setIsShortcurtModalOpen,
     onFileUpload,
     onFileExport,
+    onWordExport,
     onDiagramSave,
     onDiagramPublish,
     actionData,
@@ -38,6 +39,7 @@ export const Component = () => {
         hasLintError={hasLintError}
         onFileUpload={onFileUpload}
         onFileExport={onFileExport}
+        onWordExport={onWordExport}
         onDiagramSave={onDiagramSave}
         onDiagramPublish={onDiagramPublish}
         onShortcutDisplay={() => setIsShortcurtModalOpen(true)}
