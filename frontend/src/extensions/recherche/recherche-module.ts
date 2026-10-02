@@ -46,11 +46,10 @@ function RechercheModule(
     if (result.link) window.location.assign(result.link);
   }
 
-  function focusElementFromUrl(attempt = 0) {
+  function focusElementFromUrl() {
     const elementId = new URLSearchParams(window.location.search).get('element');
 
     console.log('[Recherche][NAVIGATION] focusElementFromUrl', {
-      attempt,
       url: window.location.href,
       elementId,
     });
@@ -67,23 +66,8 @@ function RechercheModule(
 
     console.log('[Recherche][NAVIGATION] élément trouvé', elementId, element);
 
-    const selectAndCenter = (selectionAttempt = 0) => {
-      selection.select(element);
-      canvas.scrollToElement(element, 80);
-
-      // Après une navigation inter-processus, le diagramme peut encore
-      // réappliquer son état de sélection. On vérifie donc la sélection
-      // et on réessaie brièvement jusqu'à ce que l'élément soit réellement
-      // sélectionné.
-      const selectedElement = selection.get()?.[0];
-      if (selectedElement?.id !== element.id && selectionAttempt < 10) {
-        window.setTimeout(() => selectAndCenter(selectionAttempt + 1), 100);
-      }
-    };
-
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => selectAndCenter());
-    });
+    selection.select(element);
+    canvas.scrollToElement(element, 80);
   }
 
   function renderResults(container: HTMLElement, results: RechercheResult[]) {
