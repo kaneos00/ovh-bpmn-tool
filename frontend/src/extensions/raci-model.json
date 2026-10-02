@@ -1,0 +1,21 @@
+{
+  "name": "RACI",
+  "uri": "https://ovh-bpmn-tool.local/schema/raci",
+  "prefix": "raci",
+  "types": [
+    {
+      "name": "RaciElement",
+      "extends": ["bpmn:BaseElement"],
+      "properties": [
+        {"name":"responsible","isAttr":true,"type":"String"},
+        {"name":"accountable","isAttr":true,"type":"String"},
+        {"name":"consulted","isAttr":true,"type":"String"},
+        {"name":"informed","isAttr":true,"type":"String"},
+        {"name":"responsibleStatus","isAttr":true,"type":"String"},
+        {"name":"accountableStatus","isAttr":true,"type":"String"},
+        {"name":"consultedStatus","isAttr":true,"type":"String"},
+        {"name":"informedStatus","isAttr":true,"type":"String"}
+      ]
+    }
+  ]
+}

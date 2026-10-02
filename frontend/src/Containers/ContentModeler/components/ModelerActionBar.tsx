@@ -29,6 +29,7 @@ type ModelerActionBarProps = {
   onDiagramSave: () => void;
   onDiagramPublish: () => void;
   onShortcutDisplay: () => void;
+  onRaciDisplay: () => void;
 };
 
 export const ModelerActionBar = ({
@@ -39,6 +40,7 @@ export const ModelerActionBar = ({
   onDiagramSave,
   onDiagramPublish,
   onShortcutDisplay,
+  onRaciDisplay,
 }: ModelerActionBarProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -96,6 +98,10 @@ export const ModelerActionBar = ({
             </MenuItem>
           </Menu>
         </Dropdown>
+
+        <Button onClick={onRaciDisplay} variant="outlined" color="primary">
+          RACI
+        </Button>
       </Stack>
       <Stack gap={1} direction="row" justifyContent="flex-end">
         <Button onClick={onShortcutDisplay} variant="outlined" color="neutral">
