@@ -28,16 +28,27 @@ export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
           },
           providers: [
             ...(options.modelerOptions?.providers ?? []),
-            { priority: 500, instance: UrlPropertiesProvider },
-            { priority: 501, instance: LaneOrientationPropertiesProvider },
-            { priority: 502, instance: RaciPropertiesProvider },
+            {
+              priority: 500,
+              instance: UrlPropertiesProvider,
+            },
+            {
+              priority: 501,
+              instance: LaneOrientationPropertiesProvider,
+            },
+            {
+              priority: 502,
+              instance: RaciPropertiesProvider,
+            },
           ],
           rechercheProvider:
             options.modelerOptions?.rechercheProvider ??
             createRepositoryRechercheProvider(),
           modules: [
             ...(options.modelerOptions?.modules ?? []),
-            { declaration: UrlClickModule },
+            {
+              declaration: UrlClickModule,
+            },
             {
               declaration: {
                 ...RechercheModule,
