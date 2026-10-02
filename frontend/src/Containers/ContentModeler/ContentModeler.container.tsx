@@ -10,6 +10,7 @@ import { useBpmnToolOptions } from '../../Providers/BpmnToolOptions/useBpmnToolO
 import { useModelerInstance } from '../../shared/hooks/useModelerInstance';
 import { useResource } from '../../shared/hooks/useResource';
 import { RaciMatrix } from './components/RaciMatrix';
+import { RaciMatrix } from './components/RaciMatrix';
 import type { ContentModelerRouteParams } from '.';
 
 export const Component = () => {
@@ -18,6 +19,7 @@ export const Component = () => {
   const { getRechercheProvider } = useBpmnToolOptions();
   const { resourceId: routeResourceId } = useParams() as ContentModelerRouteParams;
   const { resource } = useResource(routeResourceId);
+  const [raciOpen, setRaciOpen] = useState(false);
   const [raciOpen, setRaciOpen] = useState(false);
 
   React.useEffect(() => {
