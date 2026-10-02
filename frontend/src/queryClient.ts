@@ -2,7 +2,7 @@ import { QueryClient } from 'react-query';
 import { createApiClient } from './shared/api/apiClient';
 
 export const apiClient = createApiClient({
-  baseUrl: import.meta.env.VITE_API_URL,
+  baseUrl: import.meta.env.VITE_API_URL || '/bpmn-api',
 });
 
 export default new QueryClient({
