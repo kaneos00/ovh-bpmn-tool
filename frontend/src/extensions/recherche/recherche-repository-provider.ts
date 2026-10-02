@@ -45,18 +45,19 @@ const latestSearchableContent = async (resource: Resource) => {
   return contents.find(({ status }) => status === ContentStatusEnum.Published) || contents.find(({ status }) => status === ContentStatusEnum.Draft);
 };
 
-const createResourceResult = (resource: Resource): RechercheResult => ({
+const createResourceResult = (resource: Resource, sourceType: 'process' | 'subprocess' = 'process'): RechercheResult => ({
   element: undefined, id: resource.id, type: String(resource.type), name: resource.name,
   documentation: resource.description || '', processId: resource.id, processName: resource.name,
-  resourceId: resource.id, resourceType: resource.type, resourceName: resource.name, sourceType: 'process',
-  link: `/${resource.id}/modeler`,
+  resourceId: resource.id, resourceType: resource.type, resourceName: resource.name, sourceType,
+  link: `/${resource.id}`,
   metadata: { source: 'repository', kind: 'process-resource', depth: resource.depth, parentId: resource.parentId },
 });
 
 const parseProcess = (xml: string, resource: Resource): RechercheResult[] => {
   const document = new DOMParser().parseFromString(xml, 'application/xml');
   const nodes = Array.from(document.getElementsByTagName('*')).filter(node =>
-    node.localName?.startsWith('task') || ['process','startEvent','endEvent','userTask','serviceTask','manualTask','scriptTask','sendTask','receiveTask','businessRuleTask','exclusiveGateway','parallelGateway','inclusiveGateway','complexGateway','eventBasedGateway','subProcess','callActivity'].includes(node.localName),
+    !!node.getAttribute('id') &&
+    (!node.namespaceURI || node.namespaceURI.includes('BPMN')),
   );
   return nodes.map(node => {
     const { role, raci } = raciData(node);
@@ -66,32 +67,66 @@ const parseProcess = (xml: string, resource: Resource): RechercheResult[] => {
       element: undefined, id, type: node.localName ? `bpmn:${node.localName}` : '', name: node.getAttribute('name') || '',
       documentation: documentationText(node), role: role || undefined, raci: raci || undefined,
       processId: resource.id, processName: resource.name, resourceId: resource.id, resourceType: resource.type, resourceName: resource.name,
-      sourceType, link: `/${resource.id}/modeler?element=${encodeURIComponent(id)}`,
+      sourceType, link: `/${resource.id}?element=${encodeURIComponent(id)}`,
       metadata: { source: 'repository', kind: 'bpmn-element', raci: raci || undefined, role: role || undefined },
     };
   });
 };
 
 const getResources = async (): Promise<Resource[]> => {
+  console.log('[Recherche][Repository] getResources()');
   if (resourceCache && resourceCache.expiresAt > Date.now()) return resourceCache.resources;
-  const resources = (await apiClient.get(`/resources?filter.type=${ResourceType.Process}&filter.depth=100`)) as Resource[];
+  const url = '/resources?filter.depth=100';
+  console.log('[Recherche][Repository] GET', url);
+  const raw = await apiClient.get(url);
+  console.log('[Recherche][Repository] réponse brute resources:', raw);
+
+  const extractResources = (value: any): Resource[] => {
+    if (Array.isArray(value)) return value;
+    if (Array.isArray(value?.data)) return value.data;
+    if (Array.isArray(value?.items)) return value.items;
+    if (Array.isArray(value?.resources)) return value.resources;
+    return [];
+  };
+
+  let resources = extractResources(raw);
+
+  // Certains déploiements/API peuvent ne pas appliquer le filtre depth.
+  // Si la première requête ne retourne rien, on tente sans depth puis sans filtre,
+  // en filtrant localement les processus.
+  if (!resources.length) {
+    const fallbackUrl = `/resources?filter.type=${ResourceType.Process}`;
+    console.log('[Recherche][Repository] première requête vide → GET', fallbackUrl);
+    resources = extractResources(await apiClient.get(fallbackUrl));
+  }
+
+  if (!resources.length) {
+    const allUrl = '/resources';
+    console.log('[Recherche][Repository] seconde requête vide → GET', allUrl);
+    resources = extractResources(await apiClient.get(allUrl))
+      .filter(resource => resource?.type === ResourceType.Process);
+  }
+
+  resources = resources.filter(resource => resource?.type === ResourceType.Process || resource?.type === ResourceType.Folder);
+  console.log('[Recherche][Repository] resources normalisées:', resources.length, resources.slice(0, 5));
   const limited = resources.slice(0, MAX_RESOURCES);
   resourceCache = { expiresAt: Date.now() + CACHE_TTL_MS, resources: limited };
   repositoryIndexCache = undefined;
   return limited;
 };
 
-const getProcessIndex = async (resource: Resource): Promise<RechercheResult[]> => {
+const getProcessIndex = async (resource: Resource, sourceType: 'process' | 'subprocess'): Promise<RechercheResult[]> => {
   const cached = processCache.get(resource.id);
   if (cached && cached.expiresAt > Date.now()) return cached.results;
+  console.log('[Recherche][Repository] process', resource.id, resource.name);
   const content = await latestSearchableContent(resource);
   if (!content) {
-    const result = createResourceResult(resource);
+    const result = createResourceResult(resource, sourceType);
     processCache.set(resource.id, { expiresAt: Date.now() + CACHE_TTL_MS, results: [result] });
     return [result];
   }
   const xml = await apiClient.get(`/resources/${resource.id}/contents/${content.id}/content`);
-  const results = [createResourceResult(resource), ...parseProcess(xml, resource)];
+  const results = [createResourceResult(resource, sourceType), ...parseProcess(xml, resource)];
   processCache.set(resource.id, { expiresAt: Date.now() + CACHE_TTL_MS, results });
   return results;
 };
@@ -100,12 +135,28 @@ const getRepositoryIndex = async (): Promise<RechercheIndex> => {
   if (repositoryIndexCache && repositoryIndexCache.expiresAt > Date.now()) return repositoryIndexCache.index;
 
   const resources = await getResources();
+  const byId = new Map(resources.map(resource => [resource.id, resource]));
+  const isSubprocess = (resource: Resource) => {
+    const visited = new Set<string>();
+    let parentId = resource.parentId;
+
+    while (parentId && !visited.has(parentId)) {
+      visited.add(parentId);
+      const parent = byId.get(parentId);
+      if (!parent) return false;
+      if (parent.type === ResourceType.Process) return true;
+      parentId = parent.parentId;
+    }
+    return false;
+  };
+
   const index = new RechercheIndex();
-  for (const resource of resources) {
+  for (const resource of resources.filter(item => item.type === ResourceType.Process)) {
+    const sourceType = isSubprocess(resource) ? 'subprocess' : 'process';
     try {
-      index.addMany(await getProcessIndex(resource));
+      index.addMany(await getProcessIndex(resource, sourceType));
     } catch {
-      index.add(createResourceResult(resource));
+      index.add(createResourceResult(resource, sourceType));
     }
   }
   repositoryIndexCache = { expiresAt: Date.now() + CACHE_TTL_MS, index };
@@ -119,7 +170,15 @@ export const invalidateRepositoryRechercheIndex = () => {
 };
 
 export const createRepositoryRechercheProvider = (): RechercheProvider => async (query, context = {}) => {
-  if (context.scope !== 'all-processes') throw new Error('Repository provider is used for all-processes scope only');
+  console.log('[Recherche][Repository] provider appelé', { query, context });
+  if (context.scope !== 'all-processes') {
+    console.log('[Recherche][Repository] scope non global → erreur');
+    throw new Error('Repository provider is used for all-processes scope only');
+  }
+  console.log('[Recherche][Repository] chargement index repository…');
   const index = await getRepositoryIndex();
-  return index.search(query, { ...context, processId: undefined, processName: undefined }, MAX_RESULTS);
+  console.log('[Recherche][Repository] index chargé:', index.all().length, 'entrées');
+  const results = index.search(query, { ...context, processId: undefined, processName: undefined }, MAX_RESULTS);
+  console.log('[Recherche][Repository] résultats:', results.length, results.slice(0, 5));
+  return results;
 };
