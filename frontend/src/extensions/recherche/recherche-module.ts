@@ -61,11 +61,7 @@ function RechercheModule(
 
     const element = elementRegistry.get(elementId);
     if (!element) {
-      if (attempt < 50) {
-        window.setTimeout(() => focusElementFromUrl(attempt + 1), 100);
-      } else {
-        console.warn('[Recherche][NAVIGATION] élément introuvable', elementId);
-      }
+      console.warn('[Recherche][NAVIGATION] élément introuvable', elementId);
       return;
     }
 
