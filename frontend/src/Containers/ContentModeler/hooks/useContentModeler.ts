@@ -13,6 +13,7 @@ import { ActionResponse } from '../../../shared/types/ActionResponse';
 import { ContentStatusEnum, type Content } from '../../../Types';
 import { useResource } from '../../../shared/hooks/useResource';
 import Modeler from 'camunda-bpmn-js/lib/base/Modeler';
+import { drawioToBpmn, isDrawioXml } from '../../../import/drawio/drawio-to-bpmn';
 
 export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   const { resourceId } = useParams() as ContentModelerRouteParams;
@@ -55,7 +56,18 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     async (files: FileList) => {
       try {
         const processContent = await files[0].text();
-        bpmnModelerInstance.importXML(processContent);
+        const importContent = isDrawioXml(processContent)
+          ? await drawioToBpmn(processContent)
+          : { xml: processContent, warnings: [] as string[] };
+
+        await bpmnModelerInstance.importXML(importContent.xml);
+
+        if (importContent.warnings.length) {
+          showAlert({
+            message: importContent.warnings.join(' '),
+            severity: 'warning',
+          });
+        }
       } catch {
         showAlert({
           message: 'An error occurs during file upload.',
