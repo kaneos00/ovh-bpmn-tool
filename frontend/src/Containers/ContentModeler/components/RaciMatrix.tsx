@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { deriveRaciMatrix, RaciStatus, RaciCode } from '../../../extensions/raci-engine';
+import { deriveRaciMatrix } from '../../../extensions/raci-engine';
+import type { RaciStatus, RaciCode } from '../../../extensions/raci-engine';
 
 type Props = { modeler: any; open: boolean; onClose: () => void };
 type EditCell = { elementId: string; activity: string; role: string; codes: RaciCode[] };
