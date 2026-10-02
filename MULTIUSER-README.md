@@ -8,11 +8,11 @@ L'implémentation multi-utilisateur est développée sur la branche :
 
 Elle part strictement de la référence :
 
-`1d95b2b80f373497def55695878007d84e19ca35`
+`d6fb8f64a9072c4b7e7d9f66274d477778108a04`
 
 Cette référence reste inchangée.
 
-Au moment de cette documentation, la branche multi-utilisateur est en avance de 35 commits sur cette référence et ne présente aucun commit en retard.
+Au moment de cette documentation, la branche multi-utilisateur est en avance de 26 commits sur cette référence et ne présente aucun commit en retard.
 
 ## Profils utilisateurs
 
@@ -206,7 +206,7 @@ Pour une utilisation en production, l'utilisation d'un cookie de session `HttpOn
 
 La branche a été comparée à la référence :
 
-`1d95b2b80f373497def55695878007d84e19ca35`
+`d6fb8f64a9072c4b7e7d9f66274d477778108a04`
 
 Résultat constaté :
 
@@ -270,6 +270,6 @@ Elle n'est pas fusionnée dans `main`.
 
 La référence commune :
 
-`1d95b2b80f373497def55695878007d84e19ca35`
+`d6fb8f64a9072c4b7e7d9f66274d477778108a04`
 
 reste donc disponible comme base stable pour les autres plugins.
