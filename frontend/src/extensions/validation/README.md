@@ -196,3 +196,6 @@ Branche initiale :
 `feature/plugin-validation`
 
 Cette branche contient d'abord la spécification fonctionnelle du plugin. L'implémentation du moteur et de l'interface sera ajoutée après validation de cette spécification.
+
+
+Development base: d6fb8f64a9072c4b7e7d9f66274d477778108a04
