@@ -23,3 +23,6 @@ Le rattachement avancé des pools, lanes et certains détails graphiques reste v
 frontend/src/import/drawio/drawio-to-bpmn.ts
 
 Le convertisseur est indépendant du modeler et produit directement un XML BPMN 2.0 réutilisable par le mécanisme d'import existant.
+
+
+Development base: d6fb8f64a9072c4b7e7d9f66274d477778108a04
