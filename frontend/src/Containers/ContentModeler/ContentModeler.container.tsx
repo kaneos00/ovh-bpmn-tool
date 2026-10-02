@@ -1,17 +1,34 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useParams } from 'react-router-dom';
 
 import { ModelerActionBar } from './components/ModelerActionBar';
 import { ModelerShortcuts } from '../../Components/BusinessComponents/ModelerShortcuts/ModelerShortcuts';
 import { useContentModeler } from './hooks/useContentModeler';
 import { useModeler } from './hooks/useModeler';
 import { Modeler } from '../../Components/BusinessComponents/Modeler/Modeler';
+import { useBpmnToolOptions } from '../../Providers/BpmnToolOptions/useBpmnToolOptions';
 import { useModelerInstance } from '../../shared/hooks/useModelerInstance';
+import { useResource } from '../../shared/hooks/useResource';
+import type { ContentModelerRouteParams } from '.';
 
 export const Component = () => {
   // share modeler instance in order to avoid create instance in useContentModeler and useModeler
   const { getModelerInstance } = useModelerInstance();
   const bpmnModelerInstance = getModelerInstance();
+  const { getRechercheProvider } = useBpmnToolOptions();
+  const { resourceId: routeResourceId } = useParams() as ContentModelerRouteParams;
+  const { resource } = useResource(routeResourceId);
+
+  React.useEffect(() => {
+    const provider = getRechercheProvider();
+    const service = bpmnModelerInstance.get('rechercheService', false) as any;
+    service?.setProvider(provider);
+    service?.setContext({
+      resourceId: resource?.id,
+      resourceName: resource?.name,
+      resourceType: resource?.type,
+    });
+  }, [bpmnModelerInstance, getRechercheProvider, resource?.id, resource?.name, resource?.type]);
 
   const {
     resourceId,
