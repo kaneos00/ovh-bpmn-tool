@@ -10,6 +10,9 @@ import UrlClickModule from './extensions/url-click-module';
 import LaneOrientationPropertiesProvider from './extensions/lane-orientation-properties-provider';
 import RechercheModule from './extensions/recherche/recherche-module';
 import { createRepositoryRechercheProvider } from './extensions/recherche/recherche-repository-provider';
+import RaciModel from './extensions/raci-model.json';
+import RaciPropertiesProvider from './extensions/raci-properties-provider';
+import './raci.css';
 
 export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
   createRoot(document.getElementById('root')!).render(
@@ -21,26 +24,20 @@ export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
           extensions: {
             ...options.modelerOptions?.extensions,
             ...UrlModel,
+            RaciModel,
           },
           providers: [
             ...(options.modelerOptions?.providers ?? []),
-            {
-              priority: 500,
-              instance: UrlPropertiesProvider,
-            },
-            {
-              priority: 501,
-              instance: LaneOrientationPropertiesProvider,
-            },
+            { priority: 500, instance: UrlPropertiesProvider },
+            { priority: 501, instance: LaneOrientationPropertiesProvider },
+            { priority: 502, instance: RaciPropertiesProvider },
           ],
           rechercheProvider:
             options.modelerOptions?.rechercheProvider ??
             createRepositoryRechercheProvider(),
           modules: [
             ...(options.modelerOptions?.modules ?? []),
-            {
-              declaration: UrlClickModule,
-            },
+            { declaration: UrlClickModule },
             {
               declaration: {
                 ...RechercheModule,
