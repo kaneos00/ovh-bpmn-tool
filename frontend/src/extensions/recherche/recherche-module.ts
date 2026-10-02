@@ -6,15 +6,52 @@ function RechercheModule(
   selection: any,
   canvas: any,
 ) {
-  function focusElementFromUrl() {
+  function focusElementFromUrl(attempt = 0) {
     const elementId = new URLSearchParams(window.location.search).get('element');
+
+    console.debug('[Recherche][NAVIGATION] focusElementFromUrl', {
+      attempt,
+      elementId,
+      url: window.location.href,
+    });
+
     if (!elementId) return;
 
     const element = elementRegistry.get(elementId);
-    if (!element) return;
 
-    selection.select(element);
-    canvas.scrollToElement(element);
+    if (!element) {
+      if (attempt < 20) {
+        window.setTimeout(() => focusElementFromUrl(attempt + 1), 100);
+      } else {
+        console.warn('[Recherche][NAVIGATION] élément introuvable après plusieurs tentatives', {
+          elementId,
+          attempts: attempt + 1,
+        });
+      }
+      return;
+    }
+
+    const selectAndCenter = (selectionAttempt = 0) => {
+      selection.select(element);
+      canvas.scrollToElement(element, 80);
+
+      const selectedElement = selection.get()?.[0];
+      const isSelected = selectedElement?.id === element.id;
+
+      console.debug('[Recherche][NAVIGATION] sélection', {
+        elementId: element.id,
+        selectionAttempt,
+        isSelected,
+      });
+
+      if (!isSelected && selectionAttempt < 10) {
+        window.setTimeout(() => selectAndCenter(selectionAttempt + 1), 100);
+      }
+    };
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => selectAndCenter());
+    });
   }
 
   eventBus.on('import.done', focusElementFromUrl);
