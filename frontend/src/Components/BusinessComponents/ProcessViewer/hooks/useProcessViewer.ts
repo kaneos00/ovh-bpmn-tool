@@ -18,8 +18,12 @@ export const useProcessViewer = (resourceId: string, contentId: string) => {
     if (!viewerRef.current || !xmlContent) {
       viewer.clear();
     } else {
+      // Le Viewer doit être attaché avant l'import afin que les services
+      // d'interaction et de sélection soient actifs lorsque import.done est
+      // émis. La recherche peut ainsi sélectionner immédiatement sa cible.
+      viewer.attachTo(viewerRef.current as HTMLDivElement);
+
       viewer.importXML(xmlContent).then(() => {
-        viewer.attachTo(viewerRef.current as HTMLDivElement);
         // @ts-ignore
         viewer.get('canvas').zoom('fit-viewport');
       });
