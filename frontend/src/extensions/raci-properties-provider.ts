@@ -7,9 +7,16 @@ class RaciPropertiesProvider {
     return (groups: any[]) => {
       if (!is(element, 'bpmn:BaseElement')) return groups;
       if (groups.some((group: any) => group.id === 'raci')) return groups;
+
       const entry = (id: string, property: string, label: string) => ({
-        id, element, component: RaciTextEntry, isEdited: isTextFieldEntryEdited, label, raciProperty: property,
+        id,
+        element,
+        component: RaciTextEntry,
+        isEdited: isTextFieldEntryEdited,
+        label,
+        raciProperty: property,
       });
+
       groups.push({
         id: 'raci',
         label: 'RACI',
@@ -20,6 +27,7 @@ class RaciPropertiesProvider {
           entry('raci-informed', 'informed', 'I — Informé'),
         ],
       });
+
       return groups;
     };
   }
@@ -29,9 +37,31 @@ function RaciTextEntry(props: any) {
   const { element, id, label, raciProperty } = props;
   const modeling = useService('modeling');
   const debounce = useService('debounceInput');
-  const getValue = () => String(element.businessObject?.get?.('raci:' + raciProperty) ?? '');
-  const setValue = (value: string) => modeling.updateProperties(element, { ['raci:' + raciProperty]: value || undefined });
-  return TextFieldEntry({ element, id, label, getValue, setValue, debounce });
+
+  const getValue = () =>
+    String(
+      element.businessObject?.get?.(raciProperty)
+      ?? element.businessObject?.[raciProperty]
+      ?? '',
+    );
+
+  const setValue = (value: string) => {
+    // The moddle descriptor exposes the property as "responsible",
+    // "accountable", etc. The "raci:" prefix belongs to the XML namespace,
+    // not to the businessObject property key.
+    return modeling.updateProperties(element, {
+      [raciProperty]: value || undefined,
+    });
+  };
+
+  return TextFieldEntry({
+    element,
+    id,
+    label,
+    getValue,
+    setValue,
+    debounce,
+  });
 }
 
 export default RaciPropertiesProvider;
