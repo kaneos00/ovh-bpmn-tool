@@ -86,8 +86,8 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
       if (shouldHaveRole && !hasRole) roles.push(editCell.role);
       else if (!shouldHaveRole && hasRole) roles.splice(roles.indexOf(editCell.role), 1);
 
-      properties['raci:' + property] = roles.length ? roles.join(', ') : undefined;
-      properties['raci:' + statusProperty] = shouldHaveRole ? 'explicit' : undefined;
+      properties[property] = roles.length ? roles.join(', ') : undefined;
+      properties[statusProperty] = shouldHaveRole ? 'explicit' : undefined;
     }
 
     updateRaciProperties(element, properties);
@@ -140,8 +140,8 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
 
         inferredRoles.forEach(role => roles.add(role));
 
-        properties['raci:' + property] = Array.from(roles).join(', ');
-        properties['raci:' + statusProperty] = 'explicit';
+        properties[property] = Array.from(roles).join(', ');
+        properties[statusProperty] = 'explicit';
       }
 
       updateRaciProperties(element, properties);
