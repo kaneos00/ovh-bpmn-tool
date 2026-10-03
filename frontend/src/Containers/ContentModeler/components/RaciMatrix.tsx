@@ -80,24 +80,58 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
     const elementRegistry = modeler?.get?.('elementRegistry');
     if (!modeling || !elementRegistry) return;
 
+    let acceptedCells = 0;
+
     for (const activity of matrix.activities) {
       const element = elementRegistry.get(activity.elementId);
       if (!element) continue;
-      const properties: Record<string, string | undefined> = {};
+
+      const rolesByCode = new Map<RaciCode, Set<string>>();
+
       for (const cell of activity.cells) {
         if (cell.status !== 'inferred') continue;
+
         for (const code of cell.codes) {
-          const property = propertyByCode[code];
-          const statusProperty = statusPropertyByCode[code];
-          const current = String(element.businessObject?.get?.('raci:' + property) ?? element.businessObject?.['raci:' + property] ?? '');
-          const roles = current.split(',').map((role: string) => role.trim()).filter(Boolean);
-          if (!roles.includes(cell.role)) roles.push(cell.role);
-          properties['raci:' + property] = roles.join(', ');
-          properties['raci:' + statusProperty] = 'explicit';
+          const roles = rolesByCode.get(code) ?? new Set<string>();
+          roles.add(cell.role);
+          rolesByCode.set(code, roles);
+          acceptedCells++;
         }
       }
-      if (Object.keys(properties).length) modeling.updateProperties(element, properties);
+
+      if (!rolesByCode.size) continue;
+
+      const properties: Record<string, string | undefined> = {};
+
+      for (const code of RACICODES) {
+        const inferredRoles = rolesByCode.get(code);
+        if (!inferredRoles?.size) continue;
+
+        const property = propertyByCode[code];
+        const statusProperty = statusPropertyByCode[code];
+        const current = String(
+          element.businessObject?.get?.('raci:' + property)
+          ?? element.businessObject?.['raci:' + property]
+          ?? '',
+        );
+
+        const roles = new Set(
+          current.split(',').map((role: string) => role.trim()).filter(Boolean),
+        );
+
+        inferredRoles.forEach(role => roles.add(role));
+
+        properties['raci:' + property] = Array.from(roles).join(', ');
+        properties['raci:' + statusProperty] = 'explicit';
+      }
+
+      // Une seule commande par activité : toutes les inférences sont
+      // agrégées avant l'écriture afin qu'une cellule ne remplace pas
+      // l'affectation d'une autre cellule du même code R/A/C/I.
+      modeling.updateProperties(element, properties);
     }
+
+    console.log('[RACI] inférences acceptées', acceptedCells);
     setRefresh(value => value + 1);
   };
 
