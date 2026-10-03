@@ -91,6 +91,14 @@ const explicitRoles = (element: AnyElement, code: RaciCode): string[] => {
 export function deriveRaciMatrix(definitions: AnyElement): RaciMatrix {
   const { nodeToLane, roles } = collectLanes(definitions);
   const activities = collectActivities(definitions);
+
+  // Explicit RACI assignments are valid role sources even when the BPMN
+  // does not model those roles as lanes or participants.
+  for (const activity of activities) {
+    (['R', 'A', 'C', 'I'] as RaciCode[]).forEach(code => {
+      explicitRoles(activity, code).forEach(role => roles.add(role));
+    });
+  }
   const messageFlows = collectMessageFlows(definitions);
 
   return {
