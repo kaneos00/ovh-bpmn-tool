@@ -8,7 +8,6 @@ import UrlModel from './extensions/url-model';
 import UrlPropertiesProvider from './extensions/url-properties-provider';
 import UrlClickModule from './extensions/url-click-module';
 import LaneOrientationPropertiesProvider from './extensions/lane-orientation-properties-provider';
-import RechercheModule from './extensions/recherche/recherche-module';
 import { createRepositoryRechercheProvider } from './extensions/recherche/recherche-repository-provider';
 import RaciModel from './extensions/raci-model.json';
 import RaciPropertiesProvider from './extensions/raci-properties-provider';
@@ -48,15 +47,6 @@ export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
             ...(options.modelerOptions?.modules ?? []),
             {
               declaration: UrlClickModule,
-            },
-            {
-              declaration: {
-                ...RechercheModule,
-                rechercheProvider: [
-                  'value',
-                  options.modelerOptions?.rechercheProvider ?? createRepositoryRechercheProvider(),
-                ],
-              },
             },
           ],
         },
