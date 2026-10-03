@@ -40,23 +40,12 @@ function RaciTextEntry(props: any) {
 
   const getValue = () => String(element.businessObject?.[raciProperty] ?? '');
 
-  const setValue = (value: string) => {
-    // The moddle descriptor exposes the property as "responsible",
-    // "accountable", etc. The "raci:" prefix belongs to the XML namespace,
-    // not to the businessObject property key.
-    return modeling.updateProperties(element, {
+  const setValue = (value: string) =>
+    modeling.updateProperties(element, {
       [raciProperty]: value || undefined,
     });
-  };
 
-  return TextFieldEntry({
-    element,
-    id,
-    label,
-    getValue,
-    setValue,
-    debounce,
-  });
+  return TextFieldEntry({ element, id, label, getValue, setValue, debounce });
 }
 
 export default RaciPropertiesProvider;
