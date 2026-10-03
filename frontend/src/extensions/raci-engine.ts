@@ -13,10 +13,23 @@ const splitRoles = (value: unknown): string[] =>
   String(value ?? '').split(',').map(role => role.trim()).filter(Boolean);
 
 const getAttr = (element: AnyElement, name: string): string => {
-  const value = element?.businessObject?.get
-    ? element.businessObject.get(name)
-    : element?.businessObject?.[name];
-  return String(value ?? '').trim();
+  const businessObject = element?.businessObject ?? element;
+
+  // Moddle exposes descriptor properties by their local name on the
+  // businessObject (for example businessObject.responsible), not by the
+  // qualified XML name raci:responsible.
+  const value = businessObject?.get
+    ? businessObject.get(name)
+    : businessObject?.[name];
+
+  if (value !== undefined && value !== null) return String(value).trim();
+
+  const qualified = 'raci:' + name;
+  const qualifiedValue = businessObject?.get
+    ? businessObject.get(qualified)
+    : businessObject?.[qualified];
+
+  return String(qualifiedValue ?? '').trim();
 };
 
 const getName = (element: AnyElement): string =>
@@ -87,7 +100,7 @@ const addCode = (cells: Map<string, Set<RaciCode>>, role: string | undefined, co
 
 const explicitRoles = (element: AnyElement, code: RaciCode): string[] => {
   const property = code === 'R' ? 'responsible' : code === 'A' ? 'accountable' : code === 'C' ? 'consulted' : 'informed';
-  return splitRoles(getAttr(element, 'raci:' + property));
+  return splitRoles(getAttr(element, property));
 };
 
 export function deriveRaciMatrix(definitions: AnyElement): RaciMatrix {
@@ -132,13 +145,13 @@ export function deriveRaciMatrix(definitions: AnyElement): RaciMatrix {
 
 export function getRaciMetadata(element: AnyElement) {
   return {
-    responsible: getAttr(element, 'raci:responsible'),
-    accountable: getAttr(element, 'raci:accountable'),
-    consulted: getAttr(element, 'raci:consulted'),
-    informed: getAttr(element, 'raci:informed'),
-    responsibleStatus: getAttr(element, 'raci:responsibleStatus'),
-    accountableStatus: getAttr(element, 'raci:accountableStatus'),
-    consultedStatus: getAttr(element, 'raci:consultedStatus'),
-    informedStatus: getAttr(element, 'raci:informedStatus'),
+    responsible: getAttr(element, 'responsible'),
+    accountable: getAttr(element, 'accountable'),
+    consulted: getAttr(element, 'consulted'),
+    informed: getAttr(element, 'informed'),
+    responsibleStatus: getAttr(element, 'responsibleStatus'),
+    accountableStatus: getAttr(element, 'accountableStatus'),
+    consultedStatus: getAttr(element, 'consultedStatus'),
+    informedStatus: getAttr(element, 'informedStatus'),
   };
 }
