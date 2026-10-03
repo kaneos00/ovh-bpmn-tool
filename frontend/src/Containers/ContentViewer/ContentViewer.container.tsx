@@ -44,7 +44,7 @@ const ACTIVITY_TYPES = new Set([
 ]);
 
 const normalizeUrl = (url: string) =>
-  /^https?:\\/\\//i.test(url) ? url : `https://${url}`;
+  /^https?:\/\//i.test(url) ? url : `https://${url}`;
 
 export const Component = () => {
   const { resourceId, contentId } = useContentViewer();
