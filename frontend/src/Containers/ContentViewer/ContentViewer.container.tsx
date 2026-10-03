@@ -13,8 +13,9 @@ import {
   Typography,
   List,
   ListItem,
+  Link,
 } from '@mui/joy';
-import { ChevronLeft, ChevronRight } from '@mui/icons-material';
+import { ChevronLeft, ChevronRight, OpenInNew } from '@mui/icons-material';
 import { useQuery } from 'react-query';
 
 import { FolderTree } from '../../Components/BusinessComponents/FolderTree';
@@ -27,6 +28,23 @@ import { formatDateTime } from '../../shared/helpers/date';
 import './ContentViewerContainer.scss';
 
 const parser = new DOMParser();
+
+const ACTIVITY_TYPES = new Set([
+  'task',
+  'userTask',
+  'serviceTask',
+  'manualTask',
+  'scriptTask',
+  'businessRuleTask',
+  'sendTask',
+  'receiveTask',
+  'callActivity',
+  'subProcess',
+  'transaction',
+]);
+
+const normalizeUrl = (url: string) =>
+  /^https?:\\/\\//i.test(url) ? url : `https://${url}`;
 
 export const Component = () => {
   const { resourceId, contentId } = useContentViewer();
@@ -51,10 +69,24 @@ export const Component = () => {
 
     const xml = parser.parseFromString(xmlContent, 'text/xml');
 
-    return Array.from(xml.querySelectorAll('task')).map((task, index) => ({
-      id: task.getAttribute('id') || `task-${index}`,
-      name: task.getAttribute('name') || 'Unnamed activity',
-    }));
+    return Array.from(xml.getElementsByTagName('*'))
+      .filter(element => ACTIVITY_TYPES.has(element.localName))
+      .map((activity, index) => {
+        const documentation = Array.from(
+          activity.children,
+        )
+          .filter(child => child.localName === 'documentation')
+          .map(child => child.textContent?.trim() || '')
+          .filter(Boolean)
+          .join('\\n');
+
+        return {
+          id: activity.getAttribute('id') || `activity-${index}`,
+          name: activity.getAttribute('name') || 'Unnamed activity',
+          url: activity.getAttribute('url:link') || '',
+          documentation,
+        };
+      });
   }, [xmlContent]);
 
   return (
@@ -151,7 +183,33 @@ export const Component = () => {
             {activities.length ? (
               <List size="sm">
                 {activities.map(activity => (
-                  <ListItem key={activity.id}>{activity.name}</ListItem>
+                  <ListItem key={activity.id}>
+                    <Stack spacing={0.5} sx={{ width: '100%' }}>
+                      <Typography level="title-sm">
+                        {activity.name}
+                      </Typography>
+
+                      {activity.url && (
+                        <Link
+                          href={normalizeUrl(activity.url)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          endDecorator={<OpenInNew fontSize="small" />}
+                        >
+                          {activity.url}
+                        </Link>
+                      )}
+
+                      {activity.documentation && (
+                        <Typography
+                          level="body-sm"
+                          sx={{ whiteSpace: 'pre-wrap' }}
+                        >
+                          {activity.documentation}
+                        </Typography>
+                      )}
+                    </Stack>
+                  </ListItem>
                 ))}
               </List>
             ) : (
