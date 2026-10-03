@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
 
 import { ModelerActionBar } from './components/ModelerActionBar';
@@ -6,6 +6,7 @@ import { ModelerShortcuts } from '../../Components/BusinessComponents/ModelerSho
 import { useContentModeler } from './hooks/useContentModeler';
 import { useModeler } from './hooks/useModeler';
 import { Modeler } from '../../Components/BusinessComponents/Modeler/Modeler';
+import { RaciMatrix } from './components/RaciMatrix';
 import { useBpmnToolOptions } from '../../Providers/BpmnToolOptions/useBpmnToolOptions';
 import { useModelerInstance } from '../../shared/hooks/useModelerInstance';
 import { useResource } from '../../shared/hooks/useResource';
@@ -18,6 +19,7 @@ export const Component = () => {
   const { getRechercheProvider } = useBpmnToolOptions();
   const { resourceId: routeResourceId } = useParams() as ContentModelerRouteParams;
   const { resource } = useResource(routeResourceId);
+  const [raciOpen, setRaciOpen] = useState(false);
 
   React.useEffect(() => {
     const provider = getRechercheProvider();
@@ -58,10 +60,16 @@ export const Component = () => {
         onDiagramSave={onDiagramSave}
         onDiagramPublish={onDiagramPublish}
         onShortcutDisplay={() => setIsShortcurtModalOpen(true)}
+        onRaciOpen={() => setRaciOpen(true)}
       />
       <Modeler
         diagramContainerRef={diagramContainerRef}
         diagramPropertiesRef={diagramPropertiesRef}
+      />
+      <RaciMatrix
+        modeler={bpmnModelerInstance}
+        open={raciOpen}
+        onClose={() => setRaciOpen(false)}
       />
       <ModelerShortcuts
         open={isShortcurtModalOpen}
