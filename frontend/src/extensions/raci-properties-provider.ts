@@ -38,12 +38,7 @@ function RaciTextEntry(props: any) {
   const modeling = useService('modeling');
   const debounce = useService('debounceInput');
 
-  const getValue = () =>
-    String(
-      element.businessObject?.get?.(raciProperty)
-      ?? element.businessObject?.[raciProperty]
-      ?? '',
-    );
+  const getValue = () => String(element.businessObject?.[raciProperty] ?? '');
 
   const setValue = (value: string) => {
     // The moddle descriptor exposes the property as "responsible",
