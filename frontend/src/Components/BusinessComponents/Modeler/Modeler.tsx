@@ -15,8 +15,10 @@ export const Modeler: FC<ModelerProps> = ({
   diagramPropertiesRef,
 }) => {
   return (
-    <div id="diagramContainer" ref={diagramContainerRef}>
-      <div id="diagramProperties" ref={diagramPropertiesRef} />
+    <div className="modelerContainer">
+      <div id="diagramContainer" ref={diagramContainerRef}>
+        <div id="diagramProperties" ref={diagramPropertiesRef} />
+      </div>
     </div>
   );
 };
