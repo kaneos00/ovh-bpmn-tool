@@ -49,36 +49,55 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
     setEditCell({ ...editCell, codes });
   };
 
+  const updateRaciProperties = (element: any, properties: Record<string, string | undefined>) => {
+    const commandStack = modeler?.get?.('commandStack');
+    if (commandStack) {
+      commandStack.execute('element.updateProperties', {
+        element,
+        properties,
+      });
+      return;
+    }
+
+    const modeling = modeler?.get?.('modeling');
+    modeling?.updateProperties(element, properties);
+  };
+
   const saveCellEdit = () => {
     if (!editCell) return;
-    const modeling = modeler?.get?.('modeling');
     const elementRegistry = modeler?.get?.('elementRegistry');
     const element = elementRegistry?.get?.(editCell.elementId);
-    if (!modeling || !element) return setEditCell(null);
+    if (!element) return setEditCell(null);
 
     const properties: Record<string, string | undefined> = {};
+
     for (const code of RACICODES) {
       const property = propertyByCode[code];
       const statusProperty = statusPropertyByCode[code];
-      const current = String(element.businessObject?.get?.('raci:' + property) ?? element.businessObject?.['raci:' + property] ?? '');
+      const current = String(
+        element.businessObject?.get?.('raci:' + property)
+        ?? element.businessObject?.['raci:' + property]
+        ?? '',
+      );
       const roles = current.split(',').map((role: string) => role.trim()).filter(Boolean);
       const hasRole = roles.includes(editCell.role);
       const shouldHaveRole = editCell.codes.includes(code);
+
       if (shouldHaveRole && !hasRole) roles.push(editCell.role);
       else if (!shouldHaveRole && hasRole) roles.splice(roles.indexOf(editCell.role), 1);
+
       properties['raci:' + property] = roles.length ? roles.join(', ') : undefined;
-      if (shouldHaveRole) properties['raci:' + statusProperty] = 'explicit';
-      else if (hasRole) properties['raci:' + statusProperty] = undefined;
+      properties['raci:' + statusProperty] = shouldHaveRole ? 'explicit' : undefined;
     }
-    modeling.updateProperties(element, properties);
+
+    updateRaciProperties(element, properties);
     setEditCell(null);
     setRefresh(value => value + 1);
   };
 
   const acceptInferred = () => {
-    const modeling = modeler?.get?.('modeling');
     const elementRegistry = modeler?.get?.('elementRegistry');
-    if (!modeling || !elementRegistry) return;
+    if (!elementRegistry) return;
 
     let acceptedCells = 0;
 
@@ -125,10 +144,7 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
         properties['raci:' + statusProperty] = 'explicit';
       }
 
-      // Une seule commande par activité : toutes les inférences sont
-      // agrégées avant l'écriture afin qu'une cellule ne remplace pas
-      // l'affectation d'une autre cellule du même code R/A/C/I.
-      modeling.updateProperties(element, properties);
+      updateRaciProperties(element, properties);
     }
 
     console.log('[RACI] inférences acceptées', acceptedCells);
