@@ -143,7 +143,7 @@ function RechercheModule(
     bar.id = BAR_ID;
     Object.assign(bar.style, {
       position: 'fixed',
-      top: '10px',
+      // Keep the floating search bar below the Modeler action bar.\n      top: '80px',
       left: '50%',
       transform: 'translateX(-50%)',
       width: 'min(900px, calc(100vw - 32px))',
@@ -214,7 +214,7 @@ function RechercheModule(
     resultsPanel.id = PANEL_ID;
     Object.assign(resultsPanel.style, {
       position: 'fixed',
-      top: '64px',
+      // 80px search-bar offset + 54px bar height + 10px gap.\n      top: '144px',
       left: '50%',
       transform: 'translateX(-50%)',
       width: 'min(900px, calc(100vw - 32px))',
