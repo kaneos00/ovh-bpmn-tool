@@ -23,7 +23,9 @@ export const useModelerInstance = () => {
         additionalModules: getModelerModules(),
       */
       additionalModules: [
-        ...getModelerModules(),
+        // Recherche is a viewer-only module. Never load it in the editor,
+        // even when it is supplied through generic modeler options.
+        ...getModelerModules().filter(module => module !== RechercheModule),
         MinimapModule,
         NavigationControls,
       ],
