@@ -293,8 +293,10 @@ function RechercheModule(
     console.log('[Recherche][MODULE] diagram.destroy');
     closePanel();
     clearSearchHighlight();
-    const viewerLayout = document.querySelector('.viewerLayout');
-    if (!viewerLayout) document.getElementById(BAR_ID)?.remove();
+    // The search UI is owned by this BPMN instance. Always remove it when
+    // that instance is destroyed; do not depend on another viewer existing.
+    document.getElementById(BAR_ID)?.remove();
+    document.getElementById(PANEL_ID)?.remove();
     inputElement = undefined;
   });
 }
