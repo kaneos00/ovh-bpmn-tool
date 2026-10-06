@@ -247,7 +247,8 @@ export class RechercheService {
         if (providerResults.length > 0) {
           return providerResults.slice(0, 50);
         }
-      } catch (error) {
+      } catch {
+        // Fallback to the local BPMN index.
       }
     }
 
