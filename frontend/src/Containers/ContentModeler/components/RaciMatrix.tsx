@@ -197,7 +197,10 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
     if (!editCell) return;
 
     const element = modeler?.get?.('elementRegistry')?.get?.(editCell.elementId);
-    if (!element) return setEditCell(null);
+    if (!element) {
+      setEditCell(null);
+      return;
+    }
 
     const properties: Record<string, string | undefined> = {};
 
@@ -273,7 +276,6 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
       updateRaciProperties(element, properties);
     }
 
-    console.log('[RACI] inférences acceptées', acceptedCells);
     setRefresh(value => value + 1);
   };
 
@@ -367,8 +369,8 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
                   {activity.cells.map(cell => (
                     <td
                       key={cell.role}
-                      className={statusClass[cell.status] + ' raci-cell-clickable'}
-                      title={statusLabel[cell.status] + ' — clic : sélectionner, double-clic : modifier'}
+                      className={`${statusClass[cell.status]} raci-cell-clickable`}
+                      title={`${statusLabel[cell.status]} — clic : sélectionner, double-clic : modifier`}
                       onClick={() => selectActivity(activity.elementId)}
                       onDoubleClick={() =>
                         openCellEditor(activity.elementId, activity.activity, cell.role, cell.codes)
