@@ -183,11 +183,11 @@ export function deriveRaciMatrix(definitions: AnyElement): RaciMatrix {
       for (const flow of messageFlows) {
         if (flow?.targetRef?.id === element?.id && !explicit.has('C')) {
           const role = roleOf(flow.sourceRef, nodeToLane);
-          if (roles.has(role)) addCode(cells, role, 'C');
+          if (role && roles.has(role)) addCode(cells, role, 'C');
         }
         if (flow?.sourceRef?.id === element?.id && !explicit.has('I')) {
           const role = roleOf(flow.targetRef, nodeToLane);
-          if (roles.has(role)) addCode(cells, role, 'I');
+          if (role && roles.has(role)) addCode(cells, role, 'I');
         }
       }
 
