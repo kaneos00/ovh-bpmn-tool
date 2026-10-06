@@ -14,7 +14,7 @@ const getRawAttr = (element: AnyElement, name: string): unknown => {
   const businessObject = element?.businessObject ?? element;
   const value = businessObject?.get ? businessObject.get(name) : businessObject?.[name];
   if (value !== undefined && value !== null) return value;
-  const qualified = 'raci:' + name;
+  const qualified = `raci:${name}`;
   return businessObject?.get ? businessObject.get(qualified) : businessObject?.[qualified];
 };
 
@@ -127,7 +127,13 @@ const addCode = (cells: Map<string, Set<RaciCode>>, role: string | undefined, co
 };
 
 const explicitRoles = (element: AnyElement, code: RaciCode): string[] => {
-  const property = code === 'R' ? 'responsible' : code === 'A' ? 'accountable' : code === 'C' ? 'consulted' : 'informed';
+  const propertyByCode: Record<RaciCode, string> = {
+    R: 'responsible',
+    A: 'accountable',
+    C: 'consulted',
+    I: 'informed',
+  };
+  const property = propertyByCode[code];
   return splitRoles(getAttr(element, property));
 };
 
@@ -196,10 +202,14 @@ export function deriveRaciMatrix(definitions: AnyElement): RaciMatrix {
         .map((role): RaciCell => {
           const codes = Array.from(cells.get(role) ?? []);
           const hasExplicitCode = codes.some(code => explicit.has(code));
+          let status: RaciStatus = 'missing';
+          if (codes.length > 0) status = 'inferred';
+          if (hasExplicitCode) status = 'explicit';
+
           return {
             role,
             codes,
-            status: hasExplicitCode ? 'explicit' : codes.length ? 'inferred' : 'missing',
+            status,
           };
         });
 
