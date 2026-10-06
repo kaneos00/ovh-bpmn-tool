@@ -85,10 +85,11 @@ export const useCompare = (leftContent: string, rightContent: string) => {
     (ref: RefObject<HTMLDivElement>, viewer: BpmnViewerType) => {
       if (!ref.current) {
         console.error('attachModeler - Diagram ref is undefined');
-        return undefined;
+        return false;
       }
 
       viewer.attachTo(ref.current);
+      return true;
     },
     [],
   );
@@ -99,7 +100,7 @@ export const useCompare = (leftContent: string, rightContent: string) => {
     const update = (viewer: BpmnViewerType) => {
       return (e: Event & { viewbox?: unknown }) => {
         if (changing || !e.viewbox) {
-          return undefined;
+          return false;
         }
 
         changing = true;
@@ -107,6 +108,7 @@ export const useCompare = (leftContent: string, rightContent: string) => {
         // @ts-ignore
         viewer.get('canvas').viewbox(e.viewbox);
         changing = false;
+        return true;
       };
     };
 
@@ -247,6 +249,7 @@ export const useCompare = (leftContent: string, rightContent: string) => {
       highlight(rightViewer, obj.model.id, 'diff-changed');
       addMarker(rightViewer, obj.model.id, 'marker-changed', '&#9998;');
     });
+    return undefined;
   }, [diffs?._changed, leftSideLoaded, rightSideLoaded, leftViewer, rightViewer, highlight, addMarker]);
 
   useEffect(() => {
@@ -263,6 +266,7 @@ export const useCompare = (leftContent: string, rightContent: string) => {
       highlight(leftViewer, obj.id, 'diff-added');
       addMarker(leftViewer, obj.id, 'marker-added', '&#43;');
     });
+    return undefined;
   }, [diffs?._added, leftSideLoaded, rightSideLoaded, leftViewer, highlight, addMarker]);
 
   useEffect(() => {
@@ -279,6 +283,7 @@ export const useCompare = (leftContent: string, rightContent: string) => {
       highlight(rightViewer, obj.id, 'diff-removed');
       addMarker(rightViewer, obj.id, 'marker-removed', '&minus;');
     });
+    return undefined;
   }, [diffs?._removed, leftSideLoaded, rightSideLoaded, rightViewer, highlight, addMarker]);
 
   useEffect(() => {
@@ -298,6 +303,7 @@ export const useCompare = (leftContent: string, rightContent: string) => {
       highlight(leftViewer, obj.id, 'diff-layout-changed');
       addMarker(leftViewer, obj.id, 'marker-layout-changed', '&#8680;');
     });
+    return undefined;
   }, [diffs?._layoutChanged, leftSideLoaded, rightSideLoaded, leftViewer, rightViewer, highlight, addMarker]);
 
   useEffect(() => {
