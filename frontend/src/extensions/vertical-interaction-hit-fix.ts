@@ -54,11 +54,11 @@ function VerticalInteractionHitFix(eventBus: any, interactionEvents: any) {
       const gfx = context.gfx;
 
       if (!is(element, 'bpmn:Participant') && !is(element, 'bpmn:Lane')) {
-        return;
+        return false;
       }
 
       if (isHorizontal(element)) {
-        return;
+        return false;
       }
 
       /*
