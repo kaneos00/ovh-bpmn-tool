@@ -8,18 +8,40 @@ export type RaciMatrix = { roles: string[]; activities: RaciActivity[] };
 type AnyElement = any;
 
 const APPROVAL_PATTERN = /\b(approve|approval|validate|validation|authori[sz]e|authori[sz]ation|sign[- ]?off|approuver|approbation|valider|validation|autoriser|autorisation|signer|décider|decision|décision)\b/i;
+const RACICODES: RaciCode[] = ['R', 'A', 'C', 'I'];
+
+const getRawAttr = (element: AnyElement, name: string): unknown => {
+  const businessObject = element?.businessObject ?? element;
+  const value = businessObject?.get ? businessObject.get(name) : businessObject?.[name];
+  if (value !== undefined && value !== null) return value;
+  const qualified = 'raci:' + name;
+  return businessObject?.get ? businessObject.get(qualified) : businessObject?.[qualified];
+};
+
+const getAttr = (element: AnyElement, name: string): string => String(getRawAttr(element, name) ?? '').trim();
 
 const splitRoles = (value: unknown): string[] =>
   String(value ?? '').split(',').map(role => role.trim()).filter(Boolean);
 
-const getAttr = (element: AnyElement, name: string): string => {
-  const businessObject = element?.businessObject ?? element;
-  const value = businessObject?.get ? businessObject.get(name) : businessObject?.[name];
-  if (value !== undefined && value !== null) return String(value).trim();
-  const qualified = 'raci:' + name;
-  const qualifiedValue = businessObject?.get ? businessObject.get(qualified) : businessObject?.[qualified];
-  return String(qualifiedValue ?? '').trim();
+const parseActors = (value: unknown): string[] => {
+  if (value === undefined || value === null) return [];
+  const raw = String(value).trim();
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return Array.from(new Set(parsed.map(actor => String(actor).trim()).filter(Boolean)));
+    }
+  } catch {
+    // Backward compatibility with a comma-separated actor list.
+  }
+
+  return Array.from(new Set(splitRoles(raw)));
 };
+
+export const serializeRaciActors = (actors: string[]): string =>
+  JSON.stringify(Array.from(new Set(actors.map(actor => actor.trim()).filter(Boolean))));
 
 const getName = (element: AnyElement): string =>
   String(element?.businessObject?.name ?? element?.name ?? '').trim();
@@ -33,9 +55,16 @@ const isActivity = (element: AnyElement): boolean =>
 const roots = (definitions: AnyElement): AnyElement[] =>
   definitions?.rootElements ?? definitions?.businessObject?.rootElements ?? [];
 
+const getProcessRoots = (definitions: AnyElement): AnyElement[] =>
+  roots(definitions).filter((root: AnyElement) => root?.$type === 'bpmn:Process');
+
+const getPrimaryProcess = (definitions: AnyElement): AnyElement | undefined =>
+  getProcessRoots(definitions)[0];
+
 const collectLanes = (definitions: AnyElement) => {
   const nodeToLane = new Map<string, string>();
   const roles = new Set<string>();
+
   const visitLane = (lane: AnyElement) => {
     const name = String(lane?.name ?? '').trim();
     if (name) {
@@ -44,22 +73,33 @@ const collectLanes = (definitions: AnyElement) => {
     }
     for (const child of lane?.childLaneSet?.lanes ?? []) visitLane(child);
   };
+
   for (const root of roots(definitions)) {
-    for (const laneSet of root?.laneSets ?? []) for (const lane of laneSet?.lanes ?? []) visitLane(lane);
+    for (const laneSet of root?.laneSets ?? []) {
+      for (const lane of laneSet?.lanes ?? []) visitLane(lane);
+    }
     if (root?.$type === 'bpmn:Participant' && root.name) roles.add(String(root.name).trim());
   }
+
   return { nodeToLane, roles };
 };
 
 const collectActivities = (definitions: AnyElement): AnyElement[] => {
   const result: AnyElement[] = [];
+
   const visit = (element: AnyElement) => {
     if (!element) return;
     if (isActivity(element)) result.push(element);
     for (const child of element?.flowElements ?? []) visit(child);
-    for (const laneSet of element?.laneSets ?? []) for (const lane of laneSet?.lanes ?? []) visit(lane);
+    for (const laneSet of element?.laneSets ?? []) {
+      for (const lane of laneSet?.lanes ?? []) visit(lane);
+    }
   };
-  for (const root of roots(definitions)) if (root?.$type === 'bpmn:Process') visit(root);
+
+  for (const root of roots(definitions)) {
+    if (root?.$type === 'bpmn:Process') visit(root);
+  }
+
   return result;
 };
 
@@ -68,11 +108,14 @@ const collectMessageFlows = (definitions: AnyElement): AnyElement[] =>
 
 const roleOf = (element: AnyElement, nodeToLane: Map<string, string>): string | undefined => {
   if (element?.id && nodeToLane.has(element.id)) return nodeToLane.get(element.id);
+
   let parent = element?.$parent;
   while (parent) {
+    if (parent.$type === 'bpmn:Lane' && parent.name) return String(parent.name).trim();
     if (parent.$type === 'bpmn:Participant' && parent.name) return String(parent.name).trim();
     parent = parent.$parent;
   }
+
   return undefined;
 };
 
@@ -88,17 +131,35 @@ const explicitRoles = (element: AnyElement, code: RaciCode): string[] => {
   return splitRoles(getAttr(element, property));
 };
 
-export function deriveRaciMatrix(definitions: AnyElement): RaciMatrix {
-  const { nodeToLane, roles } = collectLanes(definitions);
-  const activities = collectActivities(definitions);
+export const inferRaciActors = (definitions: AnyElement): string[] => {
+  const { roles } = collectLanes(definitions);
 
-  // Explicit RACI assignments are valid role sources even when the BPMN
-  // does not model those roles as lanes or participants.
-  for (const activity of activities) {
-    (['R', 'A', 'C', 'I'] as RaciCode[]).forEach(code => {
-      explicitRoles(activity, code).forEach(role => roles.add(role));
-    });
+  for (const activity of collectActivities(definitions)) {
+    RACICODES.forEach(code => explicitRoles(activity, code).forEach(role => roles.add(role)));
   }
+
+  return Array.from(roles).sort((a, b) => a.localeCompare(b));
+};
+
+export const getConfiguredRaciActors = (definitions: AnyElement): string[] | undefined => {
+  const process = getPrimaryProcess(definitions);
+  if (!process) return undefined;
+
+  const raw = getRawAttr(process, 'actors');
+  return raw === undefined || raw === null ? undefined : parseActors(raw);
+};
+
+export const getRaciActors = (definitions: AnyElement): string[] =>
+  getConfiguredRaciActors(definitions) ?? inferRaciActors(definitions);
+
+export const getRaciProcess = (definitions: AnyElement): AnyElement | undefined =>
+  getPrimaryProcess(definitions);
+
+export function deriveRaciMatrix(definitions: AnyElement): RaciMatrix {
+  const { nodeToLane } = collectLanes(definitions);
+  const activities = collectActivities(definitions);
+  const configuredActors = getConfiguredRaciActors(definitions);
+  const roles = new Set(configuredActors ?? inferRaciActors(definitions));
   const messageFlows = collectMessageFlows(definitions);
 
   return {
@@ -107,31 +168,46 @@ export function deriveRaciMatrix(definitions: AnyElement): RaciMatrix {
       const cells = new Map<string, Set<RaciCode>>();
       const explicit = new Set<RaciCode>();
 
-      (['R', 'A', 'C', 'I'] as RaciCode[]).forEach(code => {
+      RACICODES.forEach(code => {
         const assigned = explicitRoles(element, code);
         if (assigned.length) explicit.add(code);
-        assigned.forEach(role => addCode(cells, role, code));
+        assigned.filter(role => roles.has(role)).forEach(role => addCode(cells, role, code));
       });
 
       const laneRole = roleOf(element, nodeToLane);
-      if (!explicit.has('R') && laneRole) addCode(cells, laneRole, 'R');
-      if (!explicit.has('A') && laneRole && APPROVAL_PATTERN.test(getName(element))) addCode(cells, laneRole, 'A');
-
-      for (const flow of messageFlows) {
-        if (flow?.targetRef?.id === element?.id && !explicit.has('C')) addCode(cells, roleOf(flow.sourceRef, nodeToLane), 'C');
-        if (flow?.sourceRef?.id === element?.id && !explicit.has('I')) addCode(cells, roleOf(flow.targetRef, nodeToLane), 'I');
+      if (!explicit.has('R') && laneRole && roles.has(laneRole)) addCode(cells, laneRole, 'R');
+      if (!explicit.has('A') && laneRole && roles.has(laneRole) && APPROVAL_PATTERN.test(getName(element))) {
+        addCode(cells, laneRole, 'A');
       }
 
-      const allRoles = new Set(roles);
-      cells.forEach((_codes, role) => allRoles.add(role));
+      for (const flow of messageFlows) {
+        if (flow?.targetRef?.id === element?.id && !explicit.has('C')) {
+          const role = roleOf(flow.sourceRef, nodeToLane);
+          if (roles.has(role)) addCode(cells, role, 'C');
+        }
+        if (flow?.sourceRef?.id === element?.id && !explicit.has('I')) {
+          const role = roleOf(flow.targetRef, nodeToLane);
+          if (roles.has(role)) addCode(cells, role, 'I');
+        }
+      }
 
-      const cellList = Array.from(allRoles).sort((a, b) => a.localeCompare(b)).map((role): RaciCell => {
-        const codes = Array.from(cells.get(role) ?? []);
-        const hasExplicitCode = codes.some(code => explicit.has(code));
-        return { role, codes, status: hasExplicitCode ? 'explicit' : codes.length ? 'inferred' : 'missing' };
-      });
+      const cellList = Array.from(roles)
+        .sort((a, b) => a.localeCompare(b))
+        .map((role): RaciCell => {
+          const codes = Array.from(cells.get(role) ?? []);
+          const hasExplicitCode = codes.some(code => explicit.has(code));
+          return {
+            role,
+            codes,
+            status: hasExplicitCode ? 'explicit' : codes.length ? 'inferred' : 'missing',
+          };
+        });
 
-      return { elementId: String(element?.id ?? ''), activity: getName(element) || String(element?.id ?? ''), cells: cellList };
+      return {
+        elementId: String(element?.id ?? ''),
+        activity: getName(element) || String(element?.id ?? ''),
+        cells: cellList,
+      };
     }),
   };
 }
