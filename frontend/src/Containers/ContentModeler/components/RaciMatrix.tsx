@@ -400,12 +400,11 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
         </div>
 
         {editCell && (
-          <div className="raci-editor-backdrop" onClick={() => setEditCell(null)}>
+          <div className="raci-editor-backdrop">
             <div
               className="raci-editor"
               role="dialog"
               aria-modal="true"
-              onClick={event => event.stopPropagation()}
             >
               <h3>Modifier la cellule RACI</h3>
               <div className="raci-editor-context">
