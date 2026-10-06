@@ -1,4 +1,5 @@
 import { is } from 'bpmn-js/lib/util/ModelUtil';
+// @ts-expect-error SelectEntry is available at runtime in @bpmn-io/properties-panel 3.44.1 but is missing from its declaration surface.
 import { SelectEntry } from '@bpmn-io/properties-panel';
 import { useService } from 'bpmn-js-properties-panel';
 
@@ -40,7 +41,7 @@ class RaciPropertiesProvider {
         id,
         element,
         component: RaciSelectEntry,
-        isEdited: (entryElement: any, node: any) => Boolean(node?.value),
+        isEdited: (node: any) => Boolean(node?.value),
         label,
         raciProperty: property,
       });
