@@ -62,7 +62,12 @@ const parseProcess = (xml: string, resource: Resource): RechercheResult[] => {
   return nodes.map(node => {
     const { role, raci } = raciData(node);
     const id = node.getAttribute('id') || '';
-    const sourceType = role ? 'role' : raci ? 'raci' : 'bpmn';
+    let sourceType: 'role' | 'raci' | 'bpmn' = 'bpmn';
+    if (role) {
+      sourceType = 'role';
+    } else if (raci) {
+      sourceType = 'raci';
+    }
     return {
       element: undefined, id, type: node.localName ? `bpmn:${node.localName}` : '', name: node.getAttribute('name') || '',
       documentation: documentationText(node), role: role || undefined, raci: raci || undefined,
@@ -77,7 +82,6 @@ const getResources = async (): Promise<Resource[]> => {
   if (resourceCache && resourceCache.expiresAt > Date.now()) return resourceCache.resources;
   const url = '/resources?filter.depth=100';
   const raw = await apiClient.get(url);
-  console.log('[Recherche][Repository] réponse brute resources:', raw);
 
   const extractResources = (value: any): Resource[] => {
     if (Array.isArray(value)) return value;
