@@ -85,7 +85,7 @@ export const useCompare = (leftContent: string, rightContent: string) => {
     (ref: RefObject<HTMLDivElement>, viewer: BpmnViewerType) => {
       if (!ref.current) {
         console.error('attachModeler - Diagram ref is undefined');
-        return;
+        return undefined;
       }
 
       viewer.attachTo(ref.current);
@@ -99,7 +99,7 @@ export const useCompare = (leftContent: string, rightContent: string) => {
     const update = (viewer: BpmnViewerType) => {
       return (e: Event & { viewbox?: unknown }) => {
         if (changing || !e.viewbox) {
-          return;
+          return undefined;
         }
 
         changing = true;
@@ -162,7 +162,7 @@ export const useCompare = (leftContent: string, rightContent: string) => {
   // Load content for left side
   useEffect(() => {
     if (!leftRef.current || !leftContent) {
-      return;
+      return undefined;
     }
 
     let cancelled = false;
@@ -189,7 +189,7 @@ export const useCompare = (leftContent: string, rightContent: string) => {
   // Load content for right side
   useEffect(() => {
     if (!rightRef.current || !rightContent) {
-      return;
+      return undefined;
     }
 
     let cancelled = false;
@@ -216,7 +216,7 @@ export const useCompare = (leftContent: string, rightContent: string) => {
   // Search for diff and sync viewers
   useEffect(() => {
     if (!rightSideLoaded || !leftSideLoaded) {
-      return;
+      return undefined;
     }
 
     setDiffs(
@@ -237,7 +237,7 @@ export const useCompare = (leftContent: string, rightContent: string) => {
       !diffs?._changed ||
       !Object.values(diffs?._changed).length
     ) {
-      return;
+      return undefined;
     }
 
     Object.values(diffs._changed).forEach(obj => {
@@ -256,7 +256,7 @@ export const useCompare = (leftContent: string, rightContent: string) => {
       !diffs?._added ||
       !Object.values(diffs?._added).length
     ) {
-      return;
+      return undefined;
     }
 
     Object.values(diffs._added).forEach(obj => {
@@ -272,7 +272,7 @@ export const useCompare = (leftContent: string, rightContent: string) => {
       !diffs?._removed ||
       !Object.values(diffs?._removed).length
     ) {
-      return;
+      return undefined;
     }
 
     Object.values(diffs._removed).forEach(obj => {
@@ -288,7 +288,7 @@ export const useCompare = (leftContent: string, rightContent: string) => {
       !diffs?._layoutChanged ||
       !Object.values(diffs?._layoutChanged).length
     ) {
-      return;
+      return undefined;
     }
 
     Object.values(diffs._layoutChanged).forEach(obj => {
