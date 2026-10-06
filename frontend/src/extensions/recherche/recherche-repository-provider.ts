@@ -74,10 +74,8 @@ const parseProcess = (xml: string, resource: Resource): RechercheResult[] => {
 };
 
 const getResources = async (): Promise<Resource[]> => {
-  console.log('[Recherche][Repository] getResources()');
   if (resourceCache && resourceCache.expiresAt > Date.now()) return resourceCache.resources;
   const url = '/resources?filter.depth=100';
-  console.log('[Recherche][Repository] GET', url);
   const raw = await apiClient.get(url);
   console.log('[Recherche][Repository] réponse brute resources:', raw);
 
@@ -96,19 +94,16 @@ const getResources = async (): Promise<Resource[]> => {
   // en filtrant localement les processus.
   if (!resources.length) {
     const fallbackUrl = `/resources?filter.type=${ResourceType.Process}`;
-    console.log('[Recherche][Repository] première requête vide → GET', fallbackUrl);
     resources = extractResources(await apiClient.get(fallbackUrl));
   }
 
   if (!resources.length) {
     const allUrl = '/resources';
-    console.log('[Recherche][Repository] seconde requête vide → GET', allUrl);
     resources = extractResources(await apiClient.get(allUrl))
       .filter(resource => resource?.type === ResourceType.Process);
   }
 
   resources = resources.filter(resource => resource?.type === ResourceType.Process || resource?.type === ResourceType.Folder);
-  console.log('[Recherche][Repository] resources normalisées:', resources.length, resources.slice(0, 5));
   const limited = resources.slice(0, MAX_RESOURCES);
   resourceCache = { expiresAt: Date.now() + CACHE_TTL_MS, resources: limited };
   repositoryIndexCache = undefined;
@@ -118,7 +113,6 @@ const getResources = async (): Promise<Resource[]> => {
 const getProcessIndex = async (resource: Resource, sourceType: 'process' | 'subprocess'): Promise<RechercheResult[]> => {
   const cached = processCache.get(resource.id);
   if (cached && cached.expiresAt > Date.now()) return cached.results;
-  console.log('[Recherche][Repository] process', resource.id, resource.name);
   const content = await latestSearchableContent(resource);
   if (!content) {
     const result = createResourceResult(resource, sourceType);
@@ -170,15 +164,10 @@ export const invalidateRepositoryRechercheIndex = () => {
 };
 
 export const createRepositoryRechercheProvider = (): RechercheProvider => async (query, context = {}) => {
-  console.log('[Recherche][Repository] provider appelé', { query, context });
   if (context.scope !== 'all-processes') {
-    console.log('[Recherche][Repository] scope non global → erreur');
     throw new Error('Repository provider is used for all-processes scope only');
   }
-  console.log('[Recherche][Repository] chargement index repository…');
   const index = await getRepositoryIndex();
-  console.log('[Recherche][Repository] index chargé:', index.all().length, 'entrées');
   const results = index.search(query, { ...context, processId: undefined, processName: undefined }, MAX_RESULTS);
-  console.log('[Recherche][Repository] résultats:', results.length, results.slice(0, 5));
   return results;
 };
