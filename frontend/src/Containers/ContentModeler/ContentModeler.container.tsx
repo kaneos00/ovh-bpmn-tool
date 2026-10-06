@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
 
 import { ModelerActionBar } from './components/ModelerActionBar';
@@ -21,7 +21,7 @@ export const Component = () => {
   const { resource } = useResource(routeResourceId);
   const [raciOpen, setRaciOpen] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const provider = getRechercheProvider();
     const service = bpmnModelerInstance.get('rechercheService', false) as any;
     service?.setProvider(provider);
