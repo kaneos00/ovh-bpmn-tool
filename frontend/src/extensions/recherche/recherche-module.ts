@@ -32,11 +32,6 @@ function RechercheModule(
   eventBus: any, elementRegistry: any, selection: any, canvas: any,
   rechercheService: RechercheService, rechercheProvider?: RechercheProvider,
 ) {
-  console.log('[Recherche][MODULE] RechercheModule chargé', {
-    hasProvider: !!rechercheProvider,
-    hasService: !!rechercheService,
-    hasCanvas: !!canvas,
-  });
 
   if (rechercheProvider) rechercheService.setProvider(rechercheProvider);
   let inputElement: HTMLInputElement | undefined;
@@ -74,22 +69,14 @@ function RechercheModule(
   function focusElementFromUrl() {
     const elementId = new URLSearchParams(window.location.search).get('element');
 
-    console.log('[Recherche][NAVIGATION] focusElementFromUrl', {
-      url: window.location.href,
-      elementId,
-    });
-
     if (!elementId) {
       return;
     }
 
     const element = elementRegistry.get(elementId);
     if (!element) {
-      console.warn('[Recherche][NAVIGATION] élément introuvable', elementId);
       return;
     }
-
-    console.log('[Recherche][NAVIGATION] élément trouvé', elementId, element);
 
     highlightSearchElement(element);
     selection.select(element);
@@ -279,18 +266,15 @@ function RechercheModule(
   }
 
   eventBus.on('diagram.init', () => {
-    console.log('[Recherche][MODULE] diagram.init');
     createSearchBar();
   });
 
   eventBus.on('import.done', () => {
-    console.log('[Recherche][MODULE] import.done');
     focusElementFromUrl();
   });
 
   eventBus.on('keyboard.keydown', (event: any) => { if ((event.ctrlKey || event.metaKey) && event.key?.toLowerCase() === 'k') { event.preventDefault(); createSearchBar(); inputElement?.focus(); inputElement?.select(); } });
   eventBus.on('diagram.destroy', () => {
-    console.log('[Recherche][MODULE] diagram.destroy');
     closePanel();
     clearSearchHighlight();
     // The search UI is owned by this BPMN instance. Always remove it when
