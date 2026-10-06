@@ -14,7 +14,8 @@
         {"name":"responsibleStatus","isAttr":true,"type":"String"},
         {"name":"accountableStatus","isAttr":true,"type":"String"},
         {"name":"consultedStatus","isAttr":true,"type":"String"},
-        {"name":"informedStatus","isAttr":true,"type":"String"}
+        {"name":"informedStatus","isAttr":true,"type":"String"},
+        {"name":"actors","isAttr":true,"type":"String"}
       ]
     }
   ]
