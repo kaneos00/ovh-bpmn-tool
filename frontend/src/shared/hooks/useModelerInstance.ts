@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import BpmnModeler from 'camunda-bpmn-js/lib/camunda-platform/Modeler';
 import BpmnViewer from 'camunda-bpmn-js/lib/camunda-platform/NavigatedViewer';
 import MinimapModule from 'diagram-js-minimap';
@@ -13,7 +13,10 @@ export const useModelerInstance = () => {
   const { getModelerExtensions, getModelerModules, getModelerLinting } =
     useBpmnToolOptions();
 
-  const lintingOptions = getModelerLinting();
+  const lintingOptions = useMemo(
+    () => getModelerLinting(),
+    [getModelerLinting],
+  );
 
   const modeler = useMemo(() => {
     return new BpmnModeler({
@@ -23,26 +26,27 @@ export const useModelerInstance = () => {
         additionalModules: getModelerModules(),
       */
       additionalModules: [
-        // Recherche is a viewer-only module. Never load it in the editor,
-        // even when it is supplied through generic modeler options.
         ...getModelerModules().filter(module => module !== RechercheModule),
         MinimapModule,
         NavigationControls,
       ],
       ...(lintingOptions.active ? { linting: lintingOptions } : {}),
       moddleExtensions: getModelerExtensions(),
-      // Ouvre automatiquement la minimap dans l’éditeur.
       minimap: {
         open: true,
       },
     });
-  }, []);
+  }, [getModelerExtensions, getModelerModules, lintingOptions]);
 
-  const getModelerInstance = () => {
-    return modeler;
-  };
+  useEffect(() => {
+    return () => {
+      modeler.destroy();
+    };
+  }, [modeler]);
 
-  const getViewerInstance = (additionalOptions = {}) => {
+  const getModelerInstance = useCallback(() => modeler, [modeler]);
+
+  const getViewerInstance = useCallback((additionalOptions = {}) => {
     return new BpmnViewer({
       /*
         ANCIENNE CONFIGURATION — conservée pour comparaison / retour arrière
@@ -62,13 +66,12 @@ export const useModelerInstance = () => {
         },
       ],
       moddleExtensions: getModelerExtensions(),
-      // Ouvre automatiquement la minimap dans le visualiseur.
       minimap: {
         open: true,
       },
       ...additionalOptions,
     });
-  };
+  }, [getModelerExtensions, getModelerModules]);
 
   return {
     getModelerInstance,

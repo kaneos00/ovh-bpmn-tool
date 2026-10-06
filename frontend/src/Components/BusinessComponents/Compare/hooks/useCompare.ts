@@ -41,7 +41,9 @@ export type Diffs = Nullable<{
 type BpmnViewerType = {
   get<T extends Record<string, unknown>>(module: string): T;
   on(event: string, callback: (event: Event) => void): void;
+  off(event: string, callback: (event: Event) => void): void;
   attachTo: (parentNode: HTMLElement) => void;
+  destroy: () => void;
 };
 
 export const useCompare = (leftContent: string, rightContent: string) => {
@@ -59,7 +61,7 @@ export const useCompare = (leftContent: string, rightContent: string) => {
           deferUpdate: false,
         },
       }),
-    [],
+    [getViewerInstance],
   );
 
   const rightViewer = useMemo(
@@ -71,7 +73,7 @@ export const useCompare = (leftContent: string, rightContent: string) => {
           deferUpdate: false,
         },
       }),
-    [],
+    [getViewerInstance],
   );
 
   const [rightSideLoaded, setRightSideLoaded] = useState(false);
@@ -91,12 +93,12 @@ export const useCompare = (leftContent: string, rightContent: string) => {
     [],
   );
 
-  const syncViewers = (a: BpmnViewerType, b: BpmnViewerType) => {
+  const syncViewers = useCallback((a: BpmnViewerType, b: BpmnViewerType) => {
     let changing = false;
 
     const update = (viewer: BpmnViewerType) => {
-      return (e: Event) => {
-        if (changing) {
+      return (e: Event & { viewbox?: unknown }) => {
+        if (changing || !e.viewbox) {
           return;
         }
 
@@ -108,13 +110,17 @@ export const useCompare = (leftContent: string, rightContent: string) => {
       };
     };
 
-    const syncViewbox = (a1: BpmnViewerType, b1: BpmnViewerType) => {
-      a1.on('canvas.viewbox.changed', update(b1));
-    };
+    const updateBFromA = update(b);
+    const updateAFromB = update(a);
 
-    syncViewbox(a, b);
-    syncViewbox(b, a);
-  };
+    a.on('canvas.viewbox.changed', updateBFromA);
+    b.on('canvas.viewbox.changed', updateAFromB);
+
+    return () => {
+      a.off('canvas.viewbox.changed', updateBFromA);
+      b.off('canvas.viewbox.changed', updateAFromB);
+    };
+  }, []);
 
   const highlight = useCallback(
     (viewer: BpmnViewer, elementId: string, marker: string) => {
@@ -155,41 +161,57 @@ export const useCompare = (leftContent: string, rightContent: string) => {
 
   // Load content for left side
   useEffect(() => {
-    if (!leftRef.current && !leftSideLoaded) {
+    if (!leftRef.current || !leftContent) {
       return;
     }
 
-    if (!leftContent) {
-      return;
-    }
+    let cancelled = false;
 
     leftViewer
       .importXML(leftContent)
       .then(() => {
-        attachViewer(leftRef, leftViewer);
-        setLeftSideLoaded(true);
+        if (!cancelled) {
+          attachViewer(leftRef, leftViewer);
+          setLeftSideLoaded(true);
+        }
       })
-      .catch(e => console.error('leftSide: ', e));
-  }, [leftSideLoaded, leftContent]);
+      .catch(e => {
+        if (!cancelled) {
+          console.error('leftSide: ', e);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [leftContent, leftViewer, attachViewer]);
 
   // Load content for right side
   useEffect(() => {
-    if (!rightRef.current && !rightSideLoaded) {
+    if (!rightRef.current || !rightContent) {
       return;
     }
 
-    if (!rightContent) {
-      return;
-    }
+    let cancelled = false;
 
     rightViewer
       .importXML(rightContent)
       .then(() => {
-        attachViewer(rightRef, rightViewer);
-        setRightSideLoaded(true);
+        if (!cancelled) {
+          attachViewer(rightRef, rightViewer);
+          setRightSideLoaded(true);
+        }
       })
-      .catch(e => console.error('rightSide: ', e));
-  }, [rightSideLoaded, rightContent]);
+      .catch(e => {
+        if (!cancelled) {
+          console.error('rightSide: ', e);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [rightContent, rightViewer, attachViewer]);
 
   // Search for diff and sync viewers
   useEffect(() => {
@@ -204,8 +226,8 @@ export const useCompare = (leftContent: string, rightContent: string) => {
         getModelerDiffChangeHandler(),
       ),
     );
-    syncViewers(leftViewer, rightViewer);
-  }, [rightSideLoaded, leftSideLoaded]);
+    return syncViewers(leftViewer, rightViewer);
+  }, [rightSideLoaded, leftSideLoaded, leftViewer, rightViewer, getModelerDiffChangeHandler, syncViewers]);
 
   /* DIFFS HANDLERS */
   useEffect(() => {
@@ -225,7 +247,7 @@ export const useCompare = (leftContent: string, rightContent: string) => {
       highlight(rightViewer, obj.model.id, 'diff-changed');
       addMarker(rightViewer, obj.model.id, 'marker-changed', '&#9998;');
     });
-  }, [diffs?._changed]);
+  }, [diffs?._changed, leftSideLoaded, rightSideLoaded, leftViewer, rightViewer, highlight, addMarker]);
 
   useEffect(() => {
     if (
@@ -241,7 +263,7 @@ export const useCompare = (leftContent: string, rightContent: string) => {
       highlight(leftViewer, obj.id, 'diff-added');
       addMarker(leftViewer, obj.id, 'marker-added', '&#43;');
     });
-  }, [diffs?._added]);
+  }, [diffs?._added, leftSideLoaded, rightSideLoaded, leftViewer, highlight, addMarker]);
 
   useEffect(() => {
     if (
@@ -257,7 +279,7 @@ export const useCompare = (leftContent: string, rightContent: string) => {
       highlight(rightViewer, obj.id, 'diff-removed');
       addMarker(rightViewer, obj.id, 'marker-removed', '&minus;');
     });
-  }, [diffs?._removed]);
+  }, [diffs?._removed, leftSideLoaded, rightSideLoaded, rightViewer, highlight, addMarker]);
 
   useEffect(() => {
     if (
@@ -276,7 +298,14 @@ export const useCompare = (leftContent: string, rightContent: string) => {
       highlight(leftViewer, obj.id, 'diff-layout-changed');
       addMarker(leftViewer, obj.id, 'marker-layout-changed', '&#8680;');
     });
-  }, [diffs?._layoutChanged]);
+  }, [diffs?._layoutChanged, leftSideLoaded, rightSideLoaded, leftViewer, rightViewer, highlight, addMarker]);
+
+  useEffect(() => {
+    return () => {
+      leftViewer.destroy();
+      rightViewer.destroy();
+    };
+  }, [leftViewer, rightViewer]);
 
   // const displayChanges = () =>
   //   showModal<{ diffs: Diffs }>('CompareChanges', () => '', { diffs });

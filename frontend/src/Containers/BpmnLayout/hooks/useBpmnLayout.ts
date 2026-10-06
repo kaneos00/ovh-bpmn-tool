@@ -100,7 +100,7 @@ export const useBpmnLayout = () => {
     }
 
     return submit(actionPayload, { method: 'post' });
-  }, [contents, bpmnModelerInstance]);
+  }, [contents, bpmnModelerInstance, navigate, submit]);
 
   /**
    * Manage compare button click
@@ -109,7 +109,7 @@ export const useBpmnLayout = () => {
     (leftContentId: string, rightContentId: string) => {
       navigate(`/${resourceId}/compare/${leftContentId}/${rightContentId}`);
     },
-    [contents],
+    [resourceId, navigate],
   );
 
   /**
@@ -133,7 +133,7 @@ export const useBpmnLayout = () => {
         severity: 'success',
       });
     }
-  }, [resourceId, resource]);
+  }, [resourceId, resource, showAlert]);
 
   const onContentUpload = (content: string) => {
     return submit(
@@ -207,7 +207,7 @@ export const useBpmnLayout = () => {
         severity: 'danger',
       });
     }
-  }, [actionData]);
+  }, [actionData, showAlert]);
 
   return {
     resource,

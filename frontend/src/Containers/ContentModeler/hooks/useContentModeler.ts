@@ -41,21 +41,11 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     enabled: !!draftContent?.id,
   });
 
-  const contentData = useMemo(() => {
-    if (!contents) {
-      return undefined;
-    }
-
-    return contents.find(
-      ({ status }: Content) => status === ContentStatusEnum.Draft,
-    );
-  }, [contents]);
-
   const onFileUpload = useCallback(
     async (files: FileList) => {
       try {
         const processContent = await files[0].text();
-        bpmnModelerInstance.importXML(processContent);
+        await bpmnModelerInstance.importXML(processContent);
       } catch {
         showAlert({
           message: 'An error occurs during file upload.',
@@ -63,7 +53,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
         });
       }
     },
-    [resourceId, bpmnModelerInstance],
+    [bpmnModelerInstance, showAlert],
   );
 
   /**
@@ -86,7 +76,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
         document.body.removeChild(hiddenElement);
       }
     },
-    [draftContent, resource, resourceId],
+    [draftContent, resource],
   );
 
   const onFileExport = useCallback(
@@ -109,7 +99,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
         });
       }
     },
-    [draftContent, resource, resourceId, bpmnModelerInstance],
+    [draftContent, resource, bpmnModelerInstance, triggerDownload, showAlert],
   );
 
   /**
@@ -130,38 +120,38 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
         );
       }
     },
-    [bpmnModelerInstance],
+    [bpmnModelerInstance, submit],
   );
 
   const onDiagramSave = useCallback(async () => {
-    if (!contentData) {
+    if (!draftContent) {
       return;
     }
 
     try {
-      saveDiagram('saveContent', contentData);
+      saveDiagram('saveContent', draftContent);
     } catch (error) {
       showAlert({
         message: 'An error occur during saving content.',
         severity: 'danger',
       });
     }
-  }, [resourceId, contentData]);
+  }, [draftContent, saveDiagram, showAlert]);
 
   const onDiagramPublish = useCallback(async () => {
-    if (!contentData) {
+    if (!draftContent) {
       return;
     }
 
     try {
-      saveDiagram('saveContentBeforePublish', contentData);
+      saveDiagram('saveContentBeforePublish', draftContent);
     } catch (error) {
       showAlert({
         message: 'An error occur during saving content.',
         severity: 'danger',
       });
     }
-  }, [contentData, resourceId, bpmnModelerInstance]);
+  }, [draftContent, saveDiagram, showAlert]);
 
   const processActionMessages: Record<string, string> = {
     saveContent: 'Content has been saved successfully.',
@@ -194,7 +184,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
         });
       }
     }
-  }, [actionData]);
+  }, [actionData, showAlert]);
 
   return {
     resourceId,

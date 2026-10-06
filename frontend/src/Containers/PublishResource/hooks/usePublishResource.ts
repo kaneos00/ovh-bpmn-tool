@@ -38,7 +38,13 @@ export const usePublishResource = () => {
   const { data: contents } = useQuery(contentsQuery(resourceId));
 
   const { getViewerInstance } = useModelerInstance();
-  const viewer = getViewerInstance();
+  const viewer = useMemo(() => getViewerInstance(), [getViewerInstance]);
+
+  useEffect(() => {
+    return () => {
+      viewer.destroy();
+    };
+  }, [viewer]);
 
   const draftContent = useMemo(() => {
     if (!contents) {
@@ -64,7 +70,7 @@ export const usePublishResource = () => {
         setBase64Png(pngData || '');
       });
     }
-  }, [viewer, viewerRef, draftXmlContent]);
+  }, [viewer, draftXmlContent]);
 
   /**
    * Callbacks
@@ -97,7 +103,9 @@ export const usePublishResource = () => {
         bytes[i] = ascii;
       }
       const blob = new Blob([bytes], { type: 'image/png' });
-      window.open(URL.createObjectURL(blob), '_blank');
+      const objectUrl = URL.createObjectURL(blob);
+      window.open(objectUrl, '_blank');
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
     }
   }, [base64Png]);
 
@@ -117,7 +125,7 @@ export const usePublishResource = () => {
         severity: 'danger',
       });
     }
-  }, [actionData]);
+  }, [actionData, showAlert]);
 
   return {
     loaderData,

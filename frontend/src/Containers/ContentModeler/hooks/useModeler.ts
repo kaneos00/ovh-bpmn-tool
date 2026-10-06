@@ -71,14 +71,23 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
           );
       }
 
-      bpmnModelerInstance.on(
-        'linting.completed',
-        ({ issues }: { issues: BpmnLintIssues }) => {
-          setHasLintError(checkForLinterIssues(issues));
-        },
-      );
+      const onLintingCompleted = ({
+        issues,
+      }: {
+        issues: BpmnLintIssues;
+      }) => {
+        setHasLintError(checkForLinterIssues(issues));
+      };
+
+      bpmnModelerInstance.on('linting.completed', onLintingCompleted);
+
+      return () => {
+        bpmnModelerInstance.off('linting.completed', onLintingCompleted);
+      };
     }
-  }, [bpmnModelerInstance, diagramContainerRef, diagramPropertiesRef, content]);
+
+    return undefined;
+  }, [bpmnModelerInstance, content, getModelerProviders, propertiesPanel, showAlert]);
 
   return {
     diagramContainerRef,
