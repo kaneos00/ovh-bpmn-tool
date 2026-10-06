@@ -1,6 +1,34 @@
 import { is } from 'bpmn-js/lib/util/ModelUtil';
-import { TextFieldEntry, isTextFieldEntryEdited } from '@bpmn-io/properties-panel';
+import { SelectEntry } from '@bpmn-io/properties-panel';
 import { useService } from 'bpmn-js-properties-panel';
+
+import { getConfiguredRaciActors, inferRaciActors } from './raci-engine';
+
+const RACICODES = [
+  { property: 'responsible', label: 'R — Responsable' },
+  { property: 'accountable', label: 'A — Acteur' },
+  { property: 'consulted', label: 'C — Consulté' },
+  { property: 'informed', label: 'I — Informé' },
+] as const;
+
+const getProcess = (element: any): any | undefined => {
+  let current = element?.businessObject ?? element;
+
+  while (current) {
+    if (current.$type === 'bpmn:Process') return current;
+    current = current.$parent;
+  }
+
+  return undefined;
+};
+
+const getActors = (element: any): string[] => {
+  const process = getProcess(element);
+  if (!process) return [];
+
+  const configured = getConfiguredRaciActors({ rootElements: [ process ] });
+  return configured ?? inferRaciActors({ rootElements: [ process ] });
+};
 
 class RaciPropertiesProvider {
   getGroups(element: any) {
@@ -11,8 +39,8 @@ class RaciPropertiesProvider {
       const entry = (id: string, property: string, label: string) => ({
         id,
         element,
-        component: RaciTextEntry,
-        isEdited: isTextFieldEntryEdited,
+        component: RaciSelectEntry,
+        isEdited: (entryElement: any, node: any) => Boolean(node?.value),
         label,
         raciProperty: property,
       });
@@ -20,51 +48,51 @@ class RaciPropertiesProvider {
       groups.push({
         id: 'raci',
         label: 'RACI',
-        entries: [
-          entry('raci-responsible', 'responsible', 'R — Responsable'),
-          entry('raci-accountable', 'accountable', 'A — Acteur'),
-          entry('raci-consulted', 'consulted', 'C — Consulté'),
-          entry('raci-informed', 'informed', 'I — Informé'),
-        ],
+        entries: RACICODES.map(({ property, label }) =>
+          entry(`raci-${property}`, property, label),
+        ),
       });
+
       return groups;
     };
   }
 }
 
-function RaciTextEntry(props: any) {
+function RaciSelectEntry(props: any) {
   const { element, id, label, raciProperty } = props;
   const modeling = useService('modeling');
-  const debounce = useService('debounceInput');
 
   const getValue = () => {
     const businessObject = element.businessObject;
-
     const value = businessObject?.get
       ? businessObject.get(raciProperty)
       : businessObject?.[raciProperty];
 
-    if (value !== undefined && value !== null) {
-      return String(value);
-    }
-
-    // Compatibility with BPMN moddle access through the qualified
-    // namespace name. The property is still written using the local
-    // descriptor name so bpmn-js can serialize it through raci-model.json.
-    const qualifiedValue = businessObject?.get
-      ? businessObject.get(`raci:${raciProperty}`)
-      : businessObject?.[`raci:${raciProperty}`];
-
-    return String(qualifiedValue ?? '');
+    return String(value ?? '');
   };
 
   const setValue = (value: string) => {
     modeling.updateProperties(element, {
-      [raciProperty]: value.trim() || undefined,
+      [raciProperty]: value || undefined,
     });
   };
 
-  return TextFieldEntry({ element, id, label, getValue, setValue, debounce });
+  const getOptions = () => [
+    { value: '', label: '<Aucun>' },
+    ...getActors(element).map(actor => ({
+      value: actor,
+      label: actor,
+    })),
+  ];
+
+  return SelectEntry({
+    element,
+    id,
+    label,
+    getValue,
+    setValue,
+    getOptions,
+  });
 }
 
 export default RaciPropertiesProvider;
