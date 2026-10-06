@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
 
 import { ModelerActionBar } from './components/ModelerActionBar';
