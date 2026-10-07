@@ -19,7 +19,7 @@ export const Component = () => {
   const { getRechercheProvider } = useBpmnToolOptions();
   const { resourceId: routeResourceId } = useParams() as ContentModelerRouteParams;
   const { resource } = useResource(routeResourceId);
-  const [raciOpen, setRaciOpen] = useState(false);
+  const [raciView, setRaciView] = useState<'matrix' | 'actors' | null>(null);
 
   useEffect(() => {
     const provider = getRechercheProvider();
@@ -60,7 +60,7 @@ export const Component = () => {
         onDiagramSave={onDiagramSave}
         onDiagramPublish={onDiagramPublish}
         onShortcutDisplay={() => setIsShortcurtModalOpen(true)}
-        onRaciOpen={() => setRaciOpen(true)}
+        onRaciOpen={() => setRaciView('matrix')}\n        onRolesOpen={() => setRaciView('actors')}
       />
       <Modeler
         diagramContainerRef={diagramContainerRef}
