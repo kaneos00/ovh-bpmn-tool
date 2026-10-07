@@ -69,8 +69,9 @@ export const Component = () => {
       />
       <RaciMatrix
         modeler={bpmnModelerInstance}
-        open={raciOpen}
-        onClose={() => setRaciOpen(false)}
+        open={raciView !== null}
+        view={raciView ?? 'matrix'}
+        onClose={() => setRaciView(null)}
       />
       <ModelerShortcuts
         open={isShortcurtModalOpen}
