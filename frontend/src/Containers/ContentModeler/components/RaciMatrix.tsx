@@ -118,6 +118,23 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
     setEditingActorValue('');
   }, [open, modeler]);
 
+  useEffect(() => {
+    if (!open || !modeler) return;
+
+    const eventBus = modeler?.get?.('eventBus');
+    if (!eventBus?.on) return;
+
+    const handleCommandStackChanged = () => {
+      setRevision(value => value + 1);
+    };
+
+    eventBus.on('commandStack.changed', handleCommandStackChanged);
+
+    return () => {
+      eventBus.off?.('commandStack.changed', handleCommandStackChanged);
+    };
+  }, [open, modeler]);
+
   const displayedActors = actors ?? (definitions ? getRaciActors(definitions) : []);
   const matrix = useMemo(
     () => (definitions
