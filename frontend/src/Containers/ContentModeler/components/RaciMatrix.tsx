@@ -46,7 +46,7 @@ const uniqueActors = (actors: string[]) =>
   Array.from(new Set(actors.map(actor => actor.trim()).filter(Boolean)));
 
 export function RaciMatrix({ modeler, open, onClose }: Props) {
-  const [, setRefresh] = useState(0);
+  const [actors, setActors] = useState<string[]>([]);
   const [editCell, setEditCell] = useState<EditCell | null>(null);
   const [newActor, setNewActor] = useState('');
   const [editingActor, setEditingActor] = useState<string | null>(null);
@@ -68,11 +68,11 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
     const processElement = getProcessElement();
     if (!processElement) return;
 
-    const actors = inferRaciActors(definitions);
+    const inferredActors = inferRaciActors(definitions);
     modeler?.get?.('modeling')?.updateProperties(processElement, {
-      actors: serializeRaciActors(actors),
+      actors: serializeRaciActors(inferredActors),
     });
-    setRefresh(value => value + 1);
+    setActors(inferredActors);
   }, [open, definitions, configuredActors, modeler]);
 
   if (!open) return null;
@@ -80,7 +80,9 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
   const matrix = definitions
     ? deriveRaciMatrix(definitions)
     : { roles: [], activities: [] };
-  const actors = definitions ? getRaciActors(definitions) : [];
+  const displayedActors = definitions && actors.length === 0
+    ? getRaciActors(definitions)
+    : actors;
   const inferredCount = matrix.activities.reduce(
     (count, activity) =>
       count + activity.cells.filter(cell => cell.status === 'inferred').length,
@@ -95,7 +97,7 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
     modeler?.get?.('modeling')?.updateProperties(processElement, {
       actors: serializeRaciActors(normalized),
     });
-    setRefresh(value => value + 1);
+    setActors(normalized);
   };
 
   const updateRaciProperties = (
@@ -145,9 +147,9 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
 
   const addActor = () => {
     const actor = newActor.trim();
-    if (!actor || actors.includes(actor)) return;
+    if (!actor || displayedActors.includes(actor)) return;
 
-    updateActors([...actors, actor]);
+    updateActors([...displayedActors, actor]);
     setNewActor('');
   };
 
@@ -163,14 +165,14 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
     if (!previous || !next || (next !== previous && actors.includes(next))) return;
 
     replaceActorInAssignments(previous, next);
-    updateActors(actors.map(actor => (actor === previous ? next : actor)));
+    updateActors(displayedActors.map(actor => (actor === previous ? next : actor)));
     setEditingActor(null);
     setEditingActorValue('');
   };
 
   const removeActor = (actor: string) => {
     replaceActorInAssignments(actor);
-    updateActors(actors.filter(current => current !== actor));
+    updateActors(displayedActors.filter(current => current !== actor));
   };
 
   const selectActivity = (elementId: string) => {
@@ -333,7 +335,7 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
           </div>
 
           <div className="raci-actors-list">
-            {actors.map(actor => (
+            {displayedActors.map(actor => (
               <div className="raci-actor" key={actor}>
                 {editingActor === actor ? (
                   <>
@@ -402,7 +404,7 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
           <span>🟠 Inféré</span>
           <span>⚪ Manquant</span>
           <span>{matrix.activities.length} activité(s)</span>
-          <span>{actors.length} acteur(s)</span>
+          <span>{displayedActors.length} acteur(s)</span>
           <span>Clic : sélectionner · double-clic : modifier R/A/C/I</span>
         </div>
 
