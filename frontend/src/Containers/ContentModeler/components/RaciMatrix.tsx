@@ -73,7 +73,7 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
   const [newActor, setNewActor] = useState('');
   const [editingActor, setEditingActor] = useState<string | null>(null);
   const [editingActorValue, setEditingActorValue] = useState('');
-  const [revision, setRevision] = useState(0);
+  const [, setRevision] = useState(0);
 
   const definitions = modeler?.getDefinitions?.();
 
