@@ -118,8 +118,6 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
     setEditingActorValue('');
   }, [open, modeler]);
 
-  if (!open) return null;
-
   const displayedActors = actors ?? (definitions ? getRaciActors(definitions) : []);
   const matrix = useMemo(
     () => (definitions
@@ -127,6 +125,8 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
       : { roles: [], activities: [] }),
     [definitions, revision],
   );
+
+  if (!open) return null;
 
   const inferredCount = matrix.activities.reduce(
     (count, activity) =>
@@ -230,6 +230,7 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
       const codes = Array.from(
         new Set(actorCells.flatMap(cell => cell.codes)),
       ).join('/');
+      // eslint-disable-next-line no-alert
       const confirmed = window.confirm(
         `Le rôle « ${actor} » est actuellement utilisé dans la matrice RACI (${codes}). Voulez-vous vraiment le supprimer ?`,
       );
