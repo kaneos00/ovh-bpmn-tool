@@ -199,6 +199,24 @@ export function deriveRaciMatrix(definitions: AnyElement): RaciMatrix {
   const configuredActors = getConfiguredRaciActors(definitions);
   const roles = new Set(configuredActors ?? inferRaciActors(definitions));
   const messageFlows = collectMessageFlows(definitions);
+  const messageFlowsByTarget = new Map<string, AnyElement[]>();
+  const messageFlowsBySource = new Map<string, AnyElement[]>();
+
+  for (const flow of messageFlows) {
+    const targetId = flow?.targetRef?.id;
+    if (targetId) {
+      const flows = messageFlowsByTarget.get(targetId) ?? [];
+      flows.push(flow);
+      messageFlowsByTarget.set(targetId, flows);
+    }
+
+    const sourceId = flow?.sourceRef?.id;
+    if (sourceId) {
+      const flows = messageFlowsBySource.get(sourceId) ?? [];
+      flows.push(flow);
+      messageFlowsBySource.set(sourceId, flows);
+    }
+  }
 
   return {
     roles: Array.from(roles).sort((a, b) => a.localeCompare(b)),
@@ -218,12 +236,15 @@ export function deriveRaciMatrix(definitions: AnyElement): RaciMatrix {
         addCode(cells, laneRole, 'A');
       }
 
-      for (const flow of messageFlows) {
-        if (flow?.targetRef?.id === element?.id && !explicit.has('C')) {
+      if (!explicit.has('C')) {
+        for (const flow of messageFlowsByTarget.get(element?.id) ?? []) {
           const role = roleOf(flow.sourceRef, nodeToLane, processToParticipant, roles);
           if (role && roles.has(role)) addCode(cells, role, 'C');
         }
-        if (flow?.sourceRef?.id === element?.id && !explicit.has('I')) {
+      }
+
+      if (!explicit.has('I')) {
+        for (const flow of messageFlowsBySource.get(element?.id) ?? []) {
           const role = roleOf(flow.targetRef, nodeToLane, processToParticipant, roles);
           if (role && roles.has(role)) addCode(cells, role, 'I');
         }
