@@ -75,10 +75,17 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
 
   const definitions = modeler?.getDefinitions?.();
 
-  const getProcessElement = () => {
+  const getProcessMutationContext = () => {
     const process = definitions && getRaciProcess(definitions);
     if (!process) return undefined;
-    return modeler?.get?.('elementRegistry')?.get?.(process.id);
+
+    const elementRegistry = modeler?.get?.('elementRegistry');
+    const diagramElement = elementRegistry?.get?.(process.id);
+    const anchor = diagramElement ?? modeler?.get?.('canvas')?.getRootElement?.();
+
+    if (!anchor) return undefined;
+
+    return { process, anchor };
   };
 
   const refresh = () => setRevision(value => value + 1);
@@ -92,12 +99,15 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
       setActors(configuredActors);
     } else {
       const inferredActors = inferRaciActors(definitions);
-      const processElement = getProcessElement();
+      const context = getProcessMutationContext();
+      const modeling = modeler?.get?.('modeling');
 
-      if (processElement) {
-        modeler?.get?.('modeling')?.updateProperties(processElement, {
-          'raci:actors': serializeRaciActors(inferredActors),
-        });
+      if (context && modeling?.updateModdleProperties) {
+        modeling.updateModdleProperties(
+          context.anchor,
+          context.process,
+          { actors: serializeRaciActors(inferredActors) },
+        );
       }
 
       setActors(inferredActors);
@@ -126,13 +136,15 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
     setActors(normalized);
     refresh();
 
-    const processElement = getProcessElement();
+    const context = getProcessMutationContext();
     const modeling = modeler?.get?.('modeling');
 
-    if (processElement && modeling) {
-      modeling.updateProperties(processElement, {
-        'raci:actors': serializeRaciActors(normalized),
-      });
+    if (context && modeling?.updateModdleProperties) {
+      modeling.updateModdleProperties(
+        context.anchor,
+        context.process,
+        { actors: serializeRaciActors(normalized) },
+      );
     }
   };
 
