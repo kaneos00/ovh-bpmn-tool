@@ -291,7 +291,7 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
       updateRaciProperties(element, properties);
     }
 
-    setActors(current => [...current]);
+    setActors(current => (current ? [...current] : current));
   };
 
   return (
