@@ -103,8 +103,6 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
       setActors(inferredActors);
     }
 
-    setShowActors(false);
-    setShowMatrix(false);
     setEditCell(null);
     setEditingActor(null);
     setEditingActorValue('');
@@ -324,14 +322,14 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
   };
 
   const closeActors = () => {
-    setShowActors(false);
     setEditingActor(null);
     setEditingActorValue('');
+    onClose();
   };
 
   const closeMatrix = () => {
-    setShowMatrix(false);
     setEditCell(null);
+    onClose();
   };
 
   return (
