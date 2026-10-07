@@ -106,13 +106,34 @@ const collectActivities = (definitions: AnyElement): AnyElement[] => {
 const collectMessageFlows = (definitions: AnyElement): AnyElement[] =>
   roots(definitions).flatMap((root: AnyElement) => root?.messageFlows ?? []);
 
-const roleOf = (element: AnyElement, nodeToLane: Map<string, string>): string | undefined => {
+const collectParticipantProcesses = (definitions: AnyElement): Map<string, string> => {
+  const processToParticipant = new Map<string, string>();
+
+  for (const root of roots(definitions)) {
+    if (root?.$type !== 'bpmn:Participant' || !root?.name) continue;
+
+    const processRef = root.processRef;
+    const processId = typeof processRef === 'string' ? processRef : processRef?.id;
+    if (processId) processToParticipant.set(processId, String(root.name).trim());
+  }
+
+  return processToParticipant;
+};
+
+const roleOf = (
+  element: AnyElement,
+  nodeToLane: Map<string, string>,
+  processToParticipant: Map<string, string>,
+): string | undefined => {
   if (element?.id && nodeToLane.has(element.id)) return nodeToLane.get(element.id);
 
   let parent = element?.$parent;
   while (parent) {
     if (parent.$type === 'bpmn:Lane' && parent.name) return String(parent.name).trim();
     if (parent.$type === 'bpmn:Participant' && parent.name) return String(parent.name).trim();
+    if (parent.$type === 'bpmn:Process' && parent.id) {
+      return processToParticipant.get(parent.id);
+    }
     parent = parent.$parent;
   }
 
@@ -163,6 +184,7 @@ export const getRaciProcess = (definitions: AnyElement): AnyElement | undefined 
 
 export function deriveRaciMatrix(definitions: AnyElement): RaciMatrix {
   const { nodeToLane } = collectLanes(definitions);
+  const processToParticipant = collectParticipantProcesses(definitions);
   const activities = collectActivities(definitions);
   const configuredActors = getConfiguredRaciActors(definitions);
   const roles = new Set(configuredActors ?? inferRaciActors(definitions));
@@ -180,7 +202,7 @@ export function deriveRaciMatrix(definitions: AnyElement): RaciMatrix {
         assigned.filter(role => roles.has(role)).forEach(role => addCode(cells, role, code));
       });
 
-      const laneRole = roleOf(element, nodeToLane);
+      const laneRole = roleOf(element, nodeToLane, processToParticipant);
       if (!explicit.has('R') && laneRole && roles.has(laneRole)) addCode(cells, laneRole, 'R');
       if (!explicit.has('A') && laneRole && roles.has(laneRole) && APPROVAL_PATTERN.test(getName(element))) {
         addCode(cells, laneRole, 'A');
@@ -188,11 +210,11 @@ export function deriveRaciMatrix(definitions: AnyElement): RaciMatrix {
 
       for (const flow of messageFlows) {
         if (flow?.targetRef?.id === element?.id && !explicit.has('C')) {
-          const role = roleOf(flow.sourceRef, nodeToLane);
+          const role = roleOf(flow.sourceRef, nodeToLane, processToParticipant);
           if (role && roles.has(role)) addCode(cells, role, 'C');
         }
         if (flow?.sourceRef?.id === element?.id && !explicit.has('I')) {
-          const role = roleOf(flow.targetRef, nodeToLane);
+          const role = roleOf(flow.targetRef, nodeToLane, processToParticipant);
           if (role && roles.has(role)) addCode(cells, role, 'I');
         }
       }
