@@ -219,8 +219,29 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
   };
 
   const removeActor = (actor: string) => {
+    const actorCells = matrix.activities.flatMap(activity =>
+      activity.cells.filter(cell => cell.role === actor && cell.codes.length > 0),
+    );
+
+    if (actorCells.length > 0) {
+      const codes = Array.from(
+        new Set(actorCells.flatMap(cell => cell.codes)),
+      ).join('/');
+      const confirmed = window.confirm(
+        `Le rôle « ${actor} » est actuellement utilisé dans la matrice RACI (${codes}). Voulez-vous vraiment le supprimer ?`,
+      );
+      if (!confirmed) return;
+    }
+
     replaceActorInAssignments(actor);
     updateActors(displayedActors.filter(current => current !== actor));
+  };
+
+  const restoreInferredActors = () => {
+    if (!definitions) return;
+
+    const inferredActors = inferRaciActors(definitions);
+    updateActors(inferredActors);
   };
 
   const selectActivity = (elementId: string) => {
@@ -370,6 +391,11 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
                   }}
                 />
                 <button type="button" onClick={addActor}>Ajouter</button>
+                {displayedActors.length === 0 && (
+                  <button type="button" onClick={restoreInferredActors}>
+                    Restaurer les rôles inférés
+                  </button>
+                )}
               </div>
 
               <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 'calc(100vh - 220px)' }}>
