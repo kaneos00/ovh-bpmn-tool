@@ -9,7 +9,7 @@ import {
 } from '../../../extensions/raci-engine';
 import type { RaciStatus, RaciCode } from '../../../extensions/raci-engine';
 
-type Props = { modeler: any; open: boolean; onClose: () => void };
+type Props = { modeler: any; open: boolean; view: 'matrix' | 'actors'; onClose: () => void };
 type EditCell = { elementId: string; activity: string; role: string; codes: RaciCode[] };
 
 const RACICODES: RaciCode[] = ['R', 'A', 'C', 'I'];
@@ -65,7 +65,7 @@ const modalBodyStyle: React.CSSProperties = {
   padding: 16,
 };
 
-export function RaciMatrix({ modeler, open, onClose }: Props) {
+export function RaciMatrix({ modeler, open, view, onClose }: Props) {
   const [actors, setActors] = useState<string[] | null>(null);
   const [showActors, setShowActors] = useState(false);
   const [showMatrix, setShowMatrix] = useState(false);
@@ -338,38 +338,8 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
 
   return (
     <>
-      <div className="raci-overlay">
-        <div
-          style={{
-            background: 'var(--bpmn-color-background, #fff)',
-            border: '1px solid #ccc',
-            borderRadius: 6,
-            padding: 24,
-            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.25)',
-            minWidth: 360,
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-            <div>
-              <h2>RACI</h2>
-              <p>Gérez les acteurs du processus ou consultez la matrice RACI.</p>
-            </div>
-            <button type="button" onClick={onClose}>Fermer</button>
-          </div>
-
-          <div style={{ display: 'flex', gap: 12, marginTop: 20, flexWrap: 'wrap' }}>
-            <button type="button" onClick={() => setShowActors(true)}>
-              Gérer les acteurs / rôles
-            </button>
-            <button type="button" onClick={() => setShowMatrix(true)}>
-              Afficher la matrice RACI
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {showActors && (
-        <div className="raci-overlay" style={{ zIndex: 1000 }}>
+      {view === 'actors' && (
+        <div className="raci-overlay">
           <div style={modalStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid #ddd' }}>
               <div>
@@ -436,7 +406,7 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
         </div>
       )}
 
-      {showMatrix && (
+      {view === 'matrix' && (
         <div className="raci-overlay" style={{ zIndex: 1000 }}>
           <div style={modalStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid #ddd', gap: 16 }}>
