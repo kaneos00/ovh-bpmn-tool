@@ -204,11 +204,14 @@ export const deriveRaciMatrixFromXml = (xmlContent: string): RaciMatrix => {
       const cellList = roles.map((role): RaciCell => {
         const codes = Array.from(cells.get(role) ?? []);
         const hasExplicitCode = codes.some(code => explicit.has(code));
-        const status: RaciStatus = codes.length === 0
-          ? 'missing'
-          : hasExplicitCode
-            ? 'explicit'
-            : 'inferred';
+        let status: RaciStatus;
+        if (codes.length === 0) {
+          status = 'missing';
+        } else if (hasExplicitCode) {
+          status = 'explicit';
+        } else {
+          status = 'inferred';
+        }
 
         return { role, codes, status };
       });
@@ -274,5 +277,7 @@ export const getRaciIssueLabel = (code: RaciActivityIssueCode): string => {
       return 'A manquant';
     case 'multiple-a':
       return 'Plusieurs A';
+    default:
+      return 'Anomalie RACI';
   }
 };
