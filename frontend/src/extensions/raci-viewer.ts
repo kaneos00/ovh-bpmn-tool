@@ -52,11 +52,6 @@ const getProcesses = (document: Document): Element[] =>
     element => localName(element) === 'process',
   );
 
-const getRootDefinitions = (document: Document): Element | undefined =>
-  Array.from(document.getElementsByTagName('*')).find(
-    element => localName(element) === 'definitions',
-  );
-
 const getLanes = (document: Document): Element[] =>
   Array.from(document.getElementsByTagName('*')).filter(
     element => localName(element) === 'lane',
@@ -85,8 +80,11 @@ const getExplicitRoles = (activity: Element, code: RaciCode): string[] => {
   return splitRoles(textAttr(activity, property[code]));
 };
 
-const getProcessActorList = (process: Element | undefined): string[] =>
-  parseActors(textAttr(process, 'actors'));
+const getConfiguredProcessActors = (process: Element | undefined): string[] | undefined => {
+  if (!process) return undefined;
+  const hasActors = process.hasAttribute('actors') || process.hasAttribute('raci:actors');
+  return hasActors ? parseActors(textAttr(process, 'actors')) : undefined;
+};
 
 export const deriveRaciMatrixFromXml = (xmlContent: string): RaciMatrix => {
   const document = new DOMParser().parseFromString(xmlContent, 'text/xml');
@@ -115,13 +113,13 @@ export const deriveRaciMatrixFromXml = (xmlContent: string): RaciMatrix => {
     if (role && processRef) participantByProcess.set(processRef, role);
   }
 
-  const configuredActors = getProcessActorList(process);
+  const configuredActors = getConfiguredProcessActors(process);
   const inferredActors = unique([
     ...lanes.map(lane => textAttr(lane, 'name')),
     ...participants.map(participant => textAttr(participant, 'name')),
     ...activities.flatMap(activity => RACICODES.flatMap(code => getExplicitRoles(activity, code))),
   ]);
-  const roles = unique(configuredActors.length ? configuredActors : inferredActors).sort((a, b) =>
+  const roles = unique(configuredActors ?? inferredActors).sort((a, b) =>
     a.localeCompare(b),
   );
   const allowedRoles = new Set(roles);
