@@ -239,7 +239,7 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
 
     updateRaciProperties(element, properties);
     setEditCell(null);
-    setActors(current => [...current]);
+    setActors(current => (current ? [...current] : current));
   };
 
   const acceptInferred = () => {
