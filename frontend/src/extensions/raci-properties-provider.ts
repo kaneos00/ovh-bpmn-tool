@@ -35,6 +35,13 @@ class RaciPropertiesProvider {
   getGroups(element: any) {
     return (groups: any[]) => {
       if (!is(element, 'bpmn:BaseElement')) return groups;
+
+      // RACI is meaningful only for BPMN tasks/activities, not events,
+      // gateways, sequence flows, data objects, etc.
+      const type = element?.businessObject?.$type ?? element?.type ?? '';
+      const isRaciTask = /^bpmn:(Task|UserTask|ServiceTask|ManualTask|ScriptTask|BusinessRuleTask|SendTask|ReceiveTask|CallActivity|SubProcess|Transaction)$/.test(type);
+      if (!isRaciTask) return groups;
+
       if (groups.some((group: any) => group.id === 'raci')) return groups;
 
       const entry = (id: string, property: string, label: string) => ({
