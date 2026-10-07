@@ -55,14 +55,21 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
   const definitions = modeler?.getDefinitions?.();
   const configuredActors = definitions ? getConfiguredRaciActors(definitions) : undefined;
 
+  const getProcessElement = () => {
+    const process = definitions && getRaciProcess(definitions);
+    if (!process) return undefined;
+
+    return modeler?.get?.('elementRegistry')?.get?.(process.id);
+  };
+
   useEffect(() => {
     if (!open || !definitions || configuredActors !== undefined) return;
 
-    const process = getRaciProcess(definitions);
-    if (!process) return;
+    const processElement = getProcessElement();
+    if (!processElement) return;
 
     const actors = inferRaciActors(definitions);
-    modeler?.get?.('modeling')?.updateProperties(process, {
+    modeler?.get?.('modeling')?.updateProperties(processElement, {
       actors: serializeRaciActors(actors),
     });
     setRefresh(value => value + 1);
@@ -82,10 +89,10 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
 
   const updateActors = (nextActors: string[]) => {
     const normalized = uniqueActors(nextActors);
-    const process = definitions && getRaciProcess(definitions);
-    if (!process) return;
+    const processElement = getProcessElement();
+    if (!processElement) return;
 
-    modeler?.get?.('modeling')?.updateProperties(process, {
+    modeler?.get?.('modeling')?.updateProperties(processElement, {
       actors: serializeRaciActors(normalized),
     });
     setRefresh(value => value + 1);
