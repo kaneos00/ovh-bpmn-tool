@@ -45,50 +45,80 @@ const codeLabel: Record<RaciCode, string> = {
 const uniqueActors = (actors: string[]) =>
   Array.from(new Set(actors.map(actor => actor.trim()).filter(Boolean)));
 
+const modalStyle: React.CSSProperties = {
+  position: 'fixed',
+  inset: '20px',
+  zIndex: 1001,
+  display: 'flex',
+  flexDirection: 'column',
+  minHeight: 0,
+  background: 'var(--bpmn-color-background, #fff)',
+  border: '1px solid #ccc',
+  borderRadius: 6,
+  boxShadow: '0 8px 30px rgba(0, 0, 0, 0.25)',
+};
+
+const modalBodyStyle: React.CSSProperties = {
+  flex: 1,
+  minHeight: 0,
+  overflow: 'auto',
+  padding: 16,
+};
+
 export function RaciMatrix({ modeler, open, onClose }: Props) {
   const [actors, setActors] = useState<string[] | null>(null);
+  const [showActors, setShowActors] = useState(false);
+  const [showMatrix, setShowMatrix] = useState(false);
   const [editCell, setEditCell] = useState<EditCell | null>(null);
   const [newActor, setNewActor] = useState('');
   const [editingActor, setEditingActor] = useState<string | null>(null);
   const [editingActorValue, setEditingActorValue] = useState('');
+  const [revision, setRevision] = useState(0);
 
   const definitions = modeler?.getDefinitions?.();
+
   const getProcessElement = () => {
     const process = definitions && getRaciProcess(definitions);
     if (!process) return undefined;
-
     return modeler?.get?.('elementRegistry')?.get?.(process.id);
   };
+
+  const refresh = () => setRevision(value => value + 1);
 
   useEffect(() => {
     if (!open || !definitions) return;
 
     const configuredActors = getConfiguredRaciActors(definitions);
+
     if (configuredActors !== undefined) {
-      setActors(current =>
-        current && JSON.stringify(current) === JSON.stringify(configuredActors)
-          ? current
-          : configuredActors,
-      );
-      return;
+      setActors(configuredActors);
+    } else {
+      const inferredActors = inferRaciActors(definitions);
+      const processElement = getProcessElement();
+
+      if (processElement) {
+        modeler?.get?.('modeling')?.updateProperties(processElement, {
+          'raci:actors': serializeRaciActors(inferredActors),
+        });
+      }
+
+      setActors(inferredActors);
     }
 
-    const processElement = getProcessElement();
-    if (!processElement) return;
-
-    const inferredActors = inferRaciActors(definitions);
-    modeler?.get?.('modeling')?.updateProperties(processElement, {
-      'raci:actors': serializeRaciActors(inferredActors),
-    });
-    setActors(inferredActors);
-  }, [open, definitions, modeler]);
+    setShowActors(false);
+    setShowMatrix(false);
+    setEditCell(null);
+    setEditingActor(null);
+    setEditingActorValue('');
+  }, [open, modeler]);
 
   if (!open) return null;
 
+  const displayedActors = actors ?? (definitions ? getRaciActors(definitions) : []);
   const matrix = definitions
     ? deriveRaciMatrix(definitions)
     : { roles: [], activities: [] };
-  const displayedActors = actors ?? (definitions ? getRaciActors(definitions) : []);
+
   const inferredCount = matrix.activities.reduce(
     (count, activity) =>
       count + activity.cells.filter(cell => cell.status === 'inferred').length,
@@ -97,13 +127,17 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
 
   const updateActors = (nextActors: string[]) => {
     const normalized = uniqueActors(nextActors);
-    const processElement = getProcessElement();
-    if (!processElement) return;
-
-    modeler?.get?.('modeling')?.updateProperties(processElement, {
-      'raci:actors': serializeRaciActors(normalized),
-    });
     setActors(normalized);
+    refresh();
+
+    const processElement = getProcessElement();
+    const modeling = modeler?.get?.('modeling');
+
+    if (processElement && modeling) {
+      modeling.updateProperties(processElement, {
+        'raci:actors': serializeRaciActors(normalized),
+      });
+    }
   };
 
   const updateRaciProperties = (
@@ -239,14 +273,12 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
 
     updateRaciProperties(element, properties);
     setEditCell(null);
-    setActors(current => (current ? [...current] : current));
+    refresh();
   };
 
   const acceptInferred = () => {
     const elementRegistry = modeler?.get?.('elementRegistry');
     if (!elementRegistry) return;
-
-    let acceptedCells = 0;
 
     for (const activity of matrix.activities) {
       const element = elementRegistry.get(activity.elementId);
@@ -261,7 +293,6 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
           const roles = rolesByCode.get(code) ?? new Set<string>();
           roles.add(cell.role);
           rolesByCode.set(code, roles);
-          acceptedCells++;
         }
       }
 
@@ -291,181 +322,228 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
       updateRaciProperties(element, properties);
     }
 
-    setActors(current => (current ? [...current] : current));
+    refresh();
+  };
+
+  const closeActors = () => {
+    setShowActors(false);
+    setEditingActor(null);
+    setEditingActorValue('');
+  };
+
+  const closeMatrix = () => {
+    setShowMatrix(false);
+    setEditCell(null);
   };
 
   return (
-    <div className="raci-overlay">
-      <div className="raci-panel">
-        <div className="raci-header">
-          <div>
-            <h2>Matrice RACI</h2>
-            <div className="raci-legend">
-              <span><b>R</b> Responsable</span>
-              <span><b>A</b> Acteur</span>
-              <span><b>C</b> Consulté</span>
-              <span><b>I</b> Informé</span>
+    <>
+      <div className="raci-overlay">
+        <div
+          style={{
+            background: 'var(--bpmn-color-background, #fff)',
+            border: '1px solid #ccc',
+            borderRadius: 6,
+            padding: 24,
+            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.25)',
+            minWidth: 360,
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+            <div>
+              <h2>RACI</h2>
+              <p>Gérez les acteurs du processus ou consultez la matrice RACI.</p>
             </div>
-          </div>
-          <div className="raci-header-actions">
-            {inferredCount > 0 && (
-              <button type="button" onClick={acceptInferred}>
-                Accepter les inférés ({inferredCount})
-              </button>
-            )}
             <button type="button" onClick={onClose}>Fermer</button>
           </div>
+
+          <div style={{ display: 'flex', gap: 12, marginTop: 20, flexWrap: 'wrap' }}>
+            <button type="button" onClick={() => setShowActors(true)}>
+              Gérer les acteurs / rôles
+            </button>
+            <button type="button" onClick={() => setShowMatrix(true)}>
+              Afficher la matrice RACI
+            </button>
+          </div>
         </div>
-
-        <section className="raci-actors">
-          <div className="raci-actors-header">
-            <div>
-              <h3>Acteurs du processus</h3>
-              <p>
-                La liste est initialisée par l'inférence BPMN. Vous pouvez
-                l'enrichir, renommer ou supprimer un acteur.
-              </p>
-            </div>
-          </div>
-
-          <div className="raci-actors-add">
-            <input
-              value={newActor}
-              placeholder="Nom de l'acteur"
-              onChange={event => setNewActor(event.target.value)}
-              onKeyDown={event => {
-                if (event.key === 'Enter') addActor();
-              }}
-            />
-            <button type="button" onClick={addActor}>Ajouter</button>
-          </div>
-
-          <div className="raci-actors-list">
-            <table className="raci-actors-table">
-              <thead>
-                <tr>
-                  <th>Participant / acteur</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayedActors.map(actor => (
-                  <tr key={actor}>
-                    <td>
-                      {editingActor === actor ? (
-                        <input
-                          value={editingActorValue}
-                          onChange={event => setEditingActorValue(event.target.value)}
-                        />
-                      ) : (
-                        actor
-                      )}
-                    </td>
-                    <td>
-                      {editingActor === actor ? (
-                        <>
-                          <button type="button" onClick={saveRename}>Enregistrer</button>
-                          <button type="button" onClick={() => setEditingActor(null)}>Annuler</button>
-                        </>
-                      ) : (
-                        <>
-                          <button type="button" onClick={() => startRename(actor)}>Modifier</button>
-                          <button type="button" onClick={() => removeActor(actor)}>Supprimer</button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <div className="raci-table-wrapper">
-          <table className="raci-table">
-            <thead>
-              <tr>
-                <th>Activité</th>
-                {matrix.roles.map(role => <th key={role}>{role}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {matrix.activities.map(activity => (
-                <tr key={activity.elementId}>
-                  <th
-                    className="raci-activity raci-activity-clickable"
-                    onClick={() => selectActivity(activity.elementId)}
-                  >
-                    {activity.activity}
-                  </th>
-                  {activity.cells.map(cell => (
-                    <td
-                      key={cell.role}
-                      className={`${statusClass[cell.status]} raci-cell-clickable`}
-                      title={`${statusLabel[cell.status]} — clic : sélectionner, double-clic : modifier`}
-                      onClick={() => selectActivity(activity.elementId)}
-                      onDoubleClick={() =>
-                        openCellEditor(activity.elementId, activity.activity, cell.role, cell.codes)
-                      }
-                    >
-                      <div className="raci-cell-code">
-                        {cell.codes.length ? cell.codes.join('/') : '—'}
-                      </div>
-                      <div className="raci-cell-status">
-                        {statusLabel[cell.status]}
-                      </div>
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="raci-footer">
-          <span>🟢 Explicite</span>
-          <span>🟠 Inféré</span>
-          <span>⚪ Manquant</span>
-          <span>{matrix.activities.length} activité(s)</span>
-          <span>{displayedActors.length} acteur(s)</span>
-          <span>Clic : sélectionner · double-clic : modifier R/A/C/I</span>
-        </div>
-
-        {editCell && (
-          <div className="raci-editor-backdrop">
-            <div
-              className="raci-editor"
-              role="dialog"
-              aria-modal="true"
-            >
-              <h3>Modifier la cellule RACI</h3>
-              <div className="raci-editor-context">
-                <strong>{editCell.activity}</strong>
-                <span>Acteur : {editCell.role}</span>
-              </div>
-              <div className="raci-editor-options">
-                {RACICODES.map(code => (
-                  <label key={code}>
-                    <input
-                      type="checkbox"
-                      checked={editCell.codes.includes(code)}
-                      onChange={event => updateCellCode(code, event.target.checked)}
-                    />
-                    {codeLabel[code]}
-                  </label>
-                ))}
-              </div>
-              <div className="raci-editor-help">
-                Les valeurs cochées seront enregistrées comme explicites.
-              </div>
-              <div className="raci-editor-actions">
-                <button type="button" onClick={() => setEditCell(null)}>Annuler</button>
-                <button type="button" onClick={saveCellEdit}>Enregistrer</button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
-    </div>
+
+      {showActors && (
+        <div className="raci-overlay" style={{ zIndex: 1000 }}>
+          <div style={modalStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid #ddd' }}>
+              <div>
+                <h2 style={{ margin: 0 }}>Acteurs / rôles du processus</h2>
+                <p style={{ margin: '6px 0 0' }}>
+                  La liste limite les acteurs disponibles dans les propriétés RACI.
+                </p>
+              </div>
+              <button type="button" onClick={closeActors}>Fermer</button>
+            </div>
+
+            <div style={modalBodyStyle}>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+                <input
+                  value={newActor}
+                  placeholder="Nom de l'acteur"
+                  onChange={event => setNewActor(event.target.value)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') addActor();
+                  }}
+                />
+                <button type="button" onClick={addActor}>Ajouter</button>
+              </div>
+
+              <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 'calc(100vh - 220px)' }}>
+                <table className="raci-actors-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'left', padding: 8 }}>Participant / acteur</th>
+                      <th style={{ textAlign: 'left', padding: 8, width: 220 }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {displayedActors.map(actor => (
+                      <tr key={actor}>
+                        <td style={{ padding: 8 }}>
+                          {editingActor === actor ? (
+                            <input
+                              value={editingActorValue}
+                              onChange={event => setEditingActorValue(event.target.value)}
+                            />
+                          ) : actor}
+                        </td>
+                        <td style={{ padding: 8 }}>
+                          {editingActor === actor ? (
+                            <>
+                              <button type="button" onClick={saveRename}>Enregistrer</button>{' '}
+                              <button type="button" onClick={() => setEditingActor(null)}>Annuler</button>
+                            </>
+                          ) : (
+                            <>
+                              <button type="button" onClick={() => startRename(actor)}>Modifier</button>{' '}
+                              <button type="button" onClick={() => removeActor(actor)}>Supprimer</button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showMatrix && (
+        <div className="raci-overlay" style={{ zIndex: 1000 }}>
+          <div style={modalStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid #ddd', gap: 16 }}>
+              <div>
+                <h2 style={{ margin: 0 }}>Matrice RACI</h2>
+                <div className="raci-legend" style={{ marginTop: 8 }}>
+                  <span><b>R</b> Responsable</span>
+                  <span><b>A</b> Acteur</span>
+                  <span><b>C</b> Consulté</span>
+                  <span><b>I</b> Informé</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {inferredCount > 0 && (
+                  <button type="button" onClick={acceptInferred}>
+                    Accepter les inférés ({inferredCount})
+                  </button>
+                )}
+                <button type="button" onClick={closeMatrix}>Fermer</button>
+              </div>
+            </div>
+
+            <div style={modalBodyStyle}>
+              <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 150px)' }}>
+                <table className="raci-table">
+                  <thead>
+                    <tr>
+                      <th>Activité</th>
+                      {matrix.roles.map(role => <th key={role}>{role}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {matrix.activities.map(activity => (
+                      <tr key={activity.elementId}>
+                        <th
+                          className="raci-activity raci-activity-clickable"
+                          onClick={() => selectActivity(activity.elementId)}
+                        >
+                          {activity.activity}
+                        </th>
+                        {activity.cells.map(cell => (
+                          <td
+                            key={cell.role}
+                            className={`${statusClass[cell.status]} raci-cell-clickable`}
+                            title={`${statusLabel[cell.status]} — clic : sélectionner, double-clic : modifier`}
+                            onClick={() => selectActivity(activity.elementId)}
+                            onDoubleClick={() =>
+                              openCellEditor(activity.elementId, activity.activity, cell.role, cell.codes)
+                            }
+                          >
+                            <div className="raci-cell-code">
+                              {cell.codes.length ? cell.codes.join('/') : '—'}
+                            </div>
+                            <div className="raci-cell-status">
+                              {statusLabel[cell.status]}
+                            </div>
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="raci-footer">
+                <span>🟢 Explicite</span>
+                <span>🟠 Inféré</span>
+                <span>⚪ Manquant</span>
+                <span>{matrix.activities.length} activité(s)</span>
+                <span>{displayedActors.length} acteur(s)</span>
+                <span>Clic : sélectionner · double-clic : modifier R/A/C/I</span>
+              </div>
+            </div>
+
+            {editCell && (
+              <div className="raci-editor-backdrop">
+                <div className="raci-editor" role="dialog" aria-modal="true">
+                  <h3>Modifier la cellule RACI</h3>
+                  <div className="raci-editor-context">
+                    <strong>{editCell.activity}</strong>
+                    <span>Acteur : {editCell.role}</span>
+                  </div>
+                  <div className="raci-editor-options">
+                    {RACICODES.map(code => (
+                      <label key={code}>
+                        <input
+                          type="checkbox"
+                          checked={editCell.codes.includes(code)}
+                          onChange={event => updateCellCode(code, event.target.checked)}
+                        />
+                        {codeLabel[code]}
+                      </label>
+                    ))}
+                  </div>
+                  <div className="raci-editor-help">
+                    Les valeurs cochées seront enregistrées comme explicites.
+                  </div>
+                  <div className="raci-editor-actions">
+                    <button type="button" onClick={() => setEditCell(null)}>Annuler</button>
+                    <button type="button" onClick={saveCellEdit}>Enregistrer</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
