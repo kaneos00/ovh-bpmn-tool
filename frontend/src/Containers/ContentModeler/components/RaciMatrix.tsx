@@ -46,7 +46,7 @@ const uniqueActors = (actors: string[]) =>
   Array.from(new Set(actors.map(actor => actor.trim()).filter(Boolean)));
 
 export function RaciMatrix({ modeler, open, onClose }: Props) {
-  const [actors, setActors] = useState<string[]>([]);
+  const [actors, setActors] = useState<string[] | null>(null);
   const [editCell, setEditCell] = useState<EditCell | null>(null);
   const [newActor, setNewActor] = useState('');
   const [editingActor, setEditingActor] = useState<string | null>(null);
@@ -63,14 +63,19 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
   };
 
   useEffect(() => {
-    if (!open || !definitions || configuredActors !== undefined) return;
+    if (!open || !definitions) return;
+
+    if (configuredActors !== undefined) {
+      setActors(configuredActors);
+      return;
+    }
 
     const processElement = getProcessElement();
     if (!processElement) return;
 
     const inferredActors = inferRaciActors(definitions);
     modeler?.get?.('modeling')?.updateProperties(processElement, {
-      actors: serializeRaciActors(inferredActors),
+      'raci:actors': serializeRaciActors(inferredActors),
     });
     setActors(inferredActors);
   }, [open, definitions, configuredActors, modeler]);
@@ -80,9 +85,7 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
   const matrix = definitions
     ? deriveRaciMatrix(definitions)
     : { roles: [], activities: [] };
-  const displayedActors = definitions && actors.length === 0
-    ? getRaciActors(definitions)
-    : actors;
+  const displayedActors = actors ?? (definitions ? getRaciActors(definitions) : []);
   const inferredCount = matrix.activities.reduce(
     (count, activity) =>
       count + activity.cells.filter(cell => cell.status === 'inferred').length,
@@ -95,7 +98,7 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
     if (!processElement) return;
 
     modeler?.get?.('modeling')?.updateProperties(processElement, {
-      actors: serializeRaciActors(normalized),
+      'raci:actors': serializeRaciActors(normalized),
     });
     setActors(normalized);
   };
@@ -335,26 +338,43 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
           </div>
 
           <div className="raci-actors-list">
-            {displayedActors.map(actor => (
-              <div className="raci-actor" key={actor}>
-                {editingActor === actor ? (
-                  <>
-                    <input
-                      value={editingActorValue}
-                      onChange={event => setEditingActorValue(event.target.value)}
-                    />
-                    <button type="button" onClick={saveRename}>Enregistrer</button>
-                    <button type="button" onClick={() => setEditingActor(null)}>Annuler</button>
-                  </>
-                ) : (
-                  <>
-                    <span>{actor}</span>
-                    <button type="button" onClick={() => startRename(actor)}>Modifier</button>
-                    <button type="button" onClick={() => removeActor(actor)}>Supprimer</button>
-                  </>
-                )}
-              </div>
-            ))}
+            <table className="raci-actors-table">
+              <thead>
+                <tr>
+                  <th>Participant / acteur</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayedActors.map(actor => (
+                  <tr key={actor}>
+                    <td>
+                      {editingActor === actor ? (
+                        <input
+                          value={editingActorValue}
+                          onChange={event => setEditingActorValue(event.target.value)}
+                        />
+                      ) : (
+                        actor
+                      )}
+                    </td>
+                    <td>
+                      {editingActor === actor ? (
+                        <>
+                          <button type="button" onClick={saveRename}>Enregistrer</button>
+                          <button type="button" onClick={() => setEditingActor(null)}>Annuler</button>
+                        </>
+                      ) : (
+                        <>
+                          <button type="button" onClick={() => startRename(actor)}>Modifier</button>
+                          <button type="button" onClick={() => removeActor(actor)}>Supprimer</button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
 
