@@ -119,20 +119,23 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
   }, [open, modeler]);
 
   useEffect(() => {
-    if (!open || !modeler) return;
+    if (open && modeler) {
+      const eventBus = modeler?.get?.('eventBus');
 
-    const eventBus = modeler?.get?.('eventBus');
-    if (!eventBus?.on) return;
+      if (eventBus?.on) {
+        const handleCommandStackChanged = () => {
+          setRevision(value => value + 1);
+        };
 
-    const handleCommandStackChanged = () => {
-      setRevision(value => value + 1);
-    };
+        eventBus.on('commandStack.changed', handleCommandStackChanged);
 
-    eventBus.on('commandStack.changed', handleCommandStackChanged);
+        return () => {
+          eventBus.off?.('commandStack.changed', handleCommandStackChanged);
+        };
+      }
+    }
 
-    return () => {
-      eventBus.off?.('commandStack.changed', handleCommandStackChanged);
-    };
+    return undefined;
   }, [open, modeler]);
 
   const displayedActors = actors ?? (definitions ? getRaciActors(definitions) : []);
