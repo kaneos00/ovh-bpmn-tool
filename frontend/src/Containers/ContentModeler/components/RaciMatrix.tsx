@@ -233,7 +233,7 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
 
     updateRaciProperties(element, properties);
     setEditCell(null);
-    setRefresh(value => value + 1);
+    setActors(current => [...current]);
   };
 
   const acceptInferred = () => {
@@ -285,7 +285,7 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
       updateRaciProperties(element, properties);
     }
 
-    setRefresh(value => value + 1);
+    setActors(current => [...current]);
   };
 
   return (
