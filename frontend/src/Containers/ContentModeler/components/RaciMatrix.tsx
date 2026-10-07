@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   deriveRaciMatrix,
   getConfiguredRaciActors,
@@ -121,9 +121,12 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
   if (!open) return null;
 
   const displayedActors = actors ?? (definitions ? getRaciActors(definitions) : []);
-  const matrix = definitions
-    ? deriveRaciMatrix(definitions)
-    : { roles: [], activities: [] };
+  const matrix = useMemo(
+    () => (definitions
+      ? deriveRaciMatrix(definitions)
+      : { roles: [], activities: [] }),
+    [definitions, revision],
+  );
 
   const inferredCount = matrix.activities.reduce(
     (count, activity) =>
