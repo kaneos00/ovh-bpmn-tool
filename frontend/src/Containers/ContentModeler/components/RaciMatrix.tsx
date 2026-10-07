@@ -67,8 +67,6 @@ const modalBodyStyle: React.CSSProperties = {
 
 export function RaciMatrix({ modeler, open, view, onClose }: Props) {
   const [actors, setActors] = useState<string[] | null>(null);
-  const [showActors, setShowActors] = useState(false);
-  const [showMatrix, setShowMatrix] = useState(false);
   const [editCell, setEditCell] = useState<EditCell | null>(null);
   const [newActor, setNewActor] = useState('');
   const [editingActor, setEditingActor] = useState<string | null>(null);
