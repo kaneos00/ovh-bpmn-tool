@@ -11,8 +11,6 @@ import {
   TabPanel,
   Tabs,
   Typography,
-  List,
-  ListItem,
 } from '@mui/joy';
 import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 import { useQuery } from 'react-query';
@@ -23,15 +21,35 @@ import { useContentViewer } from './hooks/useContentViewer';
 import { contentsQuery, getXmlContentQuery } from '../../api/contents/contents.queries';
 import { ContentStatusEnum, type Content } from '../../Types';
 import { formatDateTime } from '../../shared/helpers/date';
+import {
+  analyzeRaciMatrix,
+  deriveRaciMatrixFromXml,
+  getRaciIssueLabel,
+} from '../../extensions/raci-viewer';
+import type { RaciCode } from '../../extensions/raci-engine';
 
 import './ContentViewerContainer.scss';
 
-const parser = new DOMParser();
+const RACICODES: RaciCode[] = ['R', 'A', 'C', 'I'];
+const STATUS_LABELS = {
+  explicit: 'Explicite',
+  inferred: 'Inféré',
+  missing: 'Manquant',
+} as const;
+
+const statusMarker = {
+  explicit: '●',
+  inferred: '◐',
+  missing: '—',
+} as const;
 
 export const Component = () => {
   const { resourceId, contentId } = useContentViewer();
   const navigate = useNavigate();
   const [folderOpen, setFolderOpen] = useState(true);
+  const [actorFilter, setActorFilter] = useState('');
+  const [codeFilter, setCodeFilter] = useState<RaciCode | ''>('');
+  const [issuesOnly, setIssuesOnly] = useState(false);
 
   const { data: contents = [] } = useQuery(contentsQuery(resourceId));
   const { data: xmlContent } = useQuery(
@@ -44,18 +62,38 @@ export const Component = () => {
       .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0];
   }, [contents]);
 
-  const activities = useMemo(() => {
-    if (!xmlContent) {
-      return [];
-    }
+  const raciMatrix = useMemo(
+    () => (xmlContent ? deriveRaciMatrixFromXml(xmlContent) : { roles: [], activities: [] }),
+    [xmlContent],
+  );
 
-    const xml = parser.parseFromString(xmlContent, 'text/xml');
+  const raciAnalysis = useMemo(
+    () => analyzeRaciMatrix(raciMatrix),
+    [raciMatrix],
+  );
 
-    return Array.from(xml.querySelectorAll('task')).map((task, index) => ({
-      id: task.getAttribute('id') || `task-${index}`,
-      name: task.getAttribute('name') || 'Unnamed activity',
-    }));
-  }, [xmlContent]);
+  const issueByActivity = useMemo(
+    () => new Map(raciAnalysis.issues.map(issue => [issue.activityId, issue])),
+    [raciAnalysis],
+  );
+
+  const filteredActivities = useMemo(() => {
+    return raciMatrix.activities.filter(activity => {
+      const issue = issueByActivity.get(activity.elementId);
+
+      if (issuesOnly && !issue) return false;
+
+      if (actorFilter) {
+        const actorCell = activity.cells.find(cell => cell.role === actorFilter);
+        if (!actorCell?.codes.length) return false;
+        if (codeFilter && !actorCell.codes.includes(codeFilter)) return false;
+      } else if (codeFilter) {
+        if (!activity.cells.some(cell => cell.codes.includes(codeFilter))) return false;
+      }
+
+      return true;
+    });
+  }, [raciMatrix.activities, issueByActivity, actorFilter, codeFilter, issuesOnly]);
 
   return (
     <Box className="viewerLayout">
@@ -123,7 +161,7 @@ export const Component = () => {
         <Tabs defaultValue={0} className="viewerTabs">
           <TabList sticky="top" variant="plain">
             <Tab value={0}>Version history</Tab>
-            <Tab value={1}>Activities ({activities.length})</Tab>
+            <Tab value={1}>Activities ({raciMatrix.activities.length})</Tab>
           </TabList>
 
           <TabPanel value={0} className="viewerTabPanel">
@@ -148,17 +186,126 @@ export const Component = () => {
           </TabPanel>
 
           <TabPanel value={1} className="viewerTabPanel">
-            {activities.length ? (
-              <List size="sm">
-                {activities.map(activity => (
-                  <ListItem key={activity.id}>{activity.name}</ListItem>
-                ))}
-              </List>
-            ) : (
-              <Typography level="body-sm" textColor="neutral">
-                No activities found
+            <Stack spacing={1.25}>
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                <select
+                  aria-label="Filtrer par acteur"
+                  value={actorFilter}
+                  onChange={event => setActorFilter(event.target.value)}
+                >
+                  <option value="">Tous les acteurs</option>
+                  {raciMatrix.roles.map(actor => (
+                    <option key={actor} value={actor}>{actor}</option>
+                  ))}
+                </select>
+
+                <select
+                  aria-label="Filtrer par rôle RACI"
+                  value={codeFilter}
+                  onChange={event => setCodeFilter(event.target.value as RaciCode | '')}
+                >
+                  <option value="">Tous les rôles</option>
+                  {RACICODES.map(code => (
+                    <option key={code} value={code}>{code}</option>
+                  ))}
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() => setIssuesOnly(value => !value)}
+                  aria-pressed={issuesOnly}
+                >
+                  {issuesOnly ? 'Toutes les activités' : '⚠ Activités à compléter'}
+                </button>
+              </Stack>
+
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                <Typography level="body-xs">
+                  {raciMatrix.activities.length} activité(s)
+                </Typography>
+                <Typography level="body-xs">
+                  {raciMatrix.roles.length} acteur(s)
+                </Typography>
+                <Typography level="body-xs" color={raciAnalysis.issues.length ? 'danger' : 'success'}>
+                  {raciAnalysis.issues.length} anomalie(s)
+                </Typography>
+                {raciAnalysis.unusedActors.length > 0 && (
+                  <Typography level="body-xs" color="warning">
+                    {raciAnalysis.unusedActors.length} acteur(s) non utilisé(s)
+                  </Typography>
+                )}
+              </Stack>
+
+              {filteredActivities.length ? (
+                <Box sx={{ overflowX: 'auto', maxWidth: '100%' }}>
+                  <table
+                    aria-label="Matrice RACI en lecture seule"
+                    style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}
+                  >
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: 'left', padding: 6 }}>Activité</th>
+                        {raciMatrix.roles.map(role => (
+                          <th key={role} style={{ padding: 6, minWidth: 90 }}>{role}</th>
+                        ))}
+                        <th style={{ padding: 6, minWidth: 130 }}>Contrôle</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredActivities.map(activity => {
+                        const issue = issueByActivity.get(activity.elementId);
+
+                        return (
+                          <tr key={activity.elementId}>
+                            <th style={{ textAlign: 'left', padding: 6, verticalAlign: 'top' }}>
+                              {activity.activity}
+                            </th>
+                            {activity.cells.map(cell => (
+                              <td
+                                key={cell.role}
+                                title={`${STATUS_LABELS[cell.status]} — ${cell.codes.length ? cell.codes.join('/') : 'aucun rôle'}`}
+                                style={{
+                                  padding: 6,
+                                  textAlign: 'center',
+                                  verticalAlign: 'top',
+                                  opacity: cell.codes.length ? 1 : 0.55,
+                                }}
+                              >
+                                <strong>{cell.codes.length ? cell.codes.join('/') : '—'}</strong>
+                                <div>{statusMarker[cell.status]} {STATUS_LABELS[cell.status]}</div>
+                              </td>
+                            ))}
+                            <td style={{ padding: 6, verticalAlign: 'top' }}>
+                              {issue ? issue.codes.map(code => (
+                                <div key={code}>⚠ {getRaciIssueLabel(code)}</div>
+                              )) : '✓ OK'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </Box>
+              ) : (
+                <Typography level="body-sm" textColor="neutral">
+                  Aucune activité ne correspond aux filtres.
+                </Typography>
+              )}
+
+              {raciAnalysis.unusedActors.length > 0 && (
+                <Sheet variant="soft" color="warning" sx={{ p: 1 }}>
+                  <Typography level="title-sm">Acteurs non utilisés</Typography>
+                  <Typography level="body-xs">
+                    {raciAnalysis.unusedActors.join(', ')}
+                  </Typography>
+                </Sheet>
+              )}
+
+              <Typography level="body-xs" textColor="neutral">
+                Lecture seule : aucune modification du RACI n'est possible depuis le Viewer.
+                ● Explicite · ◐ Inféré · — Manquant.
               </Typography>
-            )}
+            </Stack>
           </TabPanel>
         </Tabs>
       </Sheet>
