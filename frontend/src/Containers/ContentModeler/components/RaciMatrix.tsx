@@ -162,7 +162,7 @@ export function RaciMatrix({ modeler, open, onClose }: Props) {
     const previous = editingActor;
     const next = editingActorValue.trim();
 
-    if (!previous || !next || (next !== previous && actors.includes(next))) return;
+    if (!previous || !next || (next !== previous && displayedActors.includes(next))) return;
 
     replaceActorInAssignments(previous, next);
     updateActors(displayedActors.map(actor => (actor === previous ? next : actor)));
