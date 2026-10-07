@@ -124,20 +124,30 @@ const roleOf = (
   element: AnyElement,
   nodeToLane: Map<string, string>,
   processToParticipant: Map<string, string>,
+  allowedRoles?: Set<string>,
 ): string | undefined => {
-  if (element?.id && nodeToLane.has(element.id)) return nodeToLane.get(element.id);
+  const laneRole = element?.id && nodeToLane.has(element.id)
+    ? nodeToLane.get(element.id)
+    : undefined;
 
+  let participantRole: string | undefined;
   let parent = element?.$parent;
   while (parent) {
-    if (parent.$type === 'bpmn:Lane' && parent.name) return String(parent.name).trim();
-    if (parent.$type === 'bpmn:Participant' && parent.name) return String(parent.name).trim();
+    if (parent.$type === 'bpmn:Lane' && parent.name && !laneRole) {
+      return String(parent.name).trim();
+    }
+    if (parent.$type === 'bpmn:Participant' && parent.name) {
+      participantRole = String(parent.name).trim();
+    }
     if (parent.$type === 'bpmn:Process' && parent.id) {
-      return processToParticipant.get(parent.id);
+      participantRole = processToParticipant.get(parent.id);
+      break;
     }
     parent = parent.$parent;
   }
 
-  return undefined;
+  if (laneRole && (!allowedRoles || allowedRoles.has(laneRole))) return laneRole;
+  return participantRole;
 };
 
 const addCode = (cells: Map<string, Set<RaciCode>>, role: string | undefined, code: RaciCode) => {
@@ -202,7 +212,7 @@ export function deriveRaciMatrix(definitions: AnyElement): RaciMatrix {
         assigned.filter(role => roles.has(role)).forEach(role => addCode(cells, role, code));
       });
 
-      const laneRole = roleOf(element, nodeToLane, processToParticipant);
+      const laneRole = roleOf(element, nodeToLane, processToParticipant, roles);
       if (!explicit.has('R') && laneRole && roles.has(laneRole)) addCode(cells, laneRole, 'R');
       if (!explicit.has('A') && laneRole && roles.has(laneRole) && APPROVAL_PATTERN.test(getName(element))) {
         addCode(cells, laneRole, 'A');
@@ -210,11 +220,11 @@ export function deriveRaciMatrix(definitions: AnyElement): RaciMatrix {
 
       for (const flow of messageFlows) {
         if (flow?.targetRef?.id === element?.id && !explicit.has('C')) {
-          const role = roleOf(flow.sourceRef, nodeToLane, processToParticipant);
+          const role = roleOf(flow.sourceRef, nodeToLane, processToParticipant, roles);
           if (role && roles.has(role)) addCode(cells, role, 'C');
         }
         if (flow?.sourceRef?.id === element?.id && !explicit.has('I')) {
-          const role = roleOf(flow.targetRef, nodeToLane, processToParticipant);
+          const role = roleOf(flow.targetRef, nodeToLane, processToParticipant, roles);
           if (role && roles.has(role)) addCode(cells, role, 'I');
         }
       }
