@@ -29,7 +29,8 @@ type ModelerActionBarProps = {
   onDiagramSave: () => void;
   onDiagramPublish: () => void;
   onShortcutDisplay: () => void;
-  onRaciOpen: () => void;\n  onRolesOpen: () => void;
+  onRaciOpen: () => void;
+  onRolesOpen: () => void;
 };
 
 export const ModelerActionBar = ({
@@ -40,7 +41,8 @@ export const ModelerActionBar = ({
   onDiagramSave,
   onDiagramPublish,
   onShortcutDisplay,
-  onRaciOpen,\n  onRolesOpen,
+  onRaciOpen,
+  onRolesOpen,
 }: ModelerActionBarProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
