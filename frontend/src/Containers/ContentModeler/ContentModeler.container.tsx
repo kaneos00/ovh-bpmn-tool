@@ -60,7 +60,8 @@ export const Component = () => {
         onDiagramSave={onDiagramSave}
         onDiagramPublish={onDiagramPublish}
         onShortcutDisplay={() => setIsShortcurtModalOpen(true)}
-        onRaciOpen={() => setRaciView('matrix')}\n        onRolesOpen={() => setRaciView('actors')}
+        onRaciOpen={() => setRaciView('matrix')}
+        onRolesOpen={() => setRaciView('actors')}
       />
       <Modeler
         diagramContainerRef={diagramContainerRef}
