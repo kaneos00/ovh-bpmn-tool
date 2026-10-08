@@ -50,6 +50,7 @@ export const Component = () => {
   const [actorFilter, setActorFilter] = useState('');
   const [codeFilter, setCodeFilter] = useState<RaciCode | ''>('');
   const [issuesOnly, setIssuesOnly] = useState(false);
+  const [raciModalOpen, setRaciModalOpen] = useState(false);
 
   const { data: contents = [] } = useQuery(contentsQuery(resourceId));
   const { data: xmlContent } = useQuery(
@@ -220,6 +221,13 @@ export const Component = () => {
               </Stack>
 
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                <button
+                  type="button"
+                  onClick={() => setRaciModalOpen(true)}
+                  disabled={!filteredActivities.length}
+                >
+                  Ouvrir la matrice RACI
+                </button>
                 <Typography level="body-xs">
                   {raciMatrix.activities.length} activité(s)
                 </Typography>
@@ -236,63 +244,118 @@ export const Component = () => {
                 )}
               </Stack>
 
-              {filteredActivities.length ? (
-                <Box sx={{ overflowX: 'auto', maxWidth: '100%' }}>
-                  <table
-                    aria-label="Matrice RACI en lecture seule"
-                    style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}
-                  >
-                    <thead>
-                      <tr>
-                        <th style={{ textAlign: 'left', padding: 6 }}>Activité</th>
-                        {raciMatrix.roles.map(role => (
-                          <th key={role} style={{ padding: 6, minWidth: 90 }}>{role}</th>
-                        ))}
-                        <th style={{ padding: 6, minWidth: 130 }}>Contrôle</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredActivities.map(activity => {
-                        const issue = issueByActivity.get(activity.elementId);
+              <Typography level="body-sm" textColor="neutral">
+                {filteredActivities.length
+                  ? 'La matrice RACI est disponible dans la fenêtre dédiée.'
+                  : 'Aucune activité ne correspond aux filtres.'}
+              </Typography>
 
-                        return (
-                          <tr key={activity.elementId}>
-                            <th style={{ textAlign: 'left', padding: 6, verticalAlign: 'top' }}>
-                              {activity.activity}
+              {raciModalOpen && (
+                <Box
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Matrice RACI"
+                  sx={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 20000,
+                    bgcolor: 'rgba(20, 25, 35, 0.35)',
+                    display: 'flex',
+                    alignItems: 'stretch',
+                    justifyContent: 'center',
+                    p: 3,
+                  }}
+                >
+                  <Sheet
+                    variant="outlined"
+                    sx={{
+                      width: 'min(96vw, 1500px)',
+                      mx: 'auto',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      minHeight: 0,
+                      overflow: 'hidden',
+                      boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
+                    }}
+                  >
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}
+                    >
+                      <Stack spacing={0.5}>
+                        <Typography level="h3">Matrice RACI</Typography>
+                        <Typography level="body-xs" textColor="neutral">
+                          Lecture seule · ● Explicite · ◐ Inféré · — Manquant
+                        </Typography>
+                      </Stack>
+                      <button type="button" onClick={() => setRaciModalOpen(false)}>
+                        Fermer
+                      </button>
+                    </Stack>
+
+                    <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', p: 2 }}>
+                      <table
+                        aria-label="Matrice RACI en lecture seule"
+                        style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}
+                      >
+                        <thead>
+                          <tr>
+                            <th style={{ textAlign: 'left', padding: 8, position: 'sticky', top: 0, background: 'var(--joy-palette-background-surface, white)' }}>
+                              Activité
                             </th>
-                            {activity.cells.map(cell => (
-                              <td
-                                key={cell.role}
-                                title={`${STATUS_LABELS[cell.status]} — ${cell.codes.length ? cell.codes.join('/') : 'aucun rôle'}`}
-                                style={{
-                                  padding: 6,
-                                  textAlign: 'center',
-                                  verticalAlign: 'top',
-                                  opacity: cell.codes.length ? 1 : 0.55,
-                                }}
-                              >
-                                <strong>{cell.codes.length ? cell.codes.join('/') : '—'}</strong>
-                                <div>{statusMarker[cell.status]} {STATUS_LABELS[cell.status]}</div>
-                              </td>
+                            {raciMatrix.roles.map(role => (
+                              <th key={role} style={{ padding: 8, minWidth: 100, position: 'sticky', top: 0, background: 'var(--joy-palette-background-surface, white)' }}>
+                                {role}
+                              </th>
                             ))}
-                            <td style={{ padding: 6, verticalAlign: 'top' }}>
-                              {issue ? issue.codes.map(code => (
-                                <div key={code}>⚠ {getRaciIssueLabel(code)}</div>
-                              )) : '✓ OK'}
-                            </td>
+                            <th style={{ padding: 8, minWidth: 160, position: 'sticky', top: 0, background: 'var(--joy-palette-background-surface, white)' }}>
+                              Contrôle
+                            </th>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                        </thead>
+                        <tbody>
+                          {filteredActivities.map(activity => {
+                            const issue = issueByActivity.get(activity.elementId);
+
+                            return (
+                              <tr key={activity.elementId}>
+                                <th style={{ textAlign: 'left', padding: 8, verticalAlign: 'top', borderTop: '1px solid #ddd' }}>
+                                  {activity.activity}
+                                </th>
+                                {activity.cells.map(cell => (
+                                  <td
+                                    key={cell.role}
+                                    title={`${STATUS_LABELS[cell.status]} — ${cell.codes.length ? cell.codes.join('/') : 'aucun rôle'}`}
+                                    style={{
+                                      padding: 8,
+                                      textAlign: 'center',
+                                      verticalAlign: 'top',
+                                      borderTop: '1px solid #ddd',
+                                      opacity: cell.codes.length ? 1 : 0.55,
+                                    }}
+                                  >
+                                    <strong>{cell.codes.length ? cell.codes.join('/') : '—'}</strong>
+                                    <div>{statusMarker[cell.status]} {STATUS_LABELS[cell.status]}</div>
+                                  </td>
+                                ))}
+                                <td style={{ padding: 8, verticalAlign: 'top', borderTop: '1px solid #ddd' }}>
+                                  {issue ? issue.codes.map(code => (
+                                    <div key={code}>⚠ {getRaciIssueLabel(code)}</div>
+                                  )) : '✓ OK'}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </Box>
+                  </Sheet>
                 </Box>
-              ) : (
-                <Typography level="body-sm" textColor="neutral">
-                  Aucune activité ne correspond aux filtres.
-                </Typography>
               )}
 
-              {raciAnalysis.unusedActors.length > 0 && (
+{raciAnalysis.unusedActors.length > 0 && (
                 <Sheet variant="soft" color="warning" sx={{ p: 1 }}>
                   <Typography level="title-sm">Acteurs non utilisés</Typography>
                   <Typography level="body-xs">
