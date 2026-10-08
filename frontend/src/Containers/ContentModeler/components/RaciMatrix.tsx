@@ -234,7 +234,16 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
     if (!previous || !next || (next !== previous && displayedActorNames.includes(next))) return;
 
     replaceActorInAssignments(previous, next);
-    updateActors(displayedActorList.map(actor => (actor.name === previous ? { ...actor, name: next } : actor)));
+    const previousActor = displayedActorList.find(actor => actor.name === previous);
+    const nextActors = displayedActorList.flatMap(actor => {
+      if (actor.name !== previous) return [actor];
+      if (actor.source === 'manual') return [{ ...actor, name: next }];
+      return [
+        { ...actor, active: false },
+        { name: next, source: 'manual' as const, active: true },
+      ];
+    });
+    updateActors(previousActor ? nextActors : displayedActorList);
     setEditingActor(null);
     setEditingActorValue('');
   };
