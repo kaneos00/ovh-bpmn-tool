@@ -1,4 +1,3 @@
-import { analyzeRaciMatrix, getRaciIssueLabel } from './raci-engine';
 import type { RaciActivity, RaciCell, RaciCode, RaciMatrix, RaciStatus } from './raci-engine';
 
 const RACICODES: RaciCode[] = ['R', 'A', 'C', 'I'];
