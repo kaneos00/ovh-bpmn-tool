@@ -105,6 +105,26 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
     if (!open || !definitions) return;
 
     const configuredActors = getConfiguredRaciActors(definitions);
+    const inferredActors = inferRaciActors(definitions);
+    const detectedActors = getRaciActors(definitions);
+    const debugActivities = deriveRaciMatrix(definitions).activities.map(activity => ({
+      id: activity.elementId,
+      activity: activity.activity,
+      roles: activity.cells
+        .filter(cell => cell.codes.length > 0)
+        .map(cell => ({ role: cell.role, codes: cell.codes, status: cell.status })),
+    }));
+
+    // Temporary diagnostic: exposes the exact actor sources used by the Modeler.
+    console.groupCollapsed('[RACI][Modeler] diagnostic');
+    console.log('configured actors:', configuredActors);
+    console.log('inferred actors:', inferredActors);
+    console.log('final actors / matrix roles:', detectedActors);
+    console.log('missing from configured:', inferredActors.filter(role => !(configuredActors ?? []).includes(role)));
+    console.table(debugActivities.flatMap(activity =>
+      activity.roles.map(role => ({ activity: activity.activity, ...role })),
+    ));
+    console.groupEnd();
 
     if (configuredActors !== undefined) {
       setActors(getRaciActors(definitions));
