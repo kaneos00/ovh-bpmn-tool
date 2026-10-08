@@ -4,7 +4,6 @@ import {
   getConfiguredRaciActorList,
   getRaciActorList,
   getRaciProcess,
-  inferRaciActors,
   serializeRaciActors,
 } from '../../../extensions/raci-engine';
 import type { RaciStatus, RaciCode, RaciActor } from '../../../extensions/raci-engine';
