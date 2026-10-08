@@ -274,3 +274,25 @@ export function deriveRaciMatrix(definitions: AnyElement): RaciMatrix {
     }),
   };
 }
+
+export type RaciActivityIssueCode = 'missing-r' | 'missing-a' | 'multiple-a';
+export type RaciActivityIssue = { activityId: string; activity: string; codes: RaciActivityIssueCode[] };
+export type RaciAnalysis = { issues: RaciActivityIssue[]; unusedActors: string[] };
+export const analyzeRaciMatrix = (matrix: RaciMatrix): RaciAnalysis => {
+  const issues = matrix.activities.map(activity => {
+    const activeCells = activity.cells.filter(cell => cell.codes.length > 0);
+    const hasR = activeCells.some(cell => cell.codes.includes('R'));
+    const accountableCount = activeCells.filter(cell => cell.codes.includes('A')).length;
+    const codes: RaciActivityIssueCode[] = [];
+    if (!hasR) codes.push('missing-r');
+    if (accountableCount === 0) codes.push('missing-a');
+    if (accountableCount > 1) codes.push('multiple-a');
+    return { activityId: activity.elementId, activity: activity.activity, codes };
+  }).filter(issue => issue.codes.length > 0);
+  const usedActors = new Set<string>();
+  for (const activity of matrix.activities) for (const cell of activity.cells) if (cell.codes.length) usedActors.add(cell.role);
+  return { issues, unusedActors: matrix.roles.filter(role => !usedActors.has(role)) };
+};
+export const getRaciIssueLabel = (code: RaciActivityIssueCode): string => {
+  switch (code) { case 'missing-r': return 'R manquant'; case 'missing-a': return 'A manquant'; case 'multiple-a': return 'Plusieurs A'; default: return 'Anomalie RACI'; }
+};

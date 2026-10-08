@@ -6,6 +6,8 @@ import {
   getRaciProcess,
   inferRaciActors,
   serializeRaciActors,
+  analyzeRaciMatrix,
+  getRaciIssueLabel,
 } from '../../../extensions/raci-engine';
 import type { RaciStatus, RaciCode } from '../../../extensions/raci-engine';
 
@@ -494,6 +496,7 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
                     <tr>
                       <th>Activité</th>
                       {matrix.roles.map(role => <th key={role}>{role}</th>)}
+                      <th>Contrôle</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -523,6 +526,14 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
                             </div>
                           </td>
                         ))}
+                        <td className="raci-control-cell">
+                          {(() => {
+                            const issue = analyzeRaciMatrix({ roles: matrix.roles, activities: [activity] }).issues[0];
+                            return issue
+                              ? issue.codes.map(code => <div key={code}>⚠ {getRaciIssueLabel(code)}</div>)
+                              : '✓ OK';
+                          })()}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

@@ -20,10 +20,9 @@ import { ProcessContentList } from '../ProcessContentList/ProcessContentList';
 import { ProcessViewer } from '../ProcessViewer';
 import { getXmlContentQuery } from '../../../api/contents/contents.queries';
 import {
-  analyzeRaciMatrix,
   deriveRaciMatrixFromXml,
-  getRaciIssueLabel,
 } from '../../../extensions/raci-viewer';
+import { analyzeRaciMatrix } from '../../../extensions/raci-engine';
 import { ConditionalRender } from '../../../Components/GenericComponents/ConditionalRender/ConditionalRender';
 import { DropZone } from '../../../Components/GenericComponents/DropZone/DropZone';
 
@@ -81,11 +80,6 @@ export const ProcessDetails = ({
   const raciAnalysis = useMemo(
     () => analyzeRaciMatrix(raciMatrix),
     [raciMatrix],
-  );
-
-  const issueByActivity = useMemo(
-    () => new Map(raciAnalysis.issues.map(issue => [issue.activityId, issue])),
-    [raciAnalysis],
   );
 
   if (isLoading) {
@@ -224,12 +218,10 @@ export const ProcessDetails = ({
                           {role}
                         </th>
                       ))}
-                      <th style={{ padding: 8, minWidth: 160 }}>Contrôle</th>
                     </tr>
                   </thead>
                   <tbody>
                     {raciMatrix.activities.map(activity => {
-                      const issue = issueByActivity.get(activity.elementId);
 
                       return (
                         <tr key={activity.elementId}>
@@ -260,21 +252,7 @@ export const ProcessDetails = ({
                               </strong>
                             </td>
                           ))}
-                          <td
-                            style={{
-                              padding: 8,
-                              verticalAlign: 'top',
-                              borderTop: '1px solid #ddd',
-                            }}
-                          >
-                            {issue
-                              ? issue.codes.map(code => (
-                                  <div key={code}>
-                                    ⚠ {getRaciIssueLabel(code)}
-                                  </div>
-                                ))
-                              : '✓ OK'}
-                          </td>
+d>
                         </tr>
                       );
                     })}
