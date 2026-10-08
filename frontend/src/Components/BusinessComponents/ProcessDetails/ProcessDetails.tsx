@@ -60,8 +60,13 @@ export const ProcessDetails = ({
     onContentChecked,
   } = useProcessDetails(resourceId, { onContentUpload });
 
+  const xmlContentQuery = getXmlContentQuery(
+    resourceId,
+    publishedContent?.id ?? '',
+  );
   const { data: xmlContent } = useQuery(
-    getXmlContentQuery(resourceId, publishedContent?.id ?? ''),
+    xmlContentQuery.queryKey,
+    xmlContentQuery.queryFn,
     { enabled: Boolean(publishedContent) },
   );
 
