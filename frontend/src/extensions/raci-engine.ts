@@ -386,6 +386,9 @@ export const getConfiguredRaciActors = (definitions: AnyElement): string[] | und
   return configured?.filter(actor => actor.active).map(actor => actor.name);
 };
 
+export const getConfiguredRaciActorList = (definitions: AnyElement): RaciActor[] | undefined =>
+  mergeConfiguredActors(definitions);
+
 export const getRaciActors = (definitions: AnyElement): string[] =>
   getRaciActorList(definitions).filter(actor => actor.active).map(actor => actor.name);
 
