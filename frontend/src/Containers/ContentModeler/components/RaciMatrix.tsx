@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   deriveRaciMatrix,
   getConfiguredRaciActorList,
-  getRaciActors,
+  getRaciActorList,
   getRaciProcess,
   inferRaciActors,
   serializeRaciActors,
@@ -98,11 +98,7 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
     if (configuredActors !== undefined) {
       setActors(configuredActors);
     } else {
-      const inferredActors = inferRaciActors(definitions).map(name => ({
-        name,
-        source: 'manual' as const,
-        active: true,
-      }));
+      const inferredActors = getRaciActorList(definitions);
       const context = getProcessMutationContext();
       const modeling = modeler?.get?.('modeling');
 
@@ -271,12 +267,7 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
   const restoreInferredActors = () => {
     if (!definitions) return;
 
-    const inferredActors = inferRaciActors(definitions).map(name => ({
-      name,
-      source: 'manual' as const,
-      active: true,
-    }));
-    updateActors(inferredActors);
+    updateActors(getRaciActorList(definitions).map(actor => ({ ...actor, active: true })));
   };
 
   const selectActivity = (elementId: string) => {
@@ -452,18 +443,24 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
                               value={editingActorValue}
                               onChange={event => setEditingActorValue(event.target.value)}
                             />
-                          ) : actor}
-                        \n                        <td style={{ padding: 8 }}>{actor.source === 'bpmn' ? 'BPMN' : actor.source === 'lane' ? 'Lane' : actor.source === 'explicit' ? 'RACI' : 'Manuel'}</td>\n                        <td style={{ padding: 8 }}>{actor.active ? '✓' : '✗'}</td></td>
+                          ) : actor.name}
+                        </td>
+                        <td style={{ padding: 8 }}>{actor.source === 'bpmn' ? 'BPMN' : actor.source === 'lane' ? 'Lane' : actor.source === 'explicit' ? 'RACI' : 'Manuel'}</td>
+                        <td style={{ padding: 8 }}>{actor.active ? '✓' : '✗'}</td>
                         <td style={{ padding: 8 }}>
-                          {editingActor === actor ? (
+                          {editingActor === actor.name ? (
                             <>
                               <button type="button" onClick={saveRename}>Enregistrer</button>{' '}
                               <button type="button" onClick={() => setEditingActor(null)}>Annuler</button>
                             </>
                           ) : (
                             <>
-                              <button type="button" onClick={() => startRename(actor.name)}>Modifier</button>{' '}
-                              <button type="button" onClick={() => removeActor(actor.name)}>Supprimer</button>
+                              {actor.active && <button type="button" onClick={() => startRename(actor.name)}>Modifier</button>}{' '}
+                              {actor.active ? (
+                                <button type="button" onClick={() => removeActor(actor.name)}>Désactiver</button>
+                              ) : (
+                                <button type="button" onClick={() => updateActors(displayedActorList.map(current => current.name === actor.name ? { ...current, active: true } : current))}>Activer</button>
+                              )}
                             </>
                           )}
                         </td>
