@@ -107,7 +107,7 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
     const configuredActors = getConfiguredRaciActors(definitions);
 
     if (configuredActors !== undefined) {
-      setActors(configuredActors);
+      setActors(getRaciActors(definitions));
     } else {
       const inferredActors = inferRaciActors(definitions);
       const context = getProcessMutationContext();
@@ -514,7 +514,7 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
                 <span>🟠 Inféré</span>
                 <span>⚪ Manquant</span>
                 <span>{matrix.activities.length} activité(s)</span>
-                <span>{displayedActors.length} acteur(s)</span>
+                <span>{matrix.roles.length} acteur(s)</span>
                 <span>Clic : sélectionner · double-clic : modifier R/A/C/I</span>
               </div>
 
