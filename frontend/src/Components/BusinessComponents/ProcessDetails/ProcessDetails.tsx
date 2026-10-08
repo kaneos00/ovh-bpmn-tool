@@ -103,7 +103,7 @@ export const ProcessDetails = ({
         <TabList sticky="top">
           <Tab value={0}>Process view</Tab>
           <Tab value={1}>Version history</Tab>
-          <Tab value={2}>Activities ({tasks.length})</Tab>
+          <Tab value={2}>RACI</Tab>
         </TabList>
 
         <TabPanel value={0} className="processViewerTabPanel processViewerProcessTab">
@@ -246,7 +246,7 @@ export const ProcessDetails = ({
                           {activity.cells.map(cell => (
                             <td
                               key={cell.role}
-                              title={`${cell.status} — ${cell.codes.length ? cell.codes.join('/') : 'aucun rôle'}`}
+                              title={cell.codes.length ? cell.codes.join('/') : 'aucun rôle'}
                               style={{
                                 padding: 8,
                                 textAlign: 'center',
@@ -258,13 +258,6 @@ export const ProcessDetails = ({
                               <strong>
                                 {cell.codes.length ? cell.codes.join('/') : '—'}
                               </strong>
-                              <div>
-                                {cell.status === 'explicit'
-                                  ? '● Explicite'
-                                  : cell.status === 'inferred'
-                                    ? '◐ Inféré'
-                                    : '— Manquant'}
-                              </div>
                             </td>
                           ))}
                           <td
@@ -324,8 +317,7 @@ export const ProcessDetails = ({
             )}
 
             <Typography level="body-xs" textColor="neutral" sx={{ p: 1 }}>
-              Lecture seule : aucune modification du RACI n'est possible depuis
-              cette vue. ● Explicite · ◐ Inféré · — Manquant.
+              Lecture seule : aucune modification du RACI n'est possible depuis cette vue.
             </Typography>
           </Sheet>
         </TabPanel>
