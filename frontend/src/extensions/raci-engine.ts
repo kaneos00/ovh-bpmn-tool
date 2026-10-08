@@ -89,6 +89,19 @@ const getProcessRoots = (definitions: AnyElement): AnyElement[] =>
 const getPrimaryProcess = (definitions: AnyElement): AnyElement | undefined =>
   getProcessRoots(definitions)[0];
 
+// In BPMN XML, Participants are normally children of a Collaboration, not
+// direct rootElements. Reading only rootElements therefore misses pool actors.
+const collectParticipants = (definitions: AnyElement): AnyElement[] => {
+  const participants = new Set<AnyElement>();
+  for (const root of roots(definitions)) {
+    if (root?.$type === 'bpmn:Participant') participants.add(root);
+    if (root?.$type === 'bpmn:Collaboration') {
+      for (const participant of root?.participants ?? []) participants.add(participant);
+    }
+  }
+  return Array.from(participants);
+};
+
 const collectLanes = (definitions: AnyElement) => {
   const nodeToLane = new Map<string, string>();
   const roles = new Set<string>();
@@ -132,8 +145,6 @@ const collectLanes = (definitions: AnyElement) => {
 
   for (const root of roots(definitions)) {
     for (const laneSet of root?.laneSets ?? []) visitLaneSet(laneSet);
-    // Keep participant names as process-level roles.
-    if (root?.$type === 'bpmn:Participant' && root.name) roles.add(String(root.name).trim());
 
     // Fallback for moddle structures where laneSets are not exposed directly
     // on the root process but lane objects are still present in the object graph.
@@ -144,6 +155,10 @@ const collectLanes = (definitions: AnyElement) => {
         visitObject(value);
       }
     }
+  }
+
+  for (const participant of collectParticipants(definitions)) {
+    if (participant?.name) roles.add(String(participant.name).trim());
   }
 
   return { nodeToLane, roles };
@@ -198,9 +213,7 @@ const collectActivities = (definitions: AnyElement): AnyElement[] => {
 
   // Also start from every participant so a participant-only process is
   // discoverable even if its process is not exposed in rootElements.
-  for (const root of roots(definitions)) {
-    if (root?.$type === 'bpmn:Participant') visit(root);
-  }
+  for (const participant of collectParticipants(definitions)) visit(participant);
 
   return result;
 };
@@ -211,12 +224,12 @@ const collectMessageFlows = (definitions: AnyElement): AnyElement[] =>
 const collectParticipantProcesses = (definitions: AnyElement): Map<string, string> => {
   const processToParticipant = new Map<string, string>();
 
-  for (const root of roots(definitions)) {
-    if (root?.$type !== 'bpmn:Participant' || !root?.name) continue;
+  for (const participant of collectParticipants(definitions)) {
+    if (!participant?.name) continue;
 
-    const processRef = root.processRef;
+    const processRef = participant.processRef;
     const processId = typeof processRef === 'string' ? processRef : processRef?.id;
-    if (processId) processToParticipant.set(processId, String(root.name).trim());
+    if (processId) processToParticipant.set(processId, String(participant.name).trim());
   }
 
   return processToParticipant;
@@ -289,8 +302,11 @@ const discoverRaciActors = (definitions: AnyElement): RaciActor[] => {
     }
   };
 
+  for (const participant of collectParticipants(definitions)) {
+    add(participant.name, 'bpmn', participant.id);
+  }
+
   for (const root of roots(definitions)) {
-    if (root?.$type === 'bpmn:Participant') add(root.name, 'bpmn', root.id);
     for (const laneSet of root?.laneSets ?? []) {
       const visitLane = (lane: AnyElement) => {
         add(lane?.name, 'lane', lane?.id);
