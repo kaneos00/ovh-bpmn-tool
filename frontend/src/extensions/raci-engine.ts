@@ -168,27 +168,78 @@ const explicitRoles = (element: AnyElement, code: RaciCode): string[] => {
   return splitRoles(getAttr(element, property));
 };
 
-export const inferRaciActors = (definitions: AnyElement): string[] => {
-  const { roles } = collectLanes(definitions);
+const discoverRaciActors = (definitions: AnyElement): RaciActor[] => {
+  const discovered = new Map<string, RaciActor>();
+  const add = (name: unknown, source: RaciActorSource) => {
+    const normalized = normalizeActorName(name);
+    if (!normalized) return;
+    const key = normalized.toLocaleLowerCase();
+    const current = discovered.get(key);
+    const priority: Record<RaciActorSource, number> = { bpmn: 4, lane: 3, explicit: 2, manual: 1 };
+    if (!current || priority[source] > priority[current.source]) {
+      discovered.set(key, { name: normalized, source, active: true });
+    }
+  };
 
-  for (const activity of collectActivities(definitions)) {
-    RACICODES.forEach(code => explicitRoles(activity, code).forEach(role => roles.add(role)));
+  for (const root of roots(definitions)) {
+    if (root?.$type === 'bpmn:Participant') add(root.name, 'bpmn');
+    for (const laneSet of root?.laneSets ?? []) {
+      const visitLane = (lane: AnyElement) => {
+        add(lane?.name, 'lane');
+        for (const child of lane?.childLaneSet?.lanes ?? []) visitLane(child);
+      };
+      for (const lane of laneSet?.lanes ?? []) visitLane(lane);
+    }
   }
 
-  return Array.from(roles).sort((a, b) => a.localeCompare(b));
+  for (const activity of collectActivities(definitions)) {
+    RACICODES.forEach(code => explicitRoles(activity, code).forEach(role => add(role, 'explicit')));
+  }
+
+  return Array.from(discovered.values()).sort((a, b) => a.name.localeCompare(b.name));
 };
 
-export const getConfiguredRaciActors = (definitions: AnyElement): string[] | undefined => {
+export const inferRaciActors = (definitions: AnyElement): string[] =>
+  discoverRaciActors(definitions).map(actor => actor.name);
+
+export const getConfiguredRaciActorList = (definitions: AnyElement): RaciActor[] | undefined => {
   const process = getPrimaryProcess(definitions);
   if (!process) return undefined;
-
   const raw = getRawAttr(process, 'actors');
-  return raw === undefined || raw === null ? undefined : parseActors(raw);
+  if (raw === undefined || raw === null) return undefined;
+
+  const discovered = discoverRaciActors(definitions);
+  const discoveredByName = new Map(discovered.map(actor => [actor.name.toLocaleLowerCase(), actor]));
+  const configured = parseConfiguredActors(raw);
+  const result = new Map<string, RaciActor>();
+
+  for (const actor of configured) {
+    const discoveredActor = discoveredByName.get(actor.name.toLocaleLowerCase());
+    const source = actor.source && ['bpmn', 'lane', 'explicit', 'manual'].includes(actor.source)
+      ? actor.source as RaciActorSource
+      : discoveredActor?.source ?? 'manual';
+    result.set(actor.name.toLocaleLowerCase(), {
+      name: actor.name,
+      source,
+      active: actor.active !== false,
+    });
+  }
+
+  for (const actor of discovered) {
+    if (!result.has(actor.name.toLocaleLowerCase())) result.set(actor.name.toLocaleLowerCase(), actor);
+  }
+
+  return Array.from(result.values()).sort((a, b) => a.name.localeCompare(b.name));
 };
 
-export const getRaciActors = (definitions: AnyElement): string[] =>
-  getConfiguredRaciActors(definitions) ?? inferRaciActors(definitions);
+export const getRaciActorList = (definitions: AnyElement): RaciActor[] =>
+  getConfiguredRaciActorList(definitions) ?? discoverRaciActors(definitions);
 
+export const getConfiguredRaciActors = (definitions: AnyElement): string[] | undefined =>
+  getConfiguredRaciActorList(definitions)?.filter(actor => actor.active).map(actor => actor.name);
+
+export const getRaciActors = (definitions: AnyElement): string[] =>
+  getRaciActorList(definitions).filter(actor => actor.active).map(actor => actor.name);
 export const getRaciProcess = (definitions: AnyElement): AnyElement | undefined =>
   getPrimaryProcess(definitions);
 
@@ -196,8 +247,7 @@ export function deriveRaciMatrix(definitions: AnyElement): RaciMatrix {
   const { nodeToLane } = collectLanes(definitions);
   const processToParticipant = collectParticipantProcesses(definitions);
   const activities = collectActivities(definitions);
-  const configuredActors = getConfiguredRaciActors(definitions);
-  const roles = new Set(configuredActors ?? inferRaciActors(definitions));
+  const roles = new Set(getRaciActorList(definitions).filter(actor => actor.active).map(actor => actor.name));
   const messageFlows = collectMessageFlows(definitions);
   const messageFlowsByTarget = new Map<string, AnyElement[]>();
   const messageFlowsBySource = new Map<string, AnyElement[]>();
