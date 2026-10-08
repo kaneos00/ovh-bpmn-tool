@@ -124,9 +124,10 @@ export const deriveRaciMatrixFromXml = (xmlContent: string): RaciMatrix => {
     ...participants.map(participant => textAttr(participant, 'name')),
     ...activities.flatMap(activity => RACICODES.flatMap(code => getExplicitRoles(activity, code))),
   ]);
-  // The Viewer displays every role detected in the published BPMN, while
-  // configured actors remain included even when they are not yet used.
-  const roles = unique([...(configuredActors ?? []), ...inferredActors]).sort((a, b) =>
+  // Once an actor list is configured, it is authoritative: inactive actors
+  // must stay out of the Viewer even if their BPMN participant or lane still exists.
+  // Legacy BPMN files without a configured list continue to use inference.
+  const roles = unique(configuredActors ?? inferredActors).sort((a, b) =>
     a.localeCompare(b),
   );
   const allowedRoles = new Set(roles);
