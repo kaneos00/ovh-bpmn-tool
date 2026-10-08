@@ -21,11 +21,8 @@ import { useContentViewer } from './hooks/useContentViewer';
 import { contentsQuery, getXmlContentQuery } from '../../api/contents/contents.queries';
 import { ContentStatusEnum, type Content } from '../../Types';
 import { formatDateTime } from '../../shared/helpers/date';
-import {
-  analyzeRaciMatrix,
-  deriveRaciMatrixFromXml,
-  getRaciIssueLabel,
-} from '../../extensions/raci-viewer';
+import { deriveRaciMatrixFromXml } from '../../extensions/raci-viewer';
+import { analyzeRaciMatrix, getRaciIssueLabel } from '../../extensions/raci-engine';
 import type { RaciCode } from '../../extensions/raci-engine';
 
 import './ContentViewerContainer.scss';
