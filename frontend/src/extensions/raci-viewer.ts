@@ -3,17 +3,17 @@ import type { RaciActivity, RaciCell, RaciCode, RaciMatrix, RaciStatus } from '.
 const RACICODES: RaciCode[] = ['R', 'A', 'C', 'I'];
 const APPROVAL_PATTERN = /\\b(approve|approval|validate|validation|authori[sz]e|authori[sz]ation|sign[- ]?off|approuver|approbation|valider|validation|autoriser|autorisation|signer|décider|decision|décision)\\b/i;
 const ACTIVITY_TYPES = new Set([
-  'Task',
-  'UserTask',
-  'ServiceTask',
-  'ManualTask',
-  'ScriptTask',
-  'BusinessRuleTask',
-  'SendTask',
-  'ReceiveTask',
-  'CallActivity',
-  'SubProcess',
-  'Transaction',
+  'task',
+  'userTask',
+  'serviceTask',
+  'manualTask',
+  'scriptTask',
+  'businessRuleTask',
+  'sendTask',
+  'receiveTask',
+  'callActivity',
+  'subProcess',
+  'transaction',
 ]);
 
 const localName = (element: Element): string => element.localName || element.tagName.split(':').pop() || '';
