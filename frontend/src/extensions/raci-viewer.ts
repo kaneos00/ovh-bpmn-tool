@@ -119,9 +119,9 @@ export const deriveRaciMatrixFromXml = (xmlContent: string): RaciMatrix => {
     ...participants.map(participant => textAttr(participant, 'name')),
     ...activities.flatMap(activity => RACICODES.flatMap(code => getExplicitRoles(activity, code))),
   ]);
-  // Match the modeler semantics: once an actor list is configured,
-  // including an explicitly empty list, it is authoritative.
-  const roles = unique(configuredActors ?? inferredActors).sort((a, b) =>
+  // The Viewer displays every role detected in the published BPMN, while
+  // configured actors remain included even when they are not yet used.
+  const roles = unique([...(configuredActors ?? []), ...inferredActors]).sort((a, b) =>
     a.localeCompare(b),
   );
   const allowedRoles = new Set(roles);
