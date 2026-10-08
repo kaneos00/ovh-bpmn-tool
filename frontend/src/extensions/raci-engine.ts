@@ -186,8 +186,11 @@ export const getConfiguredRaciActors = (definitions: AnyElement): string[] | und
   return raw === undefined || raw === null ? undefined : parseActors(raw);
 };
 
-export const getRaciActors = (definitions: AnyElement): string[] =>
-  getConfiguredRaciActors(definitions) ?? inferRaciActors(definitions);
+export const getRaciActors = (definitions: AnyElement): string[] => {
+  const configured = getConfiguredRaciActors(definitions) ?? [];
+  const inferred = inferRaciActors(definitions);
+  return Array.from(new Set([...configured, ...inferred])).sort((a, b) => a.localeCompare(b));
+};
 
 export const getRaciProcess = (definitions: AnyElement): AnyElement | undefined =>
   getPrimaryProcess(definitions);
@@ -196,8 +199,11 @@ export function deriveRaciMatrix(definitions: AnyElement): RaciMatrix {
   const { nodeToLane } = collectLanes(definitions);
   const processToParticipant = collectParticipantProcesses(definitions);
   const activities = collectActivities(definitions);
-  const configuredActors = getConfiguredRaciActors(definitions);
-  const roles = new Set(configuredActors ?? inferRaciActors(definitions));
+  const configuredActors = getConfiguredRaciActors(definitions) ?? [];
+  const inferredActors = inferRaciActors(definitions);
+  // The matrix must expose every detected role, while the configured list
+  // remains the source of truth for the editable RACI properties.
+  const roles = new Set([...configuredActors, ...inferredActors]);
   const messageFlows = collectMessageFlows(definitions);
   const messageFlowsByTarget = new Map<string, AnyElement[]>();
   const messageFlowsBySource = new Map<string, AnyElement[]>();
