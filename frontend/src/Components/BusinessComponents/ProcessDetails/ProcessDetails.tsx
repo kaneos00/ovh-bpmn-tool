@@ -52,7 +52,6 @@ export const ProcessDetails = ({
     isLoading,
     draftContent,
     publishedContent,
-    tasks,
     isCompareDisabled,
     contentIdsToCompare,
     onFilesUploaded,
