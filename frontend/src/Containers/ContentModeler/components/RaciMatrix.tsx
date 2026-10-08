@@ -63,8 +63,17 @@ const modalStyle: React.CSSProperties = {
 const modalBodyStyle: React.CSSProperties = {
   flex: 1,
   minHeight: 0,
-  overflow: 'auto',
+  display: 'flex',
+  flexDirection: 'column',
+  overflow: 'hidden',
   padding: 16,
+};
+
+const matrixScrollStyle: React.CSSProperties = {
+  flex: 1,
+  minHeight: 0,
+  minWidth: 0,
+  overflow: 'auto',
 };
 
 export function RaciMatrix({ modeler, open, view, onClose }: Props) {
@@ -490,7 +499,26 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
             </div>
 
             <div style={modalBodyStyle}>
-              <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 150px)' }}>
+              <div
+                className="raci-info"
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '8px 16px',
+                  alignItems: 'center',
+                  padding: '8px 0 12px',
+                  flexShrink: 0,
+                }}
+              >
+                <span>🟢 Explicite</span>
+                <span>🟠 Inféré</span>
+                <span>⚪ Manquant</span>
+                <span>{matrix.activities.length} activité(s)</span>
+                <span>{displayedActors.length} acteur(s)</span>
+                <span>Clic : sélectionner · double-clic : modifier R/A/C/I</span>
+              </div>
+
+              <div style={matrixScrollStyle}>
                 <table className="raci-table">
                   <thead>
                     <tr>
@@ -538,15 +566,6 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
                     ))}
                   </tbody>
                 </table>
-              </div>
-
-              <div className="raci-footer">
-                <span>🟢 Explicite</span>
-                <span>🟠 Inféré</span>
-                <span>⚪ Manquant</span>
-                <span>{matrix.activities.length} activité(s)</span>
-                <span>{displayedActors.length} acteur(s)</span>
-                <span>Clic : sélectionner · double-clic : modifier R/A/C/I</span>
               </div>
             </div>
 
