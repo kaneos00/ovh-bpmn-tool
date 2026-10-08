@@ -30,7 +30,12 @@ const parseActors = (value: string): string[] => {
   try {
     const parsed = JSON.parse(value);
     if (Array.isArray(parsed)) {
-      return Array.from(new Set(parsed.map(actor => String(actor).trim()).filter(Boolean)));
+      return Array.from(new Set(
+        parsed
+          .filter(actor => typeof actor === 'string' || (actor && typeof actor === 'object' && actor.active !== false))
+          .map(actor => typeof actor === 'string' ? actor.trim() : String(actor.name ?? '').trim())
+          .filter(Boolean),
+      ));
     }
   } catch {
     // Backward compatibility with comma-separated actor lists.
