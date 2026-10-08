@@ -23,26 +23,35 @@ const getAttr = (element: AnyElement, name: string): string => String(getRawAttr
 const splitRoles = (value: unknown): string[] =>
   String(value ?? '').split(',').map(role => role.trim()).filter(Boolean);
 
-const parseActors = (value: unknown): string[] => {
+const normalizeActorName = (value: unknown): string => String(value ?? '').trim();
+
+const parseConfiguredActors = (value: unknown): Array<Partial<RaciActor> & { name: string }> => {
   if (value === undefined || value === null) return [];
   const raw = String(value).trim();
   if (!raw) return [];
-
   try {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
-      return Array.from(new Set(parsed.map(actor => String(actor).trim()).filter(Boolean)));
+      return parsed.map(actor => {
+        if (typeof actor === 'string') return { name: normalizeActorName(actor) };
+        if (actor && typeof actor === 'object') return { name: normalizeActorName(actor.name), source: actor.source, active: actor.active };
+        return { name: '' };
+      }).filter(actor => Boolean(actor.name));
     }
   } catch {
-    // Backward compatibility with a comma-separated actor list.
+    // Backward compatibility with the legacy actor list.
   }
-
-  return Array.from(new Set(splitRoles(raw)));
+  return raw.split(',').map(name => normalizeActorName(name)).filter(Boolean).map(name => ({ name }));
 };
 
-export const serializeRaciActors = (actors: string[]): string =>
-  JSON.stringify(Array.from(new Set(actors.map(actor => actor.trim()).filter(Boolean))));
-
+export const serializeRaciActors = (actors: RaciActor[]): string =>
+  JSON.stringify(Array.from(new Map(
+    actors.map(actor => ({
+      name: normalizeActorName(actor.name),
+      source: actor.source,
+      active: actor.active !== false,
+    })).filter(actor => Boolean(actor.name)).map(actor => [actor.name.toLocaleLowerCase(), actor] as const),
+  ).values()));
 const getName = (element: AnyElement): string =>
   String(element?.businessObject?.name ?? element?.name ?? '').trim();
 
