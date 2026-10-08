@@ -158,7 +158,7 @@ export const Component = () => {
         <Tabs defaultValue={0} className="viewerTabs">
           <TabList sticky="top" variant="plain">
             <Tab value={0}>Version history</Tab>
-            <Tab value={1}>Activités ({raciMatrix.activities.length})</Tab>
+            <Tab value={1}>RACI ({raciMatrix.activities.length})</Tab>
           </TabList>
 
           <TabPanel value={0} className="viewerTabPanel">
