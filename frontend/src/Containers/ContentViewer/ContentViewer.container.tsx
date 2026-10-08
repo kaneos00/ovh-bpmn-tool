@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Divider,
+  Button,
   IconButton,
   Sheet,
   Stack,
@@ -159,6 +160,10 @@ export const Component = () => {
 
         <Divider />
 
+        <Button variant="outlined" color="neutral" onClick={() => setRaciModalOpen(true)}>
+          Activités ({raciMatrix.activities.length})
+        </Button>
+
         <Tabs defaultValue={0} className="viewerTabs">
           <TabList sticky="top" variant="plain">
             <Tab value={0}>Version history</Tab>
@@ -224,7 +229,6 @@ export const Component = () => {
                 <button
                   type="button"
                   onClick={() => setRaciModalOpen(true)}
-                  disabled={!filteredActivities.length}
                 >
                   Ouvrir la matrice RACI
                 </button>
