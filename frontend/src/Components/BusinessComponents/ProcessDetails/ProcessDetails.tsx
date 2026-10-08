@@ -252,7 +252,6 @@ export const ProcessDetails = ({
                               </strong>
                             </td>
                           ))}
-d>
                         </tr>
                       );
                     })}
