@@ -64,21 +64,58 @@ const getPrimaryProcess = (definitions: AnyElement): AnyElement | undefined =>
 const collectLanes = (definitions: AnyElement) => {
   const nodeToLane = new Map<string, string>();
   const roles = new Set<string>();
+  const visitedLaneSets = new Set<any>();
+  const visitedLanes = new Set<any>();
+
+  // bpmn-moddle normally exposes lanes through Process.laneSets, but nested
+  // lane sets are not guaranteed to be reachable only through the first level.
+  // The Viewer works from the XML and sees every bpmn:lane element, so the
+  // Modeler must recursively inspect every laneSet/lane as well.
+  const visitLaneSet = (laneSet: AnyElement) => {
+    if (!laneSet || visitedLaneSets.has(laneSet)) return;
+    visitedLaneSets.add(laneSet);
+    for (const lane of laneSet?.lanes ?? []) visitLane(lane);
+  };
 
   const visitLane = (lane: AnyElement) => {
+    if (!lane || visitedLanes.has(lane)) return;
+    visitedLanes.add(lane);
+
     const name = String(lane?.name ?? '').trim();
     if (name) {
       roles.add(name);
       for (const ref of lane?.flowNodeRef ?? []) if (ref?.id) nodeToLane.set(ref.id, name);
     }
-    for (const child of lane?.childLaneSet?.lanes ?? []) visitLane(child);
+
+    visitLaneSet(lane?.childLaneSet);
+  };
+
+  const visitObject = (element: AnyElement) => {
+    if (!element || typeof element !== 'object') return;
+    if (element.$type === 'bpmn:Lane') {
+      visitLane(element);
+      return;
+    }
+    if (element.$type === 'bpmn:LaneSet') {
+      visitLaneSet(element);
+      return;
+    }
   };
 
   for (const root of roots(definitions)) {
-    for (const laneSet of root?.laneSets ?? []) {
-      for (const lane of laneSet?.lanes ?? []) visitLane(lane);
-    }
+    for (const laneSet of root?.laneSets ?? []) visitLaneSet(laneSet);
+    // Keep participant names as process-level roles.
     if (root?.$type === 'bpmn:Participant' && root.name) roles.add(String(root.name).trim());
+
+    // Fallback for moddle structures where laneSets are not exposed directly
+    // on the root process but lane objects are still present in the object graph.
+    for (const value of Object.values(root ?? {})) {
+      if (Array.isArray(value)) {
+        for (const item of value) visitObject(item);
+      } else {
+        visitObject(value);
+      }
+    }
   }
 
   return { nodeToLane, roles };
