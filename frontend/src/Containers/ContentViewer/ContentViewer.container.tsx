@@ -167,8 +167,7 @@ export const Component = () => {
         <Tabs defaultValue={0} className="viewerTabs">
           <TabList sticky="top" variant="plain">
             <Tab value={0}>Version history</Tab>
-            <Tab value={1}>Activities ({raciMatrix.activities.length})</Tab>
-          </TabList>
+</TabList>
 
           <TabPanel value={0} className="viewerTabPanel">
             <Stack spacing={1}>
@@ -191,68 +190,8 @@ export const Component = () => {
             </Stack>
           </TabPanel>
 
-          <TabPanel value={1} className="viewerTabPanel">
-            <Stack spacing={1.25}>
-              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                <select
-                  aria-label="Filtrer par acteur"
-                  value={actorFilter}
-                  onChange={event => setActorFilter(event.target.value)}
-                >
-                  <option value="">Tous les acteurs</option>
-                  {raciMatrix.roles.map(actor => (
-                    <option key={actor} value={actor}>{actor}</option>
-                  ))}
-                </select>
 
-                <select
-                  aria-label="Filtrer par rôle RACI"
-                  value={codeFilter}
-                  onChange={event => setCodeFilter(event.target.value as RaciCode | '')}
-                >
-                  <option value="">Tous les rôles</option>
-                  {RACICODES.map(code => (
-                    <option key={code} value={code}>{code}</option>
-                  ))}
-                </select>
-
-                <button
-                  type="button"
-                  onClick={() => setIssuesOnly(value => !value)}
-                  aria-pressed={issuesOnly}
-                >
-                  {issuesOnly ? 'Toutes les activités' : '⚠ Activités à compléter'}
-                </button>
-              </Stack>
-
-              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                <button
-                  type="button"
-                  onClick={() => setRaciModalOpen(true)}
-                >
-                  Ouvrir la matrice RACI
-                </button>
-                <Typography level="body-xs">
-                  {raciMatrix.activities.length} activité(s)
-                </Typography>
-                <Typography level="body-xs">
-                  {raciMatrix.roles.length} acteur(s)
-                </Typography>
-                <Typography level="body-xs" color={raciAnalysis.issues.length ? 'danger' : 'success'}>
-                  {raciAnalysis.issues.length} anomalie(s)
-                </Typography>
-                {raciAnalysis.unusedActors.length > 0 && (
-                  <Typography level="body-xs" color="warning">
-                    {raciAnalysis.unusedActors.length} acteur(s) non utilisé(s)
-                  </Typography>
-                )}
-              </Stack>
-
-              <Typography level="body-sm" textColor="neutral">
-                {filteredActivities.length
-                  ? 'La matrice RACI est disponible dans la fenêtre dédiée.'
-                  : 'Aucune activité ne correspond aux filtres.'}
-              </Typography>
+        </Tabs>
 
               {raciModalOpen && (
                 <Box
@@ -358,23 +297,6 @@ export const Component = () => {
                   </Sheet>
                 </Box>
               )}
-
-{raciAnalysis.unusedActors.length > 0 && (
-                <Sheet variant="soft" color="warning" sx={{ p: 1 }}>
-                  <Typography level="title-sm">Acteurs non utilisés</Typography>
-                  <Typography level="body-xs">
-                    {raciAnalysis.unusedActors.join(', ')}
-                  </Typography>
-                </Sheet>
-              )}
-
-              <Typography level="body-xs" textColor="neutral">
-                Lecture seule : aucune modification du RACI n'est possible depuis le Viewer.
-                ● Explicite · ◐ Inféré · — Manquant.
-              </Typography>
-            </Stack>
-          </TabPanel>
-        </Tabs>
       </Sheet>
     </Box>
   );
