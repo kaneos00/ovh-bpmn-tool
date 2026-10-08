@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   deriveRaciMatrix,
-  getConfiguredRaciActors,
+  getConfiguredRaciActorList,
   getRaciActors,
   getRaciProcess,
   inferRaciActors,
   serializeRaciActors,
 } from '../../../extensions/raci-engine';
-import type { RaciStatus, RaciCode } from '../../../extensions/raci-engine';
+import type { RaciStatus, RaciCode, RaciActor } from '../../../extensions/raci-engine';
 
 type Props = { modeler: any; open: boolean; view: 'matrix' | 'actors'; onClose: () => void };
 type EditCell = { elementId: string; activity: string; role: string; codes: RaciCode[] };
@@ -42,8 +42,8 @@ const codeLabel: Record<RaciCode, string> = {
   I: 'I — Informé',
 };
 
-const uniqueActors = (actors: string[]) =>
-  Array.from(new Set(actors.map(actor => actor.trim()).filter(Boolean)));
+const uniqueActors = (actors: RaciActor[]): RaciActor[] =>
+  Array.from(new Map(actors.filter(actor => actor.name.trim()).map(actor => [actor.name.toLocaleLowerCase(), { ...actor, name: actor.name.trim() }])).values());
 
 const modalStyle: React.CSSProperties = {
   position: 'fixed',
@@ -66,7 +66,7 @@ const modalBodyStyle: React.CSSProperties = {
 };
 
 export function RaciMatrix({ modeler, open, view, onClose }: Props) {
-  const [actors, setActors] = useState<string[] | null>(null);
+  const [actors, setActors] = useState<RaciActor[] | null>(null);
   const [editCell, setEditCell] = useState<EditCell | null>(null);
   const [newActor, setNewActor] = useState('');
   const [editingActor, setEditingActor] = useState<string | null>(null);
@@ -93,12 +93,16 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
   useEffect(() => {
     if (!open || !definitions) return;
 
-    const configuredActors = getConfiguredRaciActors(definitions);
+    const configuredActors = getConfiguredRaciActorList(definitions);
 
     if (configuredActors !== undefined) {
       setActors(configuredActors);
     } else {
-      const inferredActors = inferRaciActors(definitions);
+      const inferredActors = inferRaciActors(definitions).map(name => ({
+        name,
+        source: 'manual' as const,
+        active: true,
+      }));
       const context = getProcessMutationContext();
       const modeling = modeler?.get?.('modeling');
 
@@ -135,7 +139,9 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
     };
   }, [open, modeler]);
 
-  const displayedActors = actors ?? (definitions ? getRaciActors(definitions) : []);
+  const displayedActorList = actors ?? (definitions ? getConfiguredRaciActorList(definitions) ?? [] : []);
+  const displayedActors = displayedActorList.filter(actor => actor.active);
+  const displayedActorNames = displayedActors.map(actor => actor.name);
   const matrix = useMemo(
     () => (definitions
       ? deriveRaciMatrix(definitions)
@@ -151,7 +157,7 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
     0,
   );
 
-  const updateActors = (nextActors: string[]) => {
+  const updateActors = (nextActors: RaciActor[]) => {
     const normalized = uniqueActors(nextActors);
     setActors(normalized);
     refresh();
@@ -215,9 +221,9 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
 
   const addActor = () => {
     const actor = newActor.trim();
-    if (!actor || displayedActors.includes(actor)) return;
+    if (!actor || displayedActorNames.includes(actor)) return;
 
-    updateActors([...displayedActors, actor]);
+    updateActors([...displayedActorList, { name: actor, source: 'manual', active: true }]);
     setNewActor('');
   };
 
@@ -230,10 +236,10 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
     const previous = editingActor;
     const next = editingActorValue.trim();
 
-    if (!previous || !next || (next !== previous && displayedActors.includes(next))) return;
+    if (!previous || !next || (next !== previous && displayedActorNames.includes(next))) return;
 
     replaceActorInAssignments(previous, next);
-    updateActors(displayedActors.map(actor => (actor === previous ? next : actor)));
+    updateActors(displayedActorList.map(actor => (actor.name === previous ? { ...actor, name: next } : actor)));
     setEditingActor(null);
     setEditingActorValue('');
   };
@@ -255,13 +261,21 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
     }
 
     replaceActorInAssignments(actor);
-    updateActors(displayedActors.filter(current => current !== actor));
+    updateActors(displayedActorList
+      .map(current => current.name === actor
+        ? (current.source === 'manual' ? null : { ...current, active: false })
+        : current)
+      .filter((current): current is RaciActor => Boolean(current)));
   };
 
   const restoreInferredActors = () => {
     if (!definitions) return;
 
-    const inferredActors = inferRaciActors(definitions);
+    const inferredActors = inferRaciActors(definitions).map(name => ({
+      name,
+      source: 'manual' as const,
+      active: true,
+    }));
     updateActors(inferredActors);
   };
 
@@ -423,21 +437,23 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
                 <table className="raci-actors-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr>
-                      <th style={{ textAlign: 'left', padding: 8 }}>Participant / acteur</th>
+                      <th style={{ textAlign: 'left', padding: 8 }}>Acteur</th>
+                      <th style={{ textAlign: 'left', padding: 8 }}>Source</th>
+                      <th style={{ textAlign: 'left', padding: 8 }}>Actif</th>
                       <th style={{ textAlign: 'left', padding: 8, width: 220 }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {displayedActors.map(actor => (
-                      <tr key={actor}>
+                    {displayedActorList.map(actor => (
+                      <tr key={actor.name}>
                         <td style={{ padding: 8 }}>
-                          {editingActor === actor ? (
+                          {editingActor === actor.name ? (
                             <input
                               value={editingActorValue}
                               onChange={event => setEditingActorValue(event.target.value)}
                             />
                           ) : actor}
-                        </td>
+                        \n                        <td style={{ padding: 8 }}>{actor.source === 'bpmn' ? 'BPMN' : actor.source === 'lane' ? 'Lane' : actor.source === 'explicit' ? 'RACI' : 'Manuel'}</td>\n                        <td style={{ padding: 8 }}>{actor.active ? '✓' : '✗'}</td></td>
                         <td style={{ padding: 8 }}>
                           {editingActor === actor ? (
                             <>
@@ -446,8 +462,8 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
                             </>
                           ) : (
                             <>
-                              <button type="button" onClick={() => startRename(actor)}>Modifier</button>{' '}
-                              <button type="button" onClick={() => removeActor(actor)}>Supprimer</button>
+                              <button type="button" onClick={() => startRename(actor.name)}>Modifier</button>{' '}
+                              <button type="button" onClick={() => removeActor(actor.name)}>Supprimer</button>
                             </>
                           )}
                         </td>
@@ -531,7 +547,7 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
                 <span>🟠 Inféré</span>
                 <span>⚪ Manquant</span>
                 <span>{matrix.activities.length} activité(s)</span>
-                <span>{displayedActors.length} acteur(s)</span>
+                <span>{displayedActors.length} acteur(s) actif(s)</span>
                 <span>Clic : sélectionner · double-clic : modifier R/A/C/I</span>
               </div>
             </div>
