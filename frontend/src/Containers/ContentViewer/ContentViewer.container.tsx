@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Divider,
-  Button,
   IconButton,
   Sheet,
   Stack,
@@ -51,7 +50,6 @@ export const Component = () => {
   const [actorFilter, setActorFilter] = useState('');
   const [codeFilter, setCodeFilter] = useState<RaciCode | ''>('');
   const [issuesOnly, setIssuesOnly] = useState(false);
-  const [raciModalOpen, setRaciModalOpen] = useState(false);
 
   const { data: contents = [] } = useQuery(contentsQuery(resourceId));
   const { data: xmlContent } = useQuery(
@@ -160,14 +158,11 @@ export const Component = () => {
 
         <Divider />
 
-        <Button variant="outlined" color="neutral" onClick={() => setRaciModalOpen(true)}>
-          Activités ({raciMatrix.activities.length})
-        </Button>
-
         <Tabs defaultValue={0} className="viewerTabs">
           <TabList sticky="top" variant="plain">
             <Tab value={0}>Version history</Tab>
-</TabList>
+            <Tab value={1}>Activités ({raciMatrix.activities.length})</Tab>
+          </TabList>
 
           <TabPanel value={0} className="viewerTabPanel">
             <Stack spacing={1}>
@@ -190,178 +185,187 @@ export const Component = () => {
             </Stack>
           </TabPanel>
 
-
-        </Tabs>
-
-              {raciModalOpen && (
-                <Box
-                  role="dialog"
-                  aria-modal="true"
-                  aria-label="Matrice RACI"
-                  sx={{
-                    position: 'fixed',
-                    inset: 0,
-                    zIndex: 20000,
-                    bgcolor: 'rgba(20, 25, 35, 0.35)',
-                    display: 'flex',
-                    alignItems: 'stretch',
-                    justifyContent: 'center',
-                    p: 3,
-                  }}
+          <TabPanel value={1} className="viewerTabPanel">
+            <Stack spacing={1.5} sx={{ minWidth: 0 }}>
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                <select
+                  aria-label="Filtrer par acteur"
+                  value={actorFilter}
+                  onChange={event => setActorFilter(event.target.value)}
                 >
-                  <Sheet
-                    variant="outlined"
-                    sx={{
-                      width: 'min(96vw, 1500px)',
-                      mx: 'auto',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      minHeight: 0,
-                      overflow: 'hidden',
-                      boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
+                  <option value="">Tous les acteurs</option>
+                  {raciMatrix.roles.map(actor => (
+                    <option key={actor} value={actor}>{actor}</option>
+                  ))}
+                </select>
+
+                <select
+                  aria-label="Filtrer par rôle RACI"
+                  value={codeFilter}
+                  onChange={event => setCodeFilter(event.target.value as RaciCode | '')}
+                >
+                  <option value="">Tous les rôles</option>
+                  {RACICODES.map(code => (
+                    <option key={code} value={code}>{code}</option>
+                  ))}
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() => setIssuesOnly(value => !value)}
+                  aria-pressed={issuesOnly}
+                >
+                  {issuesOnly ? 'Toutes les activités' : '⚠ Activités à compléter'}
+                </button>
+              </Stack>
+
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                <Typography level="body-xs">
+                  {raciMatrix.activities.length} activité(s)
+                </Typography>
+                <Typography level="body-xs">
+                  {raciMatrix.roles.length} acteur(s)
+                </Typography>
+                <Typography
+                  level="body-xs"
+                  color={raciAnalysis.issues.length ? 'danger' : 'success'}
+                >
+                  {raciAnalysis.issues.length} anomalie(s)
+                </Typography>
+              </Stack>
+
+              {filteredActivities.length ? (
+                <Box sx={{ overflowX: 'auto', maxWidth: '100%' }}>
+                  <table
+                    aria-label="Matrice RACI en lecture seule"
+                    style={{
+                      width: '100%',
+                      borderCollapse: 'collapse',
+                      fontSize: 12,
                     }}
                   >
-                    <Stack
-                      direction="row"
-                      justifyContent="space-between"
-                      alignItems="center"
-                      sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}
-                    >
-                      <Stack spacing={0.5}>
-                        <Typography level="h3">Matrice RACI</Typography>
-                        <Typography level="body-xs" textColor="neutral">
-                          Lecture seule · ● Explicite · ◐ Inféré · — Manquant
-                        </Typography>
-                      </Stack>
-                      <button type="button" onClick={() => setRaciModalOpen(false)}>
-                        Fermer
-                      </button>
-                    </Stack>
-
-                    <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', p: 2 }}>
-                      <Stack spacing={1.5}>
-                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                          <select
-                            aria-label="Filtrer par acteur"
-                            value={actorFilter}
-                            onChange={event => setActorFilter(event.target.value)}
+                    <thead>
+                      <tr>
+                        <th
+                          style={{
+                            textAlign: 'left',
+                            padding: 8,
+                            position: 'sticky',
+                            top: 0,
+                            background: 'var(--joy-palette-background-surface, white)',
+                          }}
+                        >
+                          Activité
+                        </th>
+                        {raciMatrix.roles.map(role => (
+                          <th
+                            key={role}
+                            style={{
+                              padding: 8,
+                              minWidth: 100,
+                              position: 'sticky',
+                              top: 0,
+                              background: 'var(--joy-palette-background-surface, white)',
+                            }}
                           >
-                            <option value="">Tous les acteurs</option>
-                            {raciMatrix.roles.map(actor => (
-                              <option key={actor} value={actor}>{actor}</option>
-                            ))}
-                          </select>
+                            {role}
+                          </th>
+                        ))}
+                        <th
+                          style={{
+                            padding: 8,
+                            minWidth: 160,
+                            position: 'sticky',
+                            top: 0,
+                            background: 'var(--joy-palette-background-surface, white)',
+                          }}
+                        >
+                          Contrôle
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredActivities.map(activity => {
+                        const issue = issueByActivity.get(activity.elementId);
 
-                          <select
-                            aria-label="Filtrer par rôle RACI"
-                            value={codeFilter}
-                            onChange={event => setCodeFilter(event.target.value as RaciCode | '')}
-                          >
-                            <option value="">Tous les rôles</option>
-                            {RACICODES.map(code => (
-                              <option key={code} value={code}>{code}</option>
-                            ))}
-                          </select>
-
-                          <button
-                            type="button"
-                            onClick={() => setIssuesOnly(value => !value)}
-                            aria-pressed={issuesOnly}
-                          >
-                            {issuesOnly ? 'Toutes les activités' : '⚠ Activités à compléter'}
-                          </button>
-                        </Stack>
-
-                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                          <Typography level="body-xs">{raciMatrix.activities.length} activité(s)</Typography>
-                          <Typography level="body-xs">{raciMatrix.roles.length} acteur(s)</Typography>
-                          <Typography level="body-xs" color={raciAnalysis.issues.length ? 'danger' : 'success'}>
-                            {raciAnalysis.issues.length} anomalie(s)
-                          </Typography>
-                        </Stack>
-
-                        {filteredActivities.length ? (
-                          <Box sx={{ overflowX: 'auto', maxWidth: '100%' }}>
-                            <table
-                        aria-label="Matrice RACI en lecture seule"
-                        style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}
-                      >
-                        <thead>
-                          <tr>
-                            <th style={{ textAlign: 'left', padding: 8, position: 'sticky', top: 0, background: 'var(--joy-palette-background-surface, white)' }}>
-                              Activité
+                        return (
+                          <tr key={activity.elementId}>
+                            <th
+                              style={{
+                                textAlign: 'left',
+                                padding: 8,
+                                verticalAlign: 'top',
+                                borderTop: '1px solid #ddd',
+                              }}
+                            >
+                              {activity.activity}
                             </th>
-                            {raciMatrix.roles.map(role => (
-                              <th key={role} style={{ padding: 8, minWidth: 100, position: 'sticky', top: 0, background: 'var(--joy-palette-background-surface, white)' }}>
-                                {role}
-                              </th>
+                            {activity.cells.map(cell => (
+                              <td
+                                key={cell.role}
+                                title={`${STATUS_LABELS[cell.status]} — ${cell.codes.length ? cell.codes.join('/') : 'aucun rôle'}`}
+                                style={{
+                                  padding: 8,
+                                  textAlign: 'center',
+                                  verticalAlign: 'top',
+                                  borderTop: '1px solid #ddd',
+                                  opacity: cell.codes.length ? 1 : 0.55,
+                                }}
+                              >
+                                <strong>
+                                  {cell.codes.length ? cell.codes.join('/') : '—'}
+                                </strong>
+                                <div>
+                                  {statusMarker[cell.status]} {STATUS_LABELS[cell.status]}
+                                </div>
+                              </td>
                             ))}
-                            <th style={{ padding: 8, minWidth: 160, position: 'sticky', top: 0, background: 'var(--joy-palette-background-surface, white)' }}>
-                              Contrôle
-                            </th>
+                            <td
+                              style={{
+                                padding: 8,
+                                verticalAlign: 'top',
+                                borderTop: '1px solid #ddd',
+                              }}
+                            >
+                              {issue
+                                ? issue.codes.map(code => (
+                                    <div key={code}>
+                                      ⚠ {getRaciIssueLabel(code)}
+                                    </div>
+                                  ))
+                                : '✓ OK'}
+                            </td>
                           </tr>
-                        </thead>
-                        <tbody>
-                          {filteredActivities.map(activity => {
-                            const issue = issueByActivity.get(activity.elementId);
-
-                            return (
-                              <tr key={activity.elementId}>
-                                <th style={{ textAlign: 'left', padding: 8, verticalAlign: 'top', borderTop: '1px solid #ddd' }}>
-                                  {activity.activity}
-                                </th>
-                                {activity.cells.map(cell => (
-                                  <td
-                                    key={cell.role}
-                                    title={`${STATUS_LABELS[cell.status]} — ${cell.codes.length ? cell.codes.join('/') : 'aucun rôle'}`}
-                                    style={{
-                                      padding: 8,
-                                      textAlign: 'center',
-                                      verticalAlign: 'top',
-                                      borderTop: '1px solid #ddd',
-                                      opacity: cell.codes.length ? 1 : 0.55,
-                                    }}
-                                  >
-                                    <strong>{cell.codes.length ? cell.codes.join('/') : '—'}</strong>
-                                    <div>{statusMarker[cell.status]} {STATUS_LABELS[cell.status]}</div>
-                                  </td>
-                                ))}
-                                <td style={{ padding: 8, verticalAlign: 'top', borderTop: '1px solid #ddd' }}>
-                                  {issue ? issue.codes.map(code => (
-                                    <div key={code}>⚠ {getRaciIssueLabel(code)}</div>
-                                  )) : '✓ OK'}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                          </Box>
-                        ) : (
-                          <Typography level="body-sm" textColor="neutral">
-                            {raciMatrix.activities.length
-                              ? 'Aucune activité ne correspond aux filtres.'
-                              : 'Aucune activité BPMN détectée dans ce contenu.'}
-                          </Typography>
-                        )}
-
-                        {raciAnalysis.unusedActors.length > 0 && (
-                          <Sheet variant="soft" color="warning" sx={{ p: 1 }}>
-                            <Typography level="title-sm">Acteurs non utilisés</Typography>
-                            <Typography level="body-xs">
-                              {raciAnalysis.unusedActors.join(', ')}
-                            </Typography>
-                          </Sheet>
-                        )}
-
-                        <Typography level="body-xs" textColor="neutral">
-                          Lecture seule : aucune modification du RACI n'est possible depuis le Viewer.
-                        </Typography>
-                      </Stack>
-                    </Box>
-                  </Sheet>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </Box>
+              ) : (
+                <Typography level="body-sm" textColor="neutral">
+                  {raciMatrix.activities.length
+                    ? 'Aucune activité ne correspond aux filtres.'
+                    : 'Aucune activité BPMN détectée dans ce contenu.'}
+                </Typography>
               )}
+
+              {raciAnalysis.unusedActors.length > 0 && (
+                <Sheet variant="soft" color="warning" sx={{ p: 1 }}>
+                  <Typography level="title-sm">Acteurs non utilisés</Typography>
+                  <Typography level="body-xs">
+                    {raciAnalysis.unusedActors.join(', ')}
+                  </Typography>
+                </Sheet>
+              )}
+
+              <Typography level="body-xs" textColor="neutral">
+                Lecture seule : aucune modification du RACI n'est possible depuis le Viewer.
+                {' '}● Explicite · ◐ Inféré · — Manquant.
+              </Typography>
+            </Stack>
+          </TabPanel>
+        </Tabs>
+
       </Sheet>
     </Box>
   );
