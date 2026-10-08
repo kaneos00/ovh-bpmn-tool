@@ -274,9 +274,30 @@ export function deriveRaciMatrix(definitions: AnyElement): RaciMatrix {
       });
 
       const laneRole = roleOf(element, nodeToLane, processToParticipant, roles);
-      if (!explicit.has('R') && laneRole && roles.has(laneRole)) addCode(cells, laneRole, 'R');
-      if (!explicit.has('A') && laneRole && roles.has(laneRole) && APPROVAL_PATTERN.test(getName(element))) {
-        addCode(cells, laneRole, 'A');
+      const participantRole = (() => {
+        let parent = element?.$parent;
+        while (parent) {
+          if (parent.$type === 'bpmn:Process' && parent.id) {
+            return processToParticipant.get(parent.id);
+          }
+          parent = parent.$parent;
+        }
+        return undefined;
+      })();
+
+      // A task directly belonging to a collaboration participant (for example
+      // "Pizza Customer") has no lane to provide its RACI role. Treat the
+      // participant as the actor and infer R for normal work, or A for
+      // approval/decision work. This keeps participant-only pools visible in
+      // the inferred matrix just like lane-based actors.
+      const inferredParticipantRole = participantRole && roles.has(participantRole)
+        ? participantRole
+        : undefined;
+      const inferredRole = laneRole ?? inferredParticipantRole;
+
+      if (!explicit.has('R') && inferredRole && roles.has(inferredRole)) addCode(cells, inferredRole, 'R');
+      if (!explicit.has('A') && inferredRole && roles.has(inferredRole) && APPROVAL_PATTERN.test(getName(element))) {
+        addCode(cells, inferredRole, 'A');
       }
 
       if (!explicit.has('C')) {
