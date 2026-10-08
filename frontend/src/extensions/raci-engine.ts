@@ -5,6 +5,13 @@ export type RaciCell = { role: string; codes: RaciCode[]; status: RaciStatus };
 export type RaciActivity = { elementId: string; activity: string; cells: RaciCell[] };
 export type RaciMatrix = { roles: string[]; activities: RaciActivity[] };
 
+export type RaciActorSource = 'bpmn' | 'lane' | 'explicit' | 'manual';
+export type RaciActor = {
+  name: string;
+  source: RaciActorSource;
+  active: boolean;
+};
+
 type AnyElement = any;
 
 const APPROVAL_PATTERN = /\b(approve|approval|validate|validation|authori[sz]e|authori[sz]ation|sign[- ]?off|approuver|approbation|valider|validation|autoriser|autorisation|signer|décider|decision|décision)\b/i;
