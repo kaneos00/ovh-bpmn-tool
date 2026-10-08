@@ -1,10 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Box,
   Divider,
   IconButton,
-  List,
-  ListItem,
   Sheet,
   Skeleton,
   Stack,
@@ -15,10 +13,17 @@ import {
   Typography,
 } from '@mui/joy';
 import { Compare, FileCopy } from '@mui/icons-material';
+import { useQuery } from 'react-query';
 
 import { useProcessDetails } from './hooks/useProcessDetails';
 import { ProcessContentList } from '../ProcessContentList/ProcessContentList';
 import { ProcessViewer } from '../ProcessViewer';
+import { getXmlContentQuery } from '../../../api/contents/contents.queries';
+import {
+  analyzeRaciMatrix,
+  deriveRaciMatrixFromXml,
+  getRaciIssueLabel,
+} from '../../../extensions/raci-viewer';
 import { ConditionalRender } from '../../../Components/GenericComponents/ConditionalRender/ConditionalRender';
 import { DropZone } from '../../../Components/GenericComponents/DropZone/DropZone';
 
@@ -54,6 +59,29 @@ export const ProcessDetails = ({
     onFilesUploaded,
     onContentChecked,
   } = useProcessDetails(resourceId, { onContentUpload });
+
+  const { data: xmlContent } = useQuery(
+    getXmlContentQuery(resourceId, publishedContent?.id ?? ''),
+    { enabled: Boolean(publishedContent) },
+  );
+
+  const raciMatrix = useMemo(
+    () =>
+      xmlContent
+        ? deriveRaciMatrixFromXml(xmlContent)
+        : { roles: [], activities: [] },
+    [xmlContent],
+  );
+
+  const raciAnalysis = useMemo(
+    () => analyzeRaciMatrix(raciMatrix),
+    [raciMatrix],
+  );
+
+  const issueByActivity = useMemo(
+    () => new Map(raciAnalysis.issues.map(issue => [issue.activityId, issue])),
+    [raciAnalysis],
+  );
 
   if (isLoading) {
     return (
@@ -167,22 +195,133 @@ export const ProcessDetails = ({
         <TabPanel value={2} className="processViewerTabPanel">
           <Sheet className="processViewerInfo" variant="outlined">
             <Stack spacing={1.5} className="processViewerInfoHeader">
-              <Typography level="title-lg">Activities</Typography>
+              <Typography level="title-lg">
+                Activities ({raciMatrix.activities.length})
+              </Typography>
             </Stack>
             <Divider />
-            {tasks.length ? (
-              <List>
-                {tasks.map((task, index) => (
-                  <ListItem key={`task_${index.toString()}`}>
-                    {task.getAttribute('name')}
-                  </ListItem>
-                ))}
-              </List>
+
+            {raciMatrix.activities.length ? (
+              <Box sx={{ overflowX: 'auto', maxWidth: '100%' }}>
+                <table
+                  aria-label="Matrice RACI en lecture seule"
+                  style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    fontSize: 12,
+                  }}
+                >
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'left', padding: 8 }}>Activité</th>
+                      {raciMatrix.roles.map(role => (
+                        <th key={role} style={{ padding: 8, minWidth: 100 }}>
+                          {role}
+                        </th>
+                      ))}
+                      <th style={{ padding: 8, minWidth: 160 }}>Contrôle</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {raciMatrix.activities.map(activity => {
+                      const issue = issueByActivity.get(activity.elementId);
+
+                      return (
+                        <tr key={activity.elementId}>
+                          <th
+                            style={{
+                              textAlign: 'left',
+                              padding: 8,
+                              verticalAlign: 'top',
+                              borderTop: '1px solid #ddd',
+                            }}
+                          >
+                            {activity.activity}
+                          </th>
+                          {activity.cells.map(cell => (
+                            <td
+                              key={cell.role}
+                              title={`${cell.status} — ${cell.codes.length ? cell.codes.join('/') : 'aucun rôle'}`}
+                              style={{
+                                padding: 8,
+                                textAlign: 'center',
+                                verticalAlign: 'top',
+                                borderTop: '1px solid #ddd',
+                                opacity: cell.codes.length ? 1 : 0.55,
+                              }}
+                            >
+                              <strong>
+                                {cell.codes.length ? cell.codes.join('/') : '—'}
+                              </strong>
+                              <div>
+                                {cell.status === 'explicit'
+                                  ? '● Explicite'
+                                  : cell.status === 'inferred'
+                                    ? '◐ Inféré'
+                                    : '— Manquant'}
+                              </div>
+                            </td>
+                          ))}
+                          <td
+                            style={{
+                              padding: 8,
+                              verticalAlign: 'top',
+                              borderTop: '1px solid #ddd',
+                            }}
+                          >
+                            {issue
+                              ? issue.codes.map(code => (
+                                  <div key={code}>
+                                    ⚠ {getRaciIssueLabel(code)}
+                                  </div>
+                                ))
+                              : '✓ OK'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </Box>
             ) : (
               <Typography level="body-sm" textColor="neutral">
-                No activities found
+                {publishedContent
+                  ? 'Aucune activité BPMN détectée dans ce contenu.'
+                  : 'Aucune version publiée.'}
               </Typography>
             )}
+
+            <Stack
+              direction="row"
+              spacing={1}
+              flexWrap="wrap"
+              useFlexGap
+              sx={{ p: 1 }}
+            >
+              <Typography level="body-xs">
+                {raciMatrix.roles.length} acteur(s)
+              </Typography>
+              <Typography
+                level="body-xs"
+                color={raciAnalysis.issues.length ? 'danger' : 'success'}
+              >
+                {raciAnalysis.issues.length} anomalie(s)
+              </Typography>
+            </Stack>
+
+            {raciAnalysis.unusedActors.length > 0 && (
+              <Sheet variant="soft" color="warning" sx={{ p: 1 }}>
+                <Typography level="title-sm">Acteurs non utilisés</Typography>
+                <Typography level="body-xs">
+                  {raciAnalysis.unusedActors.join(', ')}
+                </Typography>
+              </Sheet>
+            )}
+
+            <Typography level="body-xs" textColor="neutral" sx={{ p: 1 }}>
+              Lecture seule : aucune modification du RACI n'est possible depuis
+              cette vue. ● Explicite · ◐ Inféré · — Manquant.
+            </Typography>
           </Sheet>
         </TabPanel>
       </Tabs>
