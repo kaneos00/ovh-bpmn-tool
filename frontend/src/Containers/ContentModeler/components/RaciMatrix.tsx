@@ -107,6 +107,21 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
     const configuredActors = getConfiguredRaciActors(definitions);
     const inferredActors = inferRaciActors(definitions);
     const detectedActors = getRaciActors(definitions);
+    const debugLanes: Array<{ name: string; type: string; flowNodeRefs: number; childLanes: number }> = [];
+    const visitLaneSet = (laneSet: any) => {
+      for (const lane of laneSet?.lanes ?? []) {
+        debugLanes.push({
+          name: String(lane?.name ?? '').trim(),
+          type: String(lane?.$type ?? ''),
+          flowNodeRefs: Array.isArray(lane?.flowNodeRef) ? lane.flowNodeRef.length : 0,
+          childLanes: Array.isArray(lane?.childLaneSet?.lanes) ? lane.childLaneSet.lanes.length : 0,
+        });
+        if (lane?.childLaneSet) visitLaneSet(lane.childLaneSet);
+      }
+    };
+    for (const root of definitions?.rootElements ?? []) {
+      for (const laneSet of root?.laneSets ?? []) visitLaneSet(laneSet);
+    }
     const debugActivities = deriveRaciMatrix(definitions).activities.map(activity => ({
       id: activity.elementId,
       activity: activity.activity,
@@ -121,6 +136,7 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
     console.log('inferred actors:', inferredActors);
     console.log('final actors / matrix roles:', detectedActors);
     console.log('missing from configured:', inferredActors.filter(role => !(configuredActors ?? []).includes(role)));
+    console.table(debugLanes);
     console.table(debugActivities.flatMap(activity =>
       activity.roles.map(role => ({ activity: activity.activity, ...role })),
     ));
