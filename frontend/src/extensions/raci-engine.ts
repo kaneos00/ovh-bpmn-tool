@@ -123,18 +123,55 @@ const collectLanes = (definitions: AnyElement) => {
 
 const collectActivities = (definitions: AnyElement): AnyElement[] => {
   const result: AnyElement[] = [];
+  const visited = new Set<any>();
 
   const visit = (element: AnyElement) => {
-    if (!element) return;
+    if (!element || visited.has(element)) return;
+    visited.add(element);
+
     if (isActivity(element)) result.push(element);
+
+    // Normal BPMN containment: Process/SubProcess.flowElements.
     for (const child of element?.flowElements ?? []) visit(child);
+
+    // Keep lane traversal for completeness, but never require a lane to
+    // discover activities. A participant may reference a process with no
+    // lanes at all (for example, the Pizza Customer pool).
     for (const laneSet of element?.laneSets ?? []) {
-      for (const lane of laneSet?.lanes ?? []) visit(lane);
+      for (const lane of laneSet?.lanes ?? []) {
+        for (const ref of lane?.flowNodeRef ?? []) visit(ref);
+        visit(lane?.childLaneSet);
+      }
+    }
+
+    // Some moddle graphs expose referenced processes through Participants
+    // rather than making the process collection the only reliable entry
+    // point. Follow processRef explicitly so participant-only pools are
+    // included even when they have no LaneSet.
+    if (element?.$type === 'bpmn:Participant' && element.processRef) {
+      const process = typeof element.processRef === 'string'
+        ? roots(definitions).find((root: AnyElement) => root?.id === element.processRef)
+        : element.processRef;
+      visit(process);
+    }
+
+    // A LaneSet can contain nested lane sets. Their flowNodeRef values point
+    // back to activities; visit those references without making lanes the
+    // source of truth for activity discovery.
+    if (element?.$type === 'bpmn:LaneSet') {
+      for (const lane of element?.lanes ?? []) visit(lane);
     }
   };
 
+  // Start from every process root, not only the primary process.
   for (const root of roots(definitions)) {
     if (root?.$type === 'bpmn:Process') visit(root);
+  }
+
+  // Also start from every participant so a participant-only process is
+  // discoverable even if its process is not exposed in rootElements.
+  for (const root of roots(definitions)) {
+    if (root?.$type === 'bpmn:Participant') visit(root);
   }
 
   return result;
