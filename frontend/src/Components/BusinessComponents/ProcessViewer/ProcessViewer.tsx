@@ -6,13 +6,15 @@ import '../Modeler/Modeler.css';
 type ProcessViewerProps = {
   resourceId: string;
   contentId: string;
+  selectedElementId?: string | null;
 };
 
 export const ProcessViewer = ({
   resourceId,
   contentId,
+  selectedElementId,
 }: ProcessViewerProps) => {
-  const { viewerRef } = useProcessViewer(resourceId, contentId);
+  const { viewerRef } = useProcessViewer(resourceId, contentId, selectedElementId);
 
   return <div ref={viewerRef} style={{ height: '100%' }} />;
 };
