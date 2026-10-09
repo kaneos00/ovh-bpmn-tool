@@ -59,6 +59,22 @@ export const Component = () => {
   );
 
   useEffect(() => {
+    console.warn('[NAV-DIAG] ContentViewer mounted/route changed', {
+      resourceId,
+      contentId,
+    });
+  }, [resourceId, contentId]);
+
+  useEffect(() => {
+    console.warn('[NAV-DIAG] ContentViewer XML state', {
+      resourceId,
+      contentId,
+      xmlLoaded: typeof xmlContent === 'string' && xmlContent.length > 0,
+      xmlLength: xmlContent?.length ?? 0,
+    });
+  }, [resourceId, contentId, xmlContent]);
+
+  useEffect(() => {
     setSelectedActivityId(null);
   }, [resourceId, contentId]);
 
