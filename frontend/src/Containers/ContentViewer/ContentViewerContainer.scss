@@ -42,6 +42,23 @@
   padding: 8px;
 }
 
+.viewerNavigationMenu {
+  padding-bottom: 4px;
+}
+
+.viewerNavigationMenu button {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.viewerActivityLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  width: 100%;
+}
+
 .viewerDiagram {
   min-width: 0;
   height: 100vh;
