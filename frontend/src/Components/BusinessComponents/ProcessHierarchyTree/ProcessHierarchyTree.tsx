@@ -29,6 +29,7 @@ type HierarchyNode = {
   id: string;
   name: string;
   type: HierarchyNodeType;
+  canvasElementId?: string;
   children: HierarchyNode[];
 };
 
@@ -95,12 +96,22 @@ export const parseProcessHierarchy = (xmlContent: string): HierarchyNode[] => {
     process => !process.parentElement || !isSubProcess(process.parentElement),
   );
 
+  const participants = Array.from(
+    document.getElementsByTagNameNS(BPMN_MODEL_NS, 'participant'),
+  );
+
   const nodes = processes.map(process => {
     const id = process.getAttribute('id') || 'process';
+    const participant = participants.find(
+      candidate => candidate.getAttribute('processRef') === id,
+    );
     return {
       id,
       name: process.getAttribute('name')?.trim() || id,
       type: 'process' as const,
+      // A BPMN process is metadata, not a drawable canvas element. When it
+      // has a pool/participant, use that visible participant for canvas focus.
+      canvasElementId: participant?.getAttribute('id') || undefined,
       children: buildFlowNodes(process),
     };
   });
@@ -161,8 +172,18 @@ export const ProcessHierarchyTree = ({
   );
 
   useEffect(() => {
-    setSelectedTreeItemId(selectedElementId ?? null);
-  }, [selectedElementId]);
+    if (!selectedElementId) {
+      setSelectedTreeItemId(null);
+      return;
+    }
+
+    // Canvas IDs (for example, a pool mapped from a process) do not always
+    // correspond to tree rows. Only synchronize when the selected ID exists
+    // in this hierarchy, otherwise preserve the clicked process row.
+    if (findNode(nodes, selectedElementId)) {
+      setSelectedTreeItemId(selectedElementId);
+    }
+  }, [selectedElementId, nodes]);
 
   useEffect(() => {
     console.warn('[NAV-DIAG] ProcessHierarchyTree mounted/rendered', {
@@ -270,6 +291,9 @@ export const ProcessHierarchyTree = ({
                       ? current.filter(id => id !== itemId)
                       : [...current, itemId],
                   );
+                  if (selectedNode.canvasElementId) {
+                    onElementClick(selectedNode.canvasElementId);
+                  }
                   return;
                 }
 
