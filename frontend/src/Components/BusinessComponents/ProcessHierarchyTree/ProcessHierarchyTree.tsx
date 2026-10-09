@@ -155,7 +155,7 @@ export const ProcessHierarchyTree = ({
       selectedElementId,
     });
     setExpandedNodes(rootIds);
-  }, [nodes, selectedElementId]);
+  }, [nodes]);
 
   useEffect(() => {
     console.debug(DEBUG_PREFIX, 'Props/state changed', {
