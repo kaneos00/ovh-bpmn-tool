@@ -24,26 +24,6 @@ const textAttr = (element: Element | undefined, name: string): string =>
 const splitRoles = (value: string): string[] =>
   value.split(',').map(role => role.trim()).filter(Boolean);
 
-const parseActors = (value: string): string[] => {
-  if (!value) return [];
-
-  try {
-    const parsed = JSON.parse(value);
-    if (Array.isArray(parsed)) {
-      return Array.from(new Set(
-        parsed
-          .filter(actor => typeof actor === 'string' || (actor && typeof actor === 'object' && actor.active !== false))
-          .map(actor => typeof actor === 'string' ? actor.trim() : String(actor.name ?? '').trim())
-          .filter(Boolean),
-      ));
-    }
-  } catch {
-    // Backward compatibility with comma-separated actor lists.
-  }
-
-  return Array.from(new Set(splitRoles(value)));
-};
-
 const unique = (values: string[]): string[] =>
   Array.from(new Set(values.map(value => value.trim()).filter(Boolean)));
 
