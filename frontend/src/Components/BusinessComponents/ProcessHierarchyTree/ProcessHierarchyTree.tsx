@@ -251,6 +251,15 @@ export const ProcessHierarchyTree = ({
                   return;
                 }
 
+                if (selectedNode.type === 'process') {
+                  setExpandedNodes(current =>
+                    current.includes(itemId)
+                      ? current.filter(id => id !== itemId)
+                      : [...current, itemId],
+                  );
+                  return;
+                }
+
                 console.debug(DEBUG_PREFIX, 'Calling onElementClick', {
                   itemId,
                   type: selectedNode.type,
