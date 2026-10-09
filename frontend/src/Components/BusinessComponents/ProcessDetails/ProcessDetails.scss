@@ -49,39 +49,3 @@
   padding: 12px 16px;
 }
 
-/* Keep the hierarchy in the main resource route (/:resourceId), not only in
-   the dedicated /viewer/:contentId route. */
-.processViewerWorkspace {
-  min-width: 0;
-  min-height: 0;
-  flex: 1;
-  display: flex;
-  overflow: hidden;
-}
-
-.processViewerHierarchy {
-  flex: 0 0 270px;
-  width: 270px;
-  min-width: 220px;
-  max-width: 320px;
-  overflow: auto;
-  border-top: 0;
-  border-bottom: 0;
-  border-left: 0;
-  padding: 4px;
-}
-
-.processViewerCanvas {
-  min-width: 0;
-  min-height: 0;
-  flex: 1;
-  overflow: hidden;
-}
-
-@media (max-width: 900px) {
-  .processViewerHierarchy {
-    flex-basis: 220px;
-    width: 220px;
-    min-width: 190px;
-  }
-}
