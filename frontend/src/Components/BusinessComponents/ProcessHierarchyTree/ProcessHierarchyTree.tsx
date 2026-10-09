@@ -18,6 +18,7 @@ import {
 import { FolderTreeItem } from '../FolderTree/components/FolderTreeItem';
 
 const BPMN_MODEL_NS = 'http://www.omg.org/spec/BPMN/20100524/MODEL';
+const DEBUG_PREFIX = '[ProcessHierarchyTree]';
 
 type HierarchyNodeType = 'process' | 'subProcess' | 'activity';
 
@@ -65,27 +66,54 @@ const buildFlowNodes = (parent: Element): HierarchyNode[] =>
   });
 
 export const parseProcessHierarchy = (xmlContent: string): HierarchyNode[] => {
-  if (!xmlContent.trim() || typeof DOMParser === 'undefined') return [];
+  if (!xmlContent.trim() || typeof DOMParser === 'undefined') {
+    console.debug(DEBUG_PREFIX, 'Parsing skipped', {
+      hasXml: Boolean(xmlContent.trim()),
+      domParserAvailable: typeof DOMParser !== 'undefined',
+    });
+    return [];
+  }
 
   const document = new DOMParser().parseFromString(
     xmlContent,
     'application/xml',
   );
-  if (document.getElementsByTagName('parsererror').length > 0) return [];
+  if (document.getElementsByTagName('parsererror').length > 0) {
+    console.warn(DEBUG_PREFIX, 'BPMN XML parsing failed');
+    return [];
+  }
 
-  return Array.from(document.getElementsByTagNameNS(BPMN_MODEL_NS, 'process'))
-    .filter(
-      process => !process.parentElement || !isSubProcess(process.parentElement),
-    )
-    .map(process => {
-      const id = process.getAttribute('id') || 'process';
-      return {
-        id,
-        name: process.getAttribute('name')?.trim() || id,
-        type: 'process' as const,
-        children: buildFlowNodes(process),
-      };
-    });
+  const processes = Array.from(
+    document.getElementsByTagNameNS(BPMN_MODEL_NS, 'process'),
+  ).filter(
+    process => !process.parentElement || !isSubProcess(process.parentElement),
+  );
+
+  const nodes = processes.map(process => {
+    const id = process.getAttribute('id') || 'process';
+    return {
+      id,
+      name: process.getAttribute('name')?.trim() || id,
+      type: 'process' as const,
+      children: buildFlowNodes(process),
+    };
+  });
+
+  console.debug(DEBUG_PREFIX, 'Hierarchy parsed', {
+    xmlLength: xmlContent.length,
+    processCount: nodes.length,
+    processes: nodes.map(node => ({
+      id: node.id,
+      name: node.name,
+      childCount: node.children.length,
+      childTypes: node.children.reduce<Record<string, number>>((counts, child) => {
+        counts[child.type] = (counts[child.type] ?? 0) + 1;
+        return counts;
+      }, {}),
+    })),
+  });
+
+  return nodes;
 };
 
 const findNode = (
@@ -121,8 +149,21 @@ export const ProcessHierarchyTree = ({
   const [expandedNodes, setExpandedNodes] = useState<string[]>([]);
 
   useEffect(() => {
-    setExpandedNodes(nodes.map(node => node.id));
-  }, [nodes]);
+    const rootIds = nodes.map(node => node.id);
+    console.debug(DEBUG_PREFIX, 'Root expansion initialized', {
+      rootIds,
+      selectedElementId,
+    });
+    setExpandedNodes(rootIds);
+  }, [nodes, selectedElementId]);
+
+  useEffect(() => {
+    console.debug(DEBUG_PREFIX, 'Props/state changed', {
+      selectedElementId: selectedElementId ?? null,
+      expandedNodeIds: expandedNodes,
+      processCount: nodes.length,
+    });
+  }, [selectedElementId, expandedNodes, nodes.length]);
 
   const renderNode = (node: HierarchyNode): React.ReactNode => {
     const icon = getNodeIcon(node.type);
@@ -169,13 +210,47 @@ export const ProcessHierarchyTree = ({
               expandedItems={expandedNodes}
               disabledItemsFocusable
               slots={{ collapseIcon: ExpandMore, expandIcon: ChevronRight }}
-              onExpandedItemsChange={(_, itemIds) => setExpandedNodes(itemIds)}
+              onExpandedItemsChange={(_, itemIds) => {
+                console.debug(DEBUG_PREFIX, 'Expansion changed', {
+                  expandedNodeIds: itemIds,
+                });
+                setExpandedNodes(itemIds);
+              }}
               onSelectedItemsChange={(_, itemId) => {
-                if (!itemId) return;
-                const selectedNode = findNode(nodes, itemId);
-                if (selectedNode && selectedNode.type !== 'process') {
-                  onElementClick(itemId);
+                console.debug(DEBUG_PREFIX, 'Selection event received', {
+                  itemId: itemId ?? null,
+                  knownNode: itemId ? findNode(nodes, itemId) ?? null : null,
+                });
+
+                if (!itemId) {
+                  console.debug(DEBUG_PREFIX, 'Selection ignored: empty itemId');
+                  return;
                 }
+
+                const selectedNode = findNode(nodes, itemId);
+                if (!selectedNode) {
+                  console.warn(DEBUG_PREFIX, 'Selection ignored: node not found', {
+                    itemId,
+                    knownRootIds: nodes.map(node => node.id),
+                  });
+                  return;
+                }
+
+                if (selectedNode.type === 'process') {
+                  console.debug(
+                    DEBUG_PREFIX,
+                    'Root process selected; current implementation does not call onElementClick',
+                    { itemId, name: selectedNode.name },
+                  );
+                  return;
+                }
+
+                console.debug(DEBUG_PREFIX, 'Calling onElementClick', {
+                  itemId,
+                  type: selectedNode.type,
+                  name: selectedNode.name,
+                });
+                onElementClick(itemId);
               }}
             >
               {nodes.map(node => renderNode(node))}
