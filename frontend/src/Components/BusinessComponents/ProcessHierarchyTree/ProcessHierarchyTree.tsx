@@ -216,17 +216,11 @@ export const ProcessHierarchyTree = ({
                 setExpandedNodes(itemIds);
               }}
               onSelectedItemsChange={(_, itemId) => {
-                if (!itemId) {
-                  setSelectedTreeItemId(null);
-                  return;
-                }
-
+                setSelectedTreeItemId(itemId ?? null);
+              }}
+              onItemClick={(_, itemId) => {
                 const selectedNode = findNode(nodes, itemId);
-                if (!selectedNode) {
-                  return;
-                }
-
-                setSelectedTreeItemId(itemId);
+                if (!selectedNode) return;
 
                 if (selectedNode.type === 'process') {
                   setExpandedNodes(current =>
