@@ -43,12 +43,57 @@
 }
 
 .viewerNavigationMenu {
-  padding-bottom: 4px;
+  padding: 4px 2px 8px;
+  gap: 4px;
 }
 
-.viewerNavigationMenu button {
+.viewerNavigationMenu button.viewerNavigationItem {
+  position: relative;
+  min-height: 40px;
   justify-content: flex-start;
   text-align: left;
+  padding-inline: 12px;
+  border-radius: 10px;
+  font-weight: 500;
+  transition: background-color 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.viewerNavigationMenu button.viewerNavigationItem:hover {
+  background: var(--joy-palette-neutral-softHoverBg, rgba(0, 0, 0, 0.045));
+}
+
+.viewerNavigationMenu button.viewerNavigationItem.active {
+  font-weight: 700;
+  background: var(--joy-palette-primary-softBg, rgba(11, 107, 203, 0.1));
+  color: var(--joy-palette-primary-700, #0b6bcb);
+}
+
+.viewerNavigationMenu button.viewerNavigationItem.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 0 4px 4px 0;
+  background: currentColor;
+}
+
+.viewerNavigationMenu button.viewerNavigationRaci {
+  margin-top: 4px;
+  border-top: 1px solid var(--joy-palette-divider, #e5e7eb);
+  border-radius: 0 0 10px 10px;
+  padding-top: 8px;
+  min-height: 44px;
+}
+
+.viewerFolderHeader {
+  background: var(--joy-palette-background-level1, #f8fafc);
+  border-bottom: 1px solid var(--joy-palette-divider, #e5e7eb);
+}
+
+.viewerFolderPanel {
+  border-right: 1px solid var(--joy-palette-divider, #e5e7eb);
 }
 
 .viewerActivityLabel {
