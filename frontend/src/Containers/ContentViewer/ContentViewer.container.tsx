@@ -208,6 +208,16 @@ export const Component = () => {
                 >
                   Activités ({raciMatrix.activities.length})
                 </Button>
+                <Button
+                  size="sm"
+                  variant={infoTab === 1 ? 'soft' : 'plain'}
+                  color={infoTab === 1 ? 'primary' : 'neutral'}
+                  startDecorator={<GroupsOutlined />}
+                  onClick={() => setInfoTab(1)}
+                  fullWidth
+                >
+                  RACI
+                </Button>
               </Stack>
               <Divider sx={{ my: 1 }} />
               {navigationSection === 'resources' && (
