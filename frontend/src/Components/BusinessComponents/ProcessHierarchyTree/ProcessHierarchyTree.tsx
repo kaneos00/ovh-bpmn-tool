@@ -153,6 +153,16 @@ export const ProcessHierarchyTree = ({
 }: ProcessHierarchyTreeProps) => {
   const nodes = useMemo(() => parseProcessHierarchy(xmlContent), [xmlContent]);
   const [expandedNodes, setExpandedNodes] = useState<string[]>([]);
+  // The BPMN process itself is not usually a drawable shape in the canvas.
+  // Keep tree selection separate from canvas selection so process rows can
+  // still be visibly selected while they expand/collapse their hierarchy.
+  const [selectedTreeItemId, setSelectedTreeItemId] = useState<string | null>(
+    selectedElementId ?? null,
+  );
+
+  useEffect(() => {
+    setSelectedTreeItemId(selectedElementId ?? null);
+  }, [selectedElementId]);
 
   useEffect(() => {
     console.warn('[NAV-DIAG] ProcessHierarchyTree mounted/rendered', {
@@ -221,7 +231,7 @@ export const ProcessHierarchyTree = ({
         <ListItem>
           <ListItemContent>
             <SimpleTreeView
-              selectedItems={selectedElementId ?? null}
+              selectedItems={selectedTreeItemId}
               expandedItems={expandedNodes}
               disabledItemsFocusable
               slots={{ collapseIcon: ExpandMore, expandIcon: ChevronRight }}
@@ -238,6 +248,7 @@ export const ProcessHierarchyTree = ({
                 });
 
                 if (!itemId) {
+                  setSelectedTreeItemId(null);
                   console.debug(DEBUG_PREFIX, 'Selection ignored: empty itemId');
                   return;
                 }
@@ -250,6 +261,8 @@ export const ProcessHierarchyTree = ({
                   });
                   return;
                 }
+
+                setSelectedTreeItemId(itemId);
 
                 if (selectedNode.type === 'process') {
                   setExpandedNodes(current =>
