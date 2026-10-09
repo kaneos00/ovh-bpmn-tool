@@ -1,7 +1,7 @@
 import type { RaciActivity, RaciCell, RaciCode, RaciMatrix, RaciStatus } from './raci-engine';
 
 const RACICODES: RaciCode[] = ['R', 'A', 'C', 'I'];
-const APPROVAL_PATTERN = /\\b(approve|approval|validate|validation|authori[sz]e|authori[sz]ation|sign[- ]?off|approuver|approbation|valider|validation|autoriser|autorisation|signer|décider|decision|décision)\\b/i;
+const APPROVAL_PATTERN = /\b(approve|approval|validate|validation|authori[sz]e|authori[sz]ation|sign[- ]?off|approuver|approbation|valider|validation|autoriser|autorisation|signer|décider|decision|décision)\b/i;
 const ACTIVITY_TYPES = new Set([
   'task',
   'userTask',
@@ -207,6 +207,7 @@ export const deriveRaciMatrixFromXml = (xmlContent: string): RaciMatrix => {
     activities: activities.map((activity): RaciActivity => {
       const cells = new Map<string, Set<RaciCode>>();
       const explicit = new Set<RaciCode>();
+      const explicitByRole = new Map<string, Set<RaciCode>>();
 
       const addCode = (role: string | undefined, code: RaciCode) => {
         if (!role || !allowedRoles.has(role)) return;
@@ -218,7 +219,12 @@ export const deriveRaciMatrixFromXml = (xmlContent: string): RaciMatrix => {
       for (const code of RACICODES) {
         const assigned = getExplicitRoles(activity, code);
         if (assigned.length) explicit.add(code);
-        assigned.forEach(role => addCode(role, code));
+        assigned.forEach(role => {
+          addCode(role, code);
+          const roleCodes = explicitByRole.get(role) ?? new Set<RaciCode>();
+          roleCodes.add(code);
+          explicitByRole.set(role, roleCodes);
+        });
       }
 
       const activityRole = roleOf(activity);
@@ -247,7 +253,7 @@ export const deriveRaciMatrixFromXml = (xmlContent: string): RaciMatrix => {
 
       const cellList = roles.map((role): RaciCell => {
         const codes = Array.from(cells.get(role) ?? []);
-        const hasExplicitCode = codes.some(code => explicit.has(code));
+        const hasExplicitCode = codes.some(code => explicitByRole.get(role)?.has(code));
         let status: RaciStatus;
         if (codes.length === 0) {
           status = 'missing';
