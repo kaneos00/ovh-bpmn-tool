@@ -12,7 +12,13 @@ import {
   Tabs,
   Typography,
 } from '@mui/joy';
-import { ChevronLeft, ChevronRight } from '@mui/icons-material';
+import {
+  ChevronLeft,
+  ChevronRight,
+  FolderOutlined,
+  GroupsOutlined,
+  Menu as MenuIcon,
+} from '@mui/icons-material';
 import { useQuery } from 'react-query';
 
 import { FolderTree } from '../../Components/BusinessComponents/FolderTree';
@@ -135,7 +141,7 @@ export const Component = () => {
   ]);
 
   return (
-    <Box className="viewerLayout">
+    <Box className={`viewerLayout ${folderOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}>
       <Sheet
         className={`viewerFolderPanel ${folderOpen ? 'open' : 'collapsed'}`}
         variant="outlined"
@@ -146,14 +152,20 @@ export const Component = () => {
           justifyContent="space-between"
           className="viewerFolderHeader"
         >
-          {folderOpen && <Typography level="title-md">Folders</Typography>}
+          {folderOpen && (
+            <Stack direction="row" spacing={1} alignItems="center">
+              <FolderOutlined fontSize="small" />
+              <Typography level="title-md">Navigation</Typography>
+            </Stack>
+          )}
           <IconButton
             size="sm"
             variant="plain"
             onClick={() => setFolderOpen(value => !value)}
-            title={folderOpen ? 'Collapse folders' : 'Open folders'}
+            title={folderOpen ? 'Réduire la navigation' : 'Ouvrir la navigation'}
+            aria-label={folderOpen ? 'Réduire la navigation' : 'Ouvrir la navigation'}
           >
-            {folderOpen ? <ChevronLeft /> : <ChevronRight />}
+            {folderOpen ? <ChevronLeft /> : <MenuIcon />}
           </IconButton>
         </Stack>
 
@@ -210,7 +222,12 @@ export const Component = () => {
         <Tabs defaultValue={0} className="viewerTabs">
           <TabList sticky="top" variant="plain">
             <Tab value={0}>Version history</Tab>
-            <Tab value={1}>RACI ({raciMatrix.activities.length})</Tab>
+            <Tab value={1}>
+              <Stack direction="row" spacing={0.75} alignItems="center">
+                <GroupsOutlined fontSize="small" />
+                <span>RACI ({raciMatrix.activities.length})</span>
+              </Stack>
+            </Tab>
           </TabList>
 
           <TabPanel value={0} className="viewerTabPanel">
