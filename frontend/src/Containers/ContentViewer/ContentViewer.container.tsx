@@ -76,15 +76,6 @@ export const Component = () => {
   }, [resourceId, contentId]);
 
   useEffect(() => {
-    console.warn('[NAV-DIAG] ContentViewer XML state', {
-      resourceId,
-      contentId,
-      xmlLoaded: typeof xmlContent === 'string' && xmlContent.length > 0,
-      xmlLength: xmlContent?.length ?? 0,
-    });
-  }, [resourceId, contentId, xmlContent]);
-
-  useEffect(() => {
     setSelectedActivityId(null);
   }, [resourceId, contentId]);
 
@@ -92,6 +83,15 @@ export const Component = () => {
   const { data: xmlContent } = useQuery(
     getXmlContentQuery(resourceId, contentId),
   );
+
+  useEffect(() => {
+    console.warn('[NAV-DIAG] ContentViewer XML state', {
+      resourceId,
+      contentId,
+      xmlLoaded: typeof xmlContent === 'string' && xmlContent.length > 0,
+      xmlLength: xmlContent?.length ?? 0,
+    });
+  }, [resourceId, contentId, xmlContent]);
 
   const lastPublishedContent = useMemo(() => {
     return contents
