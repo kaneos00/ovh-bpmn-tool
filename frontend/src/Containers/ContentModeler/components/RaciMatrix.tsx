@@ -118,10 +118,10 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
   }, [open, modeler]);
 
   useEffect(() => {
-    if (!open || !modeler) return;
+    if (!open || !modeler) return undefined;
 
     const eventBus = modeler?.get?.('eventBus');
-    if (!eventBus?.on) return;
+    if (!eventBus?.on) return undefined;
 
     const handleCommandStackChanged = () => {
       setRevision(value => value + 1);
@@ -266,10 +266,12 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
 
     replaceActorInAssignments(actor);
     updateActors(displayedActorList
-      .map(current => current.name === actor
-        ? (current.source === 'manual' ? null : { ...current, active: false })
-        : current)
-      .filter((current): current is RaciActor => Boolean(current)));
+      .map((current): RaciActor | null => {
+        if (current.name !== actor) return current;
+        if (current.source === 'manual') return null;
+        return { ...current, active: false };
+      })
+      .filter((current): current is RaciActor => current !== null));
   };
 
   const restoreInferredActors = () => {
@@ -388,6 +390,16 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
     refresh();
   };
 
+  const actorSourceLabel = (source: RaciActor['source']): string => {
+    switch (source) {
+      case 'bpmn': return 'BPMN';
+      case 'lane': return 'Lane';
+      case 'explicit': return 'RACI';
+      case 'manual': return 'Manuel';
+      default: return 'Manuel';
+    }
+  };
+
   const closeActors = () => {
     setEditingActor(null);
     setEditingActorValue('');
@@ -453,7 +465,7 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
                             />
                           ) : actor.name}
                         </td>
-                        <td style={{ padding: 8 }}>{actor.source === 'bpmn' ? 'BPMN' : actor.source === 'lane' ? 'Lane' : actor.source === 'explicit' ? 'RACI' : 'Manuel'}</td>
+                        <td style={{ padding: 8 }}>{actorSourceLabel(actor.source)}</td>
                         <td style={{ padding: 8 }}>{actor.active ? '✓' : '✗'}</td>
                         <td style={{ padding: 8 }}>
                           {editingActor === actor.name ? (
@@ -467,7 +479,14 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
                               {actor.active ? (
                                 <button type="button" onClick={() => removeActor(actor.name)}>Désactiver</button>
                               ) : (
-                                <button type="button" onClick={() => updateActors(displayedActorList.map(current => current.name === actor.name ? { ...current, active: true } : current))}>Activer</button>
+                                <button
+                                  type="button"
+                                  onClick={() => updateActors(displayedActorList.map(current => (
+                                    current.name === actor.name ? { ...current, active: true } : current
+                                  )))}
+                                >
+                                  Activer
+                                </button>
                               )}
                             </>
                           )}
