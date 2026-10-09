@@ -76,11 +76,12 @@ const parseConfiguredActors = (value: string): ConfiguredActors => {
       const active: string[] = [];
       const inactive: string[] = [];
       for (const actor of parsed) {
-        const name = typeof actor === 'string'
-          ? actor.trim()
-          : actor && typeof actor === 'object'
-            ? String(actor.name ?? '').trim()
-            : '';
+        let name = '';
+        if (typeof actor === 'string') {
+          name = actor.trim();
+        } else if (actor && typeof actor === 'object') {
+          name = String(actor.name ?? '').trim();
+        }
         if (!name) continue;
         if (typeof actor === 'object' && actor !== null && actor.active === false) inactive.push(name);
         else active.push(name);
