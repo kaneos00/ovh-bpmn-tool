@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Box,
   Divider,
@@ -18,6 +18,7 @@ import { useQuery } from 'react-query';
 import { useProcessDetails } from './hooks/useProcessDetails';
 import { ProcessContentList } from '../ProcessContentList/ProcessContentList';
 import { ProcessViewer } from '../ProcessViewer';
+import { ProcessHierarchyTree } from '../ProcessHierarchyTree/ProcessHierarchyTree';
 import { getXmlContentQuery } from '../../../api/contents/contents.queries';
 import {
   deriveRaciMatrixFromXml,
@@ -80,6 +81,7 @@ export const ProcessDetails = ({
     () => analyzeRaciMatrix(raciMatrix),
     [raciMatrix],
   );
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -128,11 +130,27 @@ export const ProcessDetails = ({
                   </IconButton>
                 </Stack>
                 <Divider />
-                <Box className="processViewerCanvas">
-                  <ProcessViewer
-                    resourceId={resourceId}
-                    contentId={publishedContent.id}
-                  />
+                <Box className="processViewerWorkspace">
+                  <Sheet className="processViewerHierarchy" variant="outlined">
+                    {xmlContent ? (
+                      <ProcessHierarchyTree
+                        xmlContent={xmlContent}
+                        selectedElementId={selectedElementId}
+                        onElementClick={setSelectedElementId}
+                      />
+                    ) : (
+                      <Typography level="body-sm" textColor="neutral" sx={{ p: 2 }}>
+                        Chargement de la hiérarchie BPMN…
+                      </Typography>
+                    )}
+                  </Sheet>
+                  <Box className="processViewerCanvas">
+                    <ProcessViewer
+                      resourceId={resourceId}
+                      contentId={publishedContent.id}
+                      selectedElementId={selectedElementId}
+                    />
+                  </Box>
                 </Box>
               </>
             ) : (
