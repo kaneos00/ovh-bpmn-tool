@@ -16,6 +16,7 @@ import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 import { useQuery } from 'react-query';
 
 import { FolderTree } from '../../Components/BusinessComponents/FolderTree';
+import { ProcessHierarchyTree } from '../../Components/BusinessComponents/ProcessHierarchyTree/ProcessHierarchyTree';
 import { ProcessViewer } from '../../Components/BusinessComponents/ProcessViewer';
 import { useContentViewer } from './hooks/useContentViewer';
 import { contentsQuery, getXmlContentQuery } from '../../api/contents/contents.queries';
@@ -123,6 +124,12 @@ export const Component = () => {
               <FolderTree
                 selectedId={resourceId}
                 onNodeClick={id => navigate(`/${id}`)}
+              />
+              <Divider sx={{ my: 1 }} />
+              <ProcessHierarchyTree
+                xmlContent={xmlContent ?? ''}
+                selectedElementId={selectedActivityId}
+                onElementClick={setSelectedActivityId}
               />
             </Box>
           </>
