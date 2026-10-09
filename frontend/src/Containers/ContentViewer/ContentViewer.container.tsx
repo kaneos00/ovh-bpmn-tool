@@ -47,6 +47,7 @@ export const Component = () => {
   const [actorFilter, setActorFilter] = useState('');
   const [codeFilter, setCodeFilter] = useState<RaciCode | ''>('');
   const [issuesOnly, setIssuesOnly] = useState(false);
+  const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null);
 
   const { data: contents = [] } = useQuery(contentsQuery(resourceId));
   const { data: xmlContent } = useQuery(
@@ -129,7 +130,7 @@ export const Component = () => {
       </Sheet>
 
       <Box className="viewerDiagram">
-        <ProcessViewer resourceId={resourceId} contentId={contentId} />
+        <ProcessViewer resourceId={resourceId} contentId={contentId} selectedElementId={selectedActivityId} />
       </Box>
 
       <Sheet className="viewerInfoPanel" variant="outlined">
@@ -295,7 +296,15 @@ export const Component = () => {
                                 borderTop: '1px solid #ddd',
                               }}
                             >
-                              {activity.activity}
+                              <button
+                                type="button"
+                                className="raciActivityLink"
+                                aria-pressed={selectedActivityId === activity.elementId}
+                                onClick={() => setSelectedActivityId(activity.elementId)}
+                                title="Afficher cette activité dans le diagramme BPMN"
+                              >
+                                {activity.activity}
+                              </button>
                             </th>
                             {activity.cells.map(cell => (
                               <td
