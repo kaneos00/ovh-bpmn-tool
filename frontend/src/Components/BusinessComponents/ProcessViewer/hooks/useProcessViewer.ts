@@ -34,7 +34,7 @@ export const useProcessViewer = (
     const targetId = selectedIdRef.current;
     if (!targetId) return;
 
-    const element = viewer.get('elementRegistry').get(targetId);
+    const element = (viewer.get('elementRegistry') as any).get(targetId);
     if (!element) return;
 
     canvas.addMarker(targetId, 'raci-selected');
@@ -71,7 +71,7 @@ export const useProcessViewer = (
     // Attach the viewer before importing so its interaction and selection
     // services are active when import.done is emitted.
     viewer.importXML(xmlContent).then(() => {
-      viewer.get('canvas').zoom('fit-viewport');
+      (viewer.get('canvas') as any).zoom('fit-viewport');
       importedRef.current = true;
       applySelectionRef.current();
     });
