@@ -37,15 +37,6 @@ type ProcessHierarchyTreeProps = {
 const isSubProcess = (element: Element) =>
   element.localName.toLowerCase().includes('subprocess');
 
-const isActivity = (element: Element) => {
-  const localName = element.localName.toLowerCase();
-  return (
-    localName.endsWith('task') ||
-    localName.endsWith('activity') ||
-    localName === 'transaction'
-  );
-};
-
 const getFlowElements = (parent: Element) =>
   Array.from(parent.children).filter(
     element => isSubProcess(element) || isActivity(element),
