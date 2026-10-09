@@ -222,14 +222,25 @@ export const ProcessHierarchyTree = ({
                 const selectedNode = findNode(nodes, itemId);
                 if (!selectedNode) return;
 
-                if (selectedNode.type === 'process') {
+                if (
+                  selectedNode.type === 'process' ||
+                  selectedNode.type === 'subProcess'
+                ) {
                   setExpandedNodes(current =>
                     current.includes(itemId)
                       ? current.filter(id => id !== itemId)
                       : [...current, itemId],
                   );
-                  if (selectedNode.canvasElementId) {
-                    onElementClick(selectedNode.canvasElementId);
+
+                  // A process is not normally a drawable BPMN shape, so focus
+                  // its participant when available. A subprocess is drawable
+                  // and can be focused directly while its children toggle.
+                  if (selectedNode.type === 'process') {
+                    if (selectedNode.canvasElementId) {
+                      onElementClick(selectedNode.canvasElementId);
+                    }
+                  } else {
+                    onElementClick(itemId);
                   }
                   return;
                 }
