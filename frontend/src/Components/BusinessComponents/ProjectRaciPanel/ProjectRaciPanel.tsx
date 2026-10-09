@@ -57,11 +57,13 @@ const getProjectProcesses = (
   let current = byId.get(currentResourceId);
   if (!current) return processes;
 
-  // The project scope is the top-level folder containing the selected resource.
-  // If a process is itself at the root, scope the panel to that process.
+  // A top-level folder represents a project. If the selected process has no
+  // containing folder, there is no narrower project boundary in this data model,
+  // so show all accessible processes instead of silently hiding its siblings.
   while (current.parentId && byId.has(current.parentId)) {
     current = byId.get(current.parentId)!;
   }
+  if (current.type !== ResourceType.Folder) return processes;
   const projectRootId = current.id;
 
   const belongsToProject = (resource: Resource): boolean => {
