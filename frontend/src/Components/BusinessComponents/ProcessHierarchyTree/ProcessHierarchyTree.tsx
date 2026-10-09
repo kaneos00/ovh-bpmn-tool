@@ -89,6 +89,17 @@ const findNode = (
   return undefined;
 };
 
+const getNodeIcon = (type: HierarchyNodeType) => {
+  switch (type) {
+    case 'process':
+      return <AccountTreeOutlined fontSize="small" />;
+    case 'subProcess':
+      return <CallSplitOutlined fontSize="small" />;
+    default:
+      return <DescriptionOutlined fontSize="small" />;
+  }
+};
+
 export const ProcessHierarchyTree = ({
   xmlContent,
   selectedElementId,
@@ -102,14 +113,7 @@ export const ProcessHierarchyTree = ({
   }, [nodes]);
 
   const renderNode = (node: HierarchyNode): React.ReactNode => {
-    const icon =
-      node.type === 'process' ? (
-        <AccountTreeOutlined fontSize="small" />
-      ) : node.type === 'subProcess' ? (
-        <CallSplitOutlined fontSize="small" />
-      ) : (
-        <DescriptionOutlined fontSize="small" />
-      );
+    const icon = getNodeIcon(node.type);
 
     return (
       <FolderTreeItem
