@@ -7,7 +7,12 @@ import {
   Skeleton,
 } from '@mui/joy';
 import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
-import { ChevronRight, ExpandMore } from '@mui/icons-material';
+import {
+  ChevronRight,
+  DescriptionOutlined,
+  ExpandMore,
+  FolderOutlined,
+} from '@mui/icons-material';
 
 import { useFolderTree } from './hooks/useFolderTree';
 import { FolderTreeItem } from './components/FolderTreeItem';
@@ -24,13 +29,23 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
     useFolderTree(selectedId, { onNodeClick });
 
   const renderTree = (node: RenderTree) => {
-    const icon = node.type === 'folder' ? '📁' : '📄';
+    const icon =
+      node.type === 'folder' ? (
+        <FolderOutlined fontSize="small" />
+      ) : (
+        <DescriptionOutlined fontSize="small" />
+      );
 
     return (
       <FolderTreeItem
         key={node.id}
         itemId={node.id}
-        label={`${icon} ${node.name}`}
+        label={
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            {icon}
+            <span>{node.name}</span>
+          </span>
+        }
         title={node.name}
       >
         {Array.isArray(node.children)
