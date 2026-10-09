@@ -82,7 +82,6 @@ export const ProcessDetails = ({
     () => analyzeRaciMatrix(raciMatrix),
     [raciMatrix],
   );
-  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
