@@ -78,6 +78,12 @@ export const Component = () => {
             {folderOpen ? <ChevronLeft /> : <ChevronRight />}
           </IconButton>
         </Box>
+        {!folderOpen && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, py: 1 }}>
+            <IconButton size="sm" variant="plain" title="Ressources" onClick={() => setFolderOpen(true)}><FolderOutlined /></IconButton>
+            {resource?.type === ResourceType.Process && <IconButton size="sm" variant="plain" title="Processus" onClick={() => setFolderOpen(true)}><AccountTreeOutlined /></IconButton>}
+          </Box>
+        )}
         {folderOpen && (
           <FolderTree
             selectedId={resourceId}
