@@ -179,6 +179,7 @@ export const Component = () => {
             <Box className="viewerFolderTree">
               <Stack spacing={0.5} className="viewerNavigationMenu">
                 <Button
+                  className={`viewerNavigationItem ${navigationSection === 'resources' ? 'active' : ''}`}
                   size="sm"
                   variant={navigationSection === 'resources' ? 'soft' : 'plain'}
                   color={navigationSection === 'resources' ? 'primary' : 'neutral'}
@@ -189,6 +190,7 @@ export const Component = () => {
                   Ressources
                 </Button>
                 <Button
+                  className={`viewerNavigationItem ${navigationSection === 'processes' ? 'active' : ''}`}
                   size="sm"
                   variant={navigationSection === 'processes' ? 'soft' : 'plain'}
                   color={navigationSection === 'processes' ? 'primary' : 'neutral'}
@@ -199,6 +201,7 @@ export const Component = () => {
                   Processus
                 </Button>
                 <Button
+                  className={`viewerNavigationItem ${navigationSection === 'activities' ? 'active' : ''}`}
                   size="sm"
                   variant={navigationSection === 'activities' ? 'soft' : 'plain'}
                   color={navigationSection === 'activities' ? 'primary' : 'neutral'}
@@ -209,6 +212,7 @@ export const Component = () => {
                   Activités ({raciMatrix.activities.length})
                 </Button>
                 <Button
+                  className={`viewerNavigationItem viewerNavigationRaci ${infoTab === 1 ? 'active' : ''}`}
                   size="sm"
                   variant={infoTab === 1 ? 'soft' : 'plain'}
                   color={infoTab === 1 ? 'primary' : 'neutral'}
