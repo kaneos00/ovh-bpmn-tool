@@ -171,6 +171,15 @@ export const deriveRaciMatrixFromXml = (xmlContent: string): RaciMatrix => {
   const roleOf = (element: Element | undefined): string | undefined => {
     if (!element) return undefined;
 
+    // Message flows can connect directly to a participant/pool, not only to
+    // an activity. Treat that participant as the source/target actor.
+    if (localName(element) === 'participant') {
+      const participantName = textAttr(element, 'name');
+      if (participantName && allowedRoles.has(participantName)) return participantName;
+      const processRole = participantByProcess.get(textAttr(element, 'processRef'));
+      if (processRole && allowedRoles.has(processRole)) return processRole;
+    }
+
     const laneRole = laneByNode.get(element.getAttribute('id') ?? '');
     if (laneRole && allowedRoles.has(laneRole)) return laneRole;
 
