@@ -20,6 +20,9 @@ import { FolderTreeItem } from '../FolderTree/components/FolderTreeItem';
 const BPMN_MODEL_NS = 'http://www.omg.org/spec/BPMN/20100524/MODEL';
 const DEBUG_PREFIX = '[ProcessHierarchyTree]';
 
+// Temporary diagnostics: warn-level logs remain visible when Debug is filtered out.
+console.warn('[NAV-DIAG] ProcessHierarchyTree module loaded');
+
 type HierarchyNodeType = 'process' | 'subProcess' | 'activity';
 
 type HierarchyNode = {
@@ -149,6 +152,15 @@ export const ProcessHierarchyTree = ({
   const [expandedNodes, setExpandedNodes] = useState<string[]>([]);
 
   useEffect(() => {
+    console.warn('[NAV-DIAG] ProcessHierarchyTree mounted/rendered', {
+      hasXml: Boolean(xmlContent.trim()),
+      xmlLength: xmlContent.length,
+      processCount: nodes.length,
+      rootIds: nodes.map(node => node.id),
+    });
+  }, [xmlContent, nodes]);
+
+  useEffect(() => {
     const rootIds = nodes.map(node => node.id);
     console.debug(DEBUG_PREFIX, 'Root expansion initialized', {
       rootIds,
@@ -211,13 +223,13 @@ export const ProcessHierarchyTree = ({
               disabledItemsFocusable
               slots={{ collapseIcon: ExpandMore, expandIcon: ChevronRight }}
               onExpandedItemsChange={(_, itemIds) => {
-                console.debug(DEBUG_PREFIX, 'Expansion changed', {
+                console.warn('[NAV-DIAG] Tree expansion changed', {
                   expandedNodeIds: itemIds,
                 });
                 setExpandedNodes(itemIds);
               }}
               onSelectedItemsChange={(_, itemId) => {
-                console.debug(DEBUG_PREFIX, 'Selection event received', {
+                console.warn('[NAV-DIAG] Tree selection event received', {
                   itemId: itemId ?? null,
                   knownNode: itemId ? findNode(nodes, itemId) ?? null : null,
                 });
