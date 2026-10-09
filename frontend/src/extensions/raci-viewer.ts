@@ -85,17 +85,62 @@ const getExplicitRoles = (activity: Element, code: RaciCode): string[] => {
   return splitRoles(textAttr(activity, property[code]));
 };
 
-const getConfiguredProcessActors = (process: Element | undefined): string[] | undefined => {
-  if (!process) return undefined;
-  const hasActors = process.hasAttribute('actors') || process.hasAttribute('raci:actors');
-  return hasActors ? parseActors(textAttr(process, 'actors')) : undefined;
+type ConfiguredActors = { active: string[]; inactive: string[] };
+
+const parseConfiguredActors = (value: string): ConfiguredActors => {
+  if (!value) return { active: [], inactive: [] };
+
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) {
+      const active: string[] = [];
+      const inactive: string[] = [];
+      for (const actor of parsed) {
+        const name = typeof actor === 'string'
+          ? actor.trim()
+          : actor && typeof actor === 'object'
+            ? String(actor.name ?? '').trim()
+            : '';
+        if (!name) continue;
+        if (typeof actor === 'object' && actor !== null && actor.active === false) inactive.push(name);
+        else active.push(name);
+      }
+      return { active: unique(active), inactive: unique(inactive) };
+    }
+  } catch {
+    // Backward compatibility with comma-separated actor lists.
+  }
+
+  return { active: unique(splitRoles(value)), inactive: [] };
+};
+
+const getConfiguredProcessActors = (processes: Element[]): ConfiguredActors | undefined => {
+  const configuredProcesses = processes.filter(process =>
+    process.hasAttribute('actors') || process.hasAttribute('raci:actors'),
+  );
+  if (!configuredProcesses.length) return undefined;
+
+  // Actor metadata may be attached to a process other than the first process
+  // in the XML. Read all configured lists and let an explicit inactive entry
+  // win over a duplicate active/discovered actor.
+  const active: string[] = [];
+  const inactive: string[] = [];
+  for (const process of configuredProcesses) {
+    const parsed = parseConfiguredActors(textAttr(process, 'actors'));
+    active.push(...parsed.active);
+    inactive.push(...parsed.inactive);
+  }
+  const inactiveNames = new Set(inactive.map(name => name.toLocaleLowerCase()));
+  return {
+    active: unique(active).filter(name => !inactiveNames.has(name.toLocaleLowerCase())),
+    inactive: unique(inactive),
+  };
 };
 
 export const deriveRaciMatrixFromXml = (xmlContent: string): RaciMatrix => {
   const document = new DOMParser().parseFromString(xmlContent, 'text/xml');
   const activities = getActivities(document);
   const processes = getProcesses(document);
-  const process = processes[0];
   const lanes = getLanes(document);
   const participants = getParticipants(document);
   const messageFlows = getMessageFlows(document);
@@ -118,18 +163,29 @@ export const deriveRaciMatrixFromXml = (xmlContent: string): RaciMatrix => {
     if (role && processRef) participantByProcess.set(processRef, role);
   }
 
-  const configuredActors = getConfiguredProcessActors(process);
+  const configuredActors = getConfiguredProcessActors(processes);
   const inferredActors = unique([
     ...lanes.map(lane => textAttr(lane, 'name')),
     ...participants.map(participant => textAttr(participant, 'name')),
     ...activities.flatMap(activity => RACICODES.flatMap(code => getExplicitRoles(activity, code))),
   ]);
-  // Once an actor list is configured, it is authoritative: inactive actors
-  // must stay out of the Viewer even if their BPMN participant or lane still exists.
-  // Legacy BPMN files without a configured list continue to use inference.
-  const roles = unique(configuredActors ?? inferredActors).sort((a, b) =>
-    a.localeCompare(b),
+  // Include actors present in the BPMN (pools, lanes, explicit role assignments)
+  // even when a configured list was saved on a different process. Preserve an
+  // explicit inactive entry so disabled actors never reappear through inference.
+  const configuredNames = new Set([
+    ...(configuredActors?.active ?? []),
+    ...(configuredActors?.inactive ?? []),
+  ].map(name => name.toLocaleLowerCase()));
+  const inactiveNames = new Set((configuredActors?.inactive ?? [])
+    .map(name => name.toLocaleLowerCase()));
+  const discoveredButUnconfigured = inferredActors.filter(name =>
+    !configuredNames.has(name.toLocaleLowerCase()) &&
+    !inactiveNames.has(name.toLocaleLowerCase()),
   );
+  const roles = unique([
+    ...(configuredActors?.active ?? []),
+    ...discoveredButUnconfigured,
+  ]).sort((a, b) => a.localeCompare(b));
   const allowedRoles = new Set(roles);
 
   const roleOf = (element: Element | undefined): string | undefined => {
