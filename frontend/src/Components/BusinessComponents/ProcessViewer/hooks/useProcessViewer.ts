@@ -40,18 +40,29 @@ export const useProcessViewer = (
     canvas.addMarker(targetId, 'raci-selected');
     highlightedIdRef.current = targetId;
 
-    // Center the selected BPMN element in the current viewport without
-    // changing the user's zoom level.
     const bounds = canvas.getAbsoluteBBox(element);
     const viewport = canvas.viewbox();
-    if (bounds && viewport) {
+    if (!bounds || !viewport) return;
+
+    // Focus the inside of an expanded subprocess when it is selected from
+    // the hierarchy. For ordinary activities, preserve the current zoom.
+    if (element.type === 'bpmn:SubProcess' && element.isExpanded !== false) {
+      const padding = 32;
       canvas.viewbox({
-        x: bounds.x + bounds.width / 2 - viewport.width / 2,
-        y: bounds.y + bounds.height / 2 - viewport.height / 2,
-        width: viewport.width,
-        height: viewport.height,
+        x: bounds.x - padding,
+        y: bounds.y - padding,
+        width: bounds.width + padding * 2,
+        height: bounds.height + padding * 2,
       });
+      return;
     }
+
+    canvas.viewbox({
+      x: bounds.x + bounds.width / 2 - viewport.width / 2,
+      y: bounds.y + bounds.height / 2 - viewport.height / 2,
+      width: viewport.width,
+      height: viewport.height,
+    });
   };
 
   const applySelectionRef = useRef(applySelection);
