@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
+  Button,
   Divider,
   IconButton,
   Sheet,
@@ -13,11 +14,12 @@ import {
   Typography,
 } from '@mui/joy';
 import {
+  AccountTreeOutlined,
   ChevronLeft,
-  ChevronRight,
   FolderOutlined,
   GroupsOutlined,
   Menu as MenuIcon,
+  TaskAltOutlined,
 } from '@mui/icons-material';
 import { useQuery } from 'react-query';
 
@@ -57,6 +59,8 @@ export const Component = () => {
   const { resourceId, contentId } = useContentViewer();
   const navigate = useNavigate();
   const [folderOpen, setFolderOpen] = useState(true);
+  const [navigationSection, setNavigationSection] = useState<'resources' | 'processes' | 'activities'>('resources');
+  const [infoTab, setInfoTab] = useState<0 | 1>(0);
   const [actorFilter, setActorFilter] = useState('');
   const [codeFilter, setCodeFilter] = useState<RaciCode | ''>('');
   const [issuesOnly, setIssuesOnly] = useState(false);
@@ -173,16 +177,74 @@ export const Component = () => {
           <>
             <Divider />
             <Box className="viewerFolderTree">
-              <FolderTree
-                selectedId={resourceId}
-                onNodeClick={id => navigate(`/${id}`)}
-              />
+              <Stack spacing={0.5} className="viewerNavigationMenu">
+                <Button
+                  size="sm"
+                  variant={navigationSection === 'resources' ? 'soft' : 'plain'}
+                  color={navigationSection === 'resources' ? 'primary' : 'neutral'}
+                  startDecorator={<FolderOutlined />}
+                  onClick={() => setNavigationSection('resources')}
+                  fullWidth
+                >
+                  Ressources
+                </Button>
+                <Button
+                  size="sm"
+                  variant={navigationSection === 'processes' ? 'soft' : 'plain'}
+                  color={navigationSection === 'processes' ? 'primary' : 'neutral'}
+                  startDecorator={<AccountTreeOutlined />}
+                  onClick={() => setNavigationSection('processes')}
+                  fullWidth
+                >
+                  Processus
+                </Button>
+                <Button
+                  size="sm"
+                  variant={navigationSection === 'activities' ? 'soft' : 'plain'}
+                  color={navigationSection === 'activities' ? 'primary' : 'neutral'}
+                  startDecorator={<TaskAltOutlined />}
+                  onClick={() => setNavigationSection('activities')}
+                  fullWidth
+                >
+                  Activités ({raciMatrix.activities.length})
+                </Button>
+              </Stack>
               <Divider sx={{ my: 1 }} />
-              <ProcessHierarchyTree
-                xmlContent={xmlContent ?? ''}
-                selectedElementId={selectedActivityId}
-                onElementClick={setSelectedActivityId}
-              />
+              {navigationSection === 'resources' && (
+                <FolderTree
+                  selectedId={resourceId}
+                  onNodeClick={id => navigate(`/${id}`)}
+                />
+              )}
+              {navigationSection === 'processes' && (
+                <ProcessHierarchyTree
+                  xmlContent={xmlContent ?? ''}
+                  selectedElementId={selectedActivityId}
+                  onElementClick={setSelectedActivityId}
+                />
+              )}
+              {navigationSection === 'activities' && (
+                <Stack spacing={0.5}>
+                  {raciMatrix.activities.length ? raciMatrix.activities.map(activity => (
+                    <Button
+                      key={activity.elementId}
+                      size="sm"
+                      variant={selectedActivityId === activity.elementId ? 'soft' : 'plain'}
+                      color={selectedActivityId === activity.elementId ? 'primary' : 'neutral'}
+                      startDecorator={<TaskAltOutlined />}
+                      onClick={() => setSelectedActivityId(activity.elementId)}
+                      title={activity.activity}
+                      fullWidth
+                    >
+                      <span className="viewerActivityLabel">{activity.activity}</span>
+                    </Button>
+                  )) : (
+                    <Typography level="body-sm" textColor="neutral">
+                      Aucune activité détectée.
+                    </Typography>
+                  )}
+                </Stack>
+              )}
             </Box>
           </>
         )}
@@ -219,7 +281,7 @@ export const Component = () => {
 
         <Divider />
 
-        <Tabs defaultValue={0} className="viewerTabs">
+        <Tabs value={infoTab} onChange={(_, value) => setInfoTab(value as 0 | 1)} className="viewerTabs">
           <TabList sticky="top" variant="plain">
             <Tab value={0}>Version history</Tab>
             <Tab value={1}>
