@@ -118,7 +118,7 @@ const collectLanes = (definitions: AnyElement) => {
     for (const lane of laneSet?.lanes ?? []) visitLane(lane);
   };
 
-  const visitLane = (lane: AnyElement) => {
+  function visitLane(lane: AnyElement): void {
     if (!lane || visitedLanes.has(lane)) return;
     visitedLanes.add(lane);
 
@@ -129,7 +129,7 @@ const collectLanes = (definitions: AnyElement) => {
     }
 
     visitLaneSet(lane?.childLaneSet);
-  };
+  }
 
   const visitObject = (element: AnyElement) => {
     if (!element || typeof element !== 'object') return;
