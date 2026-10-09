@@ -1,5 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { List, ListItem, ListItemContent, ListSubheader, Typography } from '@mui/joy';
+import {
+  List,
+  ListItem,
+  ListItemContent,
+  ListSubheader,
+  Typography,
+} from '@mui/joy';
 import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 import {
   AccountTreeOutlined,
@@ -34,7 +40,8 @@ const isSubProcess = (element: Element) =>
 const isActivity = (element: Element) =>
   element.localName.endsWith('Task') ||
   element.localName.endsWith('Activity') ||
-  element.localName === 'transaction';
+  element.localName.toLowerCase() === 'task' ||
+  element.localName.toLowerCase() === 'transaction';
 
 const getFlowElements = (parent: Element) =>
   Array.from(parent.children).filter(
@@ -60,11 +67,17 @@ const buildFlowNodes = (parent: Element): HierarchyNode[] =>
 export const parseProcessHierarchy = (xmlContent: string): HierarchyNode[] => {
   if (!xmlContent.trim() || typeof DOMParser === 'undefined') return [];
 
-  const document = new DOMParser().parseFromString(xmlContent, 'application/xml');
+  const document = new DOMParser().parseFromString(
+    xmlContent,
+    'application/xml',
+  );
   if (document.getElementsByTagName('parsererror').length > 0) return [];
 
   return Array.from(document.getElementsByTagNameNS(BPMN_MODEL_NS, 'process'))
-    .filter(process => !process.parentElement || !isSubProcess(process.parentElement))
+    .filter(
+      process =>
+        !process.parentElement || !isSubProcess(process.parentElement),
+    )
     .map(process => {
       const id = process.getAttribute('id') || 'process';
       return {
@@ -120,7 +133,13 @@ export const ProcessHierarchyTree = ({
         key={node.id}
         itemId={node.id}
         label={
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
             {icon}
             <span>{node.name}</span>
           </span>
@@ -147,7 +166,7 @@ export const ProcessHierarchyTree = ({
         <ListItem>
           <ListItemContent>
             <SimpleTreeView
-              selectedItems={selectedElementId ?? ''}
+              selectedItems={selectedElementId ?? null}
               expandedItems={expandedNodes}
               disabledItemsFocusable
               slots={{ collapseIcon: ExpandMore, expandIcon: ChevronRight }}
