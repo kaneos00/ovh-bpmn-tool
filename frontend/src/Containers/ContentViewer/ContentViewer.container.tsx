@@ -16,6 +16,7 @@ import {
 import {
   AccountTreeOutlined,
   ChevronLeft,
+  Close,
   FolderOutlined,
   GroupsOutlined,
   Menu as MenuIcon,
@@ -69,13 +70,6 @@ export const Component = () => {
   );
 
   useEffect(() => {
-    console.warn('[NAV-DIAG] ContentViewer mounted/route changed', {
-      resourceId,
-      contentId,
-    });
-  }, [resourceId, contentId]);
-
-  useEffect(() => {
     setSelectedActivityId(null);
   }, [resourceId, contentId]);
 
@@ -83,15 +77,6 @@ export const Component = () => {
   const { data: xmlContent } = useQuery(
     getXmlContentQuery(resourceId, contentId),
   );
-
-  useEffect(() => {
-    console.warn('[NAV-DIAG] ContentViewer XML state', {
-      resourceId,
-      contentId,
-      xmlLoaded: typeof xmlContent === 'string' && xmlContent.length > 0,
-      xmlLength: xmlContent?.length ?? 0,
-    });
-  }, [resourceId, contentId, xmlContent]);
 
   const lastPublishedContent = useMemo(() => {
     return contents
@@ -272,9 +257,21 @@ export const Component = () => {
         />
       </Box>
 
-      <Sheet className="viewerInfoPanel" variant="outlined">
+      <Sheet className={`viewerInfoPanel ${infoTab === 1 ? 'mobile-visible' : ''}`} variant="outlined">
         <Stack spacing={1.5} className="viewerInfoHeader">
-          <Typography level="title-lg">Process information</Typography>
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <Typography level="title-lg">Process information</Typography>
+            <IconButton
+              className="viewerInfoClose"
+              size="sm"
+              variant="plain"
+              onClick={() => setInfoTab(0)}
+              aria-label="Fermer le panneau RACI"
+              title="Fermer le panneau RACI"
+            >
+              <Close />
+            </IconButton>
+          </Stack>
 
           {lastPublishedContent ? (
             <Stack spacing={0.25}>
