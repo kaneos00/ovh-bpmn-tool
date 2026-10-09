@@ -41,7 +41,9 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
         key={node.id}
         itemId={node.id}
         label={
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
             {icon}
             <span>{node.name}</span>
           </span>

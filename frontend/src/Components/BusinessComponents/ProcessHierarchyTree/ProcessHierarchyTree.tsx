@@ -75,8 +75,7 @@ export const parseProcessHierarchy = (xmlContent: string): HierarchyNode[] => {
 
   return Array.from(document.getElementsByTagNameNS(BPMN_MODEL_NS, 'process'))
     .filter(
-      process =>
-        !process.parentElement || !isSubProcess(process.parentElement),
+      process => !process.parentElement || !isSubProcess(process.parentElement),
     )
     .map(process => {
       const id = process.getAttribute('id') || 'process';

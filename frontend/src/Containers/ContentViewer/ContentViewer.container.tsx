@@ -19,11 +19,17 @@ import { FolderTree } from '../../Components/BusinessComponents/FolderTree';
 import { ProcessHierarchyTree } from '../../Components/BusinessComponents/ProcessHierarchyTree/ProcessHierarchyTree';
 import { ProcessViewer } from '../../Components/BusinessComponents/ProcessViewer';
 import { useContentViewer } from './hooks/useContentViewer';
-import { contentsQuery, getXmlContentQuery } from '../../api/contents/contents.queries';
+import {
+  contentsQuery,
+  getXmlContentQuery,
+} from '../../api/contents/contents.queries';
 import { ContentStatusEnum, type Content } from '../../Types';
 import { formatDateTime } from '../../shared/helpers/date';
 import { deriveRaciMatrixFromXml } from '../../extensions/raci-viewer';
-import { analyzeRaciMatrix, getRaciIssueLabel } from '../../extensions/raci-engine';
+import {
+  analyzeRaciMatrix,
+  getRaciIssueLabel,
+} from '../../extensions/raci-engine';
 import type { RaciCode } from '../../extensions/raci-engine';
 
 import './ContentViewerContainer.scss';
@@ -48,7 +54,9 @@ export const Component = () => {
   const [actorFilter, setActorFilter] = useState('');
   const [codeFilter, setCodeFilter] = useState<RaciCode | ''>('');
   const [issuesOnly, setIssuesOnly] = useState(false);
-  const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null);
+  const [selectedActivityId, setSelectedActivityId] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     setSelectedActivityId(null);
@@ -66,7 +74,10 @@ export const Component = () => {
   }, [contents]);
 
   const raciMatrix = useMemo(
-    () => (xmlContent ? deriveRaciMatrixFromXml(xmlContent) : { roles: [], activities: [] }),
+    () =>
+      xmlContent
+        ? deriveRaciMatrixFromXml(xmlContent)
+        : { roles: [], activities: [] },
     [xmlContent],
   );
 
@@ -87,16 +98,25 @@ export const Component = () => {
       if (issuesOnly && !issue) return false;
 
       if (actorFilter) {
-        const actorCell = activity.cells.find(cell => cell.role === actorFilter);
+        const actorCell = activity.cells.find(
+          cell => cell.role === actorFilter,
+        );
         if (!actorCell?.codes.length) return false;
         if (codeFilter && !actorCell.codes.includes(codeFilter)) return false;
       } else if (codeFilter) {
-        if (!activity.cells.some(cell => cell.codes.includes(codeFilter))) return false;
+        if (!activity.cells.some(cell => cell.codes.includes(codeFilter)))
+          return false;
       }
 
       return true;
     });
-  }, [raciMatrix.activities, issueByActivity, actorFilter, codeFilter, issuesOnly]);
+  }, [
+    raciMatrix.activities,
+    issueByActivity,
+    actorFilter,
+    codeFilter,
+    issuesOnly,
+  ]);
 
   return (
     <Box className="viewerLayout">
@@ -141,7 +161,11 @@ export const Component = () => {
       </Sheet>
 
       <Box className="viewerDiagram">
-        <ProcessViewer resourceId={resourceId} contentId={contentId} selectedElementId={selectedActivityId} />
+        <ProcessViewer
+          resourceId={resourceId}
+          contentId={contentId}
+          selectedElementId={selectedActivityId}
+        />
       </Box>
 
       <Sheet className="viewerInfoPanel" variant="outlined">
@@ -204,18 +228,24 @@ export const Component = () => {
                 >
                   <option value="">Tous les acteurs</option>
                   {raciMatrix.roles.map(actor => (
-                    <option key={actor} value={actor}>{actor}</option>
+                    <option key={actor} value={actor}>
+                      {actor}
+                    </option>
                   ))}
                 </select>
 
                 <select
                   aria-label="Filtrer par rôle RACI"
                   value={codeFilter}
-                  onChange={event => setCodeFilter(event.target.value as RaciCode | '')}
+                  onChange={event =>
+                    setCodeFilter(event.target.value as RaciCode | '')
+                  }
                 >
                   <option value="">Tous les rôles</option>
                   {RACICODES.map(code => (
-                    <option key={code} value={code}>{code}</option>
+                    <option key={code} value={code}>
+                      {code}
+                    </option>
                   ))}
                 </select>
 
@@ -224,7 +254,9 @@ export const Component = () => {
                   onClick={() => setIssuesOnly(value => !value)}
                   aria-pressed={issuesOnly}
                 >
-                  {issuesOnly ? 'Toutes les activités' : '⚠ Activités à compléter'}
+                  {issuesOnly
+                    ? 'Toutes les activités'
+                    : '⚠ Activités à compléter'}
                 </button>
               </Stack>
 
@@ -261,7 +293,8 @@ export const Component = () => {
                             padding: 8,
                             position: 'sticky',
                             top: 0,
-                            background: 'var(--joy-palette-background-surface, white)',
+                            background:
+                              'var(--joy-palette-background-surface, white)',
                           }}
                         >
                           Activité
@@ -274,7 +307,8 @@ export const Component = () => {
                               minWidth: 100,
                               position: 'sticky',
                               top: 0,
-                              background: 'var(--joy-palette-background-surface, white)',
+                              background:
+                                'var(--joy-palette-background-surface, white)',
                             }}
                           >
                             {role}
@@ -286,7 +320,8 @@ export const Component = () => {
                             minWidth: 160,
                             position: 'sticky',
                             top: 0,
-                            background: 'var(--joy-palette-background-surface, white)',
+                            background:
+                              'var(--joy-palette-background-surface, white)',
                           }}
                         >
                           Contrôle
@@ -310,8 +345,12 @@ export const Component = () => {
                               <button
                                 type="button"
                                 className="raciActivityLink"
-                                aria-pressed={selectedActivityId === activity.elementId}
-                                onClick={() => setSelectedActivityId(activity.elementId)}
+                                aria-pressed={
+                                  selectedActivityId === activity.elementId
+                                }
+                                onClick={() =>
+                                  setSelectedActivityId(activity.elementId)
+                                }
                                 title="Afficher cette activité dans le diagramme BPMN"
                               >
                                 {activity.activity}
@@ -320,7 +359,11 @@ export const Component = () => {
                             {activity.cells.map(cell => (
                               <td
                                 key={cell.role}
-                                title={`${STATUS_LABELS[cell.status]} — ${cell.codes.length ? cell.codes.join('/') : 'aucun rôle'}`}
+                                title={`${STATUS_LABELS[cell.status]} — ${
+                                  cell.codes.length
+                                    ? cell.codes.join('/')
+                                    : 'aucun rôle'
+                                }`}
                                 style={{
                                   padding: 8,
                                   textAlign: 'center',
@@ -330,10 +373,13 @@ export const Component = () => {
                                 }}
                               >
                                 <strong>
-                                  {cell.codes.length ? cell.codes.join('/') : '—'}
+                                  {cell.codes.length
+                                    ? cell.codes.join('/')
+                                    : '—'}
                                 </strong>
                                 <div>
-                                  {statusMarker[cell.status]} {STATUS_LABELS[cell.status]}
+                                  {statusMarker[cell.status]}{' '}
+                                  {STATUS_LABELS[cell.status]}
                                 </div>
                               </td>
                             ))}
@@ -376,13 +422,12 @@ export const Component = () => {
               )}
 
               <Typography level="body-xs" textColor="neutral">
-                Lecture seule : aucune modification du RACI n'est possible depuis le Viewer.
-                {' '}● Explicite · ◐ Inféré · — Manquant.
+                Lecture seule : aucune modification du RACI n'est possible
+                depuis le Viewer. ● Explicite · ◐ Inféré · — Manquant.
               </Typography>
             </Stack>
           </TabPanel>
         </Tabs>
-
       </Sheet>
     </Box>
   );
