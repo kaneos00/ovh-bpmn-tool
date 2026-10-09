@@ -66,7 +66,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
       }}
     >
       <ListSubheader role="presentation" sx={{ color: 'text.primary' }}>
-        Resources
+        Dossiers et ressources
       </ListSubheader>
 
       {isLoading ? (
