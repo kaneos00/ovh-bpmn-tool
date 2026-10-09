@@ -38,9 +38,7 @@ const isSubProcess = (element: Element) =>
   element.localName.toLowerCase().includes('subprocess');
 
 const getFlowElements = (parent: Element) =>
-  Array.from(parent.children).filter(
-    element => isSubProcess(element) || isActivity(element),
-  );
+  Array.from(parent.children).filter(isSubProcess);
 
 const buildFlowNodes = (parent: Element): HierarchyNode[] =>
   getFlowElements(parent).map(element => {
