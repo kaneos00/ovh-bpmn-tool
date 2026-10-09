@@ -67,3 +67,35 @@
   padding: 10px;
   border-radius: 8px;
 }
+
+.raciActivityLink {
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 2px;
+}
+
+.raciActivityLink:hover,
+.raciActivityLink:focus-visible {
+  text-decoration-color: currentColor;
+}
+
+.raciActivityLink[aria-pressed='true'] {
+  color: var(--joy-palette-primary-700, #0b6bcb);
+  font-weight: 700;
+  text-decoration-color: currentColor;
+}
+
+.raci-selected .djs-visual > :first-child {
+  stroke: #0b6bcb !important;
+  stroke-width: 4px !important;
+  filter: drop-shadow(0 0 3px rgba(11, 107, 203, 0.55));
+}
