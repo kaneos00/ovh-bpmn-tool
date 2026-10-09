@@ -18,7 +18,6 @@ import { useQuery } from 'react-query';
 import { useProcessDetails } from './hooks/useProcessDetails';
 import { ProcessContentList } from '../ProcessContentList/ProcessContentList';
 import { ProcessViewer } from '../ProcessViewer';
-import { ProcessHierarchyTree } from '../ProcessHierarchyTree/ProcessHierarchyTree';
 import { getXmlContentQuery } from '../../../api/contents/contents.queries';
 import {
   deriveRaciMatrixFromXml,
@@ -37,6 +36,7 @@ type ProcessDetailsProps = {
   onContentClone: (contentId: string) => void;
   onContentViewerLinkCopy: (content: string) => void;
   onCompareClick: (leftContentId: string, rightContentId: string) => void;
+  selectedElementId?: string | null;
 };
 
 export const ProcessDetails = ({
@@ -47,6 +47,7 @@ export const ProcessDetails = ({
   onContentClone,
   onContentViewerLinkCopy,
   onCompareClick,
+  selectedElementId,
 }: ProcessDetailsProps) => {
   const {
     contents,
@@ -130,27 +131,12 @@ export const ProcessDetails = ({
                   </IconButton>
                 </Stack>
                 <Divider />
-                <Box className="processViewerWorkspace">
-                  <Sheet className="processViewerHierarchy" variant="outlined">
-                    {xmlContent ? (
-                      <ProcessHierarchyTree
-                        xmlContent={xmlContent}
-                        selectedElementId={selectedElementId}
-                        onElementClick={setSelectedElementId}
-                      />
-                    ) : (
-                      <Typography level="body-sm" textColor="neutral" sx={{ p: 2 }}>
-                        Chargement de la hiérarchie BPMN…
-                      </Typography>
-                    )}
-                  </Sheet>
-                  <Box className="processViewerCanvas">
-                    <ProcessViewer
-                      resourceId={resourceId}
-                      contentId={publishedContent.id}
-                      selectedElementId={selectedElementId}
-                    />
-                  </Box>
+                <Box className="processViewerCanvas">
+                  <ProcessViewer
+                    resourceId={resourceId}
+                    contentId={publishedContent.id}
+                    selectedElementId={selectedElementId}
+                  />
                 </Box>
               </>
             ) : (
