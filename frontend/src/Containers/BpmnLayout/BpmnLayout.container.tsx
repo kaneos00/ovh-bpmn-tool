@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { Await, Outlet, useParams } from 'react-router-dom';
+import { Await, Outlet, useNavigate, useParams } from 'react-router-dom';
 import { Box, IconButton, Sheet, Typography } from '@mui/joy';
-import { AccountTreeOutlined, ChevronLeft, ChevronRight, FolderOutlined } from '@mui/icons-material';
+import { AccountTreeOutlined, ChevronLeft, ChevronRight, FolderOutlined, GroupsOutlined } from '@mui/icons-material';
 import { useQuery } from 'react-query';
 
 import { ResourceExplorer } from '../../Components/BusinessComponents/ResourceExplorer';
@@ -20,6 +20,7 @@ import { isFolder, isRoot } from '../../shared/helpers/resource';
 import { getXmlContentQuery } from '../../api/contents/contents.queries';
 import { ContentStatusEnum } from '../../Types';
 import { ProcessHierarchyTree } from '../../Components/BusinessComponents/ProcessHierarchyTree/ProcessHierarchyTree';
+import { ProjectRaciPanel } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciPanel';
 
 import type { BpmnLayoutRouteParams } from '.';
 import { ResourceType } from '../../shared/types/BpmnResource';
@@ -28,6 +29,7 @@ import './BpmnLayoutContainer.scss';
 
 export const Component = () => {
   const { resourceId } = useParams() as BpmnLayoutRouteParams;
+  const navigate = useNavigate();
   const [folderOpen, setFolderOpen] = useState(false);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
 
@@ -92,6 +94,7 @@ export const Component = () => {
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, py: 1 }}>
             <IconButton size="sm" variant="plain" title="Ressources" onClick={() => setFolderOpen(true)}><FolderOutlined /></IconButton>
             {resource?.type === ResourceType.Process && <IconButton size="sm" variant="plain" title="Processus" onClick={() => setFolderOpen(true)}><AccountTreeOutlined /></IconButton>}
+            <IconButton size="sm" variant="plain" title="RACI du projet" onClick={() => setFolderOpen(true)}><GroupsOutlined /></IconButton>
           </Box>
         )}
         {folderOpen && (
@@ -123,6 +126,17 @@ export const Component = () => {
                 )}
               </>
             )}
+            <Box sx={{ px: 1.5, py: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <GroupsOutlined fontSize="small" />
+              <Typography level="title-sm">RACI du projet</Typography>
+            </Box>
+            <ProjectRaciPanel
+              currentResourceId={resourceId}
+              onActivityClick={(targetResourceId, elementId) => {
+                setSelectedElementId(elementId);
+                if (targetResourceId !== resourceId) navigate(`/${targetResourceId}`);
+              }}
+            />
           </Box>
         )}
       </Sheet>
