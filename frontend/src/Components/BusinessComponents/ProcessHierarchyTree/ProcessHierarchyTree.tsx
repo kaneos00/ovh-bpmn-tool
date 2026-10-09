@@ -11,8 +11,8 @@ import {
   AccountTreeOutlined,
   CallSplitOutlined,
   ChevronRight,
-  DescriptionOutlined,
   ExpandMore,
+  TaskAltOutlined,
 } from '@mui/icons-material';
 
 import { FolderTreeItem } from '../FolderTree/components/FolderTreeItem';
@@ -41,11 +41,14 @@ type ProcessHierarchyTreeProps = {
 const isSubProcess = (element: Element) =>
   element.localName.toLowerCase().includes('subprocess');
 
-const isActivity = (element: Element) =>
-  element.localName.endsWith('Task') ||
-  element.localName.endsWith('Activity') ||
-  element.localName.toLowerCase() === 'task' ||
-  element.localName.toLowerCase() === 'transaction';
+const isActivity = (element: Element) => {
+  const localName = element.localName.toLowerCase();
+  return (
+    localName.endsWith('task') ||
+    localName.endsWith('activity') ||
+    localName === 'transaction'
+  );
+};
 
 const getFlowElements = (parent: Element) =>
   Array.from(parent.children).filter(
@@ -139,7 +142,7 @@ const getNodeIcon = (type: HierarchyNodeType) => {
     case 'subProcess':
       return <CallSplitOutlined fontSize="small" />;
     default:
-      return <DescriptionOutlined fontSize="small" />;
+      return <TaskAltOutlined fontSize="small" />;
   }
 };
 
@@ -212,7 +215,7 @@ export const ProcessHierarchyTree = ({
       }}
     >
       <ListSubheader role="presentation" sx={{ color: 'text.primary' }}>
-        Process hierarchy
+        Processus et activités
       </ListSubheader>
       {nodes.length ? (
         <ListItem>
@@ -248,15 +251,6 @@ export const ProcessHierarchyTree = ({
                   return;
                 }
 
-                if (selectedNode.type === 'process') {
-                  console.debug(
-                    DEBUG_PREFIX,
-                    'Root process selected; current implementation does not call onElementClick',
-                    { itemId, name: selectedNode.name },
-                  );
-                  return;
-                }
-
                 console.debug(DEBUG_PREFIX, 'Calling onElementClick', {
                   itemId,
                   type: selectedNode.type,
@@ -273,7 +267,7 @@ export const ProcessHierarchyTree = ({
         <ListItem>
           <ListItemContent>
             <Typography level="body-sm" textColor="neutral">
-              No BPMN process found in this diagram.
+              Aucun processus BPMN trouvé dans ce diagramme.
             </Typography>
           </ListItemContent>
         </ListItem>
