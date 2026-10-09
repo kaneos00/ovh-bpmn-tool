@@ -110,6 +110,10 @@
   overflow: hidden;
 }
 
+.viewerInfoClose {
+  display: none;
+}
+
 .viewerInfoPanel {
   min-width: 0;
   height: 100vh;
@@ -185,5 +189,22 @@
 
   .viewerInfoPanel {
     display: none;
+  }
+
+  .viewerInfoPanel.mobile-visible {
+    display: flex;
+    position: fixed;
+    z-index: 20;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(440px, calc(100vw - 24px));
+    height: 100dvh;
+    background: var(--joy-palette-background-surface, #fff);
+    box-shadow: -8px 0 24px rgba(0, 0, 0, 0.18);
+  }
+
+  .viewerInfoPanel.mobile-visible .viewerInfoClose {
+    display: inline-flex;
   }
 }
