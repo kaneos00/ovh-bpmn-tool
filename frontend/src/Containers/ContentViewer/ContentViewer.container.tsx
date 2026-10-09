@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -49,6 +49,10 @@ export const Component = () => {
   const [codeFilter, setCodeFilter] = useState<RaciCode | ''>('');
   const [issuesOnly, setIssuesOnly] = useState(false);
   const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelectedActivityId(null);
+  }, [resourceId, contentId]);
 
   const { data: contents = [] } = useQuery(contentsQuery(resourceId));
   const { data: xmlContent } = useQuery(
