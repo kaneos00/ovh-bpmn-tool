@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Await, Outlet, useParams } from 'react-router-dom';
-import { Box, IconButton, Sheet } from '@mui/joy';
-import { ChevronLeft, ChevronRight } from '@mui/icons-material';
+import { Box, IconButton, Sheet, Typography } from '@mui/joy';
+import { AccountTreeOutlined, ChevronLeft, ChevronRight, FolderOutlined } from '@mui/icons-material';
+import { useQuery } from 'react-query';
 
 import { ResourceExplorer } from '../../Components/BusinessComponents/ResourceExplorer';
 import { ProcessDetails } from '../../Components/BusinessComponents/ProcessDetails';
@@ -16,6 +17,9 @@ import {
   FolderActions,
 } from './components';
 import { isFolder, isRoot } from '../../shared/helpers/resource';
+import { getXmlContentQuery } from '../../api/contents/contents.queries';
+import { ContentStatusEnum } from '../../Types';
+import { ProcessHierarchyTree } from '../../Components/BusinessComponents/ProcessHierarchyTree/ProcessHierarchyTree';
 
 import type { BpmnLayoutRouteParams } from '.';
 import { ResourceType } from '../../shared/types/BpmnResource';
@@ -25,8 +29,14 @@ import './BpmnLayoutContainer.scss';
 export const Component = () => {
   const { resourceId } = useParams() as BpmnLayoutRouteParams;
   const [folderOpen, setFolderOpen] = useState(false);
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
 
   const { resource, contents, navigationFns, callbacks } = useBpmnLayout();
+  const publishedContent = contents.find(({ status }) => status === ContentStatusEnum.Published);
+  const xmlQuery = getXmlContentQuery(resourceId, publishedContent?.id ?? '');
+  const { data: processXml } = useQuery(xmlQuery.queryKey, xmlQuery.queryFn, {
+    enabled: Boolean(publishedContent?.id && resource?.type === ResourceType.Process),
+  });
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
 
   const actions = useMemo(() => {
@@ -85,10 +95,35 @@ export const Component = () => {
           </Box>
         )}
         {folderOpen && (
-          <FolderTree
-            selectedId={resourceId}
-            onNodeClick={callbacks.folderTree.onFolderTreeItemClick}
-          />
+          <Box sx={{ overflowY: 'auto', minHeight: 0, pb: 2 }}>
+            <Box sx={{ px: 1.5, py: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <FolderOutlined fontSize="small" />
+              <Typography level="title-sm">Ressources</Typography>
+            </Box>
+            <FolderTree
+              selectedId={resourceId}
+              onNodeClick={callbacks.folderTree.onFolderTreeItemClick}
+            />
+            {resource?.type === ResourceType.Process && (
+              <>
+                <Box sx={{ px: 1.5, py: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <AccountTreeOutlined fontSize="small" />
+                  <Typography level="title-sm">Processus</Typography>
+                </Box>
+                {processXml ? (
+                  <ProcessHierarchyTree
+                    xmlContent={processXml}
+                    selectedElementId={selectedElementId}
+                    onElementClick={setSelectedElementId}
+                  />
+                ) : (
+                  <Typography level="body-xs" sx={{ px: 1.5, py: 1 }} textColor="neutral">
+                    {publishedContent ? 'Chargement des processus…' : 'Aucune version publiée.'}
+                  </Typography>
+                )}
+              </>
+            )}
+          </Box>
         )}
       </Sheet>
 
@@ -120,6 +155,7 @@ export const Component = () => {
                       callbacks.processDetails.onContentViewerLinkCopy
                     }
                     onCompareClick={callbacks.processDetails.onCompareClick}
+                    selectedElementId={selectedElementId}
                   />
                 )}
                 <Outlet />
