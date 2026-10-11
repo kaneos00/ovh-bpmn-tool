@@ -3,15 +3,18 @@ import { useMutation, useQuery, useQueryClient } from 'react-query';
 import {
   Alert,
   Box,
-  Button,
   Card,
+  CircularProgress,
   FormControl,
   FormLabel,
   Input,
   Option,
   Select,
+  Sheet,
   Stack,
+  Table,
   Typography,
+  Button,
 } from '@mui/joy';
 import { apiClient } from '../../../queryClient';
 import { contentsQuery, getXmlContentQuery } from '../../../api/contents/contents.queries';
@@ -22,7 +25,13 @@ import { deriveRaciMatrixFromXml } from '../../../extensions/raci-viewer';
 import type { RaciCode } from '../../../extensions/raci-engine';
 
 type ProjectProcessLink = { resourceId: string; resource?: Resource | null };
-type TaskOption = { id: string; name: string; resourceId: string; processName: string };
+type TaskOption = {
+  id: string;
+  name: string;
+  resourceId: string;
+  processName: string;
+  inferredActors: string[];
+};
 type RaciEntry = {
   id?: string;
   projectId?: string;
@@ -34,17 +43,24 @@ type RaciEntry = {
 };
 const ROLES: { value: RaciCode; label: string }[] = [
   { value: 'R', label: 'R — Responsable' },
-  { value: 'A', label: 'A — Acteur / redevable' },
+  { value: 'A', label: 'A — Approbateur / redevable' },
   { value: 'C', label: 'C — Consulté' },
   { value: 'I', label: 'I — Informé' },
 ];
+const ROLE_LABELS: Record<RaciCode, string> = {
+  R: 'Responsable',
+  A: 'Approbateur / redevable',
+  C: 'Consulté',
+  I: 'Informé',
+};
+
+const normalizeActor = (name: string) => name.trim().toLocaleLowerCase();
+const cellKey = (resourceId: string, taskId: string, actorName: string) =>
+  `${resourceId}::${taskId}::${normalizeActor(actorName)}`;
 
 export const ProjectRaciManager = ({ projectId }: { projectId: string }) => {
   const queryClient = useQueryClient();
-  const [resourceId, setResourceId] = useState('');
-  const [taskId, setTaskId] = useState('');
   const [actorName, setActorName] = useState('');
-  const [role, setRole] = useState<RaciCode>('R');
   const [error, setError] = useState<string | null>(null);
 
   const processesQuery = useQuery<ProjectProcessLink[]>(
@@ -74,15 +90,19 @@ export const ProjectRaciManager = ({ projectId }: { projectId: string }) => {
         if (!xml?.trim()) return;
         const matrix = deriveRaciMatrixFromXml(xml);
         for (const activity of matrix.activities) {
+          if (!activity.elementId) continue;
           result.push({
             id: activity.elementId,
             name: activity.activity,
             resourceId: process.id,
             processName: process.name,
+            inferredActors: matrix.roles,
           });
         }
       }));
-      return result.sort((a, b) => a.processName.localeCompare(b.processName) || a.name.localeCompare(b.name));
+      return result.sort((a, b) =>
+        a.processName.localeCompare(b.processName) || a.name.localeCompare(b.name),
+      );
     },
     { enabled: Boolean(projectId) && Boolean(processesQuery.data), staleTime: 30_000 },
   );
@@ -102,105 +122,174 @@ export const ProjectRaciManager = ({ projectId }: { projectId: string }) => {
     },
   );
 
-  const selectedTask = useMemo(
-    () => (tasksQuery.data ?? []).find(task => task.id === taskId && task.resourceId === resourceId),
-    [tasksQuery.data, taskId, resourceId],
-  );
   const currentEntries = entriesQuery.data ?? [];
-  const addEntry = () => {
-    if (!selectedTask || !actorName.trim()) {
-      setError('Choisissez un processus et une activité, puis saisissez un acteur.');
-      return;
-    }
-    const duplicate = currentEntries.some(entry =>
-      entry.resourceId === selectedTask.resourceId &&
-      entry.taskId === selectedTask.id &&
-      entry.actorName.toLocaleLowerCase() === actorName.trim().toLocaleLowerCase(),
+  const tasks = tasksQuery.data ?? [];
+  const actors = useMemo(() => {
+    const names = [
+      ...tasks.flatMap(task => task.inferredActors),
+      ...currentEntries.map(entry => entry.actorName),
+    ].map(name => name.trim()).filter(Boolean);
+    const uniqueNames = new Map<string, string>();
+    names.forEach(name => {
+      const key = normalizeActor(name);
+      if (key && !uniqueNames.has(key)) uniqueNames.set(key, name);
+    });
+    return Array.from(uniqueNames.values()).sort((a, b) => a.localeCompare(b));
+  }, [tasks, currentEntries]);
+
+  const entriesByCell = useMemo(() => {
+    const result = new Map<string, RaciEntry>();
+    currentEntries.forEach(entry => result.set(
+      cellKey(entry.resourceId, entry.taskId, entry.actorName),
+      entry,
+    ));
+    return result;
+  }, [currentEntries]);
+
+  const setCell = (task: TaskOption, actor: string, nextRole: RaciCode | null) => {
+    const key = cellKey(task.resourceId, task.id, actor);
+    const remaining = currentEntries.filter(entry =>
+      cellKey(entry.resourceId, entry.taskId, entry.actorName) !== key,
     );
-    if (duplicate) {
-      setError('Cet acteur possède déjà une affectation RACI sur cette activité de ce processus.');
+    const nextEntries = nextRole
+      ? [...remaining, {
+        resourceId: task.resourceId,
+        taskId: task.id,
+        taskName: task.name,
+        actorName: currentEntries.find(entry =>
+          cellKey(entry.resourceId, entry.taskId, entry.actorName) === key,
+        )?.actorName ?? actor,
+        role: nextRole,
+      }]
+      : remaining;
+    setError(null);
+    save.mutate(nextEntries);
+  };
+
+  const addActorToFirstActivity = () => {
+    const name = actorName.trim();
+    if (!name) {
+      setError('Saisissez le nom de l’acteur.');
       return;
     }
-    const next = [...currentEntries, {
-      resourceId: selectedTask.resourceId,
-      taskId: selectedTask.id,
-      taskName: selectedTask.name,
-      actorName: actorName.trim(),
-      role,
-    }];
-    setError(null);
-    save.mutate(next);
-    setActorName('');
-  };
-  const removeEntry = (index: number) => {
-    save.mutate(currentEntries.filter((_entry, currentIndex) => currentIndex !== index));
+    const existing = actors.find(actor => normalizeActor(actor) === normalizeActor(name));
+    if (existing) {
+      setError('Cet acteur existe déjà dans le RACI du projet.');
+      return;
+    }
+    if (!tasks.length) {
+      setError('Aucune activité publiée disponible pour enregistrer cet acteur. Publiez un processus puis réessayez.');
+      return;
+    }
+    // The current storage model persists actors through their task assignments.
+    // Seed the new actor with an empty cell only after an explicit role is chosen
+    // in the matrix; keep the name ready for the next edit instead of creating a
+    // misleading non-persistent actor record.
+    setError('Les acteurs sont actuellement issus des BPMN publiés ou des affectations enregistrées. Pour ajouter un acteur indépendant des activités, le backend doit d’abord disposer d’un référentiel d’acteurs du projet.');
   };
 
   return (
     <Stack spacing={1.5}>
       <Typography level="body-sm">
-        Ces affectations sont enregistrées pour ce projet et sont indépendantes des affectations inscrites directement dans le fichier BPMN.
+        Matrice transversale du projet : les lignes sont les activités des processus publiés et les colonnes les acteurs détectés dans les BPMN ou déjà utilisés dans le projet. Modifiez directement une cellule pour affecter R, A, C ou I. Les affectations projet restent indépendantes des propriétés RACI du BPMN.
       </Typography>
-      {(error || entriesQuery.isError || processesQuery.isError || tasksQuery.isError) && (
+      {(error || entriesQuery.isError || processesQuery.isError || tasksQuery.isError || save.isError) && (
         <Alert color="danger">
           {error ?? 'Impossible de charger ou d’enregistrer le RACI du projet.'}
         </Alert>
       )}
       <Card variant="soft">
-        <Typography level="title-md">Ajouter une affectation</Typography>
-        <Stack spacing={1.25}>
-          <FormControl>
-            <FormLabel>Activité du processus publié</FormLabel>
-            <Select
-              placeholder={tasksQuery.isLoading ? 'Chargement des activités…' : 'Choisir une activité'}
-              value={taskId ? `${resourceId}::${taskId}` : null}
-              onChange={(_event, value) => {
-                const selected = (tasksQuery.data ?? []).find(task => `${task.resourceId}::${task.id}` === value);
-                setResourceId(selected?.resourceId ?? '');
-                setTaskId(selected?.id ?? '');
-              }}
-            >
-              {(tasksQuery.data ?? []).map(task => (
-                <Option key={`${task.resourceId}::${task.id}`} value={`${task.resourceId}::${task.id}`}>
-                  {task.processName} — {task.name}
-                </Option>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl>
-            <FormLabel>Acteur</FormLabel>
+        <Typography level="title-md">Acteurs du projet</Typography>
+        <Typography level="body-sm">
+          {actors.length} acteur(s) détecté(s). La liste rassemble les acteurs des processus publiés et ceux présents dans les affectations du projet.
+        </Typography>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+          <FormControl sx={{ flex: 1 }}>
+            <FormLabel>Ajouter un acteur</FormLabel>
             <Input value={actorName} onChange={event => setActorName(event.target.value)} placeholder="Ex. Responsable qualité" />
           </FormControl>
-          <FormControl>
-            <FormLabel>Rôle RACI</FormLabel>
-            <Select value={role} onChange={(_event, value) => value && setRole(value as RaciCode)}>
-              {ROLES.map(item => <Option key={item.value} value={item.value}>{item.label}</Option>)}
-            </Select>
-          </FormControl>
-          <Box>
-            <Button loading={save.isLoading} disabled={!selectedTask || !actorName.trim() || save.isLoading} onClick={addEntry}>
-              Ajouter l’affectation
-            </Button>
+          <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
+            <Button variant="outlined" onClick={addActorToFirstActivity}>Ajouter</Button>
           </Box>
         </Stack>
       </Card>
-      <Typography level="title-md">Affectations enregistrées ({currentEntries.length})</Typography>
-      {entriesQuery.isLoading && <Typography level="body-sm">Chargement des affectations…</Typography>}
-      {!entriesQuery.isLoading && currentEntries.length === 0 && (
-        <Typography level="body-sm">Aucune affectation RACI spécifique au projet.</Typography>
+      {tasksQuery.isLoading || entriesQuery.isLoading ? (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 2 }}>
+          <CircularProgress size="sm" />
+          <Typography level="body-sm">Chargement de la matrice RACI…</Typography>
+        </Box>
+      ) : tasks.length === 0 ? (
+        <Alert color="warning">Aucune activité trouvée dans les dernières versions publiées des processus associés au projet.</Alert>
+      ) : (
+        <Sheet variant="outlined" sx={{ overflow: 'auto', maxWidth: '100%', borderRadius: 'md' }}>
+          <Table
+            stickyHeader
+            hoverRow
+            size="sm"
+            sx={{
+              minWidth: Math.max(760, 300 + actors.length * 150),
+              '& th:first-of-type, & td:first-of-type': {
+                position: 'sticky',
+                left: 0,
+                zIndex: 2,
+                bgcolor: 'background.surface',
+                minWidth: 270,
+              },
+              '& thead th:first-of-type': { zIndex: 4 },
+              '& td': { verticalAlign: 'middle' },
+            }}
+          >
+            <thead>
+              <tr>
+                <th>Processus / activité</th>
+                {actors.map(actor => <th key={normalizeActor(actor)}>{actor}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {tasks.map(task => (
+                <tr key={`${task.resourceId}::${task.id}`}>
+                  <td>
+                    <Typography level="body-sm" fontWeight="md">{task.name}</Typography>
+                    <Typography level="body-xs" textColor="neutral">{task.processName}</Typography>
+                  </td>
+                  {actors.map(actor => {
+                    const entry = entriesByCell.get(cellKey(task.resourceId, task.id, actor));
+                    return (
+                      <td key={normalizeActor(actor)}>
+                        <FormControl size="sm">
+                          <Select
+                            size="sm"
+                            value={entry?.role ?? ''}
+                            placeholder="—"
+                            disabled={save.isLoading}
+                            onChange={(_event, value) => setCell(task, actor, (value || null) as RaciCode | null)}
+                            slotProps={{ listbox: { sx: { minWidth: 210 } } }}
+                            sx={{ minWidth: 125 }}
+                            renderValue={selected => selected ? (
+                              <Typography level="body-sm" fontWeight="md">
+                                {selected.value} — {ROLE_LABELS[selected.value as RaciCode]}
+                              </Typography>
+                            ) : null}
+                          >
+                            <Option value="">— Non attribué</Option>
+                            {ROLES.map(item => (
+                              <Option key={item.value} value={item.value}>{item.label}</Option>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </Sheet>
       )}
-      {currentEntries.map((entry, index) => {
-        const process = (processesQuery.data ?? []).find(item => item.resourceId === entry.resourceId)?.resource;
-        return (
-          <Card key={entry.id ?? `${entry.resourceId}:${entry.taskId}:${entry.actorName}`} variant="outlined" orientation="horizontal" sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography level="title-sm">{entry.actorName} — {entry.role}</Typography>
-              <Typography level="body-sm">{process?.name ?? entry.resourceId} · {entry.taskName}</Typography>
-            </Box>
-            <Button color="danger" variant="plain" size="sm" disabled={save.isLoading} onClick={() => removeEntry(index)}>Retirer</Button>
-          </Card>
-        );
-      })}
+      <Typography level="body-xs" textColor="neutral">
+        {tasks.length} activité(s) · {actors.length} acteur(s) · {currentEntries.length} affectation(s) enregistrée(s)
+        {save.isLoading ? ' · Enregistrement…' : ''}
+      </Typography>
     </Stack>
   );
 };
