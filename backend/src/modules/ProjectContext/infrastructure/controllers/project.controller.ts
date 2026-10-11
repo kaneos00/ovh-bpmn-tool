@@ -14,12 +14,11 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, IsNull } from 'typeorm';
+import { DataSource, In, IsNull, Repository } from 'typeorm';
 import { UseAcl } from '../../../../shared-kernel/modules/acl/infrastructure/acl.decorator';
 import { UserGroup } from '../../../../shared-kernel/utils/UserGroup';
 import { ResourceTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/resource.ormEntity';
 import { ResourceTypeEnum } from '../../../ResourceContext/shared/types/Resource';
-import { In, Repository } from 'typeorm';
 import { ContentTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/content.ormEntity';
 import { ContentStatusEnum } from '../../../ResourceContext/shared/types/Content';
 import {
@@ -267,7 +266,12 @@ export class ProjectController {
   @UseAcl([UserGroup.RW])
   async createProcessVariant(
     @Param('projectId') projectId: string,
-    @Body() body: { sourceResourceId?: string; name?: string; description?: string },
+    @Body()
+    body: {
+      sourceResourceId?: string;
+      name?: string;
+      description?: string;
+    },
     @Headers() headers: RequestHeaders,
   ) {
     const userId = this.getUserId(headers);
@@ -276,7 +280,9 @@ export class ProjectController {
     if (!body.sourceResourceId) {
       throw new BadRequestException('sourceResourceId is required');
     }
-    const source = await this.resources.findOneBy({ id: body.sourceResourceId });
+    const source = await this.resources.findOneBy({
+      id: body.sourceResourceId,
+    });
     if (!source || source.type !== ResourceTypeEnum.Process) {
       throw new BadRequestException(
         'sourceResourceId must identify an existing process',
@@ -294,7 +300,9 @@ export class ProjectController {
       return await this.dataSource.transaction(async (manager) => {
         const resources = manager.getRepository(ResourceTypeOrmEntity);
         const contents = manager.getRepository(ContentTypeOrmEntity);
-        const projectProcesses = manager.getRepository(ProjectProcessTypeOrmEntity);
+        const projectProcesses = manager.getRepository(
+          ProjectProcessTypeOrmEntity,
+        );
 
         const duplicate = await resources.findOne({
           where: {
@@ -363,7 +371,10 @@ export class ProjectController {
         };
       });
     } catch (error) {
-      if (error instanceof ConflictException || error instanceof BadRequestException) {
+      if (
+        error instanceof ConflictException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       if ((error as { code?: string }).code === '23505') {
