@@ -41,6 +41,12 @@ type ProjectRaciData = {
 };
 
 const RAC_CODES: RaciCode[] = ['R', 'A', 'C', 'I'];
+const CODE_COLORS: Record<RaciCode, 'primary' | 'success' | 'warning' | 'neutral'> = {
+  R: 'primary',
+  A: 'success',
+  C: 'warning',
+  I: 'neutral',
+};
 const CODE_LABELS: Record<RaciCode, string> = {
   R: 'Responsable',
   A: 'Approbateur / redevable',
@@ -240,7 +246,7 @@ export const ProjectRaciPanel = ({
                     return (
                       <Box key={code} sx={{ mb: 0.75 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
-                          <Chip size="sm" variant="soft" color={code === 'R' ? 'primary' : code === 'A' ? 'success' : code === 'C' ? 'warning' : 'neutral'}>
+                          <Chip size="sm" variant="soft" color={CODE_COLORS[code]}>
                             {code}
                           </Chip>
                           <Typography level="body-xs" textColor="neutral">{CODE_LABELS[code]}</Typography>
