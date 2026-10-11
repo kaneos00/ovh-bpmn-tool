@@ -34,7 +34,13 @@ export const Component = () => {
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
 
   const { resource, contents, navigationFns, callbacks } = useBpmnLayout();
-  const publishedContent = contents.find(({ status }) => status === ContentStatusEnum.Published);
+  const publishedContent = useMemo(
+    () =>
+      contents
+        .filter(({ status }) => status === ContentStatusEnum.Published)
+        .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0],
+    [contents],
+  );
   const xmlQuery = getXmlContentQuery(resourceId, publishedContent?.id ?? '');
   const { data: processXml } = useQuery(xmlQuery.queryKey, xmlQuery.queryFn, {
     enabled: Boolean(publishedContent?.id && resource?.type === ResourceType.Process),
