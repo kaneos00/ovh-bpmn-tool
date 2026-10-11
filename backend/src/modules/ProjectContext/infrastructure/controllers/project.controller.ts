@@ -137,9 +137,7 @@ export class ProjectController {
     const resources = await this.resources.findBy(
       links.map((link) => ({ id: link.resourceId })),
     );
-    const byId = new Map(
-      resources.map((resource) => [resource.id, resource]),
-    );
+    const byId = new Map(resources.map((resource) => [resource.id, resource]));
     return links.map((link) => ({
       ...link,
       resource: byId.get(link.resourceId) ?? null,
@@ -159,7 +157,9 @@ export class ProjectController {
     @Headers() headers: Record<string, string>,
   ) {
     await this.assertProjectExists(projectId);
-    if (!body.resourceId) throw new BadRequestException('resourceId is required');
+    if (!body.resourceId) {
+      throw new BadRequestException('resourceId is required');
+    }
 
     const usage = body.usage ?? ProjectProcessUsage.ProjectSpecific;
     if (!Object.values(ProjectProcessUsage).includes(usage)) {
@@ -222,7 +222,10 @@ export class ProjectController {
     @Param('resourceId') resourceId: string,
   ) {
     await this.assertProjectExists(projectId);
-    const result = await this.projectProcesses.delete({ projectId, resourceId });
+    const result = await this.projectProcesses.delete({
+      projectId,
+      resourceId,
+    });
     if (!result.affected) throw new NotFoundException('Process link not found');
     return {
       deleted: true,
@@ -278,7 +281,9 @@ export class ProjectController {
   ) {
     await this.assertProjectExists(projectId);
     const result = await this.projectMembers.delete({ projectId, userId });
-    if (!result.affected) throw new NotFoundException('Project member not found');
+    if (!result.affected) {
+      throw new NotFoundException('Project member not found');
+    }
     return {
       deleted: true,
       projectId,
