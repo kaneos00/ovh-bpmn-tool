@@ -89,7 +89,9 @@ const loadProjectRaci = async (currentResourceId: string): Promise<ProjectRaciDa
   await Promise.all(processes.map(async process => {
     try {
       const contents: Content[] = await contentsQuery(process.id).queryFn();
-      const published = contents.find(content => content.status === ContentStatusEnum.Published);
+      const published = contents
+        .filter(content => content.status === ContentStatusEnum.Published)
+        .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0];
       if (!published) return;
 
       const xml = await getXmlContentQuery(process.id, published.id).queryFn();
