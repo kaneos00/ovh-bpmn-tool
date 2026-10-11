@@ -68,7 +68,7 @@ export class ProjectRaciController {
     @Body() body: { entries?: RaciEntryInput[] },
     @Headers() headers: RequestHeaders,
   ) {
-    await this.assertRole(projectId, headers, ProjectMemberRole.Modeler);
+    const userId = await this.assertRole(projectId, headers, ProjectMemberRole.Modeler);
     if (!Array.isArray(body.entries)) {
       throw new BadRequestException('entries must be an array');
     }
@@ -96,6 +96,7 @@ export class ProjectRaciController {
       }
       return {
         projectId,
+        createdBy: userId,
         resourceId,
         taskId,
         taskName,
@@ -141,7 +142,7 @@ export class ProjectRaciController {
     projectId: string,
     headers: RequestHeaders,
     minimumRole: ProjectMemberRole,
-  ) {
+  ): Promise<string> {
     const configuredHeader = this.configService.getOrThrow<string>('userHeader');
     const userId =
       headers[configuredHeader] ?? headers[configuredHeader.toLowerCase()];
@@ -159,5 +160,6 @@ export class ProjectRaciController {
     if (!membership || rank[membership.role] < rank[minimumRole]) {
       throw new ForbiddenException('Insufficient project role for RACI access');
     }
+    return userId.trim();
   }
 }
