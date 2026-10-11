@@ -16,6 +16,7 @@ import {
 import { apiClient } from '../../../queryClient';
 import { contentsQuery, getXmlContentQuery } from '../../../api/contents/contents.queries';
 import type { Content, Resource } from '../../../Types';
+import { ResourceType } from '../../../shared/types/BpmnResource';
 import { ContentStatusEnum } from '../../../Types';
 import { deriveRaciMatrixFromXml } from '../../../extensions/raci-viewer';
 import type { RaciCode } from '../../../extensions/raci-engine';
@@ -63,7 +64,7 @@ export const ProjectRaciManager = ({ projectId }: { projectId: string }) => {
       const result: TaskOption[] = [];
       await Promise.all(links.map(async link => {
         const process = link.resource;
-        if (!process || process.type !== 'Process') return;
+        if (!process || process.type !== ResourceType.Process) return;
         const contents: Content[] = await contentsQuery(process.id).queryFn();
         const published = contents
           .filter(content => content.status === ContentStatusEnum.Published)
