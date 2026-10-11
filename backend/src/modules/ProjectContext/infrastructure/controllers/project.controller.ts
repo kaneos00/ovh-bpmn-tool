@@ -157,6 +157,12 @@ export class ProjectController {
     @Headers() headers: RequestHeaders,
   ) {
     await this.assertProjectRole(projectId, headers, ProjectMemberRole.Admin);
+    const linkedProcesses = await this.projectProcesses.count({ where: { projectId } });
+    if (linkedProcesses > 0) {
+      throw new BadRequestException(
+        'Remove or delete all linked processes before deleting this project',
+      );
+    }
     const result = await this.projects.delete({ id: projectId });
     if (!result.affected) throw new NotFoundException('Project not found');
     return { deleted: true, projectId };
@@ -409,6 +415,14 @@ export class ProjectController {
     @Headers() headers: RequestHeaders,
   ) {
     await this.assertProjectRole(projectId, headers, ProjectMemberRole.Modeler);
+    const link = await this.projectProcesses.findOneBy({ projectId, resourceId });
+    if (!link) throw new NotFoundException('Process link not found');
+    const linksToResource = await this.projectProcesses.count({ where: { resourceId } });
+    if (linksToResource <= 1) {
+      throw new BadRequestException(
+        'A process cannot be unlinked from its last project because that would remove project-level access restrictions; delete the process instead',
+      );
+    }
     const result = await this.projectProcesses.delete({
       projectId,
       resourceId,
