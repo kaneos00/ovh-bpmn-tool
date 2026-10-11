@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
@@ -126,6 +126,17 @@ export class ProjectResourceAccessService {
     if (!canEditEveryProject) {
       throw new ForbiddenException(
         'Editing this resource requires modeler access to every linked project',
+      );
+    }
+  }
+
+  async assertCanDeleteResource(resourceId: string) {
+    const dependentVariants = await this.projectProcesses.count({
+      where: { sourceResourceId: resourceId },
+    });
+    if (dependentVariants > 0) {
+      throw new BadRequestException(
+        'This process is the source of one or more variants; remove those variants before deleting the source process',
       );
     }
   }
