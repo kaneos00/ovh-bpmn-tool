@@ -56,6 +56,7 @@ import { CloneContentCommandParams } from '../../../../modules/ResourceContext/a
 import { CannotFindContentError } from '../../../../modules/ResourceContext/application/commands/Content/content.error';
 import { DraftContentExistsError } from '../../../../modules/ResourceContext/application/commands/Content/cloneContent/cloneContent.error';
 import { ConfigService } from '@nestjs/config';
+import { ProjectResourceAccessService } from '../../../ProjectContext/projectResourceAccess.service';
 
 type CreateContentBody = Omit<CreateContentCommand, 'createdBy'>;
 type UpdateContentBody = Omit<UpdateContentCommand, 'updatedBy'>;
@@ -67,6 +68,7 @@ class PublishContentBody extends OmitType(PublishContentCommand, [
 export class ContentController {
   constructor(
     private readonly configService: ConfigService,
+    private readonly projectResourceAccess: ProjectResourceAccessService,
     private readonly listContentQueryHandler: ListContentQueryHandler,
     private readonly getContentQueryHandler: GetContentQueryHandler,
     private readonly getXmlContentQueryHandler: GetXmlContentQueryHandler,
@@ -155,6 +157,7 @@ export class ContentController {
     @Body() body: CreateContentBody,
     @Headers() headers: Record<string, string>,
   ) {
+    await this.projectResourceAccess.assertCanEditResource(resourceId, headers);
     const commandResult = await this.createContentCommandHandler.execute({
       ...body,
       resourceId,
@@ -182,6 +185,7 @@ export class ContentController {
     @Headers() headers: Record<string, string>,
   ) {
     const { resourceId, contentId } = params;
+    await this.projectResourceAccess.assertCanEditResource(resourceId, headers);
 
     const commandResult = await this.updateContentCommandHandler.execute(
       resourceId,
@@ -207,7 +211,11 @@ export class ContentController {
 
   @Delete('/:contentId')
   @UseAcl([UserGroup.RW])
-  async deleteContent(@Param() params: DeleteContentCommandParams) {
+  async deleteContent(
+    @Param() params: DeleteContentCommandParams,
+    @Headers() headers: Record<string, string>,
+  ) {
+    await this.projectResourceAccess.assertCanEditResource(params.resourceId, headers);
     const commandResult =
       await this.deleteContentCommandHandler.execute(params);
 
@@ -229,6 +237,7 @@ export class ContentController {
     @Headers() headers: Record<string, string>,
   ) {
     const { resourceId, contentId } = params;
+    await this.projectResourceAccess.assertCanEditResource(resourceId, headers);
 
     const commandResult = await this.publishContentCommandHandler.execute(
       resourceId,
@@ -259,6 +268,7 @@ export class ContentController {
     @Headers() headers: Record<string, string>,
   ) {
     const { resourceId, contentId } = params;
+    await this.projectResourceAccess.assertCanEditResource(resourceId, headers);
 
     const commandResult = await this.cloneContentCommandHandler.execute(
       resourceId,
