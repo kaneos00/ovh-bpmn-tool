@@ -5,6 +5,7 @@ import { ProjectController } from './infrastructure/controllers/project.controll
 import { ProjectMemberTypeOrmEntity } from './infrastructure/entities/projectMember.ormEntity';
 import { ProjectProcessTypeOrmEntity } from './infrastructure/entities/projectProcess.ormEntity';
 import { ProjectTypeOrmEntity } from './infrastructure/entities/project.ormEntity';
+import { ProjectResourceAccessService } from './projectResourceAccess.service';
 
 @Module({
   imports: [
@@ -16,5 +17,7 @@ import { ProjectTypeOrmEntity } from './infrastructure/entities/project.ormEntit
     ]),
   ],
   controllers: [ProjectController],
+  providers: [ProjectResourceAccessService],
+  exports: [ProjectResourceAccessService],
 })
 export class ProjectContextModule {}
