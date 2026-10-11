@@ -211,7 +211,7 @@ export const ProcessHierarchyTree = ({
               selectedItems={selectedTreeItemId}
               expandedItems={expandedNodes}
               disabledItemsFocusable
-              expansionTrigger="iconContainer"
+              expansionTrigger="content"
               slots={{ collapseIcon: ExpandMore, expandIcon: ChevronRight }}
               onExpandedItemsChange={(_, itemIds) => {
                 setExpandedNodes(itemIds);
@@ -223,25 +223,14 @@ export const ProcessHierarchyTree = ({
                 const selectedNode = findNode(nodes, itemId);
                 if (!selectedNode) return;
 
-                if (
-                  selectedNode.type === 'process' ||
-                  selectedNode.type === 'subProcess'
-                ) {
-                  setExpandedNodes(current =>
-                    current.includes(itemId)
-                      ? current.filter(id => id !== itemId)
-                      : [...current, itemId],
-                  );
-
-                  // A process is not normally a drawable BPMN shape, so focus
-                  // its participant when available. A subprocess is drawable
-                  // and can be focused directly while its children toggle.
-                  if (selectedNode.type === 'process') {
-                    if (selectedNode.canvasElementId) {
-                      onElementClick(selectedNode.canvasElementId);
-                    }
-                  } else {
-                    onElementClick(itemId);
+                // Let the tree's native content-triggered expansion manage
+                // open/closed state. Toggling it again here can cancel the
+                // native action when the click bubbles from the expand icon.
+                // A process is metadata, so focus its visible participant;
+                // subprocesses and tasks map directly to drawable BPMN IDs.
+                if (selectedNode.type === 'process') {
+                  if (selectedNode.canvasElementId) {
+                    onElementClick(selectedNode.canvasElementId);
                   }
                   return;
                 }
