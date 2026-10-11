@@ -40,6 +40,7 @@ import { DeleteCommentCommandHandler } from '../../../../modules/ResourceContext
 import { DeleteCommentCommandParams } from '../../../../modules/ResourceContext/application/commands/Comment/deleteComment/deleteComment.command';
 import { SortCommandOrderEnum } from '../../../../shared-kernel/utils/SortCommand';
 import { ConfigService } from '@nestjs/config';
+import { ProjectResourceAccessService } from '../../../ProjectContext/projectResourceAccess.service';
 
 type CreateCommentBody = Omit<CreateCommentCommand, 'createdBy'>;
 type UpdateCommentBody = Omit<UpdateCommentCommand, 'updatedBy'>;
@@ -48,6 +49,7 @@ type UpdateCommentBody = Omit<UpdateCommentCommand, 'updatedBy'>;
 export class CommentController {
   constructor(
     private readonly configService: ConfigService,
+    private readonly projectResourceAccess: ProjectResourceAccessService,
     private readonly listCommentQueryHandler: ListCommentQueryHandler,
     private readonly getCommentQueryHandler: GetCommentQueryHandler,
     private readonly createCommentCommandHandler: CreateCommentCommandHandler,
@@ -61,7 +63,9 @@ export class CommentController {
     @Param('resourceId') resourceId: string,
     @Query('sort.by') sortBy: string,
     @Query('sort.order') sortOrder: SortCommandOrderEnum,
+    @Headers() headers: Record<string, string>,
   ) {
+    await this.projectResourceAccess.assertCanReadResource(resourceId, headers);
     const queryResult = await this.listCommentQueryHandler.execute(resourceId, {
       sort: {
         by: sortBy,
@@ -84,7 +88,11 @@ export class CommentController {
 
   @Get('/:commentId')
   @UseAcl()
-  async getComment(@Param() params: GetCommentQuery) {
+  async getComment(
+    @Param() params: GetCommentQuery,
+    @Headers() headers: Record<string, string>,
+  ) {
+    await this.projectResourceAccess.assertCanReadResource(params.resourceId, headers);
     const queryResult = await this.getCommentQueryHandler.execute(
       params.resourceId,
       params.commentId,
@@ -110,6 +118,7 @@ export class CommentController {
     @Body() body: CreateCommentBody,
     @Headers() headers: Record<string, string>,
   ) {
+    await this.projectResourceAccess.assertCanEditResource(resourceId, headers);
     const commandResult = await this.createCommentCommandHandler.execute({
       ...body,
       resourceId,
@@ -137,6 +146,7 @@ export class CommentController {
     @Headers() headers: Record<string, string>,
   ) {
     const { resourceId, commentId } = params;
+    await this.projectResourceAccess.assertCanEditResource(resourceId, headers);
 
     const commandResult = await this.updateCommentCommandHandler.execute(
       resourceId,
@@ -162,7 +172,11 @@ export class CommentController {
 
   @Delete('/:commentId')
   @UseAcl([UserGroup.RW])
-  async deleteComment(@Param() params: DeleteCommentCommandParams) {
+  async deleteComment(
+    @Param() params: DeleteCommentCommandParams,
+    @Headers() headers: Record<string, string>,
+  ) {
+    await this.projectResourceAccess.assertCanEditResource(params.resourceId, headers);
     const commandResult =
       await this.deleteCommentCommandHandler.execute(params);
 
