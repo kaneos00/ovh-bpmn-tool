@@ -36,11 +36,13 @@ import { GetResourceQuery } from '../../application/queries/Resource/getResource
 import { ResourceTypeEnum } from '../../../../modules/ResourceContext/shared/types/Resource';
 import { ResourceNameExistError } from '../../../../modules/ResourceContext/application/commands/Resource/resource.error';
 import { ConfigService } from '@nestjs/config';
+import { ProjectResourceAccessService } from '../../../ProjectContext/projectResourceAccess.service';
 
 @Controller('resources')
 export class ResourceController {
   constructor(
     private readonly configService: ConfigService,
+    private readonly projectResourceAccess: ProjectResourceAccessService,
     private readonly createResourceCommandHandler: CreateResourceCommandHandler,
     private readonly updateResourceCommandHandler: UpdateResourceCommandHandler,
     private readonly deleteResourceCommandHandler: DeleteResourceCommandHandler,
@@ -111,7 +113,9 @@ export class ResourceController {
   async updateResource(
     @Param() params: Pick<UpdateResourceCommand, 'resourceId'>,
     @Body() updateResourceCommand: UpdateResourceBody,
+    @Headers() headers: Record<string, string>,
   ) {
+    await this.projectResourceAccess.assertCanEditResource(params.resourceId, headers);
     const updateResult = await this.updateResourceCommandHandler.execute({
       ...updateResourceCommand,
       resourceId: params.resourceId,
@@ -129,7 +133,11 @@ export class ResourceController {
 
   @Delete('/:resourceId')
   @UseAcl([UserGroup.RW])
-  async deleteResource(@Param() deleteResourceCommand: DeleteResourceCommand) {
+  async deleteResource(
+    @Param() deleteResourceCommand: DeleteResourceCommand,
+    @Headers() headers: Record<string, string>,
+  ) {
+    await this.projectResourceAccess.assertCanEditResource(deleteResourceCommand.resourceId, headers);
     const deleteResult = await this.deleteResourceCommandHandler.execute(
       deleteResourceCommand,
     );
