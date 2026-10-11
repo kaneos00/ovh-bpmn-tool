@@ -20,6 +20,7 @@ import { resourcesQuery } from '../../api/resources/resources.queries';
 import { Resource } from '../../Types';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import { ProjectRaciPanel } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciPanel';
+import { ProjectRaciManager } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciManager';
 
 type Project = {
   id: string;
@@ -335,9 +336,16 @@ export const Component = () => {
           ))}
         </Stack>
         <Card variant="outlined">
-          <Typography level="title-lg">RACI du projet</Typography>
+          <Typography level="title-lg">Gestion du RACI du projet</Typography>
           <Typography level="body-sm">
-            Synthèse des rôles et affectations extraits des dernières versions publiées des seuls processus associés à ce projet.
+            Les affectations ci-dessous sont propres à ce projet. Elles sont enregistrées indépendamment des propriétés RACI présentes dans les fichiers BPMN.
+          </Typography>
+          <ProjectRaciManager projectId={projectId} />
+        </Card>
+        <Card variant="outlined">
+          <Typography level="title-lg">Synthèse RACI des diagrammes publiés</Typography>
+          <Typography level="body-sm">
+            Lecture seule : synthèse des rôles extraits des dernières versions publiées des processus associés au projet.
           </Typography>
           <ProjectRaciPanel
             projectId={projectId}
