@@ -207,6 +207,12 @@ export class ProjectController {
       throw new BadRequestException('Unsupported process usage');
     }
 
+    if (usage === ProjectProcessUsage.Variant) {
+      throw new BadRequestException(
+        'Use POST /projects/:projectId/processes/variants to create an independent variant',
+      );
+    }
+
     const resource = await this.resources.findOneBy({ id: body.resourceId });
     if (!resource || resource.type !== ResourceTypeEnum.Process) {
       throw new BadRequestException(
