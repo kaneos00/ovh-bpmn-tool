@@ -13,6 +13,7 @@ import {
 import { useQuery } from 'react-query';
 
 import { resourcesQuery } from '../../../api/resources/resources.queries';
+import { apiClient } from '../../../queryClient';
 import { contentsQuery, getXmlContentQuery } from '../../../api/contents/contents.queries';
 import { ContentStatusEnum, type Content, type Resource } from '../../../Types';
 import { ResourceType } from '../../../shared/types/BpmnResource';
@@ -79,9 +80,22 @@ const getProjectProcesses = (
   return processes.filter(process => belongsToProject(process));
 };
 
-const loadProjectRaci = async (currentResourceId: string): Promise<ProjectRaciData> => {
-  const resources = await resourcesQuery().queryFn();
-  const processes = getProjectProcesses(resources, currentResourceId);
+const loadProjectRaci = async (
+  currentResourceId: string,
+  projectId?: string,
+): Promise<ProjectRaciData> => {
+  let processes: Resource[];
+  if (projectId) {
+    const links: Array<{ resource?: Resource | null }> = await apiClient.get(
+      `/projects/${projectId}/processes`,
+    );
+    processes = links
+      .map(link => link.resource)
+      .filter((resource): resource is Resource => Boolean(resource && resource.type === ResourceType.Process));
+  } else {
+    const resources = await resourcesQuery().queryFn();
+    processes = getProjectProcesses(resources, currentResourceId);
+  }
   const rolesByName = new Map<string, RoleGroup>();
   let publishedProcessCount = 0;
   let failedProcessCount = 0;
@@ -148,17 +162,19 @@ const loadProjectRaci = async (currentResourceId: string): Promise<ProjectRaciDa
 };
 
 type ProjectRaciPanelProps = {
-  currentResourceId: string;
+  currentResourceId?: string;
+  projectId?: string;
   onActivityClick: (processId: string, elementId: string) => void;
 };
 
 export const ProjectRaciPanel = ({
-  currentResourceId,
+  currentResourceId = 'root',
+  projectId,
   onActivityClick,
 }: ProjectRaciPanelProps) => {
   const { data, isLoading, isError } = useQuery(
-    ['project-raci', currentResourceId],
-    () => loadProjectRaci(currentResourceId),
+    ['project-raci', projectId ?? currentResourceId],
+    () => loadProjectRaci(currentResourceId, projectId),
     { staleTime: 30_000 },
   );
 
