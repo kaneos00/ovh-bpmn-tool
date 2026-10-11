@@ -1,7 +1,7 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import {
   ProjectProcessTypeOrmEntity,
   ProjectProcessUsage,
@@ -27,6 +27,70 @@ export class ProjectResourceAccessService {
     @InjectRepository(ProjectMemberTypeOrmEntity)
     private readonly projectMembers: Repository<ProjectMemberTypeOrmEntity>,
   ) {}
+
+
+  async assertCanReadResource(resourceId: string, headers: RequestHeaders) {
+    const userId = this.getUserId(headers);
+    const links = await this.projectProcesses.find({ where: { resourceId } });
+    if (
+      !links.length ||
+      links.some((link) => link.usage === ProjectProcessUsage.Common)
+    ) {
+      return;
+    }
+
+    const memberships = await this.projectMembers.find({
+      where: links.map((link) => ({ projectId: link.projectId, userId })),
+    });
+    if (!memberships.length) {
+      throw new ForbiddenException(
+        'Reading this resource requires membership in a linked project',
+      );
+    }
+  }
+
+  async filterReadableResources<T extends { id: string }>(
+    resources: T[],
+    headers: RequestHeaders,
+  ): Promise<T[]> {
+    if (!resources.length) return resources;
+    const userId = this.getUserId(headers);
+    const links = await this.projectProcesses.find({
+      where: { resourceId: In(resources.map(({ id }) => id)) },
+    });
+    const linkedResourceIds = new Set(links.map((link) => link.resourceId));
+    const globallyReadableIds = new Set(
+      links
+        .filter((link) => link.usage === ProjectProcessUsage.Common)
+        .map((link) => link.resourceId),
+    );
+    const restrictedLinks = links.filter(
+      (link) => link.usage !== ProjectProcessUsage.Common,
+    );
+    const memberships = restrictedLinks.length
+      ? await this.projectMembers.find({
+          where: restrictedLinks.map((link) => ({
+            projectId: link.projectId,
+            userId,
+          })),
+        })
+      : [];
+    const allowedProjectIds = new Set(
+      memberships.map((membership) => membership.projectId),
+    );
+    const allowedResourceIds = new Set(
+      restrictedLinks
+        .filter((link) => allowedProjectIds.has(link.projectId))
+        .map((link) => link.resourceId),
+    );
+
+    return resources.filter(
+      ({ id }) =>
+        !linkedResourceIds.has(id) ||
+        globallyReadableIds.has(id) ||
+        allowedResourceIds.has(id),
+    );
+  }
 
   async assertCanEditResource(resourceId: string, headers: RequestHeaders) {
     const userId = this.getUserId(headers);
