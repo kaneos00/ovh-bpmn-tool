@@ -28,7 +28,6 @@ export class ProjectResourceAccessService {
     private readonly projectMembers: Repository<ProjectMemberTypeOrmEntity>,
   ) {}
 
-
   async assertCanReadResource(resourceId: string, headers: RequestHeaders) {
     const userId = this.getUserId(headers);
     const links = await this.projectProcesses.find({ where: { resourceId } });
@@ -119,7 +118,9 @@ export class ProjectResourceAccessService {
 
     const canEditEveryProject = links.every((link) => {
       const role = roleByProject.get(link.projectId);
-      return role === ProjectMemberRole.Modeler || role === ProjectMemberRole.Admin;
+      return (
+        role === ProjectMemberRole.Modeler || role === ProjectMemberRole.Admin
+      );
     });
 
     if (!canEditEveryProject) {
@@ -130,7 +131,9 @@ export class ProjectResourceAccessService {
   }
 
   private getUserId(headers: RequestHeaders): string {
-    const configuredHeader = this.configService.getOrThrow<string>('userHeader');
+    const configuredHeader = this.configService.getOrThrow<string>(
+      'userHeader',
+    );
     const userId =
       headers[configuredHeader] ?? headers[configuredHeader.toLowerCase()];
     if (!userId?.trim()) {
