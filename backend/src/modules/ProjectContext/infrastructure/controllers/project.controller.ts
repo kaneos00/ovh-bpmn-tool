@@ -23,6 +23,7 @@ import {
   ProjectProcessUsage,
 } from '../entities/projectProcess.ormEntity';
 import { ProjectTypeOrmEntity } from '../entities/project.ormEntity';
+import { ProjectMemberRole, ProjectMemberTypeOrmEntity } from '../entities/projectMember.ormEntity';
 
 @Controller('projects')
 export class ProjectController {
@@ -34,6 +35,8 @@ export class ProjectController {
     private readonly projectProcesses: Repository<ProjectProcessTypeOrmEntity>,
     @InjectRepository(ResourceTypeOrmEntity)
     private readonly resources: Repository<ResourceTypeOrmEntity>,
+    @InjectRepository(ProjectMemberTypeOrmEntity)
+    private readonly projectMembers: Repository<ProjectMemberTypeOrmEntity>,
   ) {}
 
   @Get()
@@ -201,6 +204,56 @@ export class ProjectController {
     const result = await this.projectProcesses.delete({ projectId, resourceId });
     if (!result.affected) throw new NotFoundException('Process link not found');
     return { deleted: true, projectId, resourceId };
+  }
+
+
+  @Get(':projectId/members')
+  @UseAcl()
+  async listProjectMembers(@Param('projectId') projectId: string) {
+    await this.assertProjectExists(projectId);
+    return this.projectMembers.find({
+      where: { projectId },
+      order: { userId: 'ASC' },
+    });
+  }
+
+  @Put(':projectId/members/:userId')
+  @UseAcl([UserGroup.RW])
+  async setProjectMember(
+    @Param('projectId') projectId: string,
+    @Param('userId') userIdParam: string,
+    @Body() body: { role?: ProjectMemberRole },
+    @Headers() headers: Record<string, string>,
+  ) {
+    await this.assertProjectExists(projectId);
+    const userId = userIdParam.trim();
+    if (!userId || userId.length > 255) {
+      throw new BadRequestException('userId must contain 1 to 255 characters');
+    }
+    if (!body.role || !Object.values(ProjectMemberRole).includes(body.role)) {
+      throw new BadRequestException('role must be viewer, modeler, or admin');
+    }
+
+    const existing = await this.projectMembers.findOneBy({ projectId, userId });
+    const member = existing ?? this.projectMembers.create({
+      projectId,
+      userId,
+      createdBy: headers[this.configService.getOrThrow('userHeader')],
+    });
+    member.role = body.role;
+    return this.projectMembers.save(member);
+  }
+
+  @Delete(':projectId/members/:userId')
+  @UseAcl([UserGroup.RW])
+  async removeProjectMember(
+    @Param('projectId') projectId: string,
+    @Param('userId') userId: string,
+  ) {
+    await this.assertProjectExists(projectId);
+    const result = await this.projectMembers.delete({ projectId, userId });
+    if (!result.affected) throw new NotFoundException('Project member not found');
+    return { deleted: true, projectId, userId };
   }
 
   private async assertProjectExists(projectId: string) {
