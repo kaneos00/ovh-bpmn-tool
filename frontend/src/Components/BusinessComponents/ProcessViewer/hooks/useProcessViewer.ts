@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from 'react-query';
 
 import { getXmlContentQuery } from '../../../../api/contents/contents.queries';
@@ -14,6 +14,7 @@ export const useProcessViewer = (
   const selectedIdRef = useRef<string | null | undefined>(selectedElementId);
   const importedRef = useRef(false);
   const highlightedIdRef = useRef<string | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   selectedIdRef.current = selectedElementId;
 
@@ -72,20 +73,33 @@ export const useProcessViewer = (
     if (!viewerRef.current || !xmlContent) {
       importedRef.current = false;
       highlightedIdRef.current = null;
+      setImportError(null);
       viewer.clear();
       return;
     }
 
     importedRef.current = false;
+    setImportError(null);
     viewer.attachTo(viewerRef.current);
 
     // Attach the viewer before importing so its interaction and selection
     // services are active when import.done is emitted.
-    viewer.importXML(xmlContent).then(() => {
-      (viewer.get('canvas') as any).zoom('fit-viewport');
-      importedRef.current = true;
-      applySelectionRef.current();
-    });
+    viewer.importXML(xmlContent)
+      .then(() => {
+        (viewer.get('canvas') as any).zoom('fit-viewport');
+        importedRef.current = true;
+        applySelectionRef.current();
+      })
+      .catch((error: unknown) => {
+        importedRef.current = false;
+        highlightedIdRef.current = null;
+        viewer.clear();
+        setImportError(
+          error instanceof Error
+            ? `Le diagramme BPMN ne peut pas être affiché : ${error.message}`
+            : 'Le diagramme BPMN ne peut pas être affiché : erreur lors de son import.',
+        );
+      });
   }, [xmlContent, resourceId, contentId, viewer]);
 
   useEffect(() => {
@@ -95,5 +109,6 @@ export const useProcessViewer = (
   return {
     viewerRef,
     content: xmlContent ?? '',
+    importError,
   };
 };
