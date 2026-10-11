@@ -27,6 +27,13 @@ type Project = {
   createdAt: string;
 };
 
+type ProjectMember = {
+  id: string;
+  projectId: string;
+  userId: string;
+  role: 'viewer' | 'modeler' | 'admin';
+};
+
 type ProjectProcessLink = {
   id: string;
   projectId: string;
@@ -48,6 +55,8 @@ export const Component = () => {
   const [description, setDescription] = useState('');
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
   const [usage, setUsage] = useState<'common' | 'project-specific'>('common');
+  const [memberUserId, setMemberUserId] = useState('');
+  const [memberRole, setMemberRole] = useState<'viewer' | 'modeler' | 'admin'>('viewer');
   const [error, setError] = useState<string | null>(null);
 
   const projectsQuery = useQuery<Project[]>(
@@ -63,6 +72,11 @@ export const Component = () => {
   const linkedProcessesQuery = useQuery<ProjectProcessLink[]>(
     projectProcessesKey(projectId ?? ''),
     () => apiClient.get(`/projects/${projectId}/processes`),
+    { enabled: Boolean(projectId) },
+  );
+  const membersQuery = useQuery<ProjectMember[]>(
+    ['project-members', projectId ?? ''],
+    () => apiClient.get(`/projects/${projectId}/members`),
     { enabled: Boolean(projectId) },
   );
   const availableResourcesQuery = resourcesQuery({ type: ResourceType.Process });
@@ -109,6 +123,37 @@ export const Component = () => {
     {
       onSuccess: async () => {
         await queryClient.invalidateQueries(projectProcessesKey(projectId ?? ''));
+      },
+      onError: (mutationError: Error) => setError(mutationError.message),
+    },
+  );
+
+
+  const setProjectMember = useMutation(
+    () => {
+      if (!projectId || !memberUserId.trim()) throw new Error('Saisissez l’identifiant de l’utilisateur.');
+      return apiClient.put(
+        `/projects/${projectId}/members/${encodeURIComponent(memberUserId.trim())}`,
+        { role: memberRole },
+      );
+    },
+    {
+      onSuccess: async () => {
+        setMemberUserId('');
+        setError(null);
+        await queryClient.invalidateQueries(['project-members', projectId ?? '']);
+      },
+      onError: (mutationError: Error) => setError(mutationError.message),
+    },
+  );
+
+  const removeProjectMember = useMutation(
+    (userId: string) => apiClient.remove(
+      `/projects/${projectId}/members/${encodeURIComponent(userId)}`,
+    ),
+    {
+      onSuccess: async () => {
+        await queryClient.invalidateQueries(['project-members', projectId ?? '']);
       },
       onError: (mutationError: Error) => setError(mutationError.message),
     },
@@ -189,6 +234,45 @@ export const Component = () => {
           </>
         )}
         {error && <Alert color="danger">{error}</Alert>}
+
+        <Card variant="outlined">
+          <Typography level="title-lg">Membres et rôles du projet</Typography>
+          <Typography level="body-sm">
+            Identifiant utilisateur attendu : la même valeur que celle transmise par le proxy dans l’en-tête utilisateur. Les rôles sont enregistrés ici ; leur application aux droits d’accès doit encore être activée côté backend.
+          </Typography>
+          <Stack spacing={1.5}>
+            <FormControl>
+              <FormLabel>Identifiant utilisateur</FormLabel>
+              <Input value={memberUserId} onChange={(event) => setMemberUserId(event.target.value)} placeholder="Identifiant exact de l’utilisateur" />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Rôle du projet</FormLabel>
+              <Select value={memberRole} onChange={(_event, value) => value && setMemberRole(value as 'viewer' | 'modeler' | 'admin')}>
+                <Option value="viewer">Viewer — consultation</Option>
+                <Option value="modeler">Modeler — modification des processus</Option>
+                <Option value="admin">Admin — administration du projet</Option>
+              </Select>
+            </FormControl>
+            <Box>
+              <Button loading={setProjectMember.isLoading} disabled={!memberUserId.trim()} onClick={() => setProjectMember.mutate()}>
+                Enregistrer le rôle
+              </Button>
+            </Box>
+          </Stack>
+          <Typography level="title-md">Membres enregistrés</Typography>
+          {membersQuery.isLoading && <Typography>Chargement des membres…</Typography>}
+          {membersQuery.isError && <Alert color="danger">Impossible de charger les membres.</Alert>}
+          {(membersQuery.data ?? []).map((member) => (
+            <Card key={member.id} variant="soft" orientation="horizontal" sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography level="title-sm">{member.userId}</Typography>
+                <Typography level="body-sm">{member.role}</Typography>
+              </Box>
+              <Button color="danger" variant="plain" loading={removeProjectMember.isLoading} onClick={() => removeProjectMember.mutate(member.userId)}>Retirer</Button>
+            </Card>
+          ))}
+        </Card>
+
         <Card variant="outlined">
           <Typography level="title-lg">Ajouter un processus au projet</Typography>
           {availableProcesses.isLoading && <Typography>Chargement du catalogue…</Typography>}
