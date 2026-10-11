@@ -70,12 +70,16 @@ export const useProcessViewer = (
   applySelectionRef.current = applySelection;
 
   useEffect(() => {
+    let cancelled = false;
+
     if (!viewerRef.current || !xmlContent) {
       importedRef.current = false;
       highlightedIdRef.current = null;
       setImportError(null);
       viewer.clear();
-      return;
+      return () => {
+        cancelled = true;
+      };
     }
 
     importedRef.current = false;
@@ -86,11 +90,13 @@ export const useProcessViewer = (
     // services are active when import.done is emitted.
     viewer.importXML(xmlContent)
       .then(() => {
+        if (cancelled) return;
         (viewer.get('canvas') as any).zoom('fit-viewport');
         importedRef.current = true;
         applySelectionRef.current();
       })
       .catch((error: unknown) => {
+        if (cancelled) return;
         importedRef.current = false;
         highlightedIdRef.current = null;
         viewer.clear();
@@ -100,6 +106,10 @@ export const useProcessViewer = (
             : 'Le diagramme BPMN ne peut pas être affiché : erreur lors de son import.',
         );
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [xmlContent, resourceId, contentId, viewer]);
 
   useEffect(() => {
