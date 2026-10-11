@@ -6,15 +6,12 @@ import {
   Card,
   CircularProgress,
   FormControl,
-  FormLabel,
-  Input,
   Option,
   Select,
   Sheet,
   Stack,
   Table,
   Typography,
-  Button,
 } from '@mui/joy';
 import { apiClient } from '../../../queryClient';
 import { contentsQuery, getXmlContentQuery } from '../../../api/contents/contents.queries';
@@ -60,7 +57,6 @@ const cellKey = (resourceId: string, taskId: string, actorName: string) =>
 
 export const ProjectRaciManager = ({ projectId }: { projectId: string }) => {
   const queryClient = useQueryClient();
-  const [actorName, setActorName] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const processesQuery = useQuery<ProjectProcessLink[]>(
@@ -166,28 +162,6 @@ export const ProjectRaciManager = ({ projectId }: { projectId: string }) => {
     save.mutate(nextEntries);
   };
 
-  const addActorToFirstActivity = () => {
-    const name = actorName.trim();
-    if (!name) {
-      setError('Saisissez le nom de l’acteur.');
-      return;
-    }
-    const existing = actors.find(actor => normalizeActor(actor) === normalizeActor(name));
-    if (existing) {
-      setError('Cet acteur existe déjà dans le RACI du projet.');
-      return;
-    }
-    if (!tasks.length) {
-      setError('Aucune activité publiée disponible pour enregistrer cet acteur. Publiez un processus puis réessayez.');
-      return;
-    }
-    // The current storage model persists actors through their task assignments.
-    // Seed the new actor with an empty cell only after an explicit role is chosen
-    // in the matrix; keep the name ready for the next edit instead of creating a
-    // misleading non-persistent actor record.
-    setError('Les acteurs sont actuellement issus des BPMN publiés ou des affectations enregistrées. Pour ajouter un acteur indépendant des activités, le backend doit d’abord disposer d’un référentiel d’acteurs du projet.');
-  };
-
   return (
     <Stack spacing={1.5}>
       <Typography level="body-sm">
@@ -198,21 +172,9 @@ export const ProjectRaciManager = ({ projectId }: { projectId: string }) => {
           {error ?? 'Impossible de charger ou d’enregistrer le RACI du projet.'}
         </Alert>
       )}
-      <Card variant="soft">
-        <Typography level="title-md">Acteurs du projet</Typography>
-        <Typography level="body-sm">
-          {actors.length} acteur(s) détecté(s). La liste rassemble les acteurs des processus publiés et ceux présents dans les affectations du projet.
-        </Typography>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-          <FormControl sx={{ flex: 1 }}>
-            <FormLabel>Ajouter un acteur</FormLabel>
-            <Input value={actorName} onChange={event => setActorName(event.target.value)} placeholder="Ex. Responsable qualité" />
-          </FormControl>
-          <Box sx={{ display: 'flex', alignItems: 'flex-end' }}>
-            <Button variant="outlined" onClick={addActorToFirstActivity}>Ajouter</Button>
-          </Box>
-        </Stack>
-      </Card>
+      <Typography level="body-sm">
+        Acteurs détectés : {actors.length}. La liste rassemble les acteurs des processus publiés et ceux présents dans les affectations du projet.
+      </Typography>
       {tasksQuery.isLoading || entriesQuery.isLoading ? (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 2 }}>
           <CircularProgress size="sm" />
