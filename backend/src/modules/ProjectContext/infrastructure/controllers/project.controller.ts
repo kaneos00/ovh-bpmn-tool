@@ -23,7 +23,10 @@ import {
   ProjectProcessUsage,
 } from '../entities/projectProcess.ormEntity';
 import { ProjectTypeOrmEntity } from '../entities/project.ormEntity';
-import { ProjectMemberRole, ProjectMemberTypeOrmEntity } from '../entities/projectMember.ormEntity';
+import {
+  ProjectMemberRole,
+  ProjectMemberTypeOrmEntity,
+} from '../entities/projectMember.ormEntity';
 
 @Controller('projects')
 export class ProjectController {
@@ -54,7 +57,9 @@ export class ProjectController {
     const name = body.name?.trim();
     if (!name) throw new BadRequestException('Project name is required');
     if (name.length > 255) {
-      throw new BadRequestException('Project name must be 255 characters or fewer');
+      throw new BadRequestException(
+        'Project name must be 255 characters or fewer',
+      );
     }
 
     const project = this.projects.create({
@@ -93,7 +98,9 @@ export class ProjectController {
     if (body.name !== undefined) {
       const name = body.name.trim();
       if (!name || name.length > 255) {
-        throw new BadRequestException('Project name must contain 1 to 255 characters');
+        throw new BadRequestException(
+          'Project name must contain 1 to 255 characters',
+        );
       }
       project.name = name;
     }
@@ -130,7 +137,9 @@ export class ProjectController {
     const resources = await this.resources.findBy(
       links.map((link) => ({ id: link.resourceId })),
     );
-    const byId = new Map(resources.map((resource) => [resource.id, resource]));
+    const byId = new Map(
+      resources.map((resource) => [resource.id, resource]),
+    );
     return links.map((link) => ({
       ...link,
       resource: byId.get(link.resourceId) ?? null,
@@ -159,21 +168,31 @@ export class ProjectController {
 
     const resource = await this.resources.findOneBy({ id: body.resourceId });
     if (!resource || resource.type !== ResourceTypeEnum.Process) {
-      throw new BadRequestException('resourceId must identify an existing process');
+      throw new BadRequestException(
+        'resourceId must identify an existing process',
+      );
     }
 
     let sourceResourceId: string | null = null;
     if (usage === ProjectProcessUsage.Variant) {
       if (!body.sourceResourceId || body.sourceResourceId === body.resourceId) {
-        throw new BadRequestException('A variant must reference a different source process');
+        throw new BadRequestException(
+          'A variant must reference a different source process',
+        );
       }
-      const source = await this.resources.findOneBy({ id: body.sourceResourceId });
+      const source = await this.resources.findOneBy({
+        id: body.sourceResourceId,
+      });
       if (!source || source.type !== ResourceTypeEnum.Process) {
-        throw new BadRequestException('sourceResourceId must identify an existing process');
+        throw new BadRequestException(
+          'sourceResourceId must identify an existing process',
+        );
       }
       sourceResourceId = source.id;
     } else if (body.sourceResourceId) {
-      throw new BadRequestException('sourceResourceId is only valid for variants');
+      throw new BadRequestException(
+        'sourceResourceId is only valid for variants',
+      );
     }
 
     const link = this.projectProcesses.create({
@@ -188,7 +207,9 @@ export class ProjectController {
       return await this.projectProcesses.save(link);
     } catch (error) {
       if ((error as { code?: string }).code === '23505') {
-        throw new ConflictException('This process is already linked to the project');
+        throw new ConflictException(
+          'This process is already linked to the project',
+        );
       }
       throw error;
     }
@@ -203,9 +224,12 @@ export class ProjectController {
     await this.assertProjectExists(projectId);
     const result = await this.projectProcesses.delete({ projectId, resourceId });
     if (!result.affected) throw new NotFoundException('Process link not found');
-    return { deleted: true, projectId, resourceId };
+    return {
+      deleted: true,
+      projectId,
+      resourceId,
+    };
   }
-
 
   @Get(':projectId/members')
   @UseAcl()
@@ -235,11 +259,13 @@ export class ProjectController {
     }
 
     const existing = await this.projectMembers.findOneBy({ projectId, userId });
-    const member = existing ?? this.projectMembers.create({
-      projectId,
-      userId,
-      createdBy: headers[this.configService.getOrThrow('userHeader')],
-    });
+    const member =
+      existing ??
+      this.projectMembers.create({
+        projectId,
+        userId,
+        createdBy: headers[this.configService.getOrThrow('userHeader')],
+      });
     member.role = body.role;
     return this.projectMembers.save(member);
   }
@@ -253,7 +279,11 @@ export class ProjectController {
     await this.assertProjectExists(projectId);
     const result = await this.projectMembers.delete({ projectId, userId });
     if (!result.affected) throw new NotFoundException('Project member not found');
-    return { deleted: true, projectId, userId };
+    return {
+      deleted: true,
+      projectId,
+      userId,
+    };
   }
 
   private async assertProjectExists(projectId: string) {
