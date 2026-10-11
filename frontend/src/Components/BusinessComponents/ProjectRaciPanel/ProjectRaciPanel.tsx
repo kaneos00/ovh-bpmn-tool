@@ -35,6 +35,7 @@ type RoleGroup = {
 type ProjectRaciData = {
   processCount: number;
   publishedProcessCount: number;
+  failedProcessCount: number;
   roles: RoleGroup[];
 };
 
@@ -83,6 +84,7 @@ const loadProjectRaci = async (currentResourceId: string): Promise<ProjectRaciDa
   const processes = getProjectProcesses(resources, currentResourceId);
   const rolesByName = new Map<string, RoleGroup>();
   let publishedProcessCount = 0;
+  let failedProcessCount = 0;
 
   await Promise.all(processes.map(async process => {
     try {
@@ -124,7 +126,8 @@ const loadProjectRaci = async (currentResourceId: string): Promise<ProjectRaciDa
         }
       }
     } catch {
-      // Keep the rest of the project's RACI available if one process cannot load.
+      // Preserve results from other processes, but make partial results visible.
+      failedProcessCount += 1;
     }
   }));
 
@@ -139,7 +142,7 @@ const loadProjectRaci = async (currentResourceId: string): Promise<ProjectRaciDa
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  return { processCount: processes.length, publishedProcessCount, roles };
+  return { processCount: processes.length, publishedProcessCount, failedProcessCount, roles };
 };
 
 type ProjectRaciPanelProps = {
@@ -192,6 +195,11 @@ export const ProjectRaciPanel = ({
       <Typography level="body-xs" textColor="neutral" sx={{ px: 0.5, py: 1 }}>
         {data.roles.length} rôle(s) · {assignmentCount} affectation(s) RACI · {data.publishedProcessCount}/{data.processCount} processus publiés
       </Typography>
+      {data.failedProcessCount > 0 && (
+        <Alert color="warning" variant="soft" sx={{ mb: 1 }}>
+          {data.failedProcessCount} processus n’ont pas pu être lus. Le RACI affiché peut être incomplet.
+        </Alert>
+      )}
       {data.roles.length === 0 ? (
         <Typography level="body-sm" textColor="neutral" sx={{ p: 1 }}>
           Aucun rôle RACI trouvé dans les versions publiées.
