@@ -38,7 +38,19 @@ const isSubProcess = (element: Element) =>
   element.localName.toLowerCase().includes('subprocess');
 
 const getFlowElements = (parent: Element) =>
-  Array.from(parent.children).filter(isSubProcess);
+  Array.from(parent.children).filter(element => {
+    const localName = element.localName.toLowerCase();
+
+    // Keep drawable activities in the hierarchy as well as subprocesses.
+    // Sequence flows, gateways, events, and metadata are intentionally omitted
+    // so the tree stays focused on processes and actionable activity nodes.
+    return (
+      localName.includes('subprocess') ||
+      localName.endsWith('task') ||
+      localName === 'callactivity' ||
+      localName === 'transaction'
+    );
+  });
 
 const buildFlowNodes = (parent: Element): HierarchyNode[] =>
   getFlowElements(parent).map(element => {
