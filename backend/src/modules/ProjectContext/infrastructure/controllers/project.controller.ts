@@ -14,11 +14,14 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, IsNull } from 'typeorm';
 import { UseAcl } from '../../../../shared-kernel/modules/acl/infrastructure/acl.decorator';
 import { UserGroup } from '../../../../shared-kernel/utils/UserGroup';
 import { ResourceTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/resource.ormEntity';
 import { ResourceTypeEnum } from '../../../ResourceContext/shared/types/Resource';
 import { In, Repository } from 'typeorm';
+import { ContentTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/content.ormEntity';
+import { ContentStatusEnum } from '../../../ResourceContext/shared/types/Content';
 import {
   ProjectProcessTypeOrmEntity,
   ProjectProcessUsage,
@@ -35,6 +38,7 @@ type RequestHeaders = Record<string, string | undefined>;
 export class ProjectController {
   constructor(
     private readonly configService: ConfigService,
+    private readonly dataSource: DataSource,
     @InjectRepository(ProjectTypeOrmEntity)
     private readonly projects: Repository<ProjectTypeOrmEntity>,
     @InjectRepository(ProjectProcessTypeOrmEntity)
@@ -246,6 +250,119 @@ export class ProjectController {
       if ((error as { code?: string }).code === '23505') {
         throw new ConflictException(
           'This process is already linked to the project',
+        );
+      }
+      throw error;
+    }
+  }
+
+
+  @Post(':projectId/processes/variants')
+  @UseAcl([UserGroup.RW])
+  async createProcessVariant(
+    @Param('projectId') projectId: string,
+    @Body() body: { sourceResourceId?: string; name?: string; description?: string },
+    @Headers() headers: RequestHeaders,
+  ) {
+    const userId = this.getUserId(headers);
+    await this.assertProjectRole(projectId, headers, ProjectMemberRole.Modeler);
+
+    if (!body.sourceResourceId) {
+      throw new BadRequestException('sourceResourceId is required');
+    }
+    const source = await this.resources.findOneBy({ id: body.sourceResourceId });
+    if (!source || source.type !== ResourceTypeEnum.Process) {
+      throw new BadRequestException(
+        'sourceResourceId must identify an existing process',
+      );
+    }
+    const project = await this.assertProjectExists(projectId);
+    const name = body.name?.trim() || `${source.name} - ${project.name}`;
+    if (!name || name.length > 255) {
+      throw new BadRequestException(
+        'Variant name must contain 1 to 255 characters',
+      );
+    }
+
+    try {
+      return await this.dataSource.transaction(async (manager) => {
+        const resources = manager.getRepository(ResourceTypeOrmEntity);
+        const contents = manager.getRepository(ContentTypeOrmEntity);
+        const projectProcesses = manager.getRepository(ProjectProcessTypeOrmEntity);
+
+        const duplicate = await resources.findOne({
+          where: {
+            name,
+            parentId: source.parentId ? source.parentId : IsNull(),
+          },
+        });
+        if (duplicate) {
+          throw new ConflictException(
+            'A resource with this name already exists in the same folder',
+          );
+        }
+
+        const sourceContent = await contents.findOne({
+          where: {
+            resourceId: source.id,
+            status: ContentStatusEnum.Published,
+          },
+          order: { version: 'DESC', createdAt: 'DESC' },
+        });
+        if (!sourceContent) {
+          throw new BadRequestException(
+            'The source process must have a published BPMN version before it can be cloned',
+          );
+        }
+
+        const variant = await resources.save(
+          resources.create({
+            name,
+            description: body.description?.trim() || source.description || null,
+            depth: source.depth,
+            parentId: source.parentId,
+            type: ResourceTypeEnum.Process,
+            authToken: null,
+            createdBy: userId,
+          }),
+        );
+
+        await contents.save(
+          contents.create({
+            resourceId: variant.id,
+            content: sourceContent.content,
+            pngContent: sourceContent.pngContent,
+            status: ContentStatusEnum.Draft,
+            version: sourceContent.version ? sourceContent.version + 1 : 1,
+            createdBy: userId,
+            updatedBy: userId,
+          }),
+        );
+
+        const link = await projectProcesses.save(
+          projectProcesses.create({
+            projectId,
+            resourceId: variant.id,
+            usage: ProjectProcessUsage.Variant,
+            sourceResourceId: source.id,
+            createdBy: userId,
+          }),
+        );
+
+        return {
+          ...link,
+          resource: variant,
+          sourceResourceId: source.id,
+          copiedFromVersion: sourceContent.version,
+        };
+      });
+    } catch (error) {
+      if (error instanceof ConflictException || error instanceof BadRequestException) {
+        throw error;
+      }
+      if ((error as { code?: string }).code === '23505') {
+        throw new ConflictException(
+          'A variant with this name or project link already exists',
         );
       }
       throw error;
