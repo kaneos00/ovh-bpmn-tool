@@ -1,0 +1,252 @@
+import React, { useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  FormControl,
+  FormLabel,
+  Input,
+  Option,
+  Select,
+  Sheet,
+  Stack,
+  Typography,
+} from '@mui/joy';
+import { apiClient } from '../../queryClient';
+import { resourcesQuery } from '../../api/resources/resources.queries';
+import { Resource } from '../../Types';
+import { ResourceType } from '../../shared/types/BpmnResource';
+
+type Project = {
+  id: string;
+  name: string;
+  description: string | null;
+  createdAt: string;
+};
+
+type ProjectProcessLink = {
+  id: string;
+  projectId: string;
+  resourceId: string;
+  usage: 'common' | 'variant' | 'project-specific';
+  sourceResourceId: string | null;
+  resource: Resource | null;
+};
+
+const projectsKey = ['projects'];
+const projectKey = (id: string) => ['project', id];
+const projectProcessesKey = (id: string) => ['project-processes', id];
+
+export const Component = () => {
+  const { projectId } = useParams<{ projectId: string }>();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
+  const [usage, setUsage] = useState<'common' | 'project-specific'>('common');
+  const [error, setError] = useState<string | null>(null);
+
+  const projectsQuery = useQuery<Project[]>(
+    projectsKey,
+    () => apiClient.get('/projects'),
+    { enabled: !projectId },
+  );
+  const projectQuery = useQuery<Project>(
+    projectKey(projectId ?? ''),
+    () => apiClient.get(`/projects/${projectId}`),
+    { enabled: Boolean(projectId) },
+  );
+  const linkedProcessesQuery = useQuery<ProjectProcessLink[]>(
+    projectProcessesKey(projectId ?? ''),
+    () => apiClient.get(`/projects/${projectId}/processes`),
+    { enabled: Boolean(projectId) },
+  );
+  const availableResourcesQuery = resourcesQuery({ type: ResourceType.Process });
+  const availableProcesses = useQuery<Resource[]>(
+    availableResourcesQuery.queryKey,
+    availableResourcesQuery.queryFn,
+    { enabled: Boolean(projectId) },
+  );
+
+  const createProject = useMutation(
+    () => apiClient.post('/projects', { name: name.trim(), description: description.trim() }),
+    {
+      onSuccess: async (project: Project) => {
+        setName('');
+        setDescription('');
+        setError(null);
+        await queryClient.invalidateQueries(projectsKey);
+        navigate(`/projects/${project.id}`);
+      },
+      onError: (mutationError: Error) => setError(mutationError.message),
+    },
+  );
+
+  const linkProcess = useMutation(
+    () => {
+      if (!projectId || !selectedProcessId) throw new Error('Sélectionnez un processus.');
+      return apiClient.post(`/projects/${projectId}/processes`, {
+        resourceId: selectedProcessId,
+        usage,
+      });
+    },
+    {
+      onSuccess: async () => {
+        setSelectedProcessId(null);
+        setError(null);
+        await queryClient.invalidateQueries(projectProcessesKey(projectId ?? ''));
+      },
+      onError: (mutationError: Error) => setError(mutationError.message),
+    },
+  );
+
+  const unlinkProcess = useMutation(
+    (resourceId: string) => apiClient.remove(`/projects/${projectId}/processes/${resourceId}`),
+    {
+      onSuccess: async () => {
+        await queryClient.invalidateQueries(projectProcessesKey(projectId ?? ''));
+      },
+      onError: (mutationError: Error) => setError(mutationError.message),
+    },
+  );
+
+  const linkedResourceIds = useMemo(
+    () => new Set((linkedProcessesQuery.data ?? []).map((item) => item.resourceId)),
+    [linkedProcessesQuery.data],
+  );
+  const unlinkedProcesses = (availableProcesses.data ?? []).filter(
+    (resource) => !linkedResourceIds.has(resource.id),
+  );
+
+  if (!projectId) {
+    return (
+      <Sheet sx={{ maxWidth: 1000, mx: 'auto', p: { xs: 2, md: 4 } }}>
+        <Stack spacing={2}>
+          <Typography level="h2">Projets</Typography>
+          <Typography level="body-md">
+            Les projets référencent les processus du catalogue commun. Un processus partagé reste dans le référentiel et peut être réutilisé par plusieurs projets.
+          </Typography>
+          {error && <Alert color="danger">{error}</Alert>}
+          <Card variant="outlined">
+            <Typography level="title-lg">Créer un projet</Typography>
+            <Stack spacing={1.5}>
+              <FormControl required>
+                <FormLabel>Nom du projet</FormLabel>
+                <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Ex. Refonte RH" />
+              </FormControl>
+              <FormControl>
+                <FormLabel>Description</FormLabel>
+                <Input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Objectif et périmètre" />
+              </FormControl>
+              <Box>
+                <Button loading={createProject.isLoading} disabled={!name.trim()} onClick={() => createProject.mutate()}>
+                  Créer le projet
+                </Button>
+              </Box>
+            </Stack>
+          </Card>
+          <Typography level="title-lg">Projets existants</Typography>
+          {projectsQuery.isLoading && <Typography>Chargement des projets…</Typography>}
+          {projectsQuery.isError && <Alert color="danger">Impossible de charger les projets.</Alert>}
+          {!projectsQuery.isLoading && (projectsQuery.data?.length ?? 0) === 0 && (
+            <Typography level="body-sm">Aucun projet pour le moment.</Typography>
+          )}
+          <Stack spacing={1}>
+            {(projectsQuery.data ?? []).map((project) => (
+              <Card key={project.id} variant="outlined" orientation="horizontal" sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography level="title-md">{project.name}</Typography>
+                  {project.description && <Typography level="body-sm">{project.description}</Typography>}
+                </Box>
+                <Button variant="soft" onClick={() => navigate(`/projects/${project.id}`)}>Ouvrir</Button>
+              </Card>
+            ))}
+          </Stack>
+          <Button variant="plain" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/root')}>Retour au référentiel BPMN</Button>
+        </Stack>
+      </Sheet>
+    );
+  }
+
+  const project = projectQuery.data;
+  return (
+    <Sheet sx={{ maxWidth: 1100, mx: 'auto', p: { xs: 2, md: 4 } }}>
+      <Stack spacing={2}>
+        <Button variant="plain" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/projects')}>← Tous les projets</Button>
+        {projectQuery.isLoading && <Typography>Chargement du projet…</Typography>}
+        {projectQuery.isError && <Alert color="danger">Impossible de charger ce projet.</Alert>}
+        {project && (
+          <>
+            <Typography level="h2">{project.name}</Typography>
+            {project.description && <Typography level="body-md">{project.description}</Typography>}
+            <Typography level="body-sm">
+              Les processus communs sont référencés, pas copiés. Les retirer du projet ne supprime pas le processus du catalogue.
+            </Typography>
+          </>
+        )}
+        {error && <Alert color="danger">{error}</Alert>}
+        <Card variant="outlined">
+          <Typography level="title-lg">Ajouter un processus au projet</Typography>
+          {availableProcesses.isLoading && <Typography>Chargement du catalogue…</Typography>}
+          <Stack spacing={1.5}>
+            <FormControl>
+              <FormLabel>Processus du référentiel</FormLabel>
+              <Select
+                placeholder="Choisir un processus"
+                value={selectedProcessId}
+                onChange={(_event, value) => setSelectedProcessId(value)}
+              >
+                {unlinkedProcesses.map((resource) => (
+                  <Option key={resource.id} value={resource.id}>{resource.name}</Option>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl>
+              <FormLabel>Usage dans le projet</FormLabel>
+              <Select
+                value={usage}
+                onChange={(_event, value) => value && setUsage(value)}
+              >
+                <Option value="common">Processus commun réutilisé</Option>
+                <Option value="project-specific">Processus spécifique au projet</Option>
+              </Select>
+            </FormControl>
+            <Box>
+              <Button loading={linkProcess.isLoading} disabled={!selectedProcessId} onClick={() => linkProcess.mutate()}>
+                Ajouter au projet
+              </Button>
+            </Box>
+          </Stack>
+        </Card>
+        <Typography level="title-lg">Processus du projet</Typography>
+        {linkedProcessesQuery.isLoading && <Typography>Chargement des processus…</Typography>}
+        {linkedProcessesQuery.isError && <Alert color="danger">Impossible de charger les processus liés au projet.</Alert>}
+        {(linkedProcessesQuery.data ?? []).length === 0 && !linkedProcessesQuery.isLoading && (
+          <Typography level="body-sm">Aucun processus associé. Vous pouvez en ajouter depuis le référentiel ci-dessus.</Typography>
+        )}
+        <Stack spacing={1}>
+          {(linkedProcessesQuery.data ?? []).map((link) => (
+            <Card key={link.id} variant="outlined" orientation="horizontal" sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography level="title-md">{link.resource?.name ?? link.resourceId}</Typography>
+                <Typography level="body-sm">
+                  {link.usage === 'common' ? 'Processus commun' : link.usage === 'variant' ? 'Variante' : 'Spécifique au projet'}
+                </Typography>
+              </Box>
+              <Stack direction="row" spacing={1}>
+                {link.resource && <Button variant="soft" onClick={() => navigate(`/${link.resourceId}`)}>Ouvrir</Button>}
+                <Button color="danger" variant="plain" loading={unlinkProcess.isLoading} onClick={() => unlinkProcess.mutate(link.resourceId)}>Retirer</Button>
+              </Stack>
+            </Card>
+          ))}
+        </Stack>
+      </Stack>
+    </Sheet>
+  );
+};
+
+Component.displayName = 'ProjectsContainer';
