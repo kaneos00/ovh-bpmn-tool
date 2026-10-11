@@ -212,6 +212,14 @@ export class ProjectController {
       );
     }
 
+    if (usage === ProjectProcessUsage.Common) {
+      await this.assertProjectRole(
+        projectId,
+        headers,
+        ProjectMemberRole.Admin,
+      );
+    }
+
     const resource = await this.resources.findOneBy({ id: body.resourceId });
     if (!resource || resource.type !== ResourceTypeEnum.Process) {
       throw new BadRequestException(
