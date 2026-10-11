@@ -30,6 +30,7 @@ import {
   ProjectMemberRole,
   ProjectMemberTypeOrmEntity,
 } from '../entities/projectMember.ormEntity';
+import { ProjectResourceAccessService } from '../../projectResourceAccess.service';
 
 type RequestHeaders = Record<string, string | undefined>;
 
@@ -46,6 +47,7 @@ export class ProjectController {
     private readonly resources: Repository<ResourceTypeOrmEntity>,
     @InjectRepository(ProjectMemberTypeOrmEntity)
     private readonly projectMembers: Repository<ProjectMemberTypeOrmEntity>,
+    private readonly projectResourceAccess: ProjectResourceAccessService,
   ) {}
 
   @Get()
@@ -227,6 +229,9 @@ export class ProjectController {
       );
     }
 
+    // Do not let a project modeler attach a restricted process by guessing its ID.
+    await this.projectResourceAccess.assertCanReadResource(resource.id, headers);
+
     let sourceResourceId: string | null = null;
     if (usage === ProjectProcessUsage.Variant) {
       if (!body.sourceResourceId || body.sourceResourceId === body.resourceId) {
@@ -296,6 +301,8 @@ export class ProjectController {
         'sourceResourceId must identify an existing process',
       );
     }
+    // Cloning must obey the same project visibility rules as opening the source.
+    await this.projectResourceAccess.assertCanReadResource(source.id, headers);
     const project = await this.assertProjectExists(projectId);
     const name = body.name?.trim() || `${source.name} - ${project.name}`;
     if (!name || name.length > 255) {
