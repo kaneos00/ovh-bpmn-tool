@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Await, Outlet, useNavigate, useParams } from 'react-router-dom';
 import { Box, IconButton, Sheet, Typography } from '@mui/joy';
-import { AccountTreeOutlined, ChevronLeft, ChevronRight, FolderOutlined, GroupsOutlined } from '@mui/icons-material';
+import { AccountTreeOutlined, ChevronLeft, ChevronRight, FolderOutlined, GroupsOutlined, WorkspacesOutlined } from '@mui/icons-material';
 import { useQuery } from 'react-query';
 
 import { ResourceExplorer } from '../../Components/BusinessComponents/ResourceExplorer';
@@ -98,6 +98,7 @@ export const Component = () => {
         </Box>
         {!folderOpen && (
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, py: 1 }}>
+            <IconButton size="sm" variant="plain" title="Projets" onClick={() => navigate('/projects')}><WorkspacesOutlined /></IconButton>
             <IconButton size="sm" variant="plain" title="Ressources" onClick={() => setFolderOpen(true)}><FolderOutlined /></IconButton>
             {resource?.type === ResourceType.Process && <IconButton size="sm" variant="plain" title="Processus" onClick={() => setFolderOpen(true)}><AccountTreeOutlined /></IconButton>}
             <IconButton size="sm" variant="plain" title="RACI du projet" onClick={() => setFolderOpen(true)}><GroupsOutlined /></IconButton>
@@ -106,8 +107,21 @@ export const Component = () => {
         {folderOpen && (
           <Box sx={{ overflowY: 'auto', minHeight: 0, pb: 2 }}>
             <Box sx={{ px: 1.5, py: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <WorkspacesOutlined fontSize="small" />
+              <Typography level="title-sm">Projets</Typography>
+            </Box>
+            <Box sx={{ px: 1.5, pb: 1 }}>
+              <button
+                type="button"
+                onClick={() => navigate('/projects')}
+                style={{ background: 'none', border: 0, padding: 0, color: 'inherit', cursor: 'pointer', font: 'inherit' }}
+              >
+                Gérer les projets
+              </button>
+            </Box>
+            <Box sx={{ px: 1.5, py: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
               <FolderOutlined fontSize="small" />
-              <Typography level="title-sm">Ressources</Typography>
+              <Typography level="title-sm">Référentiel de processus</Typography>
             </Box>
             <FolderTree
               selectedId={resourceId}
