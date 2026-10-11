@@ -157,6 +157,9 @@ export class ResourceController {
       deleteResourceCommand.resourceId,
       headers,
     );
+    await this.projectResourceAccess.assertCanDeleteResource(
+      deleteResourceCommand.resourceId,
+    );
     const deleteResult = await this.deleteResourceCommandHandler.execute(
       deleteResourceCommand,
     );
