@@ -97,6 +97,47 @@ describe('ProjectResourceAccessService', () => {
     ).resolves.toBeUndefined();
   });
 
+  it('denies reading a process linked only to another project', async () => {
+    projectProcesses.find.mockResolvedValue([
+      {
+        projectId: 'project-2',
+        resourceId: 'resource-1',
+        usage: ProjectProcessUsage.ProjectSpecific,
+      },
+    ]);
+    projectMembers.find.mockResolvedValue([]);
+
+    await expect(
+      service.assertCanReadResource('resource-1', headers),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('requires edit access in every project that shares a process', async () => {
+    projectProcesses.find.mockResolvedValue([
+      {
+        projectId: 'project-1',
+        resourceId: 'resource-1',
+        usage: ProjectProcessUsage.ProjectSpecific,
+      },
+      {
+        projectId: 'project-2',
+        resourceId: 'resource-1',
+        usage: ProjectProcessUsage.ProjectSpecific,
+      },
+    ]);
+    projectMembers.find.mockResolvedValue([
+      {
+        projectId: 'project-1',
+        userId: 'alice',
+        role: ProjectMemberRole.Modeler,
+      },
+    ]);
+
+    await expect(
+      service.assertCanEditResource('resource-1', headers),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
   it('filters project resources using the domain UUID value', async () => {
     projectProcesses.find.mockResolvedValue([
       {
