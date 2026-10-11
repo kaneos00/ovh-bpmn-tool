@@ -47,6 +47,11 @@ type ProjectProcessLink = {
 const projectsKey = ['projects'];
 const projectKey = (id: string) => ['project', id];
 const projectProcessesKey = (id: string) => ['project-processes', id];
+const PROCESS_USAGE_LABELS: Record<ProjectProcessLink['usage'], string> = {
+  common: 'Processus commun',
+  variant: 'Variante',
+  'project-specific': 'Spécifique au projet',
+};
 
 export const Component = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -319,7 +324,7 @@ export const Component = () => {
               <Box sx={{ minWidth: 0 }}>
                 <Typography level="title-md">{link.resource?.name ?? link.resourceId}</Typography>
                 <Typography level="body-sm">
-                  {link.usage === 'common' ? 'Processus commun' : link.usage === 'variant' ? 'Variante' : 'Spécifique au projet'}
+                  {PROCESS_USAGE_LABELS[link.usage]}
                 </Typography>
               </Box>
               <Stack direction="row" spacing={1}>
