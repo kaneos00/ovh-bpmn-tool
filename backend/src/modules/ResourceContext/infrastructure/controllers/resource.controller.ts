@@ -56,6 +56,7 @@ export class ResourceController {
     @Query('filter.type') type: ResourceTypeEnum,
     @Query('filter.depth') depth: number,
     @Query('filter.parentId') parentId: string,
+    @Headers() headers: Record<string, string>,
   ) {
     const resourcesResult = await this.listResourceCommandHandler.execute({
       filters: {
@@ -69,12 +70,20 @@ export class ResourceController {
       throw resourcesResult.fail;
     }
 
-    return resourcesResult.ok.map(ResourceMapper.toPresenter);
+    const readableResources = await this.projectResourceAccess.filterReadableResources(
+      resourcesResult.ok,
+      headers,
+    );
+    return readableResources.map(ResourceMapper.toPresenter);
   }
 
   @Get('/:resourceId')
   @UseAcl()
-  async getResource(@Param() params: GetResourceQuery) {
+  async getResource(
+    @Param() params: GetResourceQuery,
+    @Headers() headers: Record<string, string>,
+  ) {
+    await this.projectResourceAccess.assertCanReadResource(params.resourceId, headers);
     const resourceResult = await this.getResourceQueryHandler.execute(params);
 
     if (!resourceResult.ok) {
