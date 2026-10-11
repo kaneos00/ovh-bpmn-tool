@@ -1,10 +1,6 @@
 import { ForbiddenException } from '@nestjs/common';
-import {
-  ProjectProcessUsage,
-} from './infrastructure/entities/projectProcess.ormEntity';
-import {
-  ProjectMemberRole,
-} from './infrastructure/entities/projectMember.ormEntity';
+import { ProjectProcessUsage } from './infrastructure/entities/projectProcess.ormEntity';
+import { ProjectMemberRole } from './infrastructure/entities/projectMember.ormEntity';
 import { ProjectResourceAccessService } from './projectResourceAccess.service';
 
 describe('ProjectResourceAccessService', () => {
@@ -89,7 +85,11 @@ describe('ProjectResourceAccessService', () => {
       },
     ]);
     projectMembers.find.mockResolvedValue([
-      { projectId: 'project-1', userId: 'alice', role: ProjectMemberRole.Modeler },
+      {
+        projectId: 'project-1',
+        userId: 'alice',
+        role: ProjectMemberRole.Modeler,
+      },
     ]);
 
     await expect(
