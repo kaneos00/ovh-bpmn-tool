@@ -86,7 +86,10 @@ export class ContentController {
     @Query('filter.type') status: ContentStatusEnum,
     @Headers() headers: Record<string, string>,
   ) {
-    await this.projectResourceAccess.assertCanReadResource(resourceId, headers);
+    await this.projectResourceAccess.assertCanReadResource(
+      resourceId,
+      headers,
+    );
     const queryResult = await this.listContentQueryHandler.execute(resourceId, {
       filters: {
         status,
@@ -112,7 +115,10 @@ export class ContentController {
     @Param() params: GetContentQuery,
     @Headers() headers: Record<string, string>,
   ) {
-    await this.projectResourceAccess.assertCanReadResource(params.resourceId, headers);
+    await this.projectResourceAccess.assertCanReadResource(
+      params.resourceId,
+      headers,
+    );
     const queryResult = await this.getContentQueryHandler.execute(
       params.resourceId,
       params.contentId,
@@ -167,7 +173,10 @@ export class ContentController {
     @Body() body: CreateContentBody,
     @Headers() headers: Record<string, string>,
   ) {
-    await this.projectResourceAccess.assertCanEditResource(resourceId, headers);
+    await this.projectResourceAccess.assertCanEditResource(
+      resourceId,
+      headers,
+    );
     const commandResult = await this.createContentCommandHandler.execute({
       ...body,
       resourceId,
@@ -225,7 +234,10 @@ export class ContentController {
     @Param() params: DeleteContentCommandParams,
     @Headers() headers: Record<string, string>,
   ) {
-    await this.projectResourceAccess.assertCanEditResource(params.resourceId, headers);
+    await this.projectResourceAccess.assertCanEditResource(
+      params.resourceId,
+      headers,
+    );
     const commandResult =
       await this.deleteContentCommandHandler.execute(params);
 
