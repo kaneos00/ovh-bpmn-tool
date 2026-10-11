@@ -4,6 +4,7 @@ import {
   ConflictException,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Headers,
   NotFoundException,
@@ -17,7 +18,7 @@ import { UseAcl } from '../../../../shared-kernel/modules/acl/infrastructure/acl
 import { UserGroup } from '../../../../shared-kernel/utils/UserGroup';
 import { ResourceTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/resource.ormEntity';
 import { ResourceTypeEnum } from '../../../ResourceContext/shared/types/Resource';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import {
   ProjectProcessTypeOrmEntity,
   ProjectProcessUsage,
@@ -27,6 +28,8 @@ import {
   ProjectMemberRole,
   ProjectMemberTypeOrmEntity,
 } from '../entities/projectMember.ormEntity';
+
+type RequestHeaders = Record<string, string | undefined>;
 
 @Controller('projects')
 export class ProjectController {
@@ -44,16 +47,23 @@ export class ProjectController {
 
   @Get()
   @UseAcl()
-  async listProjects() {
-    return this.projects.find({ order: { name: 'ASC' } });
+  async listProjects(@Headers() headers: RequestHeaders) {
+    const userId = this.getUserId(headers);
+    const memberships = await this.projectMembers.find({ where: { userId } });
+    if (!memberships.length) return [];
+    return this.projects.find({
+      where: { id: In(memberships.map(({ projectId }) => projectId)) },
+      order: { name: 'ASC' },
+    });
   }
 
   @Post()
   @UseAcl([UserGroup.RW])
   async createProject(
     @Body() body: { name?: string; description?: string },
-    @Headers() headers: Record<string, string>,
+    @Headers() headers: RequestHeaders,
   ) {
+    const userId = this.getUserId(headers);
     const name = body.name?.trim();
     if (!name) throw new BadRequestException('Project name is required');
     if (name.length > 255) {
@@ -65,11 +75,25 @@ export class ProjectController {
     const project = this.projects.create({
       name,
       description: body.description?.trim() || null,
-      createdBy: headers[this.configService.getOrThrow('userHeader')],
+      createdBy: userId,
     });
 
     try {
-      return await this.projects.save(project);
+      const savedProject = await this.projects.save(project);
+      try {
+        await this.projectMembers.save(
+          this.projectMembers.create({
+            projectId: savedProject.id,
+            userId,
+            role: ProjectMemberRole.Admin,
+            createdBy: userId,
+          }),
+        );
+      } catch (error) {
+        await this.projects.delete({ id: savedProject.id });
+        throw error;
+      }
+      return savedProject;
     } catch (error) {
       if ((error as { code?: string }).code === '23505') {
         throw new ConflictException('A project with this name already exists');
@@ -80,10 +104,12 @@ export class ProjectController {
 
   @Get(':projectId')
   @UseAcl()
-  async getProject(@Param('projectId') projectId: string) {
-    const project = await this.projects.findOneBy({ id: projectId });
-    if (!project) throw new NotFoundException('Project not found');
-    return project;
+  async getProject(
+    @Param('projectId') projectId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    await this.assertProjectRole(projectId, headers, ProjectMemberRole.Viewer);
+    return this.assertProjectExists(projectId);
   }
 
   @Put(':projectId')
@@ -91,9 +117,10 @@ export class ProjectController {
   async updateProject(
     @Param('projectId') projectId: string,
     @Body() body: { name?: string; description?: string },
+    @Headers() headers: RequestHeaders,
   ) {
-    const project = await this.projects.findOneBy({ id: projectId });
-    if (!project) throw new NotFoundException('Project not found');
+    await this.assertProjectRole(projectId, headers, ProjectMemberRole.Admin);
+    const project = await this.assertProjectExists(projectId);
 
     if (body.name !== undefined) {
       const name = body.name.trim();
@@ -120,7 +147,11 @@ export class ProjectController {
 
   @Delete(':projectId')
   @UseAcl([UserGroup.RW])
-  async deleteProject(@Param('projectId') projectId: string) {
+  async deleteProject(
+    @Param('projectId') projectId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    await this.assertProjectRole(projectId, headers, ProjectMemberRole.Admin);
     const result = await this.projects.delete({ id: projectId });
     if (!result.affected) throw new NotFoundException('Project not found');
     return { deleted: true, projectId };
@@ -128,15 +159,20 @@ export class ProjectController {
 
   @Get(':projectId/processes')
   @UseAcl()
-  async listProjectProcesses(@Param('projectId') projectId: string) {
-    await this.assertProjectExists(projectId);
+  async listProjectProcesses(
+    @Param('projectId') projectId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    await this.assertProjectRole(projectId, headers, ProjectMemberRole.Viewer);
     const links = await this.projectProcesses.find({
       where: { projectId },
       order: { createdAt: 'ASC' },
     });
-    const resources = await this.resources.findBy(
-      links.map((link) => ({ id: link.resourceId })),
-    );
+    const resources = links.length
+      ? await this.resources.findBy(
+          links.map((link) => ({ id: link.resourceId })),
+        )
+      : [];
     const byId = new Map(resources.map((resource) => [resource.id, resource]));
     return links.map((link) => ({
       ...link,
@@ -154,9 +190,10 @@ export class ProjectController {
       usage?: ProjectProcessUsage;
       sourceResourceId?: string;
     },
-    @Headers() headers: Record<string, string>,
+    @Headers() headers: RequestHeaders,
   ) {
-    await this.assertProjectExists(projectId);
+    const userId = this.getUserId(headers);
+    await this.assertProjectRole(projectId, headers, ProjectMemberRole.Modeler);
     if (!body.resourceId) {
       throw new BadRequestException('resourceId is required');
     }
@@ -200,7 +237,7 @@ export class ProjectController {
       resourceId: resource.id,
       usage,
       sourceResourceId,
-      createdBy: headers[this.configService.getOrThrow('userHeader')],
+      createdBy: userId,
     });
 
     try {
@@ -220,8 +257,9 @@ export class ProjectController {
   async unlinkProcess(
     @Param('projectId') projectId: string,
     @Param('resourceId') resourceId: string,
+    @Headers() headers: RequestHeaders,
   ) {
-    await this.assertProjectExists(projectId);
+    await this.assertProjectRole(projectId, headers, ProjectMemberRole.Modeler);
     const result = await this.projectProcesses.delete({
       projectId,
       resourceId,
@@ -236,8 +274,11 @@ export class ProjectController {
 
   @Get(':projectId/members')
   @UseAcl()
-  async listProjectMembers(@Param('projectId') projectId: string) {
-    await this.assertProjectExists(projectId);
+  async listProjectMembers(
+    @Param('projectId') projectId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    await this.assertProjectRole(projectId, headers, ProjectMemberRole.Viewer);
     return this.projectMembers.find({
       where: { projectId },
       order: { userId: 'ASC' },
@@ -250,9 +291,10 @@ export class ProjectController {
     @Param('projectId') projectId: string,
     @Param('userId') userIdParam: string,
     @Body() body: { role?: ProjectMemberRole },
-    @Headers() headers: Record<string, string>,
+    @Headers() headers: RequestHeaders,
   ) {
-    await this.assertProjectExists(projectId);
+    const actorId = this.getUserId(headers);
+    await this.assertProjectRole(projectId, headers, ProjectMemberRole.Admin);
     const userId = userIdParam.trim();
     if (!userId || userId.length > 255) {
       throw new BadRequestException('userId must contain 1 to 255 characters');
@@ -262,12 +304,18 @@ export class ProjectController {
     }
 
     const existing = await this.projectMembers.findOneBy({ projectId, userId });
+    if (
+      existing?.role === ProjectMemberRole.Admin &&
+      body.role !== ProjectMemberRole.Admin
+    ) {
+      await this.assertNotLastAdmin(projectId, userId);
+    }
     const member =
       existing ??
       this.projectMembers.create({
         projectId,
         userId,
-        createdBy: headers[this.configService.getOrThrow('userHeader')],
+        createdBy: actorId,
       });
     member.role = body.role;
     return this.projectMembers.save(member);
@@ -278,17 +326,55 @@ export class ProjectController {
   async removeProjectMember(
     @Param('projectId') projectId: string,
     @Param('userId') userId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    await this.assertProjectRole(projectId, headers, ProjectMemberRole.Admin);
+    const member = await this.projectMembers.findOneBy({ projectId, userId });
+    if (!member) throw new NotFoundException('Project member not found');
+    if (member.role === ProjectMemberRole.Admin) {
+      await this.assertNotLastAdmin(projectId, userId);
+    }
+    await this.projectMembers.delete({ projectId, userId });
+    return { deleted: true, projectId, userId };
+  }
+
+  private getUserId(headers: RequestHeaders): string {
+    const configuredHeader = this.configService.getOrThrow<string>('userHeader');
+    const userId = headers[configuredHeader] ?? headers[configuredHeader.toLowerCase()];
+    if (!userId?.trim()) {
+      throw new ForbiddenException('Authenticated user identity is missing');
+    }
+    return userId.trim();
+  }
+
+  private async assertProjectRole(
+    projectId: string,
+    headers: RequestHeaders,
+    minimumRole: ProjectMemberRole,
   ) {
     await this.assertProjectExists(projectId);
-    const result = await this.projectMembers.delete({ projectId, userId });
-    if (!result.affected) {
-      throw new NotFoundException('Project member not found');
-    }
-    return {
-      deleted: true,
-      projectId,
-      userId,
+    const userId = this.getUserId(headers);
+    const membership = await this.projectMembers.findOneBy({ projectId, userId });
+    const roleRank: Record<ProjectMemberRole, number> = {
+      [ProjectMemberRole.Viewer]: 1,
+      [ProjectMemberRole.Modeler]: 2,
+      [ProjectMemberRole.Admin]: 3,
     };
+    if (!membership || roleRank[membership.role] < roleRank[minimumRole]) {
+      throw new ForbiddenException('Insufficient project permissions');
+    }
+    return membership;
+  }
+
+  private async assertNotLastAdmin(projectId: string, userId: string) {
+    const admins = await this.projectMembers.find({
+      where: { projectId, role: ProjectMemberRole.Admin },
+    });
+    if (admins.length <= 1 && admins[0]?.userId === userId) {
+      throw new BadRequestException(
+        'A project must retain at least one administrator',
+      );
+    }
   }
 
   private async assertProjectExists(projectId: string) {
