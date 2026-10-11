@@ -19,6 +19,7 @@ import { apiClient } from '../../queryClient';
 import { resourcesQuery } from '../../api/resources/resources.queries';
 import { Resource } from '../../Types';
 import { ResourceType } from '../../shared/types/BpmnResource';
+import { ProjectRaciPanel } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciPanel';
 
 type Project = {
   id: string;
@@ -328,6 +329,16 @@ export const Component = () => {
             </Card>
           ))}
         </Stack>
+        <Card variant="outlined">
+          <Typography level="title-lg">RACI du projet</Typography>
+          <Typography level="body-sm">
+            Synthèse des rôles et affectations extraits des dernières versions publiées des seuls processus associés à ce projet.
+          </Typography>
+          <ProjectRaciPanel
+            projectId={projectId}
+            onActivityClick={(targetResourceId) => navigate(`/${targetResourceId}`)}
+          />
+        </Card>
       </Stack>
     </Sheet>
   );
