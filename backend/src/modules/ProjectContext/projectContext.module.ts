@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ResourceTypeOrmEntity } from '../ResourceContext/infrastructure/entities/resource.ormEntity';
+import { ContentTypeOrmEntity } from '../ResourceContext/infrastructure/entities/content.ormEntity';
 import { ProjectController } from './infrastructure/controllers/project.controller';
 import { ProjectMemberTypeOrmEntity } from './infrastructure/entities/projectMember.ormEntity';
 import { ProjectProcessTypeOrmEntity } from './infrastructure/entities/projectProcess.ormEntity';
@@ -14,6 +15,7 @@ import { ProjectResourceAccessService } from './projectResourceAccess.service';
       ProjectProcessTypeOrmEntity,
       ProjectMemberTypeOrmEntity,
       ResourceTypeOrmEntity,
+      ContentTypeOrmEntity,
     ]),
   ],
   controllers: [ProjectController],
