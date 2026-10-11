@@ -1,4 +1,4 @@
-import { ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ProjectProcessUsage } from './infrastructure/entities/projectProcess.ormEntity';
 import { ProjectMemberRole } from './infrastructure/entities/projectMember.ormEntity';
 import { ProjectResourceAccessService } from './projectResourceAccess.service';
@@ -9,6 +9,7 @@ describe('ProjectResourceAccessService', () => {
   };
   const projectProcesses = {
     find: jest.fn(),
+    count: jest.fn(),
   };
   const projectMembers = {
     find: jest.fn(),
@@ -23,6 +24,7 @@ describe('ProjectResourceAccessService', () => {
       projectMembers as never,
     );
     projectProcesses.find.mockResolvedValue([]);
+    projectProcesses.count.mockResolvedValue(0);
     projectMembers.find.mockResolvedValue([]);
   });
 
@@ -136,6 +138,14 @@ describe('ProjectResourceAccessService', () => {
     await expect(
       service.assertCanEditResource('resource-1', headers),
     ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('blocks deletion of a source process while variants depend on it', async () => {
+    projectProcesses.count.mockResolvedValue(1);
+
+    await expect(
+      service.assertCanDeleteResource('source-process'),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('filters project resources using the domain UUID value', async () => {
