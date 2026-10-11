@@ -84,7 +84,9 @@ export class ContentController {
   async listContent(
     @Param('resourceId') resourceId: string,
     @Query('filter.type') status: ContentStatusEnum,
+    @Headers() headers: Record<string, string>,
   ) {
+    await this.projectResourceAccess.assertCanReadResource(resourceId, headers);
     const queryResult = await this.listContentQueryHandler.execute(resourceId, {
       filters: {
         status,
@@ -106,7 +108,11 @@ export class ContentController {
 
   @Get('/:contentId')
   @UseAcl()
-  async getContent(@Param() params: GetContentQuery) {
+  async getContent(
+    @Param() params: GetContentQuery,
+    @Headers() headers: Record<string, string>,
+  ) {
+    await this.projectResourceAccess.assertCanReadResource(params.resourceId, headers);
     const queryResult = await this.getContentQueryHandler.execute(
       params.resourceId,
       params.contentId,
@@ -128,7 +134,11 @@ export class ContentController {
   @Get('/:contentId/content')
   @Header('content-type', 'application/xml')
   @UseAcl()
-  async getXmlContent(@Param() params: GetXmlContentQueryParams) {
+  async getXmlContent(
+    @Param() params: GetXmlContentQueryParams,
+    @Headers() headers: Record<string, string>,
+  ) {
+    await this.projectResourceAccess.assertCanReadResource(params.resourceId, headers);
     const queryResult = await this.getXmlContentQueryHandler.execute(
       params.resourceId,
       params.contentId,
