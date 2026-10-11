@@ -294,7 +294,7 @@ export const Component = () => {
               <FormLabel>Usage dans le projet</FormLabel>
               <Select
                 value={usage}
-                onChange={(_event, value) => value && setUsage(value)}
+                onChange={(_event, value) => value && setUsage(value as 'common' | 'project-specific')}
               >
                 <Option value="common">Processus commun réutilisé</Option>
                 <Option value="project-specific">Processus spécifique au projet</Option>
