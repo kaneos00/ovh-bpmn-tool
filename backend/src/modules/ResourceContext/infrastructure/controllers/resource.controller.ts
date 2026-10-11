@@ -70,10 +70,11 @@ export class ResourceController {
       throw resourcesResult.fail;
     }
 
-    const readableResources = await this.projectResourceAccess.filterReadableResources(
-      resourcesResult.ok,
-      headers,
-    );
+    const readableResources =
+      await this.projectResourceAccess.filterReadableResources(
+        resourcesResult.ok,
+        headers,
+      );
     return readableResources.map(ResourceMapper.toPresenter);
   }
 
@@ -83,7 +84,10 @@ export class ResourceController {
     @Param() params: GetResourceQuery,
     @Headers() headers: Record<string, string>,
   ) {
-    await this.projectResourceAccess.assertCanReadResource(params.resourceId, headers);
+    await this.projectResourceAccess.assertCanReadResource(
+      params.resourceId,
+      headers,
+    );
     const resourceResult = await this.getResourceQueryHandler.execute(params);
 
     if (!resourceResult.ok) {
@@ -124,7 +128,10 @@ export class ResourceController {
     @Body() updateResourceCommand: UpdateResourceBody,
     @Headers() headers: Record<string, string>,
   ) {
-    await this.projectResourceAccess.assertCanEditResource(params.resourceId, headers);
+    await this.projectResourceAccess.assertCanEditResource(
+      params.resourceId,
+      headers,
+    );
     const updateResult = await this.updateResourceCommandHandler.execute({
       ...updateResourceCommand,
       resourceId: params.resourceId,
@@ -146,7 +153,10 @@ export class ResourceController {
     @Param() deleteResourceCommand: DeleteResourceCommand,
     @Headers() headers: Record<string, string>,
   ) {
-    await this.projectResourceAccess.assertCanEditResource(deleteResourceCommand.resourceId, headers);
+    await this.projectResourceAccess.assertCanEditResource(
+      deleteResourceCommand.resourceId,
+      headers,
+    );
     const deleteResult = await this.deleteResourceCommandHandler.execute(
       deleteResourceCommand,
     );
