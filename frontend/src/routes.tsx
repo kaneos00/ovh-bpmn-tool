@@ -8,6 +8,14 @@ export const routes = [
     },
   },
   {
+    path: '/projects',
+    lazy: () => import('./Containers/Projects'),
+  },
+  {
+    path: '/projects/:projectId',
+    lazy: () => import('./Containers/Projects'),
+  },
+  {
     path: '/:resourceId',
     lazy: () => import('./Containers/BpmnLayout'),
     children: [
