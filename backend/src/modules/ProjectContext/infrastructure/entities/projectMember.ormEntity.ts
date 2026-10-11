@@ -8,7 +8,9 @@ export enum ProjectMemberRole {
 }
 
 @Entity('project_members')
-@Index('project_members_unique_user', ['projectId', 'userId'], { unique: true })
+@Index('project_members_unique_user', ['projectId', 'userId'], {
+  unique: true,
+})
 export class ProjectMemberTypeOrmEntity extends AbstractEntity {
   @Column('uuid')
   projectId: string;
@@ -16,6 +18,11 @@ export class ProjectMemberTypeOrmEntity extends AbstractEntity {
   @Column({ type: 'varchar', length: 255 })
   userId: string;
 
-  @Column({ type: 'enum', enum: ProjectMemberRole, enumName: 'project_member_role_enum', default: ProjectMemberRole.Viewer })
+  @Column({
+    type: 'enum',
+    enum: ProjectMemberRole,
+    enumName: 'project_member_role_enum',
+    default: ProjectMemberRole.Viewer,
+  })
   role: ProjectMemberRole;
 }
