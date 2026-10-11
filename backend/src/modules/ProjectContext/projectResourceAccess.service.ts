@@ -49,14 +49,17 @@ export class ProjectResourceAccessService {
     }
   }
 
-  async filterReadableResources<T extends { id: string }>(
+  async filterReadableResources<T extends { id: string | { value: string } }>(
     resources: T[],
     headers: RequestHeaders,
   ): Promise<T[]> {
     if (!resources.length) return resources;
     const userId = this.getUserId(headers);
+    const resourceIds = resources.map(({ id }) =>
+      typeof id === 'string' ? id : id.value,
+    );
     const links = await this.projectProcesses.find({
-      where: { resourceId: In(resources.map(({ id }) => id)) },
+      where: { resourceId: In(resourceIds) },
     });
     const linkedResourceIds = new Set(links.map((link) => link.resourceId));
     const globallyReadableIds = new Set(
@@ -84,12 +87,14 @@ export class ProjectResourceAccessService {
         .map((link) => link.resourceId),
     );
 
-    return resources.filter(
-      ({ id }) =>
-        !linkedResourceIds.has(id) ||
-        globallyReadableIds.has(id) ||
-        allowedResourceIds.has(id),
-    );
+    return resources.filter(({ id }) => {
+      const resourceId = typeof id === 'string' ? id : id.value;
+      return (
+        !linkedResourceIds.has(resourceId) ||
+        globallyReadableIds.has(resourceId) ||
+        allowedResourceIds.has(resourceId)
+      );
+    });
   }
 
   async assertCanEditResource(resourceId: string, headers: RequestHeaders) {
