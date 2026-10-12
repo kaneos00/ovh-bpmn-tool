@@ -205,7 +205,7 @@ export const Component = () => {
           <Card variant="outlined" sx={{ p: 0, overflow: 'auto' }}>
             <Table hoverRow stickyHeader>
               <thead>
-                <tr><th>Identifiant utilisateur</th><th>Nombre de projets</th><th>Projets et rôles</th></tr>
+                <tr><th>Identifiant utilisateur</th><th>Nombre de projets</th><th>Projets et rôles</th><th>Gestion</th></tr>
               </thead>
               <tbody>
                 {users.map((user) => (
@@ -221,9 +221,18 @@ export const Component = () => {
                         ))}
                       </Stack>
                     </td>
+                    <td>
+                      <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">
+                        {user.projects.map((project) => (
+                          <Button key={project.projectId} size="sm" variant="plain" onClick={() => navigate(`/projects/${project.projectId}`)}>
+                            Gérer l’accès
+                          </Button>
+                        ))}
+                      </Stack>
+                    </td>
                   </tr>
                 ))}
-                {users.length === 0 && <tr><td colSpan={3}>Aucun utilisateur correspondant.</td></tr>}
+                {users.length === 0 && <tr><td colSpan={4}>Aucun utilisateur correspondant.</td></tr>}
               </tbody>
             </Table>
           </Card>
@@ -233,7 +242,7 @@ export const Component = () => {
           <Card variant="outlined" sx={{ p: 0, overflow: 'auto' }}>
             <Table hoverRow stickyHeader>
               <thead>
-                <tr><th>Projet</th><th>Description</th><th>Membres</th><th>Processus communs</th><th>Spécifiques</th><th>Variantes</th></tr>
+                <tr><th>Projet</th><th>Description</th><th>Membres</th><th>Processus communs</th><th>Spécifiques</th><th>Variantes</th><th>Gestion</th></tr>
               </thead>
               <tbody>
                 {projects.map((project) => (
@@ -244,9 +253,10 @@ export const Component = () => {
                     <td>{project.processes.filter((process) => process.usage === 'common').length}</td>
                     <td>{project.processes.filter((process) => process.usage === 'project-specific').length}</td>
                     <td>{project.processes.filter((process) => process.usage === 'variant').length}</td>
+                    <td><Button size="sm" variant="outlined" onClick={() => navigate(`/projects/${project.id}`)}>Ouvrir</Button></td>
                   </tr>
                 ))}
-                {projects.length === 0 && <tr><td colSpan={6}>Aucun projet correspondant.</td></tr>}
+                {projects.length === 0 && <tr><td colSpan={7}>Aucun projet correspondant.</td></tr>}
               </tbody>
             </Table>
           </Card>
@@ -256,7 +266,7 @@ export const Component = () => {
           <Card variant="outlined" sx={{ p: 0, overflow: 'auto' }}>
             <Table hoverRow stickyHeader>
               <thead>
-                <tr><th>Processus</th><th>Type d’utilisation</th><th>Projets utilisateurs</th><th>Source</th></tr>
+                <tr><th>Processus</th><th>Type d’utilisation</th><th>Projets utilisateurs</th><th>Source</th><th>Ouvrir</th></tr>
               </thead>
               <tbody>
                 {processes.map((process) => (
@@ -278,9 +288,10 @@ export const Component = () => {
                       </Stack>
                     </td>
                     <td>{process.projects.find((project) => project.sourceResourceId)?.sourceResourceId ?? '—'}</td>
+                    <td><Button size="sm" variant="outlined" onClick={() => navigate(`/${process.id}`)}>Ouvrir</Button></td>
                   </tr>
                 ))}
-                {processes.length === 0 && <tr><td colSpan={4}>Aucun processus correspondant.</td></tr>}
+                {processes.length === 0 && <tr><td colSpan={5}>Aucun processus correspondant.</td></tr>}
               </tbody>
             </Table>
           </Card>
