@@ -176,7 +176,9 @@ export class ProjectController {
           projects: userMemberships
             .map((membership) => ({
               projectId: membership.projectId,
-              projectName: projectById.get(membership.projectId)?.name ?? membership.projectId,
+              projectName:
+                projectById.get(membership.projectId)?.name ??
+                membership.projectId,
               role: membership.role,
             }))
             .sort((left, right) =>
