@@ -68,7 +68,13 @@ const normalizeActor = (name: string) => name.trim().toLocaleLowerCase();
 const cellKey = (resourceId: string, taskId: string, actorName: string) =>
   `${resourceId}::${taskId}::${normalizeActor(actorName)}`;
 
-export const ProjectRaciManager = ({ projectId }: { projectId: string }) => {
+export const ProjectRaciManager = ({
+  projectId,
+  onActivityClick,
+}: {
+  projectId: string;
+  onActivityClick: (processId: string, elementId: string) => void;
+}) => {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [actorName, setActorName] = useState('');
@@ -377,7 +383,7 @@ export const ProjectRaciManager = ({ projectId }: { projectId: string }) => {
           Impossible de charger les versions publiées de : {failedProcesses.join(', ')}. Les activités des autres processus restent disponibles.
         </Alert>
       )}
-      {tasksQuery.isLoading || entriesQuery.isLoading || actorsQuery.isLoading ? (
+      {processesQuery.isLoading || tasksQuery.isLoading || entriesQuery.isLoading || actorsQuery.isLoading ? (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 2 }}>
           <CircularProgress size="sm" />
           <Typography level="body-sm">Chargement de la matrice RACI…</Typography>
@@ -413,7 +419,16 @@ export const ProjectRaciManager = ({ projectId }: { projectId: string }) => {
               {tasks.map(task => (
                 <tr key={`${task.resourceId}::${task.id}`}>
                   <td>
-                    <Typography level="body-sm" fontWeight="md">{task.name}</Typography>
+                    <Button
+                      variant="plain"
+                      color="neutral"
+                      size="sm"
+                      sx={{ justifyContent: 'flex-start', px: 0, minHeight: 'auto', textAlign: 'left' }}
+                      onClick={() => onActivityClick(task.resourceId, task.id)}
+                      title="Ouvrir cette activité dans le diagramme BPMN"
+                    >
+                      {task.name}
+                    </Button>
                     <Typography level="body-xs" textColor="neutral">{task.processName}</Typography>
                   </td>
                   {actors.map(actor => {
