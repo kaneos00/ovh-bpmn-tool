@@ -8,6 +8,10 @@ export const routes = [
     },
   },
   {
+    path: '/admin',
+    lazy: () => import('./Containers/Administration'),
+  },
+  {
     path: '/projects',
     lazy: () => import('./Containers/Projects'),
   },
