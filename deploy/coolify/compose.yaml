@@ -1,7 +1,7 @@
 services:
   database:
     build:
-      context: ../..
+      context: .
       dockerfile: deploy/coolify/Dockerfile.postgres
     environment:
       POSTGRES_DB: ${DATABASE_NAME:?Set DATABASE_NAME in Coolify}
@@ -19,7 +19,7 @@ services:
 
   backend:
     build:
-      context: ../..
+      context: .
       dockerfile: deploy/coolify/Dockerfile.backend
     environment:
       NODE_ENV: production
@@ -41,7 +41,7 @@ services:
 
   frontend:
     build:
-      context: ../..
+      context: .
       dockerfile: deploy/coolify/Dockerfile.frontend
       args:
         VITE_API_URL: /bpmn-api
