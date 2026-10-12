@@ -79,6 +79,18 @@ const usageLabel: Record<AdminProcessLink['usage'], string> = {
   'project-specific': 'Spécifique au projet',
 };
 
+const roleColor: Record<MembershipView['role'], 'warning' | 'primary' | 'neutral'> = {
+  admin: 'warning',
+  modeler: 'primary',
+  viewer: 'neutral',
+};
+
+const searchPlaceholders: Record<(typeof sections)[number]['key'], string> = {
+  users: 'Rechercher un identifiant, un projet ou un rôle…',
+  projects: 'Rechercher un projet ou un processus…',
+  processes: 'Rechercher un processus ou un projet utilisateur…',
+};
+
 const usageColor: Record<AdminProcessLink['usage'], 'success' | 'primary' | 'warning'> = {
   common: 'success',
   variant: 'warning',
@@ -184,13 +196,7 @@ export const Component = () => {
         <Input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder={
-            activeSection === 'users'
-              ? 'Rechercher un identifiant, un projet ou un rôle…'
-              : activeSection === 'projects'
-                ? 'Rechercher un projet ou un processus…'
-                : 'Rechercher un processus ou un projet utilisateur…'
-          }
+          placeholder={searchPlaceholders[activeSection]}
           sx={{ maxWidth: 620 }}
         />
 
@@ -215,7 +221,7 @@ export const Component = () => {
                     <td>
                       <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
                         {user.projects.map((project) => (
-                          <Chip key={project.projectId} size="sm" variant="soft" color={project.role === 'admin' ? 'warning' : project.role === 'modeler' ? 'primary' : 'neutral'}>
+                          <Chip key={project.projectId} size="sm" variant="soft" color={roleColor[project.role]}>
                             {project.projectName} · {roleLabel[project.role]}
                           </Chip>
                         ))}
