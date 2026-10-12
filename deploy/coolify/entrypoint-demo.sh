@@ -7,5 +7,6 @@ if [ "$DEMO_AUTH_USER" = "demo" ] && [ "$DEMO_AUTH_PASSWORD" = "change-me" ]; th
   exit 1
 fi
 printf '%s\n' "$DEMO_AUTH_PASSWORD" | htpasswd -i -B -c /etc/nginx/.htpasswd "$DEMO_AUTH_USER"
-chmod 0600 /etc/nginx/.htpasswd
+chown root:nginx /etc/nginx/.htpasswd
+chmod 0640 /etc/nginx/.htpasswd
 exec /docker-entrypoint.sh nginx -g 'daemon off;'
