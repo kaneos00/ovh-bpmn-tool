@@ -128,6 +128,7 @@ export const Component = () => {
   const [newProjectId, setNewProjectId] = useState('');
   const [newRole, setNewRole] = useState<MembershipView['role']>('viewer');
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [confirmProjectDelete, setConfirmProjectDelete] = useState(false);
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
   const [projectNameDraft, setProjectNameDraft] = useState('');
   const [projectDescriptionDraft, setProjectDescriptionDraft] = useState('');
@@ -209,6 +210,7 @@ export const Component = () => {
       onSuccess: async () => {
         setActionError(null);
         setSelectedProjectId(null);
+        setConfirmProjectDelete(false);
         await queryClient.invalidateQueries(queryKey);
       },
       onError: (error: Error) => setActionError(error.message),
@@ -498,19 +500,33 @@ export const Component = () => {
               >
                 Enregistrer
               </Button>
-              <Button
-                variant="outlined"
-                color="danger"
-                disabled={selectedProject.processes.length > 0 || deleteProject.isLoading}
-                loading={deleteProject.isLoading}
-                onClick={() => {
-                  if (window.confirm(`Supprimer le projet « ${selectedProject.name} » ? Cette action est irréversible.`)) {
-                    deleteProject.mutate({ id: selectedProject.id });
-                  }
-                }}
-              >
-                Supprimer le projet
-              </Button>
+              {selectedProject.processes.length === 0 && !confirmProjectDelete && (
+                <Button
+                  variant="outlined"
+                  color="danger"
+                  disabled={deleteProject.isLoading}
+                  onClick={() => setConfirmProjectDelete(true)}
+                >
+                  Supprimer le projet
+                </Button>
+              )}
+              {selectedProject.processes.length === 0 && confirmProjectDelete && (
+                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ alignItems: 'center' }}>
+                  <Typography level="body-sm" color="danger">Confirmer la suppression définitive de ce projet ?</Typography>
+                  <Button
+                    size="sm"
+                    color="danger"
+                    loading={deleteProject.isLoading}
+                    disabled={deleteProject.isLoading}
+                    onClick={() => deleteProject.mutate({ id: selectedProject.id })}
+                  >
+                    Confirmer
+                  </Button>
+                  <Button size="sm" variant="plain" color="neutral" onClick={() => setConfirmProjectDelete(false)}>
+                    Annuler
+                  </Button>
+                </Stack>
+              )}
               {selectedProject.processes.length > 0 && (
                 <Typography level="body-xs" sx={{ color: 'text.secondary', alignSelf: 'center' }}>
                   Retirez d’abord les {selectedProject.processes.length} processus associés avant suppression.
@@ -535,7 +551,7 @@ export const Component = () => {
                     <td>{project.processes.filter((process) => process.usage === 'common').length}</td>
                     <td>{project.processes.filter((process) => process.usage === 'project-specific').length}</td>
                     <td>{project.processes.filter((process) => process.usage === 'variant').length}</td>
-                    <td><Button size="sm" variant="outlined" onClick={() => { setSelectedProjectId(project.id); setProjectNameDraft(project.name); setProjectDescriptionDraft(project.description ?? ''); }}>Gérer</Button></td>
+                    <td><Button size="sm" variant="outlined" onClick={() => { setSelectedProjectId(project.id); setConfirmProjectDelete(false); setProjectNameDraft(project.name); setProjectDescriptionDraft(project.description ?? ''); }}>Gérer</Button></td>
                   </tr>
                 ))}
                 {projects.length === 0 && <tr><td colSpan={7}>Aucun projet correspondant.</td></tr>}
