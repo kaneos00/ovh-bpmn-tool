@@ -227,11 +227,11 @@ export const Component = () => {
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   startDecorator={<SearchRounded />}
-                  placeholder={
-                    tab === 0 ? 'Rechercher un utilisateur, un projet ou un rôle…'
-                      : tab === 1 ? 'Rechercher un projet, un membre ou un processus…'
-                        : 'Rechercher un processus ou un projet utilisateur…'
-                  }
+                  placeholder={[
+                    'Rechercher un utilisateur, un projet ou un rôle…',
+                    'Rechercher un projet, un membre ou un processus…',
+                    'Rechercher un processus ou un projet utilisateur…',
+                  ][tab]}
                   sx={{ width: '100%', maxWidth: 600 }}
                 />
                 <Button variant="plain" color="neutral" onClick={() => setSearch('')}>Effacer</Button>
