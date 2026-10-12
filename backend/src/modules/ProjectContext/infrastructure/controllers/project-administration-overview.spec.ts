@@ -1,7 +1,7 @@
 import { ProjectController } from './project.controller';
 import { ProjectMemberRole } from '../entities/projectMember.ormEntity';
 import { ProjectProcessUsage } from '../entities/projectProcess.ormEntity';
-import { ResourceTypeEnum } from '../../../../ResourceContext/shared/types/Resource';
+import { ResourceTypeEnum } from '../../../../modules/ResourceContext/shared/types/Resource';
 
 describe('ProjectController administration overview', () => {
   const projects = {
