@@ -9,6 +9,7 @@ export type ApiClient = {
   get: (url: string | URL, options?: RequestInit) => Promise<any>;
   post: (url: string | URL, data: any, options?: RequestInit) => Promise<any>;
   put: (url: string | URL, data: any, options?: RequestInit) => Promise<any>;
+  patch: (url: string | URL, data: any, options?: RequestInit) => Promise<any>;
   remove: (url: string | URL, options?: RequestInit) => Promise<any>;
 };
 
@@ -91,6 +92,14 @@ export const createApiClient = ({
     });
   };
 
+  const patch = async (url: string | URL, data: any, options: RequestInit = {}) => {
+    return await call(url, {
+      ...options,
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  };
+
   const remove = async (url: string | URL, options: RequestInit = {}) => {
     return await call(url, {
       ...options,
@@ -103,6 +112,7 @@ export const createApiClient = ({
     get,
     post,
     put,
+    patch,
     remove,
   };
 };
