@@ -14,6 +14,9 @@ describe('ProjectResourceAccessService', () => {
   const projectMembers = {
     find: jest.fn(),
   };
+  const resources = {
+    find: jest.fn(),
+  };
   let service: ProjectResourceAccessService;
 
   beforeEach(() => {
@@ -22,10 +25,12 @@ describe('ProjectResourceAccessService', () => {
       configService as never,
       projectProcesses as never,
       projectMembers as never,
+      resources as never,
     );
     projectProcesses.find.mockResolvedValue([]);
     projectProcesses.count.mockResolvedValue(0);
     projectMembers.find.mockResolvedValue([]);
+    resources.find.mockResolvedValue([]);
   });
 
   const headers = { 'x-user': 'alice' };
@@ -167,6 +172,60 @@ describe('ProjectResourceAccessService', () => {
     await expect(
       service.assertCanDeleteResource('source-process'),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('blocks deletion of a common process through generic resource endpoints', async () => {
+    projectProcesses.find.mockResolvedValue([
+      {
+        projectId: 'project-1',
+        resourceId: 'common-process',
+        usage: ProjectProcessUsage.Common,
+      },
+    ]);
+
+    await expect(
+      service.assertCanDeleteResource('common-process'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('blocks deletion of a process shared by multiple projects', async () => {
+    projectProcesses.find.mockResolvedValue([
+      {
+        projectId: 'project-1',
+        resourceId: 'shared-process',
+        usage: ProjectProcessUsage.ProjectSpecific,
+      },
+      {
+        projectId: 'project-2',
+        resourceId: 'shared-process',
+        usage: ProjectProcessUsage.ProjectSpecific,
+      },
+    ]);
+
+    await expect(
+      service.assertCanDeleteResource('shared-process'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('checks descendants before deleting a folder tree', async () => {
+    resources.find
+      .mockResolvedValueOnce([{ id: 'child-process', parentId: 'folder' }])
+      .mockResolvedValueOnce([]);
+    projectProcesses.find.mockImplementation(({ where }) =>
+      where.resourceId === 'child-process'
+        ? [
+            {
+              projectId: 'project-1',
+              resourceId: 'child-process',
+              usage: ProjectProcessUsage.Common,
+            },
+          ]
+        : [],
+    );
+
+    await expect(
+      service.assertCanDeleteResourceTree('folder', headers),
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('filters project resources using the domain UUID value', async () => {
