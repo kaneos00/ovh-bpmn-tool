@@ -744,17 +744,6 @@ export class ProjectController {
     return membership;
   }
 
-  private async assertNotLastAdmin(projectId: string, userId: string) {
-    const admins = await this.projectMembers.find({
-      where: { projectId, role: ProjectMemberRole.Admin },
-    });
-    if (admins.length <= 1 && admins[0]?.userId === userId) {
-      throw new BadRequestException(
-        'A project must retain at least one administrator',
-      );
-    }
-  }
-
   private async assertProjectExists(projectId: string) {
     const project = await this.projects.findOneBy({ id: projectId });
     if (!project) throw new NotFoundException('Project not found');
