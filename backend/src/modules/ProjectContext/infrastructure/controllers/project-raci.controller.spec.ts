@@ -123,7 +123,8 @@ describe('ProjectRaciController actor register', () => {
       origin: 'manual',
     };
     const actorRepository = {
-      findOne: jest.fn()
+      findOne: jest
+        .fn()
         .mockResolvedValueOnce(actor)
         .mockResolvedValueOnce(null),
       save: jest.fn(async (value) => value),
@@ -140,11 +141,11 @@ describe('ProjectRaciController actor register', () => {
       createQueryBuilder: jest.fn(() => queryBuilder),
     };
     const manager = {
-      getRepository: jest.fn((entity) => (
+      getRepository: jest.fn((entity) =>
         entity === ProjectRaciActorTypeOrmEntity
           ? actorRepository
-          : entryRepository
-      )),
+          : entryRepository,
+      ),
     };
     dataSource.transaction.mockImplementation(async (callback) =>
       callback(manager),
