@@ -3,9 +3,12 @@ import { useMutation, useQuery, useQueryClient } from 'react-query';
 import {
   Alert,
   Box,
+  Button,
   Card,
   CircularProgress,
   FormControl,
+  FormLabel,
+  Input,
   Option,
   Select,
   Sheet,
@@ -38,6 +41,15 @@ type RaciEntry = {
   actorName: string;
   role: RaciCode;
 };
+type ProjectActor = {
+  id: string;
+  projectId: string;
+  name: string;
+  normalizedName: string;
+  active: boolean;
+  origin: 'manual' | 'bpmn';
+};
+const UNASSIGNED = '__unassigned__';
 const ROLES: { value: RaciCode; label: string }[] = [
   { value: 'R', label: 'R — Responsable' },
   { value: 'A', label: 'A — Approbateur / redevable' },
@@ -58,6 +70,9 @@ const cellKey = (resourceId: string, taskId: string, actorName: string) =>
 export const ProjectRaciManager = ({ projectId }: { projectId: string }) => {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  const [actorName, setActorName] = useState('');
+  const [editingActorId, setEditingActorId] = useState<string | null>(null);
+  const [editingActorName, setEditingActorName] = useState('');
 
   const processesQuery = useQuery<ProjectProcessLink[]>(
     ['project-processes', projectId],
@@ -69,40 +84,53 @@ export const ProjectRaciManager = ({ projectId }: { projectId: string }) => {
     () => apiClient.get(`/projects/${projectId}/raci`),
     { enabled: Boolean(projectId) },
   );
+  const actorsQuery = useQuery<ProjectActor[]>(
+    ['project-raci-actors', projectId],
+    () => apiClient.get(`/projects/${projectId}/raci/actors`),
+    { enabled: Boolean(projectId) },
+  );
   const tasksQuery = useQuery<TaskOption[]>(
     ['project-raci-tasks', projectId, processesQuery.data?.map(item => item.resourceId).join(',')],
     async () => {
       const links = processesQuery.data ?? [];
-      const result: TaskOption[] = [];
-      await Promise.all(links.map(async link => {
+      const perProcess = await Promise.all(links.map(async link => {
         const process = link.resource;
-        if (!process || process.type !== ResourceType.Process) return;
-        const contents: Content[] = await contentsQuery(process.id).queryFn();
-        const published = contents
-          .filter(content => content.status === ContentStatusEnum.Published)
-          .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0];
-        if (!published) return;
-        const xml = await getXmlContentQuery(process.id, published.id).queryFn();
-        if (!xml?.trim()) return;
-        const matrix = deriveRaciMatrixFromXml(xml);
-        for (const activity of matrix.activities) {
-          if (!activity.elementId) continue;
-          result.push({
-            id: activity.elementId,
-            name: activity.activity,
-            resourceId: process.id,
-            processName: process.name,
-            inferredActors: matrix.roles,
-          });
+        if (!process || process.type !== ResourceType.Process) return [];
+        try {
+          const contents: Content[] = await contentsQuery(process.id).queryFn();
+          const published = contents
+            .filter(content => content.status === ContentStatusEnum.Published)
+            .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0];
+          if (!published) return [];
+          const xml = await getXmlContentQuery(process.id, published.id).queryFn();
+          if (!xml?.trim()) return [];
+          const matrix = deriveRaciMatrixFromXml(xml);
+          return matrix.activities
+            .filter(activity => Boolean(activity.elementId))
+            .map(activity => ({
+              id: activity.elementId,
+              name: activity.activity,
+              resourceId: process.id,
+              processName: process.name,
+              inferredActors: matrix.roles,
+            }));
+        } catch {
+          // Keep usable activities from other processes if one process cannot load.
+          return [];
         }
       }));
-      return result.sort((a, b) =>
+      const uniqueTasks = new Map<string, TaskOption>();
+      perProcess.flat().forEach(task => uniqueTasks.set(`${task.resourceId}::${task.id}`, task));
+      return Array.from(uniqueTasks.values()).sort((a, b) =>
         a.processName.localeCompare(b.processName) || a.name.localeCompare(b.name),
       );
     },
     { enabled: Boolean(projectId) && Boolean(processesQuery.data), staleTime: 30_000 },
   );
 
+  const refreshActors = async () => {
+    await queryClient.invalidateQueries(['project-raci-actors', projectId]);
+  };
   const save = useMutation(
     (nextEntries: RaciEntry[]) => apiClient.put(`/projects/${projectId}/raci`, {
       entries: nextEntries.map(({ resourceId, taskId, taskName, actorName, role }) => ({
@@ -117,22 +145,67 @@ export const ProjectRaciManager = ({ projectId }: { projectId: string }) => {
       onError: (mutationError: Error) => setError(mutationError.message),
     },
   );
+  const createActor = useMutation(
+    (name: string) => apiClient.post(`/projects/${projectId}/raci/actors`, { name }),
+    {
+      onSuccess: async () => {
+        setActorName('');
+        setError(null);
+        await refreshActors();
+      },
+      onError: (mutationError: Error) => setError(mutationError.message),
+    },
+  );
+  const syncActors = useMutation(
+    (names: string[]) => apiClient.post(`/projects/${projectId}/raci/actors/sync`, { names }),
+    {
+      onSuccess: async () => {
+        setError(null);
+        await refreshActors();
+      },
+      onError: (mutationError: Error) => setError(mutationError.message),
+    },
+  );
+  const renameActor = useMutation(
+    ({ id, name }: { id: string; name: string }) =>
+      apiClient.put(`/projects/${projectId}/raci/actors/${id}`, { name }),
+    {
+      onSuccess: async () => {
+        setEditingActorId(null);
+        setEditingActorName('');
+        setError(null);
+        await Promise.all([
+          refreshActors(),
+          queryClient.invalidateQueries(['project-raci-entries', projectId]),
+        ]);
+      },
+      onError: (mutationError: Error) => setError(mutationError.message),
+    },
+  );
+  const toggleActor = useMutation(
+    ({ id, active }: { id: string; active: boolean }) =>
+      apiClient.patch(`/projects/${projectId}/raci/actors/${id}`, { active }),
+    {
+      onSuccess: async () => {
+        setError(null);
+        await refreshActors();
+      },
+      onError: (mutationError: Error) => setError(mutationError.message),
+    },
+  );
 
   const currentEntries = entriesQuery.data ?? [];
   const tasks = tasksQuery.data ?? [];
-  const actors = useMemo(() => {
-    const names = [
-      ...tasks.flatMap(task => task.inferredActors),
-      ...currentEntries.map(entry => entry.actorName),
-    ].map(name => name.trim()).filter(Boolean);
-    const uniqueNames = new Map<string, string>();
-    names.forEach(name => {
-      const key = normalizeActor(name);
-      if (key && !uniqueNames.has(key)) uniqueNames.set(key, name);
-    });
-    return Array.from(uniqueNames.values()).sort((a, b) => a.localeCompare(b));
-  }, [tasks, currentEntries]);
-
+  const actors = useMemo(
+    () => (actorsQuery.data ?? []).filter(actor => actor.active)
+      .sort((a, b) => a.name.localeCompare(b.name)),
+    [actorsQuery.data],
+  );
+  const inferredActors = useMemo(
+    () => Array.from(new Set(tasks.flatMap(task => task.inferredActors).map(name => name.trim()).filter(Boolean)))
+      .sort((a, b) => a.localeCompare(b)),
+    [tasks],
+  );
   const entriesByCell = useMemo(() => {
     const result = new Map<string, RaciEntry>();
     currentEntries.forEach(entry => result.set(
@@ -147,14 +220,15 @@ export const ProjectRaciManager = ({ projectId }: { projectId: string }) => {
     const remaining = currentEntries.filter(entry =>
       cellKey(entry.resourceId, entry.taskId, entry.actorName) !== key,
     );
+    const existing = currentEntries.find(entry =>
+      cellKey(entry.resourceId, entry.taskId, entry.actorName) === key,
+    );
     const nextEntries = nextRole
       ? [...remaining, {
         resourceId: task.resourceId,
         taskId: task.id,
         taskName: task.name,
-        actorName: currentEntries.find(entry =>
-          cellKey(entry.resourceId, entry.taskId, entry.actorName) === key,
-        )?.actorName ?? actor,
+        actorName: existing?.actorName ?? actor,
         role: nextRole,
       }]
       : remaining;
@@ -162,20 +236,135 @@ export const ProjectRaciManager = ({ projectId }: { projectId: string }) => {
     save.mutate(nextEntries);
   };
 
+  const isActorMutationPending = createActor.isLoading || syncActors.isLoading ||
+    renameActor.isLoading || toggleActor.isLoading;
+  const hasError = error || entriesQuery.isError || processesQuery.isError ||
+    tasksQuery.isError || actorsQuery.isError || save.isError;
+
   return (
     <Stack spacing={1.5}>
       <Typography level="body-sm">
-        Matrice transversale du projet : les lignes sont les activités des processus publiés et les colonnes les acteurs détectés dans les BPMN ou déjà utilisés dans le projet. Modifiez directement une cellule pour affecter R, A, C ou I. Les affectations projet restent indépendantes des propriétés RACI du BPMN.
+        Matrice transversale du projet : les lignes sont les activités des dernières versions publiées et les colonnes les acteurs actifs du registre du projet. Les affectations RACI sont enregistrées indépendamment des propriétés RACI des fichiers BPMN.
       </Typography>
-      {(error || entriesQuery.isError || processesQuery.isError || tasksQuery.isError || save.isError) && (
+      {hasError && (
         <Alert color="danger">
-          {error ?? 'Impossible de charger ou d’enregistrer le RACI du projet.'}
+          {error ?? 'Impossible de charger ou d’enregistrer les données RACI du projet.'}
         </Alert>
       )}
+
+      <Card variant="soft" size="sm">
+        <Typography level="title-md">Registre des acteurs</Typography>
+        <Typography level="body-xs">
+          Les acteurs détectés dans les BPMN sont proposés par synchronisation. Une synchronisation n’ajoute que les nouveaux noms et ne réactive jamais un acteur désactivé.
+        </Typography>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'flex-end' }}>
+          <FormControl sx={{ flex: 1 }}>
+            <FormLabel>Nouvel acteur</FormLabel>
+            <Input
+              value={actorName}
+              onChange={event => setActorName(event.target.value)}
+              placeholder="Nom de l’acteur"
+              disabled={isActorMutationPending}
+              onKeyDown={event => {
+                if (event.key === 'Enter' && actorName.trim()) createActor.mutate(actorName.trim());
+              }}
+            />
+          </FormControl>
+          <Button
+            loading={createActor.isLoading}
+            disabled={!actorName.trim() || isActorMutationPending}
+            onClick={() => createActor.mutate(actorName.trim())}
+          >
+            Ajouter
+          </Button>
+          <Button
+            variant="outlined"
+            loading={syncActors.isLoading}
+            disabled={tasksQuery.isLoading || isActorMutationPending || inferredActors.length === 0}
+            onClick={() => syncActors.mutate(inferredActors)}
+          >
+            Synchroniser les BPMN ({inferredActors.length})
+          </Button>
+        </Stack>
+        {actorsQuery.isLoading ? (
+          <Typography level="body-xs">Chargement des acteurs…</Typography>
+        ) : (
+          <Stack spacing={0.75}>
+            {(actorsQuery.data ?? []).map(actor => (
+              <Stack
+                key={actor.id}
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1}
+                alignItems={{ sm: 'center' }}
+                sx={{ p: 0.75, borderBottom: '1px solid', borderColor: 'divider' }}
+              >
+                {editingActorId === actor.id ? (
+                  <>
+                    <Input
+                      size="sm"
+                      value={editingActorName}
+                      onChange={event => setEditingActorName(event.target.value)}
+                      disabled={renameActor.isLoading}
+                      sx={{ flex: 1 }}
+                    />
+                    <Button
+                      size="sm"
+                      loading={renameActor.isLoading}
+                      disabled={!editingActorName.trim()}
+                      onClick={() => renameActor.mutate({ id: actor.id, name: editingActorName.trim() })}
+                    >
+                      Enregistrer
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="plain"
+                      onClick={() => { setEditingActorId(null); setEditingActorName(''); }}
+                    >
+                      Annuler
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography level="body-sm">{actor.name}</Typography>
+                      <Typography level="body-xs" textColor="neutral">
+                        {actor.origin === 'bpmn' ? 'Détecté dans un BPMN' : 'Ajout manuel'}
+                        {!actor.active ? ' · Désactivé' : ''}
+                      </Typography>
+                    </Box>
+                    <Button
+                      size="sm"
+                      variant="plain"
+                      disabled={isActorMutationPending}
+                      onClick={() => { setEditingActorId(actor.id); setEditingActorName(actor.name); }}
+                    >
+                      Renommer
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="soft"
+                      color={actor.active ? 'danger' : 'success'}
+                      loading={toggleActor.isLoading}
+                      disabled={isActorMutationPending}
+                      onClick={() => toggleActor.mutate({ id: actor.id, active: !actor.active })}
+                    >
+                      {actor.active ? 'Désactiver' : 'Réactiver'}
+                    </Button>
+                  </>
+                )}
+              </Stack>
+            ))}
+            {!(actorsQuery.data ?? []).length && (
+              <Typography level="body-xs" textColor="neutral">Aucun acteur enregistré. Ajoutez-en un ou synchronisez les BPMN.</Typography>
+            )}
+          </Stack>
+        )}
+      </Card>
+
       <Typography level="body-sm">
-        Acteurs détectés : {actors.length}. La liste rassemble les acteurs des processus publiés et ceux présents dans les affectations du projet.
+        Acteurs actifs : {actors.length}. Les acteurs désactivés restent conservés dans l’historique des affectations, mais ne sont plus proposés comme colonnes.
       </Typography>
-      {tasksQuery.isLoading || entriesQuery.isLoading ? (
+      {tasksQuery.isLoading || entriesQuery.isLoading || actorsQuery.isLoading ? (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 2 }}>
           <CircularProgress size="sm" />
           <Typography level="body-sm">Chargement de la matrice RACI…</Typography>
@@ -204,7 +393,7 @@ export const ProjectRaciManager = ({ projectId }: { projectId: string }) => {
             <thead>
               <tr>
                 <th>Processus / activité</th>
-                {actors.map(actor => <th key={normalizeActor(actor)}>{actor}</th>)}
+                {actors.map(actor => <th key={actor.id}>{actor.name}</th>)}
               </tr>
             </thead>
             <tbody>
@@ -215,25 +404,25 @@ export const ProjectRaciManager = ({ projectId }: { projectId: string }) => {
                     <Typography level="body-xs" textColor="neutral">{task.processName}</Typography>
                   </td>
                   {actors.map(actor => {
-                    const entry = entriesByCell.get(cellKey(task.resourceId, task.id, actor));
+                    const entry = entriesByCell.get(cellKey(task.resourceId, task.id, actor.name));
                     return (
-                      <td key={normalizeActor(actor)}>
+                      <td key={actor.id}>
                         <FormControl size="sm">
                           <Select
                             size="sm"
-                            value={entry?.role ?? ''}
+                            value={entry?.role ?? UNASSIGNED}
                             placeholder="—"
-                            disabled={save.isLoading}
-                            onChange={(_event, value) => setCell(task, actor, (value || null) as RaciCode | null)}
+                            disabled={save.isLoading || isActorMutationPending}
+                            onChange={(_event, value) => setCell(task, actor.name, value === UNASSIGNED || value === null ? null : value as RaciCode)}
                             slotProps={{ listbox: { sx: { minWidth: 210 } } }}
                             sx={{ minWidth: 125 }}
-                            renderValue={selected => selected ? (
+                            renderValue={selected => selected && selected.value !== UNASSIGNED ? (
                               <Typography level="body-sm" fontWeight="md">
                                 {selected.value} — {ROLE_LABELS[selected.value as RaciCode]}
                               </Typography>
                             ) : null}
                           >
-                            <Option value="">— Non attribué</Option>
+                            <Option value={UNASSIGNED}>— Non attribué</Option>
                             {ROLES.map(item => (
                               <Option key={item.value} value={item.value}>{item.label}</Option>
                             ))}
@@ -249,7 +438,7 @@ export const ProjectRaciManager = ({ projectId }: { projectId: string }) => {
         </Sheet>
       )}
       <Typography level="body-xs" textColor="neutral">
-        {tasks.length} activité(s) · {actors.length} acteur(s) · {currentEntries.length} affectation(s) enregistrée(s)
+        {tasks.length} activité(s) · {actors.length} acteur(s) actif(s) · {currentEntries.length} affectation(s) enregistrée(s)
         {save.isLoading ? ' · Enregistrement…' : ''}
       </Typography>
     </Stack>
