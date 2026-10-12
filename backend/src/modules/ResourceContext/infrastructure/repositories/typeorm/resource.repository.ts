@@ -98,18 +98,24 @@ export class ResourceTypeOrmRepository implements ResourceRepository {
     filters?: ResourceFilters,
   ): Promise<Result<Resource[], Error | Error[]>> {
     try {
+      // Do not pass undefined query parameters to TypeORM's WHERE clause.
+      // The controller always constructs the filter object, even when some
+      // optional query parameters are absent.
+      const where = Object.fromEntries(
+        Object.entries(filters ?? {}).filter(([, value]) => value !== undefined),
+      ) as ResourceFilters;
+
       const result = await this.resourceRepository.find(
-        filters && Object.keys(filters).length
-          ? {
-              where: filters,
-            }
-          : {},
+        Object.keys(where).length ? { where } : {},
       );
 
       return combineResults(result.map(ResourceMapper.fromPersistence));
     } catch (error) {
-      const errorMsg = 'Error while finding resources';
-      this.logger.error(`${errorMsg}:`, error);
+      const detail = error instanceof Error ? error.message : String(error);
+      const errorMsg = detail
+        ? `Error while finding resources: ${detail}`
+        : 'Error while finding resources';
+      this.logger.error(errorMsg, error instanceof Error ? error.stack : detail);
       return fail(new Error(errorMsg));
     }
   }
