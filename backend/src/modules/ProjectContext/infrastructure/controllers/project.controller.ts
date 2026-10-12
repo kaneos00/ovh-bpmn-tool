@@ -107,6 +107,92 @@ export class ProjectController {
     }
   }
 
+  /**
+   * Organization-wide read model for the administration screens.
+   *
+   * Access is restricted to the existing global read-write ACL group. User
+   * identities are sourced from project membership records because this
+   * application does not own an organization-wide identity directory.
+   */
+  @Get('administration/overview')
+  @UseAcl([UserGroup.RW])
+  async getAdministrationOverview() {
+    const [projects, memberships, links, processResources] = await Promise.all([
+      this.projects.find({ order: { name: 'ASC' } }),
+      this.projectMembers.find({ order: { userId: 'ASC' } }),
+      this.projectProcesses.find({ order: { createdAt: 'ASC' } }),
+      this.resources.find({
+        where: { type: ResourceTypeEnum.Process },
+        order: { name: 'ASC' },
+      }),
+    ]);
+
+    const projectById = new Map(projects.map((project) => [project.id, project]));
+    const resourceById = new Map(
+      processResources.map((resource) => [resource.id, resource]),
+    );
+    const membershipsByProject = new Map<string, typeof memberships>();
+    const linksByProject = new Map<string, typeof links>();
+    const membershipsByUser = new Map<string, typeof memberships>();
+    const linksByResource = new Map<string, typeof links>();
+
+    for (const membership of memberships) {
+      const projectMemberships = membershipsByProject.get(membership.projectId) ?? [];
+      projectMemberships.push(membership);
+      membershipsByProject.set(membership.projectId, projectMemberships);
+
+      const userMemberships = membershipsByUser.get(membership.userId) ?? [];
+      userMemberships.push(membership);
+      membershipsByUser.set(membership.userId, userMemberships);
+    }
+
+    for (const link of links) {
+      const projectLinks = linksByProject.get(link.projectId) ?? [];
+      projectLinks.push(link);
+      linksByProject.set(link.projectId, projectLinks);
+
+      const resourceLinks = linksByResource.get(link.resourceId) ?? [];
+      resourceLinks.push(link);
+      linksByResource.set(link.resourceId, resourceLinks);
+    }
+
+    return {
+      projects: projects.map((project) => ({
+        ...project,
+        membersCount: (membershipsByProject.get(project.id) ?? []).length,
+        processes: (linksByProject.get(project.id) ?? []).map((link) => ({
+          resourceId: link.resourceId,
+          name: resourceById.get(link.resourceId)?.name ?? link.resourceId,
+          usage: link.usage,
+          sourceResourceId: link.sourceResourceId,
+        })),
+      })),
+      users: [...membershipsByUser.entries()]
+        .map(([userId, userMemberships]) => ({
+          userId,
+          projects: userMemberships
+            .map((membership) => ({
+              projectId: membership.projectId,
+              projectName: projectById.get(membership.projectId)?.name ?? membership.projectId,
+              role: membership.role,
+            }))
+            .sort((left, right) => left.projectName.localeCompare(right.projectName)),
+        }))
+        .sort((left, right) => left.userId.localeCompare(right.userId)),
+      processes: processResources.map((resource) => ({
+        id: resource.id,
+        name: resource.name,
+        description: resource.description,
+        projects: (linksByResource.get(resource.id) ?? []).map((link) => ({
+          projectId: link.projectId,
+          projectName: projectById.get(link.projectId)?.name ?? link.projectId,
+          usage: link.usage,
+          sourceResourceId: link.sourceResourceId,
+        })),
+      })),
+    };
+  }
+
   @Get(':projectId')
   @UseAcl()
   async getProject(
