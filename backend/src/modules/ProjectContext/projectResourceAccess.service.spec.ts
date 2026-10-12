@@ -64,6 +64,27 @@ describe('ProjectResourceAccessService', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
+  it('denies a viewer from editing a project-specific process', async () => {
+    projectProcesses.find.mockResolvedValue([
+      {
+        projectId: 'project-1',
+        resourceId: 'resource-1',
+        usage: ProjectProcessUsage.ProjectSpecific,
+      },
+    ]);
+    projectMembers.find.mockResolvedValue([
+      {
+        projectId: 'project-1',
+        userId: 'alice',
+        role: ProjectMemberRole.Viewer,
+      },
+    ]);
+
+    await expect(
+      service.assertCanEditResource('resource-1', headers),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
   it('denies editing a common process through generic endpoints', async () => {
     projectProcesses.find.mockResolvedValue([
       {
