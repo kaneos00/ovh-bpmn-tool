@@ -239,23 +239,7 @@ export class ProjectController {
       headers,
     );
 
-    let sourceResourceId: string | null = null;
-    if (usage === ProjectProcessUsage.Variant) {
-      if (!body.sourceResourceId || body.sourceResourceId === body.resourceId) {
-        throw new BadRequestException(
-          'A variant must reference a different source process',
-        );
-      }
-      const source = await this.resources.findOneBy({
-        id: body.sourceResourceId,
-      });
-      if (!source || source.type !== ResourceTypeEnum.Process) {
-        throw new BadRequestException(
-          'sourceResourceId must identify an existing process',
-        );
-      }
-      sourceResourceId = source.id;
-    } else if (body.sourceResourceId) {
+    if (body.sourceResourceId) {
       throw new BadRequestException(
         'sourceResourceId is only valid for variants',
       );
@@ -265,7 +249,7 @@ export class ProjectController {
       projectId,
       resourceId: resource.id,
       usage,
-      sourceResourceId,
+      sourceResourceId: null,
       createdBy: userId,
     });
 
