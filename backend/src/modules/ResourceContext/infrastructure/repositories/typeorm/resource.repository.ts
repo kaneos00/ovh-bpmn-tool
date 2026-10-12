@@ -50,7 +50,7 @@ export class ResourceTypeOrmRepository implements ResourceRepository {
              SELECT child.id
              FROM resources AS child
              INNER JOIN resource_tree AS parent
-               ON child."parentId" = parent.id
+               ON child."parentId" = parent.id::text
            )
            SELECT id FROM resource_tree`,
           [resourceId],
