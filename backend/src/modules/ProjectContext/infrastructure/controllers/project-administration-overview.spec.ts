@@ -7,6 +7,11 @@ import { ResourceTypeEnum } from '../../../../modules/ResourceContext/shared/typ
 describe('ProjectController administration overview', () => {
   const projects = {
     find: jest.fn(),
+    findOneBy: jest.fn().mockResolvedValue({
+      id: 'project-a',
+      name: 'Atlas',
+      description: 'Operations',
+    }),
   };
   const projectMembers = {
     find: jest.fn(),
