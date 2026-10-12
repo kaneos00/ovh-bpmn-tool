@@ -6,7 +6,7 @@ Cette fonctionnalité ajoute une première vue organisationnelle de lecture pour
 
 `GET /projects/administration/overview`
 
-- Protégée par le groupe ACL global existant `bpmn-tool-readwrite`.
+- Protégée par le groupe ACL organisationnel explicite `bpmn-tool-admin` (l'en-tête de groupes doit contenir une valeur correspondant au format `bpmn-tool-admin-<suffixe>` attendu par le garde ACL).
 - Retourne les projets, les adhésions et rôles projet, ainsi que les processus et les projets qui les référencent.
 - Ne modifie aucune donnée et ne remplace pas les contrôles d'accès déjà appliqués aux opérations projet/processus.
 - Distingue les usages `common`, `project-specific` et `variant`, et conserve la référence `sourceResourceId` des variantes.
@@ -22,7 +22,7 @@ Cette fonctionnalité ajoute une première vue organisationnelle de lecture pour
 
 Le backend BPMN V2 ne possède pas de table d'identité globale : les identifiants viennent du proxy d'authentification et les informations persistées concernent les adhésions aux projets. Cette première version liste donc les utilisateurs présents dans au moins une adhésion. Elle ne peut pas inventer ou afficher les comptes de l'organisation qui n'ont jamais été ajoutés à un projet. Pour couvrir ces comptes, il faudra connecter une source d'identité/annuaire approuvée ou introduire un référentiel utilisateur explicite.
 
-Les rôles affichés dans l'IHM sont des rôles de projet (`viewer`, `modeler`, `admin`), pas des rôles globaux de l'organisation. L'accès à la vue transversale est protégé par le groupe ACL global de lecture-écriture déjà utilisé par les opérations d'administration de la plateforme.
+Les rôles affichés dans l'IHM sont des rôles de projet (`viewer`, `modeler`, `admin`), pas des rôles globaux de l'organisation. L'accès à la vue transversale est protégé par un groupe ACL d'administration organisationnelle distinct. Il ne réutilise pas le groupe de lecture-écriture, afin de ne pas exposer les métadonnées de tous les projets à tous les utilisateurs qui peuvent simplement modifier des ressources.
 
 ## Validation
 
