@@ -60,14 +60,14 @@ type AdministrationOverview = {
   processes: AdminProcess[];
 };
 
-type AdminSection = (typeof sections)[number]['key'];
-
 const queryKey = ['organization-administration-overview'];
 const sections = [
   { key: 'users', label: 'Utilisateurs' },
   { key: 'projects', label: 'Projets' },
   { key: 'processes', label: 'Processus' },
 ] as const;
+
+type AdminSection = (typeof sections)[number]['key'];
 
 const roleLabel: Record<MembershipView['role'], string> = {
   viewer: 'Viewer',
