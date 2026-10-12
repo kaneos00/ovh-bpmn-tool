@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { ProjectController } from './project.controller';
 import { ProjectMemberRole } from '../entities/projectMember.ormEntity';
 import { ProjectProcessUsage } from '../entities/projectProcess.ormEntity';
@@ -9,6 +10,10 @@ describe('ProjectController administration overview', () => {
   };
   const projectMembers = {
     find: jest.fn(),
+    findOneBy: jest.fn(),
+    create: jest.fn((member) => member),
+    save: jest.fn((member) => Promise.resolve(member)),
+    delete: jest.fn().mockResolvedValue({ affected: 1 }),
   };
   const projectProcesses = {
     find: jest.fn(),
@@ -78,7 +83,7 @@ describe('ProjectController administration overview', () => {
     ]);
 
     controller = new ProjectController(
-      { getOrThrow: jest.fn() } as never,
+      { getOrThrow: jest.fn().mockReturnValue('x-user') } as never,
       {} as never,
       projects as never,
       projectProcesses as never,
@@ -136,6 +141,45 @@ describe('ProjectController administration overview', () => {
       name: 'Gestion commune',
       usage: 'common',
     });
+  });
+
+  it('allows an organization administrator to set a project member role', async () => {
+    const existing = {
+      projectId: 'project-a',
+      userId: 'alice',
+      role: ProjectMemberRole.Viewer,
+    };
+    projectMembers.findOneBy.mockResolvedValue(existing);
+
+    const result = await controller.setOrganizationProjectMember(
+      'project-a',
+      'alice',
+      { role: ProjectMemberRole.Modeler },
+      { 'x-user': 'org-admin' },
+    );
+
+    expect(result.role).toBe(ProjectMemberRole.Modeler);
+    expect(projectMembers.save).toHaveBeenCalledWith(existing);
+  });
+
+  it('prevents an organization administrator from removing the last project admin', async () => {
+    projectMembers.findOneBy.mockResolvedValue({
+      projectId: 'project-a',
+      userId: 'alice',
+      role: ProjectMemberRole.Admin,
+    });
+    projectMembers.find.mockResolvedValue([
+      {
+        projectId: 'project-a',
+        userId: 'alice',
+        role: ProjectMemberRole.Admin,
+      },
+    ]);
+
+    await expect(
+      controller.removeOrganizationProjectMember('project-a', 'alice'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(projectMembers.delete).not.toHaveBeenCalled();
   });
 
   it('preserves variant source references and counts members per project', async () => {
