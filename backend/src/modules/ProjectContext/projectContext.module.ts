@@ -8,6 +8,7 @@ import { ProjectMemberTypeOrmEntity } from './infrastructure/entities/projectMem
 import { ProjectProcessTypeOrmEntity } from './infrastructure/entities/projectProcess.ormEntity';
 import { ProjectTypeOrmEntity } from './infrastructure/entities/project.ormEntity';
 import { ProjectRaciEntryTypeOrmEntity } from './infrastructure/entities/projectRaciEntry.ormEntity';
+import { ProjectRaciActorTypeOrmEntity } from './infrastructure/entities/projectRaciActor.ormEntity';
 import { ProjectResourceAccessService } from './projectResourceAccess.service';
 
 @Module({
@@ -19,6 +20,7 @@ import { ProjectResourceAccessService } from './projectResourceAccess.service';
       ResourceTypeOrmEntity,
       ContentTypeOrmEntity,
       ProjectRaciEntryTypeOrmEntity,
+      ProjectRaciActorTypeOrmEntity,
     ]),
   ],
   controllers: [ProjectController, ProjectRaciController],
