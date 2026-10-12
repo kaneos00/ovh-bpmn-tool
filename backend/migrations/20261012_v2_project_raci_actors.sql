@@ -31,11 +31,3 @@ FROM project_raci_entries
 WHERE btrim("actorName") <> ''
 GROUP BY "projectId", lower(btrim("actorName"))
 ON CONFLICT ("projectId", "normalizedName") DO NOTHING;
-
--- Canonicalize existing assignment names to the register's case-insensitive actor name.
-UPDATE project_raci_entries AS entry
-SET "actorName" = actor.name
-FROM project_raci_actors AS actor
-WHERE actor."projectId" = entry."projectId"
-  AND actor."normalizedName" = lower(btrim(entry."actorName"))
-  AND entry."actorName" <> actor.name;
