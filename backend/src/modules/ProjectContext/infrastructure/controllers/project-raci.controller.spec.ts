@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { ProjectMemberRole } from '../entities/projectMember.ormEntity';
-import { ProjectRaciRole } from '../entities/projectRaciEntry.ormEntity';
+import { ProjectRaciActorTypeOrmEntity } from '../entities/projectRaciActor.ormEntity';
+import { ProjectRaciEntryTypeOrmEntity, ProjectRaciRole } from '../entities/projectRaciEntry.ormEntity';
 import { ProjectRaciController } from './project-raci.controller';
 
 describe('ProjectRaciController actor register', () => {
@@ -93,6 +94,54 @@ describe('ProjectRaciController actor register', () => {
     expect(actors.save).not.toHaveBeenCalled();
     expect(result).toEqual([inactiveActor]);
     expect(result[0].active).toBe(false);
+  });
+
+  it('renames an actor and updates its existing RACI assignments in one transaction', async () => {
+    const actor = {
+      id: 'actor-1',
+      projectId: 'project-1',
+      name: 'Support',
+      normalizedName: 'support',
+      active: true,
+      origin: 'manual',
+    };
+    const actorRepository = {
+      findOne: jest.fn()
+        .mockResolvedValueOnce(actor)
+        .mockResolvedValueOnce(null),
+      save: jest.fn(async value => value),
+    };
+    const queryBuilder = {
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getCount: jest.fn().mockResolvedValue(0),
+      update: jest.fn().mockReturnThis(),
+      set: jest.fn().mockReturnThis(),
+      execute: jest.fn().mockResolvedValue({ affected: 1 }),
+    };
+    const entryRepository = { createQueryBuilder: jest.fn(() => queryBuilder) };
+    const manager = {
+      getRepository: jest.fn(entity => entity === ProjectRaciActorTypeOrmEntity
+        ? actorRepository
+        : entryRepository),
+    };
+    dataSource.transaction.mockImplementation(async callback => callback(manager));
+
+    const result = await controllerCall().renameProjectActor(
+      'project-1',
+      'actor-1',
+      { name: 'Operations' },
+      headers,
+    );
+
+    expect(dataSource.transaction).toHaveBeenCalledTimes(1);
+    expect(entryRepository.createQueryBuilder).toHaveBeenCalledTimes(2);
+    expect(queryBuilder.set).toHaveBeenCalledWith(expect.objectContaining({ actorName: 'Operations' }));
+    expect(actorRepository.save).toHaveBeenCalledWith(expect.objectContaining({
+      name: 'Operations',
+      normalizedName: 'operations',
+    }));
+    expect(result.name).toBe('Operations');
   });
 
   it('deactivates an actor without deleting its existing assignments', async () => {
