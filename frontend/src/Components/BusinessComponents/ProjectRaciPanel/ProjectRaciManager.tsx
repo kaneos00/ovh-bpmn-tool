@@ -41,6 +41,7 @@ type RaciEntry = {
   actorName: string;
   role: RaciCode;
 };
+type TaskLoadResult = { tasks: TaskOption[]; failedProcesses: string[] };
 type ProjectActor = {
   id: string;
   projectId: string;
@@ -89,41 +90,47 @@ export const ProjectRaciManager = ({ projectId }: { projectId: string }) => {
     () => apiClient.get(`/projects/${projectId}/raci/actors`),
     { enabled: Boolean(projectId) },
   );
-  const tasksQuery = useQuery<TaskOption[]>(
+  const tasksQuery = useQuery<TaskLoadResult>(
     ['project-raci-tasks', projectId, processesQuery.data?.map(item => item.resourceId).join(',')],
     async () => {
       const links = processesQuery.data ?? [];
       const perProcess = await Promise.all(links.map(async link => {
         const process = link.resource;
-        if (!process || process.type !== ResourceType.Process) return [];
+        if (!process || process.type !== ResourceType.Process) return { tasks: [], failedProcess: null as string | null };
         try {
           const contents: Content[] = await contentsQuery(process.id).queryFn();
           const published = contents
             .filter(content => content.status === ContentStatusEnum.Published)
             .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0];
-          if (!published) return [];
+          if (!published) return { tasks: [], failedProcess: null as string | null };
           const xml = await getXmlContentQuery(process.id, published.id).queryFn();
-          if (!xml?.trim()) return [];
+          if (!xml?.trim()) return { tasks: [], failedProcess: null as string | null };
           const matrix = deriveRaciMatrixFromXml(xml);
-          return matrix.activities
-            .filter(activity => Boolean(activity.elementId))
-            .map(activity => ({
-              id: activity.elementId,
-              name: activity.activity,
-              resourceId: process.id,
-              processName: process.name,
-              inferredActors: matrix.roles,
-            }));
+          return {
+            tasks: matrix.activities
+              .filter(activity => Boolean(activity.elementId))
+              .map(activity => ({
+                id: activity.elementId,
+                name: activity.activity,
+                resourceId: process.id,
+                processName: process.name,
+                inferredActors: matrix.roles,
+              })),
+            failedProcess: null as string | null,
+          };
         } catch {
-          // Keep usable activities from other processes if one process cannot load.
-          return [];
+          // Keep usable activities from other processes, but surface the failed process.
+          return { tasks: [], failedProcess: process.name };
         }
       }));
       const uniqueTasks = new Map<string, TaskOption>();
-      perProcess.flat().forEach(task => uniqueTasks.set(`${task.resourceId}::${task.id}`, task));
-      return Array.from(uniqueTasks.values()).sort((a, b) =>
-        a.processName.localeCompare(b.processName) || a.name.localeCompare(b.name),
-      );
+      perProcess.flatMap(result => result.tasks).forEach(task => uniqueTasks.set(`${task.resourceId}::${task.id}`, task));
+      return {
+        tasks: Array.from(uniqueTasks.values()).sort((a, b) =>
+          a.processName.localeCompare(b.processName) || a.name.localeCompare(b.name),
+        ),
+        failedProcesses: perProcess.flatMap(result => result.failedProcess ? [result.failedProcess] : []),
+      };
     },
     { enabled: Boolean(projectId) && Boolean(processesQuery.data), staleTime: 30_000 },
   );
@@ -195,7 +202,8 @@ export const ProjectRaciManager = ({ projectId }: { projectId: string }) => {
   );
 
   const currentEntries = entriesQuery.data ?? [];
-  const tasks = tasksQuery.data ?? [];
+  const tasks = tasksQuery.data?.tasks ?? [];
+  const failedProcesses = tasksQuery.data?.failedProcesses ?? [];
   const actors = useMemo(
     () => (actorsQuery.data ?? []).filter(actor => actor.active)
       .sort((a, b) => a.name.localeCompare(b.name)),
@@ -364,6 +372,11 @@ export const ProjectRaciManager = ({ projectId }: { projectId: string }) => {
       <Typography level="body-sm">
         Acteurs actifs : {actors.length}. Les acteurs désactivés restent conservés dans l’historique des affectations, mais ne sont plus proposés comme colonnes.
       </Typography>
+      {failedProcesses.length > 0 && (
+        <Alert color="warning">
+          Impossible de charger les versions publiées de : {failedProcesses.join(', ')}. Les activités des autres processus restent disponibles.
+        </Alert>
+      )}
       {tasksQuery.isLoading || entriesQuery.isLoading || actorsQuery.isLoading ? (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 2 }}>
           <CircularProgress size="sm" />
