@@ -625,7 +625,13 @@ export class ProjectController {
     @Headers() headers: RequestHeaders,
   ) {
     const userId = this.validateUserId(userIdParam);
-    return this.changeProjectMember(projectId, userId, null, undefined, headers);
+    return this.changeProjectMember(
+      projectId,
+      userId,
+      null,
+      undefined,
+      headers,
+    );
   }
 
   private validateUserId(userIdParam: string): string {
