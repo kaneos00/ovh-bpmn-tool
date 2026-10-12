@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useQuery } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 import {
   Alert,
   Box,
@@ -8,7 +8,11 @@ import {
   Card,
   Chip,
   Divider,
+  FormControl,
+  FormLabel,
   Input,
+  Option,
+  Select,
   Sheet,
   Stack,
   Table,
@@ -25,6 +29,17 @@ type MembershipView = {
 type AdminUser = {
   userId: string;
   projects: MembershipView[];
+};
+
+type MembershipChange = {
+  projectId: string;
+  userId: string;
+  role: MembershipView['role'];
+};
+
+type MembershipRemoval = {
+  projectId: string;
+  userId: string;
 };
 
 type AdminProcessLink = {
@@ -103,6 +118,13 @@ export const Component = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [roleDrafts, setRoleDrafts] = useState<Record<string, MembershipView['role']>>({});
+  const [newUserId, setNewUserId] = useState('');
+  const [newProjectId, setNewProjectId] = useState('');
+  const [newRole, setNewRole] = useState<MembershipView['role']>('viewer');
+  const [actionError, setActionError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const section = location.pathname.split('/').filter(Boolean)[1] ?? 'users';
   const activeSection: AdminSection = sections.some((item) => item.key === section)
     ? (section as AdminSection)
@@ -111,6 +133,35 @@ export const Component = () => {
   const overviewQuery = useQuery<AdministrationOverview>(
     queryKey,
     () => apiClient.get('/projects/administration/overview'),
+  );
+
+  const setMembership = useMutation(
+    (change: MembershipChange) =>
+      apiClient.put(
+        `/projects/administration/projects/${change.projectId}/members/${encodeURIComponent(change.userId)}`,
+        { role: change.role },
+      ),
+    {
+      onSuccess: async () => {
+        setActionError(null);
+        await queryClient.invalidateQueries(queryKey);
+      },
+      onError: (error: Error) => setActionError(error.message),
+    },
+  );
+
+  const removeMembership = useMutation(
+    (membership: MembershipRemoval) =>
+      apiClient.remove(
+        `/projects/administration/projects/${membership.projectId}/members/${encodeURIComponent(membership.userId)}`,
+      ),
+    {
+      onSuccess: async () => {
+        setActionError(null);
+        await queryClient.invalidateQueries(queryKey);
+      },
+      onError: (error: Error) => setActionError(error.message),
+    },
   );
 
   const overview = overviewQuery.data;
@@ -147,6 +198,8 @@ export const Component = () => {
     ),
     [overview?.processes, normalizedSearch],
   );
+
+  const selectedUser = users.find((user) => user.userId === selectedUserId);
 
   const title = sections.find((item) => item.key === activeSection)?.label ?? 'Utilisateurs';
 
@@ -212,10 +265,104 @@ export const Component = () => {
         )}
 
         {activeSection === 'users' && overview && (
+          <Card variant="outlined" sx={{ gap: 1.5 }}>
+            <Typography level="title-lg">Ajouter un accès à un projet</Typography>
+            <Typography level="body-sm" sx={{ color: 'text.secondary' }}>
+              L’identifiant est celui utilisé par le proxy d’authentification. L’accès est créé uniquement pour le projet choisi.
+            </Typography>
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} useFlexGap flexWrap="wrap" sx={{ alignItems: { md: 'flex-end' } }}>
+              <FormControl sx={{ flex: 1, minWidth: 200 }}>
+                <FormLabel>Identifiant utilisateur</FormLabel>
+                <Input value={newUserId} onChange={(event) => setNewUserId(event.target.value)} placeholder="Identifiant exact" />
+              </FormControl>
+              <FormControl sx={{ flex: 1, minWidth: 200 }}>
+                <FormLabel>Projet</FormLabel>
+                <Select value={newProjectId || null} onChange={(_event, value) => setNewProjectId(value ?? '')} placeholder="Choisir un projet">
+                  {overview.projects.map((project) => (
+                    <Option key={project.id} value={project.id}>{project.name}</Option>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl sx={{ minWidth: 170 }}>
+                <FormLabel>Rôle projet</FormLabel>
+                <Select value={newRole} onChange={(_event, value) => value && setNewRole(value as MembershipView['role'])}>
+                  <Option value="viewer">Viewer — lecture</Option>
+                  <Option value="modeler">Modeler — modification</Option>
+                  <Option value="admin">Admin — gestion du projet</Option>
+                </Select>
+              </FormControl>
+              <Button
+                disabled={!newUserId.trim() || !newProjectId || setMembership.isLoading}
+                loading={setMembership.isLoading}
+                onClick={() => setMembership.mutate(
+                  { projectId: newProjectId, userId: newUserId.trim(), role: newRole },
+                  { onSuccess: () => { setNewUserId(''); setNewProjectId(''); } },
+                )}
+              >
+                Ajouter l’accès
+              </Button>
+            </Stack>
+            {actionError && <Alert color="danger">{actionError}</Alert>}
+          </Card>
+        )}
+
+        {activeSection === 'users' && selectedUser && (
+          <Card variant="outlined" sx={{ gap: 1.5 }}>
+            <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography level="title-lg">Accès de {selectedUser.userId}</Typography>
+                <Typography level="body-sm" sx={{ color: 'text.secondary' }}>
+                  Les modifications sont réservées au groupe d’administration organisationnelle.
+                </Typography>
+              </Box>
+              <Button size="sm" variant="plain" color="neutral" onClick={() => setSelectedUserId(null)}>Fermer</Button>
+            </Stack>
+            {selectedUser.projects.map((project) => {
+              const key = `${selectedUser.userId}:${project.projectId}`;
+              const role = roleDrafts[key] ?? project.role;
+              return (
+                <Stack key={project.projectId} direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ alignItems: { md: 'center' }, borderTop: '1px solid', borderColor: 'divider', pt: 1.5 }}>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography level="title-sm">{project.projectName}</Typography>
+                    <Typography level="body-xs" sx={{ color: 'text.secondary' }}>Rôle actuel : {roleLabel[project.role]}</Typography>
+                  </Box>
+                  <FormControl sx={{ minWidth: 180 }}>
+                    <FormLabel>Nouveau rôle</FormLabel>
+                    <Select value={role} onChange={(_event, value) => value && setRoleDrafts((previous) => ({ ...previous, [key]: value as MembershipView['role'] }))}>
+                      <Option value="viewer">Viewer — lecture</Option>
+                      <Option value="modeler">Modeler — modification</Option>
+                      <Option value="admin">Admin — gestion du projet</Option>
+                    </Select>
+                  </FormControl>
+                  <Button
+                    size="sm"
+                    disabled={role === project.role || setMembership.isLoading}
+                    loading={setMembership.isLoading}
+                    onClick={() => setMembership.mutate({ projectId: project.projectId, userId: selectedUser.userId, role })}
+                  >
+                    Enregistrer
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outlined"
+                    color="danger"
+                    disabled={removeMembership.isLoading}
+                    loading={removeMembership.isLoading}
+                    onClick={() => removeMembership.mutate({ projectId: project.projectId, userId: selectedUser.userId })}
+                  >
+                    Retirer
+                  </Button>
+                </Stack>
+              );
+            })}
+          </Card>
+        )}
+
+        {activeSection === 'users' && overview && (
           <Card variant="outlined" sx={{ p: 0, overflow: 'auto' }}>
             <Table hoverRow stickyHeader>
               <thead>
-                <tr><th>Identifiant utilisateur</th><th>Nombre de projets</th><th>Projets et rôles</th><th>Gestion</th></tr>
+                <tr><th>Identifiant utilisateur</th><th>Nombre de projets</th><th>Projets et rôles</th><th>Actions</th></tr>
               </thead>
               <tbody>
                 {users.map((user) => (
@@ -232,13 +379,13 @@ export const Component = () => {
                       </Stack>
                     </td>
                     <td>
-                      <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">
-                        {user.projects.map((project) => (
-                          <Button key={project.projectId} size="sm" variant="plain" onClick={() => navigate(`/projects/${project.projectId}`)}>
-                            Gérer l’accès
-                          </Button>
-                        ))}
-                      </Stack>
+                      <Button
+                        size="sm"
+                        variant="outlined"
+                        onClick={() => setSelectedUserId(user.userId)}
+                      >
+                        Gérer les accès
+                      </Button>
                     </td>
                   </tr>
                 ))}
