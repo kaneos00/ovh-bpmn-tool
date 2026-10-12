@@ -198,7 +198,12 @@ export const Component = () => {
     return (
       <Sheet sx={{ maxWidth: 1000, mx: 'auto', p: { xs: 2, md: 4 } }}>
         <Stack spacing={2}>
-          <Typography level="h2">Projets</Typography>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
+            <Typography level="h2">Projets</Typography>
+            <Button variant="outlined" color="neutral" onClick={() => navigate('/admin')}>
+              Administration utilisateurs / projets / processus
+            </Button>
+          </Stack>
           <Typography level="body-md">
             Les projets référencent les processus du catalogue commun. Un processus partagé reste dans le référentiel et peut être réutilisé par plusieurs projets.
           </Typography>
