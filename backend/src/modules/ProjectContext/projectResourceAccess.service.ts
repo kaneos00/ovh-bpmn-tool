@@ -6,6 +6,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import { ResourceTypeOrmEntity } from '../ResourceContext/infrastructure/entities/resource.ormEntity';
 import {
   ProjectProcessTypeOrmEntity,
   ProjectProcessUsage,
@@ -30,6 +31,8 @@ export class ProjectResourceAccessService {
     private readonly projectProcesses: Repository<ProjectProcessTypeOrmEntity>,
     @InjectRepository(ProjectMemberTypeOrmEntity)
     private readonly projectMembers: Repository<ProjectMemberTypeOrmEntity>,
+    @InjectRepository(ResourceTypeOrmEntity)
+    private readonly resources: Repository<ResourceTypeOrmEntity>,
   ) {}
 
   async assertCanReadResource(resourceId: string, headers: RequestHeaders) {
@@ -135,6 +138,20 @@ export class ProjectResourceAccessService {
   }
 
   async assertCanDeleteResource(resourceId: string) {
+    const links = await this.projectProcesses.find({ where: { resourceId } });
+    if (links.some((link) => link.usage === ProjectProcessUsage.Common)) {
+      throw new ForbiddenException(
+        'Common processes cannot be deleted through generic resource endpoints',
+      );
+    }
+
+    const linkedProjectIds = new Set(links.map((link) => link.projectId));
+    if (linkedProjectIds.size > 1) {
+      throw new BadRequestException(
+        'This process is shared by multiple projects; unlink it from all projects before deleting it',
+      );
+    }
+
     const dependentVariants = await this.projectProcesses.count({
       where: { sourceResourceId: resourceId },
     });
@@ -142,6 +159,41 @@ export class ProjectResourceAccessService {
       throw new BadRequestException(
         'This process is the source of one or more variants; remove those variants before deleting the source process',
       );
+    }
+  }
+
+  /**
+   * Resource deletion removes the selected resource and its descendant tree.
+   * Check every affected resource first so a folder cannot bypass project
+   * access rules by deleting a protected child process indirectly.
+   */
+  async assertCanDeleteResourceTree(
+    resourceId: string,
+    headers: RequestHeaders,
+  ) {
+    const resourceIds = [resourceId];
+    const visited = new Set(resourceIds);
+    let parentIds = [resourceId];
+
+    while (parentIds.length) {
+      const children = await this.resources.find({
+        where: { parentId: In(parentIds) },
+        select: { id: true, parentId: true },
+      });
+      const nextParentIds = children
+        .map((child) => child.id)
+        .filter((id) => !visited.has(id));
+
+      for (const id of nextParentIds) {
+        visited.add(id);
+        resourceIds.push(id);
+      }
+      parentIds = nextParentIds;
+    }
+
+    for (const id of resourceIds) {
+      await this.assertCanEditResource(id, headers);
+      await this.assertCanDeleteResource(id);
     }
   }
 
