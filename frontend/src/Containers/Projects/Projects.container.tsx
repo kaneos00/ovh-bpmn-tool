@@ -349,7 +349,7 @@ export const Component = () => {
           </Typography>
           <ProjectRaciPanel
             projectId={projectId}
-            onActivityClick={(targetResourceId) => navigate(`/${targetResourceId}`)}
+            onActivityClick={(targetResourceId, elementId) => navigate(`/${targetResourceId}?elementId=${encodeURIComponent(elementId)}`)}
           />
         </Card>
       </Stack>
