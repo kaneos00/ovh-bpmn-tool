@@ -251,7 +251,7 @@ export class ProjectRaciController {
     @Body() body: { name?: string },
     @Headers() headers: RequestHeaders,
   ) {
-    const userId = await this.assertRole(projectId, headers, ProjectMemberRole.Modeler);
+    await this.assertRole(projectId, headers, ProjectMemberRole.Modeler);
     const name = this.validateActorName(body.name);
     const normalizedName = this.normalizeActorName(name);
 
@@ -297,7 +297,7 @@ export class ProjectRaciController {
     @Body() body: { active?: boolean },
     @Headers() headers: RequestHeaders,
   ) {
-    const userId = await this.assertRole(projectId, headers, ProjectMemberRole.Modeler);
+    await this.assertRole(projectId, headers, ProjectMemberRole.Modeler);
     if (typeof body.active !== 'boolean') {
       throw new BadRequestException('active must be a boolean');
     }
