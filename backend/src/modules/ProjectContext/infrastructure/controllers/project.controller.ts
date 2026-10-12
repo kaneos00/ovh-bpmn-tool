@@ -200,6 +200,60 @@ export class ProjectController {
     };
   }
 
+  @Put('administration/projects/:projectId/members/:userId')
+  @UseAcl([UserGroup.Admin])
+  async setOrganizationProjectMember(
+    @Param('projectId') projectId: string,
+    @Param('userId') userIdParam: string,
+    @Body() body: { role?: ProjectMemberRole },
+    @Headers() headers: RequestHeaders,
+  ) {
+    const actorId = this.getUserId(headers);
+    await this.assertProjectExists(projectId);
+
+    const userId = userIdParam.trim();
+    if (!userId || userId.length > 255) {
+      throw new BadRequestException('userId must contain 1 to 255 characters');
+    }
+    if (!body.role || !Object.values(ProjectMemberRole).includes(body.role)) {
+      throw new BadRequestException('role must be viewer, modeler, or admin');
+    }
+
+    const existing = await this.projectMembers.findOneBy({ projectId, userId });
+    if (
+      existing?.role === ProjectMemberRole.Admin &&
+      body.role !== ProjectMemberRole.Admin
+    ) {
+      await this.assertNotLastAdmin(projectId, userId);
+    }
+
+    const member =
+      existing ??
+      this.projectMembers.create({
+        projectId,
+        userId,
+        createdBy: actorId,
+      });
+    member.role = body.role;
+    return this.projectMembers.save(member);
+  }
+
+  @Delete('administration/projects/:projectId/members/:userId')
+  @UseAcl([UserGroup.Admin])
+  async removeOrganizationProjectMember(
+    @Param('projectId') projectId: string,
+    @Param('userId') userId: string,
+  ) {
+    await this.assertProjectExists(projectId);
+    const member = await this.projectMembers.findOneBy({ projectId, userId });
+    if (!member) throw new NotFoundException('Project member not found');
+    if (member.role === ProjectMemberRole.Admin) {
+      await this.assertNotLastAdmin(projectId, userId);
+    }
+    await this.projectMembers.delete({ projectId, userId });
+    return { deleted: true, projectId, userId };
+  }
+
   @Get(':projectId')
   @UseAcl()
   async getProject(
