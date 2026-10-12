@@ -37,7 +37,10 @@ export class GetContentQueryHandler {
 
     if (contentResult.ok.state.resourceId !== resourceId) {
       return fail(
-        new Error('Content does not belong to the requested resource'),
+        new CannotFindContentError(
+          contentId,
+          new Error('Content does not belong to the requested resource'),
+        ),
       );
     }
 
