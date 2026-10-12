@@ -37,6 +37,12 @@ describe('AclGuard group matching', () => {
     await expect(activate('bpmn-tool-admin-demo')).resolves.toBe(true);
   });
 
+  it('accepts alphanumeric identity suffixes for the exact admin group', async () => {
+    const { activate } = makeGuard([UserGroup.Admin]);
+
+    await expect(activate('bpmn-tool-admin-admin01')).resolves.toBe(true);
+  });
+
   it('does not grant organization administration to a read-write user', async () => {
     const { activate } = makeGuard([UserGroup.Admin]);
 
