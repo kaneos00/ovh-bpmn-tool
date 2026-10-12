@@ -127,7 +127,9 @@ export class ProjectController {
       }),
     ]);
 
-    const projectById = new Map(projects.map((project) => [project.id, project]));
+    const projectById = new Map(
+      projects.map((project) => [project.id, project]),
+    );
     const resourceById = new Map(
       processResources.map((resource) => [resource.id, resource]),
     );
@@ -137,7 +139,8 @@ export class ProjectController {
     const linksByResource = new Map<string, typeof links>();
 
     for (const membership of memberships) {
-      const projectMemberships = membershipsByProject.get(membership.projectId) ?? [];
+      const projectMemberships =
+        membershipsByProject.get(membership.projectId) ?? [];
       projectMemberships.push(membership);
       membershipsByProject.set(membership.projectId, projectMemberships);
 
@@ -173,10 +176,15 @@ export class ProjectController {
           projects: userMemberships
             .map((membership) => ({
               projectId: membership.projectId,
-              projectName: projectById.get(membership.projectId)?.name ?? membership.projectId,
+              projectName:
+                projectById.get(membership.projectId)?.name ??
+                membership.projectId,
               role: membership.role,
             }))
-            .sort((left, right) => left.projectName.localeCompare(right.projectName)),
+            .sort(
+              (left, right) =>
+                left.projectName.localeCompare(right.projectName),
+            ),
         }))
         .sort((left, right) => left.userId.localeCompare(right.userId)),
       processes: processResources.map((resource) => ({
