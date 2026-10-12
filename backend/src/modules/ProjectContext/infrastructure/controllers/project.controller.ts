@@ -157,7 +157,9 @@ export class ProjectController {
     @Headers() headers: RequestHeaders,
   ) {
     await this.assertProjectRole(projectId, headers, ProjectMemberRole.Admin);
-    const linkedProcesses = await this.projectProcesses.count({ where: { projectId } });
+    const linkedProcesses = await this.projectProcesses.count({
+      where: { projectId },
+    });
     if (linkedProcesses > 0) {
       throw new BadRequestException(
         'Remove or delete all linked processes before deleting this project',
@@ -221,11 +223,7 @@ export class ProjectController {
     }
 
     if (usage === ProjectProcessUsage.Common) {
-      await this.assertProjectRole(
-        projectId,
-        headers,
-        ProjectMemberRole.Admin,
-      );
+      await this.assertProjectRole(projectId, headers, ProjectMemberRole.Admin);
     }
 
     const resource = await this.resources.findOneBy({ id: body.resourceId });
@@ -236,7 +234,10 @@ export class ProjectController {
     }
 
     // Do not let a project modeler attach a restricted process by guessing its ID.
-    await this.projectResourceAccess.assertCanReadResource(resource.id, headers);
+    await this.projectResourceAccess.assertCanReadResource(
+      resource.id,
+      headers,
+    );
 
     let sourceResourceId: string | null = null;
     if (usage === ProjectProcessUsage.Variant) {
@@ -279,7 +280,6 @@ export class ProjectController {
       throw error;
     }
   }
-
 
   @Post(':projectId/processes/variants')
   @UseAcl([UserGroup.RW])
@@ -415,9 +415,14 @@ export class ProjectController {
     @Headers() headers: RequestHeaders,
   ) {
     await this.assertProjectRole(projectId, headers, ProjectMemberRole.Modeler);
-    const link = await this.projectProcesses.findOneBy({ projectId, resourceId });
+    const link = await this.projectProcesses.findOneBy({
+      projectId,
+      resourceId,
+    });
     if (!link) throw new NotFoundException('Process link not found');
-    const linksToResource = await this.projectProcesses.count({ where: { resourceId } });
+    const linksToResource = await this.projectProcesses.count({
+      where: { resourceId },
+    });
     if (linksToResource <= 1) {
       throw new BadRequestException(
         'A process cannot be unlinked from its last project because that would remove project-level access restrictions; delete the process instead',
@@ -503,7 +508,8 @@ export class ProjectController {
 
   private getUserId(headers: RequestHeaders): string {
     const configuredHeader = this.configService.getOrThrow<string>('userHeader');
-    const userId = headers[configuredHeader] ?? headers[configuredHeader.toLowerCase()];
+    const userId =
+      headers[configuredHeader] ?? headers[configuredHeader.toLowerCase()];
     if (!userId?.trim()) {
       throw new ForbiddenException('Authenticated user identity is missing');
     }
@@ -517,7 +523,10 @@ export class ProjectController {
   ) {
     await this.assertProjectExists(projectId);
     const userId = this.getUserId(headers);
-    const membership = await this.projectMembers.findOneBy({ projectId, userId });
+    const membership = await this.projectMembers.findOneBy({
+      projectId,
+      userId,
+    });
     const roleRank: Record<ProjectMemberRole, number> = {
       [ProjectMemberRole.Viewer]: 1,
       [ProjectMemberRole.Modeler]: 2,
