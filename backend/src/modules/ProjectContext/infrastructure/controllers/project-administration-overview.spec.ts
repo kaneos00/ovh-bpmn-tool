@@ -129,9 +129,7 @@ describe('ProjectController administration overview', () => {
       },
     ]);
     expect(
-      result.projects.find(
-        (project) => project.id === 'project-a',
-      )?.processes[0],
+      result.projects.find((project) => project.id === 'project-a')?.processes[0],
     ).toMatchObject({
       resourceId: 'process-shared',
       name: 'Gestion commune',
@@ -143,19 +141,13 @@ describe('ProjectController administration overview', () => {
     const result = await controller.getAdministrationOverview();
 
     expect(
-      result.projects.find(
-        (project) => project.id === 'project-a',
-      )?.membersCount,
+      result.projects.find((project) => project.id === 'project-a')?.membersCount,
     ).toBe(2);
     expect(
-      result.projects.find(
-        (project) => project.id === 'project-b',
-      )?.membersCount,
+      result.projects.find((project) => project.id === 'project-b')?.membersCount,
     ).toBe(1);
     expect(
-      result.processes.find(
-        (process) => process.id === 'process-variant',
-      )?.projects[0],
+      result.processes.find((process) => process.id === 'process-variant')?.projects[0],
     ).toMatchObject({
       projectId: 'project-b',
       usage: 'variant',
