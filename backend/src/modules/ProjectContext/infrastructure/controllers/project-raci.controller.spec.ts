@@ -196,7 +196,9 @@ describe('ProjectRaciController actor register', () => {
   });
 
   it('rejects assigning an inactive actor to a RACI entry', async () => {
-    actors.find.mockResolvedValue([
+    // The repository query filters inactive actors out; emulate that DB behavior.
+    actors.find.mockResolvedValue([]);
+    /* actors.find.mockResolvedValue([
       {
         id: 'actor-1',
         projectId: 'project-1',
@@ -205,7 +207,7 @@ describe('ProjectRaciController actor register', () => {
         active: false,
         origin: 'manual',
       },
-    ]);
+    ]); */
 
     await expect(
       controllerCall().replaceProjectRaci(
