@@ -4,6 +4,7 @@ describe('ResourceTypeOrmRepository.delete', () => {
   const resourceRepository = {
     query: jest.fn(),
     delete: jest.fn(),
+    find: jest.fn(),
   };
   let repository: ResourceTypeOrmRepository;
 
@@ -53,5 +54,42 @@ describe('ResourceTypeOrmRepository.delete', () => {
 
     expect(result.ok).toBeNull();
     expect(result.fail).toBeInstanceOf(Error);
+  });
+});
+
+describe('ResourceTypeOrmRepository.find', () => {
+  const resourceRepository = {
+    find: jest.fn(),
+  };
+  let repository: ResourceTypeOrmRepository;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    repository = new ResourceTypeOrmRepository(resourceRepository as never);
+  });
+
+  it('omits undefined optional filters from the TypeORM where clause', async () => {
+    resourceRepository.find.mockResolvedValue([]);
+
+    const result = await repository.find({
+      type: undefined,
+      depth: undefined,
+      parentId: 'root-id',
+    });
+
+    expect(result).toEqual({ ok: [], fail: null });
+    expect(resourceRepository.find).toHaveBeenCalledWith({
+      where: { parentId: 'root-id' },
+    });
+  });
+
+  it('includes the original database error in the returned failure', async () => {
+    resourceRepository.find.mockRejectedValue(new Error('database unavailable'));
+
+    const result = await repository.find({ parentId: 'root-id' });
+
+    expect(result.ok).toBeNull();
+    expect(result.fail).toBeInstanceOf(Error);
+    expect((result.fail as Error).message).toContain('database unavailable');
   });
 });
