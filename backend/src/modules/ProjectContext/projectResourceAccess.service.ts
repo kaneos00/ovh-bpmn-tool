@@ -146,7 +146,8 @@ export class ProjectResourceAccessService {
   }
 
   private getUserId(headers: RequestHeaders): string {
-    const configuredHeader = this.configService.getOrThrow<string>('userHeader');
+    const configuredHeader =
+      this.configService.getOrThrow<string>('userHeader');
     const userId =
       headers[configuredHeader] ?? headers[configuredHeader.toLowerCase()];
     if (!userId?.trim()) {
