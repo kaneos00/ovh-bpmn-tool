@@ -340,7 +340,12 @@ export const Component = () => {
           <Typography level="body-sm">
             Les affectations ci-dessous sont propres à ce projet. Elles sont enregistrées indépendamment des propriétés RACI présentes dans les fichiers BPMN.
           </Typography>
-          <ProjectRaciManager projectId={projectId} />
+          <ProjectRaciManager
+            projectId={projectId}
+            onActivityClick={(targetResourceId, elementId) =>
+              navigate(`/${targetResourceId}?elementId=${encodeURIComponent(elementId)}`)
+            }
+          />
         </Card>
         <Card variant="outlined">
           <Typography level="title-lg">Synthèse RACI des diagrammes publiés</Typography>
