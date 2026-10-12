@@ -114,13 +114,24 @@ export class ProjectRaciController {
 
     const unique = new Set<string>();
     for (const entry of normalized) {
-      const key = [entry.resourceId, entry.taskId, entry.actorName].join('|');
+      const key = JSON.stringify([entry.resourceId, entry.taskId, this.normalizeActorName(entry.actorName)]);
       if (unique.has(key)) {
         throw new BadRequestException(
           'An actor can have only one RACI role per task in a process',
         );
       }
       unique.add(key);
+    }
+
+    if (normalized.length) {
+      const registeredActors = await this.actors.find({ where: { projectId } });
+      const registeredNames = new Set(registeredActors.map(actor => actor.normalizedName));
+      const unregistered = normalized.find(entry => !registeredNames.has(this.normalizeActorName(entry.actorName)));
+      if (unregistered) {
+        throw new BadRequestException(
+          `Actor "${unregistered.actorName}" is not registered in this project`,
+        );
+      }
     }
 
     if (normalized.length) {
