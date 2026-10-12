@@ -42,6 +42,10 @@ type MembershipRemoval = {
   userId: string;
 };
 
+type ProjectCreate = { name: string; description: string };
+type ProjectUpdate = { id: string; name: string; description: string };
+type ProjectRemoval = { id: string };
+
 type AdminProcessLink = {
   projectId: string;
   projectName: string;
@@ -123,6 +127,11 @@ export const Component = () => {
   const [newUserId, setNewUserId] = useState('');
   const [newProjectId, setNewProjectId] = useState('');
   const [newRole, setNewRole] = useState<MembershipView['role']>('viewer');
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [projectNameDraft, setProjectNameDraft] = useState('');
+  const [projectDescriptionDraft, setProjectDescriptionDraft] = useState('');
+  const [newProjectName, setNewProjectName] = useState('');
+  const [newProjectDescription, setNewProjectDescription] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const section = location.pathname.split('/').filter(Boolean)[1] ?? 'users';
@@ -158,6 +167,47 @@ export const Component = () => {
     {
       onSuccess: async () => {
         setActionError(null);
+        await queryClient.invalidateQueries(queryKey);
+      },
+      onError: (error: Error) => setActionError(error.message),
+    },
+  );
+
+  const createProject = useMutation(
+    (project: ProjectCreate) => apiClient.post('/projects', project),
+    {
+      onSuccess: async () => {
+        setActionError(null);
+        setNewProjectName('');
+        setNewProjectDescription('');
+        await queryClient.invalidateQueries(queryKey);
+      },
+      onError: (error: Error) => setActionError(error.message),
+    },
+  );
+
+  const updateProject = useMutation(
+    (project: ProjectUpdate) =>
+      apiClient.put(`/projects/administration/projects/${project.id}`, {
+        name: project.name,
+        description: project.description,
+      }),
+    {
+      onSuccess: async () => {
+        setActionError(null);
+        await queryClient.invalidateQueries(queryKey);
+      },
+      onError: (error: Error) => setActionError(error.message),
+    },
+  );
+
+  const deleteProject = useMutation(
+    (project: ProjectRemoval) =>
+      apiClient.remove(`/projects/administration/projects/${project.id}`),
+    {
+      onSuccess: async () => {
+        setActionError(null);
+        setSelectedProjectId(null);
         await queryClient.invalidateQueries(queryKey);
       },
       onError: (error: Error) => setActionError(error.message),
@@ -200,6 +250,7 @@ export const Component = () => {
   );
 
   const selectedUser = users.find((user) => user.userId === selectedUserId);
+  const selectedProject = overview?.projects.find((project) => project.id === selectedProjectId);
 
   const title = sections.find((item) => item.key === activeSection)?.label ?? 'Utilisateurs';
 
@@ -263,6 +314,7 @@ export const Component = () => {
             Impossible de charger cette vue. Vérifiez que votre compte possède le groupe d’administration organisationnelle et que l’API V2 est à jour.
           </Alert>
         )}
+        {actionError && <Alert color="danger">{actionError}</Alert>}
 
         {activeSection === 'users' && overview && (
           <Card variant="outlined" sx={{ gap: 1.5 }}>
@@ -302,7 +354,6 @@ export const Component = () => {
                 Ajouter l’accès
               </Button>
             </Stack>
-            {actionError && <Alert color="danger">{actionError}</Alert>}
           </Card>
         )}
 
@@ -396,6 +447,78 @@ export const Component = () => {
         )}
 
         {activeSection === 'projects' && overview && (
+          <Card variant="outlined" sx={{ gap: 1.5 }}>
+            <Typography level="title-lg">Créer un projet</Typography>
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} useFlexGap flexWrap="wrap" sx={{ alignItems: { md: 'flex-end' } }}>
+              <FormControl sx={{ flex: 1, minWidth: 220 }}>
+                <FormLabel>Nom du projet</FormLabel>
+                <Input value={newProjectName} onChange={(event) => setNewProjectName(event.target.value)} placeholder="Nom du nouveau projet" />
+              </FormControl>
+              <FormControl sx={{ flex: 2, minWidth: 260 }}>
+                <FormLabel>Description</FormLabel>
+                <Input value={newProjectDescription} onChange={(event) => setNewProjectDescription(event.target.value)} placeholder="Description facultative" />
+              </FormControl>
+              <Button
+                disabled={!newProjectName.trim() || createProject.isLoading}
+                loading={createProject.isLoading}
+                onClick={() => createProject.mutate({ name: newProjectName.trim(), description: newProjectDescription.trim() })}
+              >
+                Créer le projet
+              </Button>
+            </Stack>
+          </Card>
+        )}
+
+        {activeSection === 'projects' && selectedProject && (
+          <Card variant="outlined" sx={{ gap: 1.5 }}>
+            <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography level="title-lg">Gérer {selectedProject.name}</Typography>
+                <Typography level="body-sm" sx={{ color: 'text.secondary' }}>
+                  {selectedProject.membersCount} membre(s) · {selectedProject.processes.length} processus associé(s)
+                </Typography>
+              </Box>
+              <Button size="sm" variant="plain" color="neutral" onClick={() => setSelectedProjectId(null)}>Fermer</Button>
+            </Stack>
+            <FormControl>
+              <FormLabel>Nom</FormLabel>
+              <Input value={projectNameDraft} onChange={(event) => setProjectNameDraft(event.target.value)} />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Description</FormLabel>
+              <Input value={projectDescriptionDraft} onChange={(event) => setProjectDescriptionDraft(event.target.value)} />
+            </FormControl>
+            <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+              <Button
+                disabled={!projectNameDraft.trim() || updateProject.isLoading || (projectNameDraft === selectedProject.name && projectDescriptionDraft === (selectedProject.description ?? ''))}
+                loading={updateProject.isLoading}
+                onClick={() => updateProject.mutate({ id: selectedProject.id, name: projectNameDraft.trim(), description: projectDescriptionDraft.trim() })}
+              >
+                Enregistrer
+              </Button>
+              <Button
+                variant="outlined"
+                color="danger"
+                disabled={selectedProject.processes.length > 0 || deleteProject.isLoading}
+                loading={deleteProject.isLoading}
+                onClick={() => {
+                  if (window.confirm(`Supprimer le projet « ${selectedProject.name} » ? Cette action est irréversible.`)) {
+                    deleteProject.mutate({ id: selectedProject.id });
+                  }
+                }}
+              >
+                Supprimer le projet
+              </Button>
+              {selectedProject.processes.length > 0 && (
+                <Typography level="body-xs" sx={{ color: 'text.secondary', alignSelf: 'center' }}>
+                  Retirez d’abord les {selectedProject.processes.length} processus associés avant suppression.
+                </Typography>
+              )}
+            </Stack>
+          </Card>
+        )}
+
+        {activeSection === 'projects' && overview && (
           <Card variant="outlined" sx={{ p: 0, overflow: 'auto' }}>
             <Table hoverRow stickyHeader>
               <thead>
@@ -410,7 +533,7 @@ export const Component = () => {
                     <td>{project.processes.filter((process) => process.usage === 'common').length}</td>
                     <td>{project.processes.filter((process) => process.usage === 'project-specific').length}</td>
                     <td>{project.processes.filter((process) => process.usage === 'variant').length}</td>
-                    <td><Button size="sm" variant="outlined" onClick={() => navigate(`/projects/${project.id}`)}>Ouvrir</Button></td>
+                    <td><Button size="sm" variant="outlined" onClick={() => { setSelectedProjectId(project.id); setProjectNameDraft(project.name); setProjectDescriptionDraft(project.description ?? ''); }}>Gérer</Button></td>
                   </tr>
                 ))}
                 {projects.length === 0 && <tr><td colSpan={7}>Aucun projet correspondant.</td></tr>}
