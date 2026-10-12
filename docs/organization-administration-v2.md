@@ -19,6 +19,8 @@ Les routes d’administration suivantes sont également réservées au groupe AC
 - `PUT /projects/administration/projects/:projectId/members/:userId` : attribuer ou modifier un rôle de projet.
 - `DELETE /projects/administration/projects/:projectId/members/:userId` : retirer une adhésion, en conservant la protection du dernier administrateur.
 
+Les modifications d’adhésion verrouillent la ligne du projet dans une transaction afin de sérialiser les retraits/rétrogradations concurrents et éviter de supprimer simultanément tous les administrateurs.
+
 Ces routes dédiées évitent d’exiger que l’administrateur organisationnel soit membre de chaque projet. Les opérations BPMN de modélisation restent soumises aux droits projet habituels.
 
 ## IHM
@@ -36,6 +38,6 @@ Les rôles affichés dans l'IHM sont des rôles de projet (`viewer`, `modeler`, 
 
 ## Validation
 
-Le test unitaire `project-administration-overview.spec.ts` vérifie l'agrégation des adhésions, la réutilisation d'un processus commun et la conservation de la source d'une variante.
+Le test unitaire `project-administration-overview.spec.ts` vérifie l'agrégation des adhésions, la réutilisation d'un processus commun, la conservation de la source d'une variante, la mise à jour/suppression de projet et les protections d’administration.
 
 La maquette HTML de conception reste dans la PR #5 et demeure indépendante de cette implémentation. Cette PR apporte la première intégration réelle, mais elle doit passer la CI avant toute fusion ou déploiement.
