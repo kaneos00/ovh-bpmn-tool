@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { ProjectMemberRole } from '../entities/projectMember.ormEntity';
 import { ProjectRaciActorTypeOrmEntity } from '../entities/projectRaciActor.ormEntity';
-import { ProjectRaciEntryTypeOrmEntity, ProjectRaciRole } from '../entities/projectRaciEntry.ormEntity';
+import { ProjectRaciRole } from '../entities/projectRaciEntry.ormEntity';
 import { ProjectRaciController } from './project-raci.controller';
 
 describe('ProjectRaciController actor register', () => {
@@ -29,6 +29,7 @@ describe('ProjectRaciController actor register', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    dataSource.transaction.mockReset();
     configService.getOrThrow.mockReturnValue('x-user');
     projectMembers.findOne.mockResolvedValue(membership);
     projectProcesses.find.mockResolvedValue([]);
