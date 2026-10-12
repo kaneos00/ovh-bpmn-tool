@@ -129,3 +129,13 @@
 .bpmn-tool-navigation-button:hover {
   background: #f1f5f9;
 }
+
+/* Highlight BPMN elements selected from a project-wide RACI matrix. */
+.djs-element.raci-selected .djs-visual > :first-child {
+  stroke: #d32f2f !important;
+  stroke-width: 4px !important;
+}
+
+.djs-element.raci-selected .djs-visual > :first-child:not(rect):not(circle):not(ellipse) {
+  filter: drop-shadow(0 0 2px rgba(211, 47, 47, 0.45));
+}
