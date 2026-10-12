@@ -53,6 +53,15 @@ export class PublishContentCommandHandler {
 
     const content = contentResult.ok;
 
+    if (content.state.resourceId !== resourceId) {
+      return fail(
+        new CannotFindContentError(
+          contentId,
+          new Error('Content does not belong to the requested resource'),
+        ),
+      );
+    }
+
     if (
       content.state.status &&
       content.state.status !== ContentStatusEnum.Draft
