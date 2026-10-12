@@ -12,6 +12,8 @@ describe('ProjectController administration overview', () => {
       name: 'Atlas',
       description: 'Operations',
     }),
+    save: jest.fn((project) => Promise.resolve(project)),
+    delete: jest.fn().mockResolvedValue({ affected: 1 }),
   };
   const projectMembers = {
     find: jest.fn(),
@@ -22,6 +24,7 @@ describe('ProjectController administration overview', () => {
   };
   const projectProcesses = {
     find: jest.fn(),
+    count: jest.fn().mockResolvedValue(0),
   };
   const resources = {
     find: jest.fn(),
@@ -146,6 +149,55 @@ describe('ProjectController administration overview', () => {
       name: 'Gestion commune',
       usage: 'common',
     });
+  });
+
+  it('allows an organization administrator to update project metadata', async () => {
+    const project = {
+      id: 'project-a',
+      name: 'Atlas',
+      description: 'Operations',
+    };
+    projects.findOneBy.mockResolvedValue(project);
+
+    const result = await controller.updateOrganizationProject('project-a', {
+      name: 'Atlas V2',
+      description: 'Updated description',
+    });
+
+    expect(result).toMatchObject({
+      id: 'project-a',
+      name: 'Atlas V2',
+      description: 'Updated description',
+    });
+    expect(projects.save).toHaveBeenCalledWith(project);
+  });
+
+  it('prevents deleting a project while processes are still linked', async () => {
+    projects.findOneBy.mockResolvedValue({
+      id: 'project-a',
+      name: 'Atlas',
+      description: 'Operations',
+    });
+    projectProcesses.count.mockResolvedValue(1);
+
+    await expect(
+      controller.deleteOrganizationProject('project-a'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(projects.delete).not.toHaveBeenCalled();
+  });
+
+  it('allows deleting an empty project from organization administration', async () => {
+    projects.findOneBy.mockResolvedValue({
+      id: 'project-a',
+      name: 'Atlas',
+      description: 'Operations',
+    });
+    projectProcesses.count.mockResolvedValue(0);
+
+    await expect(
+      controller.deleteOrganizationProject('project-a'),
+    ).resolves.toEqual({ deleted: true, projectId: 'project-a' });
+    expect(projects.delete).toHaveBeenCalledWith({ id: 'project-a' });
   });
 
   it('allows an organization administrator to set a project member role', async () => {
