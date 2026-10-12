@@ -272,7 +272,6 @@ export class ProjectRaciController {
           .execute();
         actor.name = name;
         actor.normalizedName = normalizedName;
-        actor.createdBy = userId;
         await actors.save(actor);
       }
       return actor;
@@ -294,7 +293,6 @@ export class ProjectRaciController {
     const actor = await this.actors.findOne({ where: { id: actorId, projectId } });
     if (!actor) throw new NotFoundException('Project actor not found');
     actor.active = body.active;
-    actor.createdBy = userId;
     return this.actors.save(actor);
   }
 
