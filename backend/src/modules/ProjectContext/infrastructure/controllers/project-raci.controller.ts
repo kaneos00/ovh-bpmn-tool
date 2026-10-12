@@ -310,7 +310,7 @@ export class ProjectRaciController {
     const name = this.validateActorName(body.name);
     const normalizedName = this.normalizeActorName(name);
 
-    return this.dataSource.transaction(async manager => {
+    return this.dataSource.transaction(async (manager) => {
       const actors = manager.getRepository(ProjectRaciActorTypeOrmEntity);
       const entries = manager.getRepository(ProjectRaciEntryTypeOrmEntity);
       const actor = await actors.findOne({
@@ -322,8 +322,8 @@ export class ProjectRaciController {
       });
       if (duplicate && duplicate.id !== actor.id) {
         throw new ConflictException(
-        'An actor with this name already exists in the project',
-      );
+          'An actor with this name already exists in the project',
+        );
       }
 
       if (actor.name !== name) {
