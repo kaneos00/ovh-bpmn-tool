@@ -60,6 +60,8 @@ type AdministrationOverview = {
   processes: AdminProcess[];
 };
 
+type AdminSection = (typeof sections)[number]['key'];
+
 const queryKey = ['organization-administration-overview'];
 const sections = [
   { key: 'users', label: 'Utilisateurs' },
@@ -102,7 +104,9 @@ export const Component = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const section = location.pathname.split('/').filter(Boolean)[1] ?? 'users';
-  const activeSection = sections.some((item) => item.key === section) ? section : 'users';
+  const activeSection: AdminSection = sections.some((item) => item.key === section)
+    ? (section as AdminSection)
+    : 'users';
 
   const overviewQuery = useQuery<AdministrationOverview>(
     queryKey,
@@ -280,7 +284,7 @@ export const Component = () => {
                     <td><Typography level="title-sm">{process.name}</Typography>{process.description && <Typography level="body-xs" sx={{ color: 'text.secondary' }}>{process.description}</Typography>}</td>
                     <td>
                       <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">
-                        {[...new Set(process.projects.map((project) => project.usage))].map((usage) => (
+                        {Array.from(new Set(process.projects.map((project) => project.usage))).map((usage) => (
                           <Chip key={usage} size="sm" color={usageColor[usage]} variant="soft">{usageLabel[usage]}</Chip>
                         ))}
                         {process.projects.length === 0 && <Chip size="sm" variant="outlined">Non associé</Chip>}
