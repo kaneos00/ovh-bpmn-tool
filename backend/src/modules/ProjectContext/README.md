@@ -8,12 +8,12 @@ The process catalogue remains independent from projects. BPMN diagrams continue 
 - `variant`: a project process that declares `sourceResourceId` as its source process.
 - `project-specific`: a process created for this project, with no shared source.
 
-A variant is a relationship only at this stage: the API validates and records its source, but does not yet clone BPMN content or provide copy-on-write/version inheritance. Do not treat variant creation as an implemented cloning workflow.
+A variant is created as an independent process resource: the API copies the latest published BPMN content into a draft and records the source relationship. There is no copy-on-write or automatic version inheritance after creation.
 
 ## Project access
 
-Project membership roles are represented in the database as `viewer`, `modeler`, and `admin`. This first slice does **not** yet enforce those project roles on every resource/content endpoint; current API authorization still uses the existing global ACL. Do not rely on membership records as a security boundary until project-scoped authorization is implemented.
+Project membership roles are represented in the database as `viewer`, `modeler`, and `admin`. Project roles are enforced on project APIs and on the generic resource, content, and comment endpoints for linked processes. Readers need membership in at least one linked restricted project; edits require modeler or admin membership in every linked project. Common processes are readable through the shared catalogue but read-only through generic resource endpoints. The existing global ACL is also applied.
 
 ## Database
 
-Apply `backend/migrations/20261011_projects_shared_processes.sql` after the existing `init.sql`. TypeORM schema synchronization is disabled, so the new tables are not created automatically.
+Apply migrations in order after the existing `init.sql`: `20261011_v2_project_context.sql`, `20261011_v2_project_raci.sql`, then `20261012_v2_project_raci_actors.sql`. TypeORM schema synchronization is disabled, so these tables are not created automatically. Run migrations against a test database before any production rollout.
