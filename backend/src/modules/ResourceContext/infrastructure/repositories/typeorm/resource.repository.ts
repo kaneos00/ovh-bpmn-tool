@@ -40,13 +40,29 @@ export class ResourceTypeOrmRepository implements ResourceRepository {
 
   async delete(resourceId: string): Promise<Result<boolean, Error>> {
     try {
-      const deletedResource = await this.resourceRepository
-        .createQueryBuilder('resources')
-        .delete()
-        .from(ResourceTypeOrmEntity)
-        .where('id = :id', { id: resourceId })
-        .orWhere('parentId = :parentId', { parentId: resourceId })
-        .execute();
+      const resourceTree: Array<{ id: string }> =
+        await this.resourceRepository.query(
+          `WITH RECURSIVE resource_tree AS (
+             SELECT id
+             FROM resources
+             WHERE id = $1
+             UNION
+             SELECT child.id
+             FROM resources AS child
+             INNER JOIN resource_tree AS parent
+               ON child."parentId" = parent.id
+           )
+           SELECT id FROM resource_tree`,
+          [resourceId],
+        );
+
+      if (!resourceTree?.length) {
+        return fail(new Error('Error while deleting resource'));
+      }
+
+      const deletedResource = await this.resourceRepository.delete(
+        resourceTree.map(({ id }) => id),
+      );
 
       if (!deletedResource?.affected || deletedResource.affected < 1) {
         return fail(new Error('Error while deleting resource'));
