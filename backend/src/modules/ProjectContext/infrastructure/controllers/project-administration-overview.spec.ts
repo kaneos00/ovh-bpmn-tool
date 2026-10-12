@@ -37,11 +37,14 @@ describe('ProjectController administration overview', () => {
   };
 
   const dataSource = {
-    transaction: jest.fn(async (callback) =>
-      callback({
-        getRepository: (entity) =>
-          entity === ProjectTypeOrmEntity ? projects : projectMembers,
-      }),
+    transaction: jest.fn(
+      async (
+        callback: (manager: { getRepository: (entity: unknown) => unknown }) => Promise<unknown>,
+      ) =>
+        callback({
+          getRepository: (entity: unknown) =>
+            entity === ProjectTypeOrmEntity ? projects : projectMembers,
+        }),
     ),
   };
 
