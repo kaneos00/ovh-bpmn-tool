@@ -343,7 +343,8 @@ export class ProjectRaciController {
             'Assignments already exist under the target actor name; reconcile them before renaming',
           );
         }
-        await entries.createQueryBuilder()
+        await entries
+          .createQueryBuilder()
           .update(ProjectRaciEntryTypeOrmEntity)
           .set({ actorName: name, updatedAt: () => 'now()' })
           .where('"projectId" = :projectId', { projectId })
