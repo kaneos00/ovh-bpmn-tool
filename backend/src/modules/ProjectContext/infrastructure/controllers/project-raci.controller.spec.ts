@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { ProjectMemberRole } from '../entities/projectMember.ormEntity';
-import { ProjectRaciActorTypeOrmEntity } from '../entities/projectRaciActor.ormEntity';
+import { ProjectRaciRole } from '../entities/projectRaciEntry.ormEntity';
 import { ProjectRaciController } from './project-raci.controller';
 
 describe('ProjectRaciController actor register', () => {
@@ -126,7 +126,7 @@ describe('ProjectRaciController actor register', () => {
         taskId: 'Activity_1',
         taskName: 'Validate request',
         actorName: 'Unknown actor',
-        role: 'R',
+        role: ProjectRaciRole.Responsible,
       }] },
       headers,
     )).rejects.toBeInstanceOf(BadRequestException);
