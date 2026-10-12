@@ -32,6 +32,15 @@ export class GetContentQueryHandler {
       return fail(new BadResourceTypeError(resourceId));
     }
 
-    return this.contentRepository.findOne(contentId);
+    const contentResult = await this.contentRepository.findOne(contentId);
+    if (contentResult.fail) return contentResult;
+
+    if (contentResult.ok.state.resourceId !== resourceId) {
+      return fail(
+        new Error('Content does not belong to the requested resource'),
+      );
+    }
+
+    return contentResult;
   }
 }
