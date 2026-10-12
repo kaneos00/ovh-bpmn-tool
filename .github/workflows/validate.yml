@@ -93,3 +93,21 @@ jobs:
         run: docker build --file deploy/coolify/Dockerfile.frontend --tag bpmn-v2-demo-frontend:ci .
       - name: Build PostgreSQL image
         run: docker build --file deploy/coolify/Dockerfile.postgres --tag bpmn-v2-demo-postgres:ci .
+      - name: Smoke-test fresh demo database and seed
+        run: |
+          docker run --detach --name bpmn-v2-demo-db-ci \
+            --env POSTGRES_DB="$DATABASE_NAME" \
+            --env POSTGRES_USER="$DATABASE_USER" \
+            --env POSTGRES_PASSWORD="$DATABASE_PASSWORD" \
+            --env DEMO_AUTH_USER="$DEMO_AUTH_USER" \
+            bpmn-v2-demo-postgres:ci
+          for attempt in $(seq 1 30); do
+            if docker exec bpmn-v2-demo-db-ci pg_isready -U "$DATABASE_USER" -d "$DATABASE_NAME"; then
+              break
+            fi
+            sleep 2
+          done
+          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc 'SELECT count(*) FROM projects')" = "2"
+          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc 'SELECT count(*) FROM project_processes')" = "4"
+          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc 'SELECT count(*) FROM project_raci_entries')" = "6"
+          docker rm --force bpmn-v2-demo-db-ci
