@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { ProjectController } from './project.controller';
+import { ProjectTypeOrmEntity } from '../entities/project.ormEntity';
 import { ProjectMemberRole } from '../entities/projectMember.ormEntity';
 import { ProjectProcessUsage } from '../entities/projectProcess.ormEntity';
 import { ResourceTypeEnum } from '../../../../modules/ResourceContext/shared/types/Resource';
@@ -8,6 +9,11 @@ describe('ProjectController administration overview', () => {
   const projects = {
     find: jest.fn(),
     findOneBy: jest.fn().mockResolvedValue({
+      id: 'project-a',
+      name: 'Atlas',
+      description: 'Operations',
+    }),
+    findOne: jest.fn().mockResolvedValue({
       id: 'project-a',
       name: 'Atlas',
       description: 'Operations',
@@ -28,6 +34,15 @@ describe('ProjectController administration overview', () => {
   };
   const resources = {
     find: jest.fn(),
+  };
+
+  const dataSource = {
+    transaction: jest.fn(async (callback) =>
+      callback({
+        getRepository: (entity) =>
+          entity === ProjectTypeOrmEntity ? projects : projectMembers,
+      }),
+    ),
   };
 
   let controller: ProjectController;
@@ -92,7 +107,7 @@ describe('ProjectController administration overview', () => {
 
     controller = new ProjectController(
       { getOrThrow: jest.fn().mockReturnValue('x-user') } as never,
-      {} as never,
+      dataSource as never,
       projects as never,
       projectProcesses as never,
       resources as never,
