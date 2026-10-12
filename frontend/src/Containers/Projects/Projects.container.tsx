@@ -245,7 +245,7 @@ export const Component = () => {
         <Card variant="outlined">
           <Typography level="title-lg">Membres et rôles du projet</Typography>
           <Typography level="body-sm">
-            Identifiant utilisateur attendu : la même valeur que celle transmise par le proxy dans l’en-tête utilisateur. Les rôles sont enregistrés ici ; leur application aux droits d’accès doit encore être activée côté backend.
+            Identifiant utilisateur attendu : la même valeur que celle transmise par le proxy dans l’en-tête utilisateur. Les rôles sont contrôlés par l’API pour les opérations sur les projets et les processus associés. Les droits ACL globaux de la plateforme restent également applicables.
           </Typography>
           <Stack spacing={1.5}>
             <FormControl>
