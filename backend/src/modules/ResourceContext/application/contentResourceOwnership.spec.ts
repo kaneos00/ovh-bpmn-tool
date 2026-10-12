@@ -54,11 +54,9 @@ describe('content resource ownership', () => {
       contentRepository as never,
     );
 
-    const result = await handler.execute(
-      'resource-1',
-      'content-1',
-      { clonedBy: 'alice' } as never,
-    );
+    const result = await handler.execute('resource-1', 'content-1', {
+      clonedBy: 'alice',
+    } as never);
 
     expect(result.fail).toBeTruthy();
     expect(contentRepository.findOneBy).not.toHaveBeenCalled();
@@ -71,11 +69,10 @@ describe('content resource ownership', () => {
       contentRepository as never,
     );
 
-    const result = await handler.execute(
-      'resource-1',
-      'content-1',
-      { updatedBy: 'alice', pngContent: '' } as never,
-    );
+    const result = await handler.execute('resource-1', 'content-1', {
+      updatedBy: 'alice',
+      pngContent: '',
+    } as never);
 
     expect(result.fail).toBeTruthy();
     expect(contentRepository.save).not.toHaveBeenCalled();
@@ -87,11 +84,10 @@ describe('content resource ownership', () => {
       contentRepository as never,
     );
 
-    const result = await handler.execute(
-      'resource-1',
-      'content-1',
-      { content: '<definitions />', updatedBy: 'alice' } as never,
-    );
+    const result = await handler.execute('resource-1', 'content-1', {
+      content: '<definitions />',
+      updatedBy: 'alice',
+    } as never);
 
     expect(result.fail).toBeTruthy();
     expect(contentRepository.save).not.toHaveBeenCalled();
