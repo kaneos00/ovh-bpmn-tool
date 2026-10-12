@@ -26,9 +26,21 @@ describe('ProjectController administration overview', () => {
       { id: 'project-b', name: 'RH', description: null },
     ]);
     projectMembers.find.mockResolvedValue([
-      { projectId: 'project-a', userId: 'alice', role: ProjectMemberRole.Admin },
-      { projectId: 'project-b', userId: 'alice', role: ProjectMemberRole.Viewer },
-      { projectId: 'project-a', userId: 'bob', role: ProjectMemberRole.Modeler },
+      {
+        projectId: 'project-a',
+        userId: 'alice',
+        role: ProjectMemberRole.Admin,
+      },
+      {
+        projectId: 'project-b',
+        userId: 'alice',
+        role: ProjectMemberRole.Viewer,
+      },
+      {
+        projectId: 'project-a',
+        userId: 'bob',
+        role: ProjectMemberRole.Modeler,
+      },
     ]);
     projectProcesses.find.mockResolvedValue([
       {
@@ -98,7 +110,9 @@ describe('ProjectController administration overview', () => {
 
   it('shows the same shared resource for every project that references it', async () => {
     const result = await controller.getAdministrationOverview();
-    const shared = result.processes.find((process) => process.id === 'process-shared');
+    const shared = result.processes.find(
+      (process) => process.id === 'process-shared',
+    );
 
     expect(shared?.projects).toEqual([
       {
@@ -114,7 +128,9 @@ describe('ProjectController administration overview', () => {
         sourceResourceId: null,
       },
     ]);
-    expect(result.projects.find((project) => project.id === 'project-a')?.processes[0]).toMatchObject({
+    expect(
+      result.projects.find((project) => project.id === 'project-a')?.processes[0],
+    ).toMatchObject({
       resourceId: 'process-shared',
       name: 'Gestion commune',
       usage: 'common',
@@ -124,9 +140,15 @@ describe('ProjectController administration overview', () => {
   it('preserves variant source references and counts members per project', async () => {
     const result = await controller.getAdministrationOverview();
 
-    expect(result.projects.find((project) => project.id === 'project-a')?.membersCount).toBe(2);
-    expect(result.projects.find((project) => project.id === 'project-b')?.membersCount).toBe(1);
-    expect(result.processes.find((process) => process.id === 'process-variant')?.projects[0]).toMatchObject({
+    expect(
+      result.projects.find((project) => project.id === 'project-a')?.membersCount,
+    ).toBe(2);
+    expect(
+      result.projects.find((project) => project.id === 'project-b')?.membersCount,
+    ).toBe(1);
+    expect(
+      result.processes.find((process) => process.id === 'process-variant')?.projects[0],
+    ).toMatchObject({
       projectId: 'project-b',
       usage: 'variant',
       sourceResourceId: 'process-shared',
