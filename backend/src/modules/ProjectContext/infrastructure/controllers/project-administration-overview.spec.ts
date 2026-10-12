@@ -235,7 +235,7 @@ describe('ProjectController administration overview', () => {
       { 'x-user': 'org-admin' },
     );
 
-    expect(result.role).toBe(ProjectMemberRole.Modeler);
+    expect(result).toMatchObject({ role: ProjectMemberRole.Modeler });
     expect(projectMembers.save).toHaveBeenCalledWith(existing);
   });
 
