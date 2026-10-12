@@ -92,7 +92,10 @@ export class CommentController {
     @Param() params: GetCommentQuery,
     @Headers() headers: Record<string, string>,
   ) {
-    await this.projectResourceAccess.assertCanReadResource(params.resourceId, headers);
+    await this.projectResourceAccess.assertCanReadResource(
+      params.resourceId,
+      headers,
+    );
     const queryResult = await this.getCommentQueryHandler.execute(
       params.resourceId,
       params.commentId,
@@ -176,7 +179,10 @@ export class CommentController {
     @Param() params: DeleteCommentCommandParams,
     @Headers() headers: Record<string, string>,
   ) {
-    await this.projectResourceAccess.assertCanEditResource(params.resourceId, headers);
+    await this.projectResourceAccess.assertCanEditResource(
+      params.resourceId,
+      headers,
+    );
     const commandResult =
       await this.deleteCommentCommandHandler.execute(params);
 
