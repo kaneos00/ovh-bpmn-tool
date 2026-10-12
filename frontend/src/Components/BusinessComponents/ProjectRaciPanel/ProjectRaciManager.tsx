@@ -254,6 +254,8 @@ export const ProjectRaciManager = ({
     renameActor.isLoading || toggleActor.isLoading;
   const hasError = error || entriesQuery.isError || processesQuery.isError ||
     tasksQuery.isError || actorsQuery.isError || save.isError;
+  const isLoading = processesQuery.isLoading || tasksQuery.isLoading ||
+    entriesQuery.isLoading || actorsQuery.isLoading;
 
   return (
     <Stack spacing={1.5}>
@@ -383,14 +385,16 @@ export const ProjectRaciManager = ({
           Impossible de charger les versions publiées de : {failedProcesses.join(', ')}. Les activités des autres processus restent disponibles.
         </Alert>
       )}
-      {processesQuery.isLoading || tasksQuery.isLoading || entriesQuery.isLoading || actorsQuery.isLoading ? (
+      {isLoading && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 2 }}>
           <CircularProgress size="sm" />
           <Typography level="body-sm">Chargement de la matrice RACI…</Typography>
         </Box>
-      ) : tasks.length === 0 ? (
+      )}
+      {!isLoading && tasks.length === 0 && (
         <Alert color="warning">Aucune activité trouvée dans les dernières versions publiées des processus associés au projet.</Alert>
-      ) : (
+      )}
+      {!isLoading && tasks.length > 0 && (
         <Sheet variant="outlined" sx={{ overflow: 'auto', maxWidth: '100%', borderRadius: 'md' }}>
           <Table
             stickyHeader
