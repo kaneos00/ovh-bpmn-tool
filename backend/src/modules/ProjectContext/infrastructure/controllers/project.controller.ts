@@ -63,7 +63,7 @@ export class ProjectController {
   }
 
   @Post()
-  @UseAcl([UserGroup.RW])
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
   async createProject(
     @Body() body: { name?: string; description?: string },
     @Headers() headers: RequestHeaders,
@@ -252,6 +252,54 @@ export class ProjectController {
     }
     await this.projectMembers.delete({ projectId, userId });
     return { deleted: true, projectId, userId };
+  }
+
+  @Put('administration/projects/:projectId')
+  @UseAcl([UserGroup.Admin])
+  async updateOrganizationProject(
+    @Param('projectId') projectId: string,
+    @Body() body: { name?: string; description?: string },
+  ) {
+    const project = await this.assertProjectExists(projectId);
+
+    if (body.name !== undefined) {
+      const name = body.name.trim();
+      if (!name || name.length > 255) {
+        throw new BadRequestException(
+          'Project name must contain 1 to 255 characters',
+        );
+      }
+      project.name = name;
+    }
+    if (body.description !== undefined) {
+      project.description = body.description.trim() || null;
+    }
+
+    try {
+      return await this.projects.save(project);
+    } catch (error) {
+      if ((error as { code?: string }).code === '23505') {
+        throw new ConflictException('A project with this name already exists');
+      }
+      throw error;
+    }
+  }
+
+  @Delete('administration/projects/:projectId')
+  @UseAcl([UserGroup.Admin])
+  async deleteOrganizationProject(@Param('projectId') projectId: string) {
+    await this.assertProjectExists(projectId);
+    const linkedProcesses = await this.projectProcesses.count({
+      where: { projectId },
+    });
+    if (linkedProcesses > 0) {
+      throw new BadRequestException(
+        'Remove or delete all linked processes before deleting this project',
+      );
+    }
+    const result = await this.projects.delete({ id: projectId });
+    if (!result.affected) throw new NotFoundException('Project not found');
+    return { deleted: true, projectId };
   }
 
   @Get(':projectId')
