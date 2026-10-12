@@ -115,7 +115,7 @@ export class ProjectController {
    * application does not own an organization-wide identity directory.
    */
   @Get('administration/overview')
-  @UseAcl([UserGroup.RW])
+  @UseAcl([UserGroup.Admin])
   async getAdministrationOverview() {
     const [projects, memberships, links, processResources] = await Promise.all([
       this.projects.find({ order: { name: 'ASC' } }),
