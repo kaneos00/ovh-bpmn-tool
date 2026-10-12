@@ -18,7 +18,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         # Overwrite client headers: the backend trusts these identity headers.
         proxy_set_header remote-user $remote_user;
-        proxy_set_header remote-user-groups "bpmn-tool-readwrite-demo";
+        proxy_set_header remote-user-groups "bpmn-tool-readwrite-demo,bpmn-tool-admin-demo";
     }
 
     location / { try_files $uri $uri/ /index.html; }

@@ -199,6 +199,7 @@ export const Component = () => {
       <Sheet sx={{ maxWidth: 1000, mx: 'auto', p: { xs: 2, md: 4 } }}>
         <Stack spacing={2}>
           <Typography level="h2">Projets</Typography>
+          <Button variant="outlined" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/organization/users')}>Administration de l’organisation →</Button>
           <Typography level="body-md">
             Les projets référencent les processus du catalogue commun. Un processus partagé reste dans le référentiel et peut être réutilisé par plusieurs projets.
           </Typography>
@@ -249,6 +250,7 @@ export const Component = () => {
     <Sheet sx={{ maxWidth: 1100, mx: 'auto', p: { xs: 2, md: 4 } }}>
       <Stack spacing={2}>
         <Button variant="plain" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/projects')}>← Tous les projets</Button>
+        <Button variant="outlined" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/organization/projects')}>Administration de l’organisation →</Button>
         {projectQuery.isLoading && <Typography>Chargement du projet…</Typography>}
         {projectQuery.isError && <Alert color="danger">Impossible de charger ce projet.</Alert>}
         {project && (

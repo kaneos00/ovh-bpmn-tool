@@ -8,6 +8,22 @@ export const routes = [
     },
   },
   {
+    path: '/organization',
+    loader: () => redirect('/organization/users'),
+  },
+  {
+    path: '/organization/users',
+    lazy: () => import('./Containers/OrganizationAdmin'),
+  },
+  {
+    path: '/organization/projects',
+    lazy: () => import('./Containers/OrganizationAdmin'),
+  },
+  {
+    path: '/organization/processes',
+    lazy: () => import('./Containers/OrganizationAdmin'),
+  },
+  {
     path: '/projects',
     lazy: () => import('./Containers/Projects'),
   },

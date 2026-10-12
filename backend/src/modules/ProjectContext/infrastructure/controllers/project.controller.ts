@@ -63,7 +63,7 @@ export class ProjectController {
   }
 
   @Post()
-  @UseAcl([UserGroup.RW])
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
   async createProject(
     @Body() body: { name?: string; description?: string },
     @Headers() headers: RequestHeaders,
@@ -105,6 +105,171 @@ export class ProjectController {
       }
       throw error;
     }
+  }
+
+  /**
+   * Organization-wide read model for the administration screens.
+   *
+   * Access is restricted to the dedicated organization administrator ACL
+   * group. User identities are sourced from project membership records
+   * because this application does not own an organization-wide identity directory.
+   */
+  @Get('administration/overview')
+  @UseAcl([UserGroup.Admin])
+  async getAdministrationOverview() {
+    const [projects, memberships, links, processResources] = await Promise.all([
+      this.projects.find({ order: { name: 'ASC' } }),
+      this.projectMembers.find({ order: { userId: 'ASC' } }),
+      this.projectProcesses.find({ order: { createdAt: 'ASC' } }),
+      this.resources.find({
+        where: { type: ResourceTypeEnum.Process },
+        order: { name: 'ASC' },
+      }),
+    ]);
+
+    const projectById = new Map(
+      projects.map((project) => [project.id, project]),
+    );
+    const resourceById = new Map(
+      processResources.map((resource) => [resource.id, resource]),
+    );
+    const membershipsByProject = new Map<string, typeof memberships>();
+    const linksByProject = new Map<string, typeof links>();
+    const membershipsByUser = new Map<string, typeof memberships>();
+    const linksByResource = new Map<string, typeof links>();
+
+    for (const membership of memberships) {
+      const projectMemberships =
+        membershipsByProject.get(membership.projectId) ?? [];
+      projectMemberships.push(membership);
+      membershipsByProject.set(membership.projectId, projectMemberships);
+
+      const userMemberships = membershipsByUser.get(membership.userId) ?? [];
+      userMemberships.push(membership);
+      membershipsByUser.set(membership.userId, userMemberships);
+    }
+
+    for (const link of links) {
+      const projectLinks = linksByProject.get(link.projectId) ?? [];
+      projectLinks.push(link);
+      linksByProject.set(link.projectId, projectLinks);
+
+      const resourceLinks = linksByResource.get(link.resourceId) ?? [];
+      resourceLinks.push(link);
+      linksByResource.set(link.resourceId, resourceLinks);
+    }
+
+    return {
+      projects: projects.map((project) => ({
+        ...project,
+        membersCount: (membershipsByProject.get(project.id) ?? []).length,
+        processes: (linksByProject.get(project.id) ?? []).map((link) => ({
+          resourceId: link.resourceId,
+          name: resourceById.get(link.resourceId)?.name ?? link.resourceId,
+          usage: link.usage,
+          sourceResourceId: link.sourceResourceId,
+        })),
+      })),
+      users: [...membershipsByUser.entries()]
+        .map(([userId, userMemberships]) => ({
+          userId,
+          projects: userMemberships
+            .map((membership) => ({
+              projectId: membership.projectId,
+              projectName:
+                projectById.get(membership.projectId)?.name ??
+                membership.projectId,
+              role: membership.role,
+            }))
+            .sort((left, right) =>
+              left.projectName.localeCompare(right.projectName),
+            ),
+        }))
+        .sort((left, right) => left.userId.localeCompare(right.userId)),
+      processes: processResources.map((resource) => ({
+        id: resource.id,
+        name: resource.name,
+        description: resource.description,
+        projects: (linksByResource.get(resource.id) ?? []).map((link) => ({
+          projectId: link.projectId,
+          projectName: projectById.get(link.projectId)?.name ?? link.projectId,
+          usage: link.usage,
+          sourceResourceId: link.sourceResourceId,
+        })),
+      })),
+    };
+  }
+
+  @Put('administration/projects/:projectId/members/:userId')
+  @UseAcl([UserGroup.Admin])
+  async setOrganizationProjectMember(
+    @Param('projectId') projectId: string,
+    @Param('userId') userIdParam: string,
+    @Body() body: { role?: ProjectMemberRole },
+    @Headers() headers: RequestHeaders,
+  ) {
+    const actorId = this.getUserId(headers);
+    const userId = this.validateUserId(userIdParam);
+    const role = this.validateMemberRole(body.role);
+    return this.changeProjectMember(projectId, userId, role, actorId);
+  }
+
+  @Delete('administration/projects/:projectId/members/:userId')
+  @UseAcl([UserGroup.Admin])
+  async removeOrganizationProjectMember(
+    @Param('projectId') projectId: string,
+    @Param('userId') userIdParam: string,
+  ) {
+    const userId = this.validateUserId(userIdParam);
+    return this.changeProjectMember(projectId, userId, null);
+  }
+
+  @Put('administration/projects/:projectId')
+  @UseAcl([UserGroup.Admin])
+  async updateOrganizationProject(
+    @Param('projectId') projectId: string,
+    @Body() body: { name?: string; description?: string },
+  ) {
+    const project = await this.assertProjectExists(projectId);
+
+    if (body.name !== undefined) {
+      const name = body.name.trim();
+      if (!name || name.length > 255) {
+        throw new BadRequestException(
+          'Project name must contain 1 to 255 characters',
+        );
+      }
+      project.name = name;
+    }
+    if (body.description !== undefined) {
+      project.description = body.description.trim() || null;
+    }
+
+    try {
+      return await this.projects.save(project);
+    } catch (error) {
+      if ((error as { code?: string }).code === '23505') {
+        throw new ConflictException('A project with this name already exists');
+      }
+      throw error;
+    }
+  }
+
+  @Delete('administration/projects/:projectId')
+  @UseAcl([UserGroup.Admin])
+  async deleteOrganizationProject(@Param('projectId') projectId: string) {
+    await this.assertProjectExists(projectId);
+    const linkedProcesses = await this.projectProcesses.count({
+      where: { projectId },
+    });
+    if (linkedProcesses > 0) {
+      throw new BadRequestException(
+        'Remove or delete all linked processes before deleting this project',
+      );
+    }
+    const result = await this.projects.delete({ id: projectId });
+    if (!result.affected) throw new NotFoundException('Project not found');
+    return { deleted: true, projectId };
   }
 
   @Get(':projectId')
@@ -447,48 +612,109 @@ export class ProjectController {
     @Headers() headers: RequestHeaders,
   ) {
     const actorId = this.getUserId(headers);
-    await this.assertProjectRole(projectId, headers, ProjectMemberRole.Admin);
-    const userId = userIdParam.trim();
-    if (!userId || userId.length > 255) {
-      throw new BadRequestException('userId must contain 1 to 255 characters');
-    }
-    if (!body.role || !Object.values(ProjectMemberRole).includes(body.role)) {
-      throw new BadRequestException('role must be viewer, modeler, or admin');
-    }
-
-    const existing = await this.projectMembers.findOneBy({ projectId, userId });
-    if (
-      existing?.role === ProjectMemberRole.Admin &&
-      body.role !== ProjectMemberRole.Admin
-    ) {
-      await this.assertNotLastAdmin(projectId, userId);
-    }
-    const member =
-      existing ??
-      this.projectMembers.create({
-        projectId,
-        userId,
-        createdBy: actorId,
-      });
-    member.role = body.role;
-    return this.projectMembers.save(member);
+    const userId = this.validateUserId(userIdParam);
+    const role = this.validateMemberRole(body.role);
+    return this.changeProjectMember(projectId, userId, role, actorId, headers);
   }
 
   @Delete(':projectId/members/:userId')
   @UseAcl([UserGroup.RW])
   async removeProjectMember(
     @Param('projectId') projectId: string,
-    @Param('userId') userId: string,
+    @Param('userId') userIdParam: string,
     @Headers() headers: RequestHeaders,
   ) {
-    await this.assertProjectRole(projectId, headers, ProjectMemberRole.Admin);
-    const member = await this.projectMembers.findOneBy({ projectId, userId });
-    if (!member) throw new NotFoundException('Project member not found');
-    if (member.role === ProjectMemberRole.Admin) {
-      await this.assertNotLastAdmin(projectId, userId);
+    const userId = this.validateUserId(userIdParam);
+    return this.changeProjectMember(
+      projectId,
+      userId,
+      null,
+      undefined,
+      headers,
+    );
+  }
+
+  private validateUserId(userIdParam: string): string {
+    const userId = userIdParam.trim();
+    if (!userId || userId.length > 255) {
+      throw new BadRequestException('userId must contain 1 to 255 characters');
     }
-    await this.projectMembers.delete({ projectId, userId });
-    return { deleted: true, projectId, userId };
+    return userId;
+  }
+
+  private validateMemberRole(role?: ProjectMemberRole): ProjectMemberRole {
+    if (!role || !Object.values(ProjectMemberRole).includes(role)) {
+      throw new BadRequestException('role must be viewer, modeler, or admin');
+    }
+    return role;
+  }
+
+  /**
+   * Serialize membership changes per project. Locking the project row ensures
+   * concurrent removals/demotions cannot both observe themselves as non-final
+   * administrators and leave a project without an administrator.
+   */
+  private async changeProjectMember(
+    projectId: string,
+    userId: string,
+    role: ProjectMemberRole | null,
+    actorId?: string,
+    headers?: RequestHeaders,
+  ) {
+    return this.dataSource.transaction(async (manager) => {
+      const projectRepository = manager.getRepository(ProjectTypeOrmEntity);
+      const project = await projectRepository.findOne({
+        where: { id: projectId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!project) throw new NotFoundException('Project not found');
+
+      const members = manager.getRepository(ProjectMemberTypeOrmEntity);
+      if (headers) {
+        const requesterId = this.getUserId(headers);
+        const requester = await members.findOneBy({
+          projectId,
+          userId: requesterId,
+        });
+        if (!requester || requester.role !== ProjectMemberRole.Admin) {
+          throw new ForbiddenException('Insufficient project permissions');
+        }
+      }
+
+      const existing = await members.findOneBy({ projectId, userId });
+      if (role === null) {
+        if (!existing) throw new NotFoundException('Project member not found');
+      }
+
+      if (
+        existing?.role === ProjectMemberRole.Admin &&
+        (role === null || role !== ProjectMemberRole.Admin)
+      ) {
+        const admins = await members.find({
+          where: { projectId, role: ProjectMemberRole.Admin },
+        });
+        if (admins.length <= 1) {
+          throw new BadRequestException(
+            'A project must retain at least one administrator',
+          );
+        }
+      }
+
+      if (role === null) {
+        await members.delete({ projectId, userId });
+        return { deleted: true, projectId, userId };
+      }
+
+      const member =
+        existing ??
+        members.create({
+          projectId,
+          userId,
+          createdBy: actorId,
+        });
+      member.role = role;
+      return members.save(member);
+    });
   }
 
   private getUserId(headers: RequestHeaders): string {
@@ -522,17 +748,6 @@ export class ProjectController {
       throw new ForbiddenException('Insufficient project permissions');
     }
     return membership;
-  }
-
-  private async assertNotLastAdmin(projectId: string, userId: string) {
-    const admins = await this.projectMembers.find({
-      where: { projectId, role: ProjectMemberRole.Admin },
-    });
-    if (admins.length <= 1 && admins[0]?.userId === userId) {
-      throw new BadRequestException(
-        'A project must retain at least one administrator',
-      );
-    }
   }
 
   private async assertProjectExists(projectId: string) {

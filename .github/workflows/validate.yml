@@ -93,9 +93,17 @@ jobs:
         run: docker build --file deploy/coolify/Dockerfile.frontend --tag bpmn-v2-demo-frontend:ci .
       - name: Build PostgreSQL image
         run: docker build --file deploy/coolify/Dockerfile.postgres --tag bpmn-v2-demo-postgres:ci .
-      - name: Smoke-test fresh demo database and seed
+      - name: Smoke-test demo database, API authorization and frontend proxy
         run: |
+          docker network create bpmn-v2-ci
+          cleanup() {
+            docker rm --force bpmn-v2-demo-frontend-ci bpmn-v2-demo-backend-ci bpmn-v2-demo-db-ci >/dev/null 2>&1 || true
+            docker network rm bpmn-v2-ci >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
           docker run --detach --name bpmn-v2-demo-db-ci \
+            --network bpmn-v2-ci --network-alias database \
             --env POSTGRES_DB="$DATABASE_NAME" \
             --env POSTGRES_USER="$DATABASE_USER" \
             --env POSTGRES_PASSWORD="$DATABASE_PASSWORD" \
@@ -110,4 +118,40 @@ jobs:
           test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc 'SELECT count(*) FROM projects')" = "2"
           test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc 'SELECT count(*) FROM project_processes')" = "4"
           test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc 'SELECT count(*) FROM project_raci_entries')" = "6"
-          docker rm --force bpmn-v2-demo-db-ci
+
+          docker run --detach --name bpmn-v2-demo-backend-ci --network bpmn-v2-ci --network-alias backend \
+            --env NODE_ENV=production --env NODE_PORT=3000 \
+            --env USER_HEADER=remote-user --env USER_GROUPS_HEADER=remote-user-groups \
+            --env DATABASE_HOST=database --env DATABASE_PORT=5432 \
+            --env DATABASE_USER="$DATABASE_USER" --env DATABASE_PASSWORD="$DATABASE_PASSWORD" \
+            --env DATABASE_NAME="$DATABASE_NAME" --env DATABASE_SSL=off \
+            bpmn-v2-demo-backend:ci
+
+          for attempt in $(seq 1 30); do
+            status="$(docker run --rm --network bpmn-v2-ci curlimages/curl:8.12.1 -sS -o /dev/null -w '%{http_code}' \
+              -H 'remote-user: demo-v2' -H 'remote-user-groups: bpmn-tool-admin-demo' \
+              http://backend:3000/projects/administration/overview || true)"
+            if [ "$status" = "200" ]; then break; fi
+            sleep 2
+          done
+          test "$status" = "200"
+
+          status="$(docker run --rm --network bpmn-v2-ci curlimages/curl:8.12.1 -sS -o /dev/null -w '%{http_code}' \
+            -H 'remote-user: demo-v2' -H 'remote-user-groups: bpmn-tool-readwrite-demo' \
+            http://backend:3000/projects/administration/overview || true)"
+          test "$status" = "403"
+
+          docker run --detach --name bpmn-v2-demo-frontend-ci --network bpmn-v2-ci \
+            --publish 127.0.0.1:18080:80 \
+            --env DEMO_AUTH_USER="$DEMO_AUTH_USER" --env DEMO_AUTH_PASSWORD="$DEMO_AUTH_PASSWORD" \
+            bpmn-v2-demo-frontend:ci
+          for attempt in $(seq 1 30); do
+            status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+              --user "$DEMO_AUTH_USER:$DEMO_AUTH_PASSWORD" \
+              http://127.0.0.1:18080/bpmn-api/projects/administration/overview || true)"
+            if [ "$status" = "200" ]; then break; fi
+            sleep 2
+          done
+          test "$status" = "200"
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/)" = "401"
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' --user "$DEMO_AUTH_USER:$DEMO_AUTH_PASSWORD" http://127.0.0.1:18080/)" = "200"
