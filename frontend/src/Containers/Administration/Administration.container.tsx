@@ -79,12 +79,12 @@ const adminOverviewKey = ['admin-overview'];
 async function loadAdminOverview(): Promise<ProjectSnapshot[]> {
   // Existing API scope is intentionally preserved: /projects only returns
   // projects for which the current identity has a membership.
-  const projects = await apiClient.get<Project[]>('/projects');
+  const projects = (await apiClient.get('/projects')) as Project[];
   return Promise.all(
     projects.map(async (project) => {
       const [members, processes] = await Promise.all([
-        apiClient.get<ProjectMember[]>(`/projects/${project.id}/members`),
-        apiClient.get<ProjectProcessLink[]>(`/projects/${project.id}/processes`),
+        apiClient.get(`/projects/${project.id}/members`) as Promise<ProjectMember[]>,
+        apiClient.get(`/projects/${project.id}/processes`) as Promise<ProjectProcessLink[]>,
       ]);
       return { project, members, processes };
     }),
