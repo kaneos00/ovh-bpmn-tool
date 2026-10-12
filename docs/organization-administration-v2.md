@@ -11,11 +11,21 @@ Cette fonctionnalité ajoute une première vue organisationnelle de lecture pour
 - Ne modifie aucune donnée et ne remplace pas les contrôles d'accès déjà appliqués aux opérations projet/processus.
 - Distingue les usages `common`, `project-specific` et `variant`, et conserve la référence `sourceResourceId` des variantes.
 
+Les routes d’administration suivantes sont également réservées au groupe ACL `bpmn-tool-admin` :
+
+- `POST /projects` : créer un projet et attribuer le rôle `admin` au créateur.
+- `PUT /projects/administration/projects/:projectId` : modifier le nom et la description.
+- `DELETE /projects/administration/projects/:projectId` : supprimer un projet uniquement lorsqu’il ne possède plus de processus associés.
+- `PUT /projects/administration/projects/:projectId/members/:userId` : attribuer ou modifier un rôle de projet.
+- `DELETE /projects/administration/projects/:projectId/members/:userId` : retirer une adhésion, en conservant la protection du dernier administrateur.
+
+Ces routes dédiées évitent d’exiger que l’administrateur organisationnel soit membre de chaque projet. Les opérations BPMN de modélisation restent soumises aux droits projet habituels.
+
 ## IHM
 
 - `/organization/users` : identifiants connus par les adhésions et tous leurs projets/rôles enregistrés.
 - `/organization/projects` : nombre de membres et répartition des processus par type d'usage.
-- `/organization/processes` : projets utilisateurs et usages du processus.
+- `/organization/processes` : projets utilisateurs et usages du processus, avec un panneau de détail.
 - Un lien depuis les pages projets permet d'ouvrir cette administration.
 
 ## Limite connue — annuaire d'identité
