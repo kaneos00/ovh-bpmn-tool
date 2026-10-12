@@ -1,15 +1,15 @@
 import {
   BadRequestException,
-  ConflictException,
   Body,
+  ConflictException,
   Controller,
   ForbiddenException,
   Get,
   Headers,
   NotFoundException,
+  Param,
   Patch,
   Post,
-  Param,
   Put,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -17,7 +17,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { UseAcl } from '../../../../shared-kernel/modules/acl/infrastructure/acl.decorator';
 import { UserGroup } from '../../../../shared-kernel/utils/UserGroup';
-import { ProjectMemberRole, ProjectMemberTypeOrmEntity } from '../entities/projectMember.ormEntity';
+import {
+  ProjectMemberRole,
+  ProjectMemberTypeOrmEntity,
+} from '../entities/projectMember.ormEntity';
 import { ProjectProcessTypeOrmEntity } from '../entities/projectProcess.ormEntity';
 import {
   ProjectRaciEntryTypeOrmEntity,
@@ -75,7 +78,11 @@ export class ProjectRaciController {
     @Body() body: { entries?: RaciEntryInput[] },
     @Headers() headers: RequestHeaders,
   ) {
-    const userId = await this.assertRole(projectId, headers, ProjectMemberRole.Modeler);
+    const userId = await this.assertRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Modeler,
+    );
     if (!Array.isArray(body.entries)) {
       throw new BadRequestException('entries must be an array');
     }
@@ -96,10 +103,16 @@ export class ProjectRaciController {
         taskName.length > 255 ||
         actorName.length > 255
       ) {
-        throw new BadRequestException(`RACI entry ${index} contains an oversized field`);
+        throw new BadRequestException(
+          `RACI entry ${index} contains an oversized field`,
+        );
       }
-      if (!Object.values(ProjectRaciRole).includes(entry.role as ProjectRaciRole)) {
-        throw new BadRequestException(`RACI entry ${index} has an invalid role`);
+      if (
+        !Object.values(ProjectRaciRole).includes(entry.role as ProjectRaciRole)
+      ) {
+        throw new BadRequestException(
+          `RACI entry ${index} has an invalid role`,
+        );
       }
       return {
         projectId,
@@ -114,7 +127,11 @@ export class ProjectRaciController {
 
     const unique = new Set<string>();
     for (const entry of normalized) {
-      const key = JSON.stringify([entry.resourceId, entry.taskId, this.normalizeActorName(entry.actorName)]);
+      const key = JSON.stringify([
+        entry.resourceId,
+        entry.taskId,
+        this.normalizeActorName(entry.actorName),
+      ]);
       if (unique.has(key)) {
         throw new BadRequestException(
           'An actor can have only one RACI role per task in a process',
@@ -124,9 +141,16 @@ export class ProjectRaciController {
     }
 
     if (normalized.length) {
-      const registeredActors = await this.actors.find({ where: { projectId } });
-      const registeredNames = new Set(registeredActors.map(actor => actor.normalizedName));
-      const unregistered = normalized.find(entry => !registeredNames.has(this.normalizeActorName(entry.actorName)));
+      const registeredActors = await this.actors.find({
+        where: { projectId },
+      });
+      const registeredNames = new Set(
+        registeredActors.map((actor) => actor.normalizedName),
+      );
+      const unregistered = normalized.find(
+        (entry) =>
+          !registeredNames.has(this.normalizeActorName(entry.actorName)),
+      );
       if (unregistered) {
         throw new BadRequestException(
           `Actor "${unregistered.actorName}" is not registered in this project`,
@@ -135,7 +159,9 @@ export class ProjectRaciController {
     }
 
     if (normalized.length) {
-      const processIds = [...new Set(normalized.map((entry) => entry.resourceId))];
+      const processIds = [
+        ...new Set(normalized.map((entry) => entry.resourceId)),
+      ];
       const linked = await this.projectProcesses.find({
         where: { projectId, resourceId: In(processIds) },
       });
@@ -176,20 +202,37 @@ export class ProjectRaciController {
     @Body() body: { name?: string },
     @Headers() headers: RequestHeaders,
   ) {
-    const userId = await this.assertRole(projectId, headers, ProjectMemberRole.Modeler);
+    const userId = await this.assertRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Modeler,
+    );
     const name = this.validateActorName(body.name);
     const normalizedName = this.normalizeActorName(name);
-    const existing = await this.actors.findOne({ where: { projectId, normalizedName } });
+    const existing = await this.actors.findOne({
+      where: { projectId, normalizedName },
+    });
     if (existing) {
-      throw new ConflictException('An actor with this name already exists in the project');
+      throw new ConflictException(
+        'An actor with this name already exists in the project',
+      );
     }
     try {
-      return await this.actors.save(this.actors.create({
-        projectId, name, normalizedName, active: true, origin: 'manual', createdBy: userId,
-      }));
+      return await this.actors.save(
+        this.actors.create({
+          projectId,
+          name,
+          normalizedName,
+          active: true,
+          origin: 'manual',
+          createdBy: userId,
+        }),
+      );
     } catch (error) {
       if ((error as { code?: string }).code === '23505') {
-        throw new ConflictException('An actor with this name already exists in the project');
+        throw new ConflictException(
+        'An actor with this name already exists in the project',
+      );
       }
       throw error;
     }
@@ -206,9 +249,15 @@ export class ProjectRaciController {
     @Body() body: { names?: string[] },
     @Headers() headers: RequestHeaders,
   ) {
-    const userId = await this.assertRole(projectId, headers, ProjectMemberRole.Modeler);
+    const userId = await this.assertRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Modeler,
+    );
     if (!Array.isArray(body.names) || body.names.length > 500) {
-      throw new BadRequestException('names must be an array containing at most 500 actor names');
+      throw new BadRequestException(
+        'names must be an array containing at most 500 actor names',
+      );
     }
 
     const normalized = new Map<string, string>();
@@ -219,15 +268,20 @@ export class ProjectRaciController {
     }
 
     const existing = await this.actors.find({ where: { projectId } });
-    const known = new Set(existing.map(actor => actor.normalizedName));
+    const known = new Set(existing.map((actor) => actor.normalizedName));
     const additions = [...normalized.entries()]
       .filter(([key]) => !known.has(key))
       .map(([normalizedName, name]) => ({
-        projectId, name, normalizedName, active: true, origin: 'bpmn' as const, createdBy: userId,
+        projectId,
+        name,
+        normalizedName,
+        active: true,
+        origin: 'bpmn' as const,
+        createdBy: userId,
       }));
 
     if (additions.length) {
-      await this.dataSource.transaction(async manager => {
+      await this.dataSource.transaction(async (manager) => {
         await manager.createQueryBuilder()
           .insert()
           .into(ProjectRaciActorTypeOrmEntity)
@@ -258,28 +312,42 @@ export class ProjectRaciController {
     return this.dataSource.transaction(async manager => {
       const actors = manager.getRepository(ProjectRaciActorTypeOrmEntity);
       const entries = manager.getRepository(ProjectRaciEntryTypeOrmEntity);
-      const actor = await actors.findOne({ where: { id: actorId, projectId } });
+      const actor = await actors.findOne({
+        where: { id: actorId, projectId },
+      });
       if (!actor) throw new NotFoundException('Project actor not found');
-      const duplicate = await actors.findOne({ where: { projectId, normalizedName } });
+      const duplicate = await actors.findOne({
+        where: { projectId, normalizedName },
+      });
       if (duplicate && duplicate.id !== actor.id) {
-        throw new ConflictException('An actor with this name already exists in the project');
+        throw new ConflictException(
+        'An actor with this name already exists in the project',
+      );
       }
 
       if (actor.name !== name) {
         // Avoid collapsing two legacy assignments into the same unique cell.
         const conflictingAssignments = await entries.createQueryBuilder('entry')
           .where('entry."projectId" = :projectId', { projectId })
-          .andWhere('lower(btrim(entry."actorName")) = :normalizedName', { normalizedName })
-          .andWhere('lower(btrim(entry."actorName")) <> :oldName', { oldName: actor.normalizedName })
+          .andWhere('lower(btrim(entry."actorName")) = :normalizedName', {
+            normalizedName,
+          })
+          .andWhere('lower(btrim(entry."actorName")) <> :oldName', {
+            oldName: actor.normalizedName,
+          })
           .getCount();
         if (conflictingAssignments > 0) {
-          throw new ConflictException('Assignments already exist under the target actor name; reconcile them before renaming');
+          throw new ConflictException(
+            'Assignments already exist under the target actor name; reconcile them before renaming',
+          );
         }
         await entries.createQueryBuilder()
           .update(ProjectRaciEntryTypeOrmEntity)
           .set({ actorName: name, updatedAt: () => 'now()' })
           .where('"projectId" = :projectId', { projectId })
-          .andWhere('lower(btrim("actorName")) = :oldName', { oldName: actor.normalizedName })
+          .andWhere('lower(btrim("actorName")) = :oldName', {
+            oldName: actor.normalizedName,
+          })
           .execute();
         actor.name = name;
         actor.normalizedName = normalizedName;
@@ -301,7 +369,9 @@ export class ProjectRaciController {
     if (typeof body.active !== 'boolean') {
       throw new BadRequestException('active must be a boolean');
     }
-    const actor = await this.actors.findOne({ where: { id: actorId, projectId } });
+    const actor = await this.actors.findOne({
+      where: { id: actorId, projectId },
+    });
     if (!actor) throw new NotFoundException('Project actor not found');
     actor.active = body.active;
     return this.actors.save(actor);
@@ -313,7 +383,9 @@ export class ProjectRaciController {
     }
     const name = value.trim();
     if (!name || name.length > 255) {
-      throw new BadRequestException('Actor name must contain 1 to 255 characters');
+      throw new BadRequestException(
+        'Actor name must contain 1 to 255 characters',
+      );
     }
     return name;
   }
