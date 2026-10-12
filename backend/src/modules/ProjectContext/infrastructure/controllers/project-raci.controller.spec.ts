@@ -95,6 +95,29 @@ describe('ProjectRaciController actor register', () => {
     expect(result[0].active).toBe(false);
   });
 
+  it('deactivates an actor without deleting its existing assignments', async () => {
+    const actor = {
+      id: 'actor-1',
+      projectId: 'project-1',
+      name: 'Support',
+      normalizedName: 'support',
+      active: true,
+      origin: 'manual',
+    };
+    actors.findOne.mockResolvedValue(actor);
+
+    const result = await controllerCall().setProjectActorActive(
+      'project-1',
+      'actor-1',
+      { active: false },
+      headers,
+    );
+
+    expect(result.active).toBe(false);
+    expect(entries.delete).not.toHaveBeenCalled();
+    expect(entries.save).not.toHaveBeenCalled();
+  });
+
   it('rejects matrix assignments to actors outside the project register', async () => {
     await expect(controllerCall().replaceProjectRaci(
       'project-1',
