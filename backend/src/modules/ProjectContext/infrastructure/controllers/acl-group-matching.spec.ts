@@ -1,7 +1,7 @@
 import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-import { AclGuard } from './acl.guard';
-import { UserGroup } from '../../../utils/UserGroup';
+import { AclGuard } from '../../../../shared-kernel/modules/acl/infrastructure/acl.guard';
+import { UserGroup } from '../../../../shared-kernel/utils/UserGroup';
 
 describe('AclGuard group matching', () => {
   const makeGuard = (allowedGroups: UserGroup[]) => {
