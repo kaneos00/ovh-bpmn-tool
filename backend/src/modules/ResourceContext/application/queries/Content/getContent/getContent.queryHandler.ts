@@ -8,6 +8,7 @@ import {
 } from '../../../../../../modules/ResourceContext/application/shared/Resource/resource.error';
 import { ResourceTypeEnum } from '../../../../../../modules/ResourceContext/shared/types/Resource';
 import { ResourceRepository } from '../../../../../../modules/ResourceContext/application/adapters/repositories/resource.repository';
+import { CannotFindContentError } from '../../../commands/Content/content.error';
 
 export class GetContentQueryHandler {
   constructor(
