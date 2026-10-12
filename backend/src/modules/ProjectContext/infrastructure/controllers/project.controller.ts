@@ -110,9 +110,9 @@ export class ProjectController {
   /**
    * Organization-wide read model for the administration screens.
    *
-   * Access is restricted to the existing global read-write ACL group. User
-   * identities are sourced from project membership records because this
-   * application does not own an organization-wide identity directory.
+   * Access is restricted to the dedicated organization administrator ACL
+   * group. User identities are sourced from project membership records
+   * because this application does not own an organization-wide identity directory.
    */
   @Get('administration/overview')
   @UseAcl([UserGroup.Admin])
@@ -209,49 +209,19 @@ export class ProjectController {
     @Headers() headers: RequestHeaders,
   ) {
     const actorId = this.getUserId(headers);
-    await this.assertProjectExists(projectId);
-
-    const userId = userIdParam.trim();
-    if (!userId || userId.length > 255) {
-      throw new BadRequestException('userId must contain 1 to 255 characters');
-    }
-    if (!body.role || !Object.values(ProjectMemberRole).includes(body.role)) {
-      throw new BadRequestException('role must be viewer, modeler, or admin');
-    }
-
-    const existing = await this.projectMembers.findOneBy({ projectId, userId });
-    if (
-      existing?.role === ProjectMemberRole.Admin &&
-      body.role !== ProjectMemberRole.Admin
-    ) {
-      await this.assertNotLastAdmin(projectId, userId);
-    }
-
-    const member =
-      existing ??
-      this.projectMembers.create({
-        projectId,
-        userId,
-        createdBy: actorId,
-      });
-    member.role = body.role;
-    return this.projectMembers.save(member);
+    const userId = this.validateUserId(userIdParam);
+    const role = this.validateMemberRole(body.role);
+    return this.changeProjectMember(projectId, userId, role, actorId);
   }
 
   @Delete('administration/projects/:projectId/members/:userId')
   @UseAcl([UserGroup.Admin])
   async removeOrganizationProjectMember(
     @Param('projectId') projectId: string,
-    @Param('userId') userId: string,
+    @Param('userId') userIdParam: string,
   ) {
-    await this.assertProjectExists(projectId);
-    const member = await this.projectMembers.findOneBy({ projectId, userId });
-    if (!member) throw new NotFoundException('Project member not found');
-    if (member.role === ProjectMemberRole.Admin) {
-      await this.assertNotLastAdmin(projectId, userId);
-    }
-    await this.projectMembers.delete({ projectId, userId });
-    return { deleted: true, projectId, userId };
+    const userId = this.validateUserId(userIdParam);
+    return this.changeProjectMember(projectId, userId, null);
   }
 
   @Put('administration/projects/:projectId')
@@ -642,48 +612,103 @@ export class ProjectController {
     @Headers() headers: RequestHeaders,
   ) {
     const actorId = this.getUserId(headers);
-    await this.assertProjectRole(projectId, headers, ProjectMemberRole.Admin);
-    const userId = userIdParam.trim();
-    if (!userId || userId.length > 255) {
-      throw new BadRequestException('userId must contain 1 to 255 characters');
-    }
-    if (!body.role || !Object.values(ProjectMemberRole).includes(body.role)) {
-      throw new BadRequestException('role must be viewer, modeler, or admin');
-    }
-
-    const existing = await this.projectMembers.findOneBy({ projectId, userId });
-    if (
-      existing?.role === ProjectMemberRole.Admin &&
-      body.role !== ProjectMemberRole.Admin
-    ) {
-      await this.assertNotLastAdmin(projectId, userId);
-    }
-    const member =
-      existing ??
-      this.projectMembers.create({
-        projectId,
-        userId,
-        createdBy: actorId,
-      });
-    member.role = body.role;
-    return this.projectMembers.save(member);
+    const userId = this.validateUserId(userIdParam);
+    const role = this.validateMemberRole(body.role);
+    return this.changeProjectMember(projectId, userId, role, actorId, headers);
   }
 
   @Delete(':projectId/members/:userId')
   @UseAcl([UserGroup.RW])
   async removeProjectMember(
     @Param('projectId') projectId: string,
-    @Param('userId') userId: string,
+    @Param('userId') userIdParam: string,
     @Headers() headers: RequestHeaders,
   ) {
-    await this.assertProjectRole(projectId, headers, ProjectMemberRole.Admin);
-    const member = await this.projectMembers.findOneBy({ projectId, userId });
-    if (!member) throw new NotFoundException('Project member not found');
-    if (member.role === ProjectMemberRole.Admin) {
-      await this.assertNotLastAdmin(projectId, userId);
+    const userId = this.validateUserId(userIdParam);
+    return this.changeProjectMember(projectId, userId, null, undefined, headers);
+  }
+
+  private validateUserId(userIdParam: string): string {
+    const userId = userIdParam.trim();
+    if (!userId || userId.length > 255) {
+      throw new BadRequestException('userId must contain 1 to 255 characters');
     }
-    await this.projectMembers.delete({ projectId, userId });
-    return { deleted: true, projectId, userId };
+    return userId;
+  }
+
+  private validateMemberRole(role?: ProjectMemberRole): ProjectMemberRole {
+    if (!role || !Object.values(ProjectMemberRole).includes(role)) {
+      throw new BadRequestException('role must be viewer, modeler, or admin');
+    }
+    return role;
+  }
+
+  /**
+   * Serialize membership changes per project. Locking the project row ensures
+   * concurrent removals/demotions cannot both observe themselves as non-final
+   * administrators and leave a project without an administrator.
+   */
+  private async changeProjectMember(
+    projectId: string,
+    userId: string,
+    role: ProjectMemberRole | null,
+    actorId?: string,
+    headers?: RequestHeaders,
+  ) {
+    return this.dataSource.transaction(async (manager) => {
+      const projectRepository = manager.getRepository(ProjectTypeOrmEntity);
+      const project = await projectRepository.findOne({
+        where: { id: projectId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!project) throw new NotFoundException('Project not found');
+
+      const members = manager.getRepository(ProjectMemberTypeOrmEntity);
+      if (headers) {
+        const requesterId = this.getUserId(headers);
+        const requester = await members.findOneBy({
+          projectId,
+          userId: requesterId,
+        });
+        if (!requester || requester.role !== ProjectMemberRole.Admin) {
+          throw new ForbiddenException('Insufficient project permissions');
+        }
+      }
+
+      const existing = await members.findOneBy({ projectId, userId });
+      if (role === null) {
+        if (!existing) throw new NotFoundException('Project member not found');
+      }
+
+      if (
+        existing?.role === ProjectMemberRole.Admin &&
+        (role === null || role !== ProjectMemberRole.Admin)
+      ) {
+        const admins = await members.find({
+          where: { projectId, role: ProjectMemberRole.Admin },
+        });
+        if (admins.length <= 1) {
+          throw new BadRequestException(
+            'A project must retain at least one administrator',
+          );
+        }
+      }
+
+      if (role === null) {
+        await members.delete({ projectId, userId });
+        return { deleted: true, projectId, userId };
+      }
+
+      const member =
+        existing ??
+        members.create({
+          projectId,
+          userId,
+          createdBy: actorId,
+        });
+      member.role = role;
+      return members.save(member);
+    });
   }
 
   private getUserId(headers: RequestHeaders): string {
