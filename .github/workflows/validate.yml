@@ -70,3 +70,26 @@ jobs:
       - name: Unit tests
         working-directory: backend
         run: pnpm exec jest --config ./tests/jest-unit.json --runInBand
+
+  coolify-demo:
+    name: Coolify demo images and Compose config
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_NAME: bpmn_v2_demo
+      DATABASE_USER: bpmn_demo
+      DATABASE_PASSWORD: ci-only-password
+      DEMO_AUTH_USER: demo-v2
+      DEMO_AUTH_PASSWORD: ci-only-demo-password
+      COMPOSE_PROJECT_NAME: bpmn-v2-ci
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate Compose configuration
+        run: docker compose -f deploy/coolify/compose.yaml config --quiet
+      - name: Build backend image
+        run: docker build --file deploy/coolify/Dockerfile.backend --tag bpmn-v2-demo-backend:ci .
+      - name: Build frontend image
+        run: docker build --file deploy/coolify/Dockerfile.frontend --tag bpmn-v2-demo-frontend:ci .
+      - name: Build PostgreSQL image
+        run: docker build --file deploy/coolify/Dockerfile.postgres --tag bpmn-v2-demo-postgres:ci .
