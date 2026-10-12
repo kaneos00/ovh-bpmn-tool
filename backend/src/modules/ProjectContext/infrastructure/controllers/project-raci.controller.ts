@@ -231,8 +231,8 @@ export class ProjectRaciController {
     } catch (error) {
       if ((error as { code?: string }).code === '23505') {
         throw new ConflictException(
-        'An actor with this name already exists in the project',
-      );
+          'An actor with this name already exists in the project',
+        );
       }
       throw error;
     }
@@ -282,7 +282,8 @@ export class ProjectRaciController {
 
     if (additions.length) {
       await this.dataSource.transaction(async (manager) => {
-        await manager.createQueryBuilder()
+        await manager
+          .createQueryBuilder()
           .insert()
           .into(ProjectRaciActorTypeOrmEntity)
           .values(additions)
@@ -327,7 +328,8 @@ export class ProjectRaciController {
 
       if (actor.name !== name) {
         // Avoid collapsing two legacy assignments into the same unique cell.
-        const conflictingAssignments = await entries.createQueryBuilder('entry')
+        const conflictingAssignments = await entries
+          .createQueryBuilder('entry')
           .where('entry."projectId" = :projectId', { projectId })
           .andWhere('lower(btrim(entry."actorName")) = :normalizedName', {
             normalizedName,
@@ -399,7 +401,8 @@ export class ProjectRaciController {
     headers: RequestHeaders,
     minimumRole: ProjectMemberRole,
   ): Promise<string> {
-    const configuredHeader = this.configService.getOrThrow<string>('userHeader');
+    const configuredHeader =
+      this.configService.getOrThrow<string>('userHeader');
     const userId =
       headers[configuredHeader] ?? headers[configuredHeader.toLowerCase()];
     if (!userId?.trim()) {
