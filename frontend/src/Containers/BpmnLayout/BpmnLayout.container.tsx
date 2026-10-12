@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Await, Outlet, useNavigate, useParams } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Await, Outlet, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Box, IconButton, Sheet, Typography } from '@mui/joy';
 import { AccountTreeOutlined, ChevronLeft, ChevronRight, FolderOutlined, GroupsOutlined, WorkspacesOutlined } from '@mui/icons-material';
 import { useQuery } from 'react-query';
@@ -30,8 +30,14 @@ import './BpmnLayoutContainer.scss';
 export const Component = () => {
   const { resourceId } = useParams() as BpmnLayoutRouteParams;
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedElementId = searchParams.get('elementId');
   const [folderOpen, setFolderOpen] = useState(false);
-  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(requestedElementId);
+
+  useEffect(() => {
+    setSelectedElementId(requestedElementId);
+  }, [resourceId, requestedElementId]);
 
   const { resource, contents, navigationFns, callbacks } = useBpmnLayout();
   const publishedContent = useMemo(
@@ -154,7 +160,9 @@ export const Component = () => {
               currentResourceId={resourceId}
               onActivityClick={(targetResourceId, elementId) => {
                 setSelectedElementId(elementId);
-                if (targetResourceId !== resourceId) navigate(`/${targetResourceId}`);
+                if (targetResourceId !== resourceId) {
+                  navigate(`/${targetResourceId}?elementId=${encodeURIComponent(elementId)}`);
+                }
               }}
             />
           </Box>
