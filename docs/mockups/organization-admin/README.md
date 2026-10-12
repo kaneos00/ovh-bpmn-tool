@@ -45,3 +45,16 @@ Branche de référence examinée : `fix/v2-resource-tree-deletion-guards`.
 ## Étape après validation
 
 Recueillir les retours sur la navigation, les colonnes des listes, les filtres et les fiches détaillées. Après validation, intégrer progressivement l’IHM réelle, créer uniquement les endpoints manquants, puis exécuter les tests de build, d’autorisation et de non-régression. La maquette ne doit pas être incluse dans l’image de production ni déployée comme interface active.
+
+## Première intégration réelle (branche de travail)
+
+Une première page frontend est maintenant développée sur la branche `feature/v2-admin-interface` :
+
+- route `/admin`, accessible depuis la liste des projets ;
+- onglets Utilisateurs, Projets et Processus ;
+- recherche transversale et navigation vers les fiches projet ou processus ;
+- données chargées à partir des endpoints V2 existants, sans modification du schéma.
+
+**Périmètre de sécurité :** la page ne montre que les projets accessibles à l’identité courante, puis agrège les membres et les processus de ces projets. Elle ne constitue pas encore l’annuaire exhaustif de l’organisation. Avant de fournir une vue globale de tous les comptes, il faut disposer d’un rôle organisationnel explicite et d’un endpoint backend qui applique ce contrôle d’accès. Cette restriction évite de transformer un rôle d’administrateur de projet en privilège global.
+
+Le CI de cette branche doit réussir avant de considérer cette intégration comme prête. Elle n’est ni fusionnée ni déployée.
