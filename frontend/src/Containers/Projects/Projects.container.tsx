@@ -135,6 +135,26 @@ export const Component = () => {
     },
   );
 
+  // Common processes stay immutable in the shared catalogue. Editing one in a
+  // project starts by creating an independent, editable variant.
+  const createProcessVariant = useMutation(
+    (sourceResourceId: string) => {
+      if (!projectId) throw new Error('Aucun projet sélectionné.');
+      return apiClient.post(`/projects/${projectId}/processes/variants`, {
+        sourceResourceId,
+      });
+    },
+    {
+      onSuccess: async (result: { resource: Resource }) => {
+        setError(null);
+        await queryClient.invalidateQueries(projectProcessesKey(projectId ?? ''));
+        await queryClient.invalidateQueries(availableResourcesQuery.queryKey);
+        navigate(`/${result.resource.id}/modeler`);
+      },
+      onError: (mutationError: Error) => setError(mutationError.message),
+    },
+  );
+
 
   const setProjectMember = useMutation(
     () => {
@@ -330,6 +350,16 @@ export const Component = () => {
               </Box>
               <Stack direction="row" spacing={1}>
                 {link.resource && <Button variant="soft" onClick={() => navigate(`/${link.resourceId}`)}>Ouvrir</Button>}
+                {link.usage === 'common' && (
+                  <Button
+                    variant="solid"
+                    loading={createProcessVariant.isLoading}
+                    disabled={createProcessVariant.isLoading}
+                    onClick={() => createProcessVariant.mutate(link.resourceId)}
+                  >
+                    Créer une variante modifiable
+                  </Button>
+                )}
                 <Button color="danger" variant="plain" loading={unlinkProcess.isLoading} onClick={() => unlinkProcess.mutate(link.resourceId)}>Retirer</Button>
               </Stack>
             </Card>
