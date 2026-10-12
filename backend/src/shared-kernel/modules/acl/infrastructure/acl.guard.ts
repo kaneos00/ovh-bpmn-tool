@@ -45,9 +45,8 @@ export class AclGuard implements CanActivate {
 
     const userGroups = userGroupsHeader.split(',');
     return allowedGroups.some((group: UserGroup) => {
-      const groupPattern = new RegExp('^' + group + '-[a-z]+$');
       return userGroups.some((userGroup) =>
-        groupPattern.test(userGroup.trim()),
+        userGroup.trim().startsWith(group + '-'),
       );
     });
   }
