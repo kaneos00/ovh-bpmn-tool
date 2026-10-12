@@ -102,7 +102,9 @@ export class ResourceTypeOrmRepository implements ResourceRepository {
       // The controller always constructs the filter object, even when some
       // optional query parameters are absent.
       const where = Object.fromEntries(
-        Object.entries(filters ?? {}).filter(([, value]) => value !== undefined),
+        Object.entries(filters ?? {}).filter(
+          ([, value]) => value !== undefined,
+        ),
       ) as ResourceFilters;
 
       const result = await this.resourceRepository.find(
