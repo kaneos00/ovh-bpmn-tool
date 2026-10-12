@@ -1,4 +1,8 @@
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
@@ -142,9 +146,7 @@ export class ProjectResourceAccessService {
   }
 
   private getUserId(headers: RequestHeaders): string {
-    const configuredHeader = this.configService.getOrThrow<string>(
-      'userHeader',
-    );
+    const configuredHeader = this.configService.getOrThrow<string>('userHeader');
     const userId =
       headers[configuredHeader] ?? headers[configuredHeader.toLowerCase()];
     if (!userId?.trim()) {
