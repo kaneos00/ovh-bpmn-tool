@@ -146,8 +146,8 @@ export const ProjectRaciManager = ({
   };
   const save = useMutation(
     (nextEntries: RaciEntry[]) => apiClient.put(`/projects/${projectId}/raci`, {
-      entries: nextEntries.map(({ resourceId, taskId, taskName, actorName, role }) => ({
-        resourceId, taskId, taskName, actorName, role,
+      entries: nextEntries.map(({ resourceId, taskId, taskName, actorName: assignedActorName, role }) => ({
+        resourceId, taskId, taskName, actorName: assignedActorName, role,
       })),
     }),
     {
