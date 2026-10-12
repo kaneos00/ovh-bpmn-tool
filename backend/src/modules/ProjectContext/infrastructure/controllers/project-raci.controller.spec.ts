@@ -195,6 +195,42 @@ describe('ProjectRaciController actor register', () => {
     expect(entries.save).not.toHaveBeenCalled();
   });
 
+  it('rejects assigning an inactive actor to a RACI entry', async () => {
+    actors.find.mockResolvedValue([
+      {
+        id: 'actor-1',
+        projectId: 'project-1',
+        name: 'Inactive',
+        normalizedName: 'inactive',
+        active: false,
+        origin: 'manual',
+      },
+    ]);
+
+    await expect(
+      controllerCall().replaceProjectRaci(
+        'project-1',
+        {
+          entries: [
+            {
+              resourceId: 'resource-1',
+              taskId: 'Activity_1',
+              taskName: 'Validate request',
+              actorName: 'Inactive',
+              role: ProjectRaciRole.Responsible,
+            },
+          ],
+        },
+        headers,
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(actors.find).toHaveBeenCalledWith({
+      where: { projectId: 'project-1', active: true },
+    });
+    expect(projectProcesses.find).not.toHaveBeenCalled();
+  });
+
   it('rejects matrix assignments to actors outside the project register', async () => {
     await expect(
       controllerCall().replaceProjectRaci(
