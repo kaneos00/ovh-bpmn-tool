@@ -2,6 +2,12 @@ import { UseCaseError } from '../../../../../../shared-kernel/application/usecas
 
 export class CannotListResourcesError extends UseCaseError {
   constructor(error: Error) {
-    super(`Cannot list resources: `, error);
+    const detail = error?.message?.trim();
+    super(
+      detail
+        ? `Cannot list resources: ${detail}`
+        : 'Cannot list resources: underlying error has no message',
+      error,
+    );
   }
 }
