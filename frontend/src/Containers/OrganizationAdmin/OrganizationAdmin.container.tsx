@@ -128,6 +128,7 @@ export const Component = () => {
   const [newProjectId, setNewProjectId] = useState('');
   const [newRole, setNewRole] = useState<MembershipView['role']>('viewer');
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
   const [projectNameDraft, setProjectNameDraft] = useState('');
   const [projectDescriptionDraft, setProjectDescriptionDraft] = useState('');
   const [newProjectName, setNewProjectName] = useState('');
@@ -251,6 +252,7 @@ export const Component = () => {
 
   const selectedUser = users.find((user) => user.userId === selectedUserId);
   const selectedProject = overview?.projects.find((project) => project.id === selectedProjectId);
+  const selectedProcess = overview?.processes.find((process) => process.id === selectedProcessId);
 
   const title = sections.find((item) => item.key === activeSection)?.label ?? 'Utilisateurs';
 
@@ -542,6 +544,34 @@ export const Component = () => {
           </Card>
         )}
 
+        {activeSection === 'processes' && selectedProcess && (
+          <Card variant="outlined" sx={{ gap: 1.5 }}>
+            <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography level="title-lg">{selectedProcess.name}</Typography>
+                <Typography level="body-sm" sx={{ color: 'text.secondary' }}>
+                  {selectedProcess.description || 'Aucune description'}
+                </Typography>
+              </Box>
+              <Button size="sm" variant="plain" color="neutral" onClick={() => setSelectedProcessId(null)}>Fermer</Button>
+            </Stack>
+            <Divider />
+            <Typography level="title-sm">Projets utilisateurs</Typography>
+            {selectedProcess.projects.length > 0 ? selectedProcess.projects.map((project) => (
+              <Stack key={project.projectId} direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ alignItems: 'center' }}>
+                <Typography level="body-sm">{project.projectName}</Typography>
+                <Chip size="sm" variant="soft" color={usageColor[project.usage]}>{usageLabel[project.usage]}</Chip>
+                {project.sourceResourceId && (
+                  <Typography level="body-xs" sx={{ color: 'text.secondary' }}>Source : {project.sourceResourceId}</Typography>
+                )}
+              </Stack>
+            )) : <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Ce processus n’est associé à aucun projet.</Typography>}
+            <Typography level="body-xs" sx={{ color: 'text.secondary' }}>
+              La modification du diagramme BPMN reste dans l’éditeur de processus et respecte les droits d’accès du projet.
+            </Typography>
+          </Card>
+        )}
+
         {activeSection === 'processes' && overview && (
           <Card variant="outlined" sx={{ p: 0, overflow: 'auto' }}>
             <Table hoverRow stickyHeader>
@@ -568,7 +598,7 @@ export const Component = () => {
                       </Stack>
                     </td>
                     <td>{process.projects.find((project) => project.sourceResourceId)?.sourceResourceId ?? '—'}</td>
-                    <td><Button size="sm" variant="outlined" onClick={() => navigate(`/${process.id}`)}>Ouvrir</Button></td>
+                    <td><Button size="sm" variant="outlined" onClick={() => setSelectedProcessId(process.id)}>Détails</Button></td>
                   </tr>
                 ))}
                 {processes.length === 0 && <tr><td colSpan={5}>Aucun processus correspondant.</td></tr>}
