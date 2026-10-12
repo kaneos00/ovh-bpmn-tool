@@ -84,7 +84,9 @@ describe('ResourceTypeOrmRepository.find', () => {
   });
 
   it('includes the original database error in the returned failure', async () => {
-    resourceRepository.find.mockRejectedValue(new Error('database unavailable'));
+    resourceRepository.find.mockRejectedValue(
+      new Error('database unavailable'),
+    );
 
     const result = await repository.find({ parentId: 'root-id' });
 
