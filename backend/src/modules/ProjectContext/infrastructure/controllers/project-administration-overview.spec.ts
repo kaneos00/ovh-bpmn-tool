@@ -237,6 +237,31 @@ describe('ProjectController administration overview', () => {
     expect(projectMembers.save).toHaveBeenCalledWith(existing);
   });
 
+  it('prevents demoting the last project administrator', async () => {
+    projectMembers.findOneBy.mockResolvedValue({
+      projectId: 'project-a',
+      userId: 'alice',
+      role: ProjectMemberRole.Admin,
+    });
+    projectMembers.find.mockResolvedValue([
+      {
+        projectId: 'project-a',
+        userId: 'alice',
+        role: ProjectMemberRole.Admin,
+      },
+    ]);
+
+    await expect(
+      controller.setOrganizationProjectMember(
+        'project-a',
+        'alice',
+        { role: ProjectMemberRole.Viewer },
+        { 'x-user': 'org-admin' },
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(projectMembers.save).not.toHaveBeenCalled();
+  });
+
   it('prevents an organization administrator from removing the last project admin', async () => {
     projectMembers.findOneBy.mockResolvedValue({
       projectId: 'project-a',
