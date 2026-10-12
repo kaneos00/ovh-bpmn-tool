@@ -142,7 +142,7 @@ export class ProjectRaciController {
 
     if (normalized.length) {
       const registeredActors = await this.actors.find({
-        where: { projectId },
+        where: { projectId, active: true },
       });
       const registeredNames = new Set(
         registeredActors.map((actor) => actor.normalizedName),
