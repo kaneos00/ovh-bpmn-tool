@@ -197,7 +197,7 @@ export const Component = () => {
         {overviewQuery.isLoading && <Typography>Chargement des données d’administration…</Typography>}
         {overviewQuery.isError && (
           <Alert color="danger">
-            Impossible de charger cette vue. Vérifiez que votre compte possède le groupe global de lecture-écriture et que l’API V2 est à jour.
+            Impossible de charger cette vue. Vérifiez que votre compte possède le groupe d’administration organisationnelle et que l’API V2 est à jour.
           </Alert>
         )}
 
