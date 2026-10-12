@@ -1,7 +1,7 @@
 FROM node:24-alpine AS build
 WORKDIR /app
 RUN corepack enable
-COPY backend/package.json backend/pnpm-lock.yaml ./
+COPY backend/package.json backend/pnpm-lock.yaml backend/pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY backend/ ./
 RUN pnpm build
