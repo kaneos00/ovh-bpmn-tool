@@ -9,6 +9,7 @@ import { UuidGeneratorModule } from './shared-kernel/modules/uuid-generator/uuid
 import { DomainEventModule } from './shared-kernel/modules/domain-event/domain-event.module';
 import { getTypeormConfig } from './shared-kernel/modules/infrastructure/db/typeorm/typeormConfig';
 import { loadConfigFromEnv } from './config';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { loadConfigFromEnv } from './config';
       useFactory: getTypeormConfig,
       inject: [ConfigService],
     }),
+    AuthModule,
     ResourceContextModule,
     ProjectContextModule,
     EventEmitterModule,
