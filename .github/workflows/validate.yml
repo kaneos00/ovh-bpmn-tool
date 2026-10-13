@@ -81,6 +81,8 @@ jobs:
       DATABASE_PASSWORD: ci-only-password
       DEMO_AUTH_USER: demo-v2
       DEMO_AUTH_PASSWORD: ci-only-demo-password
+      DEMO_AUTH_GROUPS: bpmn-tool-readwrite-demo,bpmn-tool-admin-demo
+      AUTH_SESSION_SECRET: ci-only-session-secret-with-at-least-32-bytes
       COMPOSE_PROJECT_NAME: bpmn-v2-ci
     steps:
       - name: Checkout
@@ -109,49 +111,47 @@ jobs:
             --env POSTGRES_PASSWORD="$DATABASE_PASSWORD" \
             --env DEMO_AUTH_USER="$DEMO_AUTH_USER" \
             bpmn-v2-demo-postgres:ci
-          for attempt in $(seq 1 30); do
-            if docker exec bpmn-v2-demo-db-ci pg_isready -U "$DATABASE_USER" -d "$DATABASE_NAME"; then
-              break
-            fi
-            sleep 2
-          done
-          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc 'SELECT count(*) FROM projects')" = "2"
-          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc 'SELECT count(*) FROM project_processes')" = "4"
-          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc 'SELECT count(*) FROM project_raci_entries')" = "6"
-
-          docker run --detach --name bpmn-v2-demo-backend-ci --network bpmn-v2-ci --network-alias backend \
-            --env NODE_ENV=production --env NODE_PORT=3000 \
-            --env USER_HEADER=remote-user --env USER_GROUPS_HEADER=remote-user-groups \
-            --env DATABASE_HOST=database --env DATABASE_PORT=5432 \
-            --env DATABASE_USER="$DATABASE_USER" --env DATABASE_PASSWORD="$DATABASE_PASSWORD" \
-            --env DATABASE_NAME="$DATABASE_NAME" --env DATABASE_SSL=off \
-            bpmn-v2-demo-backend:ci
-
-          for attempt in $(seq 1 30); do
-            status="$(docker run --rm --network bpmn-v2-ci curlimages/curl:8.12.1 -sS -o /dev/null -w '%{http_code}' \
-              -H 'remote-user: demo-v2' -H 'remote-user-groups: bpmn-tool-admin-demo' \
-              http://backend:3000/projects/administration/overview || true)"
-            if [ "$status" = "200" ]; then break; fi
-            sleep 2
-          done
-          test "$status" = "200"
-
+          # Invalid credentials must not create a session.
           status="$(docker run --rm --network bpmn-v2-ci curlimages/curl:8.12.1 -sS -o /dev/null -w '%{http_code}' \
-            -H 'remote-user: demo-v2' -H 'remote-user-groups: bpmn-tool-readwrite-demo' \
-            http://backend:3000/projects/administration/overview || true)"
-          test "$status" = "403"
+            -H 'content-type: application/json' -d '{"username":"demo-v2","password":"wrong"}' \
+            http://backend:3000/auth/login || true)"
+          test "$status" = "401"
 
           docker run --detach --name bpmn-v2-demo-frontend-ci --network bpmn-v2-ci \
             --publish 127.0.0.1:18080:80 \
-            --env DEMO_AUTH_USER="$DEMO_AUTH_USER" --env DEMO_AUTH_PASSWORD="$DEMO_AUTH_PASSWORD" \
             bpmn-v2-demo-frontend:ci
           for attempt in $(seq 1 30); do
-            status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
-              --user "$DEMO_AUTH_USER:$DEMO_AUTH_PASSWORD" \
-              http://127.0.0.1:18080/bpmn-api/projects/administration/overview || true)"
+            status="$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/ || true)"
             if [ "$status" = "200" ]; then break; fi
             sleep 2
           done
           test "$status" = "200"
-          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/)" = "401"
-          test "$(curl --silent --output /dev/null --write-out '%{http_code}' --user "$DEMO_AUTH_USER:$DEMO_AUTH_PASSWORD" http://127.0.0.1:18080/)" = "200"
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/bpmn-tool-logo.svg)" = "200"
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/bpmn-api/projects/administration/overview)" = "401"
+
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --header 'content-type: application/json' \
+            --data '{"username":"demo-v2","password":"ci-only-demo-password"}' \
+            --cookie-jar /tmp/bpmn-v2-ci.cookies \
+            http://127.0.0.1:18080/bpmn-api/auth/login)"
+          test "$status" = "200"
+
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --cookie /tmp/bpmn-v2-ci.cookies \
+            http://127.0.0.1:18080/bpmn-api/projects/administration/overview)"
+          test "$status" = "200"
+
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --cookie /tmp/bpmn-v2-ci.cookies \
+            http://127.0.0.1:18080/bpmn-api/auth/session)"
+          test "$status" = "200"
+
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --cookie /tmp/bpmn-v2-ci.cookies -X POST \
+            http://127.0.0.1:18080/bpmn-api/auth/logout)"
+          test "$status" = "200"
+
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --cookie /tmp/bpmn-v2-ci.cookies \
+            http://127.0.0.1:18080/bpmn-api/projects/administration/overview)"
+          test "$status" = "401"
