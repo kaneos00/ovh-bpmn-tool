@@ -171,14 +171,8 @@ export class ResourceController {
       throw new BadRequestException('A name is required to clone a process');
     }
 
-    await this.projectResourceAccess.assertCanReadResource(
-      resourceId,
-      headers,
-    );
-    await this.projectResourceAccess.assertCanCloneResource(
-      resourceId,
-      headers,
-    );
+    await this.projectResourceAccess.assertCanReadResource(resourceId, headers);
+    await this.projectResourceAccess.assertCanCloneResource(resourceId, headers);
     const sourceResult = await this.getResourceQueryHandler.execute({ resourceId });
     if (sourceResult.fail || !sourceResult.ok) {
       throw new NotFoundException(`Cannot find resource with id ${resourceId}`);
@@ -196,7 +190,7 @@ export class ResourceController {
       throw new BadRequestException(contentsResult.fail.message);
     }
     const sourceContent = [...contentsResult.ok].sort((left, right) => {
-      const rank = (status: ContentStatusEnum) =>
+      const rank = (status: ContentStatusEnum | undefined) =>
         status === ContentStatusEnum.Published
           ? 2
           : status === ContentStatusEnum.Draft
