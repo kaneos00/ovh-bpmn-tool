@@ -95,7 +95,7 @@ jobs:
         run: docker build --file deploy/coolify/Dockerfile.frontend --tag bpmn-v2-demo-frontend:ci .
       - name: Build PostgreSQL image
         run: docker build --file deploy/coolify/Dockerfile.postgres --tag bpmn-v2-demo-postgres:ci .
-      - name: Smoke-test demo database, API authorization and frontend proxy
+      - name: Smoke-test database, login, session and protected API
         run: |
           docker network create bpmn-v2-ci
           cleanup() {
@@ -111,7 +111,30 @@ jobs:
             --env POSTGRES_PASSWORD="$DATABASE_PASSWORD" \
             --env DEMO_AUTH_USER="$DEMO_AUTH_USER" \
             bpmn-v2-demo-postgres:ci
-          # Invalid credentials must not create a session.
+          for attempt in $(seq 1 30); do
+            if docker exec bpmn-v2-demo-db-ci pg_isready -U "$DATABASE_USER" -d "$DATABASE_NAME"; then break; fi
+            sleep 2
+          done
+          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc 'SELECT count(*) FROM projects')" = "2"
+          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc 'SELECT count(*) FROM project_processes')" = "4"
+          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc 'SELECT count(*) FROM project_raci_entries')" = "6"
+
+          docker run --detach --name bpmn-v2-demo-backend-ci --network bpmn-v2-ci --network-alias backend \
+            --env NODE_ENV=production --env NODE_PORT=3000 \
+            --env USER_HEADER=remote-user --env USER_GROUPS_HEADER=remote-user-groups \
+            --env DEMO_AUTH_USER="$DEMO_AUTH_USER" --env DEMO_AUTH_PASSWORD="$DEMO_AUTH_PASSWORD" \
+            --env DEMO_AUTH_GROUPS="$DEMO_AUTH_GROUPS" --env AUTH_SESSION_SECRET="$AUTH_SESSION_SECRET" \
+            --env DATABASE_HOST=database --env DATABASE_PORT=5432 \
+            --env DATABASE_USER="$DATABASE_USER" --env DATABASE_PASSWORD="$DATABASE_PASSWORD" \
+            --env DATABASE_NAME="$DATABASE_NAME" --env DATABASE_SSL=off \
+            bpmn-v2-demo-backend:ci
+
+          for attempt in $(seq 1 30); do
+            status="$(docker run --rm --network bpmn-v2-ci curlimages/curl:8.12.1 -sS -o /dev/null -w '%{http_code}' http://backend:3000/auth/session || true)"
+            if [ "$status" = "401" ]; then break; fi
+            sleep 2
+          done
+          test "$status" = "401"
           status="$(docker run --rm --network bpmn-v2-ci curlimages/curl:8.12.1 -sS -o /dev/null -w '%{http_code}' \
             -H 'content-type: application/json' -d '{"username":"demo-v2","password":"wrong"}' \
             http://backend:3000/auth/login || true)"
@@ -140,7 +163,6 @@ jobs:
             --cookie /tmp/bpmn-v2-ci.cookies \
             http://127.0.0.1:18080/bpmn-api/projects/administration/overview)"
           test "$status" = "200"
-
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-ci.cookies \
             http://127.0.0.1:18080/bpmn-api/auth/session)"
@@ -150,8 +172,4 @@ jobs:
             --cookie /tmp/bpmn-v2-ci.cookies -X POST \
             http://127.0.0.1:18080/bpmn-api/auth/logout)"
           test "$status" = "200"
-
-          status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
-            --cookie /tmp/bpmn-v2-ci.cookies \
-            http://127.0.0.1:18080/bpmn-api/projects/administration/overview)"
-          test "$status" = "401"
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/bpmn-api/projects/administration/overview)" = "401"
