@@ -19,13 +19,6 @@ import type { Request, Response } from 'express';
 // When adding SSO, implement a separate provider/callback service and map validated
 // issuer/audience/signature claims to this contract. Never accept identity or groups
 // supplied by the browser; keep demo credentials isolated to the demo strategy.
-// AUTHENTICATION ARCHITECTURE / FUTURE SSO (OIDC): this cookie is the application-session
-// contract, not the identity-provider protocol. Keep the signed session payload
-// (subject, trusted application groups, expiry) independent of the credential mechanism
-// so a future OIDC callback can establish the same session without rewriting ACL checks.
-// Add SSO as a separate provider/callback service. Validate provider claims on the server
-// and map only trusted claims to this contract; never accept identity or groups from browser input.
-// Keep the current local credential strategy isolated to demo environments.
 const COOKIE_NAME = 'bpmn_session';
 const SESSION_TTL_SECONDS = 8 * 60 * 60;
 
@@ -42,9 +35,6 @@ export class AuthController {
   // Demo-only local credential strategy. For future SSO, add a separate OIDC
   // start/callback flow instead of embedding redirects/token validation here; both
   // strategies should issue the same HttpOnly app-session cookie contract.
-  // Demo-only local credential strategy. Future SSO should have separate OIDC start/callback
-  // routes rather than mixing redirects and token validation into this controller method.
-  // Both strategies should issue the same app-owned HttpOnly session cookie.
   @Post('login')
   login(
     @Body() body: { username?: unknown; password?: unknown },
@@ -144,8 +134,6 @@ export class AuthController {
   // Keep session validation as the single boundary used by both local demo login
   // and any future SSO callback. If SSO is introduced, validate ID tokens server-side
   // and map only trusted IdP claims before signing this app-owned session payload.
-  // Shared session validation boundary for the demo strategy and any future SSO strategy.
-  // An OIDC callback must validate the provider response before signing this app-owned payload.
   private readSession(request: Request): SessionPayload | null {
     const token = this.readCookie(request.headers.cookie, COOKIE_NAME);
     const secret = this.getSecret();
