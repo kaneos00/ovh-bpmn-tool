@@ -10,6 +10,7 @@ import { ProcessDetails } from '../../Components/BusinessComponents/ProcessDetai
 import { useBpmnLayout } from './hooks/useBpmnLayout';
 import { useBpmnLayoutBreadcrumbs } from './hooks/useBpmnLayoutBreadcrumbs';
 import { Header } from '../../Components/GenericComponents/Header/Header';
+import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
 import { FolderTree } from '../../Components/BusinessComponents/FolderTree';
 import {
   BpmnContentLoading,
@@ -174,6 +175,7 @@ export const Component = () => {
           <Await resolve={resource}>
             {resource && (
               <>
+                <WorkspaceNavigation />
                 <Header
                   title={resource.name}
                   description={resource.description}
