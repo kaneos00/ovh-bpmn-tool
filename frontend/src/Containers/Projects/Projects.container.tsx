@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from 'react-query';
 import {
   Alert,
   Box,
+  Chip,
   Button,
   Card,
   FormControl,
@@ -194,6 +195,15 @@ export const Component = () => {
   const unlinkedProcesses = (availableProcesses.data ?? []).filter(
     (resource) => !linkedResourceIds.has(resource.id),
   );
+  const processSummary = useMemo(() => {
+    const links = linkedProcessesQuery.data ?? [];
+    return {
+      total: links.length,
+      common: links.filter((link) => link.usage === 'common').length,
+      variants: links.filter((link) => link.usage === 'variant').length,
+      specific: links.filter((link) => link.usage === 'project-specific').length,
+    };
+  }, [linkedProcessesQuery.data]);
 
   if (!projectId) {
     return (
@@ -337,6 +347,16 @@ export const Component = () => {
               </Button>
             </Box>
           </Stack>
+        </Card>
+        <Card variant="outlined" sx={{ gap: 1.5 }}>
+          <Typography level="title-lg">Vue d’ensemble du projet</Typography>
+          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+            <Chip variant="outlined">{processSummary.total} processus au total</Chip>
+            <Chip color="success" variant="soft">{processSummary.common} commun(s)</Chip>
+            <Chip color="warning" variant="soft">{processSummary.variants} variante(s)</Chip>
+            <Chip color="primary" variant="soft">{processSummary.specific} spécifique(s)</Chip>
+          </Stack>
+          <Typography level="body-sm">Les processus communs sont partagés entre projets ; les variantes permettent une adaptation indépendante ; les processus spécifiques restent propres à ce projet.</Typography>
         </Card>
         <Typography level="title-lg">Processus du projet</Typography>
         {linkedProcessesQuery.isLoading && <Typography>Chargement des processus…</Typography>}
