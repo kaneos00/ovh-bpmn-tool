@@ -103,6 +103,37 @@ export class ProjectResourceAccessService {
     });
   }
 
+
+  /**
+   * Cloning creates a new resource and never mutates the source. Global ACL
+   * still gates the endpoint; project-specific sources additionally require
+   * modeler/admin rights so a viewer cannot export a private process.
+   */
+  async assertCanCloneResource(resourceId: string, headers: RequestHeaders) {
+    const links = await this.projectProcesses.find({ where: { resourceId } });
+    const restrictedLinks = links.filter(
+      (link) => link.usage !== ProjectProcessUsage.Common,
+    );
+    if (!restrictedLinks.length) return;
+
+    const userId = this.getUserId(headers);
+    const memberships = await this.projectMembers.find({
+      where: restrictedLinks.map((link) => ({ projectId: link.projectId, userId })),
+    });
+    const roleByProject = new Map(
+      memberships.map((membership) => [membership.projectId, membership.role]),
+    );
+    const canClone = restrictedLinks.every((link) => {
+      const role = roleByProject.get(link.projectId);
+      return role === ProjectMemberRole.Modeler || role === ProjectMemberRole.Admin;
+    });
+    if (!canClone) {
+      throw new ForbiddenException(
+        'Cloning a project-specific process requires modeler access to every linked project',
+      );
+    }
+  }
+
   async assertCanEditResource(resourceId: string, headers: RequestHeaders) {
     const userId = this.getUserId(headers);
     const links = await this.projectProcesses.find({ where: { resourceId } });
