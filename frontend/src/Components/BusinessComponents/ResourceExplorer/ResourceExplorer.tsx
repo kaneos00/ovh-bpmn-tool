@@ -63,11 +63,17 @@ export const ResourceExplorer = ({
     <Box>
       <Box
         sx={{
-          gap: 1.5,
-          py: 2,
+          position: 'sticky',
+          top: 0,
+          zIndex: 2,
+          gap: 1,
+          py: 1,
           display: 'flex',
           flexWrap: 'wrap',
           justifyContent: 'flex-end',
+          backgroundColor: 'background.surface',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
         }}
       >
         <SearchBar onSearch={onSearch} />
