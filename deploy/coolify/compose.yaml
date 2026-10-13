@@ -26,6 +26,10 @@ services:
       NODE_PORT: "3000"
       USER_HEADER: remote-user
       USER_GROUPS_HEADER: remote-user-groups
+      DEMO_AUTH_USER: ${DEMO_AUTH_USER:?Set DEMO_AUTH_USER in Coolify}
+      DEMO_AUTH_PASSWORD: ${DEMO_AUTH_PASSWORD:?Set DEMO_AUTH_PASSWORD in Coolify}
+      DEMO_AUTH_GROUPS: ${DEMO_AUTH_GROUPS:-bpmn-tool-readwrite-demo,bpmn-tool-admin-demo}
+      AUTH_SESSION_SECRET: ${AUTH_SESSION_SECRET:?Set a random AUTH_SESSION_SECRET of at least 32 bytes in Coolify}
       DATABASE_HOST: database
       DATABASE_PORT: "5432"
       DATABASE_USER: ${DATABASE_USER:?Set DATABASE_USER in Coolify}
@@ -46,9 +50,6 @@ services:
       args:
         VITE_API_URL: /bpmn-api
         VITE_APP_BASE_PATH: /
-    environment:
-      DEMO_AUTH_USER: ${DEMO_AUTH_USER:?Set DEMO_AUTH_USER in Coolify}
-      DEMO_AUTH_PASSWORD: ${DEMO_AUTH_PASSWORD:?Set a unique DEMO_AUTH_PASSWORD in Coolify}
     depends_on:
       - backend
     expose:
