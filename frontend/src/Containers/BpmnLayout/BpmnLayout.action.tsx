@@ -47,12 +47,14 @@ const cloneContentAction = async (resourceId: string, formData: FormData) => {
   } catch (error) {
     const apiError = error as {
       response?: { status?: number; data?: { message?: string | string[] } };
+      errorResponse?: { message?: string | string[]; statusCode?: number };
       status?: number;
       message?: string;
     };
-    const message = apiError.response?.data?.message;
+    const message = apiError.response?.data?.message ?? apiError.errorResponse?.message;
+    const status = apiError.response?.status ?? apiError.status ?? apiError.errorResponse?.statusCode;
     const isCommonProcessReadOnly =
-      (apiError.response?.status === 403 || apiError.status === 403) &&
+      status === 403 &&
       (message === 'Common processes are read-only through resource endpoints' ||
         (Array.isArray(message) && message.includes('Common processes are read-only through resource endpoints')));
 
