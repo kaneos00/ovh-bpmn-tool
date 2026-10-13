@@ -143,7 +143,12 @@ describe('ProjectController administration overview', () => {
 
   it('returns the signed-in user workspace with role and process context', async () => {
     projectMembers.find.mockResolvedValue([
-      { projectId: 'project-a', userId: 'alice', role: ProjectMemberRole.Admin, createdAt: new Date() },
+      {
+        projectId: 'project-a',
+        userId: 'alice',
+        role: ProjectMemberRole.Admin,
+        createdAt: new Date(),
+      },
     ]);
     projects.find.mockResolvedValue([
       { id: 'project-a', name: 'Atlas', description: 'Operations' },
@@ -155,13 +160,21 @@ describe('ProjectController administration overview', () => {
     expect(result.projects[0]).toMatchObject({
       id: 'project-a',
       role: ProjectMemberRole.Admin,
-      processes: [{ resourceId: 'process-shared', name: 'Gestion commune', usage: ProjectProcessUsage.Common }],
+      processes: [
+        {
+          resourceId: 'process-shared',
+          name: 'Gestion commune',
+          usage: ProjectProcessUsage.Common,
+        },
+      ],
     });
   });
 
   it('returns an empty workspace when the user has no project memberships', async () => {
     projectMembers.find.mockResolvedValue([]);
-    await expect(controller.getMyWorkspace({ 'x-user': 'new-user' })).resolves.toEqual({
+    await expect(
+      controller.getMyWorkspace({ 'x-user': 'new-user' }),
+    ).resolves.toEqual({
       userId: 'new-user',
       projects: [],
     });
