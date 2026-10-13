@@ -17,23 +17,27 @@ describe('AuthController', () => {
   const response = () => {
     const headers: Record<string, string> = {};
     const result: { statusCode?: number; body?: unknown; ended?: boolean } = {};
-    const res = {
-      setHeader: jest.fn((key: string, value: string) => {
-        headers[key] = value;
-      }),
-      status: jest.fn((statusCode: number) => {
-        result.statusCode = statusCode;
-        return res;
-      }),
-      json: jest.fn((body: unknown) => {
-        result.body = body;
-        return result;
-      }),
-      end: jest.fn(() => {
-        result.ended = true;
-        return result;
-      }),
+    const res = {} as {
+      setHeader: jest.Mock;
+      status: jest.Mock;
+      json: jest.Mock;
+      end: jest.Mock;
     };
+    res.setHeader = jest.fn((key: string, value: string) => {
+      headers[key] = value;
+    });
+    res.status = jest.fn((statusCode: number) => {
+      result.statusCode = statusCode;
+      return res;
+    });
+    res.json = jest.fn((body: unknown) => {
+      result.body = body;
+      return result;
+    });
+    res.end = jest.fn(() => {
+      result.ended = true;
+      return result;
+    });
     return { res, headers, result };
   };
 
