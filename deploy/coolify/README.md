@@ -17,7 +17,7 @@ Le compte de démonstration défini par `DEMO_AUTH_USER` est aussi créé comme 
 ## Déploiement
 
 1. Dans Coolify, créer une **nouvelle ressource Compose**, distincte de toute application existante.
-2. Relier le dépôt `kaneos00/ovh-bpmn-tool` et choisir la branche de la version candidate `feature/v2-branded-login` (ou la branche de release après validation).
+2. Relier le dépôt `kaneos00/ovh-bpmn-tool` et choisir explicitement la branche candidate à tester. Pour la navigation et l'espace personnel décrits dans cette version, utiliser `feature/v2-workspace-views` après vérification de la CI. Ne pas utiliser cette branche pour la production.
 3. Chemin du fichier Compose : `deploy/coolify/compose.yaml`.
 4. Définir les variables ci-dessous dans Coolify.
 5. Définir `AUTH_SESSION_SECRET` avec une valeur aléatoire d’au moins 32 octets (par exemple générée avec `openssl rand -base64 48`). Ne pas la versionner.
