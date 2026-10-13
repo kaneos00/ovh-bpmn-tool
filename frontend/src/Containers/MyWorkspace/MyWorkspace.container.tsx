@@ -45,7 +45,7 @@ export const Component = () => {
   const workspace = workspaceQuery.data;
 
   return (
-    <Sheet sx={{ maxWidth: 1100, mx: 'auto', p: { xs: 2, md: 4 } }}>
+    <Sheet sx={{ maxWidth: 1400, mx: 'auto', p: { xs: 2, md: 4 } }}>
       <Stack spacing={2}>
         <WorkspaceNavigation />
         <Box>
