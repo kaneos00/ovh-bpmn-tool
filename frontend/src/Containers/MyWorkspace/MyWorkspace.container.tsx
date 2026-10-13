@@ -25,6 +25,11 @@ const roleLabels: Record<WorkspaceProject['role'], string> = {
   modeler: 'Modélisation',
   admin: 'Administration du projet',
 };
+const roleColors: Record<WorkspaceProject['role'], 'warning' | 'primary' | 'neutral'> = {
+  viewer: 'neutral',
+  modeler: 'primary',
+  admin: 'warning',
+};
 const usageLabels: Record<WorkspaceProcess['usage'], string> = {
   common: 'communs',
   variant: 'variantes',
@@ -76,7 +81,7 @@ export const Component = () => {
                     <Typography level="title-lg">{project.name}</Typography>
                     {project.description && <Typography level="body-sm">{project.description}</Typography>}
                   </Box>
-                  <Chip color={project.role === 'admin' ? 'warning' : project.role === 'modeler' ? 'primary' : 'neutral'} variant="soft">
+                  <Chip color={roleColors[project.role]} variant="soft">
                     {roleLabels[project.role]}
                   </Chip>
                 </Stack>
@@ -90,13 +95,13 @@ export const Component = () => {
                   <Box>
                     <Typography level="title-sm">Processus associés</Typography>
                     <Typography level="body-sm" sx={{ mt: 0.5 }}>
-                      {project.processes.slice(0, 4).map((process) => process.name + ' (' + usageLabels[process.usage] + ')').join(' · ')}
-                      {project.processes.length > 4 ? ' · +' + (project.processes.length - 4) + ' autre(s)' : ''}
+                      {project.processes.slice(0, 4).map((process) => `${process.name} (${usageLabels[process.usage]})`).join(' · ')}
+                      {project.processes.length > 4 ? ` · +${project.processes.length - 4} autre(s)` : ''}
                     </Typography>
                   </Box>
                 )}
                 <Box>
-                  <Button onClick={() => navigate('/projects/' + project.id)}>Ouvrir le projet</Button>
+                  <Button onClick={() => navigate(`/projects/${project.id}`)}>Ouvrir le projet</Button>
                 </Box>
               </Card>
             );
