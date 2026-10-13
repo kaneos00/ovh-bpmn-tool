@@ -112,7 +112,6 @@ export const Component = () => {
                 <FormLabel>Identifiant</FormLabel>
                 <Input
                   autoComplete="username"
-                  autoFocus
                   value={username}
                   onChange={(event) => setUsername(event.target.value)}
                   placeholder="Votre identifiant"
