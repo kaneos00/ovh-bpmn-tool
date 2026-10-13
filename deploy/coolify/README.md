@@ -12,7 +12,7 @@ Au premier démarrage :
 - trois diagrammes BPMN publiés ;
 - des membres administrateurs et une matrice RACI avec les quatre rôles.
 
-L'utilisateur Basic Auth défini dans `DEMO_AUTH_USER` est aussi créé comme membre des deux projets.
+Le compte de démonstration défini par `DEMO_AUTH_USER` est aussi créé comme membre des deux projets.
 
 ## Déploiement
 
@@ -20,8 +20,9 @@ L'utilisateur Basic Auth défini dans `DEMO_AUTH_USER` est aussi créé comme me
 2. Relier le dépôt `kaneos00/ovh-bpmn-tool` et choisir la branche de la version candidate `feature/v2-organization-admin` (ou la branche de release après validation).
 3. Chemin du fichier Compose : `deploy/coolify/compose.yaml`.
 4. Définir les variables ci-dessous dans Coolify.
-5. Configurer le domaine HTTPS sur le service `frontend`, port `80`.
-6. Déployer, puis ouvrir l'URL et saisir les identifiants Basic Auth.
+5. Définir `AUTH_SESSION_SECRET` avec une valeur aléatoire d’au moins 32 octets (par exemple générée avec `openssl rand -base64 48`). Ne pas la versionner.
+6. Configurer le domaine HTTPS sur le service `frontend`, port `80`.
+7. Déployer, puis ouvrir l'URL : la page de connexion BPMN Tool permet de saisir `DEMO_AUTH_USER` et `DEMO_AUTH_PASSWORD`.
 
 ### Variables obligatoires
 
@@ -29,9 +30,11 @@ L'utilisateur Basic Auth défini dans `DEMO_AUTH_USER` est aussi créé comme me
 - `DATABASE_USER` : par exemple `bpmn_demo`.
 - `DATABASE_PASSWORD` : mot de passe PostgreSQL dédié et robuste.
 - `DEMO_AUTH_USER` : identifiant Basic Auth et identifiant utilisateur des deux projets, par exemple `demo-v2`.
-- `DEMO_AUTH_PASSWORD` : mot de passe Basic Auth dédié et robuste.
+- `DEMO_AUTH_PASSWORD` : mot de passe de connexion dédié et robuste.
+- `AUTH_SESSION_SECRET` : secret aléatoire d’au moins 32 octets, utilisé pour signer les cookies de session.
+- `DEMO_AUTH_GROUPS` : groupes accordés au compte de démonstration (par défaut `bpmn-tool-readwrite-demo,bpmn-tool-admin-demo`).
 
-Ne pas réutiliser de mot de passe de production. Ne pas exposer directement le backend ou PostgreSQL sur Internet : seul le service frontend doit être routé par Coolify. Le proxy injecte les en-têtes d'identité après l'authentification Basic Auth et écrase les valeurs envoyées par le navigateur.
+Ne pas réutiliser de mot de passe de production. Ne pas exposer directement le backend ou PostgreSQL sur Internet : seul le service frontend doit être routé par Coolify. Le backend vérifie les identifiants et émet un cookie de session signé, `HttpOnly` et `SameSite=Lax` (également `Secure` derrière HTTPS). Nginx valide ce cookie par `auth_request`, puis injecte les en-têtes d'identité de confiance et écrase les valeurs envoyées par le navigateur.
 
 ## Base et migrations
 
@@ -43,4 +46,4 @@ Les scripts PostgreSQL d'initialisation ne s'exécutent que lorsque le volume es
 
 La suppression du volume PostgreSQL efface les données de démonstration. Ne supprimer le volume que si cette perte est intentionnelle. Pour mettre à jour le schéma après le premier démarrage, ajouter une migration dédiée.
 
-La stack utilise un seul compte Basic Auth. Dans cette stack strictement isolée, le proxy ajoute les groupes `bpmn-tool-readwrite-demo` et `bpmn-tool-admin-demo` pour permettre de tester aussi l’administration organisationnelle. Cette élévation est limitée au compte de démonstration et ne doit pas être copiée dans la configuration d’authentification de production. C'est un environnement de validation, pas une authentification multi-utilisateur de production.
+La stack utilise un seul compte de démonstration et une connexion par formulaire avec session signée. Par défaut, ce compte reçoit les groupes `bpmn-tool-readwrite-demo` et `bpmn-tool-admin-demo` pour tester l’administration organisationnelle. Cette élévation est limitée à cette stack isolée et ne doit pas être copiée dans une configuration de production. Ce mécanisme n’est pas un annuaire multi-utilisateur : une instance de production doit être raccordée à un fournisseur d’identité (OIDC/SSO ou proxy d’authentification d’entreprise) avant toute exposition à des utilisateurs réels.
