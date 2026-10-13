@@ -1,4 +1,4 @@
-import queryClient from '../../queryClient';
+import queryClient, { apiClient } from '../../queryClient';
 import {
   createContent,
   deleteContent,
@@ -8,7 +8,6 @@ import {
 
 import { BpmnLayoutRouteParams } from '.';
 import { redirect } from 'react-router-dom';
-import { apiClient } from '../../queryClient';
 import { getResourceQuery } from '../../api/resources/resources.queries';
 
 const createContentAction = async (resourceId: string, formData: FormData) => {
@@ -66,7 +65,7 @@ const cloneContentAction = async (resourceId: string, formData: FormData) => {
     // independent resource copy instead, leaving the shared source untouched.
     const resourceQuery = getResourceQuery(resourceId);
     const source = await queryClient.fetchQuery(resourceQuery);
-    const clonedResource = await apiClient.post('/resources/' + resourceId + '/clone', {
+    const clonedResource = await apiClient.post(`/resources/${resourceId}/clone`, {
       name: `${source.name} (copie)`,
     });
     await queryClient.invalidateQueries(['resources']);
