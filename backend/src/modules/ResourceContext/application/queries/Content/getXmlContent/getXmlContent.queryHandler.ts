@@ -40,6 +40,15 @@ export class GetXmlContentQueryHandler {
       );
     }
 
+    if (findContentResult.ok.state.resourceId !== resourceId) {
+      return fail(
+        new CannotFindContentError(
+          contentId,
+          new Error('Content does not belong to the requested resource'),
+        ),
+      );
+    }
+
     return ok(findContentResult.ok.state.content);
   }
 }

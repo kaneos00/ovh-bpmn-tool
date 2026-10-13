@@ -1,0 +1,20 @@
+FROM node:24-alpine AS build
+WORKDIR /app
+RUN corepack enable
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
+COPY frontend/ ./
+ARG VITE_API_URL=/bpmn-api
+ARG VITE_APP_BASE_PATH=/
+ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_APP_BASE_PATH=${VITE_APP_BASE_PATH}
+RUN pnpm build
+
+FROM nginx:1.28-alpine
+RUN apk add --no-cache apache2-utils
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY deploy/coolify/nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY deploy/coolify/entrypoint-demo.sh /usr/local/bin/entrypoint-demo.sh
+RUN chmod 0755 /usr/local/bin/entrypoint-demo.sh
+EXPOSE 80
+ENTRYPOINT ["/usr/local/bin/entrypoint-demo.sh"]

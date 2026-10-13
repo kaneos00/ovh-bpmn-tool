@@ -352,7 +352,8 @@ export class ProjectController {
             content: sourceContent.content,
             pngContent: sourceContent.pngContent,
             status: ContentStatusEnum.Draft,
-            version: sourceContent.version ? sourceContent.version + 1 : 1,
+            // A variant is an independent resource with its own version history.
+            version: 1,
             createdBy: userId,
             updatedBy: userId,
           }),

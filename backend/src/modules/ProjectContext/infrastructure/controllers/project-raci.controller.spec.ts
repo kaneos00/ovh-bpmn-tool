@@ -195,6 +195,34 @@ describe('ProjectRaciController actor register', () => {
     expect(entries.save).not.toHaveBeenCalled();
   });
 
+  it('rejects assigning an inactive actor to a RACI entry', async () => {
+    // The repository query filters inactive actors out; emulate that DB behavior.
+    actors.find.mockResolvedValue([]);
+
+    await expect(
+      controllerCall().replaceProjectRaci(
+        'project-1',
+        {
+          entries: [
+            {
+              resourceId: 'resource-1',
+              taskId: 'Activity_1',
+              taskName: 'Validate request',
+              actorName: 'Inactive',
+              role: ProjectRaciRole.Responsible,
+            },
+          ],
+        },
+        headers,
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(actors.find).toHaveBeenCalledWith({
+      where: { projectId: 'project-1', active: true },
+    });
+    expect(projectProcesses.find).not.toHaveBeenCalled();
+  });
+
   it('rejects matrix assignments to actors outside the project register', async () => {
     await expect(
       controllerCall().replaceProjectRaci(

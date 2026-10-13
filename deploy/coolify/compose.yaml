@@ -1,0 +1,60 @@
+services:
+  database:
+    build:
+      context: .
+      dockerfile: deploy/coolify/Dockerfile.postgres
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:?Set DATABASE_NAME in Coolify}
+      POSTGRES_USER: ${DATABASE_USER:?Set DATABASE_USER in Coolify}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?Set a dedicated DATABASE_PASSWORD in Coolify}
+      DEMO_AUTH_USER: ${DEMO_AUTH_USER:?Set DEMO_AUTH_USER in Coolify}
+    volumes:
+      - demo-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"${DATABASE_USER:?Set DATABASE_USER in Coolify}\" -d \"${DATABASE_NAME:?Set DATABASE_NAME in Coolify}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: deploy/coolify/Dockerfile.backend
+    environment:
+      NODE_ENV: production
+      NODE_PORT: "3000"
+      USER_HEADER: remote-user
+      USER_GROUPS_HEADER: remote-user-groups
+      DATABASE_HOST: database
+      DATABASE_PORT: "5432"
+      DATABASE_USER: ${DATABASE_USER:?Set DATABASE_USER in Coolify}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in Coolify}
+      DATABASE_NAME: ${DATABASE_NAME:?Set DATABASE_NAME in Coolify}
+      DATABASE_SSL: off
+    depends_on:
+      database:
+        condition: service_healthy
+    expose:
+      - "3000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: deploy/coolify/Dockerfile.frontend
+      args:
+        VITE_API_URL: /bpmn-api
+        VITE_APP_BASE_PATH: /
+    environment:
+      DEMO_AUTH_USER: ${DEMO_AUTH_USER:?Set DEMO_AUTH_USER in Coolify}
+      DEMO_AUTH_PASSWORD: ${DEMO_AUTH_PASSWORD:?Set a unique DEMO_AUTH_PASSWORD in Coolify}
+    depends_on:
+      - backend
+    expose:
+      - "80"
+    restart: unless-stopped
+
+volumes:
+  demo-db-data:
+    name: ${COMPOSE_PROJECT_NAME:-bpmn-v2-demo}_db_data

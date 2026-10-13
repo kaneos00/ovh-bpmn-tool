@@ -43,6 +43,15 @@ export class UpdateContentCommandHandler {
 
     const content = contentResult.ok;
 
+    if (content.state.resourceId !== resourceId) {
+      return fail(
+        new CannotFindContentError(
+          contentId,
+          new Error('Content does not belong to the requested resource'),
+        ),
+      );
+    }
+
     content.updateContent(command.content, command.updatedBy);
 
     const updateResult = await this.contentRepository.save(content);

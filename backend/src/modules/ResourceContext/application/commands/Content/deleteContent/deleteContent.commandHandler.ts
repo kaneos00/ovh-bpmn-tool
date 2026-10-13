@@ -32,6 +32,19 @@ export class DeleteContentCommandHandler {
       return fail(new BadResourceTypeError(resourceId));
     }
 
+    const contentResult = await this.contentRepository.findOne(contentId);
+    if (contentResult.fail) {
+      return fail(new CannotDeleteContentError(contentId, contentResult.fail));
+    }
+    if (contentResult.ok.state.resourceId !== resourceId) {
+      return fail(
+        new CannotDeleteContentError(
+          contentId,
+          new Error('Content does not belong to the requested resource'),
+        ),
+      );
+    }
+
     const deleteResult = await this.contentRepository.delete(contentId);
 
     if (deleteResult.fail) {

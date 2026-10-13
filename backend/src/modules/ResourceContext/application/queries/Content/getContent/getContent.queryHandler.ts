@@ -8,6 +8,7 @@ import {
 } from '../../../../../../modules/ResourceContext/application/shared/Resource/resource.error';
 import { ResourceTypeEnum } from '../../../../../../modules/ResourceContext/shared/types/Resource';
 import { ResourceRepository } from '../../../../../../modules/ResourceContext/application/adapters/repositories/resource.repository';
+import { CannotFindContentError } from '../../../commands/Content/content.error';
 
 export class GetContentQueryHandler {
   constructor(
@@ -32,6 +33,18 @@ export class GetContentQueryHandler {
       return fail(new BadResourceTypeError(resourceId));
     }
 
-    return this.contentRepository.findOne(contentId);
+    const contentResult = await this.contentRepository.findOne(contentId);
+    if (contentResult.fail) return contentResult;
+
+    if (contentResult.ok.state.resourceId !== resourceId) {
+      return fail(
+        new CannotFindContentError(
+          contentId,
+          new Error('Content does not belong to the requested resource'),
+        ),
+      );
+    }
+
+    return contentResult;
   }
 }
