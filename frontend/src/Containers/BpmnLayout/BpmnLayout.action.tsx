@@ -103,8 +103,12 @@ export const action = async ({
     }
 
     const response = await actionPromise;
-    if (response && typeof response === 'object' && 'clonedAsResource' in response && response.clonedAsResource) {
-      return redirect(`/${response.clonedResource.id}/modeler`);
+    const cloneResponse = response as {
+      clonedAsResource?: boolean;
+      clonedResource?: { id: string };
+    };
+    if (cloneResponse.clonedAsResource && cloneResponse.clonedResource?.id) {
+      return redirect(`/${cloneResponse.clonedResource.id}/modeler`);
     }
 
     return formAction &&
