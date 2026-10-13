@@ -63,9 +63,6 @@ export const ResourceExplorer = ({
     <Box>
       <Box
         sx={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 2,
           gap: 1,
           py: 1,
           display: 'flex',
