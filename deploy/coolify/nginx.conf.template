@@ -1,24 +1,56 @@
 server {
     listen 80;
     server_name _;
-    auth_basic "BPMN V2 intermediate demo";
-    auth_basic_user_file /etc/nginx/.htpasswd;
     root /usr/share/nginx/html;
     index index.html;
     client_max_body_size 50m;
 
+    # Login/session endpoints are intentionally public. Credentials are checked by the backend.
+    location = /bpmn-api/auth/login {
+        proxy_pass http://backend:3000/auth/login;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    }
+
+    location = /bpmn-api/auth/logout {
+        proxy_pass http://backend:3000/auth/logout;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    }
+
+    location = /bpmn-api/auth/session {
+        proxy_pass http://backend:3000/auth/session;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+    }
+
+    # Verification is only reachable as an internal auth_request subrequest.
+    location = /bpmn-api/auth/verify { return 404; }
+
     location = /bpmn-api { return 308 /bpmn-api/; }
 
     location /bpmn-api/ {
+        auth_request /_bpmn_session_verify;
+        auth_request_set $bpmn_auth_user $upstream_http_x_auth_user;
+        auth_request_set $bpmn_auth_groups $upstream_http_x_auth_groups;
         proxy_pass http://backend:3000/;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        # Overwrite client headers: the backend trusts these identity headers.
-        proxy_set_header remote-user $remote_user;
-        proxy_set_header remote-user-groups "bpmn-tool-readwrite-demo,bpmn-tool-admin-demo";
+        proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+        # The backend trusts only these headers, overwritten after session verification.
+        proxy_set_header remote-user $bpmn_auth_user;
+        proxy_set_header remote-user-groups $bpmn_auth_groups;
+    }
+
+    location = /_bpmn_session_verify {
+        internal;
+        proxy_pass http://backend:3000/auth/verify;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header Cookie $http_cookie;
+        proxy_set_header Host $host;
     }
 
     location / { try_files $uri $uri/ /index.html; }
