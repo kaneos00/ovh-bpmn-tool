@@ -260,7 +260,7 @@ export const Component = () => {
   const title = sections.find((item) => item.key === activeSection)?.label ?? 'Utilisateurs';
 
   return (
-    <Sheet sx={{ maxWidth: 1400, mx: 'auto', p: { xs: 2, md: 4 } }}>
+    <Sheet sx={{ width: '100%', maxWidth: 1400, boxSizing: 'border-box', mx: 'auto', p: { xs: 2, md: 4 } }}>
       <Stack spacing={2.5}>
         <WorkspaceNavigation />
         <Box>
