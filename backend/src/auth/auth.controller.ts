@@ -11,6 +11,14 @@ import { ConfigService } from '@nestjs/config';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { Request, Response } from 'express';
 
+// AUTHENTICATION ARCHITECTURE / FUTURE SSO (OIDC): this cookie is the app-session
+// contract, not the identity-provider protocol. Keep the signed session payload
+// (subject + trusted application groups + expiry) independent of the credential
+// mechanism so a future OIDC Authorization Code + PKCE callback can establish the
+// same app session without rewriting route guards or authorization checks.
+// When adding SSO, implement a separate provider/callback service and map validated
+// issuer/audience/signature claims to this contract. Never accept identity or groups
+// supplied by the browser; keep demo credentials isolated to the demo strategy.
 const COOKIE_NAME = 'bpmn_session';
 const SESSION_TTL_SECONDS = 8 * 60 * 60;
 
@@ -24,6 +32,9 @@ type SessionPayload = {
 export class AuthController {
   constructor(private readonly config: ConfigService) {}
 
+  // Demo-only local credential strategy. For future SSO, add a separate OIDC
+  // start/callback flow instead of embedding redirects/token validation here; both
+  // strategies should issue the same HttpOnly app-session cookie contract.
   @Post('login')
   login(
     @Body() body: { username?: unknown; password?: unknown },
@@ -120,6 +131,9 @@ export class AuthController {
     return response.status(204).end();
   }
 
+  // Keep session validation as the single boundary used by both local demo login
+  // and any future SSO callback. If SSO is introduced, validate ID tokens server-side
+  // and map only trusted IdP claims before signing this app-owned session payload.
   private readSession(request: Request): SessionPayload | null {
     const token = this.readCookie(request.headers.cookie, COOKIE_NAME);
     const secret = this.getSecret();
