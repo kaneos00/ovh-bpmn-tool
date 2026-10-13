@@ -118,9 +118,9 @@ export class ResourceTypeOrmRepository implements ResourceRepository {
         ? `Error while finding resources: ${detail}`
         : 'Error while finding resources';
       this.logger.error(
-      errorMsg,
-      error instanceof Error ? error.stack : detail,
-    );
+        errorMsg,
+        error instanceof Error ? error.stack : detail,
+      );
       return fail(new Error(errorMsg));
     }
   }
