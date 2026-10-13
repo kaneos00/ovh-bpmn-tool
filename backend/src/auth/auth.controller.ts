@@ -40,7 +40,8 @@ export class AuthController {
       );
     }
 
-    const username = typeof body?.username === 'string' ? body.username.trim() : '';
+    const username =
+      typeof body?.username === 'string' ? body.username.trim() : '';
     const password = typeof body?.password === 'string' ? body.password : '';
     if (
       username !== expectedUser ||
