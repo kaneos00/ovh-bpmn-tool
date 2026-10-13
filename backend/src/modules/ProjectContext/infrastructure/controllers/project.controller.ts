@@ -62,6 +62,55 @@ export class ProjectController {
     });
   }
 
+  /**
+   * Signed-in user's workspace: only projects linked to their membership,
+   * with their project role and the processes available in each project.
+   */
+  @Get('me/workspace')
+  @UseAcl()
+  async getMyWorkspace(@Headers() headers: RequestHeaders) {
+    const userId = this.getUserId(headers);
+    const memberships = await this.projectMembers.find({
+      where: { userId },
+      order: { createdAt: 'ASC' },
+    });
+    if (!memberships.length) return { userId, projects: [] };
+
+    const projectIds = [...new Set(memberships.map(({ projectId }) => projectId))];
+    const [projects, links] = await Promise.all([
+      this.projects.find({ where: { id: In(projectIds) }, order: { name: 'ASC' } }),
+      this.projectProcesses.find({ where: { projectId: In(projectIds) }, order: { createdAt: 'ASC' } }),
+    ]);
+    const resourceIds = [...new Set(links.map(({ resourceId }) => resourceId))];
+    const resources = resourceIds.length
+      ? await this.resources.find({ where: { id: In(resourceIds), type: ResourceTypeEnum.Process } })
+      : [];
+    const resourceById = new Map(resources.map((resource) => [resource.id, resource]));
+    const linksByProject = new Map<string, typeof links>();
+    for (const link of links) {
+      const projectLinks = linksByProject.get(link.projectId) ?? [];
+      projectLinks.push(link);
+      linksByProject.set(link.projectId, projectLinks);
+    }
+    const roleByProject = new Map(memberships.map(({ projectId, role }) => [projectId, role]));
+
+    return {
+      userId,
+      projects: projects.map((project) => ({
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        role: roleByProject.get(project.id),
+        processes: (linksByProject.get(project.id) ?? []).map((link) => ({
+          resourceId: link.resourceId,
+          name: resourceById.get(link.resourceId)?.name ?? link.resourceId,
+          usage: link.usage,
+          sourceResourceId: link.sourceResourceId,
+        })),
+      })),
+    };
+  }
+
   @Post()
   @UseAcl([UserGroup.RW, UserGroup.Admin])
   async createProject(
