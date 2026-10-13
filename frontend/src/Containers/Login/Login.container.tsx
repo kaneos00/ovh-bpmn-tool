@@ -13,6 +13,11 @@ import {
   Typography,
 } from '@mui/joy';
 
+// FUTURE SSO/OIDC: keep this page as the shared sign-in shell. Add an optional
+// “Se connecter avec l’organisation” action here when an OIDC provider is configured,
+// redirecting to a backend-owned /auth/oidc/start endpoint and returning to the same
+// validated local path. Do not implement OAuth/token handling in the browser or assume
+// that a successful IdP login grants application roles; the backend maps trusted claims.
 const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
 
 export const Component = () => {
