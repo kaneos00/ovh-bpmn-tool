@@ -7,7 +7,8 @@ export async function loadConfigFromEnv() {
     demoAuthUser: process.env.DEMO_AUTH_USER,
     demoAuthPassword: process.env.DEMO_AUTH_PASSWORD,
     demoAuthGroups:
-      process.env.DEMO_AUTH_GROUPS || 'bpmn-tool-readwrite-demo,bpmn-tool-admin-demo',
+      process.env.DEMO_AUTH_GROUPS ||
+      'bpmn-tool-readwrite-demo,bpmn-tool-admin-demo',
     authSessionSecret: process.env.AUTH_SESSION_SECRET,
     database: {
       host: process.env.DATABASE_HOST,
