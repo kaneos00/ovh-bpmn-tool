@@ -21,6 +21,7 @@ import { Resource } from '../../Types';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import { ProjectRaciPanel } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciPanel';
 import { ProjectRaciManager } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciManager';
+import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
 
 type Project = {
   id: string;
@@ -198,6 +199,7 @@ export const Component = () => {
     return (
       <Sheet sx={{ maxWidth: 1000, mx: 'auto', p: { xs: 2, md: 4 } }}>
         <Stack spacing={2}>
+          <WorkspaceNavigation />
           <Typography level="h2">Projets</Typography>
           <Button variant="outlined" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/organization/users')}>Administration de l’organisation →</Button>
           <Typography level="body-md">
@@ -249,6 +251,7 @@ export const Component = () => {
   return (
     <Sheet sx={{ maxWidth: 1100, mx: 'auto', p: { xs: 2, md: 4 } }}>
       <Stack spacing={2}>
+          <WorkspaceNavigation />
         <Button variant="plain" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/projects')}>← Tous les projets</Button>
         <Button variant="outlined" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/organization/projects')}>Administration de l’organisation →</Button>
         {projectQuery.isLoading && <Typography>Chargement du projet…</Typography>}
