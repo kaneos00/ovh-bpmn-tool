@@ -41,3 +41,20 @@ Les rôles affichés dans l'IHM sont des rôles de projet (`viewer`, `modeler`, 
 Le test unitaire `project-administration-overview.spec.ts` vérifie l'agrégation des adhésions, la réutilisation d'un processus commun, la conservation de la source d'une variante, la mise à jour/suppression de projet et les protections d’administration.
 
 La maquette HTML de conception reste dans la PR #5 et demeure indépendante de cette implémentation. Cette PR apporte la première intégration réelle, mais elle doit passer la CI avant toute fusion ou déploiement.
+
+
+## Architecture de connexion et évolution SSO (à préserver)
+
+La page et les identifiants configurés par variables d’environnement correspondent actuellement à une **stratégie de connexion locale réservée à la démonstration**. Ils ne constituent pas un annuaire utilisateur de production.
+
+Le code doit rester prêt à accueillir ultérieurement un SSO d’entreprise, idéalement **OpenID Connect (OIDC) Authorization Code Flow avec PKCE**, sans réécrire l’application :
+
+- **Contrat de session applicatif stable** : l’application consomme le cookie signé `bpmn_session` et les en-têtes d’identité injectés côté serveur après validation de session. Le mécanisme qui établit cette session doit rester découplé de l’interface BPMN et des contrôles ACL.
+- **Stratégies distinctes** : conserver la connexion locale de démonstration isolée ; ajouter plus tard des routes backend dédiées de démarrage/callback OIDC et un service de validation des réponses du fournisseur d’identité. Ne pas placer la logique OIDC dans le contrôleur de démonstration.
+- **Frontière de confiance serveur** : valider côté serveur la signature, l’émetteur (`iss`), l’audience (`aud`), l’expiration, l’état/nonce et le flux de redirection. Ne jamais accepter de groupes ou rôles envoyés par le navigateur ; mapper explicitement les claims fiables de l’IdP vers l’identité et les groupes applicatifs.
+- **Autorisation séparée de l’authentification** : une authentification SSO réussie ne donne pas automatiquement les droits d’administration. Les groupes organisationnels et les rôles de projet doivent rester vérifiés par les gardes et services d’autorisation existants.
+- **Configuration future** : réserver un espace de configuration dédié à l’IdP (issuer, client ID, redirect URI, scopes, audiences autorisées et secret fourni par un gestionnaire de secrets). Ne pas réutiliser `DEMO_AUTH_USER`, `DEMO_AUTH_PASSWORD` ou `DEMO_AUTH_GROUPS` pour OIDC.
+- **Expérience utilisateur** : conserver cette page comme shell de connexion ; ajouter ultérieurement un bouton « Se connecter avec l’organisation » qui redirige vers un endpoint backend. La connexion locale peut rester activée uniquement pour les environnements de démonstration/développement.
+- **Audit** : rechercher les marqueurs `FUTURE SSO/OIDC` et `AUTHENTICATION ARCHITECTURE / FUTURE SSO` dans `backend/src/auth/auth.controller.ts`, `backend/src/config.ts` et `frontend/src/Containers/Login/Login.container.tsx` avant d’implémenter l’intégration.
+
+Aucun fournisseur SSO n’est installé ni activé dans cette modification. Ces notes documentent les frontières d’architecture à conserver pour éviter un remplacement ultérieur de la session applicative et des contrôles ACL.
