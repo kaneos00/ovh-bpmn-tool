@@ -60,7 +60,7 @@ export const ResourceExplorer = ({
   };
 
   return (
-    <Box>
+    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflowY: 'auto' }}>
       <Box
         sx={{
           gap: 1,
@@ -83,7 +83,7 @@ export const ResourceExplorer = ({
           sx={{
             width: '100%',
             borderRadius: 'md',
-            overflow: 'auto',
+            overflow: 'visible',
             minHeight: 0,
           }}
         >
