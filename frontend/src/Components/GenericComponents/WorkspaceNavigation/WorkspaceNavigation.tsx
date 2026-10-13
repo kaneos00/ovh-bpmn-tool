@@ -7,9 +7,22 @@ import { Box, Button, Stack, Typography } from '@mui/joy';
  * This is navigation only: all permissions must continue to be enforced by the API.
  */
 const destinations = [
-  { label: 'Référentiel BPMN', path: '/root', matches: (path: string) => path === '/root' || /^\/[0-9a-f-]+/i.test(path) && !path.startsWith('/projects') && !path.startsWith('/organization') },
-  { label: 'Mes projets', path: '/projects', matches: (path: string) => path.startsWith('/projects') },
-  { label: 'Administration', path: '/organization/users', matches: (path: string) => path.startsWith('/organization') },
+  {
+    label: 'Référentiel BPMN',
+    path: '/root',
+    matches: (path: string) =>
+      path === '/root' || /^\/[0-9a-f-]+(?:\/|$)/i.test(path),
+  },
+  {
+    label: 'Mes projets',
+    path: '/projects',
+    matches: (path: string) => path.startsWith('/projects'),
+  },
+  {
+    label: 'Administration',
+    path: '/organization/users',
+    matches: (path: string) => path.startsWith('/organization'),
+  },
 ];
 
 export const WorkspaceNavigation = () => {
