@@ -145,10 +145,13 @@ describe('ProjectController administration overview', () => {
     projectMembers.find.mockResolvedValue([
       { projectId: 'project-a', userId: 'alice', role: ProjectMemberRole.Admin, createdAt: new Date() },
     ]);
+    projects.find.mockResolvedValue([
+      { id: 'project-a', name: 'Atlas', description: 'Operations' },
+    ]);
     const result = await controller.getMyWorkspace({ 'x-user': 'alice' });
 
     expect(result.userId).toBe('alice');
-    expect(result.projects).toHaveLength(2); // configured repository mock rows
+    expect(result.projects).toHaveLength(1);
     expect(result.projects[0]).toMatchObject({
       id: 'project-a',
       role: ProjectMemberRole.Admin,
