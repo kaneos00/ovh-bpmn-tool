@@ -37,24 +37,24 @@ export const WorkspaceNavigation = () => {
   return (
     <Box
       sx={{
-        mb: 2.5,
-        pb: 2,
+        mb: 1,
+        pb: 1,
         borderBottom: '1px solid',
         borderColor: 'divider',
       }}
     >
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
+        spacing={1}
         useFlexGap
         sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
       >
-        <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}>
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
           <Box
             component="img"
             src="/bpmn-tool-logo.svg"
             alt=""
-            sx={{ width: 36, height: 36, objectFit: 'contain' }}
+            sx={{ width: 28, height: 28, objectFit: 'contain' }}
           />
           <Box>
             <Typography level="title-lg" sx={{ lineHeight: 1.2 }}>BPMN Tool</Typography>
