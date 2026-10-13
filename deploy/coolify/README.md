@@ -17,7 +17,7 @@ Le compte de démonstration défini par `DEMO_AUTH_USER` est aussi créé comme 
 ## Déploiement
 
 1. Dans Coolify, créer une **nouvelle ressource Compose**, distincte de toute application existante.
-2. Relier le dépôt `kaneos00/ovh-bpmn-tool` et choisir la branche de la version candidate `feature/v2-organization-admin` (ou la branche de release après validation).
+2. Relier le dépôt `kaneos00/ovh-bpmn-tool` et choisir la branche de la version candidate `feature/v2-branded-login` (ou la branche de release après validation).
 3. Chemin du fichier Compose : `deploy/coolify/compose.yaml`.
 4. Définir les variables ci-dessous dans Coolify.
 5. Définir `AUTH_SESSION_SECRET` avec une valeur aléatoire d’au moins 32 octets (par exemple générée avec `openssl rand -base64 48`). Ne pas la versionner.
@@ -29,7 +29,7 @@ Le compte de démonstration défini par `DEMO_AUTH_USER` est aussi créé comme 
 - `DATABASE_NAME` : par exemple `bpmn_v2_demo`.
 - `DATABASE_USER` : par exemple `bpmn_demo`.
 - `DATABASE_PASSWORD` : mot de passe PostgreSQL dédié et robuste.
-- `DEMO_AUTH_USER` : identifiant Basic Auth et identifiant utilisateur des deux projets, par exemple `demo-v2`.
+- `DEMO_AUTH_USER` : identifiant de connexion et identifiant utilisateur des deux projets, par exemple `demo-v2`.
 - `DEMO_AUTH_PASSWORD` : mot de passe de connexion dédié et robuste.
 - `AUTH_SESSION_SECRET` : secret aléatoire d’au moins 32 octets, utilisé pour signer les cookies de session.
 - `DEMO_AUTH_GROUPS` : groupes accordés au compte de démonstration (par défaut `bpmn-tool-readwrite-demo,bpmn-tool-admin-demo`).
