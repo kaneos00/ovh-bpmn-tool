@@ -212,7 +212,7 @@ export const Component = () => {
 
   if (!projectId) {
     return (
-      <Sheet sx={{ maxWidth: 1400, mx: 'auto', p: { xs: 2, md: 4 } }}>
+      <Sheet sx={{ width: '100%', maxWidth: 1400, boxSizing: 'border-box', mx: 'auto', p: { xs: 2, md: 4 } }}>
         <Stack spacing={2}>
           <WorkspaceNavigation />
           <Typography level="h2">Projets</Typography>
@@ -264,7 +264,7 @@ export const Component = () => {
 
   const project = projectQuery.data;
   return (
-    <Sheet sx={{ maxWidth: 1400, mx: 'auto', p: { xs: 2, md: 4 } }}>
+    <Sheet sx={{ width: '100%', maxWidth: 1400, boxSizing: 'border-box', mx: 'auto', p: { xs: 2, md: 4 } }}>
       <Stack spacing={2}>
           <WorkspaceNavigation />
         <Button variant="plain" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/projects')}>← Tous les projets</Button>
