@@ -181,16 +181,24 @@ export class ResourceController {
       throw new BadRequestException('Only BPMN processes can be cloned');
     }
 
-    const contentsResult = await this.listContentQueryHandler.execute(resourceId, { filters: {} });
+    const contentsResult = await this.listContentQueryHandler.execute(
+      resourceId,
+      { filters: {} },
+    );
     if (contentsResult.fail) {
       throw new BadRequestException(contentsResult.fail.message);
     }
     const sourceContent = [...contentsResult.ok].sort((left, right) => {
       const rank = (status: ContentStatusEnum) =>
-        status === ContentStatusEnum.Published ? 2 :
-        status === ContentStatusEnum.Draft ? 1 : 0;
-      return rank(right.state.status) - rank(left.state.status) ||
-        (right.state.version ?? 0) - (left.state.version ?? 0);
+        status === ContentStatusEnum.Published
+          ? 2
+          : status === ContentStatusEnum.Draft
+            ? 1
+            : 0;
+      return (
+        rank(right.state.status) - rank(left.state.status) ||
+        (right.state.version ?? 0) - (left.state.version ?? 0)
+      );
     })[0];
 
     let sourceXml: string | undefined;
@@ -204,7 +212,9 @@ export class ResourceController {
       }
       sourceXml = xmlResult.ok ?? undefined;
       if (!sourceXml) {
-        throw new BadRequestException('The source process has no BPMN content to clone');
+        throw new BadRequestException(
+          'The source process has no BPMN content to clone',
+        );
       }
     }
 
