@@ -8,6 +8,8 @@ import {
 
 import { BpmnLayoutRouteParams } from '.';
 import { redirect } from 'react-router-dom';
+import { apiClient } from '../../queryClient';
+import { getResourceQuery } from '../../api/resources/resources.queries';
 
 const createContentAction = async (resourceId: string, formData: FormData) => {
   const contentData = {
@@ -33,14 +35,41 @@ const eraseContentAction = async (resourceId: string, formData: FormData) => {
 };
 
 const cloneContentAction = async (resourceId: string, formData: FormData) => {
-  const response = await cloneContent(
-    resourceId,
-    formData.get('contentId') as string,
-  );
-  queryClient.invalidateQueries({
-    queryKey: contentsQuery(resourceId).queryKey,
-  });
-  return response;
+  try {
+    const response = await cloneContent(
+      resourceId,
+      formData.get('contentId') as string,
+    );
+    queryClient.invalidateQueries({
+      queryKey: contentsQuery(resourceId).queryKey,
+    });
+    return response;
+  } catch (error) {
+    const apiError = error as {
+      response?: { status?: number; data?: { message?: string | string[] } };
+      status?: number;
+      message?: string;
+    };
+    const message = apiError.response?.data?.message;
+    const isCommonProcessReadOnly =
+      (apiError.response?.status === 403 || apiError.status === 403) &&
+      (message === 'Common processes are read-only through resource endpoints' ||
+        (Array.isArray(message) && message.includes('Common processes are read-only through resource endpoints')));
+
+    if (!isCommonProcessReadOnly) {
+      throw error;
+    }
+
+    // A common process cannot receive a draft. Turn this action into an
+    // independent resource copy instead, leaving the shared source untouched.
+    const resourceQuery = getResourceQuery(resourceId);
+    const source = await queryClient.fetchQuery(resourceQuery);
+    const clonedResource = await apiClient.post('/resources/' + resourceId + '/clone', {
+      name: `${source.name} (copie)`,
+    });
+    await queryClient.invalidateQueries(['resources']);
+    return { clonedResource, clonedAsResource: true };
+  }
 };
 
 export const action = async ({
@@ -74,6 +103,10 @@ export const action = async ({
     }
 
     const response = await actionPromise;
+    if (response && typeof response === 'object' && 'clonedAsResource' in response && response.clonedAsResource) {
+      return redirect(`/${response.clonedResource.id}/modeler`);
+    }
+
     return formAction &&
       ['createContent', 'createContentFromClone'].includes(formAction as string)
       ? redirect(`/${resourceId}/modeler`)
