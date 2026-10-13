@@ -4,6 +4,10 @@ export async function loadConfigFromEnv() {
     env: process.env.NODE_ENV || 'development',
     userHeader: process.env.USER_HEADER || 'remote-user',
     userGroupsHeader: process.env.USER_GROUPS_HEADER || 'remote-user-groups',
+    demoAuthUser: process.env.DEMO_AUTH_USER,
+    demoAuthPassword: process.env.DEMO_AUTH_PASSWORD,
+    demoAuthGroups: process.env.DEMO_AUTH_GROUPS || 'bpmn-tool-readwrite-demo,bpmn-tool-admin-demo',
+    authSessionSecret: process.env.AUTH_SESSION_SECRET,
     database: {
       host: process.env.DATABASE_HOST,
       port: parseInt(process.env.DATABASE_PORT!, 10),
