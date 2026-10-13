@@ -76,23 +76,37 @@ export class ProjectController {
     });
     if (!memberships.length) return { userId, projects: [] };
 
-    const projectIds = [...new Set(memberships.map(({ projectId }) => projectId))];
+    const projectIds = [
+      ...new Set(memberships.map(({ projectId }) => projectId)),
+    ];
     const [projects, links] = await Promise.all([
-      this.projects.find({ where: { id: In(projectIds) }, order: { name: 'ASC' } }),
-      this.projectProcesses.find({ where: { projectId: In(projectIds) }, order: { createdAt: 'ASC' } }),
+      this.projects.find({
+        where: { id: In(projectIds) },
+        order: { name: 'ASC' },
+      }),
+      this.projectProcesses.find({
+        where: { projectId: In(projectIds) },
+        order: { createdAt: 'ASC' },
+      }),
     ]);
     const resourceIds = [...new Set(links.map(({ resourceId }) => resourceId))];
     const resources = resourceIds.length
-      ? await this.resources.find({ where: { id: In(resourceIds), type: ResourceTypeEnum.Process } })
+      ? await this.resources.find({
+          where: { id: In(resourceIds), type: ResourceTypeEnum.Process },
+        })
       : [];
-    const resourceById = new Map(resources.map((resource) => [resource.id, resource]));
+    const resourceById = new Map(
+      resources.map((resource) => [resource.id, resource]),
+    );
     const linksByProject = new Map<string, typeof links>();
     for (const link of links) {
       const projectLinks = linksByProject.get(link.projectId) ?? [];
       projectLinks.push(link);
       linksByProject.set(link.projectId, projectLinks);
     }
-    const roleByProject = new Map(memberships.map(({ projectId, role }) => [projectId, role]));
+    const roleByProject = new Map(
+      memberships.map(({ projectId, role }) => [projectId, role]),
+    );
 
     return {
       userId,
