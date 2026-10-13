@@ -103,7 +103,6 @@ export class ProjectResourceAccessService {
     });
   }
 
-
   /**
    * Cloning creates a new resource and never mutates the source. Global ACL
    * still gates the endpoint; project-specific sources additionally require
@@ -118,14 +117,19 @@ export class ProjectResourceAccessService {
 
     const userId = this.getUserId(headers);
     const memberships = await this.projectMembers.find({
-      where: restrictedLinks.map((link) => ({ projectId: link.projectId, userId })),
+      where: restrictedLinks.map((link) => ({
+        projectId: link.projectId,
+        userId,
+      })),
     });
     const roleByProject = new Map(
       memberships.map((membership) => [membership.projectId, membership.role]),
     );
     const canClone = restrictedLinks.every((link) => {
       const role = roleByProject.get(link.projectId);
-      return role === ProjectMemberRole.Modeler || role === ProjectMemberRole.Admin;
+      return (
+        role === ProjectMemberRole.Modeler || role === ProjectMemberRole.Admin
+      );
     });
     if (!canClone) {
       throw new ForbiddenException(
