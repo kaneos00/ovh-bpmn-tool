@@ -80,10 +80,7 @@ describe('AuthController', () => {
     );
     const cookie = loginResponse.headers['Set-Cookie'].split(';')[0];
     const { res, headers, result } = response();
-    controller.verify(
-      { headers: { cookie } } as never,
-      res as never,
-    );
+    controller.verify({ headers: { cookie } } as never, res as never);
     expect(result.statusCode).toBe(204);
     expect(headers['X-Auth-User']).toBe('demo-user');
     expect(headers['X-Auth-Groups']).toBe(
