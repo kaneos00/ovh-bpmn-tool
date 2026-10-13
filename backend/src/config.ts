@@ -7,6 +7,9 @@ export async function loadConfigFromEnv() {
     // Demo credential strategy only. Future SSO/OIDC settings should be separate
     // namespaced configuration (issuer, client ID, redirect URI, scopes, allowed
     // audiences/issuers, and secret via secret manager); do not overload these fields.
+    // Demo credential strategy only. Future SSO/OIDC settings must be separate
+    // configuration fields (issuer, client ID, redirect URI, scopes and trusted claims).
+    // Do not overload demo credentials with identity-provider configuration.
     demoAuthUser: process.env.DEMO_AUTH_USER,
     demoAuthPassword: process.env.DEMO_AUTH_PASSWORD,
     demoAuthGroups:
