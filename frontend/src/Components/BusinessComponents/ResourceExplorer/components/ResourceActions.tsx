@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ContentCopy, Delete, Edit, MoreVert, Share } from '@mui/icons-material';
 import {
   Alert,
@@ -21,7 +21,6 @@ import {
   Stack,
 } from '@mui/joy';
 import { useMutation, useQueryClient } from 'react-query';
-import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../../../../queryClient';
 
 import {
@@ -129,7 +128,6 @@ export const ResourceActions = ({
           <FormControl required>
             <FormLabel>Nom de la copie</FormLabel>
             <Input
-              autoFocus
               value={cloneName}
               onChange={(event) => setCloneName(event.target.value)}
               onKeyDown={(event) => {
