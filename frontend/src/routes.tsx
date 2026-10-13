@@ -1,6 +1,6 @@
 import { redirect } from 'react-router-dom';
 
-const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\\/+$/, '');
+const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
 
 async function requireSession({ request }: { request: Request }) {
   const requestedUrl = new URL(request.url);
