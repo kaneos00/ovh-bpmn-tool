@@ -18,6 +18,10 @@ import {
 // redirecting to a backend-owned /auth/oidc/start endpoint and returning to the same
 // validated local path. Do not implement OAuth/token handling in the browser or assume
 // that a successful IdP login grants application roles; the backend maps trusted claims.
+// FUTURE SSO/OIDC: this component is the shared sign-in shell. If an identity provider
+// is added later, expose a separate backend-owned /auth/oidc/start endpoint and add a
+// “Se connecter avec l’organisation” action here. Keep provider validation server-side
+// and preserve the existing safe local return path and application ACL checks.
 const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
 
 export const Component = () => {
