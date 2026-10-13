@@ -19,6 +19,7 @@ import {
   Typography,
 } from '@mui/joy';
 import { apiClient } from '../../queryClient';
+import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
 
 type MembershipView = {
   projectId: string;
@@ -259,8 +260,9 @@ export const Component = () => {
   const title = sections.find((item) => item.key === activeSection)?.label ?? 'Utilisateurs';
 
   return (
-    <Sheet sx={{ maxWidth: 1400, mx: 'auto', p: { xs: 2, md: 4 } }}>
+    <Sheet sx={{ width: '100%', maxWidth: 1400, boxSizing: 'border-box', mx: 'auto', p: { xs: 2, md: 4 } }}>
       <Stack spacing={2.5}>
+        <WorkspaceNavigation />
         <Box>
           <Typography level="body-sm" sx={{ color: 'primary.600', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             Administration

@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from 'react-query';
 import {
   Alert,
   Box,
+  Chip,
   Button,
   Card,
   FormControl,
@@ -13,6 +14,10 @@ import {
   Select,
   Sheet,
   Stack,
+  Tab,
+  TabList,
+  TabPanel,
+  Tabs,
   Typography,
 } from '@mui/joy';
 import { apiClient } from '../../queryClient';
@@ -21,6 +26,7 @@ import { Resource } from '../../Types';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import { ProjectRaciPanel } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciPanel';
 import { ProjectRaciManager } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciManager';
+import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
 
 type Project = {
   id: string;
@@ -65,6 +71,7 @@ export const Component = () => {
   const [memberUserId, setMemberUserId] = useState('');
   const [memberRole, setMemberRole] = useState<'viewer' | 'modeler' | 'admin'>('viewer');
   const [error, setError] = useState<string | null>(null);
+  const [activeProjectTab, setActiveProjectTab] = useState(0);
 
   const projectsQuery = useQuery<Project[]>(
     projectsKey,
@@ -193,11 +200,21 @@ export const Component = () => {
   const unlinkedProcesses = (availableProcesses.data ?? []).filter(
     (resource) => !linkedResourceIds.has(resource.id),
   );
+  const processSummary = useMemo(() => {
+    const links = linkedProcessesQuery.data ?? [];
+    return {
+      total: links.length,
+      common: links.filter((link) => link.usage === 'common').length,
+      variants: links.filter((link) => link.usage === 'variant').length,
+      specific: links.filter((link) => link.usage === 'project-specific').length,
+    };
+  }, [linkedProcessesQuery.data]);
 
   if (!projectId) {
     return (
-      <Sheet sx={{ maxWidth: 1000, mx: 'auto', p: { xs: 2, md: 4 } }}>
+      <Sheet sx={{ width: '100%', maxWidth: 1400, boxSizing: 'border-box', mx: 'auto', p: { xs: 2, md: 4 } }}>
         <Stack spacing={2}>
+          <WorkspaceNavigation />
           <Typography level="h2">Projets</Typography>
           <Button variant="outlined" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/organization/users')}>Administration de l’organisation →</Button>
           <Typography level="body-md">
@@ -247,8 +264,9 @@ export const Component = () => {
 
   const project = projectQuery.data;
   return (
-    <Sheet sx={{ maxWidth: 1100, mx: 'auto', p: { xs: 2, md: 4 } }}>
+    <Sheet sx={{ width: '100%', maxWidth: 1400, boxSizing: 'border-box', mx: 'auto', p: { xs: 2, md: 4 } }}>
       <Stack spacing={2}>
+          <WorkspaceNavigation />
         <Button variant="plain" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/projects')}>← Tous les projets</Button>
         <Button variant="outlined" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/organization/projects')}>Administration de l’organisation →</Button>
         {projectQuery.isLoading && <Typography>Chargement du projet…</Typography>}
@@ -264,131 +282,168 @@ export const Component = () => {
         )}
         {error && <Alert color="danger">{error}</Alert>}
 
-        <Card variant="outlined">
-          <Typography level="title-lg">Membres et rôles du projet</Typography>
-          <Typography level="body-sm">
-            Identifiant utilisateur attendu : la même valeur que celle transmise par le proxy dans l’en-tête utilisateur. Les rôles sont contrôlés par l’API pour les opérations sur les projets et les processus associés. Les droits ACL globaux de la plateforme restent également applicables.
-          </Typography>
-          <Stack spacing={1.5}>
-            <FormControl>
-              <FormLabel>Identifiant utilisateur</FormLabel>
-              <Input value={memberUserId} onChange={(event) => setMemberUserId(event.target.value)} placeholder="Identifiant exact de l’utilisateur" />
-            </FormControl>
-            <FormControl>
-              <FormLabel>Rôle du projet</FormLabel>
-              <Select value={memberRole} onChange={(_event, value) => value && setMemberRole(value as 'viewer' | 'modeler' | 'admin')}>
-                <Option value="viewer">Viewer — consultation</Option>
-                <Option value="modeler">Modeler — modification des processus</Option>
-                <Option value="admin">Admin — administration du projet</Option>
-              </Select>
-            </FormControl>
-            <Box>
-              <Button loading={setProjectMember.isLoading} disabled={!memberUserId.trim()} onClick={() => setProjectMember.mutate()}>
-                Enregistrer le rôle
-              </Button>
-            </Box>
-          </Stack>
-          <Typography level="title-md">Membres enregistrés</Typography>
-          {membersQuery.isLoading && <Typography>Chargement des membres…</Typography>}
-          {membersQuery.isError && <Alert color="danger">Impossible de charger les membres.</Alert>}
-          {(membersQuery.data ?? []).map((member) => (
-            <Card key={member.id} variant="soft" orientation="horizontal" sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-              <Box sx={{ minWidth: 0 }}>
-                <Typography level="title-sm">{member.userId}</Typography>
-                <Typography level="body-sm">{member.role}</Typography>
+        <Tabs
+          value={activeProjectTab}
+          onChange={(_event, value) => value !== null && setActiveProjectTab(value as number)}
+          sx={{ minWidth: 0, width: '100%' }}
+        >
+          <TabList
+            variant="soft"
+            color="neutral"
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' },
+              gap: 0.5,
+              p: 0.5,
+              borderRadius: 'md',
+              bgcolor: 'background.level1',
+            }}
+          >
+            <Tab value={0}>Membres et rôles</Tab>
+            <Tab value={1}>Processus du projet</Tab>
+            <Tab value={2}>Gestion du RACI</Tab>
+          </TabList>
+          <TabPanel value={0} sx={{ px: 0, py: 2 }}>
+          <Card variant="outlined">
+            <Typography level="title-lg">Membres et rôles du projet</Typography>
+            <Typography level="body-sm">
+              Identifiant utilisateur attendu : la même valeur que celle transmise par le proxy dans l’en-tête utilisateur. Les rôles sont contrôlés par l’API pour les opérations sur les projets et les processus associés. Les droits ACL globaux de la plateforme restent également applicables.
+            </Typography>
+            <Stack spacing={1.5}>
+              <FormControl>
+                <FormLabel>Identifiant utilisateur</FormLabel>
+                <Input value={memberUserId} onChange={(event) => setMemberUserId(event.target.value)} placeholder="Identifiant exact de l’utilisateur" />
+              </FormControl>
+              <FormControl>
+                <FormLabel>Rôle du projet</FormLabel>
+                <Select value={memberRole} onChange={(_event, value) => value && setMemberRole(value as 'viewer' | 'modeler' | 'admin')}>
+                  <Option value="viewer">Viewer — consultation</Option>
+                  <Option value="modeler">Modeler — modification des processus</Option>
+                  <Option value="admin">Admin — administration du projet</Option>
+                </Select>
+              </FormControl>
+              <Box>
+                <Button loading={setProjectMember.isLoading} disabled={!memberUserId.trim()} onClick={() => setProjectMember.mutate()}>
+                  Enregistrer le rôle
+                </Button>
               </Box>
-              <Button color="danger" variant="plain" loading={removeProjectMember.isLoading} onClick={() => removeProjectMember.mutate(member.userId)}>Retirer</Button>
-            </Card>
-          ))}
-        </Card>
-
-        <Card variant="outlined">
-          <Typography level="title-lg">Ajouter un processus au projet</Typography>
-          {availableProcesses.isLoading && <Typography>Chargement du catalogue…</Typography>}
-          <Stack spacing={1.5}>
-            <FormControl>
-              <FormLabel>Processus du référentiel</FormLabel>
-              <Select
-                placeholder="Choisir un processus"
-                value={selectedProcessId}
-                onChange={(_event, value) => setSelectedProcessId(value)}
-              >
-                {unlinkedProcesses.map((resource) => (
-                  <Option key={resource.id} value={resource.id}>{resource.name}</Option>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl>
-              <FormLabel>Usage dans le projet</FormLabel>
-              <Select
-                value={usage}
-                onChange={(_event, value) => value && setUsage(value as 'common' | 'project-specific')}
-              >
-                <Option value="common">Processus commun réutilisé</Option>
-                <Option value="project-specific">Processus spécifique au projet</Option>
-              </Select>
-            </FormControl>
-            <Box>
-              <Button loading={linkProcess.isLoading} disabled={!selectedProcessId} onClick={() => linkProcess.mutate()}>
-                Ajouter au projet
-              </Button>
-            </Box>
-          </Stack>
-        </Card>
-        <Typography level="title-lg">Processus du projet</Typography>
-        {linkedProcessesQuery.isLoading && <Typography>Chargement des processus…</Typography>}
-        {linkedProcessesQuery.isError && <Alert color="danger">Impossible de charger les processus liés au projet.</Alert>}
-        {(linkedProcessesQuery.data ?? []).length === 0 && !linkedProcessesQuery.isLoading && (
-          <Typography level="body-sm">Aucun processus associé. Vous pouvez en ajouter depuis le référentiel ci-dessus.</Typography>
-        )}
-        <Stack spacing={1}>
-          {(linkedProcessesQuery.data ?? []).map((link) => (
-            <Card key={link.id} variant="outlined" orientation="horizontal" sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-              <Box sx={{ minWidth: 0 }}>
-                <Typography level="title-md">{link.resource?.name ?? link.resourceId}</Typography>
-                <Typography level="body-sm">
-                  {PROCESS_USAGE_LABELS[link.usage]}
-                </Typography>
+            </Stack>
+            <Typography level="title-md">Membres enregistrés</Typography>
+            {membersQuery.isLoading && <Typography>Chargement des membres…</Typography>}
+            {membersQuery.isError && <Alert color="danger">Impossible de charger les membres.</Alert>}
+            {(membersQuery.data ?? []).map((member) => (
+              <Card key={member.id} variant="soft" orientation="horizontal" sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography level="title-sm">{member.userId}</Typography>
+                  <Typography level="body-sm">{member.role}</Typography>
+                </Box>
+                <Button color="danger" variant="plain" loading={removeProjectMember.isLoading} onClick={() => removeProjectMember.mutate(member.userId)}>Retirer</Button>
+              </Card>
+            ))}
+          </Card>
+          </TabPanel>
+          <TabPanel value={1} sx={{ px: 0, py: 2 }}>
+          <Card variant="outlined">
+            <Typography level="title-lg">Ajouter un processus au projet</Typography>
+            {availableProcesses.isLoading && <Typography>Chargement du catalogue…</Typography>}
+            <Stack spacing={1.5}>
+              <FormControl>
+                <FormLabel>Processus du référentiel</FormLabel>
+                <Select
+                  placeholder="Choisir un processus"
+                  value={selectedProcessId}
+                  onChange={(_event, value) => setSelectedProcessId(value)}
+                >
+                  {unlinkedProcesses.map((resource) => (
+                    <Option key={resource.id} value={resource.id}>{resource.name}</Option>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl>
+                <FormLabel>Usage dans le projet</FormLabel>
+                <Select
+                  value={usage}
+                  onChange={(_event, value) => value && setUsage(value as 'common' | 'project-specific')}
+                >
+                  <Option value="common">Processus commun réutilisé</Option>
+                  <Option value="project-specific">Processus spécifique au projet</Option>
+                </Select>
+              </FormControl>
+              <Box>
+                <Button loading={linkProcess.isLoading} disabled={!selectedProcessId} onClick={() => linkProcess.mutate()}>
+                  Ajouter au projet
+                </Button>
               </Box>
-              <Stack direction="row" spacing={1}>
-                {link.resource && <Button variant="soft" onClick={() => navigate(`/${link.resourceId}`)}>Ouvrir</Button>}
-                {link.usage === 'common' && (
-                  <Button
-                    variant="solid"
-                    loading={createProcessVariant.isLoading}
-                    disabled={createProcessVariant.isLoading}
-                    onClick={() => createProcessVariant.mutate(link.resourceId)}
-                  >
-                    Créer une variante modifiable
-                  </Button>
-                )}
-                <Button color="danger" variant="plain" loading={unlinkProcess.isLoading} onClick={() => unlinkProcess.mutate(link.resourceId)}>Retirer</Button>
-              </Stack>
-            </Card>
-          ))}
-        </Stack>
-        <Card variant="outlined">
-          <Typography level="title-lg">Gestion du RACI du projet</Typography>
-          <Typography level="body-sm">
-            Les affectations ci-dessous sont propres à ce projet. Elles sont enregistrées indépendamment des propriétés RACI présentes dans les fichiers BPMN.
-          </Typography>
-          <ProjectRaciManager
-            projectId={projectId}
-            onActivityClick={(targetResourceId, elementId) =>
-              navigate(`/${targetResourceId}?elementId=${encodeURIComponent(elementId)}`)
-            }
-          />
-        </Card>
-        <Card variant="outlined">
-          <Typography level="title-lg">Synthèse RACI des diagrammes publiés</Typography>
-          <Typography level="body-sm">
-            Lecture seule : synthèse des rôles extraits des dernières versions publiées des processus associés au projet.
-          </Typography>
-          <ProjectRaciPanel
-            projectId={projectId}
-            onActivityClick={(targetResourceId, elementId) => navigate(`/${targetResourceId}?elementId=${encodeURIComponent(elementId)}`)}
-          />
-        </Card>
+            </Stack>
+          </Card>
+          <Card variant="outlined" sx={{ gap: 1.5 }}>
+            <Typography level="title-lg">Vue d’ensemble du projet</Typography>
+            <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+              <Chip variant="outlined">{processSummary.total} processus au total</Chip>
+              <Chip color="success" variant="soft">{processSummary.common} commun(s)</Chip>
+              <Chip color="warning" variant="soft">{processSummary.variants} variante(s)</Chip>
+              <Chip color="primary" variant="soft">{processSummary.specific} spécifique(s)</Chip>
+            </Stack>
+            <Typography level="body-sm">Les processus communs sont partagés entre projets ; les variantes permettent une adaptation indépendante ; les processus spécifiques restent propres à ce projet.</Typography>
+          </Card>
+          <Typography level="title-lg">Processus du projet</Typography>
+          {linkedProcessesQuery.isLoading && <Typography>Chargement des processus…</Typography>}
+          {linkedProcessesQuery.isError && <Alert color="danger">Impossible de charger les processus liés au projet.</Alert>}
+          {(linkedProcessesQuery.data ?? []).length === 0 && !linkedProcessesQuery.isLoading && (
+            <Typography level="body-sm">Aucun processus associé. Vous pouvez en ajouter depuis le référentiel ci-dessus.</Typography>
+          )}
+          <Stack spacing={1}>
+            {(linkedProcessesQuery.data ?? []).map((link) => (
+              <Card key={link.id} variant="outlined" orientation="horizontal" sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography level="title-md">{link.resource?.name ?? link.resourceId}</Typography>
+                  <Typography level="body-sm">
+                    {PROCESS_USAGE_LABELS[link.usage]}
+                  </Typography>
+                </Box>
+                <Stack direction="row" spacing={1}>
+                  {link.resource && <Button variant="soft" onClick={() => navigate(`/${link.resourceId}`)}>Ouvrir</Button>}
+                  {link.usage === 'common' && (
+                    <Button
+                      variant="solid"
+                      loading={createProcessVariant.isLoading}
+                      disabled={createProcessVariant.isLoading}
+                      onClick={() => createProcessVariant.mutate(link.resourceId)}
+                    >
+                      Créer une variante modifiable
+                    </Button>
+                  )}
+                  <Button color="danger" variant="plain" loading={unlinkProcess.isLoading} onClick={() => unlinkProcess.mutate(link.resourceId)}>Retirer</Button>
+                </Stack>
+              </Card>
+            ))}
+          </Stack>
+          </TabPanel>
+          <TabPanel value={2} sx={{ px: 0, py: 2 }}>
+          <Card variant="outlined">
+            <Typography level="title-lg">Gestion du RACI du projet</Typography>
+            <Typography level="body-sm">
+              Les affectations ci-dessous sont propres à ce projet. Elles sont enregistrées indépendamment des propriétés RACI présentes dans les fichiers BPMN.
+            </Typography>
+            <ProjectRaciManager
+              projectId={projectId}
+              onActivityClick={(targetResourceId, elementId) =>
+                navigate(`/${targetResourceId}?elementId=${encodeURIComponent(elementId)}`)
+              }
+            />
+          </Card>
+          <Card variant="outlined">
+            <Typography level="title-lg">Synthèse RACI des diagrammes publiés</Typography>
+            <Typography level="body-sm">
+              Lecture seule : synthèse des rôles extraits des dernières versions publiées des processus associés au projet.
+            </Typography>
+            <ProjectRaciPanel
+              projectId={projectId}
+              onActivityClick={(targetResourceId, elementId) => navigate(`/${targetResourceId}?elementId=${encodeURIComponent(elementId)}`)}
+            />
+          </Card>
+          </TabPanel>
+        </Tabs>
       </Stack>
     </Sheet>
   );

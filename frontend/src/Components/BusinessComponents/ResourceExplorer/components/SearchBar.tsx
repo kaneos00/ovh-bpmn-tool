@@ -8,9 +8,9 @@ type SearchBarProps = {
 
 export const SearchBar = ({ onSearch }: SearchBarProps) => {
   return (
-    <FormControl size="md">
+    <FormControl size="md" sx={{ width: { xs: "100%", sm: 420 }, maxWidth: "100%" }}>
       <Input
-        placeholder="Filter business process and folder"
+        placeholder="Rechercher un processus ou un dossier…"
         startDecorator={<Search fontSize="small" />}
         onChange={event => onSearch(event.target.value)}
       />

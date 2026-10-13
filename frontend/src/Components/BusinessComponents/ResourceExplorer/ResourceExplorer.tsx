@@ -60,31 +60,30 @@ export const ResourceExplorer = ({
   };
 
   return (
-    <Box>
-      <Box
-        sx={{
-          gap: 1.5,
-          py: 2,
-          display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'flex-end',
-        }}
-      >
-        <SearchBar onSearch={onSearch} />
-      </Box>
-      {isLoading ? (
-        <Skeleton variant="rectangular" height={300} />
-      ) : (
-        <Sheet
-          variant="outlined"
-          sx={{
-            width: '100%',
-            borderRadius: 'md',
-            overflow: 'auto',
-            minHeight: 0,
-          }}
-        >
-          <Table
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        flex: 1,
+        minHeight: 0,
+        overflow: 'hidden',
+      }}
+    >
+      <SearchBar onSearch={onSearch} />
+      <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pt: 1 }}>
+        {isLoading ? (
+          <Skeleton variant="rectangular" height={300} />
+        ) : (
+          <Sheet
+            variant="outlined"
+            sx={{
+              width: '100%',
+              borderRadius: 'md',
+              overflow: 'visible',
+              minHeight: 0,
+            }}
+          >
+            <Table
             stickyHeader
             hoverRow
             sx={{
@@ -167,9 +166,10 @@ export const ResourceExplorer = ({
                 </tr>
               ))}
             </tbody>
-          </Table>
-        </Sheet>
-      )}
+            </Table>
+          </Sheet>
+        )}
+      </Box>
     </Box>
   );
 };

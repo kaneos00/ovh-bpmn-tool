@@ -141,6 +141,46 @@ describe('ProjectController administration overview', () => {
     ]);
   });
 
+  it('returns the signed-in user workspace with role and process context', async () => {
+    projectMembers.find.mockResolvedValue([
+      {
+        projectId: 'project-a',
+        userId: 'alice',
+        role: ProjectMemberRole.Admin,
+        createdAt: new Date(),
+      },
+    ]);
+    projects.find.mockResolvedValue([
+      { id: 'project-a', name: 'Atlas', description: 'Operations' },
+    ]);
+    const result = await controller.getMyWorkspace({ 'x-user': 'alice' });
+
+    expect(result.userId).toBe('alice');
+    expect(result.projects).toHaveLength(1);
+    expect(result.projects[0]).toMatchObject({
+      id: 'project-a',
+      role: ProjectMemberRole.Admin,
+      processes: [
+        {
+          resourceId: 'process-shared',
+          name: 'Gestion commune',
+          usage: ProjectProcessUsage.Common,
+        },
+      ],
+    });
+  });
+
+  it('returns an empty workspace when the user has no project memberships', async () => {
+    projectMembers.find.mockResolvedValue([]);
+    await expect(
+      controller.getMyWorkspace({ 'x-user': 'new-user' }),
+    ).resolves.toEqual({
+      userId: 'new-user',
+      projects: [],
+    });
+    expect(projects.find).not.toHaveBeenCalled();
+  });
+
   it('shows the same shared resource for every project that references it', async () => {
     const result = await controller.getAdministrationOverview();
     const shared = result.processes.find(
