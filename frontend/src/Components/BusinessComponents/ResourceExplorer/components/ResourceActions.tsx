@@ -22,6 +22,7 @@ import {
 } from '@mui/joy';
 import { useMutation, useQueryClient } from 'react-query';
 import { apiClient } from '../../../../queryClient';
+import { HttpError } from '../../../../shared/api/httpError';
 
 import {
   ResourceAction,
@@ -53,7 +54,30 @@ export const ResourceActions = ({
         await queryClient.invalidateQueries(['resources']);
         navigate(`/${clonedResource.id}/modeler`);
       },
-      onError: (error: Error) => setCloneError(error.message),
+      onError: (error: Error) => {
+        if (error instanceof HttpError && error.status === 409) {
+          setCloneError(
+            'Une ressource portant déjà ce nom existe dans ce dossier. Choisissez un autre nom pour la copie.',
+          );
+          return;
+        }
+
+        if (error instanceof HttpError && error.status === 403) {
+          const apiMessage = String(error.errorResponse?.message ?? '').toLowerCase();
+          if (apiMessage.includes('modeler access')) {
+            setCloneError(
+              'Vous devez avoir le rôle de modélisateur ou d’administrateur sur tous les projets liés à ce processus pour le cloner.',
+            );
+            return;
+          }
+          setCloneError(
+            'Vous n’avez pas les droits nécessaires pour cloner ce processus.',
+          );
+          return;
+        }
+
+        setCloneError(error.message);
+      },
     },
   );
 
