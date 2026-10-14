@@ -130,14 +130,11 @@
   background: #f1f5f9;
 }
 
-/* Highlight BPMN elements selected from a project-wide RACI matrix. */
-.djs-element.raci-selected .djs-visual > :first-child {
-  stroke: #d32f2f !important;
+/* Selected activities are highlighted consistently from the tree, diagram, and RACI. */
+.djs-element.task-selected .djs-visual > :first-child {
+  stroke: #1976d2 !important;
   stroke-width: 4px !important;
-}
-
-.djs-element.raci-selected .djs-visual > :first-child:not(rect):not(circle):not(ellipse) {
-  filter: drop-shadow(0 0 2px rgba(211, 47, 47, 0.45));
+  filter: drop-shadow(0 0 2px rgba(25, 118, 210, 0.35));
 }
 
 

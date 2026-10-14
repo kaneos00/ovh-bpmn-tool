@@ -9,6 +9,7 @@ export const useProcessViewer = (
   resourceId: string,
   contentId: string,
   selectedElementId?: string | null,
+  onElementSelect?: (elementId: string) => void,
 ) => {
   const { getViewerInstance } = useModelerInstance();
   const viewerRef = useRef<HTMLDivElement>(null);
@@ -26,12 +27,37 @@ export const useProcessViewer = (
   const viewer = useMemo(() => getViewerInstance(), []);
   useCallActivityNavigation(viewer, true);
 
+  useEffect(() => {
+    if (!onElementSelect) return undefined;
+
+    const eventBus = viewer.get('eventBus') as {
+      on: (event: string, listener: (event: any) => void) => void;
+      off: (event: string, listener: (event: any) => void) => void;
+    };
+    const onElementClick = (event: any) => {
+      const element = event?.element;
+      if (!element?.id || typeof element.type !== 'string') return;
+
+      const isSelectableActivity =
+        element.type === 'bpmn:Task' ||
+        element.type.endsWith('Task') ||
+        element.type === 'bpmn:CallActivity' ||
+        element.type === 'bpmn:SubProcess' ||
+        element.type === 'bpmn:Transaction';
+
+      if (isSelectableActivity) onElementSelect(element.id);
+    };
+
+    eventBus.on('element.click', onElementClick);
+    return () => eventBus.off('element.click', onElementClick);
+  }, [viewer, onElementSelect]);
+
   const applySelection = () => {
     if (!importedRef.current) return;
 
     const canvas = viewer.get('canvas') as any;
     const previousId = highlightedIdRef.current;
-    if (previousId) canvas.removeMarker(previousId, 'raci-selected');
+    if (previousId) canvas.removeMarker(previousId, 'task-selected');
     highlightedIdRef.current = null;
 
     const targetId = selectedIdRef.current;
@@ -40,7 +66,7 @@ export const useProcessViewer = (
     const element = (viewer.get('elementRegistry') as any).get(targetId);
     if (!element) return;
 
-    canvas.addMarker(targetId, 'raci-selected');
+    canvas.addMarker(targetId, 'task-selected');
     highlightedIdRef.current = targetId;
 
     const bounds = canvas.getAbsoluteBBox(element);
