@@ -263,8 +263,11 @@ export const Component = () => {
           project.projectName.toLocaleLowerCase().includes(normalizedSearch) ||
           project.role.toLocaleLowerCase().includes(normalizedSearch),
         )) &&
-      (userRoleFilter === 'all' || user.projects.some((project) => project.role === userRoleFilter)) &&
-      (userProjectFilter === 'all' || user.projects.some((project) => project.projectId === userProjectFilter)),
+      ((userRoleFilter === 'all' && userProjectFilter === 'all') ||
+        user.projects.some((project) =>
+          (userRoleFilter === 'all' || project.role === userRoleFilter) &&
+          (userProjectFilter === 'all' || project.projectId === userProjectFilter),
+        )),
     ),
     [overview?.users, normalizedSearch, userRoleFilter, userProjectFilter],
   );
@@ -276,7 +279,9 @@ export const Component = () => {
         project.processes.some((process) => process.name.toLocaleLowerCase().includes(normalizedSearch))) &&
       (projectTypeFilter === 'all' ||
         (projectTypeFilter === 'shared' && project.processes.some((process) => process.usage === 'common')) ||
-        (projectTypeFilter === 'specific' && project.processes.some((process) => process.usage === 'project-specific') && !project.processes.some((process) => process.usage === 'common')) ||
+        (projectTypeFilter === 'specific' &&
+          project.processes.some((process) => process.usage === 'project-specific') &&
+          !project.processes.some((process) => process.usage === 'common' || process.usage === 'variant')) ||
         (projectTypeFilter === 'variant' && project.processes.some((process) => process.usage === 'variant'))),
     ),
     [overview?.projects, normalizedSearch, projectTypeFilter],
@@ -290,15 +295,17 @@ export const Component = () => {
           project.projectName.toLocaleLowerCase().includes(normalizedSearch) ||
           usageLabel[project.usage].toLocaleLowerCase().includes(normalizedSearch),
         )) &&
-      (processUsageFilter === 'all' || process.projects.some((project) => project.usage === processUsageFilter)) &&
-      (processProjectFilter === 'all' || process.projects.some((project) => project.projectId === processProjectFilter)),
+      ((processUsageFilter === 'all' && processProjectFilter === 'all') ||
+        process.projects.some((project) =>
+          (processUsageFilter === 'all' || project.usage === processUsageFilter) &&
+          (processProjectFilter === 'all' || project.projectId === processProjectFilter),
+        )),
     ),
     [overview?.processes, normalizedSearch, processUsageFilter, processProjectFilter],
   );
 
-  const selectedUser = users.find((user) => user.userId === selectedUserId);
-  const selectedProject = overview?.projects.find((project) => project.id === selectedProjectId);
-  const selectedProcess = overview?.processes.find((process) => process.id === selectedProcessId);
+  const selectedUser = overview?.users.find((user) => user.userId === selectedUserId);
+  const selectedProject = overview?.projects.find((project) => project.id === selectedProjectId);  const selectedProcess = overview?.processes.find((process) => process.id === selectedProcessId);
 
   const title = sections.find((item) => item.key === activeSection)?.label ?? 'Vue d’ensemble';
   const isDataSection = activeSection === 'users' || activeSection === 'projects' || activeSection === 'processes';
@@ -597,8 +604,7 @@ export const Component = () => {
         )}
 
         {activeSection === 'projects' && selectedProject && (
-          <Card variant="outlined" sx={{ gap: 1.5 }}>
-            <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+          <Card variant="outlined" sx={{ gap: 1.5 }}>            <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
               <Box>
                 <Typography level="title-lg">Gérer {selectedProject.name}</Typography>
                 <Typography level="body-sm" sx={{ color: 'text.secondary' }}>
