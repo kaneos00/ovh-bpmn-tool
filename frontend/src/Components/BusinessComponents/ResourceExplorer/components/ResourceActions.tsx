@@ -54,29 +54,71 @@ export const ResourceActions = ({
         await queryClient.invalidateQueries(['resources']);
         navigate(`/${clonedResource.id}/modeler`);
       },
-      onError: (error: Error) => {
+      onError: (error: unknown) => {
+        const apiMessage =
+          error instanceof HttpError
+            ? String(error.errorResponse?.message ?? '').toLowerCase()
+            : '';
+
         if (error instanceof HttpError && error.status === 409) {
           setCloneError(
-            'Une ressource portant déjà ce nom existe dans ce dossier. Choisissez un autre nom pour la copie.',
+            'Le clonage a échoué : une ressource portant déjà ce nom existe dans ce dossier. Modifiez le nom de la copie puis réessayez.',
           );
           return;
         }
 
         if (error instanceof HttpError && error.status === 403) {
-          const apiMessage = String(error.errorResponse?.message ?? '').toLowerCase();
           if (apiMessage.includes('modeler access')) {
             setCloneError(
-              'Vous devez avoir le rôle de modélisateur ou d’administrateur sur tous les projets liés à ce processus pour le cloner.',
+              'Le clonage est refusé : vous devez avoir le rôle de modélisateur ou d’administrateur sur tous les projets liés à ce processus.',
             );
             return;
           }
           setCloneError(
-            'Vous n’avez pas les droits nécessaires pour cloner ce processus.',
+            'Le clonage est refusé par les droits d’accès. Vérifiez votre rôle et les droits associés au processus source.',
           );
           return;
         }
 
-        setCloneError(error.message);
+        if (error instanceof HttpError && error.status === 400) {
+          if (apiMessage.includes('no bpmn content')) {
+            setCloneError(
+              'Ce processus ne contient aucun diagramme BPMN exploitable à copier. Ouvrez le processus source, vérifiez son contenu puis réessayez.',
+            );
+            return;
+          }
+          setCloneError(
+            'Le serveur a refusé le clonage. Vérifiez que le processus source contient un diagramme BPMN et que le nom de la copie est valide.',
+          );
+          return;
+        }
+
+        if (error instanceof HttpError && error.status === 404) {
+          setCloneError(
+            'Le processus source est introuvable ou n’est plus accessible. Actualisez la liste puis réessayez.',
+          );
+          return;
+        }
+
+        if (error instanceof HttpError && error.status === 401) {
+          setCloneError(
+            'Votre session n’est plus valide. Reconnectez-vous puis réessayez de cloner le processus.',
+          );
+          return;
+        }
+
+        if (error instanceof HttpError && error.status >= 500) {
+          setCloneError(
+            'Une erreur du serveur empêche le clonage. Réessayez plus tard ; si le problème persiste, consultez les journaux du serveur.',
+          );
+          return;
+        }
+
+        setCloneError(
+          error instanceof TypeError
+            ? 'Impossible de joindre le serveur. Vérifiez votre connexion puis réessayez.'
+            : 'Le clonage a échoué pour une raison inattendue. Réessayez ; si le problème persiste, consultez les journaux du serveur.',
+        );
       },
     },
   );
