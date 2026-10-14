@@ -1,11 +1,11 @@
-import { createElement } from 'react';
-import { useQuery } from 'react-query';
+import { h } from 'preact';
+import { useEffect, useState } from 'preact/hooks';
 import { is } from 'bpmn-js/lib/util/ModelUtil';
 // @ts-expect-error SelectEntry is available at runtime in @bpmn-io/properties-panel 3.44.1 but is missing from its declaration surface.
 import { SelectEntry } from '@bpmn-io/properties-panel';
 import { useService } from 'bpmn-js-properties-panel';
 
-import { resourcesQuery } from '../api/resources/resources.queries';
+import { apiClient } from '../queryClient';
 import type { Resource } from '../Types';
 import { ResourceType } from '../shared/types/BpmnResource';
 
@@ -14,7 +14,8 @@ class CallActivityPropertiesProvider {
     return (groups: any[]) => {
       if (!is(element, 'bpmn:CallActivity')) return groups;
 
-      // Replace the raw technical calledElement input with a process selector.
+      // This provider runs after the Camunda provider and replaces its raw
+      // calledElement text field with the application process selector.
       const groupsWithoutRawCalledElement = groups
         .map(group => ({
           ...group,
@@ -25,14 +26,6 @@ class CallActivityPropertiesProvider {
         .filter(
           group => !Array.isArray(group.entries) || group.entries.length > 0,
         );
-
-      if (
-        groupsWithoutRawCalledElement.some(
-          group => group.id === 'bpmnToolCallActivity',
-        )
-      ) {
-        return groupsWithoutRawCalledElement;
-      }
 
       groupsWithoutRawCalledElement.push({
         id: 'bpmnToolCallActivity',
@@ -56,11 +49,33 @@ class CallActivityPropertiesProvider {
 function CallActivityProcessSelectEntry(props: any) {
   const { element, id, label } = props;
   const modeling = useService('modeling');
-  const {
-    data: processes = [],
-    isLoading,
-    isError,
-  } = useQuery(resourcesQuery({ type: ResourceType.Process }));
+  const [processes, setProcesses] = useState<Resource[]>([]);
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>(
+    'loading',
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    apiClient
+      .get(`/resources?filter.type=${ResourceType.Process}`)
+      .then((result: Resource[]) => {
+        if (cancelled) return;
+        if (!Array.isArray(result)) {
+          setLoadState('error');
+          return;
+        }
+        setProcesses(result);
+        setLoadState('ready');
+      })
+      .catch(() => {
+        if (!cancelled) setLoadState('error');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const getValue = () =>
     String(element.businessObject?.calledElement ?? '');
@@ -73,7 +88,7 @@ function CallActivityProcessSelectEntry(props: any) {
 
   const getOptions = () => {
     const currentValue = getValue();
-    const sortedProcesses = [...(processes as Resource[])].sort((left, right) =>
+    const sortedProcesses = [...processes].sort((left, right) =>
       left.name.localeCompare(right.name, 'fr', { sensitivity: 'base' }),
     );
     const nameCounts = new Map<string, number>();
@@ -101,18 +116,20 @@ function CallActivityProcessSelectEntry(props: any) {
     }
 
     let placeholder = '— Sélectionner un processus —';
-    if (isLoading) {
+    if (loadState === 'loading') {
       placeholder = 'Chargement des processus…';
-    } else if (isError) {
+    } else if (loadState === 'error') {
       placeholder = 'Liste des processus indisponible';
+    } else if (options.length === 0) {
+      placeholder = 'Aucun processus accessible';
     }
 
     return [{ value: '', label: placeholder }, ...options];
   };
 
-  // Render the properties-panel entry as a React component. Calling it as a
-  // plain function executes its hooks outside React and triggers error #321.
-  return createElement(SelectEntry, {
+  // The properties panel is Preact-based: use Preact elements/hooks rather
+  // than React hooks/elements inside its renderer.
+  return h(SelectEntry, {
     element,
     id,
     label,
