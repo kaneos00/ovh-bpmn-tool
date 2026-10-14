@@ -113,13 +113,15 @@ jobs:
             --env POSTGRES_PASSWORD="$DATABASE_PASSWORD" \
             --env DEMO_AUTH_USER="$DEMO_AUTH_USER" \
             bpmn-v2-demo-postgres:ci
+          # pg_isready can succeed while the official PostgreSQL image is still
+          # running its initialization scripts. Wait for the seeded demo records too.
+          seed_counts=""
           for attempt in $(seq 1 30); do
-            if docker exec bpmn-v2-demo-db-ci pg_isready -U "$DATABASE_USER" -d "$DATABASE_NAME"; then break; fi
+            seed_counts="$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT (SELECT count(*) FROM projects) || ':' || (SELECT count(*) FROM project_processes) || ':' || (SELECT count(*) FROM project_raci_entries)" 2>/dev/null || true)"
+            if [ "$seed_counts" = "2:4:6" ]; then break; fi
             sleep 2
           done
-          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc 'SELECT count(*) FROM projects')" = "2"
-          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc 'SELECT count(*) FROM project_processes')" = "4"
-          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc 'SELECT count(*) FROM project_raci_entries')" = "6"
+          test "$seed_counts" = "2:4:6"
           docker run --rm --network bpmn-v2-ci \
             --env PGPASSWORD="$DATABASE_PASSWORD" \
             --env DATABASE_USER="$DATABASE_USER" --env DATABASE_NAME="$DATABASE_NAME" \
