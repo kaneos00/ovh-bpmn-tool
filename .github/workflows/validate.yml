@@ -95,6 +95,8 @@ jobs:
         run: docker build --file deploy/coolify/Dockerfile.frontend --tag bpmn-v2-demo-frontend:ci .
       - name: Build PostgreSQL image
         run: docker build --file deploy/coolify/Dockerfile.postgres --tag bpmn-v2-demo-postgres:ci .
+      - name: Build database migration image
+        run: docker build --file deploy/coolify/Dockerfile.migrations --tag bpmn-v2-demo-migrations:ci .
       - name: Smoke-test database, login, session and protected API
         run: |
           docker network create bpmn-v2-ci
@@ -118,6 +120,10 @@ jobs:
           test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc 'SELECT count(*) FROM projects')" = "2"
           test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc 'SELECT count(*) FROM project_processes')" = "4"
           test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc 'SELECT count(*) FROM project_raci_entries')" = "6"
+          docker run --rm --network bpmn-v2-ci \\
+            --env PGPASSWORD="$DATABASE_PASSWORD" \\
+            bpmn-v2-demo-migrations:ci sh -ec 'until pg_isready -h database -U "$DATABASE_USER" -d "$DATABASE_NAME"; do sleep 1; done; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261014_v2_1_process_provenance.sql'
+          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.columns WHERE table_name='resources' AND column_name='sourceResourceId'")" = "1"
 
           docker run --detach --name bpmn-v2-demo-backend-ci --network bpmn-v2-ci --network-alias backend \
             --env NODE_ENV=production --env NODE_PORT=3000 \
