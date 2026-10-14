@@ -52,6 +52,42 @@ export const useProcessViewer = (
     return () => eventBus.off('element.click', onElementClick);
   }, [viewer, onElementSelect]);
 
+  const alignDiagramTopLeft = () => {
+    const canvas = viewer.get('canvas') as any;
+    const elementRegistry = viewer.get('elementRegistry') as any;
+    const viewport = canvas.viewbox();
+    if (!viewport) return;
+
+    const bounds = elementRegistry
+      .getAll()
+      .filter((element: any) =>
+        element &&
+        !element.labelTarget &&
+        !element.waypoints &&
+        Number.isFinite(element.x) &&
+        Number.isFinite(element.y) &&
+        element.width > 0 &&
+        element.height > 0,
+      )
+      .map((element: any) => canvas.getAbsoluteBBox(element))
+      .filter((bbox: any) => bbox && Number.isFinite(bbox.x) && Number.isFinite(bbox.y));
+
+    if (!bounds.length) return;
+
+    const padding = 20;
+    const minX = Math.min(...bounds.map((bbox: any) => bbox.x));
+    const minY = Math.min(...bounds.map((bbox: any) => bbox.y));
+
+    // Keep the fitted zoom level, but anchor the diagram at the viewport's
+    // upper-left instead of centering it in the available space.
+    canvas.viewbox({
+      x: minX - padding,
+      y: minY - padding,
+      width: viewport.width,
+      height: viewport.height,
+    });
+  };
+
   const applySelection = () => {
     if (!importedRef.current) return;
 
@@ -69,29 +105,8 @@ export const useProcessViewer = (
     canvas.addMarker(targetId, 'task-selected');
     highlightedIdRef.current = targetId;
 
-    const bounds = canvas.getAbsoluteBBox(element);
-    const viewport = canvas.viewbox();
-    if (!bounds || !viewport) return;
-
-    // Focus the inside of an expanded subprocess when it is selected from
-    // the hierarchy. For ordinary activities, preserve the current zoom.
-    if (element.type === 'bpmn:SubProcess' && element.isExpanded !== false) {
-      const padding = 32;
-      canvas.viewbox({
-        x: bounds.x - padding,
-        y: bounds.y - padding,
-        width: bounds.width + padding * 2,
-        height: bounds.height + padding * 2,
-      });
-      return;
-    }
-
-    canvas.viewbox({
-      x: bounds.x + bounds.width / 2 - viewport.width / 2,
-      y: bounds.y + bounds.height / 2 - viewport.height / 2,
-      width: viewport.width,
-      height: viewport.height,
-    });
+    // Selection only changes the highlight. It must not pan or zoom the
+    // diagram, so the user's visual reference remains stable.
   };
 
   const applySelectionRef = useRef(applySelection);
@@ -119,7 +134,9 @@ export const useProcessViewer = (
     viewer.importXML(xmlContent)
       .then(() => {
         if (cancelled) return;
-        (viewer.get('canvas') as any).zoom('fit-viewport');
+        const canvas = viewer.get('canvas') as any;
+        canvas.zoom('fit-viewport');
+        alignDiagramTopLeft();
         importedRef.current = true;
         applySelectionRef.current();
       })
