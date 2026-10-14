@@ -89,24 +89,24 @@ function CallActivityProcessSelectEntry(props: any) {
           : process.name,
     }));
 
-    if (currentValue && !sortedProcesses.some(({ id }) => id === currentValue)) {
+    if (
+      currentValue &&
+      !sortedProcesses.some(process => process.id === currentValue)
+    ) {
       options.unshift({
         value: currentValue,
         label: `Processus inaccessible ou indisponible — ${currentValue.slice(0, 8)}`,
       });
     }
 
-    return [
-      {
-        value: '',
-        label: isLoading
-          ? 'Chargement des processus…'
-          : isError
-            ? 'Liste des processus indisponible'
-            : '— Sélectionner un processus —',
-      },
-      ...options,
-    ];
+    let placeholder = '— Sélectionner un processus —';
+    if (isLoading) {
+      placeholder = 'Chargement des processus…';
+    } else if (isError) {
+      placeholder = 'Liste des processus indisponible';
+    }
+
+    return [{ value: '', label: placeholder }, ...options];
   };
 
   return SelectEntry({
