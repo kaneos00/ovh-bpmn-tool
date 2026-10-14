@@ -260,7 +260,7 @@ export const Component = () => {
       <Sheet className={`viewerInfoPanel ${infoTab === 1 ? 'mobile-visible' : ''}`} variant="outlined">
         <Stack spacing={1.5} className="viewerInfoHeader">
           <Stack direction="row" alignItems="center" justifyContent="space-between">
-            <Typography level="title-lg">Process information</Typography>
+            <Typography level="title-lg">Informations du processus</Typography>
             <IconButton
               className="viewerInfoClose"
               size="sm"
@@ -276,16 +276,16 @@ export const Component = () => {
           {lastPublishedContent ? (
             <Stack spacing={0.25}>
               <Typography level="body-sm">
-                Last published version: v{lastPublishedContent.version ?? 'N/A'}
+                Dernière version publiée : v{lastPublishedContent.version ?? 'N/D'}
               </Typography>
               <Typography level="body-xs" textColor="neutral">
-                Modified {formatDateTime(lastPublishedContent.updatedAt)} by{' '}
+                Modifiée le {formatDateTime(lastPublishedContent.updatedAt)} par{' '}
                 {lastPublishedContent.updatedBy}
               </Typography>
             </Stack>
           ) : (
             <Typography level="body-sm" textColor="neutral">
-              No published version
+              Aucune version publiée
             </Typography>
           )}
         </Stack>
@@ -294,7 +294,7 @@ export const Component = () => {
 
         <Tabs value={infoTab} onChange={(_, value) => setInfoTab(value as 0 | 1)} className="viewerTabs">
           <TabList sticky="top" variant="plain">
-            <Tab value={0}>Version history</Tab>
+            <Tab value={0}>Historique des versions</Tab>
             <Tab value={1}>
               <Stack direction="row" spacing={0.75} alignItems="center">
                 <GroupsOutlined fontSize="small" />
@@ -316,7 +316,7 @@ export const Component = () => {
                   </Typography>
                   <Typography level="body-xs">{content.status}</Typography>
                   <Typography level="body-xs" textColor="neutral">
-                    Modified {formatDateTime(content.updatedAt)} by{' '}
+                    Modifiée le {formatDateTime(content.updatedAt)} par{' '}
                     {content.updatedBy}
                   </Typography>
                 </Sheet>
@@ -528,7 +528,7 @@ export const Component = () => {
               )}
 
               <Typography level="body-xs" textColor="neutral">
-                Lecture seule : aucune modification du RACI n'est possible
+                Lecture seule : aucune modification du RACI n’est possible
                 depuis le Viewer. ● Explicite · ◐ Inféré · — Manquant.
               </Typography>
             </Stack>
