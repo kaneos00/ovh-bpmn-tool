@@ -20,6 +20,7 @@ CREATE TABLE resources (
     description text,
     depth integer NOT NULL,
     "parentId" character varying,
+    "sourceResourceId" uuid,
     "authToken" VARCHAR(64),
     type resources_type_enum NOT NULL
 );
