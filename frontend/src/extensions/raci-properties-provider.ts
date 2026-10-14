@@ -1,4 +1,4 @@
-import { h } from 'preact';
+import { h } from '@bpmn-io/properties-panel/preact';
 import { is } from 'bpmn-js/lib/util/ModelUtil';
 // @ts-expect-error SelectEntry is available at runtime in @bpmn-io/properties-panel 3.44.1 but is missing from its declaration surface.
 import { SelectEntry } from '@bpmn-io/properties-panel';
