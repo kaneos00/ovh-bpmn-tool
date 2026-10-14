@@ -117,6 +117,18 @@ const searchPlaceholders: Partial<Record<AdminSection, string>> = {
   processes: 'Rechercher un processus ou un projet utilisateur…',
 };
 
+const sectionEyebrow: Partial<Record<AdminSection, string>> = {
+  users: 'Administration des accès',
+  projects: 'Portefeuille',
+  processes: 'Référentiel transversal',
+};
+
+const sectionDescription: Partial<Record<AdminSection, string>> = {
+  users: 'Vue globale des utilisateurs et des projets auxquels ils ont accès.',
+  projects: 'Chaque projet réunit ses membres, ses processus spécifiques et ses références au catalogue organisationnel.',
+  processes: 'Retrouvez chaque processus et comprenez quels projets l’utilisent.',
+};
+
 const usageColor: Record<AdminProcessLink['usage'], 'success' | 'primary' | 'warning'> = {
   common: 'success',
   variant: 'warning',
@@ -380,7 +392,7 @@ export const Component = () => {
               {isDataSection && (
                 <section aria-labelledby="org-section-title">
                   <div className="org-admin-v2__page-head">
-                    <div><div className="org-admin-v2__eyebrow">{activeSection === 'users' ? 'Administration des accès' : activeSection === 'projects' ? 'Portefeuille' : 'Référentiel transversal'}</div><Typography id="org-section-title" level="h1">{title}</Typography><Typography level="body-md" sx={{ color: 'text.secondary', maxWidth: 700, mt: 0.5 }}>{activeSection === 'users' ? 'Vue globale des utilisateurs et des projets auxquels ils ont accès.' : activeSection === 'projects' ? 'Chaque projet réunit ses membres, ses processus spécifiques et ses références au catalogue organisationnel.' : 'Retrouvez chaque processus et comprenez quels projets l’utilisent.'}</Typography></div>
+                    <div><div className="org-admin-v2__eyebrow">{sectionEyebrow[activeSection]}</div><Typography id="org-section-title" level="h1">{title}</Typography><Typography level="body-md" sx={{ color: 'text.secondary', maxWidth: 700, mt: 0.5 }}>{sectionDescription[activeSection]}</Typography></div>
                     <div className="org-admin-v2__actions">
                       {activeSection === 'users' && <><Button variant="outlined" onClick={() => exportCsv('utilisateurs-khi-flows.csv', [['Identifiant', 'Projet', 'Rôle'], ...(overview?.users ?? []).flatMap((user) => user.projects.map((project) => [user.userId, project.projectName, roleLabel[project.role]]))])}>Exporter la vue</Button><Button onClick={() => document.getElementById('org-add-access')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>＋ Ajouter un accès</Button></>}
                       {activeSection === 'projects' && <><Button variant="outlined" onClick={() => exportCsv('projets-khi-flows.csv', [['Projet', 'Description', 'Membres', 'Processus communs', 'Spécifiques', 'Variantes'], ...(overview?.projects ?? []).map((project) => [project.name, project.description ?? '', project.membersCount, project.processes.filter((process) => process.usage === 'common').length, project.processes.filter((process) => process.usage === 'project-specific').length, project.processes.filter((process) => process.usage === 'variant').length])])}>Exporter la vue</Button><Button onClick={() => document.getElementById('org-create-project')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>＋ Créer un projet</Button></>}
