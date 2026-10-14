@@ -16,6 +16,8 @@ export const Component = () => {
     isLoading,
     leftResourceId,
     rightResourceId,
+    leftResource,
+    rightResource,
     setIsDiffsModalOpen,
   } = useCompareData();
 
@@ -39,8 +41,8 @@ export const Component = () => {
           rightContent={rightXmlContent}
           isDiffsModalOpen={isDiffsModalOpen}
           setIsDiffsModalOpen={setIsDiffsModalOpen}
-          leftSideTitle={`${leftResourceId} · ${leftContent.status} v${leftContent.version ?? '?'}`}
-          rightSideTitle={`${rightResourceId} · ${rightContent.status} v${rightContent.version ?? '?'}`}
+          leftSideTitle={`${leftResource?.name ?? leftResourceId} · ${leftContent.status} v${leftContent.version ?? '?'}`}
+          rightSideTitle={`${rightResource?.name ?? rightResourceId} · ${rightContent.status} v${rightContent.version ?? '?'}`}
         />
       )}
     </>
