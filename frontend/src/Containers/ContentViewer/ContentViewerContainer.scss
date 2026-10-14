@@ -1,21 +1,28 @@
 .viewerLayout {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr) 340px;
+  grid-template-columns: 255px minmax(0, 1fr) 285px;
+  gap: 11px;
+  padding: 11px;
+  box-sizing: border-box;
   transition: grid-template-columns 160ms ease;
   height: 100vh;
   width: 100%;
   overflow: hidden;
+  background: #eef2f6;
 }
 
 .viewerLayout.sidebar-collapsed {
-  grid-template-columns: 52px minmax(0, 1fr) 340px;
+  grid-template-columns: 42px minmax(0, 1fr) 285px;
 }
 
 .viewerFolderPanel {
   min-width: 0;
-  height: 100vh;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
   transition: width 160ms ease;
+  border-radius: 10px;
+  background: var(--joy-palette-background-surface, #fff);
 }
 
 .viewerFolderPanel.open {
@@ -37,7 +44,7 @@
 }
 
 .viewerFolderTree {
-  height: calc(100vh - 53px);
+  height: calc(100% - 53px);
   overflow-y: auto;
   padding: 8px;
 }
@@ -106,8 +113,12 @@
 
 .viewerDiagram {
   min-width: 0;
-  height: 100vh;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
+  border: 1px solid var(--joy-palette-divider, #dce3ec);
+  border-radius: 10px;
+  background: var(--joy-palette-background-surface, #fff);
 }
 
 .viewerInfoClose {
@@ -116,10 +127,13 @@
 
 .viewerInfoPanel {
   min-width: 0;
-  height: 100vh;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  border-radius: 10px;
+  background: var(--joy-palette-background-surface, #fff);
 }
 
 .viewerInfoHeader {
@@ -180,11 +194,11 @@
 @media (max-width: 1100px) {
   .viewerLayout,
   .viewerLayout.sidebar-open {
-    grid-template-columns: 260px minmax(0, 1fr);
+    grid-template-columns: 235px minmax(0, 1fr);
   }
 
   .viewerLayout.sidebar-collapsed {
-    grid-template-columns: 52px minmax(0, 1fr);
+    grid-template-columns: 42px minmax(0, 1fr);
   }
 
   .viewerInfoPanel {
@@ -206,5 +220,38 @@
 
   .viewerInfoPanel.mobile-visible .viewerInfoClose {
     display: inline-flex;
+  }
+}
+
+@media (max-width: 720px) {
+  .viewerLayout,
+  .viewerLayout.sidebar-open,
+  .viewerLayout.sidebar-collapsed {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    height: 100dvh;
+    overflow-y: auto;
+  }
+
+  .viewerFolderPanel,
+  .viewerFolderPanel.open,
+  .viewerFolderPanel.collapsed {
+    width: 100%;
+    height: auto;
+    max-height: 270px;
+    flex: 0 0 auto;
+  }
+
+  .viewerFolderTree {
+    height: auto;
+    max-height: 210px;
+  }
+
+  .viewerDiagram {
+    height: auto;
+    min-height: 550px;
+    flex: 1 0 550px;
   }
 }

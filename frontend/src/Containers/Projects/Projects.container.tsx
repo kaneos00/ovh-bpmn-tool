@@ -299,9 +299,9 @@ export const Component = () => {
               bgcolor: 'background.level1',
             }}
           >
-            <Tab value={0}>Membres et rôles</Tab>
+            <Tab value={0}>Membres et rôles du projet</Tab>
             <Tab value={1}>Processus du projet</Tab>
-            <Tab value={2}>Gestion du RACI</Tab>
+            <Tab value={2}>Gestion du RACI du projet</Tab>
           </TabList>
           <TabPanel value={0} sx={{ px: 0, py: 2 }}>
           <Card variant="outlined">
