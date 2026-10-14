@@ -141,7 +141,7 @@ export const Component = () => {
           </Box>
         </Card>
         <Typography level="body-xs" sx={{ textAlign: 'center', color: 'text.tertiary' }}>
-          Accès sécurisé · BPMN Tool
+          Accès sécurisé · KHI Flows
         </Typography>
       </Stack>
     </Sheet>
