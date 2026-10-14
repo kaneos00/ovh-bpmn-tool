@@ -41,7 +41,7 @@ export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
               instance: RaciPropertiesProvider,
             },
             {
-              priority: 503,
+              priority: 499,
               instance: CallActivityPropertiesProvider,
             },
           ],
