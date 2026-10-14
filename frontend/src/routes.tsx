@@ -27,7 +27,19 @@ export const routes = [
       },
       {
         path: '/organization',
-        loader: () => redirect('/organization/users'),
+        loader: () => redirect('/organization/overview'),
+      },
+      {
+        path: '/organization/overview',
+        lazy: () => import('./Containers/OrganizationAdmin'),
+      },
+      {
+        path: '/organization/governance',
+        lazy: () => import('./Containers/OrganizationAdmin'),
+      },
+      {
+        path: '/organization/settings',
+        lazy: () => import('./Containers/OrganizationAdmin'),
       },
       {
         path: '/organization/users',
