@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Box,
+  Button,
   Divider,
   IconButton,
   Sheet,
@@ -12,7 +13,7 @@ import {
   Tabs,
   Typography,
 } from '@mui/joy';
-import { Compare, FileCopy } from '@mui/icons-material';
+import { Compare, FileCopy, ChevronLeft, ChevronRight, DescriptionOutlined, GroupsOutlined, InfoOutlined } from '@mui/icons-material';
 import { useQuery } from 'react-query';
 
 import { useProcessDetails } from './hooks/useProcessDetails';
@@ -37,6 +38,7 @@ type ProcessDetailsProps = {
   onContentViewerLinkCopy: (content: string) => void;
   onCompareClick: (leftContentId: string, rightContentId: string) => void;
   selectedElementId?: string | null;
+  onElementSelect?: (elementId: string) => void;
 };
 
 export const ProcessDetails = ({
@@ -48,6 +50,7 @@ export const ProcessDetails = ({
   onContentViewerLinkCopy,
   onCompareClick,
   selectedElementId,
+  onElementSelect,
 }: ProcessDetailsProps) => {
   const {
     contents,
@@ -83,6 +86,38 @@ export const ProcessDetails = ({
     [raciMatrix],
   );
 
+  const [taskPanelCollapsed, setTaskPanelCollapsed] = useState(false);
+  const [taskPanelSection, setTaskPanelSection] = useState<'details' | 'documentation' | 'raci'>('details');
+
+  const selectedTask = useMemo(() => {
+    if (!xmlContent || !selectedElementId) return null;
+
+    const document = new DOMParser().parseFromString(xmlContent, 'application/xml');
+    if (document.getElementsByTagName('parsererror').length > 0) return null;
+
+    const element = Array.from(document.getElementsByTagName('*')).find(
+      candidate => candidate.getAttribute('id') === selectedElementId,
+    );
+    if (!element) return null;
+
+    const documentation = Array.from(element.children)
+      .filter(child => child.localName === 'documentation')
+      .map(child => (child.textContent ?? '').trim())
+      .filter(Boolean);
+
+    return {
+      id: selectedElementId,
+      name: element.getAttribute('name')?.trim() || selectedElementId,
+      type: element.localName,
+      documentation,
+    };
+  }, [xmlContent, selectedElementId]);
+
+  const selectedTaskRaci = useMemo(
+    () => raciMatrix.activities.find(activity => activity.elementId === selectedElementId),
+    [raciMatrix.activities, selectedElementId],
+  );
+
   if (isLoading) {
     return (
       <Stack gap={2}>
@@ -102,6 +137,7 @@ export const ProcessDetails = ({
         </TabList>
 
         <TabPanel value={0} className="processViewerTabPanel processViewerProcessTab">
+          <Box className="processViewerWorkspace">
           <Sheet className="processViewerDiagram" variant="outlined">
             {publishedContent ? (
               <>
@@ -135,6 +171,7 @@ export const ProcessDetails = ({
                     resourceId={resourceId}
                     contentId={publishedContent.id}
                     selectedElementId={selectedElementId}
+                    onElementSelect={onElementSelect}
                   />
                 </Box>
               </>
@@ -147,6 +184,145 @@ export const ProcessDetails = ({
               </Stack>
             )}
           </Sheet>
+
+          {publishedContent && (
+            <Sheet
+              className={`processTaskPanel ${taskPanelCollapsed ? 'collapsed' : ''}`}
+              variant="outlined"
+            >
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent={taskPanelCollapsed ? 'center' : 'space-between'}
+                className="processTaskPanelHeader"
+              >
+                {!taskPanelCollapsed && (
+                  <Typography level="title-sm">Fiche de la tâche</Typography>
+                )}
+                <IconButton
+                  size="sm"
+                  variant="plain"
+                  color="neutral"
+                  onClick={() => setTaskPanelCollapsed(value => !value)}
+                  aria-label={taskPanelCollapsed ? 'Développer le panneau de tâche' : 'Replier le panneau de tâche'}
+                  title={taskPanelCollapsed ? 'Développer le panneau' : 'Replier le panneau'}
+                >
+                  {taskPanelCollapsed ? <ChevronLeft /> : <ChevronRight />}
+                </IconButton>
+              </Stack>
+
+              {!taskPanelCollapsed && (
+                <Stack spacing={1.5} className="processTaskPanelContent">
+                  {selectedTask ? (
+                    <>
+                      <Box>
+                        <Typography level="title-lg">{selectedTask.name}</Typography>
+                        <Typography level="body-xs" textColor="neutral">
+                          {selectedTask.type} · {selectedTask.id}
+                        </Typography>
+                      </Box>
+
+                      <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                        <Button
+                          size="sm"
+                          variant={taskPanelSection === 'details' ? 'soft' : 'plain'}
+                          color={taskPanelSection === 'details' ? 'primary' : 'neutral'}
+                          startDecorator={<InfoOutlined />}
+                          onClick={() => setTaskPanelSection('details')}
+                        >
+                          Fiche
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={taskPanelSection === 'documentation' ? 'soft' : 'plain'}
+                          color={taskPanelSection === 'documentation' ? 'primary' : 'neutral'}
+                          startDecorator={<DescriptionOutlined />}
+                          onClick={() => setTaskPanelSection('documentation')}
+                        >
+                          Documentation
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={taskPanelSection === 'raci' ? 'soft' : 'plain'}
+                          color={taskPanelSection === 'raci' ? 'primary' : 'neutral'}
+                          startDecorator={<GroupsOutlined />}
+                          onClick={() => setTaskPanelSection('raci')}
+                        >
+                          RACI
+                        </Button>
+                      </Stack>
+                      <Divider />
+
+                      {taskPanelSection === 'details' && (
+                        <Stack spacing={1}>
+                          <Typography level="title-sm">Informations</Typography>
+                          <Typography level="body-sm">
+                            Type BPMN : {selectedTask.type}
+                          </Typography>
+                          <Typography level="body-sm">
+                            Documentation : {selectedTask.documentation.length ? 'disponible' : 'non renseignée'}
+                          </Typography>
+                          <Typography level="body-xs" textColor="neutral">
+                            Sélectionnez Documentation ou RACI pour consulter les informations associées à cette tâche.
+                          </Typography>
+                        </Stack>
+                      )}
+
+                      {taskPanelSection === 'documentation' && (
+                        <Stack spacing={1}>
+                          <Typography level="title-sm">Documentation associée</Typography>
+                          {selectedTask.documentation.length ? (
+                            selectedTask.documentation.map((entry, index) => (
+                              <Sheet key={index} variant="soft" sx={{ p: 1, borderRadius: 'sm' }}>
+                                <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>
+                                  {entry}
+                                </Typography>
+                              </Sheet>
+                            ))
+                          ) : (
+                            <Typography level="body-sm" textColor="neutral">
+                              Aucune documentation n'est renseignée dans le modèle BPMN pour cette tâche.
+                            </Typography>
+                          )}
+                        </Stack>
+                      )}
+
+                      {taskPanelSection === 'raci' && (
+                        <Stack spacing={1}>
+                          <Typography level="title-sm">Rôles RACI associés</Typography>
+                          {selectedTaskRaci?.cells.filter(cell => cell.codes.length).length ? (
+                            selectedTaskRaci.cells
+                              .filter(cell => cell.codes.length)
+                              .map(cell => (
+                                <Stack key={cell.role} direction="row" spacing={1} alignItems="center">
+                                  <Typography level="body-sm" sx={{ flex: 1 }}>{cell.role}</Typography>
+                                  <Typography level="title-sm">{cell.codes.join(' / ')}</Typography>
+                                </Stack>
+                              ))
+                          ) : (
+                            <Typography level="body-sm" textColor="neutral">
+                              Aucun rôle RACI détecté pour cette tâche.
+                            </Typography>
+                          )}
+                          <Typography level="body-xs" textColor="neutral">
+                            R = Réalise · A = Approuve / redevable · C = Consulté · I = Informé
+                          </Typography>
+                        </Stack>
+                      )}
+                    </>
+                  ) : (
+                    <Stack spacing={1}>
+                      <Typography level="title-md">Aucune tâche sélectionnée</Typography>
+                      <Typography level="body-sm" textColor="neutral">
+                        Sélectionnez une tâche dans le diagramme ou dans l'arborescence de gauche pour afficher sa fiche, sa documentation et son RACI.
+                      </Typography>
+                    </Stack>
+                  )}
+                </Stack>
+              )}
+            </Sheet>
+          )}
+          </Box>
         </TabPanel>
 
         <TabPanel value={1} className="processViewerTabPanel">
