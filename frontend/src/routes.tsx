@@ -54,6 +54,10 @@ export const routes = [
         lazy: () => import('./Containers/Projects'),
       },
       {
+        path: '/compare-resources/:leftResourceId/:leftContentId/:rightResourceId/:rightContentId',
+        lazy: () => import('./Containers/ContentCompare'),
+      },
+      {
         path: '/:resourceId',
         lazy: () => import('./Containers/BpmnLayout'),
         children: [
