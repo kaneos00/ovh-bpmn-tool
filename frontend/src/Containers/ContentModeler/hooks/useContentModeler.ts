@@ -48,9 +48,16 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     }
 
     return [...sourceContents].sort((left, right) => {
-      const rank = (status: ContentStatusEnum) =>
-        status === ContentStatusEnum.Published ? 2 :
-          status === ContentStatusEnum.Draft ? 1 : 0;
+      const rank = (status: ContentStatusEnum) => {
+        switch (status) {
+          case ContentStatusEnum.Published:
+            return 2;
+          case ContentStatusEnum.Draft:
+            return 1;
+          default:
+            return 0;
+        }
+      };
       return rank(right.status) - rank(left.status) ||
         (right.version ?? 0) - (left.version ?? 0);
     })[0];
