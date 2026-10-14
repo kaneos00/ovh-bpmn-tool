@@ -13,6 +13,7 @@ import { ActionResponse } from '../../../shared/types/ActionResponse';
 import { ContentStatusEnum, type Content } from '../../../Types';
 import { useResource } from '../../../shared/hooks/useResource';
 import Modeler from 'camunda-bpmn-js/lib/base/Modeler';
+import { HttpError } from '../../../shared/api/httpError';
 
 export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   const { resourceId } = useParams() as ContentModelerRouteParams;
@@ -194,10 +195,30 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     saveContent: 'Content has been saved successfully.',
   };
 
-  const processActionErrorMessages: Record<string, string> = {
-    saveContent: 'An error occured during saving content.',
-    saveContentBeforePublish:
-      "An error occured during publishing content. Content can't be saved.",
+  const getSaveErrorMessage = (error: unknown, formAction: string) => {
+    if (error instanceof HttpError && error.status === 403) {
+      const apiMessage = String(error.errorResponse?.message ?? '').toLowerCase();
+
+      if (apiMessage.includes('common processes are read-only')) {
+        return "Ce processus est partagé comme processus commun et ne peut pas être modifié directement. Pour le modifier, créez d’abord une copie du processus, puis travaillez sur cette copie.";
+      }
+
+      if (apiMessage.includes('modeler access') || apiMessage.includes('editing this resource requires')) {
+        return "Vous n’avez pas les droits nécessaires pour modifier ce processus. Un rôle de modélisateur ou d’administrateur du projet est requis.";
+      }
+
+      return "La modification est refusée : vous n’avez pas les droits nécessaires sur ce processus.";
+    }
+
+    if (error instanceof HttpError && error.errorResponse?.message) {
+      return Array.isArray(error.errorResponse.message)
+        ? error.errorResponse.message.join(', ')
+        : error.errorResponse.message;
+    }
+
+    return formAction === 'saveContentBeforePublish'
+      ? "La publication a échoué : le brouillon n’a pas pu être enregistré."
+      : "L’enregistrement du processus a échoué.";
   };
 
   useEffect(() => {
@@ -211,8 +232,10 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
         });
       }
     } else if (actionData && actionData.error) {
-      const message =
-        processActionErrorMessages[actionData.formAction as string];
+      const message = getSaveErrorMessage(
+        actionData.error,
+        actionData.formAction as string,
+      );
 
       if (message) {
         showAlert({
