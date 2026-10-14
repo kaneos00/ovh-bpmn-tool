@@ -139,3 +139,28 @@
 .djs-element.raci-selected .djs-visual > :first-child:not(rect):not(circle):not(ellipse) {
   filter: drop-shadow(0 0 2px rgba(211, 47, 47, 0.45));
 }
+
+
+/* Linked Call Activities are interactive in the read-only process viewer. */
+.djs-element.bpmn-call-activity-navigable {
+  cursor: pointer;
+}
+
+.bpmn-call-activity-link-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #1976d2;
+  color: #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 30%);
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+}
