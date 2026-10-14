@@ -7,6 +7,7 @@ import {
   getXmlContentQuery,
 } from '../../../api/contents/contents.queries';
 import type { CompareRouteParams } from '..';
+import { getResourceQuery } from '../../../api/resources/resources.queries';
 
 export const useCompareData = () => {
   const [isDiffsModalOpen, setIsDiffsModalOpen] = useState(false);
@@ -16,6 +17,15 @@ export const useCompareData = () => {
   const rightResourceId = params.rightResourceId ?? params.resourceId ?? '';
   const { leftContentId, rightContentId } = params;
   const resourceId = rightResourceId;
+
+  const { data: leftResource, isError: isLeftResourceError } = useQuery({
+    ...getResourceQuery(leftResourceId),
+    enabled: Boolean(leftResourceId),
+  });
+  const { data: rightResource, isError: isRightResourceError } = useQuery({
+    ...getResourceQuery(rightResourceId),
+    enabled: Boolean(rightResourceId),
+  });
 
   const { data: leftContent, isLoading: isLeftContentLoading, isError: isLeftContentError } = useQuery({
     ...getContentQuery(leftResourceId, leftContentId),
@@ -41,6 +51,8 @@ export const useCompareData = () => {
     resourceId,
     leftResourceId,
     rightResourceId,
+    leftResource,
+    rightResource,
     leftContent,
     leftXmlContent: leftXmlContent ?? '',
     rightXmlContent: rightXmlContent ?? '',
@@ -51,6 +63,8 @@ export const useCompareData = () => {
       isLeftXmlContentLoading ||
       isRightXmlContentLoading,
     hasError:
+      isLeftResourceError ||
+      isRightResourceError ||
       isLeftContentError ||
       isRightContentError ||
       isLeftXmlContentError ||
