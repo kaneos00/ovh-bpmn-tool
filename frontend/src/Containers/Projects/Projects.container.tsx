@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import {
   Alert,
@@ -63,6 +63,7 @@ const PROCESS_USAGE_LABELS: Record<ProjectProcessLink['usage'], string> = {
 export const Component = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -71,7 +72,10 @@ export const Component = () => {
   const [memberUserId, setMemberUserId] = useState('');
   const [memberRole, setMemberRole] = useState<'viewer' | 'modeler' | 'admin'>('viewer');
   const [error, setError] = useState<string | null>(null);
-  const [activeProjectTab, setActiveProjectTab] = useState(0);
+  const [activeProjectTab, setActiveProjectTab] = useState(() => {
+    const tab = searchParams.get('tab');
+    return tab === 'raci' ? 2 : tab === 'processes' ? 1 : 0;
+  });
 
   const projectsQuery = useQuery<Project[]>(
     projectsKey,
