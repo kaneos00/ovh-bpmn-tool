@@ -11,6 +11,7 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
     <FormControl size="md" sx={{ width: { xs: "100%", sm: 420 }, maxWidth: "100%" }}>
       <Input
         placeholder="Rechercher un processus ou un dossier…"
+        slotProps={{ input: { 'aria-label': 'Rechercher un processus ou un dossier' } }}
         startDecorator={<Search fontSize="small" />}
         onChange={event => onSearch(event.target.value)}
       />
