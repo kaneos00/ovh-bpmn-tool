@@ -7,6 +7,7 @@ export class ResourcePresenter {
   description: Nullable<string>;
   depth: number;
   parentId: Nullable<string>;
+  sourceResourceId: Nullable<string>;
   type: ResourceTypeEnum;
   createdBy: string;
   authToken: Nullable<string>;
