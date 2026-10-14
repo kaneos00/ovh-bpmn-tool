@@ -3,6 +3,7 @@ import { useQuery } from 'react-query';
 
 import { getXmlContentQuery } from '../../../../api/contents/contents.queries';
 import { useModelerInstance } from '../../../../shared/hooks/useModelerInstance';
+import { useCallActivityNavigation } from '../../../../shared/hooks/useCallActivityNavigation';
 
 export const useProcessViewer = (
   resourceId: string,
@@ -23,6 +24,7 @@ export const useProcessViewer = (
   );
 
   const viewer = useMemo(() => getViewerInstance(), []);
+  useCallActivityNavigation(viewer);
 
   const applySelection = () => {
     if (!importedRef.current) return;
