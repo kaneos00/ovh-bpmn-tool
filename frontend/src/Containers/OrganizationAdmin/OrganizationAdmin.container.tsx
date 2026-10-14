@@ -146,7 +146,7 @@ const exportCsv = (filename: string, rows: Array<Array<string | number>>) => {
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 
 export const Component = () => {
@@ -394,9 +394,9 @@ export const Component = () => {
                   <div className="org-admin-v2__page-head">
                     <div><div className="org-admin-v2__eyebrow">{sectionEyebrow[activeSection]}</div><Typography id="org-section-title" level="h1">{title}</Typography><Typography level="body-md" sx={{ color: 'text.secondary', maxWidth: 700, mt: 0.5 }}>{sectionDescription[activeSection]}</Typography></div>
                     <div className="org-admin-v2__actions">
-                      {activeSection === 'users' && <><Button variant="outlined" onClick={() => exportCsv('utilisateurs-khi-flows.csv', [['Identifiant', 'Projet', 'Rôle'], ...(overview?.users ?? []).flatMap((user) => user.projects.map((project) => [user.userId, project.projectName, roleLabel[project.role]]))])}>Exporter la vue</Button><Button onClick={() => document.getElementById('org-add-access')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>＋ Ajouter un accès</Button></>}
-                      {activeSection === 'projects' && <><Button variant="outlined" onClick={() => exportCsv('projets-khi-flows.csv', [['Projet', 'Description', 'Membres', 'Processus communs', 'Spécifiques', 'Variantes'], ...(overview?.projects ?? []).map((project) => [project.name, project.description ?? '', project.membersCount, project.processes.filter((process) => process.usage === 'common').length, project.processes.filter((process) => process.usage === 'project-specific').length, project.processes.filter((process) => process.usage === 'variant').length])])}>Exporter la vue</Button><Button onClick={() => document.getElementById('org-create-project')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>＋ Créer un projet</Button></>}
-                      {activeSection === 'processes' && <><Button variant="outlined" onClick={() => exportCsv('processus-khi-flows.csv', [['Processus', 'Description', 'Projet', 'Usage', 'Source'], ...(overview?.processes ?? []).flatMap((process) => process.projects.length ? process.projects.map((project) => [process.name, process.description ?? '', project.projectName, usageLabel[project.usage], project.sourceResourceId ?? '']) : [[process.name, process.description ?? '', '', 'Non associé', '']])])}>Exporter la vue</Button><Button onClick={() => navigate('/root')}>＋ Nouveau processus</Button></>}
+                      {activeSection === 'users' && <><Button variant="outlined" onClick={() => exportCsv('utilisateurs-khi-flows.csv', [['Identifiant', 'Projet', 'Rôle'], ...users.flatMap((user) => user.projects.map((project) => [user.userId, project.projectName, roleLabel[project.role]]))])}>Exporter la vue</Button><Button onClick={() => document.getElementById('org-add-access')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>＋ Ajouter un accès</Button></>}
+                      {activeSection === 'projects' && <><Button variant="outlined" onClick={() => exportCsv('projets-khi-flows.csv', [['Projet', 'Description', 'Membres', 'Processus communs', 'Spécifiques', 'Variantes'], ...projects.map((project) => [project.name, project.description ?? '', project.membersCount, project.processes.filter((process) => process.usage === 'common').length, project.processes.filter((process) => process.usage === 'project-specific').length, project.processes.filter((process) => process.usage === 'variant').length])])}>Exporter la vue</Button><Button onClick={() => document.getElementById('org-create-project')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>＋ Créer un projet</Button></>}
+                      {activeSection === 'processes' && <><Button variant="outlined" onClick={() => exportCsv('processus-khi-flows.csv', [['Processus', 'Description', 'Projet', 'Usage', 'Source'], ...processes.flatMap((process) => process.projects.length ? process.projects.map((project) => [process.name, process.description ?? '', project.projectName, usageLabel[project.usage], project.sourceResourceId ?? '']) : [[process.name, process.description ?? '', '', 'Non associé', '']])])}>Exporter la vue</Button><Button onClick={() => navigate('/root')}>＋ Nouveau processus</Button></>}
                     </div>
                   </div>
                   {activeSection === 'users' && <Alert color="neutral" variant="soft" sx={{ mb: 2 }}>Les rôles affichés sont des rôles de projet. Les identifiants proviennent des adhésions enregistrées ; les comptes sans adhésion ne sont pas encore fournis par un annuaire d’identité global.</Alert>}
@@ -501,7 +501,7 @@ export const Component = () => {
               return (
                 <Stack key={project.projectId} direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ alignItems: { md: 'center' }, borderTop: '1px solid', borderColor: 'divider', pt: 1.5 }}>
                   <Box sx={{ flex: 1 }}>
-                    <Typography level="title-sm">{project.projectName}</Typography>
+                    <Button size="sm" variant="plain" sx={{ alignSelf: 'flex-start', px: 0 }} onClick={() => navigate(`/projects/${project.projectId}`)}>{project.projectName} →</Button>
                     <Typography level="body-xs" sx={{ color: 'text.secondary' }}>Rôle actuel : {roleLabel[project.role]}</Typography>
                   </Box>
                   <FormControl sx={{ minWidth: 180 }}>
@@ -604,6 +604,7 @@ export const Component = () => {
                 <Typography level="body-sm" sx={{ color: 'text.secondary' }}>
                   {selectedProject.membersCount} membre(s) · {selectedProject.processes.length} processus associé(s)
                 </Typography>
+                <Button size="sm" variant="plain" sx={{ alignSelf: 'flex-start', px: 0 }} onClick={() => navigate(`/projects/${selectedProject.id}`)}>Ouvrir la fiche projet →</Button>
               </Box>
               <Button size="sm" variant="plain" color="neutral" onClick={() => setSelectedProjectId(null)}>Fermer</Button>
             </Stack>
@@ -698,7 +699,7 @@ export const Component = () => {
             <Typography level="title-sm">Projets utilisateurs</Typography>
             {selectedProcess.projects.length > 0 ? selectedProcess.projects.map((project) => (
               <Stack key={project.projectId} direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ alignItems: 'center' }}>
-                <Typography level="body-sm">{project.projectName}</Typography>
+                <Button size="sm" variant="plain" sx={{ px: 0 }} onClick={() => navigate(`/projects/${project.projectId}`)}>{project.projectName} →</Button>
                 <Chip size="sm" variant="soft" color={usageColor[project.usage]}>{usageLabel[project.usage]}</Chip>
                 {project.sourceResourceId && (
                   <Typography level="body-xs" sx={{ color: 'text.secondary' }}>Source : {project.sourceResourceId}</Typography>
