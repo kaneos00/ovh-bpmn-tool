@@ -53,7 +53,7 @@ export const useCallActivityNavigation = (bpmnInstance: BpmnInstance) => {
       if (!targetResourceId) {
         showAlert({
           message:
-            'Cette activité d’appel n’est pas liée à un processus BPMN Tool. Renseignez son identifiant de ressource dans « Called element ».',
+            'Cette activité d’appel n’est pas liée à un processus BPMN Tool. Sélectionnez un processus cible dans les propriétés de l’activité.',
           severity: 'warning',
         });
         return;

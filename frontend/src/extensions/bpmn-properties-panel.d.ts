@@ -1,5 +1,6 @@
 declare module '@bpmn-io/properties-panel' {
   export function TextFieldEntry(props: any): any;
+  export function SelectEntry(props: any): any;
   export function isTextFieldEntryEdited(
     node: any,
     values: any,
