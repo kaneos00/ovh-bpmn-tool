@@ -25,7 +25,7 @@ const destinations = [
   },
   {
     label: 'Administration',
-    path: '/organization/users',
+    path: '/organization/overview',
     matches: (path: string) => path.startsWith('/organization'),
   },
 ];
@@ -57,9 +57,9 @@ export const WorkspaceNavigation = () => {
             sx={{ width: 28, height: 28, objectFit: 'contain' }}
           />
           <Box>
-            <Typography level="title-lg" sx={{ lineHeight: 1.2 }}>BPMN Tool</Typography>
+            <Typography level="title-lg" sx={{ lineHeight: 1.2 }}>KHI Flows</Typography>
             <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>
-              Espace de travail
+              Projets, processus et responsabilités, unifiés.
             </Typography>
           </Box>
         </Stack>
