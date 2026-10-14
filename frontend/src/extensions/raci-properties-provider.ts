@@ -1,4 +1,4 @@
-import { createElement } from 'react';
+import { h } from 'preact';
 import { is } from 'bpmn-js/lib/util/ModelUtil';
 // @ts-expect-error SelectEntry is available at runtime in @bpmn-io/properties-panel 3.44.1 but is missing from its declaration surface.
 import { SelectEntry } from '@bpmn-io/properties-panel';
@@ -95,7 +95,7 @@ function RaciSelectEntry(props: any) {
   ];
 
   // Render SelectEntry as a React component so its hooks run within React.
-  return createElement(SelectEntry, {
+  return h(SelectEntry, {
     element,
     id,
     label,
