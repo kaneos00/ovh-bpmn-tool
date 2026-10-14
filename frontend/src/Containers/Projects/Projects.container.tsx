@@ -74,7 +74,9 @@ export const Component = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeProjectTab, setActiveProjectTab] = useState(() => {
     const tab = searchParams.get('tab');
-    return tab === 'raci' ? 2 : tab === 'processes' ? 1 : 0;
+    if (tab === 'raci') return 2;
+    if (tab === 'processes') return 1;
+    return 0;
   });
 
   const projectsQuery = useQuery<Project[]>(
