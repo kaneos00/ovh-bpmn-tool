@@ -8,17 +8,20 @@ type ProcessViewerProps = {
   resourceId: string;
   contentId: string;
   selectedElementId?: string | null;
+  onElementSelect?: (elementId: string) => void;
 };
 
 export const ProcessViewer = ({
   resourceId,
   contentId,
   selectedElementId,
+  onElementSelect,
 }: ProcessViewerProps) => {
   const { viewerRef, importError } = useProcessViewer(
     resourceId,
     contentId,
     selectedElementId,
+    onElementSelect,
   );
 
   return (
