@@ -312,7 +312,7 @@ export const Component = () => {
                   className="versionItem"
                 >
                   <Typography level="title-sm">
-                    Version {content.version ?? 'N/A'}
+                    Version {content.version ?? 'N/D'}
                   </Typography>
                   <Typography level="body-xs">{content.status}</Typography>
                   <Typography level="body-xs" textColor="neutral">
