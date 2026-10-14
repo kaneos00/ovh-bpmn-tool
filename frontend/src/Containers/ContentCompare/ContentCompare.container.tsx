@@ -12,6 +12,10 @@ export const Component = () => {
     isDiffsModalOpen,
     leftXmlContent,
     rightXmlContent,
+    hasError,
+    isLoading,
+    leftResourceId,
+    rightResourceId,
     setIsDiffsModalOpen,
   } = useCompareData();
 
@@ -21,16 +25,22 @@ export const Component = () => {
         resourceId={resourceId}
         onDiffsDisplay={() => setIsDiffsModalOpen(true)}
       />
-      {!leftContent || !rightContent ? (
-        <>Loading...</>
+      {isLoading ? (
+        <>Chargement de la comparaison…</>
+      ) : hasError ? (
+        <div role="alert" style={{ padding: 24 }}>
+          Impossible de charger les deux processus. Vérifiez vos droits d’accès et la disponibilité des versions comparées.
+        </div>
+      ) : !leftContent || !rightContent ? (
+        <>Versions de processus introuvables.</>
       ) : (
         <Compare
           leftContent={leftXmlContent}
           rightContent={rightXmlContent}
           isDiffsModalOpen={isDiffsModalOpen}
           setIsDiffsModalOpen={setIsDiffsModalOpen}
-          leftSideTitle={leftContent.status}
-          rightSideTitle={rightContent.status}
+          leftSideTitle={`${leftResourceId} · ${leftContent.status} v${leftContent.version ?? '?'}`}
+          rightSideTitle={`${rightResourceId} · ${rightContent.status} v${rightContent.version ?? '?'}`}
         />
       )}
     </>
