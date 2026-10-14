@@ -24,7 +24,7 @@ export const useProcessViewer = (
   );
 
   const viewer = useMemo(() => getViewerInstance(), []);
-  useCallActivityNavigation(viewer);
+  useCallActivityNavigation(viewer, true);
 
   const applySelection = () => {
     if (!importedRef.current) return;
