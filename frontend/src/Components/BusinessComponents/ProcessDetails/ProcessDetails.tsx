@@ -117,6 +117,8 @@ export const ProcessDetails = ({
     () => raciMatrix.activities.find(activity => activity.elementId === selectedElementId),
     [raciMatrix.activities, selectedElementId],
   );
+  const selectedTaskRaciCells =
+    selectedTaskRaci?.cells.filter(cell => cell.codes.length) ?? [];
 
   if (isLoading) {
     return (
@@ -290,10 +292,8 @@ export const ProcessDetails = ({
                       {taskPanelSection === 'raci' && (
                         <Stack spacing={1}>
                           <Typography level="title-sm">Rôles RACI associés</Typography>
-                          {selectedTaskRaci?.cells.filter(cell => cell.codes.length).length ? (
-                            selectedTaskRaci.cells
-                              .filter(cell => cell.codes.length)
-                              .map(cell => (
+                          {selectedTaskRaciCells.length ? (
+                            selectedTaskRaciCells.map(cell => (
                                 <Stack key={cell.role} direction="row" spacing={1} alignItems="center">
                                   <Typography level="body-sm" sx={{ flex: 1 }}>{cell.role}</Typography>
                                   <Typography level="title-sm">{cell.codes.join(' / ')}</Typography>
