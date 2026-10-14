@@ -305,7 +305,8 @@ export const Component = () => {
   );
 
   const selectedUser = overview?.users.find((user) => user.userId === selectedUserId);
-  const selectedProject = overview?.projects.find((project) => project.id === selectedProjectId);  const selectedProcess = overview?.processes.find((process) => process.id === selectedProcessId);
+  const selectedProject = overview?.projects.find((project) => project.id === selectedProjectId);
+  const selectedProcess = overview?.processes.find((process) => process.id === selectedProcessId);
 
   const title = sections.find((item) => item.key === activeSection)?.label ?? 'Vue d’ensemble';
   const isDataSection = activeSection === 'users' || activeSection === 'projects' || activeSection === 'processes';
