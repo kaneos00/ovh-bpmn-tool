@@ -122,6 +122,7 @@ jobs:
           test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc 'SELECT count(*) FROM project_raci_entries')" = "6"
           docker run --rm --network bpmn-v2-ci \\
             --env PGPASSWORD="$DATABASE_PASSWORD" \\
+            --env DATABASE_USER="$DATABASE_USER" --env DATABASE_NAME="$DATABASE_NAME" \\
             bpmn-v2-demo-migrations:ci sh -ec 'until pg_isready -h database -U "$DATABASE_USER" -d "$DATABASE_NAME"; do sleep 1; done; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261014_v2_1_process_provenance.sql'
           test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.columns WHERE table_name='resources' AND column_name='sourceResourceId'")" = "1"
 
