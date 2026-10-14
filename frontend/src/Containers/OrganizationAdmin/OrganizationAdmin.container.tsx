@@ -20,6 +20,7 @@ import {
 } from '@mui/joy';
 import { apiClient } from '../../queryClient';
 import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
+import './OrganizationAdmin.scss';
 
 type MembershipView = {
   projectId: string;
@@ -82,9 +83,12 @@ type AdministrationOverview = {
 
 const queryKey = ['organization-administration-overview'];
 const sections = [
-  { key: 'users', label: 'Utilisateurs' },
-  { key: 'projects', label: 'Projets' },
-  { key: 'processes', label: 'Processus' },
+  { key: 'overview', label: 'Vue d’ensemble', icon: '▦' },
+  { key: 'users', label: 'Utilisateurs', icon: '♙' },
+  { key: 'projects', label: 'Projets', icon: '▣' },
+  { key: 'processes', label: 'Processus', icon: '⌘' },
+  { key: 'governance', label: 'Acteurs et RACI', icon: '⬡' },
+  { key: 'settings', label: 'Organisation', icon: '⚙' },
 ] as const;
 
 type AdminSection = (typeof sections)[number]['key'];
@@ -107,7 +111,7 @@ const roleColor: Record<MembershipView['role'], 'warning' | 'primary' | 'neutral
   viewer: 'neutral',
 };
 
-const searchPlaceholders: Record<(typeof sections)[number]['key'], string> = {
+const searchPlaceholders: Partial<Record<AdminSection, string>> = {
   users: 'Rechercher un identifiant, un projet ou un rôle…',
   projects: 'Rechercher un projet ou un processus…',
   processes: 'Rechercher un processus ou un projet utilisateur…',
@@ -257,62 +261,125 @@ export const Component = () => {
   const selectedProject = overview?.projects.find((project) => project.id === selectedProjectId);
   const selectedProcess = overview?.processes.find((process) => process.id === selectedProcessId);
 
-  const title = sections.find((item) => item.key === activeSection)?.label ?? 'Utilisateurs';
+  const title = sections.find((item) => item.key === activeSection)?.label ?? 'Vue d’ensemble';
+  const isDataSection = activeSection === 'users' || activeSection === 'projects' || activeSection === 'processes';
+  const associationCount = (overview?.projects ?? []).reduce((total, project) => total + project.processes.length, 0);
+  const projectsWithoutCommonProcess = (overview?.projects ?? []).filter(
+    (project) => project.processes.length > 0 && !project.processes.some((process) => process.usage === 'common'),
+  );
+  const sharedProcessCount = (overview?.processes ?? []).filter(
+    (process) => new Set(process.projects.map((project) => project.projectId)).size > 1,
+  ).length;
 
   return (
-    <Sheet sx={{ width: '100%', maxWidth: 1400, boxSizing: 'border-box', mx: 'auto', p: { xs: 2, md: 4 } }}>
-      <Stack spacing={2.5}>
+    <Sheet className="org-admin-v2__page" sx={{ width: '100%', maxWidth: 1440, boxSizing: 'border-box', mx: 'auto', p: { xs: 1, md: 2 }, bgcolor: 'transparent' }}>
+      <Stack spacing={2}>
         <WorkspaceNavigation />
-        <Box>
-          <Typography level="body-sm" sx={{ color: 'primary.600', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            Administration
-          </Typography>
-          <Typography level="h2" sx={{ mt: 0.5 }}>Organisation</Typography>
-          <Typography level="body-md" sx={{ color: 'text.secondary', mt: 0.5 }}>
-            Vue transversale des utilisateurs, des projets et du catalogue des processus.
-          </Typography>
-        </Box>
+        <div className="org-admin-v2">
+          <aside className="org-admin-v2__sidebar">
+            <div className="org-admin-v2__brand">
+              <div className="org-admin-v2__brand-mark">K</div>
+              <div><strong>KHI Flows</strong><small>Organisation</small></div>
+            </div>
+            <div className="org-admin-v2__nav-group">
+              <div className="org-admin-v2__nav-label">Administration</div>
+              <nav className="org-admin-v2__nav" aria-label="Navigation de l’administration">
+                {sections.map((item) => (
+                  <button
+                    type="button"
+                    key={item.key}
+                    className={`org-admin-v2__nav-item${activeSection === item.key ? ' is-active' : ''}`}
+                    aria-current={activeSection === item.key ? 'page' : undefined}
+                    onClick={() => {
+                      setSearch('');
+                      setSelectedUserId(null);
+                      setSelectedProjectId(null);
+                      setSelectedProcessId(null);
+                      navigate(`/organization/${item.key}`);
+                    }}
+                  >
+                    <span className="org-admin-v2__nav-icon" aria-hidden="true">{item.icon}</span>
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </nav>
+            </div>
+            <div className="org-admin-v2__sidebar-foot">
+              <strong>Accès sécurisés</strong>
+              <span>Les droits sont contrôlés par l’API, indépendamment de l’interface.</span>
+            </div>
+          </aside>
+          <main className="org-admin-v2__main">
+            <header className="org-admin-v2__topbar">
+              <div><div className="org-admin-v2__crumb">Administration / {title}</div><div className="org-admin-v2__top-title">Administration de l’organisation</div></div>
+              <Chip size="sm" color="primary" variant="soft">Accès organisationnel</Chip>
+            </header>
+            <div className="org-admin-v2__content">
+              {activeSection === 'overview' && overview && (
+                <section aria-labelledby="org-overview-title">
+                  <div className="org-admin-v2__page-head">
+                    <div><div className="org-admin-v2__eyebrow">Pilotage</div><Typography id="org-overview-title" level="h1">Vue d’ensemble</Typography><Typography level="body-md" sx={{ color: 'text.secondary', maxWidth: 700, mt: 0.5 }}>Un point d’entrée unique pour administrer les utilisateurs, les projets et le référentiel des processus de l’organisation.</Typography></div>
+                    <div className="org-admin-v2__actions"><Button variant="outlined" onClick={() => navigate('/organization/processes')}>Explorer les processus</Button><Button onClick={() => navigate('/organization/projects')}>Voir les projets</Button></div>
+                  </div>
+                  <div className="org-admin-v2__stats">
+                    <Card className="org-admin-v2__stat"><div className="org-admin-v2__stat-top"><span>Utilisateurs avec accès</span><span className="org-admin-v2__stat-icon">♙</span></div><div className="org-admin-v2__stat-value">{overview.users.length}</div><div className="org-admin-v2__stat-note">Comptes connus par leurs adhésions</div></Card>
+                    <Card className="org-admin-v2__stat"><div className="org-admin-v2__stat-top"><span>Projets</span><span className="org-admin-v2__stat-icon">▣</span></div><div className="org-admin-v2__stat-value">{overview.projects.length}</div><div className="org-admin-v2__stat-note">Projets visibles par l’administration</div></Card>
+                    <Card className="org-admin-v2__stat"><div className="org-admin-v2__stat-top"><span>Processus référencés</span><span className="org-admin-v2__stat-icon">⌘</span></div><div className="org-admin-v2__stat-value">{overview.processes.length}</div><div className="org-admin-v2__stat-note">Catalogue transversal BPMN</div></Card>
+                    <Card className="org-admin-v2__stat"><div className="org-admin-v2__stat-top"><span>Associations projet-processus</span><span className="org-admin-v2__stat-icon">↗</span></div><div className="org-admin-v2__stat-value">{associationCount}</div><div className="org-admin-v2__stat-note">Commun, spécifique et variantes</div></Card>
+                  </div>
+                  <div className="org-admin-v2__dashboard-grid">
+                    <Card className="org-admin-v2__panel">
+                      <div className="org-admin-v2__panel-head"><Typography level="title-lg">Accès rapides</Typography><Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Navigation transversale</Typography></div>
+                      <div className="org-admin-v2__quicklinks">
+                        <button type="button" className="org-admin-v2__quicklink" onClick={() => navigate('/organization/users')}><span className="org-admin-v2__quick-icon">♙</span><span><strong>Gérer les utilisateurs</strong><small>Rôles et projets accessibles par personne</small></span><span className="org-admin-v2__arrow">→</span></button>
+                        <button type="button" className="org-admin-v2__quicklink" onClick={() => navigate('/organization/projects')}><span className="org-admin-v2__quick-icon">▣</span><span><strong>Gérer les projets</strong><small>Membres, processus et responsabilités</small></span><span className="org-admin-v2__arrow">→</span></button>
+                        <button type="button" className="org-admin-v2__quicklink" onClick={() => navigate('/organization/processes')}><span className="org-admin-v2__quick-icon">⌘</span><span><strong>Explorer le catalogue</strong><small>Processus communs, spécifiques et variantes</small></span><span className="org-admin-v2__arrow">→</span></button>
+                        <button type="button" className="org-admin-v2__quicklink" onClick={() => navigate('/organization/governance')}><span className="org-admin-v2__quick-icon">⬡</span><span><strong>Consulter les responsabilités</strong><small>Accès aux RACI de chaque projet</small></span><span className="org-admin-v2__arrow">→</span></button>
+                      </div>
+                    </Card>
+                    <Card className="org-admin-v2__panel">
+                      <div className="org-admin-v2__panel-head"><Typography level="title-lg">Points de vigilance</Typography><Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Calculés sur les données réelles</Typography></div>
+                      <div className="org-admin-v2__activity-list">
+                        <div className="org-admin-v2__activity-row"><span className="org-admin-v2__activity-icon">!</span><div><strong>{projectsWithoutCommonProcess.length} projet(s) sans processus commun</strong><small>Vérifier si ces projets doivent réutiliser le référentiel organisationnel.</small><button type="button" className="org-admin-v2__link-button" onClick={() => navigate('/organization/projects')}>Consulter les projets →</button></div></div>
+                        <div className="org-admin-v2__activity-row"><span className="org-admin-v2__activity-icon">↗</span><div><strong>{sharedProcessCount} processus partagé(s)</strong><small>Une référence commune peut être utilisée par plusieurs projets.</small><button type="button" className="org-admin-v2__link-button" onClick={() => navigate('/organization/processes')}>Ouvrir le catalogue →</button></div></div>
+                        <div className="org-admin-v2__activity-row"><span className="org-admin-v2__activity-icon">⬡</span><div><strong>Gouvernance projet</strong><small>Les matrices RACI détaillées sont maintenues dans chaque projet.</small><button type="button" className="org-admin-v2__link-button" onClick={() => navigate('/organization/governance')}>Voir les projets →</button></div></div>
+                      </div>
+                    </Card>
+                  </div>
+                  <Alert color="neutral" variant="soft" sx={{ mt: 2 }}>La liste des utilisateurs est issue des adhésions existantes. Les comptes sans projet ne peuvent être recensés qu’après raccordement à un annuaire d’identité global.</Alert>
+                </section>
+              )}
 
-        <Alert color="neutral" variant="soft">
-          Les rôles affichés sont des rôles de projet. Les identifiants proviennent des adhésions enregistrées dans BPMN V2 ; les comptes sans adhésion ne sont pas encore fournis par un annuaire d’identité global.
-        </Alert>
+              {isDataSection && (
+                <section aria-labelledby="org-section-title">
+                  <div className="org-admin-v2__page-head">
+                    <div><div className="org-admin-v2__eyebrow">{activeSection === 'users' ? 'Administration des accès' : activeSection === 'projects' ? 'Portefeuille' : 'Référentiel transversal'}</div><Typography id="org-section-title" level="h1">{title}</Typography><Typography level="body-md" sx={{ color: 'text.secondary', maxWidth: 700, mt: 0.5 }}>{activeSection === 'users' ? 'Vue globale des utilisateurs et des projets auxquels ils ont accès.' : activeSection === 'projects' ? 'Chaque projet réunit ses membres, ses processus spécifiques et ses références au catalogue organisationnel.' : 'Retrouvez chaque processus et comprenez quels projets l’utilisent.'}</Typography></div>
+                    <div className="org-admin-v2__actions">{activeSection === 'projects' && <Button onClick={() => { setSelectedProjectId(null); setNewProjectName(''); setNewProjectDescription(''); }}>＋ Créer un projet</Button>}{activeSection === 'users' && <Button variant="outlined" onClick={() => document.getElementById('org-add-access')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>＋ Ajouter un accès</Button>}</div>
+                  </div>
+                  {activeSection === 'users' && <Alert color="neutral" variant="soft" sx={{ mb: 2 }}>Les rôles affichés sont des rôles de projet. Les identifiants proviennent des adhésions enregistrées ; les comptes sans adhésion ne sont pas encore fournis par un annuaire d’identité global.</Alert>}
+                  <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={searchPlaceholders[activeSection] ?? 'Rechercher…'} sx={{ maxWidth: 620, mb: 2 }} />
+                </section>
+              )}
 
-        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-          {sections.map((item) => (
-            <Button
-              key={item.key}
-              variant={activeSection === item.key ? 'solid' : 'outlined'}
-              onClick={() => {
-                setSearch('');
-                navigate(`/organization/${item.key}`);
-              }}
-            >
-              {item.label}
-            </Button>
-          ))}
-          <Box sx={{ flex: 1 }} />
-          <Button variant="plain" color="neutral" onClick={() => navigate('/projects')}>
-            Retour aux projets
-          </Button>
-        </Stack>
+              {activeSection === 'governance' && overview && (
+                <section aria-labelledby="org-governance-title">
+                  <div className="org-admin-v2__page-head"><div><div className="org-admin-v2__eyebrow">Responsabilités</div><Typography id="org-governance-title" level="h1">Acteurs et RACI</Typography><Typography level="body-md" sx={{ color: 'text.secondary', maxWidth: 700, mt: 0.5 }}>Retrouvez les projets et ouvrez directement leur gestion des responsabilités.</Typography></div></div>
+                  <Alert color="neutral" variant="soft" sx={{ mb: 2 }}>Le RACI est géré au niveau du projet : cette vue transversale aide à retrouver le bon périmètre, tandis que les modifications restent soumises aux droits du projet.</Alert>
+                  <div className="org-admin-v2__governance-list">{overview.projects.map((project) => <Card key={project.id} className="org-admin-v2__governance-card"><div className="org-admin-v2__governance-copy"><Typography level="title-lg">{project.name}</Typography>{project.description && <Typography level="body-sm" sx={{ color: 'text.secondary' }}>{project.description}</Typography>}<div className="org-admin-v2__governance-meta"><Chip size="sm" variant="soft">{project.membersCount} membre(s)</Chip><Chip size="sm" variant="soft">{project.processes.length} processus</Chip><Chip size="sm" variant="soft">RACI du projet</Chip></div></div><Button onClick={() => navigate(`/projects/${project.id}?tab=raci`)}>Gérer le RACI →</Button></Card>)}</div>
+                  {overview.projects.length === 0 && <Card className="org-admin-v2__panel"><Typography level="title-md">Aucun projet accessible</Typography><Typography level="body-sm">Créez un projet ou attribuez un accès pour commencer à définir les responsabilités.</Typography></Card>}
+                </section>
+              )}
 
-        <Divider />
-
-        <Box>
-          <Typography level="h3">{title}</Typography>
-          <Typography level="body-sm" sx={{ color: 'text.secondary', mt: 0.5 }}>
-            {activeSection === 'users' && 'Chaque utilisateur est présenté avec tous les projets connus et son rôle dans chacun.'}
-            {activeSection === 'projects' && 'Vue des membres et des processus associés à chaque projet.'}
-            {activeSection === 'processes' && 'Vue catalogue : projets utilisateurs, usage commun, spécifique ou variante.'}
-          </Typography>
-        </Box>
-
-        <Input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder={searchPlaceholders[activeSection]}
-          sx={{ maxWidth: 620 }}
-        />
+              {activeSection === 'settings' && (
+                <section aria-labelledby="org-settings-title">
+                  <div className="org-admin-v2__page-head"><div><div className="org-admin-v2__eyebrow">Configuration</div><Typography id="org-settings-title" level="h1">Organisation</Typography><Typography level="body-md" sx={{ color: 'text.secondary', maxWidth: 700, mt: 0.5 }}>Paramètres et gouvernance globale de l’instance.</Typography></div></div>
+                  <div className="org-admin-v2__settings-grid">
+                    <Card className="org-admin-v2__panel"><Typography level="title-lg">Administration organisationnelle</Typography><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Les droits globaux sont attribués par le groupe de confiance <code>bpmn-tool-admin-*</code>. Les rôles de projet viewer, modeler et admin ne confèrent aucun privilège global.</Typography><Chip color="success" variant="soft">Contrôle côté API</Chip></Card>
+                    <Card className="org-admin-v2__panel"><Typography level="title-lg">Source des identités</Typography><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Cette instance utilise actuellement les identifiants transmis par le mécanisme d’authentification configuré. La découverte des comptes sans adhésion nécessite un annuaire global ou un fournisseur d’identité raccordé.</Typography><Chip color="warning" variant="soft">Annuaire global non raccordé</Chip></Card>
+                    <Card className="org-admin-v2__panel"><Typography level="title-lg">Périmètre des données</Typography><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Les utilisateurs, projets et processus affichés proviennent de l’API d’administration. Les réglages non couverts par une API ne sont pas présentés comme modifiables.</Typography></Card>
+                  </div>
+                </section>
+              )}
 
         {overviewQuery.isLoading && <Typography>Chargement des données d’administration…</Typography>}
         {overviewQuery.isError && (
@@ -323,7 +390,7 @@ export const Component = () => {
         {actionError && <Alert color="danger">{actionError}</Alert>}
 
         {activeSection === 'users' && overview && (
-          <Card variant="outlined" sx={{ gap: 1.5 }}>
+          <Card id="org-add-access" variant="outlined" sx={{ gap: 1.5 }}>
             <Typography level="title-lg">Ajouter un accès à un projet</Typography>
             <Typography level="body-sm" sx={{ color: 'text.secondary' }}>
               L’identifiant est celui utilisé par le proxy d’authentification. L’accès est créé uniquement pour le projet choisi.
@@ -625,11 +692,14 @@ export const Component = () => {
           </Card>
         )}
 
-        {overview && (
-          <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>
-            {overview.users.length} utilisateurs avec adhésion · {overview.projects.length} projets · {overview.processes.length} ressources de type processus
-          </Typography>
-        )}
+              {overview && isDataSection && (
+                <Typography level="body-xs" sx={{ color: 'text.tertiary', mt: 2 }}>
+                  {overview.users.length} utilisateurs avec adhésion · {overview.projects.length} projets · {overview.processes.length} ressources de type processus
+                </Typography>
+              )}
+            </div>
+          </main>
+        </div>
       </Stack>
     </Sheet>
   );
