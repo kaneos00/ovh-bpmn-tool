@@ -264,7 +264,7 @@ export const Component = () => {
         project.processes.some((process) => process.name.toLocaleLowerCase().includes(normalizedSearch))) &&
       (projectTypeFilter === 'all' ||
         (projectTypeFilter === 'shared' && project.processes.some((process) => process.usage === 'common')) ||
-        (projectTypeFilter === 'specific' && project.processes.length > 0 && !project.processes.some((process) => process.usage === 'common')) ||
+        (projectTypeFilter === 'specific' && project.processes.some((process) => process.usage === 'project-specific') && !project.processes.some((process) => process.usage === 'common')) ||
         (projectTypeFilter === 'variant' && project.processes.some((process) => process.usage === 'variant'))),
     ),
     [overview?.projects, normalizedSearch, projectTypeFilter],
