@@ -1,4 +1,4 @@
-import React from 'react';
+import { createElement } from 'react';
 import { useQuery } from 'react-query';
 import { is } from 'bpmn-js/lib/util/ModelUtil';
 // @ts-expect-error SelectEntry is available at runtime in @bpmn-io/properties-panel 3.44.1 but is missing from its declaration surface.
@@ -112,7 +112,7 @@ function CallActivityProcessSelectEntry(props: any) {
 
   // Render the properties-panel entry as a React component. Calling it as a
   // plain function executes its hooks outside React and triggers error #321.
-  return React.createElement(SelectEntry, {
+  return createElement(SelectEntry, {
     element,
     id,
     label,
