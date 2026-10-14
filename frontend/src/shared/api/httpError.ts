@@ -10,7 +10,13 @@ export class HttpError extends Error {
     public readonly statusText: string,
     public readonly errorResponse: ErrorResponse,
   ) {
-    super(`Request failed with status code ${status} ${statusText}`);
+    super(
+      Array.isArray(errorResponse?.message)
+        ? errorResponse.message.join(', ')
+        : errorResponse?.message ||
+            `Request failed with status code ${status} ${statusText}`,
+    );
+    this.name = 'HttpError';
   }
 
   static is404(error: Error) {
