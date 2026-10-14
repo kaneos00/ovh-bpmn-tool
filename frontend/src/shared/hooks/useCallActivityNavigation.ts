@@ -6,6 +6,8 @@ import { useSnackbar } from './useSnackbar';
 
 type CallActivityEvent = {
   element?: {
+    id?: string;
+    type?: string;
     businessObject?: {
       $type?: string;
       calledElement?: string;
@@ -18,31 +20,35 @@ type BpmnEventBus = {
   on: (
     eventName: string,
     priority: number,
-    callback: (event: CallActivityEvent) => void,
+    callback: (event: any) => void,
   ) => void;
   off: (
     eventName: string,
-    callback: (event: CallActivityEvent) => void,
+    callback: (event: any) => void,
   ) => void;
 };
 
 type BpmnInstance = {
-  get: (serviceName: string) => unknown;
+  get: (serviceName: string) => any;
 };
 
 /**
- * A Call Activity navigates to another BPMN Tool process when its
- * calledElement attribute contains the target resource ID. Access is always
- * checked through the authenticated resource API before changing routes.
+ * In the viewer, linked Call Activities are navigable on a single click and
+ * receive a visible blue arrow indicator. In the modeler, keep double-click
+ * navigation so a single click remains available for selecting/editing.
  */
-export const useCallActivityNavigation = (bpmnInstance: BpmnInstance) => {
+export const useCallActivityNavigation = (
+  bpmnInstance: BpmnInstance,
+  enableSingleClick = false,
+) => {
   const navigate = useNavigate();
   const { showAlert } = useSnackbar();
 
   useEffect(() => {
     const eventBus = bpmnInstance.get('eventBus') as BpmnEventBus;
+    const overlayIds: Array<string | number> = [];
 
-    const onCallActivityDoubleClick = (event: CallActivityEvent) => {
+    const navigateToCalledProcess = (event: CallActivityEvent) => {
       const businessObject = event.element?.businessObject;
       if (businessObject?.$type !== 'bpmn:CallActivity') {
         return;
@@ -71,7 +77,62 @@ export const useCallActivityNavigation = (bpmnInstance: BpmnInstance) => {
         );
     };
 
-    eventBus.on('element.dblclick', 1500, onCallActivityDoubleClick);
-    return () => eventBus.off('element.dblclick', onCallActivityDoubleClick);
-  }, [bpmnInstance, navigate, showAlert]);
+    const decorateCallActivities = () => {
+      if (!enableSingleClick) return;
+
+      const registry = bpmnInstance.get('elementRegistry');
+      const canvas = bpmnInstance.get('canvas');
+      const overlays = bpmnInstance.get('overlays');
+      const elements = registry?.getAll?.() ?? [];
+
+      elements.forEach((element: any) => {
+        const businessObject = element.businessObject;
+        if (
+          businessObject?.$type !== 'bpmn:CallActivity' ||
+          !String(businessObject.calledElement ?? '').trim()
+        ) {
+          return;
+        }
+
+        canvas?.addMarker?.(element.id, 'bpmn-call-activity-navigable');
+
+        const indicator = document.createElement('span');
+        indicator.className = 'bpmn-call-activity-link-indicator';
+        indicator.textContent = '↗';
+        indicator.setAttribute('aria-hidden', 'true');
+
+        const overlayId = overlays?.add?.(element, {
+          position: { top: -10, right: -10 },
+          html: indicator,
+        });
+        if (overlayId !== undefined && overlayId !== null) {
+          overlayIds.push(overlayId);
+        }
+      });
+    };
+
+    eventBus.on('element.dblclick', 1500, navigateToCalledProcess);
+
+    if (enableSingleClick) {
+      eventBus.on('element.click', 1500, navigateToCalledProcess);
+      eventBus.on('import.done', 1000, decorateCallActivities);
+      // Some viewer instances are already imported when the hook is mounted.
+      decorateCallActivities();
+    }
+
+    return () => {
+      eventBus.off('element.dblclick', navigateToCalledProcess);
+      if (enableSingleClick) {
+        eventBus.off('element.click', navigateToCalledProcess);
+        eventBus.off('import.done', decorateCallActivities);
+        const overlays = bpmnInstance.get('overlays');
+        const canvas = bpmnInstance.get('canvas');
+        overlayIds.forEach(id => overlays?.remove?.(id));
+        const registry = bpmnInstance.get('elementRegistry');
+        (registry?.getAll?.() ?? []).forEach((element: any) => {
+          canvas?.removeMarker?.(element.id, 'bpmn-call-activity-navigable');
+        });
+      }
+    };
+  }, [bpmnInstance, enableSingleClick, navigate, showAlert]);
 };
