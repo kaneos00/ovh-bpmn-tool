@@ -305,7 +305,7 @@ export const Component = () => {
         <div className="org-admin-v2">
           <aside className="org-admin-v2__sidebar">
             <div className="org-admin-v2__brand">
-              <div className="org-admin-v2__brand-mark">K</div>
+              <img className="org-admin-v2__brand-logo" src="/bpmn-tool-logo.svg" alt="" />
               <div><strong>KHI Flows</strong><small>Organisation</small></div>
             </div>
             <div className="org-admin-v2__nav-group">
