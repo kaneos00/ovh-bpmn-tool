@@ -1,0 +1,2 @@
+FROM postgres:16-alpine
+COPY backend/migrations/20261014_v2_1_process_provenance.sql /opt/migrations/20261014_v2_1_process_provenance.sql
