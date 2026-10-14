@@ -123,10 +123,29 @@ const usageColor: Record<AdminProcessLink['usage'], 'success' | 'primary' | 'war
   'project-specific': 'primary',
 };
 
+const exportCsv = (filename: string, rows: Array<Array<string | number>>) => {
+  const escapeCell = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`;
+  const csv = rows.map((row) => row.map(escapeCell).join(';')).join('\r\n');
+  const blob = new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+};
+
 export const Component = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState<'all' | MembershipView['role']>('all');
+  const [userProjectFilter, setUserProjectFilter] = useState('all');
+  const [projectTypeFilter, setProjectTypeFilter] = useState<'all' | 'shared' | 'specific' | 'variant'>('all');
+  const [processUsageFilter, setProcessUsageFilter] = useState<'all' | AdminProcessLink['usage']>('all');
+  const [processProjectFilter, setProcessProjectFilter] = useState('all');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [roleDrafts, setRoleDrafts] = useState<Record<string, MembershipView['role']>>({});
   const [newUserId, setNewUserId] = useState('');
@@ -226,35 +245,43 @@ export const Component = () => {
   const normalizedSearch = search.trim().toLocaleLowerCase();
   const users = useMemo(
     () => (overview?.users ?? []).filter((user) =>
-      !normalizedSearch ||
-      user.userId.toLocaleLowerCase().includes(normalizedSearch) ||
-      user.projects.some((project) =>
-        project.projectName.toLocaleLowerCase().includes(normalizedSearch) ||
-        project.role.toLocaleLowerCase().includes(normalizedSearch),
-      ),
+      (!normalizedSearch ||
+        user.userId.toLocaleLowerCase().includes(normalizedSearch) ||
+        user.projects.some((project) =>
+          project.projectName.toLocaleLowerCase().includes(normalizedSearch) ||
+          project.role.toLocaleLowerCase().includes(normalizedSearch),
+        )) &&
+      (userRoleFilter === 'all' || user.projects.some((project) => project.role === userRoleFilter)) &&
+      (userProjectFilter === 'all' || user.projects.some((project) => project.projectId === userProjectFilter)),
     ),
-    [overview?.users, normalizedSearch],
+    [overview?.users, normalizedSearch, userRoleFilter, userProjectFilter],
   );
   const projects = useMemo(
     () => (overview?.projects ?? []).filter((project) =>
-      !normalizedSearch ||
-      project.name.toLocaleLowerCase().includes(normalizedSearch) ||
-      (project.description ?? '').toLocaleLowerCase().includes(normalizedSearch) ||
-      project.processes.some((process) => process.name.toLocaleLowerCase().includes(normalizedSearch)),
+      (!normalizedSearch ||
+        project.name.toLocaleLowerCase().includes(normalizedSearch) ||
+        (project.description ?? '').toLocaleLowerCase().includes(normalizedSearch) ||
+        project.processes.some((process) => process.name.toLocaleLowerCase().includes(normalizedSearch))) &&
+      (projectTypeFilter === 'all' ||
+        (projectTypeFilter === 'shared' && project.processes.some((process) => process.usage === 'common')) ||
+        (projectTypeFilter === 'specific' && project.processes.length > 0 && !project.processes.some((process) => process.usage === 'common')) ||
+        (projectTypeFilter === 'variant' && project.processes.some((process) => process.usage === 'variant'))),
     ),
-    [overview?.projects, normalizedSearch],
+    [overview?.projects, normalizedSearch, projectTypeFilter],
   );
   const processes = useMemo(
     () => (overview?.processes ?? []).filter((process) =>
-      !normalizedSearch ||
-      process.name.toLocaleLowerCase().includes(normalizedSearch) ||
-      (process.description ?? '').toLocaleLowerCase().includes(normalizedSearch) ||
-      process.projects.some((project) =>
-        project.projectName.toLocaleLowerCase().includes(normalizedSearch) ||
-        usageLabel[project.usage].toLocaleLowerCase().includes(normalizedSearch),
-      ),
+      (!normalizedSearch ||
+        process.name.toLocaleLowerCase().includes(normalizedSearch) ||
+        (process.description ?? '').toLocaleLowerCase().includes(normalizedSearch) ||
+        process.projects.some((project) =>
+          project.projectName.toLocaleLowerCase().includes(normalizedSearch) ||
+          usageLabel[project.usage].toLocaleLowerCase().includes(normalizedSearch),
+        )) &&
+      (processUsageFilter === 'all' || process.projects.some((project) => project.usage === processUsageFilter)) &&
+      (processProjectFilter === 'all' || process.projects.some((project) => project.projectId === processProjectFilter)),
     ),
-    [overview?.processes, normalizedSearch],
+    [overview?.processes, normalizedSearch, processUsageFilter, processProjectFilter],
   );
 
   const selectedUser = users.find((user) => user.userId === selectedUserId);
@@ -354,10 +381,25 @@ export const Component = () => {
                 <section aria-labelledby="org-section-title">
                   <div className="org-admin-v2__page-head">
                     <div><div className="org-admin-v2__eyebrow">{activeSection === 'users' ? 'Administration des accès' : activeSection === 'projects' ? 'Portefeuille' : 'Référentiel transversal'}</div><Typography id="org-section-title" level="h1">{title}</Typography><Typography level="body-md" sx={{ color: 'text.secondary', maxWidth: 700, mt: 0.5 }}>{activeSection === 'users' ? 'Vue globale des utilisateurs et des projets auxquels ils ont accès.' : activeSection === 'projects' ? 'Chaque projet réunit ses membres, ses processus spécifiques et ses références au catalogue organisationnel.' : 'Retrouvez chaque processus et comprenez quels projets l’utilisent.'}</Typography></div>
-                    <div className="org-admin-v2__actions">{activeSection === 'projects' && <Button onClick={() => { setSelectedProjectId(null); setNewProjectName(''); setNewProjectDescription(''); }}>＋ Créer un projet</Button>}{activeSection === 'users' && <Button variant="outlined" onClick={() => document.getElementById('org-add-access')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>＋ Ajouter un accès</Button>}</div>
+                    <div className="org-admin-v2__actions">
+                      {activeSection === 'users' && <><Button variant="outlined" onClick={() => exportCsv('utilisateurs-khi-flows.csv', [['Identifiant', 'Projet', 'Rôle'], ...(overview?.users ?? []).flatMap((user) => user.projects.map((project) => [user.userId, project.projectName, roleLabel[project.role]]))])}>Exporter la vue</Button><Button onClick={() => document.getElementById('org-add-access')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>＋ Ajouter un accès</Button></>}
+                      {activeSection === 'projects' && <><Button variant="outlined" onClick={() => exportCsv('projets-khi-flows.csv', [['Projet', 'Description', 'Membres', 'Processus communs', 'Spécifiques', 'Variantes'], ...(overview?.projects ?? []).map((project) => [project.name, project.description ?? '', project.membersCount, project.processes.filter((process) => process.usage === 'common').length, project.processes.filter((process) => process.usage === 'project-specific').length, project.processes.filter((process) => process.usage === 'variant').length])])}>Exporter la vue</Button><Button onClick={() => document.getElementById('org-create-project')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>＋ Créer un projet</Button></>}
+                      {activeSection === 'processes' && <><Button variant="outlined" onClick={() => exportCsv('processus-khi-flows.csv', [['Processus', 'Description', 'Projet', 'Usage', 'Source'], ...(overview?.processes ?? []).flatMap((process) => process.projects.length ? process.projects.map((project) => [process.name, process.description ?? '', project.projectName, usageLabel[project.usage], project.sourceResourceId ?? '']) : [[process.name, process.description ?? '', '', 'Non associé', '']])])}>Exporter la vue</Button><Button onClick={() => navigate('/root')}>＋ Nouveau processus</Button></>}
+                    </div>
                   </div>
                   {activeSection === 'users' && <Alert color="neutral" variant="soft" sx={{ mb: 2 }}>Les rôles affichés sont des rôles de projet. Les identifiants proviennent des adhésions enregistrées ; les comptes sans adhésion ne sont pas encore fournis par un annuaire d’identité global.</Alert>}
-                  <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={searchPlaceholders[activeSection] ?? 'Rechercher…'} sx={{ maxWidth: 620, mb: 2 }} />
+                  <div className="org-admin-v2__filters">
+                    <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={searchPlaceholders[activeSection] ?? 'Rechercher…'} sx={{ flex: 1, minWidth: 220 }} />
+                    {activeSection === 'users' && <>
+                      <FormControl sx={{ minWidth: 180 }}><FormLabel>Rôle projet</FormLabel><Select value={userRoleFilter} onChange={(_event, value) => setUserRoleFilter((value ?? 'all') as typeof userRoleFilter)}><Option value="all">Tous les rôles</Option><Option value="admin">Admin</Option><Option value="modeler">Modeler</Option><Option value="viewer">Viewer</Option></Select></FormControl>
+                      <FormControl sx={{ minWidth: 190 }}><FormLabel>Projet</FormLabel><Select value={userProjectFilter} onChange={(_event, value) => setUserProjectFilter(value ?? 'all')}><Option value="all">Tous les projets</Option>{(overview?.projects ?? []).map((project) => <Option key={project.id} value={project.id}>{project.name}</Option>)}</Select></FormControl>
+                    </>}
+                    {activeSection === 'projects' && <FormControl sx={{ minWidth: 220 }}><FormLabel>Type de projet</FormLabel><Select value={projectTypeFilter} onChange={(_event, value) => setProjectTypeFilter((value ?? 'all') as typeof projectTypeFilter)}><Option value="all">Tous les types</Option><Option value="shared">Utilise des processus communs</Option><Option value="specific">Processus spécifiques uniquement</Option><Option value="variant">Contient des variantes</Option></Select></FormControl>}
+                    {activeSection === 'processes' && <>
+                      <FormControl sx={{ minWidth: 190 }}><FormLabel>Type d’utilisation</FormLabel><Select value={processUsageFilter} onChange={(_event, value) => setProcessUsageFilter((value ?? 'all') as typeof processUsageFilter)}><Option value="all">Tous les types</Option><Option value="common">Catalogue commun</Option><Option value="project-specific">Spécifique au projet</Option><Option value="variant">Variante</Option></Select></FormControl>
+                      <FormControl sx={{ minWidth: 190 }}><FormLabel>Projet utilisateur</FormLabel><Select value={processProjectFilter} onChange={(_event, value) => setProcessProjectFilter(value ?? 'all')}><Option value="all">Tous les projets</Option>{(overview?.projects ?? []).map((project) => <Option key={project.id} value={project.id}>{project.name}</Option>)}</Select></FormControl>
+                    </>}
+                  </div>
                 </section>
               )}
 
@@ -520,7 +562,7 @@ export const Component = () => {
         )}
 
         {activeSection === 'projects' && overview && (
-          <Card variant="outlined" sx={{ gap: 1.5 }}>
+          <Card id="org-create-project" variant="outlined" sx={{ gap: 1.5 }}>
             <Typography level="title-lg">Créer un projet</Typography>
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} useFlexGap flexWrap="wrap" sx={{ alignItems: { md: 'flex-end' } }}>
               <FormControl sx={{ flex: 1, minWidth: 220 }}>
