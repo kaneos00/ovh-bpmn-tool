@@ -49,7 +49,7 @@ export const Component = () => {
       }
 
       void apiClient.get(`/resources/${encodeURIComponent(targetResourceId)}`)
-        .then(() => navigate(`/${targetResourceId}/modeler`))
+        .then(() => navigate(`/${targetResourceId}`))
         .catch(() => showAlert({
           message: 'Accès au processus impossible : vous ne disposez pas des droits nécessaires ou le processus n’est plus disponible.',
           severity: 'danger',
