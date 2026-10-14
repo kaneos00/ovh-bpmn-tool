@@ -229,6 +229,7 @@ export class ResourceController {
       name: cloneName,
       description: source.description ?? '',
       parentId: source.parentId ?? undefined,
+      sourceResourceId: source.id.value,
       createdBy,
       type: ResourceTypeEnum.Process,
     });
