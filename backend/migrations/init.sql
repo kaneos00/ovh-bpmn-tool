@@ -22,7 +22,9 @@ CREATE TABLE resources (
     "parentId" character varying,
     "sourceResourceId" uuid,
     "authToken" VARCHAR(64),
-    type resources_type_enum NOT NULL
+    type resources_type_enum NOT NULL,
+    CONSTRAINT resources_source_resource_fk
+        FOREIGN KEY ("sourceResourceId") REFERENCES resources(id) ON DELETE SET NULL
 );
 
 CREATE TABLE comments (
