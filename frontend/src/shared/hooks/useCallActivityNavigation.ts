@@ -77,8 +77,20 @@ export const useCallActivityNavigation = (
         );
     };
 
+    const removeIndicators = () => {
+      const overlays = bpmnInstance.get('overlays');
+      const canvas = bpmnInstance.get('canvas');
+      const registry = bpmnInstance.get('elementRegistry');
+      overlayIds.forEach(id => overlays?.remove?.(id));
+      overlayIds.length = 0;
+      (registry?.getAll?.() ?? []).forEach((element: any) => {
+        canvas?.removeMarker?.(element.id, 'bpmn-call-activity-navigable');
+      });
+    };
+
     const decorateCallActivities = () => {
       if (!enableSingleClick) return;
+      removeIndicators();
 
       const registry = bpmnInstance.get('elementRegistry');
       const canvas = bpmnInstance.get('canvas');
@@ -125,13 +137,7 @@ export const useCallActivityNavigation = (
       if (enableSingleClick) {
         eventBus.off('element.click', navigateToCalledProcess);
         eventBus.off('import.done', decorateCallActivities);
-        const overlays = bpmnInstance.get('overlays');
-        const canvas = bpmnInstance.get('canvas');
-        overlayIds.forEach(id => overlays?.remove?.(id));
-        const registry = bpmnInstance.get('elementRegistry');
-        (registry?.getAll?.() ?? []).forEach((element: any) => {
-          canvas?.removeMarker?.(element.id, 'bpmn-call-activity-navigable');
-        });
+        removeIndicators();
       }
     };
   }, [bpmnInstance, enableSingleClick, navigate, showAlert]);
