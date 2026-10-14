@@ -28,7 +28,7 @@ export const useProcessViewer = (
   useCallActivityNavigation(viewer, true);
 
   useEffect(() => {
-    if (!onElementSelect) return;
+    if (!onElementSelect) return undefined;
 
     const eventBus = viewer.get('eventBus') as {
       on: (event: string, listener: (event: any) => void) => void;
