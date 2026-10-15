@@ -143,7 +143,7 @@ export const WorkspaceNavigation = () => {
                         <Box sx={{ minWidth: 0 }}>
                           <Typography level="title-sm">{resource.name}</Typography>
                           <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>
-                            {resource.type === 1 ? 'Dossier' : 'Processus'}{resource.description ? ` · ${resource.description}` : ''}
+                            {resource.type === 'folder' ? 'Dossier' : 'Processus'}{resource.description ? ` · ${resource.description}` : ''}
                           </Typography>
                         </Box>
                       </Button>
