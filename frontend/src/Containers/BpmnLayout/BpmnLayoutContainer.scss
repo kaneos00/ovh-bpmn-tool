@@ -26,6 +26,8 @@
   }
 
   .innerContent {
+    // Keep this panel in the second grid track when the first child is display:none.
+    grid-column: 2;
     min-width: 0;
     height: 100vh;
     display: flex;
