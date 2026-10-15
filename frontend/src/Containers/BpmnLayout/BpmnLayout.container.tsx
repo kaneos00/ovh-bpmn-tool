@@ -223,7 +223,22 @@ export const Component = () => {
                   title={resource.name}
                   description={resource.description}
                   breadcrumbs={getBreadCrumbs()}
-                  actions={actions}
+                  actions={
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      {actions}
+                      <Button
+                        size="sm"
+                        variant={folderOpen ? 'soft' : 'outlined'}
+                        color="neutral"
+                        startDecorator={<AccountTreeOutlined />}
+                        onClick={() => setFolderOpen(value => !value)}
+                        aria-expanded={folderOpen}
+                        aria-label={folderOpen ? 'Masquer l’arborescence' : 'Ouvrir l’arborescence'}
+                      >
+                        {folderOpen ? 'Masquer l’arborescence' : 'Arborescence'}
+                      </Button>
+                    </Stack>
+                  }
                 />
                 {isFolder(resource) ? (
                   <ResourceExplorer
