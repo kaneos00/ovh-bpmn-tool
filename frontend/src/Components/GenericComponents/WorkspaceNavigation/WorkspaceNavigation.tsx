@@ -10,7 +10,7 @@ import { ContentStatusEnum, type Content, type Resource } from '../../../Types';
 import { ResourceType } from '../../../shared/types/BpmnResource';
 import { deriveRaciMatrixFromXml } from '../../../extensions/raci-viewer';
 
-type SearchScope = 'resources' | 'activities' | 'raci';
+type SearchScope = 'all' | 'processes' | 'bpmn' | 'roles' | 'raci' | 'iaComm';
 type SearchResult = {
   key: string;
   title: string;
@@ -19,11 +19,13 @@ type SearchResult = {
   elementId?: string;
 };
 
+const BPMN_MODEL_NS = 'http://www.omg.org/spec/BPMN/20100524/MODEL';
+
 const destinations = [
   {
     label: 'Référentiel',
     path: '/root',
-    matches: (path: string) => path === '/root' || /^\/[0-9a-f-]+(?:\/|$)/i.test(path),
+    matches: (path: string) => path === '/root' || /^\\/[0-9a-f-]+(?:\\/|$)/i.test(path),
   },
   {
     label: 'Projets',
@@ -40,11 +42,13 @@ const destinations = [
 const matchesTerm = (value: string, term: string) =>
   value.toLocaleLowerCase('fr').includes(term);
 
+const resultKey = (result: SearchResult) => result.key;
+
 export const WorkspaceNavigation = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
-  const [scope, setScope] = useState<SearchScope>('resources');
+  const [scope, setScope] = useState<SearchScope>('all');
   const [searchOpen, setSearchOpen] = useState(false);
   const [deepResults, setDeepResults] = useState<SearchResult[]>([]);
   const [deepSearchLoading, setDeepSearchLoading] = useState(false);
@@ -53,24 +57,25 @@ export const WorkspaceNavigation = () => {
 
   const resourceResults = useMemo(() => {
     const term = search.trim().toLocaleLowerCase('fr');
-    if (!term || scope !== 'resources') return [];
+    if (!term || (scope !== 'all' && scope !== 'processes')) return [];
     return (resources.data ?? [])
       .filter(resource =>
         (resource.type === ResourceType.Process || resource.type === ResourceType.Folder) &&
         (matchesTerm(resource.name, term) || matchesTerm(resource.description ?? '', term)),
       )
       .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
-      .slice(0, 8)
+      .slice(0, 10)
       .map(resource => ({
         key: resource.id,
         title: resource.name,
-        detail: `${resource.type === ResourceType.Folder ? 'Dossier' : 'Processus'}${resource.description ? ` · ${resource.description}` : ''}`,
+        detail: `${resource.type === ResourceType.Folder ? 'Dossier du référentiel' : 'Processus BPMN'}${resource.description ? ` · ${resource.description}` : ''}`,
         resourceId: resource.id,
       }));
   }, [resources.data, search, scope]);
 
   useEffect(() => {
-    if (!search.trim() || search.trim().length < 2 || scope === 'resources' || !resources.data) {
+    const term = search.trim().toLocaleLowerCase('fr');
+    if (term.length < 2 || !resources.data || scope === 'processes') {
       setDeepResults([]);
       setDeepSearchLoading(false);
       return undefined;
@@ -79,7 +84,6 @@ export const WorkspaceNavigation = () => {
     let cancelled = false;
     const timer = window.setTimeout(async () => {
       setDeepSearchLoading(true);
-      const term = search.trim().toLocaleLowerCase('fr');
       const processes = resources.data!.filter(resource => resource.type === ResourceType.Process);
       const found: SearchResult[] = [];
 
@@ -89,63 +93,119 @@ export const WorkspaceNavigation = () => {
           const published = contents
             .filter(content => content.status === ContentStatusEnum.Published)
             .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0];
-          if (!published) return;
+          if (!published || cancelled) return;
+
           const xml = await getXmlContentQuery(process.id, published.id).queryFn();
           if (!xml || cancelled) return;
           const document = new DOMParser().parseFromString(xml, 'application/xml');
           if (document.getElementsByTagName('parsererror').length) return;
 
-          if (scope === 'activities') {
-            const activityTypes = new Set([
-              'task', 'userTask', 'serviceTask', 'manualTask', 'scriptTask',
-              'businessRuleTask', 'sendTask', 'receiveTask', 'callActivity',
-              'subProcess', 'transaction',
-            ]);
-            Array.from(document.getElementsByTagName('*'))
-              .filter(element => activityTypes.has(element.localName))
+          const bpmnElements = Array.from(document.getElementsByTagName('*'))
+            .filter(element => element.namespaceURI === BPMN_MODEL_NS);
+          const activityTypes = new Set([
+            'task', 'userTask', 'serviceTask', 'manualTask', 'scriptTask',
+            'businessRuleTask', 'sendTask', 'receiveTask', 'callActivity',
+            'subProcess', 'transaction',
+          ]);
+          const namedElements = bpmnElements.filter(element => {
+            const id = element.getAttribute('id') || '';
+            const name = element.getAttribute('name')?.trim() || '';
+            return id && (matchesTerm(name, term) || matchesTerm(id, term));
+          });
+
+          if (scope === 'all' || scope === 'bpmn') {
+            namedElements.forEach(element => {
+              const id = element.getAttribute('id') || '';
+              const name = element.getAttribute('name')?.trim() || id;
+              const kind = element.localName.toLowerCase().includes('subprocess')
+                ? 'Sous-processus'
+                : activityTypes.has(element.localName)
+                  ? 'Activité BPMN'
+                  : element.localName === 'process'
+                    ? 'Processus BPMN'
+                    : `Élément BPMN · ${element.localName}`;
+              found.push({
+                key: `${process.id}:bpmn:${id}`,
+                title: name,
+                detail: `${kind} · ${process.name} · ${id}`,
+                resourceId: process.id,
+                elementId: element.localName === 'process' ? undefined : id,
+              });
+            });
+          }
+
+          if (scope === 'all' || scope === 'processes') {
+            namedElements
+              .filter(element => element.localName.toLowerCase().includes('subprocess'))
               .forEach(element => {
                 const id = element.getAttribute('id') || '';
                 const name = element.getAttribute('name')?.trim() || id;
-                if (id && (matchesTerm(name, term) || matchesTerm(id, term))) {
-                  found.push({
-                    key: `${process.id}:${id}`,
-                    title: name,
-                    detail: `Activité · ${process.name} · ${id}`,
-                    resourceId: process.id,
-                    elementId: id,
-                  });
-                }
+                found.push({
+                  key: `${process.id}:subprocess:${id}`,
+                  title: name,
+                  detail: `Sous-processus · ${process.name} · ${id}`,
+                  resourceId: process.id,
+                  elementId: id,
+                });
               });
-          } else {
+          }
+
+          if (scope === 'all' || scope === 'roles' || scope === 'raci') {
             const matrix = deriveRaciMatrixFromXml(xml);
+            if (scope !== 'raci') {
+              matrix.roles
+                .filter(role => matchesTerm(role, term))
+                .forEach(role => found.push({
+                  key: `${process.id}:role:${role}`,
+                  title: role,
+                  detail: `Rôle · ${process.name}`,
+                  resourceId: process.id,
+                }));
+            }
+
             matrix.activities.forEach(activity => {
               activity.cells.forEach(cell => {
-                if (cell.codes.length && matchesTerm(cell.role, term)) {
+                const roleMatches = matchesTerm(cell.role, term);
+                const activityMatches = matchesTerm(activity.activity, term) ||
+                  matchesTerm(activity.elementId, term);
+                const assignmentMatches = cell.codes.some(code => matchesTerm(code, term));
+                if (cell.codes.length && (
+                  (scope === 'all' && (roleMatches || activityMatches || assignmentMatches)) ||
+                  (scope === 'raci' && (roleMatches || activityMatches || assignmentMatches))
+                )) {
                   found.push({
-                    key: `${process.id}:${activity.elementId}:${cell.role}`,
-                    title: cell.role,
-                    detail: `RACI · ${process.name} · ${activity.activity} (${cell.codes.join('/')})`,
+                    key: `${process.id}:raci:${activity.elementId}:${cell.role}`,
+                    title: activityMatches ? activity.activity : cell.role,
+                    detail: `RACI · ${process.name} · ${activity.activity} — ${cell.role} (${cell.codes.join('/')})`,
                     resourceId: process.id,
                     elementId: activity.elementId,
                   });
                 }
               });
             });
-            matrix.roles
-              .filter(role => matchesTerm(role, term))
-              .forEach(role => {
-                const alreadyFound = found.some(result =>
-                  result.resourceId === process.id && result.title === role && result.detail.startsWith(`RACI · ${process.name} ·`),
-                );
-                if (!alreadyFound) {
-                  found.push({
-                    key: `${process.id}:role:${role}`,
-                    title: role,
-                    detail: `Rôle RACI · ${process.name}`,
-                    resourceId: process.id,
-                  });
-                }
+          }
+
+          if (scope === 'all' || scope === 'iaComm') {
+            // Search BPMN documentation, text annotations and communication-related labels.
+            const textElements = Array.from(document.getElementsByTagName('*')).filter(element => {
+              const tag = element.localName.toLocaleLowerCase('fr');
+              const text = element.textContent?.trim() || '';
+              const name = element.getAttribute('name') || '';
+              const isTextContent = /documentation|textannotation|text|message|communication|comment/i.test(tag);
+              return text && (matchesTerm(text, term) || matchesTerm(name, term)) &&
+                (scope === 'all' ? isTextContent : true);
+            });
+            textElements.forEach((element, index) => {
+              const text = (element.getAttribute('name') || element.textContent || '').trim().replace(/\\s+/g, ' ');
+              const title = text.length > 100 ? `${text.slice(0, 97)}…` : text;
+              if (!title) return;
+              found.push({
+                key: `${process.id}:ia-comm:${element.localName}:${index}:${title}`,
+                title,
+                detail: `IA comm. / annotation BPMN · ${process.name} · ${element.localName}`,
+                resourceId: process.id,
               });
+            });
           }
         } catch {
           // An unavailable process must not prevent searching the other processes.
@@ -153,8 +213,8 @@ export const WorkspaceNavigation = () => {
       }));
 
       if (!cancelled) {
-        const uniqueResults = Array.from(new Map(found.map(result => [result.key, result])).values());
-        setDeepResults(uniqueResults.sort((a, b) => a.title.localeCompare(b.title, 'fr')).slice(0, 12));
+        const uniqueResults = Array.from(new Map(found.map(result => [resultKey(result), result])).values());
+        setDeepResults(uniqueResults.sort((a, b) => a.title.localeCompare(b.title, 'fr')).slice(0, 20));
         setDeepSearchLoading(false);
       }
     }, 250);
@@ -165,7 +225,10 @@ export const WorkspaceNavigation = () => {
     };
   }, [search, scope, resources.data]);
 
-  const results = scope === 'resources' ? resourceResults : deepResults;
+  const results = useMemo(() => {
+    const combined = scope === 'all' ? [...resourceResults, ...deepResults] : scope === 'processes' ? resourceResults : deepResults;
+    return Array.from(new Map(combined.map(result => [result.key, result])).values()).slice(0, 20);
+  }, [scope, resourceResults, deepResults]);
 
   useEffect(() => {
     const onShortcut = (event: KeyboardEvent) => {
@@ -192,6 +255,8 @@ export const WorkspaceNavigation = () => {
       : `/${result.resourceId}`);
   };
 
+  const isLoading = resources.isLoading || deepSearchLoading;
+
   return (
     <Box sx={{ mb: 1, pb: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
       <Stack
@@ -210,28 +275,31 @@ export const WorkspaceNavigation = () => {
           </Box>
         </Stack>
 
-        <Box sx={{ position: 'relative', flex: 1, minWidth: 220, maxWidth: 560 }}>
+        <Box sx={{ position: 'relative', flex: 1, minWidth: 220, maxWidth: 620 }}>
           <Stack direction="row" spacing={0.75} alignItems="center">
             <Select<SearchScope>
               size="sm"
               value={scope}
               onChange={(_, value) => { if (value) { setScope(value); setSearchOpen(true); } }}
               aria-label="Type de recherche"
-              sx={{ minWidth: 138, flexShrink: 0 }}
+              sx={{ minWidth: 170, flexShrink: 0 }}
             >
-              <Option value="resources">Référentiel</Option>
-              <Option value="activities">Activités</Option>
+              <Option value="all">Tout rechercher</Option>
+              <Option value="processes">Processus / sous-processus</Option>
+              <Option value="bpmn">Éléments BPMN</Option>
+              <Option value="roles">Rôles</Option>
               <Option value="raci">RACI</Option>
+              <Option value="iaComm">IA comm. / annotations</Option>
             </Select>
             <Input
               size="sm"
               value={search}
               onChange={event => { setSearch(event.target.value); setSearchOpen(true); }}
               onFocus={() => setSearchOpen(true)}
-              slotProps={{ input: { ref: searchRef, 'aria-label': 'Rechercher dans le référentiel', onKeyDown: event => {
+              slotProps={{ input: { ref: searchRef, 'aria-label': 'Rechercher dans tous les contenus', onKeyDown: event => {
                 if (event.key === 'Enter' && results[0]) openResult(results[0]);
               } } }}
-              placeholder="Rechercher dans le référentiel…  Ctrl K"
+              placeholder="Rechercher processus, BPMN, rôles, RACI…  Ctrl K"
               startDecorator={<Search fontSize="small" />}
               endDecorator={search.trim() ? <Button size="sm" variant="plain" onClick={() => { setSearch(''); setSearchOpen(true); }}>Effacer</Button> : null}
               sx={{ bgcolor: 'background.surface', flex: 1, minWidth: 0 }}
@@ -241,14 +309,13 @@ export const WorkspaceNavigation = () => {
           {searchOpen && search.trim().length >= 1 && (
             <Sheet
               variant="outlined"
-              sx={{ position: 'relative', width: '100%', mt: 0.5, borderRadius: 'md', maxHeight: 240, overflowY: 'auto', bgcolor: 'background.surface' }}
+              sx={{ position: 'relative', width: '100%', mt: 0.5, borderRadius: 'md', maxHeight: 280, overflowY: 'auto', bgcolor: 'background.surface' }}
             >
-              {scope === 'resources' && resources.isLoading && <Typography level="body-sm" sx={{ p: 1.5 }}>Chargement du référentiel…</Typography>}
-              {scope !== 'resources' && deepSearchLoading && <Typography level="body-sm" sx={{ p: 1.5 }}>Recherche dans les activités et les données RACI…</Typography>}
+              {isLoading && <Typography level="body-sm" sx={{ p: 1.5 }}>Recherche dans les contenus…</Typography>}
               {resources.isError && <Typography level="body-sm" color="danger" sx={{ p: 1.5 }}>Recherche indisponible pour le moment.</Typography>}
-              {!resources.isLoading && !deepSearchLoading && results.length === 0 && (
+              {!isLoading && results.length === 0 && (
                 <Typography level="body-sm" sx={{ p: 1.5 }}>
-                  {scope === 'resources' ? 'Aucun processus ou dossier correspondant.' : 'Aucun résultat correspondant.'}
+                  Aucun résultat correspondant dans ce type de contenu.
                 </Typography>
               )}
               {results.length > 0 && (
@@ -266,7 +333,7 @@ export const WorkspaceNavigation = () => {
                   ))}
                 </List>
               )}
-              {results.length >= 8 && <Typography level="body-xs" sx={{ px: 1.5, pb: 1, color: 'text.tertiary' }}>Affinez la recherche pour réduire les résultats.</Typography>}
+              {results.length >= 10 && <Typography level="body-xs" sx={{ px: 1.5, pb: 1, color: 'text.tertiary' }}>Affinez la recherche pour réduire les résultats.</Typography>}
             </Sheet>
           )}
         </Box>
