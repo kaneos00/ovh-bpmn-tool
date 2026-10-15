@@ -66,27 +66,6 @@ export const useProcessViewer = (
     });
   };
 
-  const fitDiagramToWidth = () => {
-    const canvas = viewer.get('canvas') as any;
-    const container = canvas.getContainer();
-    const rect = container.getBoundingClientRect();
-    const bounds = getDiagramBounds();
-    if (!bounds || rect.width <= 0 || rect.height <= 0 || bounds.width <= 0) {
-      canvas.zoom('fit-viewport');
-      return;
-    }
-
-    const targetScale = Math.max(0.01, (rect.width - DIAGRAM_PADDING * 2) / bounds.width);
-    const viewboxWidth = rect.width / targetScale;
-    const viewboxHeight = rect.height / targetScale;
-    canvas.viewbox({
-      x: bounds.x - DIAGRAM_PADDING / targetScale,
-      y: bounds.y - DIAGRAM_PADDING / targetScale,
-      width: viewboxWidth,
-      height: viewboxHeight,
-    });
-  };
-
   const getDiagramBounds = () => {
     const canvas = viewer.get('canvas') as any;
     const elementRegistry = viewer.get('elementRegistry') as any;
@@ -118,6 +97,27 @@ export const useProcessViewer = (
     const maxY = Math.max(...bounds.map((bbox: any) => bbox.y + bbox.height));
 
     return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+  };
+
+  const fitDiagramToWidth = () => {
+    const canvas = viewer.get('canvas') as any;
+    const container = canvas.getContainer();
+    const rect = container.getBoundingClientRect();
+    const bounds = getDiagramBounds();
+    if (!bounds || rect.width <= 0 || rect.height <= 0 || bounds.width <= 0) {
+      canvas.zoom('fit-viewport');
+      return;
+    }
+
+    const targetScale = Math.max(0.01, (rect.width - DIAGRAM_PADDING * 2) / bounds.width);
+    const viewboxWidth = rect.width / targetScale;
+    const viewboxHeight = rect.height / targetScale;
+    canvas.viewbox({
+      x: bounds.x - DIAGRAM_PADDING / targetScale,
+      y: bounds.y - DIAGRAM_PADDING / targetScale,
+      width: viewboxWidth,
+      height: viewboxHeight,
+    });
   };
 
   const setMinimapForDiagram = () => {
