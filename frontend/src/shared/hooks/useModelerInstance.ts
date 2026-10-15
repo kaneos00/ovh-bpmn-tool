@@ -51,7 +51,7 @@ export const useModelerInstance = () => {
       ],
       moddleExtensions: getModelerExtensions(),
       minimap: {
-        open: true,
+        open: false,
       },
       ...additionalOptions,
     });
