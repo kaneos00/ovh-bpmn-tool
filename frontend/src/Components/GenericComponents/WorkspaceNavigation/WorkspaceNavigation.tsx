@@ -25,7 +25,7 @@ const destinations = [
   {
     label: 'Référentiel',
     path: '/root',
-    matches: (path: string) => path === '/root' || /^\\/[0-9a-f-]+(?:\\/|$)/i.test(path),
+    matches: (path: string) => path === '/root' || /^\/[0-9a-f-]+(?:\/|$)/i.test(path),
   },
   {
     label: 'Projets',
@@ -195,7 +195,7 @@ export const WorkspaceNavigation = () => {
               return isTextContent && text && (matchesTerm(text, term) || matchesTerm(name, term));
             });
             textElements.forEach((element, index) => {
-              const text = (element.getAttribute('name') || element.textContent || '').trim().replace(/\\s+/g, ' ');
+              const text = (element.getAttribute('name') || element.textContent || '').trim().replace(/\s+/g, ' ');
               const title = text.length > 100 ? `${text.slice(0, 97)}…` : text;
               if (!title) return;
               found.push({
