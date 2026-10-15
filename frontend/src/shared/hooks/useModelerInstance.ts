@@ -4,8 +4,6 @@ import BpmnViewer from 'camunda-bpmn-js/lib/camunda-platform/NavigatedViewer';
 import MinimapModule from 'diagram-js-minimap';
 import NavigationControls from '../../extensions/navigation-controls';
 import VerticalInteractionHitFix from '../../extensions/vertical-interaction-hit-fix';
-import RechercheModule from '../../extensions/recherche/recherche-module';
-import { createRepositoryRechercheProvider } from '../../extensions/recherche/recherche-repository-provider';
 
 import { useBpmnToolOptions } from '../../Providers/BpmnToolOptions/useBpmnToolOptions';
 
@@ -21,12 +19,8 @@ export const useModelerInstance = () => {
   const modeler = useMemo(() => {
     return new BpmnModeler({
       keyboard: { bindTo: document },
-      /*
-        ANCIENNE CONFIGURATION — conservée pour comparaison / retour arrière
-        additionalModules: getModelerModules(),
-      */
       additionalModules: [
-        ...getModelerModules().filter(module => module !== RechercheModule),
+        ...getModelerModules(),
         MinimapModule,
         NavigationControls,
       ],
@@ -48,22 +42,11 @@ export const useModelerInstance = () => {
 
   const getViewerInstance = useCallback((additionalOptions = {}) => {
     return new BpmnViewer({
-      /*
-        ANCIENNE CONFIGURATION — conservée pour comparaison / retour arrière
-        additionalModules: [...getModelerModules(true)],
-      */
       additionalModules: [
         ...getModelerModules(true),
         MinimapModule,
         NavigationControls,
         VerticalInteractionHitFix,
-        {
-          ...RechercheModule,
-          rechercheProvider: [
-            'value',
-            createRepositoryRechercheProvider(),
-          ],
-        },
       ],
       moddleExtensions: getModelerExtensions(),
       minimap: {
