@@ -133,8 +133,8 @@ export const ProcessDetails = ({
     <Box className="processViewerLayout">
       <Tabs defaultValue={0} className="processViewerTabs">
         <TabList sticky="top">
-          <Tab value={0}>Process view</Tab>
-          <Tab value={1}>Version history</Tab>
+          <Tab value={0}>Vue du processus</Tab>
+          <Tab value={1}>Historique des versions</Tab>
           <Tab value={2}>RACI</Tab>
         </TabList>
 
@@ -328,7 +328,7 @@ export const ProcessDetails = ({
         <TabPanel value={1} className="processViewerTabPanel">
           <Sheet className="processViewerInfo" variant="outlined">
             <Stack spacing={1.5} className="processViewerInfoHeader">
-              <Typography level="title-lg">Version history</Typography>
+              <Typography level="title-lg">Historique des versions</Typography>
               {publishedContent && (
                 <Typography level="body-sm">
                   Last published version: v{publishedContent.version ?? 'N/A'} —{' '}
@@ -373,7 +373,7 @@ export const ProcessDetails = ({
           <Sheet className="processViewerInfo" variant="outlined">
             <Stack spacing={1.5} className="processViewerInfoHeader">
               <Typography level="title-lg">
-                Activities ({raciMatrix.activities.length})
+                Matrice RACI · {raciMatrix.activities.length} activités
               </Typography>
             </Stack>
             <Divider />
@@ -381,6 +381,7 @@ export const ProcessDetails = ({
             {raciMatrix.activities.length ? (
               <Box sx={{ overflowX: 'auto', maxWidth: '100%' }}>
                 <table
+                  className="processRaciTable"
                   aria-label="Matrice RACI en lecture seule"
                   style={{
                     width: '100%',
