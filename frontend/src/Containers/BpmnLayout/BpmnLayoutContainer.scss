@@ -16,8 +16,12 @@
   }
 
   &.folderCollapsed {
+    grid-template-columns: 0 minmax(0, 1fr);
+
     .folderTree {
-      width: 52px;
+      display: none;
+      width: 0;
+      border: 0;
     }
   }
 
