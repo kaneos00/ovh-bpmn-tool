@@ -241,7 +241,7 @@ export const WorkspaceNavigation = () => {
           {searchOpen && search.trim().length >= 1 && (
             <Sheet
               variant="outlined"
-              sx={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 1400, borderRadius: 'md', boxShadow: 'lg', maxHeight: 360, overflowY: 'auto', bgcolor: 'background.surface' }}
+              sx={{ position: 'relative', width: '100%', mt: 0.5, borderRadius: 'md', maxHeight: 240, overflowY: 'auto', bgcolor: 'background.surface' }}
             >
               {scope === 'resources' && resources.isLoading && <Typography level="body-sm" sx={{ p: 1.5 }}>Chargement du référentiel…</Typography>}
               {scope !== 'resources' && deepSearchLoading && <Typography level="body-sm" sx={{ p: 1.5 }}>Recherche dans les activités et les données RACI…</Typography>}
