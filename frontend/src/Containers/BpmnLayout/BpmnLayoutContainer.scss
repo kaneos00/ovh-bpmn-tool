@@ -1,6 +1,6 @@
 .mainContainer {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: 248px minmax(0, 1fr);
   height: 100vh;
   width: 100%;
   overflow: hidden;
@@ -16,17 +16,17 @@
   }
 
   &.folderCollapsed {
-    grid-template-columns: 0 minmax(0, 1fr);
+    // The mockup keeps a narrow explorer rail visible when collapsed.
+    grid-template-columns: 42px minmax(0, 1fr);
 
     .folderTree {
-      display: none;
-      width: 0;
+      display: flex;
+      width: 42px;
       border: 0;
     }
   }
 
   .innerContent {
-    // Keep this panel in the second grid track when the first child is display:none.
     grid-column: 2;
     min-width: 0;
     height: 100vh;
