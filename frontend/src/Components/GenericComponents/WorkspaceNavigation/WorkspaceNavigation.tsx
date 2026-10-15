@@ -73,7 +73,7 @@ export const WorkspaceNavigation = () => {
     if (!search.trim() || search.trim().length < 2 || scope === 'resources' || !resources.data) {
       setDeepResults([]);
       setDeepSearchLoading(false);
-      return;
+      return undefined;
     }
 
     let cancelled = false;
