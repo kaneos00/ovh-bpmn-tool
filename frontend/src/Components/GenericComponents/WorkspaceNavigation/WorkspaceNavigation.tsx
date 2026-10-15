@@ -75,7 +75,7 @@ export const WorkspaceNavigation = () => {
 
   useEffect(() => {
     const term = search.trim().toLocaleLowerCase('fr');
-    if (term.length < 2 || !resources.data || scope === 'processes') {
+    if (term.length < 2 || !resources.data) {
       setDeepResults([]);
       setDeepSearchLoading(false);
       return undefined;
@@ -192,8 +192,7 @@ export const WorkspaceNavigation = () => {
               const text = element.textContent?.trim() || '';
               const name = element.getAttribute('name') || '';
               const isTextContent = /documentation|textannotation|text|message|communication|comment/i.test(tag);
-              return text && (matchesTerm(text, term) || matchesTerm(name, term)) &&
-                (scope === 'all' ? isTextContent : true);
+              return isTextContent && text && (matchesTerm(text, term) || matchesTerm(name, term));
             });
             textElements.forEach((element, index) => {
               const text = (element.getAttribute('name') || element.textContent || '').trim().replace(/\\s+/g, ' ');
