@@ -219,7 +219,7 @@ export const WorkspaceNavigation = () => {
               aria-label="Type de recherche"
               sx={{ minWidth: 138, flexShrink: 0 }}
             >
-              <Option value="resources">Processus</Option>
+              <Option value="resources">Référentiel</Option>
               <Option value="activities">Activités</Option>
               <Option value="raci">RACI</Option>
             </Select>
