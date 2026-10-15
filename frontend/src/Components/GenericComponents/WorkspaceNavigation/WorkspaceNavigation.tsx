@@ -117,13 +117,16 @@ export const WorkspaceNavigation = () => {
             namedElements.forEach(element => {
               const id = element.getAttribute('id') || '';
               const name = element.getAttribute('name')?.trim() || id;
-              const kind = element.localName.toLowerCase().includes('subprocess')
-                ? 'Sous-processus'
-                : activityTypes.has(element.localName)
-                  ? 'Activité BPMN'
-                  : element.localName === 'process'
-                    ? 'Processus BPMN'
-                    : `Élément BPMN · ${element.localName}`;
+              let kind: string;
+            if (element.localName.toLowerCase().includes('subprocess')) {
+              kind = 'Sous-processus';
+            } else if (activityTypes.has(element.localName)) {
+              kind = 'Activité BPMN';
+            } else if (element.localName === 'process') {
+              kind = 'Processus BPMN';
+            } else {
+              kind = `Élément BPMN · ${element.localName}`;
+            }
               found.push({
                 key: `${process.id}:bpmn:${id}`,
                 title: name,
