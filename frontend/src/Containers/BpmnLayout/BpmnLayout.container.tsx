@@ -126,7 +126,7 @@ export const Component = () => {
           </Box>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, overflow: 'hidden' }}>
-            <Stack direction="row" spacing={0.5} sx={{ px: 1, pb: 1 }} useFlexGap>
+            <Stack direction="row" spacing={0.5} sx={{ px: 1, pb: 1 }} useFlexGap flexWrap="wrap">
               <Button size="sm" variant={sidebarSection === 'resources' ? 'soft' : 'plain'}
                 color={sidebarSection === 'resources' ? 'primary' : 'neutral'}
                 startDecorator={<FolderOutlined />} onClick={() => setSidebarSection('resources')}>
