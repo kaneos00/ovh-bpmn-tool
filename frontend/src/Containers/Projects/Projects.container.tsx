@@ -48,6 +48,12 @@ const projectRoleLabels: Record<WorkspaceProjectSummary['role'], string> = {
   admin: 'Administration du projet',
 };
 
+const projectRoleColors: Record<WorkspaceProjectSummary['role'], 'neutral' | 'primary' | 'warning'> = {
+  viewer: 'neutral',
+  modeler: 'primary',
+  admin: 'warning',
+};
+
 type ProjectMember = {
   id: string;
   projectId: string;
@@ -289,7 +295,7 @@ export const Component = () => {
                       {project.description && <Typography level="body-sm">{project.description}</Typography>}
                     </Box>
                     <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
-                      {membership && <Chip size="sm" variant="soft" color={membership.role === 'admin' ? 'warning' : membership.role === 'modeler' ? 'primary' : 'neutral'}>{projectRoleLabels[membership.role]}</Chip>}
+                      {membership && <Chip size="sm" variant="soft" color={projectRoleColors[membership.role]}>{projectRoleLabels[membership.role]}</Chip>}
                       {processCount !== undefined && <Chip size="sm" variant="outlined">{processCount} processus</Chip>}
                     </Stack>
                   </Stack>
