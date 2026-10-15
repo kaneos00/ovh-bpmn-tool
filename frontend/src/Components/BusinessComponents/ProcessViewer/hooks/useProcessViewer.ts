@@ -66,6 +66,27 @@ export const useProcessViewer = (
     });
   };
 
+  const fitDiagramToWidth = () => {
+    const canvas = viewer.get('canvas') as any;
+    const container = canvas.getContainer();
+    const rect = container.getBoundingClientRect();
+    const bounds = getDiagramBounds();
+    if (!bounds || rect.width <= 0 || rect.height <= 0 || bounds.width <= 0) {
+      canvas.zoom('fit-viewport');
+      return;
+    }
+
+    const targetScale = Math.max(0.01, (rect.width - DIAGRAM_PADDING * 2) / bounds.width);
+    const viewboxWidth = rect.width / targetScale;
+    const viewboxHeight = rect.height / targetScale;
+    canvas.viewbox({
+      x: bounds.x - DIAGRAM_PADDING / targetScale,
+      y: bounds.y - DIAGRAM_PADDING / targetScale,
+      width: viewboxWidth,
+      height: viewboxHeight,
+    });
+  };
+
   const getDiagramBounds = () => {
     const canvas = viewer.get('canvas') as any;
     const elementRegistry = viewer.get('elementRegistry') as any;
@@ -113,9 +134,10 @@ export const useProcessViewer = (
     }
 
     const available = container.getBoundingClientRect();
+    const scale = (viewer.get('canvas') as any).zoom();
     const needsMinimap =
-      bounds.width > Math.max(0, available.width - DIAGRAM_PADDING * 2) ||
-      bounds.height > Math.max(0, available.height - DIAGRAM_PADDING * 2);
+      bounds.width * scale > Math.max(0, available.width - DIAGRAM_PADDING * 2) ||
+      bounds.height * scale > Math.max(0, available.height - DIAGRAM_PADDING * 2);
 
     const minimap = viewer.get('minimap') as any;
     if (needsMinimap) {
@@ -151,6 +173,7 @@ export const useProcessViewer = (
     if (!importedRef.current) return;
     (viewer.get('canvas') as any).zoom('fit-viewport');
     alignDiagramTopLeft();
+    setMinimapForDiagram();
   };
 
   const applySelection = () => {
@@ -221,9 +244,7 @@ export const useProcessViewer = (
     viewer.importXML(xmlContent)
       .then(() => {
         if (cancelled) return;
-        const canvas = viewer.get('canvas') as any;
-        canvas.zoom('fit-viewport');
-        alignDiagramTopLeft();
+        fitDiagramToWidth();
         importedRef.current = true;
         setMinimapForDiagram();
         applySelectionRef.current();
