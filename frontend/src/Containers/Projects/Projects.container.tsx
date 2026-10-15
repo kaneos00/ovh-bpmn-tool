@@ -35,6 +35,19 @@ type Project = {
   createdAt: string;
 };
 
+type WorkspaceProjectSummary = {
+  id: string;
+  role: 'viewer' | 'modeler' | 'admin';
+  processes: { resourceId: string; name: string; usage: 'common' | 'variant' | 'project-specific'; sourceResourceId: string | null }[];
+};
+type WorkspaceSummary = { userId: string; projects: WorkspaceProjectSummary[] };
+
+const projectRoleLabels: Record<WorkspaceProjectSummary['role'], string> = {
+  viewer: 'Consultation',
+  modeler: 'Modélisation',
+  admin: 'Administration du projet',
+};
+
 type ProjectMember = {
   id: string;
   projectId: string;
@@ -83,6 +96,15 @@ export const Component = () => {
     projectsKey,
     () => apiClient.get('/projects'),
     { enabled: !projectId },
+  );
+  const workspaceQuery = useQuery<WorkspaceSummary>(
+    ['my-workspace'],
+    () => apiClient.get('/projects/me/workspace'),
+    { enabled: !projectId },
+  );
+  const workspaceProjects = useMemo(
+    () => new Map((workspaceQuery.data?.projects ?? []).map((item) => [item.id, item])),
+    [workspaceQuery.data],
   );
   const projectQuery = useQuery<Project>(
     projectKey(projectId ?? ''),
@@ -224,7 +246,7 @@ export const Component = () => {
           <Typography level="h2">Projets</Typography>
           <Button variant="outlined" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/organization/users')}>Administration de l’organisation →</Button>
           <Typography level="body-md">
-            Les projets référencent les processus du catalogue commun. Un processus partagé reste dans le référentiel et peut être réutilisé par plusieurs projets.
+            Retrouvez vos projets, votre rôle et les processus associés au même endroit. L’administration globale de l’organisation reste distincte et réservée aux comptes autorisés.
           </Typography>
           {error && <Alert color="danger">{error}</Alert>}
           <Card variant="outlined">
@@ -245,22 +267,44 @@ export const Component = () => {
               </Box>
             </Stack>
           </Card>
-          <Typography level="title-lg">Projets existants</Typography>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
+            <Typography level="title-lg">Vos projets</Typography>
+            {workspaceQuery.data && <Chip variant="soft">{workspaceQuery.data.projects.length} projet(s) accessible(s)</Chip>}
+          </Stack>
           {projectsQuery.isLoading && <Typography>Chargement des projets…</Typography>}
+          {workspaceQuery.isError && <Alert color="warning">Les informations de rôle et de processus ne sont pas disponibles pour le moment. La liste des projets reste consultable.</Alert>}
           {projectsQuery.isError && <Alert color="danger">Impossible de charger les projets.</Alert>}
           {!projectsQuery.isLoading && (projectsQuery.data?.length ?? 0) === 0 && (
             <Typography level="body-sm">Aucun projet pour le moment.</Typography>
           )}
           <Stack spacing={1}>
-            {(projectsQuery.data ?? []).map((project) => (
-              <Card key={project.id} variant="outlined" orientation="horizontal" sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography level="title-md">{project.name}</Typography>
-                  {project.description && <Typography level="body-sm">{project.description}</Typography>}
-                </Box>
-                <Button variant="soft" onClick={() => navigate(`/projects/${project.id}`)}>Ouvrir</Button>
-              </Card>
-            ))}
+            {(projectsQuery.data ?? []).map((project) => {
+              const membership = workspaceProjects.get(project.id);
+              const processCount = membership?.processes.length;
+              return (
+                <Card key={project.id} variant="outlined" sx={{ gap: 1.25 }}>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      <Typography level="title-md">{project.name}</Typography>
+                      {project.description && <Typography level="body-sm">{project.description}</Typography>}
+                    </Box>
+                    <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
+                      {membership && <Chip size="sm" variant="soft" color={membership.role === 'admin' ? 'warning' : membership.role === 'modeler' ? 'primary' : 'neutral'}>{projectRoleLabels[membership.role]}</Chip>}
+                      {processCount !== undefined && <Chip size="sm" variant="outlined">{processCount} processus</Chip>}
+                    </Stack>
+                  </Stack>
+                  {membership && membership.processes.length > 0 && (
+                    <Typography level="body-sm" sx={{ color: 'text.secondary' }}>
+                      {membership.processes.slice(0, 3).map((process) => process.name).join(' · ')}
+                      {membership.processes.length > 3 ? ` · +${membership.processes.length - 3} autre(s)` : ''}
+                    </Typography>
+                  )}
+                  <Box>
+                    <Button variant="soft" onClick={() => navigate(`/projects/${project.id}`)}>Ouvrir le projet</Button>
+                  </Box>
+                </Card>
+              );
+            })}
           </Stack>
           <Button variant="plain" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/root')}>Retour au référentiel BPMN</Button>
         </Stack>
