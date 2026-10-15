@@ -135,7 +135,7 @@ export const Component = () => {
               <Button size="sm" variant={sidebarSection === 'activities' ? 'soft' : 'plain'}
                 color={sidebarSection === 'activities' ? 'primary' : 'neutral'}
                 startDecorator={<AccountTreeOutlined />} onClick={() => setSidebarSection('activities')}>
-                Activités
+                Processus et activités
               </Button>
               <Button size="sm" variant={sidebarSection === 'raci' ? 'soft' : 'plain'}
                 color={sidebarSection === 'raci' ? 'primary' : 'neutral'}
