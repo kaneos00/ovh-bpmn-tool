@@ -225,7 +225,7 @@ export const WorkspaceNavigation = () => {
   }, [search, scope, resources.data]);
 
   const results = useMemo(() => {
-    const combined = scope === 'all' ? [...resourceResults, ...deepResults] : scope === 'processes' ? resourceResults : deepResults;
+    const combined = scope === 'all' || scope === 'processes' ? [...resourceResults, ...deepResults] : deepResults;
     return Array.from(new Map(combined.map(result => [result.key, result])).values()).slice(0, 20);
   }, [scope, resourceResults, deepResults]);
 
