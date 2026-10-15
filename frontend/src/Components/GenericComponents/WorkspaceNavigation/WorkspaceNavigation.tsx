@@ -18,14 +18,9 @@ const destinations = [
       path === '/root' || /^\/[0-9a-f-]+(?:\/|$)/i.test(path),
   },
   {
-    label: 'Mon espace',
-    path: '/workspace',
-    matches: (path: string) => path === '/workspace',
-  },
-  {
-    label: 'Mes projets',
+    label: 'Projets',
     path: '/projects',
-    matches: (path: string) => path.startsWith('/projects'),
+    matches: (path: string) => path.startsWith('/projects') || path === '/workspace',
   },
   {
     label: 'Administration',
