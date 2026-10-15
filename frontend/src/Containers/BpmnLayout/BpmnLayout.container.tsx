@@ -170,19 +170,19 @@ export const Component = () => {
                     <AccountTreeOutlined fontSize="small" />
                     <Typography level="title-sm">Processus et activités</Typography>
                   </Box>
-                  {resource?.type === ResourceType.Process ? (
-                    processXml ? (
-                      <ProcessHierarchyTree
-                        xmlContent={processXml}
-                        selectedElementId={selectedElementId}
-                        onElementClick={setSelectedElementId}
-                      />
-                    ) : (
-                      <Typography level="body-xs" sx={{ px: 1.5, py: 1 }} textColor="neutral">
-                        {publishedContent ? 'Chargement du diagramme…' : 'Aucune version publiée.'}
-                      </Typography>
-                    )
-                  ) : (
+                  {resource?.type === ResourceType.Process && processXml && (
+                    <ProcessHierarchyTree
+                      xmlContent={processXml}
+                      selectedElementId={selectedElementId}
+                      onElementClick={setSelectedElementId}
+                    />
+                  )}
+                  {resource?.type === ResourceType.Process && !processXml && (
+                    <Typography level="body-xs" sx={{ px: 1.5, py: 1 }} textColor="neutral">
+                      {publishedContent ? 'Chargement du diagramme…' : 'Aucune version publiée.'}
+                    </Typography>
+                  )}
+                  {resource?.type !== ResourceType.Process && (
                     <Typography level="body-sm" sx={{ px: 1.5, py: 1 }} textColor="neutral">
                       Ouvrez un processus dans le référentiel pour parcourir ses activités.
                     </Typography>
