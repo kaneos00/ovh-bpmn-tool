@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Box } from '@mui/joy';
+import { Alert, Box, Button, Stack, Typography } from '@mui/joy';
 import { useProcessViewer } from './hooks/useProcessViewer';
 import 'diagram-js-minimap/assets/diagram-js-minimap.css';
 import '../Modeler/Modeler.css';
@@ -17,7 +17,15 @@ export const ProcessViewer = ({
   selectedElementId,
   onElementSelect,
 }: ProcessViewerProps) => {
-  const { viewerRef, importError } = useProcessViewer(
+  const {
+    viewerRef,
+    importError,
+    minimapVisible,
+    zoomIn,
+    zoomOut,
+    resetZoom,
+    fitDiagram,
+  } = useProcessViewer(
     resourceId,
     contentId,
     selectedElementId,
@@ -25,13 +33,33 @@ export const ProcessViewer = ({
   );
 
   return (
-    <Box sx={{ height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+    <Box className="process-viewer-shell">
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        className="process-viewer-toolbar"
+        aria-label="Contrôles du diagramme BPMN"
+      >
+        <Typography level="body-xs" textColor="neutral">
+          Navigation du diagramme
+        </Typography>
+        <Stack direction="row" spacing={0.5} alignItems="center">
+          <Button size="sm" variant="outlined" color="neutral" onClick={zoomOut} aria-label="Zoom arrière" title="Zoom arrière">−</Button>
+          <Button size="sm" variant="outlined" color="neutral" onClick={zoomIn} aria-label="Zoom avant" title="Zoom avant">+</Button>
+          <Button size="sm" variant="soft" color="neutral" onClick={resetZoom} aria-label="Zoom 1:1" title="Afficher à l’échelle 1:1">1:1</Button>
+          <Button size="sm" variant="plain" color="neutral" onClick={fitDiagram} aria-label="Ajuster à la fenêtre" title="Ajuster le diagramme à la fenêtre">Ajuster</Button>
+        </Stack>
+      </Stack>
       {importError && (
         <Alert color="danger" variant="soft" sx={{ m: 1 }}>
           {importError}
         </Alert>
       )}
-      <Box ref={viewerRef} sx={{ flex: 1, minHeight: 0 }} />
+      <Box
+        className={`process-viewer-canvas ${minimapVisible ? 'has-minimap' : 'minimap-not-needed'}`}
+        ref={viewerRef}
+      />
     </Box>
   );
 };
