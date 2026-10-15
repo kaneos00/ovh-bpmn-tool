@@ -1,4 +1,100 @@
-body {
+:root {
+  font-family: "Public Sans", "Segoe UI", Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
   margin: 0;
   padding: 0;
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font-family: "Public Sans", "Segoe UI", Arial, sans-serif;
+}
+
+body {
+  color: var(--joy-palette-text-primary, #202a36);
+  background: var(--joy-palette-background-body, #f7f8fa);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Shared button rhythm and typography across the application. */
+.MuiButton-root,
+.MuiIconButton-root {
+  font-family: inherit;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.MuiButton-root {
+  border-radius: 8px;
+}
+
+.MuiIconButton-root {
+  border-radius: 8px;
+}
+
+.MuiInput-root,
+.MuiSelect-root,
+.MuiTextarea-root,
+.MuiFormLabel-root,
+.MuiTypography-root {
+  font-family: inherit;
+}
+
+/* Common tab language: quiet track, rounded active state, consistent spacing. */
+.MuiTabs-root {
+  font-family: inherit;
+  min-width: 0;
+}
+
+.MuiTabList-root {
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--joy-palette-background-level1, #f0f2f5);
+}
+
+.MuiTab-root {
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 7px;
+  color: var(--joy-palette-text-secondary, #596574);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: normal;
+  transition: background-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
+}
+
+.MuiTab-root[aria-selected="true"] {
+  color: var(--joy-palette-primary-700, #174ea6);
+  background: var(--joy-palette-background-surface, #fff);
+  box-shadow: 0 1px 3px rgb(20 35 55 / 10%);
+}
+
+.MuiTabPanel-root {
+  font-family: inherit;
+  min-width: 0;
+}
+
+@media (max-width: 760px) {
+  .MuiTab-root {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
 }
