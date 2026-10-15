@@ -44,7 +44,7 @@ export const useModelerInstance = () => {
   const getViewerInstance = useCallback((additionalOptions = {}) => {
     return new BpmnViewer({
       additionalModules: [
-        ...getModelerModules(true),
+        ...getModelerModules(true).filter(module => module !== RechercheModule),
         MinimapModule,
         NavigationControls,
         VerticalInteractionHitFix,
