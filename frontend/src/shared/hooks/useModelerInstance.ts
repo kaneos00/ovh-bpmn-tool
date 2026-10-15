@@ -4,6 +4,7 @@ import BpmnViewer from 'camunda-bpmn-js/lib/camunda-platform/NavigatedViewer';
 import MinimapModule from 'diagram-js-minimap';
 import NavigationControls from '../../extensions/navigation-controls';
 import VerticalInteractionHitFix from '../../extensions/vertical-interaction-hit-fix';
+import RechercheModule from '../../extensions/recherche/recherche-module';
 
 import { useBpmnToolOptions } from '../../Providers/BpmnToolOptions/useBpmnToolOptions';
 
@@ -20,7 +21,7 @@ export const useModelerInstance = () => {
     return new BpmnModeler({
       keyboard: { bindTo: document },
       additionalModules: [
-        ...getModelerModules(),
+        ...getModelerModules().filter(module => module !== RechercheModule),
         MinimapModule,
         NavigationControls,
       ],
