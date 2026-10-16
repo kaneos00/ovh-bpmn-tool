@@ -10,7 +10,14 @@ async function requireSession({ request }: { request: Request }) {
       credentials: 'same-origin',
       headers: { accept: 'application/json' },
     });
-    if (response.ok) return null;
+    if (response.ok) {
+      const session = await response.json().catch(() => null) as { role?: string } | null;
+      const isOrganizationPath = requestedUrl.pathname.startsWith('/organization');
+      const isProjectsPath = requestedUrl.pathname.startsWith('/projects') || requestedUrl.pathname === '/workspace';
+      if (isOrganizationPath && session?.role !== 'admin') throw redirect('/root');
+      if (isProjectsPath && session?.role === 'viewer') throw redirect('/root');
+      return null;
+    }
   } catch {
     // An unavailable session endpoint must fail closed, not expose app routes.
   }
