@@ -553,7 +553,7 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
                           >
                             <div className="raci-cell-code">
                               {cell.codes.length ? cell.codes.map(code => (
-                                <span key={code} className={"raci-code-badge raci-code-" + code} title={codeLabel[code]}>{code}</span>
+                                <span key={code} className={`raci-code-badge raci-code-${code}` } title={codeLabel[code]}>{code}</span>
                               )) : '—'}
                             </div>
                             <div className="raci-cell-status">
