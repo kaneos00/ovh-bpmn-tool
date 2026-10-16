@@ -11,6 +11,7 @@ import { useBpmnLayout } from './hooks/useBpmnLayout';
 import { useBpmnLayoutBreadcrumbs } from './hooks/useBpmnLayoutBreadcrumbs';
 import { Header } from '../../Components/GenericComponents/Header/Header';
 import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
+import { ImpersonationBanner } from '../../Components/GenericComponents/ImpersonationBanner/ImpersonationBanner';
 import { FolderTree } from '../../Components/BusinessComponents/FolderTree';
 import {
   BpmnContentLoading,
@@ -36,6 +37,17 @@ export const Component = () => {
   const [folderOpen, setFolderOpen] = useState(false);
   const [sidebarSection, setSidebarSection] = useState<'resources' | 'activities' | 'raci'>('resources');
   const [selectedElementId, setSelectedElementId] = useState<string | null>(requestedElementId);
+  const [globalRole, setGlobalRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
+    fetch(`${apiBase}/auth/session`, { credentials: 'same-origin' })
+      .then(async response => (response.ok ? response.json() : null))
+      .then(session => { if (mounted) setGlobalRole(session?.role ?? null); })
+      .catch(() => { if (mounted) setGlobalRole(null); });
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     setSelectedElementId(requestedElementId);
@@ -120,9 +132,11 @@ export const Component = () => {
               onClick={() => { setSidebarSection('raci'); setFolderOpen(true); }}>
               <GroupsOutlined />
             </IconButton>
-            <IconButton size="sm" variant="plain" title="Projets" aria-label="Accéder aux projets" onClick={() => navigate('/projects')}>
-              <WorkspacesOutlined />
-            </IconButton>
+{(globalRole === 'admin' || globalRole === 'modeler') && (
+              <IconButton size="sm" variant="plain" title="Projets" aria-label="Accéder aux projets" onClick={() => navigate('/projects')}>
+                <WorkspacesOutlined />
+              </IconButton>
+            )}
           </Box>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, overflow: 'hidden' }}>
@@ -155,12 +169,14 @@ export const Component = () => {
                     selectedId={resourceId}
                     onNodeClick={callbacks.folderTree.onFolderTreeItemClick}
                   />
-                  <Box sx={{ px: 1.5, py: 1 }}>
-                    <Button size="sm" variant="outlined" color="neutral" fullWidth
-                      startDecorator={<WorkspacesOutlined />} onClick={() => navigate('/projects')}>
-                      Gérer les projets
-                    </Button>
-                  </Box>
+{(globalRole === 'admin' || globalRole === 'modeler') && (
+                    <Box sx={{ px: 1.5, py: 1 }}>
+                      <Button size="sm" variant="outlined" color="neutral" fullWidth
+                        startDecorator={<WorkspacesOutlined />} onClick={() => navigate('/projects')}>
+                        Gérer les projets
+                      </Button>
+                    </Box>
+                  )}
                 </>
               )}
 
@@ -218,6 +234,7 @@ export const Component = () => {
           <Await resolve={resource}>
             {resource && (
               <>
+                <ImpersonationBanner />
                 <WorkspaceNavigation />
                 <Header
                   title={resource.name}

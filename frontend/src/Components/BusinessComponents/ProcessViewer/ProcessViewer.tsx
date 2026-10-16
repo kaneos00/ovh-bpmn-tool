@@ -9,6 +9,8 @@ type ProcessViewerProps = {
   contentId: string;
   selectedElementId?: string | null;
   onElementSelect?: (elementId: string) => void;
+  onToggleInfoPanel?: () => void;
+  infoPanelOpen?: boolean;
 };
 
 export const ProcessViewer = ({
@@ -16,6 +18,8 @@ export const ProcessViewer = ({
   contentId,
   selectedElementId,
   onElementSelect,
+  onToggleInfoPanel,
+  infoPanelOpen = false,
 }: ProcessViewerProps) => {
   const {
     viewerRef,
@@ -45,6 +49,9 @@ export const ProcessViewer = ({
           Navigation du diagramme
         </Typography>
         <Stack direction="row" spacing={0.5} alignItems="center">
+          {onToggleInfoPanel && (
+            <Button size="sm" variant={infoPanelOpen ? 'soft' : 'outlined'} color="neutral" onClick={onToggleInfoPanel} aria-label={infoPanelOpen ? 'Masquer les informations' : 'Afficher les informations'} title={infoPanelOpen ? 'Masquer les informations' : 'Afficher les informations'}>Infos</Button>
+          )}
           <Button size="sm" variant="outlined" color="neutral" onClick={zoomOut} aria-label="Zoom arrière" title="Zoom arrière">−</Button>
           <Button size="sm" variant="outlined" color="neutral" onClick={zoomIn} aria-label="Zoom avant" title="Zoom avant">+</Button>
           <Button size="sm" variant="soft" color="neutral" onClick={resetZoom} aria-label="Zoom 1:1" title="Afficher à l’échelle 1:1">1:1</Button>

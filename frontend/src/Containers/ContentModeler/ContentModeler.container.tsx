@@ -12,6 +12,7 @@ import { useModelerInstance } from '../../shared/hooks/useModelerInstance';
 import { useResource } from '../../shared/hooks/useResource';
 import type { ContentModelerRouteParams } from '.';
 import { useCallActivityNavigation } from '../../shared/hooks/useCallActivityNavigation';
+import { ImpersonationBanner } from '../../Components/GenericComponents/ImpersonationBanner/ImpersonationBanner';
 
 export const Component = () => {
   // share modeler instance in order to avoid create instance in useContentModeler and useModeler
@@ -56,6 +57,7 @@ export const Component = () => {
       {actionData && actionData.formAction === 'saveContentBeforePublish' && (
         <Navigate to="./publish" />
       )}
+      <ImpersonationBanner />
       <ModelerActionBar
         resourceId={resourceId}
         hasLintError={hasLintError}

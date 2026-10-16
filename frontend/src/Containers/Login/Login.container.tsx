@@ -114,7 +114,7 @@ export const Component = () => {
           <Box component="form" onSubmit={handleSubmit}>
             <Stack spacing={2}>
               <FormControl required>
-                <FormLabel>Identifiant</FormLabel>
+                <FormLabel>Identifiant ou e-mail</FormLabel>
                 <Input
                   autoComplete="username"
                   value={username}

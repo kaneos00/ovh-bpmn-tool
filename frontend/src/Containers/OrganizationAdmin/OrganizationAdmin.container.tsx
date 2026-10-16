@@ -451,6 +451,14 @@ export const Component = () => {
         )}
         {actionError && <Alert color="danger">{actionError}</Alert>}
 
+        {activeSection === 'users' && (
+          <Card variant="outlined" sx={{ gap: 1 }}>
+            <Typography level="title-lg">Comptes et rôles globaux</Typography>
+            <Typography level="body-sm" sx={{ color: 'text.secondary' }}>La gestion des comptes locaux, des mots de passe et des rôles globaux est séparée des adhésions par projet.</Typography>
+            <Box><Button onClick={() => navigate('/organization/accounts')}>Gérer les comptes utilisateurs →</Button></Box>
+          </Card>
+        )}
+
         {activeSection === 'users' && overview && (
           <Card id="org-add-access" variant="outlined" sx={{ gap: 1.5 }}>
             <Typography level="title-lg">Ajouter un accès à un projet</Typography>

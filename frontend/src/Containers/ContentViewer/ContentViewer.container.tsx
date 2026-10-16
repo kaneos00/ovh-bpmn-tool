@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -59,9 +59,11 @@ const statusMarker = {
 export const Component = () => {
   const { resourceId, contentId } = useContentViewer();
   const navigate = useNavigate();
-  const [folderOpen, setFolderOpen] = useState(true);
+  const [searchParams] = useSearchParams();
+  const [folderOpen, setFolderOpen] = useState(false);
   const [navigationSection, setNavigationSection] = useState<'resources' | 'processes' | 'activities'>('resources');
   const [infoTab, setInfoTab] = useState<0 | 1>(0);
+  const [infoPanelOpen, setInfoPanelOpen] = useState(false);
   const [actorFilter, setActorFilter] = useState('');
   const [codeFilter, setCodeFilter] = useState<RaciCode | ''>('');
   const [issuesOnly, setIssuesOnly] = useState(false);
@@ -70,8 +72,8 @@ export const Component = () => {
   );
 
   useEffect(() => {
-    setSelectedActivityId(null);
-  }, [resourceId, contentId]);
+    setSelectedActivityId(searchParams.get('elementId'));
+  }, [resourceId, contentId, searchParams]);
 
   const { data: contents = [] } = useQuery(contentsQuery(resourceId));
   const { data: xmlContent } = useQuery(
@@ -130,7 +132,7 @@ export const Component = () => {
   ]);
 
   return (
-    <Box className={`viewerLayout ${folderOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}>
+    <Box className={`viewerLayout ${folderOpen ? 'sidebar-open' : 'sidebar-collapsed'} ${infoPanelOpen ? 'info-open' : ''}`}>
       <Sheet
         className={`viewerFolderPanel ${folderOpen ? 'open' : 'collapsed'}`}
         variant="outlined"
@@ -202,7 +204,7 @@ export const Component = () => {
                   variant={infoTab === 1 ? 'soft' : 'plain'}
                   color={infoTab === 1 ? 'primary' : 'neutral'}
                   startDecorator={<GroupsOutlined />}
-                  onClick={() => setInfoTab(1)}
+                  onClick={() => { setInfoTab(1); setInfoPanelOpen(true); }}
                   fullWidth
                 >
                   RACI
@@ -254,10 +256,13 @@ export const Component = () => {
           resourceId={resourceId}
           contentId={contentId}
           selectedElementId={selectedActivityId}
+          onElementSelect={setSelectedActivityId}
+          onToggleInfoPanel={() => setInfoPanelOpen(value => !value)}
+          infoPanelOpen={infoPanelOpen}
         />
       </Box>
 
-      <Sheet className={`viewerInfoPanel ${infoTab === 1 ? 'mobile-visible' : ''}`} variant="outlined">
+      <Sheet className={`viewerInfoPanel ${infoPanelOpen ? 'open mobile-visible' : ''}`} variant="outlined">
         <Stack spacing={1.5} className="viewerInfoHeader">
           <Stack direction="row" alignItems="center" justifyContent="space-between">
             <Typography level="title-lg">Informations du processus</Typography>
@@ -265,9 +270,9 @@ export const Component = () => {
               className="viewerInfoClose"
               size="sm"
               variant="plain"
-              onClick={() => setInfoTab(0)}
-              aria-label="Fermer le panneau RACI"
-              title="Fermer le panneau RACI"
+              onClick={() => setInfoPanelOpen(false)}
+              aria-label="Fermer le panneau d’informations"
+              title="Fermer le panneau d’informations"
             >
               <Close />
             </IconButton>
@@ -384,6 +389,7 @@ export const Component = () => {
               {filteredActivities.length ? (
                 <Box sx={{ overflowX: 'auto', maxWidth: '100%' }}>
                   <table
+                    className="viewerRaciTable"
                     aria-label="Matrice RACI en lecture seule"
                     style={{
                       width: '100%',
@@ -478,11 +484,13 @@ export const Component = () => {
                                   opacity: cell.codes.length ? 1 : 0.55,
                                 }}
                               >
-                                <strong>
+                                <div className="raciCodePills">
                                   {cell.codes.length
-                                    ? cell.codes.join('/')
-                                    : '—'}
-                                </strong>
+                                    ? cell.codes.map(code => (
+                                        <span key={code} className={`raciCodePill raciCodePill-${code}`}>{code}</span>
+                                      ))
+                                    : <span className="raciCodePill raciCodePill-empty">—</span>}
+                                </div>
                                 <div>
                                   {statusMarker[cell.status]}{' '}
                                   {STATUS_LABELS[cell.status]}

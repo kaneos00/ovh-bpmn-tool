@@ -29,10 +29,10 @@ Le compte de démonstration défini par `DEMO_AUTH_USER` est aussi créé comme 
 - `DATABASE_NAME` : par exemple `bpmn_v2_demo`.
 - `DATABASE_USER` : par exemple `bpmn_demo`.
 - `DATABASE_PASSWORD` : mot de passe PostgreSQL dédié et robuste.
-- `DEMO_AUTH_USER` : identifiant de connexion et identifiant utilisateur des deux projets, par exemple `demo-v2`.
-- `DEMO_AUTH_PASSWORD` : mot de passe de connexion dédié et robuste.
+- `DEMO_AUTH_USER` : identifiant du premier administrateur et identifiant membre des projets de démonstration, par exemple `demo-v2`.
+- `DEMO_AUTH_PASSWORD` : mot de passe initial du premier administrateur. Après la création du premier compte, les identifiants sont vérifiés dans PostgreSQL et non plus contre ces variables.
 - `AUTH_SESSION_SECRET` : secret aléatoire d’au moins 32 octets, utilisé pour signer les cookies de session.
-- `DEMO_AUTH_GROUPS` : groupes accordés au compte de démonstration (par défaut `bpmn-tool-readwrite-demo,bpmn-tool-admin-demo`).
+- Les mots de passe sont hachés avec scrypt. La gestion des comptes est réservée aux administrateurs ; le dernier administrateur actif ne peut pas être désactivé ni rétrogradé.
 
 Ne pas réutiliser de mot de passe de production. Ne pas exposer directement le backend ou PostgreSQL sur Internet : seul le service frontend doit être routé par Coolify. Le backend vérifie les identifiants et émet un cookie de session signé, `HttpOnly` et `SameSite=Lax` (également `Secure` derrière HTTPS). Nginx valide ce cookie par `auth_request`, puis injecte les en-têtes d'identité de confiance et écrase les valeurs envoyées par le navigateur.
 
@@ -46,4 +46,4 @@ Les scripts PostgreSQL d'initialisation ne s'exécutent que lorsque le volume es
 
 La suppression du volume PostgreSQL efface les données de démonstration. Ne supprimer le volume que si cette perte est intentionnelle. Pour mettre à jour le schéma après le premier démarrage, ajouter une migration dédiée.
 
-La stack utilise un seul compte de démonstration et une connexion par formulaire avec session signée. Par défaut, ce compte reçoit les groupes `bpmn-tool-readwrite-demo` et `bpmn-tool-admin-demo` pour tester l’administration organisationnelle. Cette élévation est limitée à cette stack isolée et ne doit pas être copiée dans une configuration de production. Ce mécanisme n’est pas un annuaire multi-utilisateur : une instance de production doit être raccordée à un fournisseur d’identité (OIDC/SSO ou proxy d’authentification d’entreprise) avant toute exposition à des utilisateurs réels.
+La stack fournit des comptes locaux multi-utilisateurs avec connexion par identifiant ou e-mail, mots de passe hachés, rôles globaux Administrateur/Modélisateur/Lecteur et rôles par projet. Le premier compte est initialisé comme administrateur à partir des secrets Coolify lorsque la table des comptes est vide. La stack reste une démonstration isolée : avant une exposition en production, faire auditer la configuration de sécurité, les sauvegardes et les politiques d’accès.

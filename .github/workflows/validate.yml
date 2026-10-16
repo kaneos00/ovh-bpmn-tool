@@ -191,6 +191,92 @@ jobs:
             http://127.0.0.1:18080/bpmn-api/auth/session)"
           test "$status" = "200"
 
+          # Exercise local-account administration, email login, role mapping and password reset.
+          created_user="$(curl --fail --silent --show-error \
+            --cookie /tmp/bpmn-v2-ci.cookies \
+            --header 'content-type: application/json' \
+            --data '{"username":"ci-reader","email":"ci-reader@example.com","password":"ci-only-reader-password","role":"viewer"}' \
+            http://127.0.0.1:18080/bpmn-api/auth/users)"
+          echo "$created_user" | grep -q '"role":"viewer"'
+          reader_id="$(printf '%s' "$created_user" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
+
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --cookie /tmp/bpmn-v2-ci.cookies \
+            http://127.0.0.1:18080/bpmn-api/auth/users)"
+          test "$status" = "200"
+
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --cookie /tmp/bpmn-v2-ci.cookies \
+            --request POST --header 'content-type: application/json' \
+            --data '{"newPassword":"ci-reader-reset-password"}' \
+            "http://127.0.0.1:18080/bpmn-api/auth/users/$reader_id/password")"
+          test "$status" = "201"
+
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --header 'content-type: application/json' \
+            --data '{"username":"ci-reader@example.com","password":"ci-reader-reset-password"}' \
+            --cookie-jar /tmp/bpmn-v2-reader.cookies \
+            http://127.0.0.1:18080/bpmn-api/auth/login)"
+          test "$status" = "200"
+
+          reader_session="$(curl --fail --silent --show-error \
+            --cookie /tmp/bpmn-v2-reader.cookies \
+            http://127.0.0.1:18080/bpmn-api/auth/session)"
+          echo "$reader_session" | grep -q '"role":"viewer"'
+          echo "$reader_session" | grep -q 'bpmn-tool-readonly-demo'
+
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --cookie /tmp/bpmn-v2-reader.cookies \
+            http://127.0.0.1:18080/bpmn-api/auth/users)"
+          test "$status" = "403"
+
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --cookie /tmp/bpmn-v2-ci.cookies --cookie-jar /tmp/bpmn-v2-ci.cookies \
+            --request POST \
+            "http://127.0.0.1:18080/bpmn-api/auth/users/$reader_id/impersonate")"
+          test "$status" = "200"
+
+          impersonated_session="$(curl --fail --silent --show-error \
+            --cookie /tmp/bpmn-v2-ci.cookies \
+            http://127.0.0.1:18080/bpmn-api/auth/session)"
+          echo "$impersonated_session" | grep -q '"userId":"ci-reader"'
+          echo "$impersonated_session" | grep -q '"role":"viewer"'
+          echo "$impersonated_session" | grep -q '"impersonating":true'
+
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --cookie /tmp/bpmn-v2-ci.cookies \
+            http://127.0.0.1:18080/bpmn-api/auth/users)"
+          test "$status" = "403"
+
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --cookie /tmp/bpmn-v2-ci.cookies --cookie-jar /tmp/bpmn-v2-ci.cookies \
+            --request POST http://127.0.0.1:18080/bpmn-api/auth/impersonation/stop)"
+          test "$status" = "200"
+
+          admin_session="$(curl --fail --silent --show-error \
+            --cookie /tmp/bpmn-v2-ci.cookies \
+            http://127.0.0.1:18080/bpmn-api/auth/session)"
+          echo "$admin_session" | grep -q '"role":"admin"'
+          echo "$admin_session" | grep -q '"impersonating":false'
+
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --cookie /tmp/bpmn-v2-ci.cookies \
+            http://127.0.0.1:18080/bpmn-api/auth/users)"
+          test "$status" = "200"
+
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --cookie /tmp/bpmn-v2-reader.cookies \
+            --request POST --header 'content-type: application/json' \
+            --data '{"currentPassword":"ci-reader-reset-password","newPassword":"ci-reader-final-password"}' \
+            http://127.0.0.1:18080/bpmn-api/auth/password)"
+          test "$status" = "201"
+
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --header 'content-type: application/json' \
+            --data '{"username":"ci-reader","password":"ci-reader-final-password"}' \
+            http://127.0.0.1:18080/bpmn-api/auth/login)"
+          test "$status" = "200"
+
           workspace_payload="$(curl --fail --silent --show-error \
             --cookie /tmp/bpmn-v2-ci.cookies \
             http://127.0.0.1:18080/bpmn-api/projects/me/workspace)"
