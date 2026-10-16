@@ -55,6 +55,21 @@ const resultIndicatorColor = (detail: string) => {
 
 export const WorkspaceNavigation = () => {
   const location = useLocation();
+  const [globalRole, setGlobalRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\\/+$/, '');
+    fetch(`${apiBase}/auth/session`, { credentials: 'same-origin' })
+      .then(async response => (response.ok ? response.json() : null))
+      .then(session => {
+        if (mounted) setGlobalRole(session?.role ?? null);
+      })
+      .catch(() => {
+        if (mounted) setGlobalRole(null);
+      });
+    return () => { mounted = false; };
+  }, []);
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [scope, setScope] = useState<SearchScope>('all');
@@ -355,7 +370,13 @@ export const WorkspaceNavigation = () => {
         </Box>
 
         <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-          {destinations.map(destination => {
+          {destinations
+            .filter(destination => {
+              if (destination.label === 'Administration') return globalRole === 'admin';
+              if (destination.label === 'Projets') return globalRole !== 'viewer';
+              return true;
+            })
+            .map(destination => {
             const active = destination.matches(location.pathname);
             return (
               <Button key={destination.path} size="sm" variant={active ? 'solid' : 'plain'}
