@@ -40,10 +40,16 @@ export const ImpersonationBanner = () => {
         credentials: 'same-origin',
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.message || 'Impossible de quitter la simulation.');
+      if (!response.ok) {
+        throw new Error(data.message || 'Impossible de quitter la simulation.');
+      }
       window.location.reload();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Impossible de quitter la simulation.');
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : 'Impossible de quitter la simulation.',
+      );
       setBusy(false);
     }
   };
@@ -52,14 +58,20 @@ export const ImpersonationBanner = () => {
     <Alert
       color="warning"
       variant="soft"
-      sx={{ mb: 1.5, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}
+      sx={{
+        mb: 1.5,
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+      }}
       endDecorator={
         <Button size="sm" color="warning" variant="solid" loading={busy} onClick={stop}>
           Revenir à mon compte administrateur
         </Button>
       }
     >
-      <strong>Simulation de compte</strong> — vous utilisez actuellement le profil de {session.userId}.
+      <strong>Simulation de compte</strong> — vous utilisez actuellement le profil de{' '}
+      {session.userId}.
       {session.impersonatorUserId ? ` Administrateur : ${session.impersonatorUserId}.` : ''}
       {error ? ` ${error}` : ''}
     </Alert>
