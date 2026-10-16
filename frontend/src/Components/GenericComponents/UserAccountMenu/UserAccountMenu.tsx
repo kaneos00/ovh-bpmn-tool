@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Avatar,
@@ -53,6 +53,14 @@ export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
   };
 
   const username = session?.userId || 'Compte';
+  const roleLabel = (() => {
+    switch (session?.role) {
+      case 'admin': return 'Administrateur';
+      case 'modeler': return 'Modélisateur';
+      case 'viewer': return 'Lecteur';
+      default: return 'Mon compte';
+    }
+  })();
   const initials = username.split(/[._\s-]+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toLocaleUpperCase('fr') || 'U';
 
   return (
@@ -83,7 +91,7 @@ export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
             {username}
           </Typography>
           <Typography level="body-xs" sx={{ color: 'inherit', opacity: 0.72 }}>
-            {session?.role === 'admin' ? 'Administrateur' : session?.role === 'modeler' ? 'Modélisateur' : session?.role === 'viewer' ? 'Lecteur' : 'Mon compte'}
+            {roleLabel}
           </Typography>
         </Box>
       </MenuButton>
