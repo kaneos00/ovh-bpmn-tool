@@ -246,7 +246,7 @@ export const ProjectRaciPanel = ({
                     return (
                       <Box key={code} sx={{ mb: 0.75 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
-                          <Chip size="sm" variant="soft" sx={{ minWidth: 26, justifyContent: 'center', borderRadius: '5px', fontWeight: 800, bgcolor: CODE_STYLES[code].background, border: '1px solid ' + CODE_STYLES[code].border, color: CODE_STYLES[code].color }}>
+                          <Chip size="sm" variant="soft" sx={{ minWidth: 26, justifyContent: 'center', borderRadius: '5px', fontWeight: 800, bgcolor: CODE_STYLES[code].background, border: `1px solid ${CODE_STYLES[code].border}`, color: CODE_STYLES[code].color }}>
                             {code}
                           </Chip>
                           <Typography level="body-xs" textColor="neutral">{CODE_LABELS[code]}</Typography>
