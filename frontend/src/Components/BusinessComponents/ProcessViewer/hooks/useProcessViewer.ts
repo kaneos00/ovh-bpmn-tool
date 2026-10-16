@@ -17,12 +17,14 @@ export const useProcessViewer = (
   const { getViewerInstance } = useModelerInstance();
   const viewerRef = useRef<HTMLDivElement>(null);
   const selectedIdRef = useRef<string | null | undefined>(selectedElementId);
+  const onElementSelectRef = useRef(onElementSelect);
   const importedRef = useRef(false);
   const highlightedIdRef = useRef<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [minimapVisible, setMinimapVisible] = useState(false);
 
   selectedIdRef.current = selectedElementId;
+  onElementSelectRef.current = onElementSelect;
 
   const { data: xmlContent } = useQuery(
     getXmlContentQuery(resourceId, contentId),
@@ -201,31 +203,6 @@ export const useProcessViewer = (
   applySelectionRef.current = applySelection;
 
   useEffect(() => {
-    if (!onElementSelect) return undefined;
-
-    const eventBus = viewer.get('eventBus') as {
-      on: (event: string, listener: (event: any) => void) => void;
-      off: (event: string, listener: (event: any) => void) => void;
-    };
-    const onElementClick = (event: any) => {
-      const element = event?.element;
-      if (!element?.id || typeof element.type !== 'string') return;
-
-      const isSelectableActivity =
-        element.type === 'bpmn:Task' ||
-        element.type.endsWith('Task') ||
-        element.type === 'bpmn:CallActivity' ||
-        element.type === 'bpmn:SubProcess' ||
-        element.type === 'bpmn:Transaction';
-
-      if (isSelectableActivity) onElementSelect(element.id);
-    };
-
-    eventBus.on('element.click', onElementClick);
-    return () => eventBus.off('element.click', onElementClick);
-  }, [viewer, onElementSelect]);
-
-  useEffect(() => {
     let cancelled = false;
 
     if (!viewerRef.current || !xmlContent) {
@@ -243,10 +220,30 @@ export const useProcessViewer = (
     setMinimapVisible(false);
     setImportError(null);
     viewer.attachTo(viewerRef.current);
+    const eventBus = viewer.get('eventBus') as {
+      on: (event: string, listener: (event: any) => void) => void;
+      off: (event: string, listener: (event: any) => void) => void;
+    };
+    let clickListenerAttached = false;
+    const onElementClick = (event: any) => {
+      const element = event?.element;
+      if (!element?.id || typeof element.type !== 'string') return;
+      const isSelectableActivity =
+        element.type === 'bpmn:Task' ||
+        element.type.endsWith('Task') ||
+        element.type === 'bpmn:CallActivity' ||
+        element.type === 'bpmn:SubProcess' ||
+        element.type === 'bpmn:Transaction';
+      if (isSelectableActivity) onElementSelectRef.current?.(element.id);
+    };
 
     viewer.importXML(xmlContent)
       .then(() => {
         if (cancelled) return;
+        // Register selection only after the diagram import has completed. This
+        // avoids a stale click handler when returning to the viewer after editing.
+        eventBus.on('element.click', onElementClick);
+        clickListenerAttached = true;
         fitDiagramToWidth();
         importedRef.current = true;
         setMinimapForDiagram();
@@ -266,6 +263,7 @@ export const useProcessViewer = (
 
     return () => {
       cancelled = true;
+      if (clickListenerAttached) eventBus.off('element.click', onElementClick);
     };
   }, [xmlContent, resourceId, contentId, viewer]);
 
