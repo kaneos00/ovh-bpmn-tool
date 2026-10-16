@@ -28,7 +28,8 @@ Les tâches préfixées par un rôle indiquent l'acteur métier principal. Le se
 
 ## Fichiers BPMN
 
-Les fichiers sont autonomes et importables dans l'application. Les bpmn:callActivity utilisent les identifiants calledElement ci-dessus pour exprimer les liens inter-processus. Comme l'application est un référentiel de modèles (et non un moteur d'exécution BPMN), ces appels représentent les liens de conception et ne déclenchent pas une exécution automatique.
+- `00-organisation-complete.bpmn` est le modèle intégré de référence : il contient les cinq processus dans un même fichier BPMN et les quatre `bpmn:callActivity` pointent vers des processus définis dans ce même fichier. C'est le fichier à importer pour vérifier les liens inter-processus.
+- `01-recrutement.bpmn`, `02-evaluation-competences.bpmn`, `03-formation.bpmn`, `04-gouvernance-et-capacites.bpmn` et `05-developpement-logiciel.bpmn` sont des exemples individuels pour consulter ou importer chaque diagramme séparément. Les appels inter-processus y restent des références vers les identifiants du modèle intégré ; pour conserver leur résolution, utiliser le fichier complet. Comme l'application est un référentiel de modèles (et non un moteur d'exécution BPMN), ces appels représentent les liens de conception et ne déclenchent pas une exécution automatique.
 
 ## Installation des données de démonstration
 
