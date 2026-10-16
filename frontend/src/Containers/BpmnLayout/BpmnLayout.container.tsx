@@ -11,6 +11,7 @@ import { useBpmnLayout } from './hooks/useBpmnLayout';
 import { useBpmnLayoutBreadcrumbs } from './hooks/useBpmnLayoutBreadcrumbs';
 import { Header } from '../../Components/GenericComponents/Header/Header';
 import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
+import { ImpersonationBanner } from '../../Components/GenericComponents/ImpersonationBanner/ImpersonationBanner';
 import { FolderTree } from '../../Components/BusinessComponents/FolderTree';
 import {
   BpmnContentLoading,
@@ -218,6 +219,7 @@ export const Component = () => {
           <Await resolve={resource}>
             {resource && (
               <>
+                <ImpersonationBanner />
                 <WorkspaceNavigation />
                 <Header
                   title={resource.name}
