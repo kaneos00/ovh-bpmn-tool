@@ -231,6 +231,40 @@ jobs:
           test "$status" = "403"
 
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --cookie /tmp/bpmn-v2-ci.cookies --cookie-jar /tmp/bpmn-v2-ci.cookies \
+            --request POST \
+            "http://127.0.0.1:18080/bpmn-api/auth/users/$reader_id/impersonate")"
+          test "$status" = "200"
+
+          impersonated_session="$(curl --fail --silent --show-error \
+            --cookie /tmp/bpmn-v2-ci.cookies \
+            http://127.0.0.1:18080/bpmn-api/auth/session)"
+          echo "$impersonated_session" | grep -q '"userId":"ci-reader"'
+          echo "$impersonated_session" | grep -q '"role":"viewer"'
+          echo "$impersonated_session" | grep -q '"impersonating":true'
+
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --cookie /tmp/bpmn-v2-ci.cookies \
+            http://127.0.0.1:18080/bpmn-api/auth/users)"
+          test "$status" = "403"
+
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --cookie /tmp/bpmn-v2-ci.cookies --cookie-jar /tmp/bpmn-v2-ci.cookies \
+            --request POST http://127.0.0.1:18080/bpmn-api/auth/impersonation/stop)"
+          test "$status" = "200"
+
+          admin_session="$(curl --fail --silent --show-error \
+            --cookie /tmp/bpmn-v2-ci.cookies \
+            http://127.0.0.1:18080/bpmn-api/auth/session)"
+          echo "$admin_session" | grep -q '"role":"admin"'
+          echo "$admin_session" | grep -q '"impersonating":false'
+
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --cookie /tmp/bpmn-v2-ci.cookies \
+            http://127.0.0.1:18080/bpmn-api/auth/users)"
+          test "$status" = "200"
+
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-reader.cookies \
             --request POST --header 'content-type: application/json' \
             --data '{"currentPassword":"ci-reader-reset-password","newPassword":"ci-reader-final-password"}' \
