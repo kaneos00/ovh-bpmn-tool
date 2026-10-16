@@ -37,6 +37,17 @@ export const Component = () => {
   const [folderOpen, setFolderOpen] = useState(false);
   const [sidebarSection, setSidebarSection] = useState<'resources' | 'activities' | 'raci'>('resources');
   const [selectedElementId, setSelectedElementId] = useState<string | null>(requestedElementId);
+  const [globalRole, setGlobalRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\\/+$/, '');
+    fetch(`${apiBase}/auth/session`, { credentials: 'same-origin' })
+      .then(async response => (response.ok ? response.json() : null))
+      .then(session => { if (mounted) setGlobalRole(session?.role ?? null); })
+      .catch(() => { if (mounted) setGlobalRole(null); });
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     setSelectedElementId(requestedElementId);
@@ -121,9 +132,11 @@ export const Component = () => {
               onClick={() => { setSidebarSection('raci'); setFolderOpen(true); }}>
               <GroupsOutlined />
             </IconButton>
-            <IconButton size="sm" variant="plain" title="Projets" aria-label="Accéder aux projets" onClick={() => navigate('/projects')}>
-              <WorkspacesOutlined />
-            </IconButton>
+{(globalRole === 'admin' || globalRole === 'modeler') && (
+              <IconButton size="sm" variant="plain" title="Projets" aria-label="Accéder aux projets" onClick={() => navigate('/projects')}>
+                <WorkspacesOutlined />
+              </IconButton>
+            )}
           </Box>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, overflow: 'hidden' }}>
@@ -156,12 +169,14 @@ export const Component = () => {
                     selectedId={resourceId}
                     onNodeClick={callbacks.folderTree.onFolderTreeItemClick}
                   />
-                  <Box sx={{ px: 1.5, py: 1 }}>
-                    <Button size="sm" variant="outlined" color="neutral" fullWidth
-                      startDecorator={<WorkspacesOutlined />} onClick={() => navigate('/projects')}>
-                      Gérer les projets
-                    </Button>
-                  </Box>
+{(globalRole === 'admin' || globalRole === 'modeler') && (
+                    <Box sx={{ px: 1.5, py: 1 }}>
+                      <Button size="sm" variant="outlined" color="neutral" fullWidth
+                        startDecorator={<WorkspacesOutlined />} onClick={() => navigate('/projects')}>
+                        Gérer les projets
+                      </Button>
+                    </Box>
+                  )}
                 </>
               )}
 
