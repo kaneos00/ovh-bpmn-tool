@@ -373,7 +373,7 @@ export const WorkspaceNavigation = () => {
           {destinations
             .filter(destination => {
               if (destination.label === 'Administration') return globalRole === 'admin';
-              if (destination.label === 'Projets') return globalRole !== 'viewer';
+              if (destination.label === 'Projets') return globalRole === 'admin' || globalRole === 'modeler';
               return true;
             })
             .map(destination => {
