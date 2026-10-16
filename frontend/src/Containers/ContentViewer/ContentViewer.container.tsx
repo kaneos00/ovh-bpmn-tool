@@ -131,7 +131,7 @@ export const Component = () => {
   ]);
 
   return (
-    <Box className={`viewerLayout ${folderOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}>
+    <Box className={`viewerLayout ${folderOpen ? 'sidebar-open' : 'sidebar-collapsed'} ${infoPanelOpen ? 'info-open' : ''}`}>
       <Sheet
         className={`viewerFolderPanel ${folderOpen ? 'open' : 'collapsed'}`}
         variant="outlined"
