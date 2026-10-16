@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import '../../../raci.css';
 import {
   deriveRaciMatrix,
   getConfiguredRaciActorList,
