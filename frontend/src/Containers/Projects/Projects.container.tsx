@@ -26,6 +26,7 @@ import { Resource } from '../../Types';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import { ProjectRaciPanel } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciPanel';
 import { ProjectRaciManager } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciManager';
+import { ProjectProcessHierarchy } from './ProjectProcessHierarchy';
 import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
 
 type Project = {
@@ -474,6 +475,14 @@ export const Component = () => {
               </Card>
             ))}
           </Stack>
+          <ProjectProcessHierarchy
+            processes={(linkedProcessesQuery.data ?? [])
+              .filter(link => Boolean(link.resource))
+              .map(link => ({
+                resourceId: link.resourceId,
+                name: link.resource?.name ?? link.resourceId,
+              }))}
+          />
           </TabPanel>
           <TabPanel value={2} sx={{ px: 0, py: 2 }}>
           <Card variant="outlined">
