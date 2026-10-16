@@ -22,6 +22,8 @@ import {
 } from '@mui/joy';
 import { useMutation, useQueryClient } from 'react-query';
 import { apiClient } from '../../../../queryClient';
+import { HttpError } from '../../../../shared/api/httpError';
+import { useSnackbar } from '../../../../shared/hooks/useSnackbar';
 
 import {
   ResourceAction,
@@ -42,6 +44,7 @@ export const ResourceActions = ({
   const [cloneDialogOpen, setCloneDialogOpen] = useState(false);
   const [cloneName, setCloneName] = useState(`${resource.name} (copie)`);
   const [cloneError, setCloneError] = useState<string | null>(null);
+  const { showAlert } = useSnackbar();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const cloneProcess = useMutation(
@@ -53,7 +56,47 @@ export const ResourceActions = ({
         await queryClient.invalidateQueries(['resources']);
         navigate(`/${clonedResource.id}/modeler`);
       },
-      onError: (error: Error) => setCloneError(error.message),
+      onError: (error: unknown) => {
+        const apiMessage =
+          error instanceof HttpError
+            ? String(error.errorResponse?.message ?? '').trim()
+            : '';
+        const normalizedMessage = apiMessage.toLowerCase();
+        let message: string;
+
+        if (error instanceof HttpError && error.status === 409) {
+          message =
+            'Le clonage a échoué : une ressource portant déjà ce nom existe dans ce dossier. Modifiez le nom de la copie puis réessayez.';
+        } else if (error instanceof HttpError && error.status === 403) {
+          message = normalizedMessage.includes('modeler access')
+            ? 'Le clonage est refusé : vous devez avoir le rôle de modélisateur ou d’administrateur sur tous les projets liés à ce processus.'
+            : 'Le clonage est refusé par les droits d’accès. Vérifiez votre rôle et les droits associés au processus source.';
+        } else if (error instanceof HttpError && error.status === 400) {
+          message = normalizedMessage.includes('no bpmn content')
+            ? 'Ce processus ne contient aucun diagramme BPMN exploitable à copier. Ouvrez le processus source, vérifiez son contenu puis réessayez.'
+            : 'Le serveur a refusé le clonage. Vérifiez que le processus source contient un diagramme BPMN et que le nom de la copie est valide.';
+        } else if (error instanceof HttpError && error.status === 404) {
+          message =
+            'Le processus source est introuvable ou n’est plus accessible. Actualisez la liste puis réessayez.';
+        } else if (error instanceof HttpError && error.status === 401) {
+          message =
+            'Votre session n’est plus valide. Reconnectez-vous puis réessayez de cloner le processus.';
+        } else if (error instanceof HttpError && error.status >= 500) {
+          message =
+            'Une erreur du serveur empêche le clonage. Réessayez plus tard ; si le problème persiste, consultez les journaux du serveur.';
+        } else if (error instanceof TypeError) {
+          message =
+            'Impossible de joindre le serveur. Vérifiez votre connexion puis réessayez.';
+        } else if (apiMessage) {
+          message = `Le clonage a échoué : ${apiMessage}`;
+        } else {
+          message =
+            'Le clonage a échoué pour une raison inattendue. Réessayez ; si le problème persiste, consultez les journaux du serveur.';
+        }
+
+        setCloneError(message);
+        showAlert({ message, severity: 'danger' });
+      },
     },
   );
 

@@ -21,6 +21,7 @@ export class ResourceMapper {
           name: nameResult.ok,
           description: source.description,
           parentId: source.parentId,
+          sourceResourceId: source.sourceResourceId,
           depth: source.depth,
           type: source.type,
           createdBy: source.createdBy,
@@ -39,6 +40,7 @@ export class ResourceMapper {
     resourceEntity.description = source.description;
     resourceEntity.depth = source.depth;
     resourceEntity.parentId = source.parentId;
+    resourceEntity.sourceResourceId = source.sourceResourceId;
     resourceEntity.type = source.type;
     resourceEntity.createdBy = source.createdBy;
     resourceEntity.authToken = source.authToken;
@@ -54,6 +56,7 @@ export class ResourceMapper {
     resourcePresenter.description = source.description;
     resourcePresenter.depth = source.depth;
     resourcePresenter.parentId = source.parentId;
+    resourcePresenter.sourceResourceId = source.sourceResourceId;
     resourcePresenter.type = source.type;
     resourcePresenter.createdBy = source.createdBy;
     resourcePresenter.authToken = source.authToken;

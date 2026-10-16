@@ -64,6 +64,7 @@ export class CreateResourceCommandHandler {
         name: resourceName,
         description: command.description,
         parentId: command.parentId,
+        sourceResourceId: command.sourceResourceId,
         depth: Resource.computeDepth(parentResource?.depth),
         createdBy: command.createdBy,
         type: command.type,

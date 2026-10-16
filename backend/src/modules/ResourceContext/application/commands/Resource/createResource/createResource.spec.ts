@@ -113,4 +113,19 @@ describe('Resource Creation', () => {
       );
     },
   );
+
+  it('retains sourceResourceId for a cloned process', async () => {
+    const { createResourceCommandHandler } = setup();
+    const sourceResourceId = 'a4e84766-0955-4e01-9bac-75f199cb1580';
+
+    const result = await createResourceCommandHandler.execute({
+      name: 'Cloned process',
+      description: 'Independent copy',
+      type: ResourceTypeEnum.Process,
+      createdBy: 'jest-test',
+      sourceResourceId,
+    });
+
+    expect(result.ok?.sourceResourceId).toBe(sourceResourceId);
+  });
 });

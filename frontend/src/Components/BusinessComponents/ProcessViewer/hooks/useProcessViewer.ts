@@ -3,11 +3,16 @@ import { useQuery } from 'react-query';
 
 import { getXmlContentQuery } from '../../../../api/contents/contents.queries';
 import { useModelerInstance } from '../../../../shared/hooks/useModelerInstance';
+import { useCallActivityNavigation } from '../../../../shared/hooks/useCallActivityNavigation';
+
+const ZOOM_STEP = 1.2;
+const DIAGRAM_PADDING = 24;
 
 export const useProcessViewer = (
   resourceId: string,
   contentId: string,
   selectedElementId?: string | null,
+  onElementSelect?: (elementId: string) => void,
 ) => {
   const { getViewerInstance } = useModelerInstance();
   const viewerRef = useRef<HTMLDivElement>(null);
@@ -15,6 +20,7 @@ export const useProcessViewer = (
   const importedRef = useRef(false);
   const highlightedIdRef = useRef<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [minimapVisible, setMinimapVisible] = useState(false);
 
   selectedIdRef.current = selectedElementId;
 
@@ -23,13 +29,159 @@ export const useProcessViewer = (
   );
 
   const viewer = useMemo(() => getViewerInstance(), []);
+  useCallActivityNavigation(viewer, true);
+
+  const alignDiagramTopLeft = () => {
+    const canvas = viewer.get('canvas') as any;
+    const elementRegistry = viewer.get('elementRegistry') as any;
+    const viewport = canvas.viewbox();
+    if (!viewport) return;
+
+    const bounds = elementRegistry
+      .getAll()
+      .filter((element: any) =>
+        element &&
+        !element.labelTarget &&
+        !element.waypoints &&
+        Number.isFinite(element.x) &&
+        Number.isFinite(element.y) &&
+        element.width > 0 &&
+        element.height > 0,
+      )
+      .map((element: any) => canvas.getAbsoluteBBox(element))
+      .filter((bbox: any) => bbox && Number.isFinite(bbox.x) && Number.isFinite(bbox.y));
+
+    if (!bounds.length) return;
+
+    const minX = Math.min(...bounds.map((bbox: any) => bbox.x));
+    const minY = Math.min(...bounds.map((bbox: any) => bbox.y));
+
+    // Preserve the current fit scale while aligning the diagram with the
+    // upper-left edge of the available canvas.
+    canvas.viewbox({
+      x: minX - DIAGRAM_PADDING,
+      y: minY - DIAGRAM_PADDING,
+      width: viewport.width,
+      height: viewport.height,
+    });
+  };
+
+  const getDiagramBounds = () => {
+    const canvas = viewer.get('canvas') as any;
+    const elementRegistry = viewer.get('elementRegistry') as any;
+    const bounds = elementRegistry
+      .getAll()
+      .filter((element: any) =>
+        element &&
+        !element.labelTarget &&
+        !element.waypoints &&
+        Number.isFinite(element.x) &&
+        Number.isFinite(element.y) &&
+        element.width > 0 &&
+        element.height > 0,
+      )
+      .map((element: any) => canvas.getAbsoluteBBox(element))
+      .filter((bbox: any) =>
+        bbox &&
+        Number.isFinite(bbox.x) &&
+        Number.isFinite(bbox.y) &&
+        Number.isFinite(bbox.width) &&
+        Number.isFinite(bbox.height),
+      );
+
+    if (!bounds.length) return null;
+
+    const minX = Math.min(...bounds.map((bbox: any) => bbox.x));
+    const minY = Math.min(...bounds.map((bbox: any) => bbox.y));
+    const maxX = Math.max(...bounds.map((bbox: any) => bbox.x + bbox.width));
+    const maxY = Math.max(...bounds.map((bbox: any) => bbox.y + bbox.height));
+
+    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+  };
+
+  const fitDiagramToWidth = () => {
+    const canvas = viewer.get('canvas') as any;
+    const container = canvas.getContainer();
+    const rect = container.getBoundingClientRect();
+    const bounds = getDiagramBounds();
+    if (!bounds || rect.width <= 0 || rect.height <= 0 || bounds.width <= 0) {
+      canvas.zoom('fit-viewport');
+      return;
+    }
+
+    const targetScale = Math.max(0.01, (rect.width - DIAGRAM_PADDING * 2) / bounds.width);
+    const viewboxWidth = rect.width / targetScale;
+    const viewboxHeight = rect.height / targetScale;
+    canvas.viewbox({
+      x: bounds.x - DIAGRAM_PADDING / targetScale,
+      y: bounds.y - DIAGRAM_PADDING / targetScale,
+      width: viewboxWidth,
+      height: viewboxHeight,
+    });
+  };
+
+  const setMinimapForDiagram = () => {
+    const container = viewerRef.current;
+    const bounds = getDiagramBounds();
+    if (!container || !bounds) {
+      setMinimapVisible(false);
+      try {
+        (viewer.get('minimap') as any).close();
+      } catch {
+        // The minimap service may not be available until the canvas is initialized.
+      }
+      return;
+    }
+
+    const available = container.getBoundingClientRect();
+    const scale = (viewer.get('canvas') as any).zoom();
+    const needsMinimap =
+      bounds.width * scale > Math.max(0, available.width - DIAGRAM_PADDING * 2) ||
+      bounds.height * scale > Math.max(0, available.height - DIAGRAM_PADDING * 2);
+
+    const minimap = viewer.get('minimap') as any;
+    if (needsMinimap) {
+      minimap.open();
+    } else {
+      minimap.close();
+    }
+    setMinimapVisible(needsMinimap);
+  };
+
+  const zoomIn = () => {
+    if (!importedRef.current) return;
+    const canvas = viewer.get('canvas') as any;
+    const container = canvas.getContainer();
+    const rect = container.getBoundingClientRect();
+    canvas.zoom(canvas.zoom() * ZOOM_STEP, { x: rect.width / 2, y: rect.height / 2 });
+  };
+
+  const zoomOut = () => {
+    if (!importedRef.current) return;
+    const canvas = viewer.get('canvas') as any;
+    const container = canvas.getContainer();
+    const rect = container.getBoundingClientRect();
+    canvas.zoom(canvas.zoom() / ZOOM_STEP, { x: rect.width / 2, y: rect.height / 2 });
+  };
+
+  const resetZoom = () => {
+    if (!importedRef.current) return;
+    (viewer.get('canvas') as any).zoom(1);
+  };
+
+  const fitDiagram = () => {
+    if (!importedRef.current) return;
+    (viewer.get('canvas') as any).zoom('fit-viewport');
+    alignDiagramTopLeft();
+    setMinimapForDiagram();
+  };
 
   const applySelection = () => {
     if (!importedRef.current) return;
 
     const canvas = viewer.get('canvas') as any;
     const previousId = highlightedIdRef.current;
-    if (previousId) canvas.removeMarker(previousId, 'raci-selected');
+    if (previousId) canvas.removeMarker(previousId, 'task-selected');
     highlightedIdRef.current = null;
 
     const targetId = selectedIdRef.current;
@@ -38,36 +190,37 @@ export const useProcessViewer = (
     const element = (viewer.get('elementRegistry') as any).get(targetId);
     if (!element) return;
 
-    canvas.addMarker(targetId, 'raci-selected');
+    canvas.addMarker(targetId, 'task-selected');
     highlightedIdRef.current = targetId;
-
-    const bounds = canvas.getAbsoluteBBox(element);
-    const viewport = canvas.viewbox();
-    if (!bounds || !viewport) return;
-
-    // Focus the inside of an expanded subprocess when it is selected from
-    // the hierarchy. For ordinary activities, preserve the current zoom.
-    if (element.type === 'bpmn:SubProcess' && element.isExpanded !== false) {
-      const padding = 32;
-      canvas.viewbox({
-        x: bounds.x - padding,
-        y: bounds.y - padding,
-        width: bounds.width + padding * 2,
-        height: bounds.height + padding * 2,
-      });
-      return;
-    }
-
-    canvas.viewbox({
-      x: bounds.x + bounds.width / 2 - viewport.width / 2,
-      y: bounds.y + bounds.height / 2 - viewport.height / 2,
-      width: viewport.width,
-      height: viewport.height,
-    });
   };
 
   const applySelectionRef = useRef(applySelection);
   applySelectionRef.current = applySelection;
+
+  useEffect(() => {
+    if (!onElementSelect) return undefined;
+
+    const eventBus = viewer.get('eventBus') as {
+      on: (event: string, listener: (event: any) => void) => void;
+      off: (event: string, listener: (event: any) => void) => void;
+    };
+    const onElementClick = (event: any) => {
+      const element = event?.element;
+      if (!element?.id || typeof element.type !== 'string') return;
+
+      const isSelectableActivity =
+        element.type === 'bpmn:Task' ||
+        element.type.endsWith('Task') ||
+        element.type === 'bpmn:CallActivity' ||
+        element.type === 'bpmn:SubProcess' ||
+        element.type === 'bpmn:Transaction';
+
+      if (isSelectableActivity) onElementSelect(element.id);
+    };
+
+    eventBus.on('element.click', onElementClick);
+    return () => eventBus.off('element.click', onElementClick);
+  }, [viewer, onElementSelect]);
 
   useEffect(() => {
     let cancelled = false;
@@ -75,6 +228,7 @@ export const useProcessViewer = (
     if (!viewerRef.current || !xmlContent) {
       importedRef.current = false;
       highlightedIdRef.current = null;
+      setMinimapVisible(false);
       setImportError(null);
       viewer.clear();
       return () => {
@@ -83,16 +237,16 @@ export const useProcessViewer = (
     }
 
     importedRef.current = false;
+    setMinimapVisible(false);
     setImportError(null);
     viewer.attachTo(viewerRef.current);
 
-    // Attach the viewer before importing so its interaction and selection
-    // services are active when import.done is emitted.
     viewer.importXML(xmlContent)
       .then(() => {
         if (cancelled) return;
-        (viewer.get('canvas') as any).zoom('fit-viewport');
+        fitDiagramToWidth();
         importedRef.current = true;
+        setMinimapForDiagram();
         applySelectionRef.current();
       })
       .catch((error: unknown) => {
@@ -116,9 +270,22 @@ export const useProcessViewer = (
     applySelectionRef.current();
   }, [selectedElementId]);
 
+  useEffect(() => () => {
+    try {
+      viewer.destroy();
+    } catch {
+      // The viewer may already have been destroyed by its parent.
+    }
+  }, [viewer]);
+
   return {
     viewerRef,
     content: xmlContent ?? '',
     importError,
+    minimapVisible,
+    zoomIn,
+    zoomOut,
+    resetZoom,
+    fitDiagram,
   };
 };

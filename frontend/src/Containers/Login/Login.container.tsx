@@ -81,14 +81,14 @@ export const Component = () => {
           <Box
             component="img"
             src="/bpmn-tool-logo.svg"
-            alt="Logo BPMN Tool"
+            alt="Logo KHI Flows"
             sx={{ width: 76, height: 76 }}
           />
           <Typography level="h2" sx={{ fontWeight: 800, letterSpacing: '-0.035em' }}>
-            BPMN Tool
+            KHI Flows
           </Typography>
           <Typography level="body-md" sx={{ color: 'text.secondary', maxWidth: 330 }}>
-            Modélisez, partagez et pilotez vos processus métier depuis un espace unique.
+            Projets, processus et responsabilités, unifiés.
           </Typography>
         </Stack>
 
@@ -141,7 +141,7 @@ export const Component = () => {
           </Box>
         </Card>
         <Typography level="body-xs" sx={{ textAlign: 'center', color: 'text.tertiary' }}>
-          Accès sécurisé · BPMN Tool
+          Accès sécurisé · KHI Flows
         </Typography>
       </Stack>
     </Sheet>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useActionData, useParams, useSubmit } from 'react-router-dom';
+import { useActionData, useNavigate, useParams, useSubmit } from 'react-router-dom';
 import { useQuery } from 'react-query';
 
 import type { ContentModelerRouteParams } from '..';
@@ -13,10 +13,12 @@ import { ActionResponse } from '../../../shared/types/ActionResponse';
 import { ContentStatusEnum, type Content } from '../../../Types';
 import { useResource } from '../../../shared/hooks/useResource';
 import Modeler from 'camunda-bpmn-js/lib/base/Modeler';
+import { HttpError } from '../../../shared/api/httpError';
 
 export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   const { resourceId } = useParams() as ContentModelerRouteParams;
   const actionData = useActionData() as Content & ActionResponse;
+  const navigate = useNavigate();
 
   const submit = useSubmit();
   const { showAlert } = useSnackbar();
@@ -25,6 +27,11 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
 
   const { data: contents } = useQuery(contentsQuery(resourceId));
   const { resource } = useResource(resourceId);
+  const sourceResourceId = resource?.sourceResourceId ?? undefined;
+  const { data: sourceContents } = useQuery({
+    ...contentsQuery(sourceResourceId ?? ''),
+    enabled: Boolean(sourceResourceId),
+  });
 
   const draftContent = useMemo(() => {
     if (!contents) {
@@ -36,10 +43,45 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     );
   }, [contents]);
 
+  const sourceContent = useMemo(() => {
+    if (!sourceContents?.length) {
+      return undefined;
+    }
+
+    return [...sourceContents].sort((left, right) => {
+      const rank = (status: ContentStatusEnum) => {
+        switch (status) {
+          case ContentStatusEnum.Published:
+            return 2;
+          case ContentStatusEnum.Draft:
+            return 1;
+          default:
+            return 0;
+        }
+      };
+      return rank(right.status) - rank(left.status) ||
+        (right.version ?? 0) - (left.version ?? 0);
+    })[0];
+  }, [sourceContents]);
+
   const { data: draftXmlContent } = useQuery({
     ...getXmlContentQuery(resourceId, draftContent?.id as string),
     enabled: !!draftContent?.id,
   });
+
+  const onCompareWithSource = useCallback(() => {
+    if (!sourceResourceId || !sourceContent?.id || !draftContent?.id) {
+      showAlert({
+        message: 'La comparaison nécessite un diagramme source et un brouillon du clone.',
+        severity: 'warning',
+      });
+      return;
+    }
+
+    navigate(
+      `/compare-resources/${sourceResourceId}/${sourceContent.id}/${resourceId}/${draftContent.id}`,
+    );
+  }, [sourceResourceId, sourceContent?.id, draftContent?.id, resourceId, navigate, showAlert]);
 
   const onFileUpload = useCallback(
     async (files: FileList) => {
@@ -92,7 +134,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
             triggerDownload(file.xml, exportType);
           }
         }
-      } catch (error) {
+      } catch {
         showAlert({
           message: `Fail to export as ${exportType}.`,
           severity: 'danger',
@@ -101,10 +143,6 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     },
     [draftContent, resource, bpmnModelerInstance, triggerDownload, showAlert],
   );
-
-  /**
-   * Diagram save action
-   */
 
   const saveDiagram = useCallback(
     async (action: string, content: Content) => {
@@ -130,7 +168,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
 
     try {
       saveDiagram('saveContent', draftContent);
-    } catch (error) {
+    } catch {
       showAlert({
         message: 'An error occur during saving content.',
         severity: 'danger',
@@ -145,7 +183,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
 
     try {
       saveDiagram('saveContentBeforePublish', draftContent);
-    } catch (error) {
+    } catch {
       showAlert({
         message: 'An error occur during saving content.',
         severity: 'danger',
@@ -157,10 +195,30 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     saveContent: 'Content has been saved successfully.',
   };
 
-  const processActionErrorMessages: Record<string, string> = {
-    saveContent: 'An error occured during saving content.',
-    saveContentBeforePublish:
-      "An error occured during publishing content. Content can't be saved.",
+  const getSaveErrorMessage = (error: unknown, formAction: string) => {
+    if (error instanceof HttpError && error.status === 403) {
+      const apiMessage = String(error.errorResponse?.message ?? '').toLowerCase();
+
+      if (apiMessage.includes('common processes are read-only')) {
+        return "Ce processus est partagé comme processus commun et ne peut pas être modifié directement. Pour le modifier, créez d’abord une copie du processus, puis travaillez sur cette copie.";
+      }
+
+      if (apiMessage.includes('modeler access') || apiMessage.includes('editing this resource requires')) {
+        return "Vous n’avez pas les droits nécessaires pour modifier ce processus. Un rôle de modélisateur ou d’administrateur du projet est requis.";
+      }
+
+      return "La modification est refusée : vous n’avez pas les droits nécessaires sur ce processus.";
+    }
+
+    if (error instanceof HttpError && error.errorResponse?.message) {
+      return Array.isArray(error.errorResponse.message)
+        ? error.errorResponse.message.join(', ')
+        : error.errorResponse.message;
+    }
+
+    return formAction === 'saveContentBeforePublish'
+      ? "La publication a échoué : le brouillon n’a pas pu être enregistré."
+      : "L’enregistrement du processus a échoué.";
   };
 
   useEffect(() => {
@@ -174,8 +232,10 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
         });
       }
     } else if (actionData && actionData.error) {
-      const message =
-        processActionErrorMessages[actionData.formAction as string];
+      const message = getSaveErrorMessage(
+        actionData.error,
+        actionData.formAction as string,
+      );
 
       if (message) {
         showAlert({
@@ -196,5 +256,6 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     onFileExport,
     onDiagramSave,
     onDiagramPublish,
+    onCompareWithSource: sourceResourceId ? onCompareWithSource : undefined,
   };
 };

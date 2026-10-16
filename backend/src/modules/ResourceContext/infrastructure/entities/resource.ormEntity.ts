@@ -18,6 +18,9 @@ export class ResourceTypeOrmEntity extends AbstractEntity {
   @Column({ nullable: true, type: 'varchar' })
   parentId: Nullable<string>;
 
+  @Column({ nullable: true, type: 'uuid' })
+  sourceResourceId: Nullable<string>;
+
   @Column({ type: 'enum', enum: ResourceTypeEnum })
   type: ResourceTypeEnum;
 

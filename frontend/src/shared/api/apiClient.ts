@@ -35,7 +35,33 @@ export const createApiClient = ({
       },
     );
     if (!response.ok) {
-      const errorResponse = await response.json();
+      const responseText = await response.text();
+      let errorResponse: {
+        error: string;
+        message: string | string[];
+        statusCode: number;
+      };
+
+      try {
+        const parsed = JSON.parse(responseText);
+        errorResponse = {
+          error: String(parsed?.error ?? response.statusText),
+          message:
+            typeof parsed?.message === 'string' || Array.isArray(parsed?.message)
+              ? parsed.message
+              : `La requête a échoué (HTTP ${response.status}).`,
+          statusCode: Number(parsed?.statusCode ?? response.status),
+        };
+      } catch {
+        errorResponse = {
+          error: response.statusText,
+          message:
+            responseText.trim() ||
+            `La requête a échoué (HTTP ${response.status}).`,
+          statusCode: response.status,
+        };
+      }
+
       throw new HttpError(response.status, response.statusText, errorResponse);
     }
 

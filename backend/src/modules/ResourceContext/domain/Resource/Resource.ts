@@ -8,6 +8,7 @@ export type ResourceProps = {
   depth?: number;
   description: Nullable<string>;
   parentId?: Nullable<string>;
+  sourceResourceId?: Nullable<string>;
   type: ResourceTypeEnum;
   createdBy: string;
   authToken?: Nullable<string>;
@@ -41,6 +42,10 @@ export class Resource {
 
   get parentId(): Nullable<string> {
     return this.state.parentId || null;
+  }
+
+  get sourceResourceId(): Nullable<string> {
+    return this.state.sourceResourceId || null;
   }
 
   get type(): ResourceTypeEnum {
@@ -86,6 +91,7 @@ export class Resource {
         name: props.name,
         description: props.description,
         parentId: props.parentId || null,
+        sourceResourceId: props.sourceResourceId || null,
         depth: props.depth,
         type: props.type,
         createdBy: props.createdBy,

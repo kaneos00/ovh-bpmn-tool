@@ -17,6 +17,19 @@ services:
       retries: 20
     restart: unless-stopped
 
+  schema-migrations:
+    build:
+      context: .
+      dockerfile: deploy/coolify/Dockerfile.migrations
+    environment:
+      PGPASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in Coolify}
+    depends_on:
+      database:
+        condition: service_healthy
+    command: >-
+      sh -ec 'until pg_isready -h database -p 5432 -U "${DATABASE_USER:?Set DATABASE_USER in Coolify}" -d "${DATABASE_NAME:?Set DATABASE_NAME in Coolify}"; do sleep 2; done; psql -v ON_ERROR_STOP=1 -h database -p 5432 -U "${DATABASE_USER:?Set DATABASE_USER in Coolify}" -d "${DATABASE_NAME:?Set DATABASE_NAME in Coolify}" -f /opt/migrations/20261014_v2_1_process_provenance.sql'
+    restart: "no"
+
   backend:
     build:
       context: .
@@ -39,6 +52,8 @@ services:
     depends_on:
       database:
         condition: service_healthy
+      schema-migrations:
+        condition: service_completed_successfully
     expose:
       - "3000"
     restart: unless-stopped

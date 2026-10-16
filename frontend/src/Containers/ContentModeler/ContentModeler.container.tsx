@@ -11,6 +11,7 @@ import { useBpmnToolOptions } from '../../Providers/BpmnToolOptions/useBpmnToolO
 import { useModelerInstance } from '../../shared/hooks/useModelerInstance';
 import { useResource } from '../../shared/hooks/useResource';
 import type { ContentModelerRouteParams } from '.';
+import { useCallActivityNavigation } from '../../shared/hooks/useCallActivityNavigation';
 
 export const Component = () => {
   // share modeler instance in order to avoid create instance in useContentModeler and useModeler
@@ -20,6 +21,8 @@ export const Component = () => {
   const { resourceId: routeResourceId } = useParams() as ContentModelerRouteParams;
   const { resource } = useResource(routeResourceId);
   const [raciView, setRaciView] = useState<'matrix' | 'actors' | null>(null);
+
+  useCallActivityNavigation(bpmnModelerInstance);
 
   useEffect(() => {
     const provider = getRechercheProvider();
@@ -41,6 +44,7 @@ export const Component = () => {
     onFileExport,
     onDiagramSave,
     onDiagramPublish,
+    onCompareWithSource,
     actionData,
   } = useContentModeler(bpmnModelerInstance);
 
@@ -62,6 +66,7 @@ export const Component = () => {
         onShortcutDisplay={() => setIsShortcurtModalOpen(true)}
         onRaciOpen={() => setRaciView('matrix')}
         onRolesOpen={() => setRaciView('actors')}
+        onCompareWithSource={onCompareWithSource}
       />
       <Modeler
         diagramContainerRef={diagramContainerRef}

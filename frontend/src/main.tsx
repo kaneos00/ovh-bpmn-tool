@@ -11,6 +11,7 @@ import LaneOrientationPropertiesProvider from './extensions/lane-orientation-pro
 import { createRepositoryRechercheProvider } from './extensions/recherche/recherche-repository-provider';
 import RaciModel from './extensions/raci-model.json';
 import RaciPropertiesProvider from './extensions/raci-properties-provider';
+import CallActivityPropertiesProvider from './extensions/call-activity-properties-provider';
 import './raci.css';
 
 export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
@@ -38,6 +39,10 @@ export const bootstrapBpmnTool = (options: BpmnToolOptions = {}) => {
             {
               priority: 502,
               instance: RaciPropertiesProvider,
+            },
+            {
+              priority: 499,
+              instance: CallActivityPropertiesProvider,
             },
           ],
           rechercheProvider:

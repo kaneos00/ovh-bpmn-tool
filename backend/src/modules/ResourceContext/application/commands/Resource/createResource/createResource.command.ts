@@ -13,6 +13,7 @@ export class CreateResourceCommand {
 
   description: string;
   parentId?: string;
+  sourceResourceId?: string;
   createdBy: string;
   type: ResourceTypeEnum;
 }

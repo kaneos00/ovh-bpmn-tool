@@ -13,6 +13,7 @@ export type Resource = {
   depth: number;
   description: string;
   parentId?: string;
+  sourceResourceId?: string | null;
   type: ResourceType;
   authToken?: string;
 };

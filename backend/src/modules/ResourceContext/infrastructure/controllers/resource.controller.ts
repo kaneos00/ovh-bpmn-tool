@@ -115,6 +115,8 @@ export class ResourceController {
     const createResourceResult =
       await this.createResourceCommandHandler.execute({
         ...createResourceCommand,
+        // Provenance is set only by the clone endpoint, never accepted from client input.
+        sourceResourceId: undefined,
         createdBy: headers[this.configService.getOrThrow('userHeader')],
       });
 
@@ -229,6 +231,7 @@ export class ResourceController {
       name: cloneName,
       description: source.description ?? '',
       parentId: source.parentId ?? undefined,
+      sourceResourceId: source.id.value,
       createdBy,
       type: ResourceTypeEnum.Process,
     });

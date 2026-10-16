@@ -5,4 +5,5 @@ COPY backend/migrations/20261011_v2_project_raci.sql /docker-entrypoint-initdb.d
 COPY backend/migrations/20261012_v2_project_raci_actors.sql /docker-entrypoint-initdb.d/30-v2-project-raci-actors.sql
 COPY deploy/coolify/db/40-seed-demo.sh /docker-entrypoint-initdb.d/40-seed-demo.sh
 COPY deploy/coolify/db/seed-demo.sql /opt/seed-demo.sql
+COPY deploy/coolify/db/seed-organization-demo.sql /opt/seed-organization-demo.sql
 RUN chmod 0755 /docker-entrypoint-initdb.d/40-seed-demo.sh

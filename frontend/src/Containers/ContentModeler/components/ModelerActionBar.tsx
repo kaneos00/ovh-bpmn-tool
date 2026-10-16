@@ -17,6 +17,7 @@ import {
   Info,
   Done,
   Save,
+  Compare,
 } from '@mui/icons-material';
 
 import { ActionBar } from '../../../Components/GenericComponents/ActionBar/ActionBar';
@@ -31,6 +32,7 @@ type ModelerActionBarProps = {
   onShortcutDisplay: () => void;
   onRaciOpen: () => void;
   onRolesOpen: () => void;
+  onCompareWithSource?: () => void;
 };
 
 export const ModelerActionBar = ({
@@ -43,6 +45,7 @@ export const ModelerActionBar = ({
   onShortcutDisplay,
   onRaciOpen,
   onRolesOpen,
+  onCompareWithSource,
 }: ModelerActionBarProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -57,6 +60,17 @@ export const ModelerActionBar = ({
         >
           <Home fontSize="small" />
         </Button>
+
+        {onCompareWithSource && (
+          <Button
+            variant="outlined"
+            color="neutral"
+            startDecorator={<Compare fontSize="small" />}
+            onClick={onCompareWithSource}
+          >
+            Comparer avec la source
+          </Button>
+        )}
 
         <Button
           onClick={() => fileInputRef.current?.click()}
