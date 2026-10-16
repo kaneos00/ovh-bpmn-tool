@@ -266,6 +266,26 @@ export const Component = () => {
                     </td>
                     <td>
                       <Stack spacing={1} sx={{ minWidth: 230 }}>
+                        <Button
+                          size="sm"
+                          variant="soft"
+                          color="warning"
+                          disabled={busy || !account.active || account.username === me}
+                          onClick={async () => {
+                            setBusy(true);
+                            setError('');
+                            setStatus('');
+                            try {
+                              await call(`${userPath(account.id)}/impersonate`, 'POST');
+                              window.location.assign('/');
+                            } catch (reason) {
+                              setError(reason instanceof Error ? reason.message : 'Impossible de simuler ce compte.');
+                              setBusy(false);
+                            }
+                          }}
+                        >
+                          Simuler ce compte
+                        </Button>
                         <Input
                           size="sm"
                           aria-label="Nouvel identifiant"
