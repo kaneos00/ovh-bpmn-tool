@@ -154,6 +154,7 @@ export const useProcessViewer = (
     const container = canvas.getContainer();
     const rect = container.getBoundingClientRect();
     canvas.zoom(canvas.zoom() * ZOOM_STEP, { x: rect.width / 2, y: rect.height / 2 });
+    setMinimapForDiagram();
   };
 
   const zoomOut = () => {
@@ -162,11 +163,13 @@ export const useProcessViewer = (
     const container = canvas.getContainer();
     const rect = container.getBoundingClientRect();
     canvas.zoom(canvas.zoom() / ZOOM_STEP, { x: rect.width / 2, y: rect.height / 2 });
+    setMinimapForDiagram();
   };
 
   const resetZoom = () => {
     if (!importedRef.current) return;
     (viewer.get('canvas') as any).zoom(1);
+    setMinimapForDiagram();
   };
 
   const fitDiagram = () => {
@@ -269,6 +272,27 @@ export const useProcessViewer = (
   useEffect(() => {
     applySelectionRef.current();
   }, [selectedElementId]);
+
+  useEffect(() => {
+    if (!importedRef.current) return undefined;
+    const eventBus = viewer.get('eventBus') as {
+      on: (event: string, listener: () => void) => void;
+      off: (event: string, listener: () => void) => void;
+    };
+    let frame = 0;
+    const refreshMinimap = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        if (importedRef.current) setMinimapForDiagram();
+      });
+    };
+    eventBus.on('canvas.viewbox.changed', refreshMinimap);
+    return () => {
+      eventBus.off('canvas.viewbox.changed', refreshMinimap);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [viewer, xmlContent, resourceId, contentId]);
 
   useEffect(() => () => {
     try {
