@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -59,6 +59,7 @@ const statusMarker = {
 export const Component = () => {
   const { resourceId, contentId } = useContentViewer();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [folderOpen, setFolderOpen] = useState(false);
   const [navigationSection, setNavigationSection] = useState<'resources' | 'processes' | 'activities'>('resources');
   const [infoTab, setInfoTab] = useState<0 | 1>(0);
@@ -71,8 +72,8 @@ export const Component = () => {
   );
 
   useEffect(() => {
-    setSelectedActivityId(null);
-  }, [resourceId, contentId]);
+    setSelectedActivityId(searchParams.get('elementId'));
+  }, [resourceId, contentId, searchParams]);
 
   const { data: contents = [] } = useQuery(contentsQuery(resourceId));
   const { data: xmlContent } = useQuery(
