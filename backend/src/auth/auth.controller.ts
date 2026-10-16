@@ -42,11 +42,14 @@ export class AuthController {
   }
 
   @Get('session')
-  session(@Req() request: Request, @Res() response: Response) {
+  async session(@Req() request: Request, @Res() response: Response) {
     const payload = this.readSession(request);
     response.setHeader('Cache-Control', 'no-store');
     if (!payload) return response.status(401).json({ statusCode: 401, message: 'Session absente ou expirée.' });
-    return response.status(200).json({ userId: payload.sub, groups: payload.groups, role: payload.role, expiresAt: payload.exp });
+    const rows: UserRow[] = await this.db.query('SELECT id, username, email, password_hash, global_role, active FROM app_users WHERE lower(username) = lower($1) AND active = TRUE', [payload.sub]);
+    const user = rows[0];
+    if (!user) return response.status(401).json({ statusCode: 401, message: 'Compte désactivé ou introuvable.' });
+    return response.status(200).json({ userId: user.username, email: user.email, groups: this.groupsForRole(user.global_role), role: user.global_role, expiresAt: payload.exp });
   }
   @Post('logout')
   logout(@Req() request: Request, @Res() response: Response) {
@@ -55,10 +58,13 @@ export class AuthController {
     return response.status(200).json({ loggedOut: true });
   }
   @Get('verify')
-  verify(@Req() request: Request, @Res() response: Response) {
+  async verify(@Req() request: Request, @Res() response: Response) {
     const payload = this.readSession(request);
     if (!payload) return response.status(401).end();
-    response.setHeader('X-Auth-User', payload.sub); response.setHeader('X-Auth-Groups', payload.groups.join(','));
+    const rows: UserRow[] = await this.db.query('SELECT id, username, email, password_hash, global_role, active FROM app_users WHERE lower(username) = lower($1) AND active = TRUE', [payload.sub]);
+    const user = rows[0];
+    if (!user) return response.status(401).end();
+    response.setHeader('X-Auth-User', user.username); response.setHeader('X-Auth-Groups', this.groupsForRole(user.global_role).join(','));
     response.setHeader('Cache-Control', 'no-store'); return response.status(204).end();
   }
 
@@ -144,7 +150,11 @@ export class AuthController {
     const parts = (stored || '').split('$'); if (parts.length !== 3 || parts[0] !== 'scrypt') return false;
     try { return this.constantTimeEquals(this.hashPassword(password, parts[1]), parts[2]); } catch { return false; }
   }
-  private groupsForRole(role: GlobalRole): string[] { return role === 'admin' ? ['bpmn-tool-readwrite-demo', 'bpmn-tool-admin-demo'] : ['bpmn-tool-readwrite-demo']; }
+  private groupsForRole(role: GlobalRole): string[] {
+    if (role === 'admin') return ['bpmn-tool-readwrite-demo', 'bpmn-tool-admin-demo'];
+    if (role === 'modeler') return ['bpmn-tool-readwrite-demo'];
+    return ['bpmn-tool-readonly-demo'];
+  }
   private unauthorized(response: Response) { response.setHeader('Cache-Control', 'no-store'); return response.status(401).json({ statusCode: 401, message: 'Identifiant ou mot de passe incorrect.' }); }
   private isUniqueViolation(error: unknown): boolean { return !!error && typeof error === 'object' && 'code' in error && (error as { code?: string }).code === '23505'; }
   private signPayload(payload: SessionPayload, secret: string): string { const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url'); return encoded + '.' + this.signature(encoded, secret); }
