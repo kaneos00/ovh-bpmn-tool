@@ -59,9 +59,10 @@ const statusMarker = {
 export const Component = () => {
   const { resourceId, contentId } = useContentViewer();
   const navigate = useNavigate();
-  const [folderOpen, setFolderOpen] = useState(true);
+  const [folderOpen, setFolderOpen] = useState(false);
   const [navigationSection, setNavigationSection] = useState<'resources' | 'processes' | 'activities'>('resources');
   const [infoTab, setInfoTab] = useState<0 | 1>(0);
+  const [infoPanelOpen, setInfoPanelOpen] = useState(false);
   const [actorFilter, setActorFilter] = useState('');
   const [codeFilter, setCodeFilter] = useState<RaciCode | ''>('');
   const [issuesOnly, setIssuesOnly] = useState(false);
@@ -202,7 +203,7 @@ export const Component = () => {
                   variant={infoTab === 1 ? 'soft' : 'plain'}
                   color={infoTab === 1 ? 'primary' : 'neutral'}
                   startDecorator={<GroupsOutlined />}
-                  onClick={() => setInfoTab(1)}
+                  onClick={() => { setInfoTab(1); setInfoPanelOpen(true); }}
                   fullWidth
                 >
                   RACI
@@ -255,10 +256,12 @@ export const Component = () => {
           contentId={contentId}
           selectedElementId={selectedActivityId}
           onElementSelect={setSelectedActivityId}
+          onToggleInfoPanel={() => setInfoPanelOpen(value => !value)}
+          infoPanelOpen={infoPanelOpen}
         />
       </Box>
 
-      <Sheet className={`viewerInfoPanel ${infoTab === 1 ? 'mobile-visible' : ''}`} variant="outlined">
+      <Sheet className={`viewerInfoPanel ${infoPanelOpen ? 'open mobile-visible' : ''}`} variant="outlined">
         <Stack spacing={1.5} className="viewerInfoHeader">
           <Stack direction="row" alignItems="center" justifyContent="space-between">
             <Typography level="title-lg">Informations du processus</Typography>
@@ -266,9 +269,9 @@ export const Component = () => {
               className="viewerInfoClose"
               size="sm"
               variant="plain"
-              onClick={() => setInfoTab(0)}
-              aria-label="Fermer le panneau RACI"
-              title="Fermer le panneau RACI"
+              onClick={() => setInfoPanelOpen(false)}
+              aria-label="Fermer le panneau d’informations"
+              title="Fermer le panneau d’informations"
             >
               <Close />
             </IconButton>
