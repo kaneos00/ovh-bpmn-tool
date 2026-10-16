@@ -129,7 +129,9 @@ export const WorkspaceNavigation = () => {
               let kind: string;
             if (element.localName.toLowerCase().includes('subprocess')) {
               kind = 'Sous-processus';
-            } else if (element.localName.toLowerCase() === 'lane') {\n              kind = 'Lane BPMN';\n            } else if (activityTypes.has(element.localName)) {
+            } else if (element.localName.toLowerCase() === 'lane') {
+              kind = 'Lane BPMN';
+            } else if (activityTypes.has(element.localName)) {
               kind = 'Activité BPMN';
             } else if (element.localName === 'process') {
               kind = 'Processus BPMN';
