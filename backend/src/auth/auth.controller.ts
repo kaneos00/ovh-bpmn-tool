@@ -32,6 +32,7 @@ type SessionPayload = {
   groups: string[];
   role: GlobalRole;
   exp: number;
+  impersonatorSub?: string;
 };
 type UserRow = {
   id: string;
@@ -155,6 +156,86 @@ export class AuthController {
       groups: this.groupsForRole(user.global_role),
       role: user.global_role,
       expiresAt: payload.exp,
+      impersonating: Boolean(payload.impersonatorSub),
+      impersonatorUserId: payload.impersonatorSub ?? null,
+    });
+  }
+
+  @Post('users/:id/impersonate')
+  async impersonateUser(
+    @Req() request: Request,
+    @Param('id') id: string,
+    @Res() response: Response,
+  ) {
+    const administrator = await this.requireAdmin(request);
+    const rows: UserRow[] = await this.db.query(
+      'SELECT id, username, email, password_hash, global_role, active FROM app_users WHERE id = $1 AND active = TRUE',
+      [id],
+    );
+    const target = rows[0];
+    if (!target) throw new BadRequestException('Utilisateur introuvable ou désactivé.');
+
+    const secret = this.getSecret();
+    if (!secret) {
+      throw new ServiceUnavailableException('La session sécurisée n’est pas configurée.');
+    }
+    const payload: SessionPayload = {
+      sub: target.username,
+      groups: this.groupsForRole(target.global_role),
+      role: target.global_role,
+      impersonatorSub: administrator.sub,
+      exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
+    };
+    const secure =
+      request.headers['x-forwarded-proto'] === 'https' ||
+      (request as Request & { secure?: boolean }).secure === true;
+    response.setHeader('Cache-Control', 'no-store');
+    response.setHeader('Set-Cookie', this.cookie(this.signPayload(payload, secret), SESSION_TTL_SECONDS, secure));
+    return response.status(200).json({
+      userId: target.username,
+      role: target.global_role,
+      impersonating: true,
+      impersonatorUserId: administrator.sub,
+    });
+  }
+
+  @Post('impersonation/stop')
+  async stopImpersonation(
+    @Req() request: Request,
+    @Res() response: Response,
+  ) {
+    const current = this.readSession(request);
+    if (!current?.impersonatorSub) {
+      throw new ForbiddenException('Aucune simulation de compte en cours.');
+    }
+    const rows: UserRow[] = await this.db.query(
+      "SELECT id, username, email, password_hash, global_role, active FROM app_users WHERE lower(username) = lower($1) AND active = TRUE AND global_role = 'admin'",
+      [current.impersonatorSub],
+    );
+    const administrator = rows[0];
+    if (!administrator) {
+      throw new ForbiddenException('Le compte administrateur d’origine n’est plus actif.');
+    }
+    const secret = this.getSecret();
+    if (!secret) {
+      throw new ServiceUnavailableException('La session sécurisée n’est pas configurée.');
+    }
+    const payload: SessionPayload = {
+      sub: administrator.username,
+      groups: this.groupsForRole('admin'),
+      role: 'admin',
+      exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
+    };
+    const secure =
+      request.headers['x-forwarded-proto'] === 'https' ||
+      (request as Request & { secure?: boolean }).secure === true;
+    response.setHeader('Cache-Control', 'no-store');
+    response.setHeader('Set-Cookie', this.cookie(this.signPayload(payload, secret), SESSION_TTL_SECONDS, secure));
+    return response.status(200).json({
+      userId: administrator.username,
+      email: administrator.email,
+      role: 'admin',
+      impersonating: false,
     });
   }
 
@@ -367,7 +448,7 @@ export class AuthController {
       'SELECT id, username, email, password_hash, global_role, active FROM app_users WHERE lower(username) = lower($1) AND active = TRUE',
       [session.sub],
     );
-    if (!rows[0] || rows[0].global_role !== 'admin') {
+    if (session.impersonatorSub || !rows[0] || rows[0].global_role !== 'admin') {
       throw new ForbiddenException('Droits administrateur requis.');
     }
     return session;
