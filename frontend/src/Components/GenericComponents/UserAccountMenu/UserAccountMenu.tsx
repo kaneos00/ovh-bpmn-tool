@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Avatar,
   Box,
-  Button,
   Dropdown,
   Menu,
   MenuButton,
@@ -88,7 +87,7 @@ export const UserAccountMenu = () => {
           </Typography>
         </Box>
       </MenuButton>
-      <Menu placement="bottom-end" size="sm" sx={{ minWidth: 230, zIndex: 1600 }}>
+      <Menu size="sm" sx={{ minWidth: 230, zIndex: 1600 }}>
         <MenuItem disabled>
           <PersonOutline fontSize="small" />
           <Box sx={{ minWidth: 0 }}>
