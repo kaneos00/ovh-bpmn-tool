@@ -89,7 +89,7 @@ export class AuthController {
           'INSERT INTO app_users (username, email, password_hash, global_role, active) VALUES ($1, NULL, $2, $3, TRUE) ON CONFLICT DO NOTHING',
           [
             bootstrapUser,
-            'scrypt:' + salt + '$' + this.hashPassword(password, salt),
+            'scrypt:' + salt + ':' + this.hashPassword(password, salt),
             'admin',
           ],
         );
@@ -222,7 +222,7 @@ export class AuthController {
         [
           username,
           email,
-          'scrypt$' + salt + '$' + this.hashPassword(password, salt),
+          'scrypt:' + salt + ':' + this.hashPassword(password, salt),
           role,
         ],
       );
