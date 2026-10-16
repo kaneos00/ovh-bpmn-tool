@@ -254,6 +254,7 @@ export const Component = () => {
           resourceId={resourceId}
           contentId={contentId}
           selectedElementId={selectedActivityId}
+          onElementSelect={setSelectedActivityId}
         />
       </Box>
 
