@@ -44,6 +44,15 @@ const matchesTerm = (value: string, term: string) =>
 
 const resultKey = (result: SearchResult) => result.key;
 
+const resultIndicatorColor = (detail: string) => {
+  if (/\\bRACI\\b/i.test(detail)) return '#7c3aed';
+  if (/\\bLane\\b/i.test(detail)) return '#0f766e';
+  if (/Activité|Sous-processus/i.test(detail)) return '#2563eb';
+  if (/Processus BPMN/i.test(detail)) return '#b45309';
+  if (/Rôle/i.test(detail)) return '#9333ea';
+  return '#64748b';
+};
+
 export const WorkspaceNavigation = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -120,7 +129,7 @@ export const WorkspaceNavigation = () => {
               let kind: string;
             if (element.localName.toLowerCase().includes('subprocess')) {
               kind = 'Sous-processus';
-            } else if (activityTypes.has(element.localName)) {
+            } else if (element.localName.toLowerCase() === 'lane') {\n              kind = 'Lane BPMN';\n            } else if (activityTypes.has(element.localName)) {
               kind = 'Activité BPMN';
             } else if (element.localName === 'process') {
               kind = 'Processus BPMN';
@@ -311,7 +320,7 @@ export const WorkspaceNavigation = () => {
           {searchOpen && search.trim().length >= 1 && (
             <Sheet
               variant="outlined"
-              sx={{ position: 'relative', width: '100%', mt: 0.5, borderRadius: 'md', maxHeight: 280, overflowY: 'auto', bgcolor: 'background.surface' }}
+              sx={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 1400, width: '100%', borderRadius: 'md', maxHeight: 280, overflowY: 'auto', bgcolor: 'background.surface', boxShadow: 'lg' }}
             >
               {isLoading && <Typography level="body-sm" sx={{ p: 1.5 }}>Recherche dans les contenus…</Typography>}
               {resources.isError && <Typography level="body-sm" color="danger" sx={{ p: 1.5 }}>Recherche indisponible pour le moment.</Typography>}
@@ -326,9 +335,12 @@ export const WorkspaceNavigation = () => {
                     <ListItem key={result.key} sx={{ p: 0 }}>
                       <Button variant="plain" color="neutral" onClick={() => openResult(result)}
                         sx={{ justifyContent: 'flex-start', textAlign: 'left', width: '100%', whiteSpace: 'normal' }}>
-                        <Box sx={{ minWidth: 0 }}>
-                          <Typography level="title-sm">{result.title}</Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, minWidth: 0 }}>
+                          <Box aria-hidden="true" sx={{ flex: '0 0 8px', width: 8, height: 8, mt: '6px', borderRadius: '50%', bgcolor: resultIndicatorColor(result.detail) }} />
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography level="title-sm">{result.title}</Typography>
                           <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>{result.detail}</Typography>
+                          </Box>
                         </Box>
                       </Button>
                     </ListItem>
