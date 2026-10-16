@@ -20,7 +20,7 @@ type Session = {
   impersonating?: boolean;
 };
 
-export const UserAccountMenu = () => {
+export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [busy, setBusy] = useState(false);
@@ -68,11 +68,11 @@ export const UserAccountMenu = () => {
           gap: 1,
           minHeight: 38,
           px: 1,
-          borderColor: 'rgba(255,255,255,.22)',
+          borderColor: dark ? 'rgba(255,255,255,.22)' : '#dce3ec',
           borderRadius: '9px',
-          bgcolor: 'rgba(255,255,255,.08)',
-          color: 'inherit',
-          '&:hover': { bgcolor: 'rgba(255,255,255,.14)', borderColor: 'rgba(255,255,255,.4)' },
+          bgcolor: dark ? 'rgba(255,255,255,.08)' : '#fff',
+          color: dark ? '#fff' : '#203047',
+          '&:hover': { bgcolor: dark ? 'rgba(255,255,255,.14)' : '#f5f7fa', borderColor: dark ? 'rgba(255,255,255,.4)' : '#9bb6e9' },
         }}
       >
         <Avatar size="sm" sx={{ width: 27, height: 27, bgcolor: '#dbe7fb', color: '#214d95', fontSize: 11, fontWeight: 800 }}>
