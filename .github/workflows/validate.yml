@@ -118,10 +118,24 @@ jobs:
           seed_counts=""
           for attempt in $(seq 1 30); do
             seed_counts="$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT (SELECT count(*) FROM projects) || ':' || (SELECT count(*) FROM project_processes) || ':' || (SELECT count(*) FROM project_raci_entries)" 2>/dev/null || true)"
-            if [ "$seed_counts" = "2:4:6" ]; then break; fi
+            if [ "$seed_counts" = "3:9:32" ]; then break; fi
             sleep 2
           done
-          test "$seed_counts" = "2:4:6"
+          test "$seed_counts" = "3:9:32"
+          # Ensure the combined BPMN example contains every process and every Call Activity target.
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          path = "examples/organisation-demo/00-organisation-complete.bpmn"
+          root = ET.parse(path).getroot()
+          ns = {"bpmn": "http://www.omg.org/spec/BPMN/20100524/MODEL"}
+          process_ids = {p.attrib["id"] for p in root.findall("bpmn:process", ns)}
+          expected = {"Process_Recrutement", "Process_EvaluationCompetences", "Process_Formation", "Process_GouvernanceCapacites", "Process_DeveloppementLogiciel"}
+          assert expected <= process_ids, f"Missing processes: {expected - process_ids}"
+          targets = [a.attrib["calledElement"] for a in root.findall(".//bpmn:callActivity", ns)]
+          assert len(targets) == 4, f"Expected 4 process calls, got {len(targets)}"
+          assert set(targets) <= process_ids, f"Unresolved call targets: {set(targets) - process_ids}"
+          print(f"Validated {len(process_ids)} processes and {len(targets)} resolved process calls")
+          PY
           docker run --rm --network bpmn-v2-ci \
             --env PGPASSWORD="$DATABASE_PASSWORD" \
             --env DATABASE_USER="$DATABASE_USER" --env DATABASE_NAME="$DATABASE_NAME" \
