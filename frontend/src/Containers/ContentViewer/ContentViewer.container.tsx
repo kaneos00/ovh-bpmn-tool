@@ -25,6 +25,7 @@ import {
 import { useQuery } from 'react-query';
 
 import { FolderTree } from '../../Components/BusinessComponents/FolderTree';
+import { UserAccountMenu } from '../../Components/GenericComponents/UserAccountMenu/UserAccountMenu';
 import { ProcessHierarchyTree } from '../../Components/BusinessComponents/ProcessHierarchyTree/ProcessHierarchyTree';
 import { ProcessViewer } from '../../Components/BusinessComponents/ProcessViewer';
 import { useContentViewer } from './hooks/useContentViewer';
@@ -259,6 +260,7 @@ export const Component = () => {
           onElementSelect={setSelectedActivityId}
           onToggleInfoPanel={() => setInfoPanelOpen(value => !value)}
           infoPanelOpen={infoPanelOpen}
+          toolbarExtra={<UserAccountMenu dark={false} />}
         />
       </Box>
 

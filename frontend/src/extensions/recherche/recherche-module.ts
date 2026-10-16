@@ -83,15 +83,33 @@ function RechercheModule(
     canvas.scrollToElement(element, 80);
   }
 
-  function renderResults(container: HTMLElement, results: RechercheResult[]) {
+  function renderResults(container: HTMLElement, results: RechercheResult[], hasRestrictedResults: boolean) {
     container.innerHTML = '';
+    if (hasRestrictedResults) {
+      const notice = document.createElement('div');
+      notice.setAttribute('role', 'status');
+      notice.textContent = '🔒 Des contenus sont masqués par les droits d’accès. Des résultats supplémentaires peuvent exister, mais leur contenu n’est pas consultable avec ce compte.';
+      Object.assign(notice.style, {
+        padding: '10px 12px',
+        margin: '8px',
+        border: '1px solid #e7d7b3',
+        borderRadius: '6px',
+        background: '#fff7e5',
+        color: '#76551d',
+        fontSize: '12px',
+        lineHeight: '1.45',
+      });
+      container.appendChild(notice);
+    }
     if (!results.length) {
       const empty = document.createElement('div');
-      empty.textContent = 'Aucun résultat';
-      Object.assign(empty.style, { padding: '12px', color: '#666' });
-      container.appendChild(empty); return;
+      empty.textContent = hasRestrictedResults ? 'Aucun résultat accessible pour cette recherche.' : 'Aucun résultat';
+      Object.assign(empty.style, { padding: '12px', color: '#66758a' });
+      container.appendChild(empty);
+      return;
     }
     results.forEach(result => {
+      const accessRestricted = result.metadata?.accessRestricted === true;
       const button = document.createElement('button');
       button.type = 'button';
       Object.assign(button.style, { display: 'block', width: '100%', padding: '9px 12px', border: '0', borderBottom: '1px solid #eee', background: '#fff', textAlign: 'left', cursor: 'pointer' });
@@ -104,16 +122,34 @@ function RechercheModule(
       };
       badge.textContent = [sourceLabels[sourceType] || sourceType || 'BPMN', result.processName || result.resourceName].filter(Boolean).join(' · ');
       const badgeColor = badgeColors[sourceType] || badgeColors.bpmn;
-      Object.assign(badge.style, { display: 'inline-block', fontSize: '10px', fontWeight: '600', padding: '2px 7px', marginBottom: '4px', border: `1px solid ${badgeColor.border}`, borderRadius: '10px', background: badgeColor.background, color: badgeColor.color });
-      button.appendChild(badge);
-      const title = document.createElement('div'); title.textContent = result.name || result.id || result.processName || 'Résultat'; title.style.fontWeight = '600'; button.appendChild(title);
-      const details = document.createElement('div'); details.textContent = [result.type, result.processName, result.resourceName, result.role, result.raci].filter(Boolean).join(' · ');
-      Object.assign(details.style, { fontSize: '11px', color: '#777', marginTop: '2px' }); button.appendChild(details);
-      if (result.documentation) {
-        const documentation = document.createElement('div'); documentation.textContent = result.documentation;
-        Object.assign(documentation.style, { fontSize: '11px', color: '#555', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }); button.appendChild(documentation);
+      Object.assign(badge.style, { display: 'inline-block', fontSize: '10px', fontWeight: '600', padding: '2px 7px', marginBottom: '4px', border: `1px solid ${badgeColor.border}`, borderRadius: '4px', background: badgeColor.background, color: badgeColor.color });
+      if (accessRestricted) {
+        badge.textContent = 'Accès restreint';
+        Object.assign(badge.style, { background: '#fff3d9', borderColor: '#e7d7b3', color: '#76551d' });
+        button.disabled = true;
+        button.setAttribute('aria-label', 'Résultat inaccessible : droits insuffisants');
+        button.style.cursor = 'not-allowed';
+        button.style.background = '#fffdf8';
+        button.appendChild(badge);
+        const title = document.createElement('div');
+        title.textContent = 'Contenu non accessible';
+        title.style.fontWeight = '600';
+        button.appendChild(title);
+        const details = document.createElement('div');
+        details.textContent = 'Votre compte ne dispose pas des droits nécessaires.';
+        Object.assign(details.style, { fontSize: '11px', color: '#76551d', marginTop: '2px' });
+        button.appendChild(details);
+      } else {
+        button.appendChild(badge);
+        const title = document.createElement('div'); title.textContent = result.name || result.id || result.processName || 'Résultat'; title.style.fontWeight = '600'; button.appendChild(title);
+        const details = document.createElement('div'); details.textContent = [result.type, result.processName, result.resourceName, result.role, result.raci].filter(Boolean).join(' · ');
+        Object.assign(details.style, { fontSize: '11px', color: '#66758a', marginTop: '2px' }); button.appendChild(details);
+        if (result.documentation) {
+          const documentation = document.createElement('div'); documentation.textContent = result.documentation;
+          Object.assign(documentation.style, { fontSize: '11px', color: '#66758a', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }); button.appendChild(documentation);
+        }
+        button.addEventListener('click', () => { navigateToResult(result); closePanel(); });
       }
-      button.addEventListener('click', () => { navigateToResult(result); closePanel(); });
       container.appendChild(button);
     });
   }
@@ -242,11 +278,23 @@ function RechercheModule(
         processId: baseContext.processId ?? baseContext.resourceId ?? businessObject?.processRef?.id,
         processName: baseContext.processName ?? baseContext.resourceName ?? businessObject?.processRef?.name,
       };
-      const found = await rechercheService.search(query, elementRegistry, context);
-      const filtered = source.value === 'all'
-        ? found
-        : found.filter(result => result.sourceType === source.value);
-      if (currentRequest === request) renderResults(resultsPanel, filtered);
+      try {
+        const found = await rechercheService.search(query, elementRegistry, context);
+        const hasRestrictedResults = found.some(result => result.metadata?.searchNotice === 'restricted-results');
+        const visibleResults = found.filter(result => result.metadata?.searchNotice !== 'restricted-results');
+        const filtered = source.value === 'all'
+          ? visibleResults
+          : visibleResults.filter(result => result.sourceType === source.value);
+        if (currentRequest === request) renderResults(resultsPanel, filtered, hasRestrictedResults);
+      } catch {
+        if (currentRequest === request) {
+          resultsPanel.innerHTML = '';
+          const error = document.createElement('div');
+          error.textContent = 'La recherche est momentanément indisponible. Réessayez dans quelques instants.';
+          Object.assign(error.style, { padding: '12px', color: '#8a3b36', background: '#fff0ee' });
+          resultsPanel.appendChild(error);
+        }
+      }
     };
 
     input.addEventListener('input', runSearch);

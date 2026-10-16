@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Compare, Home } from '@mui/icons-material';
 
 import { ActionBar } from '../../../Components/GenericComponents/ActionBar/ActionBar';
+import { UserAccountMenu } from '../../../Components/GenericComponents/UserAccountMenu/UserAccountMenu';
 
 type CompareActionBarProps = {
   resourceId: string;
@@ -33,6 +34,9 @@ export const CompareActionBar = ({
         >
           See changes
         </Button>
+      </Stack>
+      <Stack gap={1} direction="row" justifyContent="flex-end">
+        <UserAccountMenu dark={false} />
       </Stack>
     </ActionBar>
   );

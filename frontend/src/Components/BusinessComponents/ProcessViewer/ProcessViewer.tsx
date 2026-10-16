@@ -11,6 +11,7 @@ type ProcessViewerProps = {
   onElementSelect?: (elementId: string) => void;
   onToggleInfoPanel?: () => void;
   infoPanelOpen?: boolean;
+  toolbarExtra?: React.ReactNode;
 };
 
 export const ProcessViewer = ({
@@ -20,6 +21,7 @@ export const ProcessViewer = ({
   onElementSelect,
   onToggleInfoPanel,
   infoPanelOpen = false,
+  toolbarExtra,
 }: ProcessViewerProps) => {
   const {
     viewerRef,
@@ -56,6 +58,7 @@ export const ProcessViewer = ({
           <Button size="sm" variant="outlined" color="neutral" onClick={zoomIn} aria-label="Zoom avant" title="Zoom avant">+</Button>
           <Button size="sm" variant="soft" color="neutral" onClick={resetZoom} aria-label="Zoom 1:1" title="Afficher à l’échelle 1:1">1:1</Button>
           <Button size="sm" variant="plain" color="neutral" onClick={fitDiagram} aria-label="Ajuster à la fenêtre" title="Ajuster le diagramme à la fenêtre">Ajuster</Button>
+          {toolbarExtra}
         </Stack>
       </Stack>
       {importError && (

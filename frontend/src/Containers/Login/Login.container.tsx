@@ -73,7 +73,7 @@ export const Component = () => {
         px: 2,
         py: 4,
         background:
-          'radial-gradient(circle at 15% 15%, rgba(0, 82, 204, 0.12), transparent 32%), linear-gradient(135deg, #f5f8fc 0%, #edf2f8 100%)',
+          'radial-gradient(circle at 15% 15%, rgba(40, 100, 215, 0.12), transparent 32%), linear-gradient(135deg, #f5f7fa 0%, #eef2f6 100%)',
       }}
     >
       <Stack spacing={3} sx={{ width: '100%', maxWidth: 440 }}>
@@ -97,8 +97,8 @@ export const Component = () => {
           sx={{
             p: { xs: 2.5, sm: 3.5 },
             gap: 2.5,
-            borderColor: 'rgba(16, 42, 76, 0.12)',
-            boxShadow: '0 18px 55px rgba(20, 43, 75, 0.09)',
+            borderColor: 'rgba(21, 43, 69, 0.12)',
+            boxShadow: '0 18px 55px rgba(21, 43, 69, 0.09)',
             borderRadius: 'xl',
           }}
         >
