@@ -88,7 +88,7 @@ describe('AuthController local account authentication', () => {
         password_hash:
           'scrypt:' +
           salt +
-          '$' +
+          ':' +
           scryptSync(password, salt, 64, {
             N: 16384,
             r: 8,
