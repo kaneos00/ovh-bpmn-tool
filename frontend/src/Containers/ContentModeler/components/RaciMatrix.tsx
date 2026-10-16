@@ -506,10 +506,10 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
               <div>
                 <h2 style={{ margin: 0 }}>Matrice RACI</h2>
                 <div className="raci-legend" style={{ marginTop: 8 }}>
-                  <span><b>R</b> Responsable</span>
-                  <span><b>A</b> Acteur</span>
-                  <span><b>C</b> Consulté</span>
-                  <span><b>I</b> Informé</span>
+                  <span><b className="raci-code-badge raci-code-R">R</b> Responsable</span>
+                  <span><b className="raci-code-badge raci-code-A">A</b> Acteur</span>
+                  <span><b className="raci-code-badge raci-code-C">C</b> Consulté</span>
+                  <span><b className="raci-code-badge raci-code-I">I</b> Informé</span>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
@@ -551,7 +551,9 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
                             }
                           >
                             <div className="raci-cell-code">
-                              {cell.codes.length ? cell.codes.join('/') : '—'}
+                              {cell.codes.length ? cell.codes.map(code => (
+                                <span key={code} className={"raci-code-badge raci-code-" + code} title={codeLabel[code]}>{code}</span>
+                              )) : '—'}
                             </div>
                             <div className="raci-cell-status">
                               {statusLabel[cell.status]}
