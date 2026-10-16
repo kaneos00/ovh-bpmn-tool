@@ -384,6 +384,7 @@ export const Component = () => {
               {filteredActivities.length ? (
                 <Box sx={{ overflowX: 'auto', maxWidth: '100%' }}>
                   <table
+                    className="viewerRaciTable"
                     aria-label="Matrice RACI en lecture seule"
                     style={{
                       width: '100%',
@@ -478,11 +479,13 @@ export const Component = () => {
                                   opacity: cell.codes.length ? 1 : 0.55,
                                 }}
                               >
-                                <strong>
+                                <div className="raciCodePills">
                                   {cell.codes.length
-                                    ? cell.codes.join('/')
-                                    : '—'}
-                                </strong>
+                                    ? cell.codes.map(code => (
+                                        <span key={code} className={`raciCodePill raciCodePill-${code}`}>{code}</span>
+                                      ))
+                                    : <span className="raciCodePill raciCodePill-empty">—</span>}
+                                </div>
                                 <div>
                                   {statusMarker[cell.status]}{' '}
                                   {STATUS_LABELS[cell.status]}
