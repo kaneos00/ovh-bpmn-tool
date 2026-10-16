@@ -9,6 +9,7 @@ import { contentsQuery, getXmlContentQuery } from '../../../api/contents/content
 import { ContentStatusEnum, type Content, type Resource } from '../../../Types';
 import { ResourceType } from '../../../shared/types/BpmnResource';
 import { deriveRaciMatrixFromXml } from '../../../extensions/raci-viewer';
+import { UserAccountMenu } from '../UserAccountMenu/UserAccountMenu';
 
 type SearchScope = 'all' | 'processes' | 'bpmn' | 'roles' | 'raci' | 'iaComm';
 type SearchResult = {
@@ -286,7 +287,7 @@ export const WorkspaceNavigation = () => {
   const isLoading = resources.isLoading || deepSearchLoading;
 
   return (
-    <Box sx={{ mb: 1, pb: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+    <Box className="workspace-navigation" sx={{ mb: 1.5, p: { xs: 1.25, md: 1.75 }, borderRadius: '10px', bgcolor: '#152b45', color: '#fff', border: '1px solid #152b45', boxShadow: '0 2px 8px rgba(21,43,69,.08)' }}>
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
         spacing={1}
@@ -296,8 +297,8 @@ export const WorkspaceNavigation = () => {
         <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexShrink: 0 }}>
           <Box component="img" src="/bpmn-tool-logo.svg" alt="" sx={{ width: 28, height: 28, objectFit: 'contain' }} />
           <Box>
-            <Typography level="title-lg" sx={{ lineHeight: 1.2 }}>KHI Flows</Typography>
-            <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>
+            <Typography level="title-lg" sx={{ lineHeight: 1.2, color: '#fff', fontWeight: 800 }}>KHI Flows</Typography>
+            <Typography level="body-xs" sx={{ color: '#b4c3d5' }}>
               Projets, processus et responsabilités, unifiés.
             </Typography>
           </Box>
@@ -310,7 +311,7 @@ export const WorkspaceNavigation = () => {
               value={scope}
               onChange={(_, value) => { if (value) { setScope(value); setSearchOpen(true); } }}
               aria-label="Type de recherche"
-              sx={{ minWidth: 170, flexShrink: 0 }}
+              sx={{ minWidth: 170, flexShrink: 0, bgcolor: '#263e59', color: '#fff', borderColor: '#40556d', '--Select-focusedHighlight': '#91b7ff', '&:hover': { bgcolor: '#2b4664' } }}
             >
               <Option value="all">Tout rechercher</Option>
               <Option value="processes">Processus / sous-processus</Option>
@@ -330,7 +331,7 @@ export const WorkspaceNavigation = () => {
               placeholder="Rechercher processus, BPMN, rôles, RACI…  Ctrl K"
               startDecorator={<Search fontSize="small" />}
               endDecorator={search.trim() ? <Button size="sm" variant="plain" onClick={() => { setSearch(''); setSearchOpen(true); }}>Effacer</Button> : null}
-              sx={{ bgcolor: 'background.surface', flex: 1, minWidth: 0 }}
+              sx={{ bgcolor: '#263e59', color: '#fff', borderColor: '#40556d', flex: 1, minWidth: 0, '--Input-placeholderColor': '#b4c3d5', '& input': { color: '#fff' }, '&:hover': { bgcolor: '#2b4664' } }}
             />
           </Stack>
 
@@ -381,11 +382,13 @@ export const WorkspaceNavigation = () => {
             return (
               <Button key={destination.path} size="sm" variant={active ? 'solid' : 'plain'}
                 color={active ? 'primary' : 'neutral'} aria-current={active ? 'page' : undefined}
-                onClick={() => navigate(destination.path)}>
+                onClick={() => navigate(destination.path)}
+                sx={active ? { bgcolor: '#2864d7', color: '#fff', fontWeight: 700 } : { color: '#e6edf7', '&:hover': { bgcolor: '#263e59', color: '#fff' } }}>
                 {destination.label}
               </Button>
             );
           })}
+          <UserAccountMenu />
         </Stack>
       </Stack>
     </Box>
