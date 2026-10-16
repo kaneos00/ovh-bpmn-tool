@@ -11,6 +11,7 @@ FIN ANCIENNE VERSION
 */
 
 import { apiClient } from '../../queryClient';
+import { HttpError } from '../../shared/api/httpError';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import { ContentStatusEnum, type Content, type Resource } from '../../Types';
 import { RechercheIndex } from './recherche-index';
@@ -23,6 +24,7 @@ const CACHE_TTL_MS = 2 * 60 * 1000;
 let resourceCache: { expiresAt: number; resources: Resource[] } | undefined;
 const processCache = new Map<string, { expiresAt: number; results: RechercheResult[] }>();
 let repositoryIndexCache: { expiresAt: number; index: RechercheIndex } | undefined;
+let restrictedResourceCount = 0;
 
 const documentationText = (node: Element) =>
   Array.from(node.querySelectorAll('bpmn\\:documentation, documentation'))
@@ -149,12 +151,23 @@ const getRepositoryIndex = async (): Promise<RechercheIndex> => {
   };
 
   const index = new RechercheIndex();
+  restrictedResourceCount = 0;
   for (const resource of resources.filter(item => item.type === ResourceType.Process)) {
     const sourceType = isSubprocess(resource) ? 'subprocess' : 'process';
     try {
       index.addMany(await getProcessIndex(resource, sourceType));
-    } catch {
-      index.add(createResourceResult(resource, sourceType));
+    } catch (error) {
+      if (error instanceof HttpError && (error.status === 401 || error.status === 403)) {
+        restrictedResourceCount += 1;
+        const restricted = createResourceResult(resource, sourceType);
+        index.add({
+          ...restricted,
+          metadata: { ...(restricted.metadata ?? {}), accessRestricted: true },
+        });
+      } else {
+        // A transient error is not treated as an authorization restriction.
+        index.add(createResourceResult(resource, sourceType));
+      }
     }
   }
   repositoryIndexCache = { expiresAt: Date.now() + CACHE_TTL_MS, index };
@@ -165,6 +178,7 @@ export const getRepositoryRechercheIndex = getRepositoryIndex;
 
 export const invalidateRepositoryRechercheIndex = () => {
   repositoryIndexCache = undefined;
+  restrictedResourceCount = 0;
 };
 
 export const createRepositoryRechercheProvider = (): RechercheProvider => async (query, context = {}) => {
@@ -173,5 +187,15 @@ export const createRepositoryRechercheProvider = (): RechercheProvider => async 
   }
   const index = await getRepositoryIndex();
   const results = index.search(query, { ...context, processId: undefined, processName: undefined }, MAX_RESULTS);
+  if (restrictedResourceCount > 0) {
+    results.push({
+      element: undefined,
+      id: '__restricted-search-notice__',
+      type: 'notice',
+      name: '',
+      sourceType: 'process',
+      metadata: { searchNotice: 'restricted-results' },
+    });
+  }
   return results;
 };
