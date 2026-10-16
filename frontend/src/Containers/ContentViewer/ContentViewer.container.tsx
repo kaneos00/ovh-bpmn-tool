@@ -134,9 +134,6 @@ export const Component = () => {
 
   return (
     <Box className={`viewerLayout ${folderOpen ? 'sidebar-open' : 'sidebar-collapsed'} ${infoPanelOpen ? 'info-open' : ''}`}>
-      <Box sx={{ position: 'fixed', top: 10, right: 12, zIndex: 1300, bgcolor: '#152b45', color: '#fff', p: 0.5, borderRadius: '10px', boxShadow: '0 4px 14px rgba(21,43,69,.2)' }}>
-        <UserAccountMenu />
-      </Box>
       <Sheet
         className={`viewerFolderPanel ${folderOpen ? 'open' : 'collapsed'}`}
         variant="outlined"
@@ -263,6 +260,7 @@ export const Component = () => {
           onElementSelect={setSelectedActivityId}
           onToggleInfoPanel={() => setInfoPanelOpen(value => !value)}
           infoPanelOpen={infoPanelOpen}
+          toolbarExtra={<UserAccountMenu dark={false} />}
         />
       </Box>
 
