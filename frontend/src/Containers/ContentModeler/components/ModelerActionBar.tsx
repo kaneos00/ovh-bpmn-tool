@@ -21,6 +21,7 @@ import {
 } from '@mui/icons-material';
 
 import { ActionBar } from '../../../Components/GenericComponents/ActionBar/ActionBar';
+import { UserAccountMenu } from '../../../Components/GenericComponents/UserAccountMenu/UserAccountMenu';
 
 type ModelerActionBarProps = {
   resourceId: string;
@@ -144,6 +145,7 @@ export const ModelerActionBar = ({
         >
           Publish
         </Button>
+        <UserAccountMenu dark={false} />
       </Stack>
     </ActionBar>
   );
