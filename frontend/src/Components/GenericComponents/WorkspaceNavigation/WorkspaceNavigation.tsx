@@ -45,8 +45,8 @@ const matchesTerm = (value: string, term: string) =>
 const resultKey = (result: SearchResult) => result.key;
 
 const resultIndicatorColor = (detail: string) => {
-  if (/\\bRACI\\b/i.test(detail)) return '#7c3aed';
-  if (/\\bLane\\b/i.test(detail)) return '#0f766e';
+  if (/\bRACI\b/i.test(detail)) return '#7c3aed';
+  if (/\bLane\b/i.test(detail)) return '#0f766e';
   if (/Activité|Sous-processus/i.test(detail)) return '#2563eb';
   if (/Processus BPMN/i.test(detail)) return '#b45309';
   if (/Rôle/i.test(detail)) return '#9333ea';
