@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   IconButton,
+  Input,
   List,
   ListItem,
   ListItemContent,
@@ -18,6 +19,7 @@ import {
   FolderOutlined,
   Star,
   StarBorder,
+  Search,
 } from '@mui/icons-material';
 import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 
@@ -49,6 +51,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
   const { dataTree, expandedNodes, isLoading, onNodeSelect, onNodeToggle } =
     useFolderTree(selectedId, { onNodeClick });
   const [view, setView] = useState<ExplorerView>('tree');
+  const [search, setSearch] = useState('');
   const [favorites, setFavorites] = useState<string[]>(readIds(FAVORITES_KEY));
   const [recent, setRecent] = useState<string[]>(readIds(RECENT_KEY));
 
@@ -84,10 +87,32 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
   }, [dataTree]);
 
   const nodeById = useMemo(() => new Map(flatNodes.map(node => [node.id, node])), [flatNodes]);
+  const filteredTree = useMemo(() => {
+    const term = search.trim().toLocaleLowerCase('fr');
+    const filterNode = (node: RenderTree): RenderTree | null => {
+      const children = (node.children ?? []).map(filterNode).filter((child): child is RenderTree => Boolean(child));
+      if (!term || node.name.toLocaleLowerCase('fr').includes(term)) {
+        return { ...node, children: node.children };
+      }
+      return children.length ? { ...node, children } : null;
+    };
+    return (dataTree.children ?? []).map(filterNode).filter((node): node is RenderTree => Boolean(node));
+  }, [dataTree, search]);
+
+  const searchExpandedNodes = useMemo(() => {
+    const collect = (nodes: RenderTree[]): string[] =>
+      nodes.flatMap(node => node.children?.length ? [node.id, ...collect(node.children)] : []);
+    return collect(filteredTree);
+  }, [filteredTree]);
+
   const visibleNodes = useMemo(() => {
     const ids = view === 'favorites' ? favorites : recent;
-    return ids.map(id => nodeById.get(id)).filter((node): node is RenderTree => Boolean(node));
-  }, [view, favorites, recent, nodeById]);
+    const term = search.trim().toLocaleLowerCase('fr');
+    return ids
+      .map(id => nodeById.get(id))
+      .filter((node): node is RenderTree => Boolean(node))
+      .filter(node => !term || node.name.toLocaleLowerCase('fr').includes(term));
+  }, [view, favorites, recent, nodeById, search]);
 
   const toggleFavorite = (event: React.MouseEvent, nodeId: string) => {
     event.preventDefault();
@@ -154,6 +179,16 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
         Explorateur
       </ListSubheader>
 
+      <Input
+        size="sm"
+        value={search}
+        onChange={event => setSearch(event.target.value)}
+        placeholder="Rechercher une ressource…"
+        startDecorator={<Search fontSize="small" />}
+        sx={{ mb: 1, borderRadius: '7px', bgcolor: 'background.surface' }}
+        slotProps={{ input: { 'aria-label': 'Rechercher dans l’arborescence, les récents et les favoris' } }}
+      />
+
       <Box sx={{ display: 'flex', gap: 0.5, p: 0.5, mb: 1, bgcolor: 'background.level1', borderRadius: '8px' }}>
         {([
           ['tree', 'Arborescence'],
@@ -187,7 +222,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
           <ListItemContent sx={{ minWidth: 0 }}>
             <SimpleTreeView
               selectedItems={selectedId}
-              expandedItems={expandedNodes}
+              expandedItems={search.trim() ? searchExpandedNodes : expandedNodes}
               disabledItemsFocusable
               slots={{ collapseIcon: ExpandMore, expandIcon: ChevronRight }}
               onSelectedItemsChange={onNodeSelect}
@@ -199,7 +234,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                 '& .MuiTreeItem-content.Mui-selected:hover': { bgcolor: '#eaf1ff' },
               }}
             >
-              {dataTree.children?.map(node => renderTree(node))}
+              {filteredTree.map(node => renderTree(node))}
             </SimpleTreeView>
           </ListItemContent>
         </ListItem>
