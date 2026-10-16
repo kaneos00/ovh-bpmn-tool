@@ -173,11 +173,15 @@ export class AuthController {
       [id],
     );
     const target = rows[0];
-    if (!target) throw new BadRequestException('Utilisateur introuvable ou désactivé.');
+    if (!target) {
+      throw new BadRequestException('Utilisateur introuvable ou désactivé.');
+    }
 
     const secret = this.getSecret();
     if (!secret) {
-      throw new ServiceUnavailableException('La session sécurisée n’est pas configurée.');
+      throw new ServiceUnavailableException(
+        'La session sécurisée n’est pas configurée.',
+      );
     }
     const payload: SessionPayload = {
       sub: target.username,
@@ -190,7 +194,14 @@ export class AuthController {
       request.headers['x-forwarded-proto'] === 'https' ||
       (request as Request & { secure?: boolean }).secure === true;
     response.setHeader('Cache-Control', 'no-store');
-    response.setHeader('Set-Cookie', this.cookie(this.signPayload(payload, secret), SESSION_TTL_SECONDS, secure));
+    response.setHeader(
+      'Set-Cookie',
+      this.cookie(
+        this.signPayload(payload, secret),
+        SESSION_TTL_SECONDS,
+        secure,
+      ),
+    );
     return response.status(200).json({
       userId: target.username,
       role: target.global_role,
@@ -200,10 +211,7 @@ export class AuthController {
   }
 
   @Post('impersonation/stop')
-  async stopImpersonation(
-    @Req() request: Request,
-    @Res() response: Response,
-  ) {
+  async stopImpersonation(@Req() request: Request, @Res() response: Response) {
     const current = this.readSession(request);
     if (!current?.impersonatorSub) {
       throw new ForbiddenException('Aucune simulation de compte en cours.');
@@ -214,7 +222,9 @@ export class AuthController {
     );
     const administrator = rows[0];
     if (!administrator) {
-      throw new ForbiddenException('Le compte administrateur d’origine n’est plus actif.');
+      throw new ForbiddenException(
+        'Le compte administrateur d’origine n’est plus actif.',
+      );
     }
     const secret = this.getSecret();
     if (!secret) {
@@ -448,7 +458,11 @@ export class AuthController {
       'SELECT id, username, email, password_hash, global_role, active FROM app_users WHERE lower(username) = lower($1) AND active = TRUE',
       [session.sub],
     );
-    if (session.impersonatorSub || !rows[0] || rows[0].global_role !== 'admin') {
+    if (
+      session.impersonatorSub ||
+      !rows[0] ||
+      rows[0].global_role !== 'admin'
+    ) {
       throw new ForbiddenException('Droits administrateur requis.');
     }
     return session;
