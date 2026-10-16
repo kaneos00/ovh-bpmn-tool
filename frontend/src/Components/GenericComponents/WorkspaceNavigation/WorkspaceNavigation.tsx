@@ -59,7 +59,7 @@ export const WorkspaceNavigation = () => {
 
   useEffect(() => {
     let mounted = true;
-    const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\\/+$/, '');
+    const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
     fetch(`${apiBase}/auth/session`, { credentials: 'same-origin' })
       .then(async response => (response.ok ? response.json() : null))
       .then(session => {
