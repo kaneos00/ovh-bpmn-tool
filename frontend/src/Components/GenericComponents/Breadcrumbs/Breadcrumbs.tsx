@@ -33,7 +33,7 @@ export const Breadcrumbs: FC<BreadcrumbsProps> = ({
         <Skeleton variant="text" width={500} height={24} />
       ) : (
         <>
-          {breadcrumbItems.length > 1 && (
+          {breadcrumbItems.length > 0 && (
             <IconButton
               size="sm"
               variant="plain"
