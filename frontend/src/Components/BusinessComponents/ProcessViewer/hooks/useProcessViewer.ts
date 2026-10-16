@@ -274,7 +274,6 @@ export const useProcessViewer = (
   }, [selectedElementId]);
 
   useEffect(() => {
-    if (!importedRef.current) return undefined;
     const eventBus = viewer.get('eventBus') as {
       on: (event: string, listener: () => void) => void;
       off: (event: string, listener: () => void) => void;
