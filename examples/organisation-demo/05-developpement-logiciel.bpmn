@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_Process_DeveloppementLogiciel" targetNamespace="https://khi-flows.example/organisation-demo" exporter="KHI Flows" exporterVersion="2.1">
+  <bpmn:process id="Process_DeveloppementLogiciel" name="Développement d'un logiciel" isExecutable="false">
+    <bpmn:startEvent id="Start_Process_DeveloppementLogiciel" name="Début"><bpmn:outgoing>Flow_Process_DeveloppementLogiciel_0</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:callActivity id="Call_Gouvernance" name="[CDP] Vérifier capacité et arbitrages — Gouvernance" calledElement="Process_GouvernanceCapacites"><bpmn:incoming>Flow_Process_DeveloppementLogiciel_0</bpmn:incoming><bpmn:outgoing>Flow_Process_DeveloppementLogiciel_1</bpmn:outgoing></bpmn:callActivity>
+    <bpmn:callActivity id="Call_EvaluationCompetences" name="[DT] Vérifier les compétences requises" calledElement="Process_EvaluationCompetences"><bpmn:incoming>Flow_Process_DeveloppementLogiciel_1</bpmn:incoming><bpmn:outgoing>Flow_Process_DeveloppementLogiciel_2</bpmn:outgoing></bpmn:callActivity>
+    <bpmn:task id="Task_Dev_1" name="[CDP] Cadrer le besoin et les exigences"><bpmn:incoming>Flow_Process_DeveloppementLogiciel_2</bpmn:incoming><bpmn:outgoing>Flow_Process_DeveloppementLogiciel_3</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_Dev_2" name="[DT] Concevoir l'architecture et la solution"><bpmn:incoming>Flow_Process_DeveloppementLogiciel_3</bpmn:incoming><bpmn:outgoing>Flow_Process_DeveloppementLogiciel_4</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_Dev_3" name="[Équipe de développement] Réaliser le logiciel"><bpmn:incoming>Flow_Process_DeveloppementLogiciel_4</bpmn:incoming><bpmn:outgoing>Flow_Process_DeveloppementLogiciel_5</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_Dev_4" name="[DT] Vérifier et valider la qualité"><bpmn:incoming>Flow_Process_DeveloppementLogiciel_5</bpmn:incoming><bpmn:outgoing>Flow_Process_DeveloppementLogiciel_6</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_Dev_5" name="[DO] Organiser la livraison et le retour d'expérience"><bpmn:incoming>Flow_Process_DeveloppementLogiciel_6</bpmn:incoming><bpmn:outgoing>Flow_Process_DeveloppementLogiciel_7</bpmn:outgoing></bpmn:task>
+    <bpmn:endEvent id="End_Process_DeveloppementLogiciel" name="Fin"><bpmn:incoming>Flow_Process_DeveloppementLogiciel_7</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Process_DeveloppementLogiciel_0" sourceRef="Start_Process_DeveloppementLogiciel" targetRef="Call_Gouvernance"/>
+    <bpmn:sequenceFlow id="Flow_Process_DeveloppementLogiciel_1" sourceRef="Call_Gouvernance" targetRef="Call_EvaluationCompetences"/>
+    <bpmn:sequenceFlow id="Flow_Process_DeveloppementLogiciel_2" sourceRef="Call_EvaluationCompetences" targetRef="Task_Dev_1"/>
+    <bpmn:sequenceFlow id="Flow_Process_DeveloppementLogiciel_3" sourceRef="Task_Dev_1" targetRef="Task_Dev_2"/>
+    <bpmn:sequenceFlow id="Flow_Process_DeveloppementLogiciel_4" sourceRef="Task_Dev_2" targetRef="Task_Dev_3"/>
+    <bpmn:sequenceFlow id="Flow_Process_DeveloppementLogiciel_5" sourceRef="Task_Dev_3" targetRef="Task_Dev_4"/>
+    <bpmn:sequenceFlow id="Flow_Process_DeveloppementLogiciel_6" sourceRef="Task_Dev_4" targetRef="Task_Dev_5"/>
+    <bpmn:sequenceFlow id="Flow_Process_DeveloppementLogiciel_7" sourceRef="Task_Dev_5" targetRef="End_Process_DeveloppementLogiciel"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_Process_DeveloppementLogiciel"><bpmndi:BPMNPlane id="Plane_Process_DeveloppementLogiciel" bpmnElement="Process_DeveloppementLogiciel">
+    <bpmndi:BPMNShape id="Start_Process_DeveloppementLogiciel_di" bpmnElement="Start_Process_DeveloppementLogiciel"><dc:Bounds x="55" y="172" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Call_Gouvernance_di" bpmnElement="Call_Gouvernance"><dc:Bounds x="140" y="150" width="145" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Call_EvaluationCompetences_di" bpmnElement="Call_EvaluationCompetences"><dc:Bounds x="310" y="150" width="145" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Dev_1_di" bpmnElement="Task_Dev_1"><dc:Bounds x="480" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Dev_2_di" bpmnElement="Task_Dev_2"><dc:Bounds x="650" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Dev_3_di" bpmnElement="Task_Dev_3"><dc:Bounds x="820" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Dev_4_di" bpmnElement="Task_Dev_4"><dc:Bounds x="990" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Dev_5_di" bpmnElement="Task_Dev_5"><dc:Bounds x="1160" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="End_Process_DeveloppementLogiciel_di" bpmnElement="End_Process_DeveloppementLogiciel"><dc:Bounds x="1330" y="172" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge id="Flow_Process_DeveloppementLogiciel_0_di" bpmnElement="Flow_Process_DeveloppementLogiciel_0"><di:waypoint x="91" y="190"/><di:waypoint x="140" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_DeveloppementLogiciel_1_di" bpmnElement="Flow_Process_DeveloppementLogiciel_1"><di:waypoint x="285" y="190"/><di:waypoint x="310" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_DeveloppementLogiciel_2_di" bpmnElement="Flow_Process_DeveloppementLogiciel_2"><di:waypoint x="455" y="190"/><di:waypoint x="480" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_DeveloppementLogiciel_3_di" bpmnElement="Flow_Process_DeveloppementLogiciel_3"><di:waypoint x="605" y="190"/><di:waypoint x="650" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_DeveloppementLogiciel_4_di" bpmnElement="Flow_Process_DeveloppementLogiciel_4"><di:waypoint x="775" y="190"/><di:waypoint x="820" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_DeveloppementLogiciel_5_di" bpmnElement="Flow_Process_DeveloppementLogiciel_5"><di:waypoint x="945" y="190"/><di:waypoint x="990" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_DeveloppementLogiciel_6_di" bpmnElement="Flow_Process_DeveloppementLogiciel_6"><di:waypoint x="1115" y="190"/><di:waypoint x="1160" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_DeveloppementLogiciel_7_di" bpmnElement="Flow_Process_DeveloppementLogiciel_7"><di:waypoint x="1285" y="190"/><di:waypoint x="1330" y="190"/></bpmndi:BPMNEdge>
+  </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_Process_GouvernanceCapacites" targetNamespace="https://khi-flows.example/organisation-demo" exporter="KHI Flows" exporterVersion="2.1">
+  <bpmn:process id="Process_GouvernanceCapacites" name="Gouvernance — prévision CA et planification des capacités" isExecutable="false">
+    <bpmn:startEvent id="Start_Process_GouvernanceCapacites" name="Début"><bpmn:outgoing>Flow_Process_GouvernanceCapacites_0</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:task id="Task_Gouv_1" name="[DG] Consolider les projections de chiffre d'affaires"><bpmn:incoming>Flow_Process_GouvernanceCapacites_0</bpmn:incoming><bpmn:outgoing>Flow_Process_GouvernanceCapacites_1</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_Gouv_2" name="[DO] Traduire les projections en charge prévisionnelle"><bpmn:incoming>Flow_Process_GouvernanceCapacites_1</bpmn:incoming><bpmn:outgoing>Flow_Process_GouvernanceCapacites_2</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_Gouv_3" name="[DT] Évaluer les capacités et compétences disponibles"><bpmn:incoming>Flow_Process_GouvernanceCapacites_2</bpmn:incoming><bpmn:outgoing>Flow_Process_GouvernanceCapacites_3</bpmn:outgoing></bpmn:task>
+    <bpmn:callActivity id="Call_Recrutement" name="Plan de recrutement — déclencher le processus Recrutement" calledElement="Process_Recrutement"><bpmn:incoming>Flow_Process_GouvernanceCapacites_3</bpmn:incoming><bpmn:outgoing>Flow_Process_GouvernanceCapacites_4</bpmn:outgoing></bpmn:callActivity>
+    <bpmn:callActivity id="Call_Formation" name="Besoins en formation — déclencher le processus Formation" calledElement="Process_Formation"><bpmn:incoming>Flow_Process_GouvernanceCapacites_4</bpmn:incoming><bpmn:outgoing>Flow_Process_GouvernanceCapacites_5</bpmn:outgoing></bpmn:callActivity>
+    <bpmn:task id="Task_Gouv_4" name="[DG] Arbitrer et valider le plan de capacité"><bpmn:incoming>Flow_Process_GouvernanceCapacites_5</bpmn:incoming><bpmn:outgoing>Flow_Process_GouvernanceCapacites_6</bpmn:outgoing></bpmn:task>
+    <bpmn:endEvent id="End_Process_GouvernanceCapacites" name="Fin"><bpmn:incoming>Flow_Process_GouvernanceCapacites_6</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Process_GouvernanceCapacites_0" sourceRef="Start_Process_GouvernanceCapacites" targetRef="Task_Gouv_1"/>
+    <bpmn:sequenceFlow id="Flow_Process_GouvernanceCapacites_1" sourceRef="Task_Gouv_1" targetRef="Task_Gouv_2"/>
+    <bpmn:sequenceFlow id="Flow_Process_GouvernanceCapacites_2" sourceRef="Task_Gouv_2" targetRef="Task_Gouv_3"/>
+    <bpmn:sequenceFlow id="Flow_Process_GouvernanceCapacites_3" sourceRef="Task_Gouv_3" targetRef="Call_Recrutement"/>
+    <bpmn:sequenceFlow id="Flow_Process_GouvernanceCapacites_4" sourceRef="Call_Recrutement" targetRef="Call_Formation"/>
+    <bpmn:sequenceFlow id="Flow_Process_GouvernanceCapacites_5" sourceRef="Call_Formation" targetRef="Task_Gouv_4"/>
+    <bpmn:sequenceFlow id="Flow_Process_GouvernanceCapacites_6" sourceRef="Task_Gouv_4" targetRef="End_Process_GouvernanceCapacites"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_Process_GouvernanceCapacites"><bpmndi:BPMNPlane id="Plane_Process_GouvernanceCapacites" bpmnElement="Process_GouvernanceCapacites">
+    <bpmndi:BPMNShape id="Start_Process_GouvernanceCapacites_di" bpmnElement="Start_Process_GouvernanceCapacites"><dc:Bounds x="55" y="172" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Gouv_1_di" bpmnElement="Task_Gouv_1"><dc:Bounds x="140" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Gouv_2_di" bpmnElement="Task_Gouv_2"><dc:Bounds x="310" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Gouv_3_di" bpmnElement="Task_Gouv_3"><dc:Bounds x="480" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Call_Recrutement_di" bpmnElement="Call_Recrutement"><dc:Bounds x="650" y="150" width="145" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Call_Formation_di" bpmnElement="Call_Formation"><dc:Bounds x="820" y="150" width="145" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Gouv_4_di" bpmnElement="Task_Gouv_4"><dc:Bounds x="990" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="End_Process_GouvernanceCapacites_di" bpmnElement="End_Process_GouvernanceCapacites"><dc:Bounds x="1160" y="172" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge id="Flow_Process_GouvernanceCapacites_0_di" bpmnElement="Flow_Process_GouvernanceCapacites_0"><di:waypoint x="91" y="190"/><di:waypoint x="140" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_GouvernanceCapacites_1_di" bpmnElement="Flow_Process_GouvernanceCapacites_1"><di:waypoint x="265" y="190"/><di:waypoint x="310" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_GouvernanceCapacites_2_di" bpmnElement="Flow_Process_GouvernanceCapacites_2"><di:waypoint x="435" y="190"/><di:waypoint x="480" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_GouvernanceCapacites_3_di" bpmnElement="Flow_Process_GouvernanceCapacites_3"><di:waypoint x="605" y="190"/><di:waypoint x="650" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_GouvernanceCapacites_4_di" bpmnElement="Flow_Process_GouvernanceCapacites_4"><di:waypoint x="795" y="190"/><di:waypoint x="820" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_GouvernanceCapacites_5_di" bpmnElement="Flow_Process_GouvernanceCapacites_5"><di:waypoint x="965" y="190"/><di:waypoint x="990" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_GouvernanceCapacites_6_di" bpmnElement="Flow_Process_GouvernanceCapacites_6"><di:waypoint x="1115" y="190"/><di:waypoint x="1160" y="190"/></bpmndi:BPMNEdge>
+  </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</bpmn:definitions>
