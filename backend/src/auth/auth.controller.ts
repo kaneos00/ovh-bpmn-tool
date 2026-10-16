@@ -76,8 +76,7 @@ export class AuthController {
     );
     if (Number(countRows[0]?.count ?? 0) === 0) {
       const bootstrapUser = this.config.get<string>('demoAuthUser')?.trim();
-      const bootstrapPassword =
-        this.config.get<string>('demoAuthPassword');
+      const bootstrapPassword = this.config.get<string>('demoAuthPassword');
       if (
         bootstrapUser &&
         bootstrapPassword &&
