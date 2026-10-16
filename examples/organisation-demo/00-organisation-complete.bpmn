@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_OrganisationDemo" targetNamespace="https://khi-flows.example/organisation-demo" exporter="KHI Flows" exporterVersion="2.1">
+<bpmn:process id="Process_Recrutement" name="Recrutement" isExecutable="false">
+    <bpmn:startEvent id="Start_Process_Recrutement" name="Début"><bpmn:outgoing>Flow_Process_Recrutement_0</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:task id="Task_Recrutement_1" name="[DO] Valider le besoin de recrutement"><bpmn:incoming>Flow_Process_Recrutement_0</bpmn:incoming><bpmn:outgoing>Flow_Process_Recrutement_1</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_Recrutement_2" name="[CDP] Décrire le poste et les compétences"><bpmn:incoming>Flow_Process_Recrutement_1</bpmn:incoming><bpmn:outgoing>Flow_Process_Recrutement_2</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_Recrutement_3" name="[DG] Autoriser l'ouverture du poste"><bpmn:incoming>Flow_Process_Recrutement_2</bpmn:incoming><bpmn:outgoing>Flow_Process_Recrutement_3</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_Recrutement_4" name="[DO] Sélectionner et intégrer le candidat"><bpmn:incoming>Flow_Process_Recrutement_3</bpmn:incoming><bpmn:outgoing>Flow_Process_Recrutement_4</bpmn:outgoing></bpmn:task>
+    <bpmn:endEvent id="End_Process_Recrutement" name="Fin"><bpmn:incoming>Flow_Process_Recrutement_4</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Process_Recrutement_0" sourceRef="Start_Process_Recrutement" targetRef="Task_Recrutement_1"/>
+    <bpmn:sequenceFlow id="Flow_Process_Recrutement_1" sourceRef="Task_Recrutement_1" targetRef="Task_Recrutement_2"/>
+    <bpmn:sequenceFlow id="Flow_Process_Recrutement_2" sourceRef="Task_Recrutement_2" targetRef="Task_Recrutement_3"/>
+    <bpmn:sequenceFlow id="Flow_Process_Recrutement_3" sourceRef="Task_Recrutement_3" targetRef="Task_Recrutement_4"/>
+    <bpmn:sequenceFlow id="Flow_Process_Recrutement_4" sourceRef="Task_Recrutement_4" targetRef="End_Process_Recrutement"/>
+  </bpmn:process>
+<bpmn:process id="Process_EvaluationCompetences" name="Évaluation des compétences" isExecutable="false">
+    <bpmn:startEvent id="Start_Process_EvaluationCompetences" name="Début"><bpmn:outgoing>Flow_Process_EvaluationCompetences_0</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:task id="Task_Competences_1" name="[CDP] Préparer la grille de compétences"><bpmn:incoming>Flow_Process_EvaluationCompetences_0</bpmn:incoming><bpmn:outgoing>Flow_Process_EvaluationCompetences_1</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_Competences_2" name="[CDP] Réaliser l'entretien de compétences"><bpmn:incoming>Flow_Process_EvaluationCompetences_1</bpmn:incoming><bpmn:outgoing>Flow_Process_EvaluationCompetences_2</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_Competences_3" name="[DT] Analyser les écarts de compétences"><bpmn:incoming>Flow_Process_EvaluationCompetences_2</bpmn:incoming><bpmn:outgoing>Flow_Process_EvaluationCompetences_3</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_Competences_4" name="[DO] Valider les actions de développement"><bpmn:incoming>Flow_Process_EvaluationCompetences_3</bpmn:incoming><bpmn:outgoing>Flow_Process_EvaluationCompetences_4</bpmn:outgoing></bpmn:task>
+    <bpmn:endEvent id="End_Process_EvaluationCompetences" name="Fin"><bpmn:incoming>Flow_Process_EvaluationCompetences_4</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Process_EvaluationCompetences_0" sourceRef="Start_Process_EvaluationCompetences" targetRef="Task_Competences_1"/>
+    <bpmn:sequenceFlow id="Flow_Process_EvaluationCompetences_1" sourceRef="Task_Competences_1" targetRef="Task_Competences_2"/>
+    <bpmn:sequenceFlow id="Flow_Process_EvaluationCompetences_2" sourceRef="Task_Competences_2" targetRef="Task_Competences_3"/>
+    <bpmn:sequenceFlow id="Flow_Process_EvaluationCompetences_3" sourceRef="Task_Competences_3" targetRef="Task_Competences_4"/>
+    <bpmn:sequenceFlow id="Flow_Process_EvaluationCompetences_4" sourceRef="Task_Competences_4" targetRef="End_Process_EvaluationCompetences"/>
+  </bpmn:process>
+<bpmn:process id="Process_Formation" name="Formation" isExecutable="false">
+    <bpmn:startEvent id="Start_Process_Formation" name="Début"><bpmn:outgoing>Flow_Process_Formation_0</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:task id="Task_Formation_1" name="[CDP] Consolider les besoins en formation"><bpmn:incoming>Flow_Process_Formation_0</bpmn:incoming><bpmn:outgoing>Flow_Process_Formation_1</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_Formation_2" name="[DT] Construire le plan de formation"><bpmn:incoming>Flow_Process_Formation_1</bpmn:incoming><bpmn:outgoing>Flow_Process_Formation_2</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_Formation_3" name="[DO] Planifier et organiser les sessions"><bpmn:incoming>Flow_Process_Formation_2</bpmn:incoming><bpmn:outgoing>Flow_Process_Formation_3</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_Formation_4" name="[CDP] Évaluer l'efficacité de la formation"><bpmn:incoming>Flow_Process_Formation_3</bpmn:incoming><bpmn:outgoing>Flow_Process_Formation_4</bpmn:outgoing></bpmn:task>
+    <bpmn:endEvent id="End_Process_Formation" name="Fin"><bpmn:incoming>Flow_Process_Formation_4</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Process_Formation_0" sourceRef="Start_Process_Formation" targetRef="Task_Formation_1"/>
+    <bpmn:sequenceFlow id="Flow_Process_Formation_1" sourceRef="Task_Formation_1" targetRef="Task_Formation_2"/>
+    <bpmn:sequenceFlow id="Flow_Process_Formation_2" sourceRef="Task_Formation_2" targetRef="Task_Formation_3"/>
+    <bpmn:sequenceFlow id="Flow_Process_Formation_3" sourceRef="Task_Formation_3" targetRef="Task_Formation_4"/>
+    <bpmn:sequenceFlow id="Flow_Process_Formation_4" sourceRef="Task_Formation_4" targetRef="End_Process_Formation"/>
+  </bpmn:process>
+<bpmn:process id="Process_GouvernanceCapacites" name="Gouvernance — prévision CA et planification des capacités" isExecutable="false">
+    <bpmn:startEvent id="Start_Process_GouvernanceCapacites" name="Début"><bpmn:outgoing>Flow_Process_GouvernanceCapacites_0</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:task id="Task_Gouv_1" name="[DG] Consolider les projections de chiffre d'affaires"><bpmn:incoming>Flow_Process_GouvernanceCapacites_0</bpmn:incoming><bpmn:outgoing>Flow_Process_GouvernanceCapacites_1</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_Gouv_2" name="[DO] Traduire les projections en charge prévisionnelle"><bpmn:incoming>Flow_Process_GouvernanceCapacites_1</bpmn:incoming><bpmn:outgoing>Flow_Process_GouvernanceCapacites_2</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_Gouv_3" name="[DT] Évaluer les capacités et compétences disponibles"><bpmn:incoming>Flow_Process_GouvernanceCapacites_2</bpmn:incoming><bpmn:outgoing>Flow_Process_GouvernanceCapacites_3</bpmn:outgoing></bpmn:task>
+    <bpmn:callActivity id="Call_Recrutement" name="Plan de recrutement — déclencher le processus Recrutement" calledElement="Process_Recrutement"><bpmn:incoming>Flow_Process_GouvernanceCapacites_3</bpmn:incoming><bpmn:outgoing>Flow_Process_GouvernanceCapacites_4</bpmn:outgoing></bpmn:callActivity>
+    <bpmn:callActivity id="Call_Formation" name="Besoins en formation — déclencher le processus Formation" calledElement="Process_Formation"><bpmn:incoming>Flow_Process_GouvernanceCapacites_4</bpmn:incoming><bpmn:outgoing>Flow_Process_GouvernanceCapacites_5</bpmn:outgoing></bpmn:callActivity>
+    <bpmn:task id="Task_Gouv_4" name="[DG] Arbitrer et valider le plan de capacité"><bpmn:incoming>Flow_Process_GouvernanceCapacites_5</bpmn:incoming><bpmn:outgoing>Flow_Process_GouvernanceCapacites_6</bpmn:outgoing></bpmn:task>
+    <bpmn:endEvent id="End_Process_GouvernanceCapacites" name="Fin"><bpmn:incoming>Flow_Process_GouvernanceCapacites_6</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Process_GouvernanceCapacites_0" sourceRef="Start_Process_GouvernanceCapacites" targetRef="Task_Gouv_1"/>
+    <bpmn:sequenceFlow id="Flow_Process_GouvernanceCapacites_1" sourceRef="Task_Gouv_1" targetRef="Task_Gouv_2"/>
+    <bpmn:sequenceFlow id="Flow_Process_GouvernanceCapacites_2" sourceRef="Task_Gouv_2" targetRef="Task_Gouv_3"/>
+    <bpmn:sequenceFlow id="Flow_Process_GouvernanceCapacites_3" sourceRef="Task_Gouv_3" targetRef="Call_Recrutement"/>
+    <bpmn:sequenceFlow id="Flow_Process_GouvernanceCapacites_4" sourceRef="Call_Recrutement" targetRef="Call_Formation"/>
+    <bpmn:sequenceFlow id="Flow_Process_GouvernanceCapacites_5" sourceRef="Call_Formation" targetRef="Task_Gouv_4"/>
+    <bpmn:sequenceFlow id="Flow_Process_GouvernanceCapacites_6" sourceRef="Task_Gouv_4" targetRef="End_Process_GouvernanceCapacites"/>
+  </bpmn:process>
+<bpmn:process id="Process_DeveloppementLogiciel" name="Développement d'un logiciel" isExecutable="false">
+    <bpmn:startEvent id="Start_Process_DeveloppementLogiciel" name="Début"><bpmn:outgoing>Flow_Process_DeveloppementLogiciel_0</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:callActivity id="Call_Gouvernance" name="[CDP] Vérifier capacité et arbitrages — Gouvernance" calledElement="Process_GouvernanceCapacites"><bpmn:incoming>Flow_Process_DeveloppementLogiciel_0</bpmn:incoming><bpmn:outgoing>Flow_Process_DeveloppementLogiciel_1</bpmn:outgoing></bpmn:callActivity>
+    <bpmn:callActivity id="Call_EvaluationCompetences" name="[DT] Vérifier les compétences requises" calledElement="Process_EvaluationCompetences"><bpmn:incoming>Flow_Process_DeveloppementLogiciel_1</bpmn:incoming><bpmn:outgoing>Flow_Process_DeveloppementLogiciel_2</bpmn:outgoing></bpmn:callActivity>
+    <bpmn:task id="Task_Dev_1" name="[CDP] Cadrer le besoin et les exigences"><bpmn:incoming>Flow_Process_DeveloppementLogiciel_2</bpmn:incoming><bpmn:outgoing>Flow_Process_DeveloppementLogiciel_3</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_Dev_2" name="[DT] Concevoir l'architecture et la solution"><bpmn:incoming>Flow_Process_DeveloppementLogiciel_3</bpmn:incoming><bpmn:outgoing>Flow_Process_DeveloppementLogiciel_4</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_Dev_3" name="[Équipe de développement] Réaliser le logiciel"><bpmn:incoming>Flow_Process_DeveloppementLogiciel_4</bpmn:incoming><bpmn:outgoing>Flow_Process_DeveloppementLogiciel_5</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_Dev_4" name="[DT] Vérifier et valider la qualité"><bpmn:incoming>Flow_Process_DeveloppementLogiciel_5</bpmn:incoming><bpmn:outgoing>Flow_Process_DeveloppementLogiciel_6</bpmn:outgoing></bpmn:task>
+    <bpmn:task id="Task_Dev_5" name="[DO] Organiser la livraison et le retour d'expérience"><bpmn:incoming>Flow_Process_DeveloppementLogiciel_6</bpmn:incoming><bpmn:outgoing>Flow_Process_DeveloppementLogiciel_7</bpmn:outgoing></bpmn:task>
+    <bpmn:endEvent id="End_Process_DeveloppementLogiciel" name="Fin"><bpmn:incoming>Flow_Process_DeveloppementLogiciel_7</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Process_DeveloppementLogiciel_0" sourceRef="Start_Process_DeveloppementLogiciel" targetRef="Call_Gouvernance"/>
+    <bpmn:sequenceFlow id="Flow_Process_DeveloppementLogiciel_1" sourceRef="Call_Gouvernance" targetRef="Call_EvaluationCompetences"/>
+    <bpmn:sequenceFlow id="Flow_Process_DeveloppementLogiciel_2" sourceRef="Call_EvaluationCompetences" targetRef="Task_Dev_1"/>
+    <bpmn:sequenceFlow id="Flow_Process_DeveloppementLogiciel_3" sourceRef="Task_Dev_1" targetRef="Task_Dev_2"/>
+    <bpmn:sequenceFlow id="Flow_Process_DeveloppementLogiciel_4" sourceRef="Task_Dev_2" targetRef="Task_Dev_3"/>
+    <bpmn:sequenceFlow id="Flow_Process_DeveloppementLogiciel_5" sourceRef="Task_Dev_3" targetRef="Task_Dev_4"/>
+    <bpmn:sequenceFlow id="Flow_Process_DeveloppementLogiciel_6" sourceRef="Task_Dev_4" targetRef="Task_Dev_5"/>
+    <bpmn:sequenceFlow id="Flow_Process_DeveloppementLogiciel_7" sourceRef="Task_Dev_5" targetRef="End_Process_DeveloppementLogiciel"/>
+  </bpmn:process>
+<bpmndi:BPMNDiagram id="Diagram_Process_Recrutement"><bpmndi:BPMNPlane id="Plane_Process_Recrutement" bpmnElement="Process_Recrutement">
+    <bpmndi:BPMNShape id="Start_Process_Recrutement_di" bpmnElement="Start_Process_Recrutement"><dc:Bounds x="55" y="172" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Recrutement_1_di" bpmnElement="Task_Recrutement_1"><dc:Bounds x="140" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Recrutement_2_di" bpmnElement="Task_Recrutement_2"><dc:Bounds x="310" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Recrutement_3_di" bpmnElement="Task_Recrutement_3"><dc:Bounds x="480" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Recrutement_4_di" bpmnElement="Task_Recrutement_4"><dc:Bounds x="650" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="End_Process_Recrutement_di" bpmnElement="End_Process_Recrutement"><dc:Bounds x="820" y="172" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge id="Flow_Process_Recrutement_0_di" bpmnElement="Flow_Process_Recrutement_0"><di:waypoint x="91" y="190"/><di:waypoint x="140" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_Recrutement_1_di" bpmnElement="Flow_Process_Recrutement_1"><di:waypoint x="265" y="190"/><di:waypoint x="310" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_Recrutement_2_di" bpmnElement="Flow_Process_Recrutement_2"><di:waypoint x="435" y="190"/><di:waypoint x="480" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_Recrutement_3_di" bpmnElement="Flow_Process_Recrutement_3"><di:waypoint x="605" y="190"/><di:waypoint x="650" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_Recrutement_4_di" bpmnElement="Flow_Process_Recrutement_4"><di:waypoint x="775" y="190"/><di:waypoint x="820" y="190"/></bpmndi:BPMNEdge>
+  </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+<bpmndi:BPMNDiagram id="Diagram_Process_EvaluationCompetences"><bpmndi:BPMNPlane id="Plane_Process_EvaluationCompetences" bpmnElement="Process_EvaluationCompetences">
+    <bpmndi:BPMNShape id="Start_Process_EvaluationCompetences_di" bpmnElement="Start_Process_EvaluationCompetences"><dc:Bounds x="55" y="172" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Competences_1_di" bpmnElement="Task_Competences_1"><dc:Bounds x="140" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Competences_2_di" bpmnElement="Task_Competences_2"><dc:Bounds x="310" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Competences_3_di" bpmnElement="Task_Competences_3"><dc:Bounds x="480" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Competences_4_di" bpmnElement="Task_Competences_4"><dc:Bounds x="650" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="End_Process_EvaluationCompetences_di" bpmnElement="End_Process_EvaluationCompetences"><dc:Bounds x="820" y="172" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge id="Flow_Process_EvaluationCompetences_0_di" bpmnElement="Flow_Process_EvaluationCompetences_0"><di:waypoint x="91" y="190"/><di:waypoint x="140" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_EvaluationCompetences_1_di" bpmnElement="Flow_Process_EvaluationCompetences_1"><di:waypoint x="265" y="190"/><di:waypoint x="310" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_EvaluationCompetences_2_di" bpmnElement="Flow_Process_EvaluationCompetences_2"><di:waypoint x="435" y="190"/><di:waypoint x="480" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_EvaluationCompetences_3_di" bpmnElement="Flow_Process_EvaluationCompetences_3"><di:waypoint x="605" y="190"/><di:waypoint x="650" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_EvaluationCompetences_4_di" bpmnElement="Flow_Process_EvaluationCompetences_4"><di:waypoint x="775" y="190"/><di:waypoint x="820" y="190"/></bpmndi:BPMNEdge>
+  </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+<bpmndi:BPMNDiagram id="Diagram_Process_Formation"><bpmndi:BPMNPlane id="Plane_Process_Formation" bpmnElement="Process_Formation">
+    <bpmndi:BPMNShape id="Start_Process_Formation_di" bpmnElement="Start_Process_Formation"><dc:Bounds x="55" y="172" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Formation_1_di" bpmnElement="Task_Formation_1"><dc:Bounds x="140" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Formation_2_di" bpmnElement="Task_Formation_2"><dc:Bounds x="310" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Formation_3_di" bpmnElement="Task_Formation_3"><dc:Bounds x="480" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Formation_4_di" bpmnElement="Task_Formation_4"><dc:Bounds x="650" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="End_Process_Formation_di" bpmnElement="End_Process_Formation"><dc:Bounds x="820" y="172" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge id="Flow_Process_Formation_0_di" bpmnElement="Flow_Process_Formation_0"><di:waypoint x="91" y="190"/><di:waypoint x="140" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_Formation_1_di" bpmnElement="Flow_Process_Formation_1"><di:waypoint x="265" y="190"/><di:waypoint x="310" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_Formation_2_di" bpmnElement="Flow_Process_Formation_2"><di:waypoint x="435" y="190"/><di:waypoint x="480" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_Formation_3_di" bpmnElement="Flow_Process_Formation_3"><di:waypoint x="605" y="190"/><di:waypoint x="650" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_Formation_4_di" bpmnElement="Flow_Process_Formation_4"><di:waypoint x="775" y="190"/><di:waypoint x="820" y="190"/></bpmndi:BPMNEdge>
+  </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+<bpmndi:BPMNDiagram id="Diagram_Process_GouvernanceCapacites"><bpmndi:BPMNPlane id="Plane_Process_GouvernanceCapacites" bpmnElement="Process_GouvernanceCapacites">
+    <bpmndi:BPMNShape id="Start_Process_GouvernanceCapacites_di" bpmnElement="Start_Process_GouvernanceCapacites"><dc:Bounds x="55" y="172" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Gouv_1_di" bpmnElement="Task_Gouv_1"><dc:Bounds x="140" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Gouv_2_di" bpmnElement="Task_Gouv_2"><dc:Bounds x="310" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Gouv_3_di" bpmnElement="Task_Gouv_3"><dc:Bounds x="480" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Call_Recrutement_di" bpmnElement="Call_Recrutement"><dc:Bounds x="650" y="150" width="145" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Call_Formation_di" bpmnElement="Call_Formation"><dc:Bounds x="820" y="150" width="145" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Gouv_4_di" bpmnElement="Task_Gouv_4"><dc:Bounds x="990" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="End_Process_GouvernanceCapacites_di" bpmnElement="End_Process_GouvernanceCapacites"><dc:Bounds x="1160" y="172" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge id="Flow_Process_GouvernanceCapacites_0_di" bpmnElement="Flow_Process_GouvernanceCapacites_0"><di:waypoint x="91" y="190"/><di:waypoint x="140" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_GouvernanceCapacites_1_di" bpmnElement="Flow_Process_GouvernanceCapacites_1"><di:waypoint x="265" y="190"/><di:waypoint x="310" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_GouvernanceCapacites_2_di" bpmnElement="Flow_Process_GouvernanceCapacites_2"><di:waypoint x="435" y="190"/><di:waypoint x="480" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_GouvernanceCapacites_3_di" bpmnElement="Flow_Process_GouvernanceCapacites_3"><di:waypoint x="605" y="190"/><di:waypoint x="650" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_GouvernanceCapacites_4_di" bpmnElement="Flow_Process_GouvernanceCapacites_4"><di:waypoint x="795" y="190"/><di:waypoint x="820" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_GouvernanceCapacites_5_di" bpmnElement="Flow_Process_GouvernanceCapacites_5"><di:waypoint x="965" y="190"/><di:waypoint x="990" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_GouvernanceCapacites_6_di" bpmnElement="Flow_Process_GouvernanceCapacites_6"><di:waypoint x="1115" y="190"/><di:waypoint x="1160" y="190"/></bpmndi:BPMNEdge>
+  </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+<bpmndi:BPMNDiagram id="Diagram_Process_DeveloppementLogiciel"><bpmndi:BPMNPlane id="Plane_Process_DeveloppementLogiciel" bpmnElement="Process_DeveloppementLogiciel">
+    <bpmndi:BPMNShape id="Start_Process_DeveloppementLogiciel_di" bpmnElement="Start_Process_DeveloppementLogiciel"><dc:Bounds x="55" y="172" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Call_Gouvernance_di" bpmnElement="Call_Gouvernance"><dc:Bounds x="140" y="150" width="145" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Call_EvaluationCompetences_di" bpmnElement="Call_EvaluationCompetences"><dc:Bounds x="310" y="150" width="145" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Dev_1_di" bpmnElement="Task_Dev_1"><dc:Bounds x="480" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Dev_2_di" bpmnElement="Task_Dev_2"><dc:Bounds x="650" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Dev_3_di" bpmnElement="Task_Dev_3"><dc:Bounds x="820" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Dev_4_di" bpmnElement="Task_Dev_4"><dc:Bounds x="990" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Dev_5_di" bpmnElement="Task_Dev_5"><dc:Bounds x="1160" y="150" width="125" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="End_Process_DeveloppementLogiciel_di" bpmnElement="End_Process_DeveloppementLogiciel"><dc:Bounds x="1330" y="172" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge id="Flow_Process_DeveloppementLogiciel_0_di" bpmnElement="Flow_Process_DeveloppementLogiciel_0"><di:waypoint x="91" y="190"/><di:waypoint x="140" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_DeveloppementLogiciel_1_di" bpmnElement="Flow_Process_DeveloppementLogiciel_1"><di:waypoint x="285" y="190"/><di:waypoint x="310" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_DeveloppementLogiciel_2_di" bpmnElement="Flow_Process_DeveloppementLogiciel_2"><di:waypoint x="455" y="190"/><di:waypoint x="480" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_DeveloppementLogiciel_3_di" bpmnElement="Flow_Process_DeveloppementLogiciel_3"><di:waypoint x="605" y="190"/><di:waypoint x="650" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_DeveloppementLogiciel_4_di" bpmnElement="Flow_Process_DeveloppementLogiciel_4"><di:waypoint x="775" y="190"/><di:waypoint x="820" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_DeveloppementLogiciel_5_di" bpmnElement="Flow_Process_DeveloppementLogiciel_5"><di:waypoint x="945" y="190"/><di:waypoint x="990" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_DeveloppementLogiciel_6_di" bpmnElement="Flow_Process_DeveloppementLogiciel_6"><di:waypoint x="1115" y="190"/><di:waypoint x="1160" y="190"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="Flow_Process_DeveloppementLogiciel_7_di" bpmnElement="Flow_Process_DeveloppementLogiciel_7"><di:waypoint x="1285" y="190"/><di:waypoint x="1330" y="190"/></bpmndi:BPMNEdge>
+  </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</bpmn:definitions>
