@@ -41,11 +41,11 @@ type ProjectRaciData = {
 };
 
 const RAC_CODES: RaciCode[] = ['R', 'A', 'C', 'I'];
-const CODE_COLORS: Record<RaciCode, 'primary' | 'success' | 'warning' | 'neutral'> = {
-  R: 'primary',
-  A: 'success',
-  C: 'warning',
-  I: 'neutral',
+const CODE_STYLES: Record<RaciCode, { background: string; border: string; color: string }> = {
+  R: { background: '#e4efff', border: '#bfd4f7', color: '#28569a' },
+  A: { background: '#e2f4e8', border: '#bde2c8', color: '#276b43' },
+  C: { background: '#fff0d9', border: '#f0d5a6', color: '#895d1e' },
+  I: { background: '#eee8fb', border: '#d5c8f0', color: '#654c98' },
 };
 const CODE_LABELS: Record<RaciCode, string> = {
   R: 'Responsable',
@@ -246,7 +246,7 @@ export const ProjectRaciPanel = ({
                     return (
                       <Box key={code} sx={{ mb: 0.75 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
-                          <Chip size="sm" variant="soft" color={CODE_COLORS[code]}>
+                          <Chip size="sm" variant="soft" sx={{ minWidth: 26, justifyContent: 'center', borderRadius: '5px', fontWeight: 800, bgcolor: CODE_STYLES[code].background, border: '1px solid ' + CODE_STYLES[code].border, color: CODE_STYLES[code].color }}>
                             {code}
                           </Chip>
                           <Typography level="body-xs" textColor="neutral">{CODE_LABELS[code]}</Typography>
