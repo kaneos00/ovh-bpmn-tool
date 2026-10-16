@@ -80,15 +80,24 @@ describe('AuthController local account authentication', () => {
   it('authenticates a stored account and issues an HttpOnly session cookie', async () => {
     const salt = '00112233445566778899aabbccddeeff';
     const password = 'a-very-long-password';
-    db.query
-      .mockResolvedValueOnce([{ count: 1 }])
-      .mockResolvedValueOnce([
-        {
-          id: '00000000-0000-4000-8000-000000000001',
-          username: 'reader',
-          email: 'reader@example.com',
-          password_hash:
-            'scrypt
+    db.query.mockResolvedValueOnce([{ count: 1 }]).mockResolvedValueOnce([
+      {
+        id: '00000000-0000-4000-8000-000000000001',
+        username: 'reader',
+        email: 'reader@example.com',
+        password_hash:
+          'scrypt$' +
+          salt +
+          '$' +
+          scryptSync(password, salt, 64, {
+            N: 16384,
+            r: 8,
+            p: 1,
+          }).toString('hex'),
+        global_role: 'viewer',
+        active: true,
+      },
+    ]);
 
     const { res, headers, result } = makeResponse();
     await controller.login(
