@@ -1,4 +1,13 @@
 :root {
+  --bpmn-navy: #152b45;
+  --bpmn-blue: #2864d7;
+  --bpmn-blue-pale: #eaf1ff;
+  --bpmn-ink: #203047;
+  --bpmn-muted: #66758a;
+  --bpmn-line: #dce3ec;
+  --bpmn-soft: #f5f7fa;
+  --bpmn-page: #eef2f6;
+  --bpmn-green: #18815a;
   font-family: "Public Sans", "Segoe UI", Arial, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -23,8 +32,8 @@ textarea {
 }
 
 body {
-  color: var(--joy-palette-text-primary, #202a36);
-  background: var(--joy-palette-background-body, #f7f8fa);
+  color: var(--bpmn-ink);
+  background: var(--bpmn-page);
   font-size: 14px;
   line-height: 1.5;
 }
@@ -96,5 +105,66 @@ body {
   .MuiTab-root {
     padding: 7px 10px;
     font-size: 12px;
+  }
+}
+
+
+/* Design tokens from maquette_bpmn_tool_navigation.html, shared by every route. */
+#root {
+  color: var(--bpmn-ink);
+}
+
+.MuiCard-root,
+.MuiSheet-root {
+  --Card-radius: 10px;
+}
+
+.MuiCard-root {
+  border-color: var(--bpmn-line);
+  box-shadow: 0 2px 8px rgb(21 43 69 / 5%);
+}
+
+.MuiButton-root {
+  min-height: 34px;
+}
+
+.MuiButton-root.MuiButton-color-primary,
+.MuiButton-root.MuiButton-variant-solid.MuiButton-color-primary {
+  --variant-solidBg: var(--bpmn-blue);
+  --variant-solidHoverBg: #1f54bb;
+}
+
+.MuiInput-root,
+.MuiSelect-root,
+.MuiTextarea-root {
+  border-color: var(--bpmn-line);
+  border-radius: 7px;
+}
+
+.MuiTable-root thead th {
+  background: #f5f7fa;
+  color: var(--bpmn-muted);
+  font-weight: 700;
+}
+
+.MuiTable-root tbody tr:hover {
+  background: #f4f7fb;
+}
+
+.MuiAlert-root {
+  border-radius: 8px;
+}
+
+.MuiDivider-root {
+  border-color: var(--bpmn-line);
+}
+
+:focus-visible {
+  outline-color: #91b7ff;
+}
+
+@media (max-width: 760px) {
+  .workspace-navigation {
+    border-radius: 8px;
   }
 }
