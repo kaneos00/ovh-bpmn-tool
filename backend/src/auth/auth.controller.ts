@@ -228,7 +228,9 @@ export class AuthController {
     }
     const secret = this.getSecret();
     if (!secret) {
-      throw new ServiceUnavailableException('La session sécurisée n’est pas configurée.');
+      throw new ServiceUnavailableException(
+        'La session sécurisée n’est pas configurée.',
+      );
     }
     const payload: SessionPayload = {
       sub: administrator.username,
@@ -240,7 +242,14 @@ export class AuthController {
       request.headers['x-forwarded-proto'] === 'https' ||
       (request as Request & { secure?: boolean }).secure === true;
     response.setHeader('Cache-Control', 'no-store');
-    response.setHeader('Set-Cookie', this.cookie(this.signPayload(payload, secret), SESSION_TTL_SECONDS, secure));
+    response.setHeader(
+      'Set-Cookie',
+      this.cookie(
+        this.signPayload(payload, secret),
+        SESSION_TTL_SECONDS,
+        secure,
+      ),
+    );
     return response.status(200).json({
       userId: administrator.username,
       email: administrator.email,
