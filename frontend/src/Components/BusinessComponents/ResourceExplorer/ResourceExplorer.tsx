@@ -5,7 +5,6 @@ import { type Cell, flexRender } from '@tanstack/react-table';
 import { Link as RouterLink } from 'react-router-dom';
 
 import { useResourceExplorer } from './hooks/useResourceExplorer';
-import { SearchBar } from './components/SearchBar';
 import { ResourceActions } from './components/ResourceActions';
 import { ResourceAction } from '../../../shared/types/BpmnResource';
 import { ConditionalRender } from '../../../Components/GenericComponents/ConditionalRender/ConditionalRender';
@@ -26,7 +25,7 @@ export const ResourceExplorer = ({
   getActionLink,
   getResourceLink,
 }: ResourceExplorerProps) => {
-  const { table, columns, isLoading, onSearch } = useResourceExplorer(parentId);
+  const { table, columns, isLoading } = useResourceExplorer(parentId);
 
   const getCellContent = (cell: Cell<Resource, unknown>) => {
     switch (cell.column.id) {
@@ -69,7 +68,6 @@ export const ResourceExplorer = ({
         overflow: 'hidden',
       }}
     >
-      <SearchBar onSearch={onSearch} />
       <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', pt: 1 }}>
         {isLoading ? (
           <Skeleton variant="rectangular" height={300} />

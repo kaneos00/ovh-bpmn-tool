@@ -5,6 +5,9 @@ import { getXmlContentQuery } from '../../../../api/contents/contents.queries';
 import { useModelerInstance } from '../../../../shared/hooks/useModelerInstance';
 import { useCallActivityNavigation } from '../../../../shared/hooks/useCallActivityNavigation';
 
+const ZOOM_STEP = 1.2;
+const DIAGRAM_PADDING = 24;
+
 export const useProcessViewer = (
   resourceId: string,
   contentId: string,
@@ -17,6 +20,7 @@ export const useProcessViewer = (
   const importedRef = useRef(false);
   const highlightedIdRef = useRef<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [minimapVisible, setMinimapVisible] = useState(false);
 
   selectedIdRef.current = selectedElementId;
 
@@ -26,6 +30,172 @@ export const useProcessViewer = (
 
   const viewer = useMemo(() => getViewerInstance(), []);
   useCallActivityNavigation(viewer, true);
+
+  const alignDiagramTopLeft = () => {
+    const canvas = viewer.get('canvas') as any;
+    const elementRegistry = viewer.get('elementRegistry') as any;
+    const viewport = canvas.viewbox();
+    if (!viewport) return;
+
+    const bounds = elementRegistry
+      .getAll()
+      .filter((element: any) =>
+        element &&
+        !element.labelTarget &&
+        !element.waypoints &&
+        Number.isFinite(element.x) &&
+        Number.isFinite(element.y) &&
+        element.width > 0 &&
+        element.height > 0,
+      )
+      .map((element: any) => canvas.getAbsoluteBBox(element))
+      .filter((bbox: any) => bbox && Number.isFinite(bbox.x) && Number.isFinite(bbox.y));
+
+    if (!bounds.length) return;
+
+    const minX = Math.min(...bounds.map((bbox: any) => bbox.x));
+    const minY = Math.min(...bounds.map((bbox: any) => bbox.y));
+
+    // Preserve the current fit scale while aligning the diagram with the
+    // upper-left edge of the available canvas.
+    canvas.viewbox({
+      x: minX - DIAGRAM_PADDING,
+      y: minY - DIAGRAM_PADDING,
+      width: viewport.width,
+      height: viewport.height,
+    });
+  };
+
+  const getDiagramBounds = () => {
+    const canvas = viewer.get('canvas') as any;
+    const elementRegistry = viewer.get('elementRegistry') as any;
+    const bounds = elementRegistry
+      .getAll()
+      .filter((element: any) =>
+        element &&
+        !element.labelTarget &&
+        !element.waypoints &&
+        Number.isFinite(element.x) &&
+        Number.isFinite(element.y) &&
+        element.width > 0 &&
+        element.height > 0,
+      )
+      .map((element: any) => canvas.getAbsoluteBBox(element))
+      .filter((bbox: any) =>
+        bbox &&
+        Number.isFinite(bbox.x) &&
+        Number.isFinite(bbox.y) &&
+        Number.isFinite(bbox.width) &&
+        Number.isFinite(bbox.height),
+      );
+
+    if (!bounds.length) return null;
+
+    const minX = Math.min(...bounds.map((bbox: any) => bbox.x));
+    const minY = Math.min(...bounds.map((bbox: any) => bbox.y));
+    const maxX = Math.max(...bounds.map((bbox: any) => bbox.x + bbox.width));
+    const maxY = Math.max(...bounds.map((bbox: any) => bbox.y + bbox.height));
+
+    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+  };
+
+  const fitDiagramToWidth = () => {
+    const canvas = viewer.get('canvas') as any;
+    const container = canvas.getContainer();
+    const rect = container.getBoundingClientRect();
+    const bounds = getDiagramBounds();
+    if (!bounds || rect.width <= 0 || rect.height <= 0 || bounds.width <= 0) {
+      canvas.zoom('fit-viewport');
+      return;
+    }
+
+    const targetScale = Math.max(0.01, (rect.width - DIAGRAM_PADDING * 2) / bounds.width);
+    const viewboxWidth = rect.width / targetScale;
+    const viewboxHeight = rect.height / targetScale;
+    canvas.viewbox({
+      x: bounds.x - DIAGRAM_PADDING / targetScale,
+      y: bounds.y - DIAGRAM_PADDING / targetScale,
+      width: viewboxWidth,
+      height: viewboxHeight,
+    });
+  };
+
+  const setMinimapForDiagram = () => {
+    const container = viewerRef.current;
+    const bounds = getDiagramBounds();
+    if (!container || !bounds) {
+      setMinimapVisible(false);
+      try {
+        (viewer.get('minimap') as any).close();
+      } catch {
+        // The minimap service may not be available until the canvas is initialized.
+      }
+      return;
+    }
+
+    const available = container.getBoundingClientRect();
+    const scale = (viewer.get('canvas') as any).zoom();
+    const needsMinimap =
+      bounds.width * scale > Math.max(0, available.width - DIAGRAM_PADDING * 2) ||
+      bounds.height * scale > Math.max(0, available.height - DIAGRAM_PADDING * 2);
+
+    const minimap = viewer.get('minimap') as any;
+    if (needsMinimap) {
+      minimap.open();
+    } else {
+      minimap.close();
+    }
+    setMinimapVisible(needsMinimap);
+  };
+
+  const zoomIn = () => {
+    if (!importedRef.current) return;
+    const canvas = viewer.get('canvas') as any;
+    const container = canvas.getContainer();
+    const rect = container.getBoundingClientRect();
+    canvas.zoom(canvas.zoom() * ZOOM_STEP, { x: rect.width / 2, y: rect.height / 2 });
+  };
+
+  const zoomOut = () => {
+    if (!importedRef.current) return;
+    const canvas = viewer.get('canvas') as any;
+    const container = canvas.getContainer();
+    const rect = container.getBoundingClientRect();
+    canvas.zoom(canvas.zoom() / ZOOM_STEP, { x: rect.width / 2, y: rect.height / 2 });
+  };
+
+  const resetZoom = () => {
+    if (!importedRef.current) return;
+    (viewer.get('canvas') as any).zoom(1);
+  };
+
+  const fitDiagram = () => {
+    if (!importedRef.current) return;
+    (viewer.get('canvas') as any).zoom('fit-viewport');
+    alignDiagramTopLeft();
+    setMinimapForDiagram();
+  };
+
+  const applySelection = () => {
+    if (!importedRef.current) return;
+
+    const canvas = viewer.get('canvas') as any;
+    const previousId = highlightedIdRef.current;
+    if (previousId) canvas.removeMarker(previousId, 'task-selected');
+    highlightedIdRef.current = null;
+
+    const targetId = selectedIdRef.current;
+    if (!targetId) return;
+
+    const element = (viewer.get('elementRegistry') as any).get(targetId);
+    if (!element) return;
+
+    canvas.addMarker(targetId, 'task-selected');
+    highlightedIdRef.current = targetId;
+  };
+
+  const applySelectionRef = useRef(applySelection);
+  applySelectionRef.current = applySelection;
 
   useEffect(() => {
     if (!onElementSelect) return undefined;
@@ -52,72 +222,13 @@ export const useProcessViewer = (
     return () => eventBus.off('element.click', onElementClick);
   }, [viewer, onElementSelect]);
 
-  const alignDiagramTopLeft = () => {
-    const canvas = viewer.get('canvas') as any;
-    const elementRegistry = viewer.get('elementRegistry') as any;
-    const viewport = canvas.viewbox();
-    if (!viewport) return;
-
-    const bounds = elementRegistry
-      .getAll()
-      .filter((element: any) =>
-        element &&
-        !element.labelTarget &&
-        !element.waypoints &&
-        Number.isFinite(element.x) &&
-        Number.isFinite(element.y) &&
-        element.width > 0 &&
-        element.height > 0,
-      )
-      .map((element: any) => canvas.getAbsoluteBBox(element))
-      .filter((bbox: any) => bbox && Number.isFinite(bbox.x) && Number.isFinite(bbox.y));
-
-    if (!bounds.length) return;
-
-    const padding = 20;
-    const minX = Math.min(...bounds.map((bbox: any) => bbox.x));
-    const minY = Math.min(...bounds.map((bbox: any) => bbox.y));
-
-    // Keep the fitted zoom level, but anchor the diagram at the viewport's
-    // upper-left instead of centering it in the available space.
-    canvas.viewbox({
-      x: minX - padding,
-      y: minY - padding,
-      width: viewport.width,
-      height: viewport.height,
-    });
-  };
-
-  const applySelection = () => {
-    if (!importedRef.current) return;
-
-    const canvas = viewer.get('canvas') as any;
-    const previousId = highlightedIdRef.current;
-    if (previousId) canvas.removeMarker(previousId, 'task-selected');
-    highlightedIdRef.current = null;
-
-    const targetId = selectedIdRef.current;
-    if (!targetId) return;
-
-    const element = (viewer.get('elementRegistry') as any).get(targetId);
-    if (!element) return;
-
-    canvas.addMarker(targetId, 'task-selected');
-    highlightedIdRef.current = targetId;
-
-    // Selection only changes the highlight. It must not pan or zoom the
-    // diagram, so the user's visual reference remains stable.
-  };
-
-  const applySelectionRef = useRef(applySelection);
-  applySelectionRef.current = applySelection;
-
   useEffect(() => {
     let cancelled = false;
 
     if (!viewerRef.current || !xmlContent) {
       importedRef.current = false;
       highlightedIdRef.current = null;
+      setMinimapVisible(false);
       setImportError(null);
       viewer.clear();
       return () => {
@@ -126,18 +237,16 @@ export const useProcessViewer = (
     }
 
     importedRef.current = false;
+    setMinimapVisible(false);
     setImportError(null);
     viewer.attachTo(viewerRef.current);
 
-    // Attach the viewer before importing so its interaction and selection
-    // services are active when import.done is emitted.
     viewer.importXML(xmlContent)
       .then(() => {
         if (cancelled) return;
-        const canvas = viewer.get('canvas') as any;
-        canvas.zoom('fit-viewport');
-        alignDiagramTopLeft();
+        fitDiagramToWidth();
         importedRef.current = true;
+        setMinimapForDiagram();
         applySelectionRef.current();
       })
       .catch((error: unknown) => {
@@ -161,9 +270,22 @@ export const useProcessViewer = (
     applySelectionRef.current();
   }, [selectedElementId]);
 
+  useEffect(() => () => {
+    try {
+      viewer.destroy();
+    } catch {
+      // The viewer may already have been destroyed by its parent.
+    }
+  }, [viewer]);
+
   return {
     viewerRef,
     content: xmlContent ?? '',
     importError,
+    minimapVisible,
+    zoomIn,
+    zoomOut,
+    resetZoom,
+    fitDiagram,
   };
 };

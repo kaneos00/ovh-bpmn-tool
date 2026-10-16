@@ -121,3 +121,79 @@
     padding: 8px;
   }
 }
+
+
+/* Process view, version history and RACI share the application tab system. */
+.processViewerTabs > .MuiTabList-root {
+  flex: 0 0 auto;
+  border: 1px solid var(--joy-palette-neutral-outlinedBorder, #d9dfe7);
+}
+
+.processViewerTabs > .MuiTabList-root .MuiTab-root {
+  flex: 1 1 0;
+}
+
+.processViewerTabs > .MuiTabPanel-root {
+  padding: 12px 0 0;
+}
+
+.processViewerInfo {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.processViewerInfoHeader {
+  padding: 16px;
+  background: var(--joy-palette-background-level1, #f7f8fa);
+}
+
+.processRaciTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.processRaciTable th,
+.processRaciTable td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--joy-palette-divider, #e1e5eb);
+}
+
+.processRaciTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--joy-palette-background-level1, #f0f2f5);
+  color: var(--joy-palette-text-secondary, #596574);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.processRaciTable thead th:first-child,
+.processRaciTable tbody th {
+  text-align: left;
+}
+
+.processRaciTable tbody th {
+  font-weight: 600;
+  background: var(--joy-palette-background-surface, #fff);
+}
+
+.processRaciTable tbody tr:hover th,
+.processRaciTable tbody tr:hover td {
+  background: var(--joy-palette-background-level1, #f7f8fa);
+}
+
+@media (max-width: 760px) {
+  .processViewerTabs > .MuiTabList-root .MuiTab-root {
+    min-width: 0;
+    padding-inline: 6px;
+  }
+
+  .processViewerInfoHeader {
+    padding: 12px;
+  }
+}

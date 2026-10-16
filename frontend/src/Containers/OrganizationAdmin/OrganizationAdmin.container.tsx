@@ -20,6 +20,7 @@ import {
 } from '@mui/joy';
 import { apiClient } from '../../queryClient';
 import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
+import './OrganizationAdmin.scss';
 
 type MembershipView = {
   projectId: string;
@@ -82,9 +83,12 @@ type AdministrationOverview = {
 
 const queryKey = ['organization-administration-overview'];
 const sections = [
-  { key: 'users', label: 'Utilisateurs' },
-  { key: 'projects', label: 'Projets' },
-  { key: 'processes', label: 'Processus' },
+  { key: 'overview', label: 'Vue d’ensemble', icon: '▦' },
+  { key: 'users', label: 'Utilisateurs', icon: '♙' },
+  { key: 'projects', label: 'Projets', icon: '▣' },
+  { key: 'processes', label: 'Processus', icon: '⌘' },
+  { key: 'governance', label: 'Acteurs et RACI', icon: '⬡' },
+  { key: 'settings', label: 'Organisation', icon: '⚙' },
 ] as const;
 
 type AdminSection = (typeof sections)[number]['key'];
@@ -107,10 +111,22 @@ const roleColor: Record<MembershipView['role'], 'warning' | 'primary' | 'neutral
   viewer: 'neutral',
 };
 
-const searchPlaceholders: Record<(typeof sections)[number]['key'], string> = {
+const searchPlaceholders: Partial<Record<AdminSection, string>> = {
   users: 'Rechercher un identifiant, un projet ou un rôle…',
   projects: 'Rechercher un projet ou un processus…',
   processes: 'Rechercher un processus ou un projet utilisateur…',
+};
+
+const sectionEyebrow: Partial<Record<AdminSection, string>> = {
+  users: 'Administration des accès',
+  projects: 'Portefeuille',
+  processes: 'Référentiel transversal',
+};
+
+const sectionDescription: Partial<Record<AdminSection, string>> = {
+  users: 'Vue globale des utilisateurs et des projets auxquels ils ont accès.',
+  projects: 'Chaque projet réunit ses membres, ses processus spécifiques et ses références au catalogue organisationnel.',
+  processes: 'Retrouvez chaque processus et comprenez quels projets l’utilisent.',
 };
 
 const usageColor: Record<AdminProcessLink['usage'], 'success' | 'primary' | 'warning'> = {
@@ -119,10 +135,29 @@ const usageColor: Record<AdminProcessLink['usage'], 'success' | 'primary' | 'war
   'project-specific': 'primary',
 };
 
+const exportCsv = (filename: string, rows: Array<Array<string | number>>) => {
+  const escapeCell = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`;
+  const csv = rows.map((row) => row.map(escapeCell).join(';')).join('\r\n');
+  const blob = new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
 export const Component = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState<'all' | MembershipView['role']>('all');
+  const [userProjectFilter, setUserProjectFilter] = useState('all');
+  const [projectTypeFilter, setProjectTypeFilter] = useState<'all' | 'shared' | 'specific' | 'variant'>('all');
+  const [processUsageFilter, setProcessUsageFilter] = useState<'all' | AdminProcessLink['usage']>('all');
+  const [processProjectFilter, setProcessProjectFilter] = useState('all');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [roleDrafts, setRoleDrafts] = useState<Record<string, MembershipView['role']>>({});
   const [newUserId, setNewUserId] = useState('');
@@ -222,97 +257,191 @@ export const Component = () => {
   const normalizedSearch = search.trim().toLocaleLowerCase();
   const users = useMemo(
     () => (overview?.users ?? []).filter((user) =>
-      !normalizedSearch ||
-      user.userId.toLocaleLowerCase().includes(normalizedSearch) ||
-      user.projects.some((project) =>
-        project.projectName.toLocaleLowerCase().includes(normalizedSearch) ||
-        project.role.toLocaleLowerCase().includes(normalizedSearch),
-      ),
+      (!normalizedSearch ||
+        user.userId.toLocaleLowerCase().includes(normalizedSearch) ||
+        user.projects.some((project) =>
+          project.projectName.toLocaleLowerCase().includes(normalizedSearch) ||
+          project.role.toLocaleLowerCase().includes(normalizedSearch),
+        )) &&
+      ((userRoleFilter === 'all' && userProjectFilter === 'all') ||
+        user.projects.some((project) =>
+          (userRoleFilter === 'all' || project.role === userRoleFilter) &&
+          (userProjectFilter === 'all' || project.projectId === userProjectFilter),
+        )),
     ),
-    [overview?.users, normalizedSearch],
+    [overview?.users, normalizedSearch, userRoleFilter, userProjectFilter],
   );
   const projects = useMemo(
     () => (overview?.projects ?? []).filter((project) =>
-      !normalizedSearch ||
-      project.name.toLocaleLowerCase().includes(normalizedSearch) ||
-      (project.description ?? '').toLocaleLowerCase().includes(normalizedSearch) ||
-      project.processes.some((process) => process.name.toLocaleLowerCase().includes(normalizedSearch)),
+      (!normalizedSearch ||
+        project.name.toLocaleLowerCase().includes(normalizedSearch) ||
+        (project.description ?? '').toLocaleLowerCase().includes(normalizedSearch) ||
+        project.processes.some((process) => process.name.toLocaleLowerCase().includes(normalizedSearch))) &&
+      (projectTypeFilter === 'all' ||
+        (projectTypeFilter === 'shared' && project.processes.some((process) => process.usage === 'common')) ||
+        (projectTypeFilter === 'specific' &&
+          project.processes.some((process) => process.usage === 'project-specific') &&
+          !project.processes.some((process) => process.usage === 'common' || process.usage === 'variant')) ||
+        (projectTypeFilter === 'variant' && project.processes.some((process) => process.usage === 'variant'))),
     ),
-    [overview?.projects, normalizedSearch],
+    [overview?.projects, normalizedSearch, projectTypeFilter],
   );
   const processes = useMemo(
     () => (overview?.processes ?? []).filter((process) =>
-      !normalizedSearch ||
-      process.name.toLocaleLowerCase().includes(normalizedSearch) ||
-      (process.description ?? '').toLocaleLowerCase().includes(normalizedSearch) ||
-      process.projects.some((project) =>
-        project.projectName.toLocaleLowerCase().includes(normalizedSearch) ||
-        usageLabel[project.usage].toLocaleLowerCase().includes(normalizedSearch),
-      ),
+      (!normalizedSearch ||
+        process.name.toLocaleLowerCase().includes(normalizedSearch) ||
+        (process.description ?? '').toLocaleLowerCase().includes(normalizedSearch) ||
+        process.projects.some((project) =>
+          project.projectName.toLocaleLowerCase().includes(normalizedSearch) ||
+          usageLabel[project.usage].toLocaleLowerCase().includes(normalizedSearch),
+        )) &&
+      ((processUsageFilter === 'all' && processProjectFilter === 'all') ||
+        process.projects.some((project) =>
+          (processUsageFilter === 'all' || project.usage === processUsageFilter) &&
+          (processProjectFilter === 'all' || project.projectId === processProjectFilter),
+        )),
     ),
-    [overview?.processes, normalizedSearch],
+    [overview?.processes, normalizedSearch, processUsageFilter, processProjectFilter],
   );
 
-  const selectedUser = users.find((user) => user.userId === selectedUserId);
+  const selectedUser = overview?.users.find((user) => user.userId === selectedUserId);
   const selectedProject = overview?.projects.find((project) => project.id === selectedProjectId);
   const selectedProcess = overview?.processes.find((process) => process.id === selectedProcessId);
 
-  const title = sections.find((item) => item.key === activeSection)?.label ?? 'Utilisateurs';
+  const title = sections.find((item) => item.key === activeSection)?.label ?? 'Vue d’ensemble';
+  const isDataSection = activeSection === 'users' || activeSection === 'projects' || activeSection === 'processes';
+  const associationCount = (overview?.projects ?? []).reduce((total, project) => total + project.processes.length, 0);
+  const projectsWithoutCommonProcess = (overview?.projects ?? []).filter(
+    (project) => !project.processes.some((process) => process.usage === 'common'),
+  );
+  const sharedProcessCount = (overview?.processes ?? []).filter(
+    (process) => new Set(process.projects.map((project) => project.projectId)).size > 1,
+  ).length;
 
   return (
-    <Sheet sx={{ width: '100%', maxWidth: 1400, boxSizing: 'border-box', mx: 'auto', p: { xs: 2, md: 4 } }}>
-      <Stack spacing={2.5}>
+    <Sheet className="org-admin-v2__page" sx={{ width: '100%', maxWidth: 1440, boxSizing: 'border-box', mx: 'auto', p: { xs: 1, md: 2 }, bgcolor: 'transparent' }}>
+      <Stack spacing={2}>
         <WorkspaceNavigation />
-        <Box>
-          <Typography level="body-sm" sx={{ color: 'primary.600', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            Administration
-          </Typography>
-          <Typography level="h2" sx={{ mt: 0.5 }}>Organisation</Typography>
-          <Typography level="body-md" sx={{ color: 'text.secondary', mt: 0.5 }}>
-            Vue transversale des utilisateurs, des projets et du catalogue des processus.
-          </Typography>
-        </Box>
+        <div className="org-admin-v2">
+          <aside className="org-admin-v2__sidebar">
+            <div className="org-admin-v2__brand">
+              <img className="org-admin-v2__brand-logo" src="/bpmn-tool-logo.svg" alt="" />
+              <div><strong>KHI Flows</strong><small>Organisation</small></div>
+            </div>
+            <div className="org-admin-v2__nav-group">
+              <div className="org-admin-v2__nav-label">Administration</div>
+              <nav className="org-admin-v2__nav" aria-label="Navigation de l’administration">
+                {sections.map((item) => (
+                  <button
+                    type="button"
+                    key={item.key}
+                    className={`org-admin-v2__nav-item${activeSection === item.key ? ' is-active' : ''}`}
+                    aria-current={activeSection === item.key ? 'page' : undefined}
+                    onClick={() => {
+                      setSearch('');
+                      setSelectedUserId(null);
+                      setSelectedProjectId(null);
+                      setSelectedProcessId(null);
+                      navigate(`/organization/${item.key}`);
+                    }}
+                  >
+                    <span className="org-admin-v2__nav-icon" aria-hidden="true">{item.icon}</span>
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </nav>
+            </div>
+            <div className="org-admin-v2__sidebar-foot">
+              <strong>Accès sécurisés</strong>
+              <span>Les droits sont contrôlés par l’API, indépendamment de l’interface.</span>
+            </div>
+          </aside>
+          <main className="org-admin-v2__main">
+            <header className="org-admin-v2__topbar">
+              <div><div className="org-admin-v2__crumb">Administration / {title}</div><div className="org-admin-v2__top-title">Administration de l’organisation</div></div>
+              <Chip size="sm" color="primary" variant="soft">Accès organisationnel</Chip>
+            </header>
+            <div className="org-admin-v2__content">
+              {activeSection === 'overview' && overview && (
+                <section aria-labelledby="org-overview-title">
+                  <div className="org-admin-v2__page-head">
+                    <div><div className="org-admin-v2__eyebrow">Pilotage</div><Typography id="org-overview-title" level="h1">Vue d’ensemble</Typography><Typography level="body-md" sx={{ color: 'text.secondary', maxWidth: 700, mt: 0.5 }}>Un point d’entrée unique pour administrer les utilisateurs, les projets et le référentiel des processus de l’organisation.</Typography></div>
+                    <div className="org-admin-v2__actions"><Button variant="outlined" onClick={() => navigate('/organization/processes')}>Explorer les processus</Button><Button onClick={() => navigate('/organization/projects')}>Voir les projets</Button></div>
+                  </div>
+                  <div className="org-admin-v2__stats">
+                    <Card className="org-admin-v2__stat"><div className="org-admin-v2__stat-top"><span>Utilisateurs avec accès</span><span className="org-admin-v2__stat-icon">♙</span></div><div className="org-admin-v2__stat-value">{overview.users.length}</div><div className="org-admin-v2__stat-note">Comptes connus par leurs adhésions</div></Card>
+                    <Card className="org-admin-v2__stat"><div className="org-admin-v2__stat-top"><span>Projets</span><span className="org-admin-v2__stat-icon">▣</span></div><div className="org-admin-v2__stat-value">{overview.projects.length}</div><div className="org-admin-v2__stat-note">Projets visibles par l’administration</div></Card>
+                    <Card className="org-admin-v2__stat"><div className="org-admin-v2__stat-top"><span>Processus référencés</span><span className="org-admin-v2__stat-icon">⌘</span></div><div className="org-admin-v2__stat-value">{overview.processes.length}</div><div className="org-admin-v2__stat-note">Catalogue transversal BPMN</div></Card>
+                    <Card className="org-admin-v2__stat"><div className="org-admin-v2__stat-top"><span>Associations projet-processus</span><span className="org-admin-v2__stat-icon">↗</span></div><div className="org-admin-v2__stat-value">{associationCount}</div><div className="org-admin-v2__stat-note">Commun, spécifique et variantes</div></Card>
+                  </div>
+                  <div className="org-admin-v2__dashboard-grid">
+                    <Card className="org-admin-v2__panel">
+                      <div className="org-admin-v2__panel-head"><Typography level="title-lg">Accès rapides</Typography><Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Navigation transversale</Typography></div>
+                      <div className="org-admin-v2__quicklinks">
+                        <button type="button" className="org-admin-v2__quicklink" onClick={() => navigate('/organization/users')}><span className="org-admin-v2__quick-icon">♙</span><span><strong>Gérer les utilisateurs</strong><small>Rôles et projets accessibles par personne</small></span><span className="org-admin-v2__arrow">→</span></button>
+                        <button type="button" className="org-admin-v2__quicklink" onClick={() => navigate('/organization/projects')}><span className="org-admin-v2__quick-icon">▣</span><span><strong>Gérer les projets</strong><small>Membres, processus et responsabilités</small></span><span className="org-admin-v2__arrow">→</span></button>
+                        <button type="button" className="org-admin-v2__quicklink" onClick={() => navigate('/organization/processes')}><span className="org-admin-v2__quick-icon">⌘</span><span><strong>Explorer le catalogue</strong><small>Processus communs, spécifiques et variantes</small></span><span className="org-admin-v2__arrow">→</span></button>
+                        <button type="button" className="org-admin-v2__quicklink" onClick={() => navigate('/organization/governance')}><span className="org-admin-v2__quick-icon">⬡</span><span><strong>Consulter les responsabilités</strong><small>Accès aux RACI de chaque projet</small></span><span className="org-admin-v2__arrow">→</span></button>
+                      </div>
+                    </Card>
+                    <Card className="org-admin-v2__panel">
+                      <div className="org-admin-v2__panel-head"><Typography level="title-lg">Points de vigilance</Typography><Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Calculés sur les données réelles</Typography></div>
+                      <div className="org-admin-v2__activity-list">
+                        <div className="org-admin-v2__activity-row"><span className="org-admin-v2__activity-icon">!</span><div><strong>{projectsWithoutCommonProcess.length} projet(s) sans processus commun</strong><small>Vérifier si ces projets doivent réutiliser le référentiel organisationnel.</small><button type="button" className="org-admin-v2__link-button" onClick={() => navigate('/organization/projects')}>Consulter les projets →</button></div></div>
+                        <div className="org-admin-v2__activity-row"><span className="org-admin-v2__activity-icon">↗</span><div><strong>{sharedProcessCount} processus partagé(s)</strong><small>Une référence commune peut être utilisée par plusieurs projets.</small><button type="button" className="org-admin-v2__link-button" onClick={() => navigate('/organization/processes')}>Ouvrir le catalogue →</button></div></div>
+                        <div className="org-admin-v2__activity-row"><span className="org-admin-v2__activity-icon">⬡</span><div><strong>Gouvernance projet</strong><small>Les matrices RACI détaillées sont maintenues dans chaque projet.</small><button type="button" className="org-admin-v2__link-button" onClick={() => navigate('/organization/governance')}>Voir les projets →</button></div></div>
+                      </div>
+                    </Card>
+                  </div>
+                  <Alert color="neutral" variant="soft" sx={{ mt: 2 }}>La liste des utilisateurs est issue des adhésions existantes. Les comptes sans projet ne peuvent être recensés qu’après raccordement à un annuaire d’identité global.</Alert>
+                </section>
+              )}
 
-        <Alert color="neutral" variant="soft">
-          Les rôles affichés sont des rôles de projet. Les identifiants proviennent des adhésions enregistrées dans BPMN V2 ; les comptes sans adhésion ne sont pas encore fournis par un annuaire d’identité global.
-        </Alert>
+              {isDataSection && (
+                <section aria-labelledby="org-section-title">
+                  <div className="org-admin-v2__page-head">
+                    <div><div className="org-admin-v2__eyebrow">{sectionEyebrow[activeSection]}</div><Typography id="org-section-title" level="h1">{title}</Typography><Typography level="body-md" sx={{ color: 'text.secondary', maxWidth: 700, mt: 0.5 }}>{sectionDescription[activeSection]}</Typography></div>
+                    <div className="org-admin-v2__actions">
+                      {activeSection === 'users' && <><Button variant="outlined" onClick={() => exportCsv('utilisateurs-khi-flows.csv', [['Identifiant', 'Projet', 'Rôle'], ...users.flatMap((user) => user.projects.map((project) => [user.userId, project.projectName, roleLabel[project.role]]))])}>Exporter la vue</Button><Button onClick={() => document.getElementById('org-add-access')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>＋ Ajouter un accès</Button></>}
+                      {activeSection === 'projects' && <><Button variant="outlined" onClick={() => exportCsv('projets-khi-flows.csv', [['Projet', 'Description', 'Membres', 'Processus communs', 'Spécifiques', 'Variantes'], ...projects.map((project) => [project.name, project.description ?? '', project.membersCount, project.processes.filter((process) => process.usage === 'common').length, project.processes.filter((process) => process.usage === 'project-specific').length, project.processes.filter((process) => process.usage === 'variant').length])])}>Exporter la vue</Button><Button onClick={() => document.getElementById('org-create-project')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>＋ Créer un projet</Button></>}
+                      {activeSection === 'processes' && <><Button variant="outlined" onClick={() => exportCsv('processus-khi-flows.csv', [['Processus', 'Description', 'Projet', 'Usage', 'Source'], ...processes.flatMap((process) => process.projects.length ? process.projects.map((project) => [process.name, process.description ?? '', project.projectName, usageLabel[project.usage], project.sourceResourceId ?? '']) : [[process.name, process.description ?? '', '', 'Non associé', '']])])}>Exporter la vue</Button><Button onClick={() => navigate('/root')}>＋ Créer dans le référentiel</Button></>}
+                    </div>
+                  </div>
+                  {activeSection === 'users' && <Alert color="neutral" variant="soft" sx={{ mb: 2 }}>Les rôles affichés sont des rôles de projet. Les identifiants proviennent des adhésions enregistrées ; les comptes sans adhésion ne sont pas encore fournis par un annuaire d’identité global.</Alert>}
+                  <div className="org-admin-v2__filters">
+                    <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={searchPlaceholders[activeSection] ?? 'Rechercher…'} sx={{ flex: 1, minWidth: 220 }} />
+                    {activeSection === 'users' && <>
+                      <FormControl sx={{ minWidth: 180 }}><FormLabel>Rôle projet</FormLabel><Select value={userRoleFilter} onChange={(_event, value) => setUserRoleFilter((value ?? 'all') as typeof userRoleFilter)}><Option value="all">Tous les rôles</Option><Option value="admin">Admin</Option><Option value="modeler">Modeler</Option><Option value="viewer">Viewer</Option></Select></FormControl>
+                      <FormControl sx={{ minWidth: 190 }}><FormLabel>Projet</FormLabel><Select value={userProjectFilter} onChange={(_event, value) => setUserProjectFilter(value ?? 'all')}><Option value="all">Tous les projets</Option>{(overview?.projects ?? []).map((project) => <Option key={project.id} value={project.id}>{project.name}</Option>)}</Select></FormControl>
+                    </>}
+                    {activeSection === 'projects' && <FormControl sx={{ minWidth: 220 }}><FormLabel>Type de projet</FormLabel><Select value={projectTypeFilter} onChange={(_event, value) => setProjectTypeFilter((value ?? 'all') as typeof projectTypeFilter)}><Option value="all">Tous les types</Option><Option value="shared">Utilise des processus communs</Option><Option value="specific">Processus spécifiques uniquement</Option><Option value="variant">Contient des variantes</Option></Select></FormControl>}
+                    {activeSection === 'processes' && <>
+                      <FormControl sx={{ minWidth: 190 }}><FormLabel>Type d’utilisation</FormLabel><Select value={processUsageFilter} onChange={(_event, value) => setProcessUsageFilter((value ?? 'all') as typeof processUsageFilter)}><Option value="all">Tous les types</Option><Option value="common">Catalogue commun</Option><Option value="project-specific">Spécifique au projet</Option><Option value="variant">Variante</Option></Select></FormControl>
+                      <FormControl sx={{ minWidth: 190 }}><FormLabel>Projet utilisateur</FormLabel><Select value={processProjectFilter} onChange={(_event, value) => setProcessProjectFilter(value ?? 'all')}><Option value="all">Tous les projets</Option>{(overview?.projects ?? []).map((project) => <Option key={project.id} value={project.id}>{project.name}</Option>)}</Select></FormControl>
+                    </>}
+                  </div>
+                </section>
+              )}
 
-        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-          {sections.map((item) => (
-            <Button
-              key={item.key}
-              variant={activeSection === item.key ? 'solid' : 'outlined'}
-              onClick={() => {
-                setSearch('');
-                navigate(`/organization/${item.key}`);
-              }}
-            >
-              {item.label}
-            </Button>
-          ))}
-          <Box sx={{ flex: 1 }} />
-          <Button variant="plain" color="neutral" onClick={() => navigate('/projects')}>
-            Retour aux projets
-          </Button>
-        </Stack>
+              {activeSection === 'governance' && overview && (
+                <section aria-labelledby="org-governance-title">
+                  <div className="org-admin-v2__page-head"><div><div className="org-admin-v2__eyebrow">Responsabilités</div><Typography id="org-governance-title" level="h1">Acteurs et RACI</Typography><Typography level="body-md" sx={{ color: 'text.secondary', maxWidth: 700, mt: 0.5 }}>Retrouvez les projets et ouvrez directement leur gestion des responsabilités.</Typography></div></div>
+                  <Alert color="neutral" variant="soft" sx={{ mb: 2 }}>Le RACI est géré au niveau du projet : cette vue transversale aide à retrouver le bon périmètre, tandis que les modifications restent soumises aux droits du projet.</Alert>
+                  <div className="org-admin-v2__governance-list">{overview.projects.map((project) => <Card key={project.id} className="org-admin-v2__governance-card"><div className="org-admin-v2__governance-copy"><Typography level="title-lg">{project.name}</Typography>{project.description && <Typography level="body-sm" sx={{ color: 'text.secondary' }}>{project.description}</Typography>}<div className="org-admin-v2__governance-meta"><Chip size="sm" variant="soft">{project.membersCount} membre(s)</Chip><Chip size="sm" variant="soft">{project.processes.length} processus</Chip><Chip size="sm" variant="soft">RACI du projet</Chip></div></div><Button onClick={() => navigate(`/projects/${project.id}?tab=raci`)}>Gérer le RACI →</Button></Card>)}</div>
+                  {overview.projects.length === 0 && <Card className="org-admin-v2__panel"><Typography level="title-md">Aucun projet accessible</Typography><Typography level="body-sm">Créez un projet ou attribuez un accès pour commencer à définir les responsabilités.</Typography></Card>}
+                </section>
+              )}
 
-        <Divider />
-
-        <Box>
-          <Typography level="h3">{title}</Typography>
-          <Typography level="body-sm" sx={{ color: 'text.secondary', mt: 0.5 }}>
-            {activeSection === 'users' && 'Chaque utilisateur est présenté avec tous les projets connus et son rôle dans chacun.'}
-            {activeSection === 'projects' && 'Vue des membres et des processus associés à chaque projet.'}
-            {activeSection === 'processes' && 'Vue catalogue : projets utilisateurs, usage commun, spécifique ou variante.'}
-          </Typography>
-        </Box>
-
-        <Input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder={searchPlaceholders[activeSection]}
-          sx={{ maxWidth: 620 }}
-        />
+              {activeSection === 'settings' && (
+                <section aria-labelledby="org-settings-title">
+                  <div className="org-admin-v2__page-head"><div><div className="org-admin-v2__eyebrow">Configuration</div><Typography id="org-settings-title" level="h1">Organisation</Typography><Typography level="body-md" sx={{ color: 'text.secondary', maxWidth: 700, mt: 0.5 }}>Paramètres et gouvernance globale de l’instance.</Typography></div></div>
+                  <div className="org-admin-v2__settings-grid">
+                    <Card className="org-admin-v2__panel"><Typography level="title-lg">Administration organisationnelle</Typography><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Les droits globaux sont attribués par le groupe de confiance <code>bpmn-tool-admin-*</code>. Les rôles de projet viewer, modeler et admin ne confèrent aucun privilège global.</Typography><Chip color="success" variant="soft">Contrôle côté API</Chip></Card>
+                    <Card className="org-admin-v2__panel"><Typography level="title-lg">Source des identités</Typography><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Cette instance utilise actuellement les identifiants transmis par le mécanisme d’authentification configuré. La découverte des comptes sans adhésion nécessite un annuaire global ou un fournisseur d’identité raccordé.</Typography><Chip color="warning" variant="soft">Annuaire global non raccordé</Chip></Card>
+                    <Card className="org-admin-v2__panel"><Typography level="title-lg">Périmètre des données</Typography><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Les utilisateurs, projets et processus affichés proviennent de l’API d’administration. Les réglages non couverts par une API ne sont pas présentés comme modifiables.</Typography></Card>
+                  </div>
+                </section>
+              )}
 
         {overviewQuery.isLoading && <Typography>Chargement des données d’administration…</Typography>}
         {overviewQuery.isError && (
@@ -323,7 +452,7 @@ export const Component = () => {
         {actionError && <Alert color="danger">{actionError}</Alert>}
 
         {activeSection === 'users' && overview && (
-          <Card variant="outlined" sx={{ gap: 1.5 }}>
+          <Card id="org-add-access" variant="outlined" sx={{ gap: 1.5 }}>
             <Typography level="title-lg">Ajouter un accès à un projet</Typography>
             <Typography level="body-sm" sx={{ color: 'text.secondary' }}>
               L’identifiant est celui utilisé par le proxy d’authentification. L’accès est créé uniquement pour le projet choisi.
@@ -380,7 +509,7 @@ export const Component = () => {
               return (
                 <Stack key={project.projectId} direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ alignItems: { md: 'center' }, borderTop: '1px solid', borderColor: 'divider', pt: 1.5 }}>
                   <Box sx={{ flex: 1 }}>
-                    <Typography level="title-sm">{project.projectName}</Typography>
+                    <Button size="sm" variant="plain" sx={{ alignSelf: 'flex-start', px: 0 }} onClick={() => navigate(`/projects/${project.projectId}`)}>{project.projectName} →</Button>
                     <Typography level="body-xs" sx={{ color: 'text.secondary' }}>Rôle actuel : {roleLabel[project.role]}</Typography>
                   </Box>
                   <FormControl sx={{ minWidth: 180 }}>
@@ -453,7 +582,7 @@ export const Component = () => {
         )}
 
         {activeSection === 'projects' && overview && (
-          <Card variant="outlined" sx={{ gap: 1.5 }}>
+          <Card id="org-create-project" variant="outlined" sx={{ gap: 1.5 }}>
             <Typography level="title-lg">Créer un projet</Typography>
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} useFlexGap flexWrap="wrap" sx={{ alignItems: { md: 'flex-end' } }}>
               <FormControl sx={{ flex: 1, minWidth: 220 }}>
@@ -476,13 +605,13 @@ export const Component = () => {
         )}
 
         {activeSection === 'projects' && selectedProject && (
-          <Card variant="outlined" sx={{ gap: 1.5 }}>
-            <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+          <Card variant="outlined" sx={{ gap: 1.5 }}>            <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
               <Box>
                 <Typography level="title-lg">Gérer {selectedProject.name}</Typography>
                 <Typography level="body-sm" sx={{ color: 'text.secondary' }}>
                   {selectedProject.membersCount} membre(s) · {selectedProject.processes.length} processus associé(s)
                 </Typography>
+                <Button size="sm" variant="plain" sx={{ alignSelf: 'flex-start', px: 0 }} onClick={() => navigate(`/projects/${selectedProject.id}`)}>Ouvrir la fiche projet →</Button>
               </Box>
               <Button size="sm" variant="plain" color="neutral" onClick={() => setSelectedProjectId(null)}>Fermer</Button>
             </Stack>
@@ -577,7 +706,7 @@ export const Component = () => {
             <Typography level="title-sm">Projets utilisateurs</Typography>
             {selectedProcess.projects.length > 0 ? selectedProcess.projects.map((project) => (
               <Stack key={project.projectId} direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ alignItems: 'center' }}>
-                <Typography level="body-sm">{project.projectName}</Typography>
+                <Button size="sm" variant="plain" sx={{ px: 0 }} onClick={() => navigate(`/projects/${project.projectId}`)}>{project.projectName} →</Button>
                 <Chip size="sm" variant="soft" color={usageColor[project.usage]}>{usageLabel[project.usage]}</Chip>
                 {project.sourceResourceId && (
                   <Typography level="body-xs" sx={{ color: 'text.secondary' }}>Source : {project.sourceResourceId}</Typography>
@@ -625,11 +754,14 @@ export const Component = () => {
           </Card>
         )}
 
-        {overview && (
-          <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>
-            {overview.users.length} utilisateurs avec adhésion · {overview.projects.length} projets · {overview.processes.length} ressources de type processus
-          </Typography>
-        )}
+              {overview && isDataSection && (
+                <Typography level="body-xs" sx={{ color: 'text.tertiary', mt: 2 }}>
+                  {overview.users.length} utilisateurs avec adhésion · {overview.projects.length} projets · {overview.processes.length} ressources de type processus
+                </Typography>
+              )}
+            </div>
+          </main>
+        </div>
       </Stack>
     </Sheet>
   );

@@ -1,12 +1,12 @@
 .mainContainer {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: 248px minmax(0, 1fr);
   height: 100vh;
   width: 100%;
   overflow: hidden;
 
   .folderTree {
-    width: 280px;
+    width: 248px;
     min-width: 0;
     height: 100vh;
     display: flex;
@@ -16,12 +16,18 @@
   }
 
   &.folderCollapsed {
+    // The mockup keeps a narrow explorer rail visible when collapsed.
+    grid-template-columns: 42px minmax(0, 1fr);
+
     .folderTree {
-      width: 52px;
+      display: flex;
+      width: 42px;
+      border: 0;
     }
   }
 
   .innerContent {
+    grid-column: 2;
     min-width: 0;
     height: 100vh;
     display: flex;
