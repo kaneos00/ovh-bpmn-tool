@@ -31,13 +31,29 @@ export const FolderTreeItem = styled((props: TreeItemProps) => (
     [`& .${treeItemClasses.content}`]: {
       padding: 0,
       width: 'auto',
+      minHeight: 34,
+      borderRadius: 7,
+      color: '#44536a',
+      fontSize: 12,
+      '&:hover': {
+        backgroundColor: '#f4f7fb',
+      },
+      '&.Mui-selected': {
+        backgroundColor: '#eaf1ff',
+        color: '#204fae',
+        fontWeight: 700,
+      },
+      '&.Mui-selected:hover': {
+        backgroundColor: '#eaf1ff',
+      },
     },
     [`& .${treeItemClasses.label}`]: {
-      padding: 8,
-      paddingLeft: 0,
+      padding: '8px 7px 8px 0',
       textOverflow: 'ellipsis',
       overflow: 'hidden',
       whiteSpace: 'nowrap',
+      fontSize: 12,
+      lineHeight: 1.4,
     },
   };
 });
