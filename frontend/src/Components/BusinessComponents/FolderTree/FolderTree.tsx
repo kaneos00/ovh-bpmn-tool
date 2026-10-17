@@ -255,7 +255,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                 <Button
                   variant="plain"
                   color={node.id === selectedId ? 'primary' : 'neutral'}
-                  onClick={() => onNodeClick(node.id)}
+                  onClick={() => onNodeClick(node.targetId ?? node.id)}
                   startDecorator={view === 'recent' ? <AccessTime fontSize="small" /> : node.type === 'folder' ? <FolderOutlined fontSize="small" /> : <DescriptionOutlined fontSize="small" />}
                   sx={{ flex: 1, minWidth: 0, justifyContent: 'flex-start', textAlign: 'left', fontWeight: node.id === selectedId ? 700 : 500, overflow: 'hidden', '& .MuiButton-startDecorator': { flexShrink: 0 }, '& > span:last-of-type': { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }}
                 >
