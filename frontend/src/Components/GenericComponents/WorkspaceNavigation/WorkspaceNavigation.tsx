@@ -45,13 +45,16 @@ const matchesTerm = (value: string, term: string) =>
 
 const resultKey = (result: SearchResult) => result.key;
 
-const resultIndicatorColor = (detail: string) => {
-  if (/\bRACI\b/i.test(detail)) return '#7c3aed';
-  if (/\bLane\b/i.test(detail)) return '#0f766e';
-  if (/Activité|Sous-processus/i.test(detail)) return '#2563eb';
-  if (/Processus BPMN/i.test(detail)) return '#b45309';
-  if (/Rôle/i.test(detail)) return '#9333ea';
-  return '#64748b';
+const resultBadge = (detail: string) => {
+  if (/\bRACI\b/i.test(detail)) return { label: 'RACI', color: '#654c98', background: '#eee8fb', border: '#d5c8f0' };
+  if (/\bLane\b/i.test(detail)) return { label: 'Lane', color: '#276b63', background: '#e0f3ef', border: '#b9e3da' };
+  if (/Sous-processus/i.test(detail)) return { label: 'Sous-processus', color: '#28569a', background: '#e4efff', border: '#bfd4f7' };
+  if (/Activité BPMN/i.test(detail)) return { label: 'Activité', color: '#28569a', background: '#e4efff', border: '#bfd4f7' };
+  if (/Processus BPMN/i.test(detail)) return { label: 'Processus', color: '#895d1e', background: '#fff0d9', border: '#f0d5a6' };
+  if (/Dossier du référentiel/i.test(detail)) return { label: 'Dossier', color: '#276b43', background: '#e2f4e8', border: '#bde2c8' };
+  if (/Rôle/i.test(detail)) return { label: 'Rôle', color: '#654c98', background: '#eee8fb', border: '#d5c8f0' };
+  if (/IA comm\.|annotation BPMN/i.test(detail)) return { label: 'Annotation', color: '#4b5563', background: '#f1f5f9', border: '#d8e0e8' };
+  return { label: 'BPMN', color: '#4b5563', background: '#f1f5f9', border: '#d8e0e8' };
 };
 
 export const WorkspaceNavigation = () => {
@@ -354,7 +357,30 @@ export const WorkspaceNavigation = () => {
                       <Button variant="plain" color="neutral" onClick={() => openResult(result)}
                         sx={{ justifyContent: 'flex-start', textAlign: 'left', width: '100%', whiteSpace: 'normal' }}>
                         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, minWidth: 0 }}>
-                          <Box aria-hidden="true" sx={{ flex: '0 0 8px', width: 8, height: 8, mt: '6px', borderRadius: '50%', bgcolor: resultIndicatorColor(result.detail) }} />
+                          <Box
+                            component="span"
+                            aria-label={resultBadge(result.detail).label}
+                            sx={{
+                              flex: '0 0 auto',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              mt: '1px',
+                              px: 0.75,
+                              py: 0.25,
+                              borderRadius: '5px',
+                              border: '1px solid',
+                              borderColor: resultBadge(result.detail).border,
+                              color: resultBadge(result.detail).color,
+                              bgcolor: resultBadge(result.detail).background,
+                              fontSize: 10,
+                              fontWeight: 800,
+                              lineHeight: 1.4,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {resultBadge(result.detail).label}
+                          </Box>
                           <Box sx={{ minWidth: 0 }}>
                             <Typography level="title-sm">{result.title}</Typography>
                           <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>{result.detail}</Typography>
