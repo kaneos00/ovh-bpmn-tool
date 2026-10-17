@@ -223,6 +223,7 @@ export const FolderTree = ({ selectedId, onNodeClick, processXml, selectedElemen
           </ListItem>
         ))
       ) : view === 'tree' ? (
+        <>
         <ListItem sx={{ p: 0 }}>
           <ListItemContent sx={{ minWidth: 0 }}>
             <SimpleTreeView
@@ -250,6 +251,7 @@ export const FolderTree = ({ selectedId, onNodeClick, processXml, selectedElemen
             onElementClick={onElementClick}
           />
         )}
+        </>
       ) : (
         <Box sx={{ display: 'grid', gap: 0.5 }}>
           <Typography level="body-xs" sx={{ px: 1, py: 0.5, color: 'text.tertiary', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
