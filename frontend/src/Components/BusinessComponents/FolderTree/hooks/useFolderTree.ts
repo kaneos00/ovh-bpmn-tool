@@ -4,13 +4,12 @@ import { useQueries, useQuery } from 'react-query';
 
 import { resourcesQuery } from '../../../../api/resources/resources.queries';
 import { contentsQuery, getXmlContentQuery } from '../../../../api/contents/contents.queries';
-import { ContentStatusEnum, type Content } from '../../../../Types';
+import { ContentStatusEnum, type Content, type Resource } from '../../../../Types';
 import { useFolders } from '../../../../shared/hooks/useFolders';
 import { useResource } from '../../../../shared/hooks/useResource';
 import { ResourceType } from '../../../../shared/types/BpmnResource';
 
 import type { RenderTree } from '..';
-import type { Resource } from '../../../../Types';
 
 const BPMN_MODEL_NS = 'http://www.omg.org/spec/BPMN/20100524/MODEL';
 
