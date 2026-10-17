@@ -52,11 +52,18 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
     removeSelectionListenerRef.current?.();
 
     const eventBus = bpmnModelerInstance.get('eventBus');
+    const collapsedTab = diagramContainerRef.current?.parentElement
+      ?.querySelector('.properties-panel-collapsed-tab') as HTMLElement | null;
+
     const syncPropertiesPanel = (event?: { newSelection?: unknown[] }) => {
       const selected = event?.newSelection ?? bpmnModelerInstance.get('selection')?.get?.() ?? [];
-      propertiesContainer.style.display = Array.isArray(selected) && selected.length > 0
-        ? 'block'
-        : 'none';
+      const hasActivitySelected = Array.isArray(selected) && selected.some((item: any) => {
+        const type = String(item?.type ?? item?.businessObject?.$type ?? '');
+        return /(?:Task|CallActivity|SubProcess|Transaction)$/.test(type);
+      });
+
+      propertiesContainer.style.display = hasActivitySelected ? 'block' : 'none';
+      if (collapsedTab) collapsedTab.style.display = hasActivitySelected ? 'none' : 'flex';
     };
 
     eventBus.on('selection.changed', syncPropertiesPanel);
