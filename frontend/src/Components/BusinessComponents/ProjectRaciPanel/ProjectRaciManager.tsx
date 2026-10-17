@@ -451,8 +451,9 @@ export const ProjectRaciManager = ({
                             slotProps={{ listbox: { sx: { minWidth: 210 } } }}
                             sx={{ minWidth: 125 }}
                             renderValue={selected => {
-                              const code = selected?.value as RaciCode | undefined;
-                              if (!code || code === UNASSIGNED) return null;
+                              const value = selected?.value;
+                              if (!value || value === UNASSIGNED) return null;
+                              const code = value as RaciCode;
                               const style = CODE_STYLES[code];
                               return (
                                 <Chip
