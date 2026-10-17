@@ -24,9 +24,12 @@
 
     .folderTree {
       position: absolute;
-      inset: 0 auto 0 0;
+      top: 130px;
+      left: 0;
+      bottom: 0;
       z-index: 30;
       width: 248px;
+      height: calc(100vh - 130px);
       box-shadow: 8px 0 24px rgba(21, 43, 69, 0.12);
     }
   }
