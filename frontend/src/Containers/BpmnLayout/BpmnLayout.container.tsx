@@ -21,7 +21,6 @@ import {
 import { isFolder, isRoot } from '../../shared/helpers/resource';
 import { getXmlContentQuery } from '../../api/contents/contents.queries';
 import { ContentStatusEnum } from '../../Types';
-import { ProcessHierarchyTree } from '../../Components/BusinessComponents/ProcessHierarchyTree/ProcessHierarchyTree';
 
 import type { BpmnLayoutRouteParams } from '.';
 import { ResourceType } from '../../shared/types/BpmnResource';
@@ -126,19 +125,10 @@ export const Component = () => {
               <FolderTree
                 selectedId={resourceId}
                 onNodeClick={callbacks.folderTree.onFolderTreeItemClick}
+                processXml={resource?.type === ResourceType.Process ? processXml : undefined}
+                selectedElementId={selectedElementId}
+                onElementClick={setSelectedElementId}
               />
-              {resource?.type === ResourceType.Process && processXml && (
-                <ProcessHierarchyTree
-                  xmlContent={processXml}
-                  selectedElementId={selectedElementId}
-                  onElementClick={setSelectedElementId}
-                />
-              )}
-              {resource?.type === ResourceType.Process && !processXml && (
-                <Typography level="body-xs" sx={{ px: 1.5, py: 1 }} textColor="neutral">
-                  {publishedContent ? 'Chargement du diagramme…' : 'Aucune version publiée.'}
-                </Typography>
-              )}
             </Box>
           </Box>
         )}
