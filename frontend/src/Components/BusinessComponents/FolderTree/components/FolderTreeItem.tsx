@@ -34,6 +34,7 @@ export const FolderTreeItem = styled((props: TreeItemProps) => (
       minHeight: 34,
       borderRadius: 7,
       color: '#44536a',
+      fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
       fontSize: 12,
       '&:hover': {
         backgroundColor: '#f4f7fb',
@@ -52,6 +53,7 @@ export const FolderTreeItem = styled((props: TreeItemProps) => (
       textOverflow: 'ellipsis',
       overflow: 'hidden',
       whiteSpace: 'nowrap',
+      fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
       fontSize: 12,
       lineHeight: 1.4,
     },
