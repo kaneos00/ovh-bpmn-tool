@@ -57,8 +57,9 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
 
     const syncPropertiesPanel = (event?: { newSelection?: unknown[] }) => {
       const selected = event?.newSelection ?? bpmnModelerInstance.get('selection')?.get?.() ?? [];
-      const hasActivitySelected = Array.isArray(selected) && selected.some((item: any) => {
-        const type = String(item?.type ?? item?.businessObject?.$type ?? '');
+      const hasActivitySelected = Array.isArray(selected) && selected.some(item => {
+        const element = item as { type?: unknown; businessObject?: { $type?: unknown } };
+        const type = String(element?.type ?? element?.businessObject?.$type ?? '');
         return /(?:Task|CallActivity|SubProcess|Transaction)$/.test(type);
       });
 
