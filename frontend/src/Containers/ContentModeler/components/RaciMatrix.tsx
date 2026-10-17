@@ -42,6 +42,49 @@ const codeLabel: Record<RaciCode, string> = {
   I: 'I — Informé',
 };
 
+const codeBadgeBaseStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minWidth: 22,
+  height: 22,
+  padding: '0 6px',
+  boxSizing: 'border-box',
+  borderRadius: 5,
+  fontSize: 12,
+  fontWeight: 800,
+  lineHeight: 1,
+  verticalAlign: 'middle',
+  margin: '0 2px',
+};
+
+const codeBadgeStyle: Record<RaciCode, React.CSSProperties> = {
+  R: {
+    ...codeBadgeBaseStyle,
+    border: '1px solid #bfd4f7',
+    backgroundColor: '#e4efff',
+    color: '#28569a',
+  },
+  A: {
+    ...codeBadgeBaseStyle,
+    border: '1px solid #bde2c8',
+    backgroundColor: '#e2f4e8',
+    color: '#276b43',
+  },
+  C: {
+    ...codeBadgeBaseStyle,
+    border: '1px solid #f0d5a6',
+    backgroundColor: '#fff0d9',
+    color: '#895d1e',
+  },
+  I: {
+    ...codeBadgeBaseStyle,
+    border: '1px solid #d5c8f0',
+    backgroundColor: '#eee8fb',
+    color: '#654c98',
+  },
+};
+
 const uniqueActors = (actors: RaciActor[]): RaciActor[] =>
   Array.from(new Map(actors.filter(actor => actor.name.trim()).map(actor => [actor.name.toLocaleLowerCase(), { ...actor, name: actor.name.trim() }])).values());
 
@@ -553,7 +596,7 @@ export function RaciMatrix({ modeler, open, view, onClose }: Props) {
                           >
                             <div className="raci-cell-code">
                               {cell.codes.length ? cell.codes.map(code => (
-                                <span key={code} className={`raci-code-badge raci-code-${code}` } title={codeLabel[code]}>{code}</span>
+                                <span key={code} className={`raci-code-badge raci-code-${code}`} style={codeBadgeStyle[code]} title={codeLabel[code]}>{code}</span>
                               )) : '—'}
                             </div>
                             <div className="raci-cell-status">

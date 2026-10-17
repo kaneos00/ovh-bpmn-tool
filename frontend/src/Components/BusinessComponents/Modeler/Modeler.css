@@ -1,5 +1,5 @@
 * {
-  font-family: 'Public Sans', serif;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
 .modelerContainer {
@@ -19,11 +19,34 @@
 #diagramProperties {
   top: 20px;
   right: 20px;
-  width: 20vw;
+  width: min(360px, 28vw);
+  min-width: 260px;
   height: auto;
   z-index: 999;
   position: absolute;
   background: hsl(225, 10%, 97%);
+}
+
+.properties-panel-collapsed-tab {
+  position: absolute;
+  top: 120px;
+  right: 0;
+  z-index: 998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 7px;
+  border: 1px solid #cdd7e1;
+  border-right: 0;
+  border-radius: 8px 0 0 8px;
+  background: #fff;
+  color: #44536a;
+  box-shadow: 0 2px 8px rgba(21, 43, 69, 0.12);
+  font-size: 11px;
+  font-weight: 700;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  pointer-events: none;
 }
 
 .bio-properties-panel-header {

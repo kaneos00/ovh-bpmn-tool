@@ -19,6 +19,9 @@ export const Modeler: FC<ModelerProps> = ({
       <div id="diagramContainer" ref={diagramContainerRef}>
         <div id="diagramProperties" ref={diagramPropertiesRef} />
       </div>
+      <div className="properties-panel-collapsed-tab" role="status" aria-live="polite">
+        Propriétés
+      </div>
     </div>
   );
 };

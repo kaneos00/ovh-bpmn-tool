@@ -21,21 +21,30 @@ const getPublishedContent = (contents: Content[] | undefined) =>
     .filter(content => content.status === ContentStatusEnum.Published)
     .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0];
 
-const findLinkedProcesses = (xml: string, processIds: Set<string>) => {
+const BPMN_MODEL_NS = 'http://www.omg.org/spec/BPMN/20100524/MODEL';
+
+const getBpmnProcessIds = (xml: string): string[] => {
   if (!xml || typeof DOMParser === 'undefined') return [];
   const document = new DOMParser().parseFromString(xml, 'application/xml');
   if (document.getElementsByTagName('parsererror').length) return [];
 
-  const links = Array.from(document.getElementsByTagNameNS(
-    'http://www.omg.org/spec/BPMN/20100524/MODEL',
-    'callActivity',
-  ))
+  return Array.from(document.getElementsByTagNameNS(BPMN_MODEL_NS, 'process'))
+    .map(process => process.getAttribute('id')?.trim() || '')
+    .filter(Boolean);
+};
+
+const findLinkedProcesses = (xml: string) => {
+  if (!xml || typeof DOMParser === 'undefined') return [];
+  const document = new DOMParser().parseFromString(xml, 'application/xml');
+  if (document.getElementsByTagName('parsererror').length) return [];
+
+  const links = Array.from(document.getElementsByTagNameNS(BPMN_MODEL_NS, 'callActivity'))
     .map(element => ({
       id: element.getAttribute('id') || '',
       name: element.getAttribute('name')?.trim() || element.getAttribute('id') || 'Appel de processus',
       targetId: element.getAttribute('calledElement')?.trim() || '',
     }))
-    .filter(link => link.targetId && processIds.has(link.targetId));
+    .filter(link => link.targetId);
 
   return Array.from(new Map(links.map(link => [link.targetId, link])).values());
 };
@@ -54,11 +63,6 @@ export const ProjectProcessHierarchy = ({ processes }: ProjectProcessHierarchyPr
     };
   }));
 
-  const processIds = useMemo(
-    () => new Set(processes.map(process => process.resourceId)),
-    [processes],
-  );
-
   const rows = useMemo(() => processes.map((process, index) => {
     const xml = (xmlQueries[index]?.data as string | undefined) ?? '';
     return {
@@ -66,9 +70,10 @@ export const ProjectProcessHierarchy = ({ processes }: ProjectProcessHierarchyPr
       xml,
       loading: contentQueries[index]?.isLoading || xmlQueries[index]?.isLoading,
       error: contentQueries[index]?.isError || xmlQueries[index]?.isError,
-      linked: findLinkedProcesses(xml, processIds),
+      bpmnProcessIds: getBpmnProcessIds(xml),
+      linked: findLinkedProcesses(xml),
     };
-  }), [processes, contentQueries, xmlQueries, processIds]);
+  }), [processes, contentQueries, xmlQueries]);
 
   if (!processes.length) return null;
 
@@ -105,7 +110,10 @@ export const ProjectProcessHierarchy = ({ processes }: ProjectProcessHierarchyPr
                 <Typography level="body-xs" color="neutral" sx={{ mb: 0.5 }}>Processus appelés</Typography>
                 <Stack spacing={0.5}>
                   {process.linked.map(link => {
-                    const target = processes.find(candidate => candidate.resourceId === link.targetId);
+                    const target = rows.find(candidate =>
+                      candidate.resourceId === link.targetId ||
+                      candidate.bpmnProcessIds.includes(link.targetId),
+                    );
                     return target ? (
                       <Button
                         key={link.targetId}

@@ -1,12 +1,15 @@
 .mainContainer {
   display: grid;
-  grid-template-columns: 248px minmax(0, 1fr);
+  position: relative;
+  grid-template-columns: 42px minmax(0, 1fr);
   height: 100vh;
   width: 100%;
   overflow: hidden;
 
   .folderTree {
-    width: 248px;
+    position: relative;
+    grid-column: 1;
+    width: 42px;
     min-width: 0;
     height: 100vh;
     display: flex;
@@ -15,14 +18,31 @@
     transition: width 160ms ease;
   }
 
-  &.folderCollapsed {
-    // The mockup keeps a narrow explorer rail visible when collapsed.
+  &.folderOpen {
+    // Keep the workspace and title bar width stable while the explorer is open.
     grid-template-columns: 42px minmax(0, 1fr);
 
     .folderTree {
-      display: flex;
+      position: absolute;
+      top: 130px;
+      left: 0;
+      bottom: 0;
+      z-index: 30;
+      width: 248px;
+      height: calc(100vh - 130px);
+      box-shadow: 8px 0 24px rgba(21, 43, 69, 0.12);
+    }
+  }
+
+  &.folderCollapsed {
+    grid-template-columns: 42px minmax(0, 1fr);
+
+    .folderTree {
+      position: relative;
+      grid-column: 1;
       width: 42px;
       border: 0;
+      box-shadow: none;
     }
   }
 
