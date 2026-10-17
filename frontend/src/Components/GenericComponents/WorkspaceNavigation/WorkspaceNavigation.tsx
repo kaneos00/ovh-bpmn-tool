@@ -46,15 +46,76 @@ const matchesTerm = (value: string, term: string) =>
 const resultKey = (result: SearchResult) => result.key;
 
 const resultBadge = (detail: string) => {
-  if (/\bRACI\b/i.test(detail)) return { label: 'RACI', color: '#654c98', background: '#eee8fb', border: '#d5c8f0' };
-  if (/\bLane\b/i.test(detail)) return { label: 'Lane', color: '#276b63', background: '#e0f3ef', border: '#b9e3da' };
-  if (/Sous-processus/i.test(detail)) return { label: 'Sous-processus', color: '#28569a', background: '#e4efff', border: '#bfd4f7' };
-  if (/Activité BPMN/i.test(detail)) return { label: 'Activité', color: '#28569a', background: '#e4efff', border: '#bfd4f7' };
-  if (/Processus BPMN/i.test(detail)) return { label: 'Processus', color: '#895d1e', background: '#fff0d9', border: '#f0d5a6' };
-  if (/Dossier du référentiel/i.test(detail)) return { label: 'Dossier', color: '#276b43', background: '#e2f4e8', border: '#bde2c8' };
-  if (/Rôle/i.test(detail)) return { label: 'Rôle', color: '#654c98', background: '#eee8fb', border: '#d5c8f0' };
-  if (/IA comm\.|annotation BPMN/i.test(detail)) return { label: 'Annotation', color: '#4b5563', background: '#f1f5f9', border: '#d8e0e8' };
-  return { label: 'BPMN', color: '#4b5563', background: '#f1f5f9', border: '#d8e0e8' };
+  if (/\bRACI\b/i.test(detail)) {
+    return {
+      label: 'RACI',
+      color: '#654c98',
+      background: '#eee8fb',
+      border: '#d5c8f0',
+    };
+  }
+  if (/\bLane\b/i.test(detail)) {
+    return {
+      label: 'Lane',
+      color: '#276b63',
+      background: '#e0f3ef',
+      border: '#b9e3da',
+    };
+  }
+  if (/Sous-processus/i.test(detail)) {
+    return {
+      label: 'Sous-processus',
+      color: '#28569a',
+      background: '#e4efff',
+      border: '#bfd4f7',
+    };
+  }
+  if (/Activité BPMN/i.test(detail)) {
+    return {
+      label: 'Activité',
+      color: '#28569a',
+      background: '#e4efff',
+      border: '#bfd4f7',
+    };
+  }
+  if (/Processus BPMN/i.test(detail)) {
+    return {
+      label: 'Processus',
+      color: '#895d1e',
+      background: '#fff0d9',
+      border: '#f0d5a6',
+    };
+  }
+  if (/Dossier du référentiel/i.test(detail)) {
+    return {
+      label: 'Dossier',
+      color: '#276b43',
+      background: '#e2f4e8',
+      border: '#bde2c8',
+    };
+  }
+  if (/Rôle/i.test(detail)) {
+    return {
+      label: 'Rôle',
+      color: '#654c98',
+      background: '#eee8fb',
+      border: '#d5c8f0',
+    };
+  }
+  if (/IA comm\.|annotation BPMN/i.test(detail)) {
+    return {
+      label: 'Annotation',
+      color: '#4b5563',
+      background: '#f1f5f9',
+      border: '#d8e0e8',
+    };
+  }
+  return {
+    label: 'BPMN',
+    color: '#4b5563',
+    background: '#f1f5f9',
+    border: '#d8e0e8',
+  };
 };
 
 export const WorkspaceNavigation = () => {
