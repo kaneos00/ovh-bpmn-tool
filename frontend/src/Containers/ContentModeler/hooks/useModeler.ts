@@ -17,6 +17,7 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
   const { getModelerProviders } = useBpmnToolOptions();
 
   const providersRegisteredRef = useRef(false);
+  const removeSelectionListenerRef = useRef<(() => void) | null>(null);
 
   const propertiesPanel: PropertiesPanel =
     bpmnModelerInstance.get('propertiesPanel');
@@ -45,6 +46,24 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
     }
 
     propertiesPanel.attachTo(diagramPropertiesRef.current);
+
+    const propertiesContainer = diagramPropertiesRef.current;
+    propertiesContainer.style.display = 'none';
+    removeSelectionListenerRef.current?.();
+
+    const eventBus = bpmnModelerInstance.get('eventBus');
+    const syncPropertiesPanel = (event?: { newSelection?: unknown[] }) => {
+      const selected = event?.newSelection ?? bpmnModelerInstance.get('selection')?.get?.() ?? [];
+      propertiesContainer.style.display = Array.isArray(selected) && selected.length > 0
+        ? 'block'
+        : 'none';
+    };
+
+    eventBus.on('selection.changed', syncPropertiesPanel);
+    syncPropertiesPanel();
+    removeSelectionListenerRef.current = () => {
+      eventBus.off('selection.changed', syncPropertiesPanel);
+    };
   };
 
   useEffect(() => {
@@ -83,6 +102,8 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
 
       return () => {
         bpmnModelerInstance.off('linting.completed', onLintingCompleted);
+        removeSelectionListenerRef.current?.();
+        removeSelectionListenerRef.current = null;
       };
     }
 
