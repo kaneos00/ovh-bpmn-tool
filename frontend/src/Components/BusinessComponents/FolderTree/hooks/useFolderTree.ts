@@ -18,10 +18,6 @@ type UseFolderTreeCallbacks = {
   onNodeClick: (nodeId: string) => void;
 };
 
-type TreeResource = Resource & {
-  bpmnProcessIds?: string[];
-};
-
 const getPublishedContent = (contents: Content[] | undefined) =>
   (contents ?? [])
     .filter(content => content.status === ContentStatusEnum.Published)
