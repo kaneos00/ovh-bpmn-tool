@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Box, Button, Card, Sheet, Stack, Typography } from '@mui/joy';
-import Tree from 'react-d3-tree';
+import { Tree } from 'react-d3-tree';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from 'react-query';
 
