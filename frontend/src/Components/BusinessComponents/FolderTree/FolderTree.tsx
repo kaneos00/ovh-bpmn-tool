@@ -230,12 +230,17 @@ export const FolderTree = ({ selectedId, onNodeClick, processXml, selectedElemen
               selectedItems={selectedId}
               expandedItems={search.trim() ? searchExpandedNodes : expandedNodes}
               disabledItemsFocusable
+              expansionTrigger="iconContainer"
               slots={{ collapseIcon: ExpandMore, expandIcon: ChevronRight }}
               onSelectedItemsChange={onNodeSelect}
               onExpandedItemsChange={onNodeToggle}
               sx={{
+                width: '100%',
                 minWidth: 0,
-                '& .MuiTreeItem-content': { borderRadius: '7px', minWidth: 0 },
+                overflowX: 'hidden',
+                '& .MuiTreeItem-root': { minWidth: 0 },
+                '& .MuiTreeItem-content': { borderRadius: '7px', minWidth: 0, overflow: 'hidden' },
+                '& .MuiTreeItem-label': { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
                 '& .MuiTreeItem-content.Mui-selected': { bgcolor: '#eaf1ff', color: '#204fae' },
                 '& .MuiTreeItem-content.Mui-selected:hover': { bgcolor: '#eaf1ff' },
               }}
