@@ -177,13 +177,27 @@ export const ProcessHierarchyTree = ({
         label={
           <span
             style={{
-              display: 'inline-flex',
+              display: 'flex',
               alignItems: 'center',
               gap: 6,
+              width: '100%',
+              minWidth: 0,
+              overflow: 'hidden',
             }}
           >
             {icon}
-            <span>{node.name}</span>
+            <span
+              style={{
+                display: 'block',
+                flex: 1,
+                minWidth: 0,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {node.name}
+            </span>
           </span>
         }
         title={node.name}
@@ -211,7 +225,7 @@ export const ProcessHierarchyTree = ({
               selectedItems={selectedTreeItemId}
               expandedItems={expandedNodes}
               disabledItemsFocusable
-              expansionTrigger="content"
+              expansionTrigger="iconContainer"
               slots={{ collapseIcon: ExpandMore, expandIcon: ChevronRight }}
               onExpandedItemsChange={(_, itemIds) => {
                 setExpandedNodes(itemIds);
