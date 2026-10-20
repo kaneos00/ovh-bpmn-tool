@@ -78,7 +78,7 @@ export const useFolderTree = (
     processInfo.forEach(info => {
       const targets = Array.from(new Set(info.targets))
         .map(targetId => byIdentifier.get(targetId))
-        .filter((target): target is Resource => Boolean(target) && target.id !== info.resource.id);
+        .filter((target): target is Resource => target !== undefined && target.id !== info.resource.id);
       linked.set(info.resource.id, targets);
     });
     return linked;
