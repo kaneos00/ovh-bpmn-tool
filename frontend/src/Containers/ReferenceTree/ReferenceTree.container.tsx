@@ -110,8 +110,15 @@ export const Component = () => {
                 pathFunc="step"
                 renderCustomNodeElement={({ nodeDatum }) => {
                   const type = nodeDatum.attributes?.type;
-                  const fill = type === 'folder' ? '#e5f4e8' : type === 'process' ? '#e7efff' : '#f1f5f9';
-                  const stroke = type === 'folder' ? '#72b58a' : type === 'process' ? '#7da3e8' : '#94a3b8';
+                  let fill = '#f1f5f9';
+                  let stroke = '#94a3b8';
+                  if (type === 'folder') {
+                    fill = '#e5f4e8';
+                    stroke = '#72b58a';
+                  } else if (type === 'process') {
+                    fill = '#e7efff';
+                    stroke = '#7da3e8';
+                  }
                   return (
                     <g>
                       <rect x={-82} y={-24} width={164} height={48} rx={9} fill={fill} stroke={stroke} strokeWidth={1.5} />
