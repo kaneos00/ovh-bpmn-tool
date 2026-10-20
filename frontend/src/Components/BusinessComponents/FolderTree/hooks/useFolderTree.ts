@@ -116,10 +116,17 @@ export const useFolderTree = (
           ));
       }
 
+      let nodeType = 'process';
+      if (item.type === ResourceType.Folder) {
+        nodeType = 'folder';
+      } else if (targetId) {
+        nodeType = 'linked-process';
+      }
+
       return {
         id: treeId,
         name: item.name,
-        type: item.type === ResourceType.Folder ? 'folder' : targetId ? 'linked-process' : 'process',
+        type: nodeType,
         targetId,
         children,
       } as RenderTree;
