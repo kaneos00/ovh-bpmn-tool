@@ -69,6 +69,10 @@ export const routes = [
         lazy: () => import('./Containers/MyWorkspace'),
       },
       {
+        path: '/reference/tree',
+        lazy: () => import('./Containers/ReferenceTree'),
+      },
+      {
         path: '/projects',
         lazy: () => import('./Containers/Projects'),
       },

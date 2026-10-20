@@ -78,7 +78,7 @@ export const useFolderTree = (
     processInfo.forEach(info => {
       const targets = Array.from(new Set(info.targets))
         .map(targetId => byIdentifier.get(targetId))
-        .filter((target): target is Resource => Boolean(target) && target.id !== info.resource.id);
+        .filter((target): target is Resource => target !== undefined && target.id !== info.resource.id);
       linked.set(info.resource.id, targets);
     });
     return linked;
@@ -116,10 +116,17 @@ export const useFolderTree = (
           ));
       }
 
+      let nodeType = 'process';
+      if (item.type === ResourceType.Folder) {
+        nodeType = 'folder';
+      } else if (targetId) {
+        nodeType = 'linked-process';
+      }
+
       return {
         id: treeId,
         name: item.name,
-        type: item.type === ResourceType.Folder ? 'folder' : targetId ? 'linked-process' : 'process',
+        type: nodeType,
         targetId,
         children,
       } as RenderTree;
@@ -175,5 +182,5 @@ export const useFolderTree = (
     }
   }, [selectedResourceId, resources, resource, getFolderHierarchy]);
 
-  return { dataTree, onNodeSelect, onNodeToggle, expandedNodes, isLoading };
+  return { dataTree, onNodeSelect, onNodeToggle, expandedNodes, setExpandedNodes, isLoading };
 };

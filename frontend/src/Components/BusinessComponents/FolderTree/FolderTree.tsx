@@ -14,18 +14,16 @@ import {
 } from '@mui/joy';
 import {
   AccessTime,
-  ChevronRight,
   DescriptionOutlined,
-  ExpandMore,
   FolderOutlined,
   Star,
   StarBorder,
   Search,
 } from '@mui/icons-material';
-import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
+import { ControlledTreeEnvironment, Tree } from 'react-complex-tree';
+import 'react-complex-tree/lib/style-modern.css';
 
 import { useFolderTree } from './hooks/useFolderTree';
-import { FolderTreeItem } from './components/FolderTreeItem';
 import { ProcessHierarchyTree } from '../ProcessHierarchyTree/ProcessHierarchyTree';
 
 import type { RenderTree } from '.';
@@ -53,7 +51,7 @@ const readIds = (key: string): string[] => {
 };
 
 export const FolderTree = ({ selectedId, onNodeClick, processXml, selectedElementId, onElementClick }: FolderTreeProps) => {
-  const { dataTree, expandedNodes, isLoading, onNodeSelect, onNodeToggle } =
+  const { dataTree, expandedNodes, setExpandedNodes, isLoading } =
     useFolderTree(selectedId, { onNodeClick });
   const [view, setView] = useState<ExplorerView>('tree');
   const [search, setSearch] = useState('');
@@ -129,45 +127,33 @@ export const FolderTree = ({ selectedId, onNodeClick, processXml, selectedElemen
     );
   };
 
-  const renderTree = (node: RenderTree) => {
-    const isFavorite = favorites.includes(node.id);
-    const icon =
-      node.type === 'folder' ? (
-        <FolderOutlined fontSize="small" />
-      ) : (
-        <DescriptionOutlined fontSize="small" />
-      );
+  const treeItems = useMemo(() => {
+    const items: Record<string, { index: string; isFolder: boolean; children?: string[]; data: RenderTree }> = {
+      root: {
+        index: 'root',
+        isFolder: true,
+        children: filteredTree.map(node => node.id),
+        data: dataTree,
+      },
+    };
+    const addNode = (node: RenderTree) => {
+      items[node.id] = {
+        index: node.id,
+        isFolder: Boolean(node.children?.length),
+        children: node.children?.map(child => child.id) ?? [],
+        data: node,
+      };
+      node.children?.forEach(addNode);
+    };
+    filteredTree.forEach(addNode);
+    return items;
+  }, [dataTree, filteredTree]);
 
-    return (
-      <FolderTreeItem
-        key={node.id}
-        itemId={node.id}
-        label={
-          <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, width: '100%', minWidth: 0 }}>
-            {icon}
-            <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {node.name}
-            </Box>
-            <IconButton
-              size="sm"
-              variant="plain"
-              color={isFavorite ? 'warning' : 'neutral'}
-              title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-              aria-label={isFavorite ? `Retirer ${node.name} des favoris` : `Ajouter ${node.name} aux favoris`}
-              onClick={event => toggleFavorite(event, node.id)}
-              sx={{ minWidth: 24, minHeight: 24, p: 0.25, flexShrink: 0, opacity: isFavorite ? 1 : 0.55 }}
-            >
-              {isFavorite ? <Star fontSize="inherit" /> : <StarBorder fontSize="inherit" />}
-            </IconButton>
-          </Box>
-        }
-        title={node.name}
-      >
-        {Array.isArray(node.children)
-          ? node.children.map(childNode => renderTree(childNode))
-          : null}
-      </FolderTreeItem>
-    );
+  const handleTreeSelection = (items: (string | number)[]) => {
+    const selected = items.length ? String(items[0]) : '';
+    if (!selected || selected === 'root') return;
+    const node = nodeById.get(selected);
+    onNodeClick(node?.targetId ?? selected);
   };
 
   return (
@@ -224,24 +210,48 @@ export const FolderTree = ({ selectedId, onNodeClick, processXml, selectedElemen
         ))
       ) : view === 'tree' ? (
         <>
-        <ListItem sx={{ p: 0 }}>
+        <ListItem sx={{ p: 0, display: 'block', minWidth: 0 }}>
           <ListItemContent sx={{ minWidth: 0 }}>
-            <SimpleTreeView
-              selectedItems={selectedId}
-              expandedItems={search.trim() ? searchExpandedNodes : expandedNodes}
-              disabledItemsFocusable
-              slots={{ collapseIcon: ExpandMore, expandIcon: ChevronRight }}
-              onSelectedItemsChange={onNodeSelect}
-              onExpandedItemsChange={onNodeToggle}
-              sx={{
-                minWidth: 0,
-                '& .MuiTreeItem-content': { borderRadius: '7px', minWidth: 0 },
-                '& .MuiTreeItem-content.Mui-selected': { bgcolor: '#eaf1ff', color: '#204fae' },
-                '& .MuiTreeItem-content.Mui-selected:hover': { bgcolor: '#eaf1ff' },
+            <ControlledTreeEnvironment
+              items={treeItems}
+              getItemTitle={item => item.data.name}
+              viewState={{
+                'repository-tree': {
+                  focusedItem: selectedId || 'root',
+                  expandedItems: search.trim() ? searchExpandedNodes : expandedNodes,
+                  selectedItems: selectedId ? [selectedId] : [],
+                },
+              }}
+              onExpandItem={item => setExpandedNodes(current => current.includes(String(item.index)) ? current : [...current, String(item.index)])}
+              onCollapseItem={item => setExpandedNodes(current => current.filter(id => id !== String(item.index)))}
+              onSelectItems={handleTreeSelection}
+              renderItemTitle={({ item, title }) => {
+                const nodeId = String(item.index);
+                const node = nodeById.get(nodeId);
+                const isFavorite = favorites.includes(nodeId);
+                return (
+                  <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, width: '100%', minWidth: 0 }}>
+                    {node?.type === 'folder' ? <FolderOutlined fontSize="small" /> : <DescriptionOutlined fontSize="small" />}
+                    <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</Box>
+                    {node && nodeId !== 'root' && (
+                      <IconButton
+                        size="sm"
+                        variant="plain"
+                        color={isFavorite ? 'warning' : 'neutral'}
+                        title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                        aria-label={isFavorite ? `Retirer ${node.name} des favoris` : `Ajouter ${node.name} aux favoris`}
+                        onClick={event => toggleFavorite(event, nodeId)}
+                        sx={{ minWidth: 24, minHeight: 24, p: 0.25, flexShrink: 0, opacity: isFavorite ? 1 : 0.55 }}
+                      >
+                        {isFavorite ? <Star fontSize="inherit" /> : <StarBorder fontSize="inherit" />}
+                      </IconButton>
+                    )}
+                  </Box>
+                );
               }}
             >
-              {filteredTree.map(node => renderTree(node))}
-            </SimpleTreeView>
+              <Tree treeId="repository-tree" rootItem="root" treeLabel="Arborescence du référentiel" />
+            </ControlledTreeEnvironment>
           </ListItemContent>
         </ListItem>
         {processXml && onElementClick && (

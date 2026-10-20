@@ -50,7 +50,9 @@
     "react-virtuoso": "^4.10.1",
     "react-window": "^1.8.10",
     "styled-components": "^6.1.12",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "react-complex-tree": "^2.5.1",
+    "react-d3-tree": "^3.6.6"
   },
   "devDependencies": {
     "@spotify/eslint-config": "^15.0.0",

@@ -1,0 +1,39 @@
+.referenceTreePage {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--joy-palette-background-level1, #f1f5f9);
+}
+
+.referenceTreeContent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  flex: 1;
+  padding: 20px 24px;
+}
+
+.referenceTreeCard {
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.referenceTreeCanvas {
+  position: relative;
+  width: 100%;
+  min-height: 620px;
+  height: min(72vh, 820px);
+  overflow: hidden;
+  background: var(--joy-palette-background-surface, #fff);
+}
+
+.referenceTreeCanvas .rd3t-node {
+  cursor: pointer;
+}
+
+@media (max-width: 720px) {
+  .referenceTreeContent { padding: 12px; }
+  .referenceTreeCanvas { min-height: 520px; height: 65vh; }
+}

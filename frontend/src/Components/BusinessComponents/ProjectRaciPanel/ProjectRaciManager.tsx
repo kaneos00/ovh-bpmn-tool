@@ -5,6 +5,7 @@ import {
   Box,
   Button,
   Card,
+  Chip,
   CircularProgress,
   FormControl,
   FormLabel,
@@ -57,6 +58,12 @@ const ROLES: { value: RaciCode; label: string }[] = [
   { value: 'C', label: 'C — Consulté' },
   { value: 'I', label: 'I — Informé' },
 ];
+const CODE_STYLES: Record<RaciCode, { background: string; border: string; color: string }> = {
+  R: { background: '#e5f4e8', border: '#72b58a', color: '#245b35' },
+  A: { background: '#fbe8e8', border: '#e3a0a0', color: '#8b3030' },
+  I: { background: '#e7efff', border: '#7da3e8', color: '#244b91' },
+  C: { background: '#fff2d8', border: '#e4c16b', color: '#79570c' },
+};
 const ROLE_LABELS: Record<RaciCode, string> = {
   R: 'Responsable',
   A: 'Approbateur / redevable',
