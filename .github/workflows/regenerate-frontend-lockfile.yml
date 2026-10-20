@@ -1,0 +1,43 @@
+name: Regenerate frontend lockfile
+
+on:
+  push:
+    branches:
+      - feat/v2-viewer-breadcrumb-reference-tree
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Resolve dependencies and regenerate lockfile
+        working-directory: frontend
+        run: pnpm install --lockfile-only --no-frozen-lockfile
+      - name: Commit generated lockfile and remove temporary workflow
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH_NAME: ${{ github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- frontend/pnpm-lock.yaml; then
+            echo "Lockfile is already up to date."
+            exit 0
+          fi
+          git add frontend/pnpm-lock.yaml
+          git rm .github/workflows/regenerate-frontend-lockfile.yml
+          git commit -m "chore(frontend): regenerate pnpm lockfile"
+          git push origin "HEAD:${BRANCH_NAME}"
+          gh workflow run validate.yml --ref "${BRANCH_NAME}"
