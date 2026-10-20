@@ -102,24 +102,10 @@ export const useProcessViewer = (
   };
 
   const fitDiagramToWidth = () => {
-    const canvas = viewer.get('canvas') as any;
-    const container = canvas.getContainer();
-    const rect = container.getBoundingClientRect();
-    const bounds = getDiagramBounds();
-    if (!bounds || rect.width <= 0 || rect.height <= 0 || bounds.width <= 0) {
-      canvas.zoom('fit-viewport');
-      return;
-    }
-
-    const targetScale = Math.max(0.01, (rect.width - DIAGRAM_PADDING * 2) / bounds.width);
-    const viewboxWidth = rect.width / targetScale;
-    const viewboxHeight = rect.height / targetScale;
-    canvas.viewbox({
-      x: bounds.x - DIAGRAM_PADDING / targetScale,
-      y: bounds.y - DIAGRAM_PADDING / targetScale,
-      width: viewboxWidth,
-      height: viewboxHeight,
-    });
+    // The viewer starts at a true 1:1 scale, anchored at the diagram's
+    // upper-left corner. Users can still choose "Ajuster" from the toolbar.
+    (viewer.get('canvas') as any).zoom(1);
+    alignDiagramTopLeft();
   };
 
   const setMinimapForDiagram = () => {
