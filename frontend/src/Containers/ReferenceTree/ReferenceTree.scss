@@ -23,17 +23,56 @@
 .referenceTreeCanvas {
   position: relative;
   width: 100%;
-  min-height: 620px;
+  min-width: 0;
+  min-height: 420px;
   height: min(72vh, 820px);
-  overflow: hidden;
+  overflow: auto;
   background: var(--joy-palette-background-surface, #fff);
+  border-radius: 8px;
+  overscroll-behavior: contain;
 }
 
-.referenceTreeCanvas .rd3t-node {
-  cursor: pointer;
+.referenceTreeSvg {
+  display: block;
+  max-width: none;
+  touch-action: pan-x pan-y;
+}
+
+.referenceTreeLink {
+  fill: none;
+  stroke: #b8c4d2;
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
+.referenceTreeNode {
+  cursor: grab;
+  outline: none;
+  touch-action: none;
+  user-select: none;
+}
+
+.referenceTreeNode:active {
+  cursor: grabbing;
+}
+
+.referenceTreeNode:focus rect,
+.referenceTreeNode:hover rect {
+  stroke: #3574c8;
+  stroke-width: 2.5;
+}
+
+.referenceTreeNode-root {
+  cursor: default;
 }
 
 @media (max-width: 720px) {
-  .referenceTreeContent { padding: 12px; }
-  .referenceTreeCanvas { min-height: 520px; height: 65vh; }
+  .referenceTreeContent {
+    padding: 12px;
+  }
+
+  .referenceTreeCanvas {
+    min-height: 380px;
+    height: 65vh;
+  }
 }
