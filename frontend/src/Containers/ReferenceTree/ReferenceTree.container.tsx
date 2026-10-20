@@ -62,8 +62,8 @@ export const Component = () => {
     }];
   }, [resources]);
 
-  const handleNodeClick = (node: D3Node) => {
-    const id = node.attributes.resourceId;
+  const handleNodeClick = (node: { attributes?: Record<string, string | number | boolean> }) => {
+    const id = String(node.attributes?.resourceId ?? '');
     if (id !== ROOT_ID) navigate(`/${id}`);
   };
 
