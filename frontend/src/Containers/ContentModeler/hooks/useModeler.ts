@@ -51,12 +51,12 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
     propertiesContainer.style.display = 'none';
     removeSelectionListenerRef.current?.();
 
-    const eventBus = bpmnModelerInstance.get('eventBus');
+    const eventBus = bpmnModelerInstance.get('eventBus') as { on: Function; off: Function };
     const collapsedTab = diagramContainerRef.current?.parentElement
       ?.querySelector('.properties-panel-collapsed-tab') as HTMLElement | null;
 
     const syncPropertiesPanel = (event?: { newSelection?: unknown[] }) => {
-      const selected = event?.newSelection ?? bpmnModelerInstance.get('selection')?.get?.() ?? [];
+      const selected = event?.newSelection ?? (bpmnModelerInstance.get('selection') as { get?: () => unknown[] } | undefined)?.get?.() ?? [];
       const hasActivitySelected = Array.isArray(selected) && selected.some(item => {
         const element = item as { type?: unknown; businessObject?: { $type?: unknown } };
         const type = String(element?.type ?? element?.businessObject?.$type ?? '');
