@@ -1,5 +1,4 @@
 import { useMemo, SyntheticEvent, useState, useEffect } from 'react';
-import { treeItemClasses } from '@mui/x-tree-view/TreeItem';
 import { useQueries, useQuery } from 'react-query';
 
 import { resourcesQuery } from '../../../../api/resources/resources.queries';
@@ -22,10 +21,16 @@ const getPublishedContent = (contents: Content[] | undefined) =>
     .filter(content => content.status === ContentStatusEnum.Published)
     .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0];
 
+const normalizeProcessRef = (value: string) => value.trim().replace(/^.*:/, '');
+
 const getProcessLinks = (xml: string) => {
-  if (!xml || typeof DOMParser === 'undefined') return { processIds: [] as string[], targets: [] as string[] };
+  if (!xml || typeof DOMParser === 'undefined') {
+    return { processIds: [] as string[], targets: [] as string[] };
+  }
   const document = new DOMParser().parseFromString(xml, 'application/xml');
-  if (document.getElementsByTagName('parsererror').length) return { processIds: [] as string[], targets: [] as string[] };
+  if (document.getElementsByTagName('parsererror').length) {
+    return { processIds: [] as string[], targets: [] as string[] };
+  }
 
   return {
     processIds: Array.from(document.getElementsByTagNameNS(BPMN_MODEL_NS, 'process'))
@@ -33,7 +38,8 @@ const getProcessLinks = (xml: string) => {
       .filter(Boolean),
     targets: Array.from(document.getElementsByTagNameNS(BPMN_MODEL_NS, 'callActivity'))
       .map(element => element.getAttribute('calledElement')?.trim() || '')
-      .filter(Boolean),
+      .filter(Boolean)
+      .map(normalizeProcessRef),
   };
 };
 
@@ -70,7 +76,8 @@ export const useFolderTree = (
     processInfo.forEach(info => {
       byIdentifier.set(info.resource.id, info.resource);
       info.processIds.forEach(id => {
-        if (!byIdentifier.has(id)) byIdentifier.set(id, info.resource);
+        const normalizedId = normalizeProcessRef(id);
+        if (!byIdentifier.has(normalizedId)) byIdentifier.set(normalizedId, info.resource);
       });
     });
 
@@ -151,20 +158,14 @@ export const useFolderTree = (
     return undefined;
   };
 
-  const isLabelClick = (event: SyntheticEvent) =>
-    Boolean((event.target as HTMLElement).closest(`.${treeItemClasses.label}`));
-
-  const onNodeSelect = (event: SyntheticEvent, nodeId: string | null) => {
-    if (!nodeId || !isLabelClick(event)) return;
+  const onNodeSelect = (_event: SyntheticEvent, nodeId: string | null) => {
+    if (!nodeId) return;
     const node = findNode(dataTree, nodeId);
     onNodeClick(node?.targetId ?? nodeId);
-    if (node?.children?.length && !expandedNodes.includes(nodeId)) {
-      setExpandedNodes(current => current.includes(nodeId) ? current : [...current, nodeId]);
-    }
   };
 
-  const onNodeToggle = (event: SyntheticEvent, nodeIds: string[]) => {
-    if (!isLabelClick(event)) setExpandedNodes(nodeIds);
+  const onNodeToggle = (_event: SyntheticEvent, nodeIds: string[]) => {
+    setExpandedNodes(nodeIds);
   };
 
   useEffect(() => {
