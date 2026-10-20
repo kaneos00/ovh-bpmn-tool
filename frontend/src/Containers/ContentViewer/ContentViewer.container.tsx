@@ -28,6 +28,8 @@ import { FolderTree } from '../../Components/BusinessComponents/FolderTree';
 import { UserAccountMenu } from '../../Components/GenericComponents/UserAccountMenu/UserAccountMenu';
 import { ProcessHierarchyTree } from '../../Components/BusinessComponents/ProcessHierarchyTree/ProcessHierarchyTree';
 import { ProcessViewer } from '../../Components/BusinessComponents/ProcessViewer';
+import { Breadcrumbs } from '../../Components/GenericComponents/Breadcrumbs/Breadcrumbs';
+import { useBpmnLayoutBreadcrumbs } from '../BpmnLayout/hooks/useBpmnLayoutBreadcrumbs';
 import { useContentViewer } from './hooks/useContentViewer';
 import {
   contentsQuery,
@@ -60,6 +62,7 @@ const statusMarker = {
 export const Component = () => {
   const { resourceId, contentId } = useContentViewer();
   const navigate = useNavigate();
+  const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
   const [searchParams] = useSearchParams();
   const [folderOpen, setFolderOpen] = useState(false);
   const [navigationSection, setNavigationSection] = useState<'resources' | 'processes' | 'activities'>('resources');
@@ -253,6 +256,9 @@ export const Component = () => {
       </Sheet>
 
       <Box className="viewerDiagram">
+        <Box className="viewerBreadcrumb">
+          <Breadcrumbs breadcrumbItems={getBreadCrumbs()} />
+        </Box>
         <ProcessViewer
           resourceId={resourceId}
           contentId={contentId}
