@@ -51,7 +51,10 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
     propertiesContainer.style.display = 'none';
     removeSelectionListenerRef.current?.();
 
-    const eventBus = bpmnModelerInstance.get('eventBus') as { on: Function; off: Function };
+    const eventBus = bpmnModelerInstance.get('eventBus') as {
+      on: (event: string, callback: (event: { newSelection?: unknown[] }) => void) => void;
+      off: (event: string, callback: (event: { newSelection?: unknown[] }) => void) => void;
+    };
     const collapsedTab = diagramContainerRef.current?.parentElement
       ?.querySelector('.properties-panel-collapsed-tab') as HTMLElement | null;
 
