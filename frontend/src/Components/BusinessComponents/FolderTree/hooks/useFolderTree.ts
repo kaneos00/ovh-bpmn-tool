@@ -182,5 +182,5 @@ export const useFolderTree = (
     }
   }, [selectedResourceId, resources, resource, getFolderHierarchy]);
 
-  return { dataTree, onNodeSelect, onNodeToggle, expandedNodes, isLoading };
+  return { dataTree, onNodeSelect, onNodeToggle, expandedNodes, setExpandedNodes, isLoading };
 };
