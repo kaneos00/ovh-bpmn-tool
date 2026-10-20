@@ -120,6 +120,8 @@
 }
 
 .viewerDiagram {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   height: 100%;
   min-height: 0;
@@ -127,6 +129,18 @@
   border: 1px solid var(--joy-palette-divider, var(--bpmn-line, #dce3ec));
   border-radius: 10px;
   background: var(--joy-palette-background-surface, #fff);
+}
+
+.viewerBreadcrumb {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--joy-palette-divider, #e5e7eb);
+  background: var(--joy-palette-background-level1, #f8fafc);
+}
+
+.viewerDiagram .process-viewer-shell {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .viewerInfoClose {
