@@ -62,8 +62,8 @@ export const Component = () => {
     }];
   }, [resources]);
 
-  const handleNodeClick = (node: { attributes?: Record<string, string | number | boolean> }) => {
-    const id = String(node.attributes?.resourceId ?? '');
+  const handleNodeClick = (node: { data: { attributes?: Record<string, string | number | boolean> } }) => {
+    const id = String(node.data.attributes?.resourceId ?? '');
     if (id !== ROOT_ID) navigate(`/${id}`);
   };
 
@@ -81,11 +81,9 @@ export const Component = () => {
           <Button variant="outlined" onClick={() => navigate('/root')}>Retour au référentiel</Button>
         </Stack>
         <Card variant="outlined" className="referenceTreeCard">
-          {isLoading ? (
-            <Typography>Chargement de l’arborescence…</Typography>
-          ) : isError ? (
-            <Typography color="danger">Impossible de charger les ressources du référentiel.</Typography>
-          ) : treeData[0].children?.length ? (
+          {isLoading && <Typography>Chargement de l’arborescence…</Typography>}
+          {!isLoading && isError && <Typography color="danger">Impossible de charger les ressources du référentiel.</Typography>}
+          {!isLoading && !isError && treeData[0].children?.length ? (
             <Sheet
               className="referenceTreeCanvas"
               ref={element => {
@@ -131,7 +129,8 @@ export const Component = () => {
                 }}
               />
             </Sheet>
-          ) : (
+          ) : null}
+          {!isLoading && !isError && !treeData[0].children?.length && (
             <Typography>Aucune ressource à afficher.</Typography>
           )}
         </Card>
