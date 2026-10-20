@@ -55,19 +55,20 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
       on: (event: string, callback: (event: { newSelection?: unknown[] }) => void) => void;
       off: (event: string, callback: (event: { newSelection?: unknown[] }) => void) => void;
     };
-    const collapsedTab = diagramContainerRef.current?.parentElement
-      ?.querySelector('.properties-panel-collapsed-tab') as HTMLElement | null;
+    const collapsedTabs = diagramContainerRef.current?.parentElement
+      ?.querySelectorAll('.properties-panel-collapsed-tab');
 
     const syncPropertiesPanel = (event?: { newSelection?: unknown[] }) => {
       const selected = event?.newSelection ?? (bpmnModelerInstance.get('selection') as { get?: () => unknown[] } | undefined)?.get?.() ?? [];
-      const hasActivitySelected = Array.isArray(selected) && selected.some(item => {
-        const element = item as { type?: unknown; businessObject?: { $type?: unknown } };
-        const type = String(element?.type ?? element?.businessObject?.$type ?? '');
-        return /(?:Task|CallActivity|SubProcess|Transaction)$/.test(type);
-      });
+      const hasElementSelected = Array.isArray(selected) && selected.length > 0;
 
-      propertiesContainer.style.display = hasActivitySelected ? 'block' : 'none';
-      if (collapsedTab) collapsedTab.style.display = hasActivitySelected ? 'none' : 'flex';
+      // The panel is driven by the actual BPMN selection, including lanes,
+      // events, gateways and activities. Never leave the plugin's collapsed
+      // tab behind after a selection is cleared.
+      propertiesContainer.style.display = hasElementSelected ? 'block' : 'none';
+      collapsedTabs?.forEach(tab => {
+        (tab as HTMLElement).style.display = 'none';
+      });
     };
 
     eventBus.on('selection.changed', syncPropertiesPanel);
