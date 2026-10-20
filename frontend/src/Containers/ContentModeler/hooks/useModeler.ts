@@ -17,6 +17,7 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
   const { getModelerProviders } = useBpmnToolOptions();
 
   const providersRegisteredRef = useRef(false);
+  const removeSelectionListenerRef = useRef<(() => void) | null>(null);
 
   const propertiesPanel: PropertiesPanel =
     bpmnModelerInstance.get('propertiesPanel');
@@ -45,6 +46,32 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
     }
 
     propertiesPanel.attachTo(diagramPropertiesRef.current);
+
+    const propertiesContainer = diagramPropertiesRef.current;
+    propertiesContainer.style.display = 'none';
+    removeSelectionListenerRef.current?.();
+
+    const eventBus = bpmnModelerInstance.get('eventBus');
+    const collapsedTab = diagramContainerRef.current?.parentElement
+      ?.querySelector('.properties-panel-collapsed-tab') as HTMLElement | null;
+
+    const syncPropertiesPanel = (event?: { newSelection?: unknown[] }) => {
+      const selected = event?.newSelection ?? bpmnModelerInstance.get('selection')?.get?.() ?? [];
+      const hasActivitySelected = Array.isArray(selected) && selected.some(item => {
+        const element = item as { type?: unknown; businessObject?: { $type?: unknown } };
+        const type = String(element?.type ?? element?.businessObject?.$type ?? '');
+        return /(?:Task|CallActivity|SubProcess|Transaction)$/.test(type);
+      });
+
+      propertiesContainer.style.display = hasActivitySelected ? 'block' : 'none';
+      if (collapsedTab) collapsedTab.style.display = hasActivitySelected ? 'none' : 'flex';
+    };
+
+    eventBus.on('selection.changed', syncPropertiesPanel);
+    syncPropertiesPanel();
+    removeSelectionListenerRef.current = () => {
+      eventBus.off('selection.changed', syncPropertiesPanel);
+    };
   };
 
   useEffect(() => {
@@ -83,6 +110,8 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
 
       return () => {
         bpmnModelerInstance.off('linting.completed', onLintingCompleted);
+        removeSelectionListenerRef.current?.();
+        removeSelectionListenerRef.current = null;
       };
     }
 

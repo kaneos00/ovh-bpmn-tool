@@ -26,12 +26,16 @@ import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 
 import { useFolderTree } from './hooks/useFolderTree';
 import { FolderTreeItem } from './components/FolderTreeItem';
+import { ProcessHierarchyTree } from '../ProcessHierarchyTree/ProcessHierarchyTree';
 
 import type { RenderTree } from '.';
 
 type FolderTreeProps = {
   selectedId: string;
   onNodeClick: (nodeId: string) => void;
+  processXml?: string;
+  selectedElementId?: string | null;
+  onElementClick?: (elementId: string) => void;
 };
 
 type ExplorerView = 'tree' | 'recent' | 'favorites';
@@ -48,7 +52,7 @@ const readIds = (key: string): string[] => {
   }
 };
 
-export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
+export const FolderTree = ({ selectedId, onNodeClick, processXml, selectedElementId, onElementClick }: FolderTreeProps) => {
   const { dataTree, expandedNodes, isLoading, onNodeSelect, onNodeToggle } =
     useFolderTree(selectedId, { onNodeClick });
   const [view, setView] = useState<ExplorerView>('tree');
@@ -219,18 +223,24 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
           </ListItem>
         ))
       ) : view === 'tree' ? (
+        <>
         <ListItem sx={{ p: 0 }}>
           <ListItemContent sx={{ minWidth: 0 }}>
             <SimpleTreeView
               selectedItems={selectedId}
               expandedItems={search.trim() ? searchExpandedNodes : expandedNodes}
               disabledItemsFocusable
+              expansionTrigger="iconContainer"
               slots={{ collapseIcon: ExpandMore, expandIcon: ChevronRight }}
               onSelectedItemsChange={onNodeSelect}
               onExpandedItemsChange={onNodeToggle}
               sx={{
+                width: '100%',
                 minWidth: 0,
-                '& .MuiTreeItem-content': { borderRadius: '7px', minWidth: 0 },
+                overflowX: 'hidden',
+                '& .MuiTreeItem-root': { minWidth: 0 },
+                '& .MuiTreeItem-content': { borderRadius: '7px', minWidth: 0, overflow: 'hidden' },
+                '& .MuiTreeItem-label': { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
                 '& .MuiTreeItem-content.Mui-selected': { bgcolor: '#eaf1ff', color: '#204fae' },
                 '& .MuiTreeItem-content.Mui-selected:hover': { bgcolor: '#eaf1ff' },
               }}
@@ -239,6 +249,14 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
             </SimpleTreeView>
           </ListItemContent>
         </ListItem>
+        {processXml && onElementClick && (
+          <ProcessHierarchyTree
+            xmlContent={processXml}
+            selectedElementId={selectedElementId}
+            onElementClick={onElementClick}
+          />
+        )}
+        </>
       ) : (
         <Box sx={{ display: 'grid', gap: 0.5 }}>
           <Typography level="body-xs" sx={{ px: 1, py: 0.5, color: 'text.tertiary', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
@@ -255,7 +273,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                 <Button
                   variant="plain"
                   color={node.id === selectedId ? 'primary' : 'neutral'}
-                  onClick={() => onNodeClick(node.id)}
+                  onClick={() => onNodeClick(node.targetId ?? node.id)}
                   startDecorator={view === 'recent' ? <AccessTime fontSize="small" /> : node.type === 'folder' ? <FolderOutlined fontSize="small" /> : <DescriptionOutlined fontSize="small" />}
                   sx={{ flex: 1, minWidth: 0, justifyContent: 'flex-start', textAlign: 'left', fontWeight: node.id === selectedId ? 700 : 500, overflow: 'hidden', '& .MuiButton-startDecorator': { flexShrink: 0 }, '& > span:last-of-type': { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }}
                 >

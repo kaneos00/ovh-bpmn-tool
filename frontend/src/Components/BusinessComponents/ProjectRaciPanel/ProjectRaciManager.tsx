@@ -402,6 +402,8 @@ export const ProjectRaciManager = ({
             size="sm"
             sx={{
               minWidth: Math.max(760, 300 + actors.length * 150),
+              fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
+              '& th, & td': { fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif' },
               '& th:first-of-type, & td:first-of-type': {
                 position: 'sticky',
                 left: 0,
@@ -448,11 +450,32 @@ export const ProjectRaciManager = ({
                             onChange={(_event, value) => setCell(task, actor.name, value === UNASSIGNED || value === null ? null : value as RaciCode)}
                             slotProps={{ listbox: { sx: { minWidth: 210 } } }}
                             sx={{ minWidth: 125 }}
-                            renderValue={selected => selected && selected.value !== UNASSIGNED ? (
-                              <Typography level="body-sm" fontWeight="md">
-                                {selected.value} — {ROLE_LABELS[selected.value as RaciCode]}
-                              </Typography>
-                            ) : null}
+                            renderValue={selected => {
+                              const value = selected?.value;
+                              if (!value || value === UNASSIGNED) return null;
+                              const code = value as RaciCode;
+                              const style = CODE_STYLES[code];
+                              return (
+                                <Chip
+                                  size="sm"
+                                  variant="soft"
+                                  sx={{
+                                    minWidth: 28,
+                                    justifyContent: 'center',
+                                    borderRadius: '5px',
+                                    fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    bgcolor: style.background,
+                                    border: `1px solid ${style.border}`,
+                                    color: style.color,
+                                  }}
+                                  title={ROLE_LABELS[code]}
+                                >
+                                  {code}
+                                </Chip>
+                              );
+                            }}
                           >
                             <Option value={UNASSIGNED}>— Non attribué</Option>
                             {ROLES.map(item => (

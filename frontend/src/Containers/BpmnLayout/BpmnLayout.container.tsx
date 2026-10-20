@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Await, Outlet, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Await, Outlet, useParams, useSearchParams } from 'react-router-dom';
 import { Box, Button, Divider, IconButton, Sheet, Stack, Typography } from '@mui/joy';
-import { AccountTreeOutlined, ChevronLeft, ChevronRight, FolderOutlined, GroupsOutlined, WorkspacesOutlined } from '@mui/icons-material';
+import { AccountTreeOutlined, ChevronLeft, ChevronRight, FolderOutlined } from '@mui/icons-material';
 import { useQuery } from 'react-query';
 
 import { ResourceExplorer } from '../../Components/BusinessComponents/ResourceExplorer';
@@ -21,8 +21,6 @@ import {
 import { isFolder, isRoot } from '../../shared/helpers/resource';
 import { getXmlContentQuery } from '../../api/contents/contents.queries';
 import { ContentStatusEnum } from '../../Types';
-import { ProcessHierarchyTree } from '../../Components/BusinessComponents/ProcessHierarchyTree/ProcessHierarchyTree';
-import { ProjectRaciPanel } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciPanel';
 
 import type { BpmnLayoutRouteParams } from '.';
 import { ResourceType } from '../../shared/types/BpmnResource';
@@ -31,24 +29,10 @@ import './BpmnLayoutContainer.scss';
 
 export const Component = () => {
   const { resourceId } = useParams() as BpmnLayoutRouteParams;
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const requestedElementId = searchParams.get('elementId');
   const [folderOpen, setFolderOpen] = useState(false);
-  const [sidebarSection, setSidebarSection] = useState<'resources' | 'activities' | 'raci'>('resources');
   const [selectedElementId, setSelectedElementId] = useState<string | null>(requestedElementId);
-  const [globalRole, setGlobalRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-    const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
-    fetch(`${apiBase}/auth/session`, { credentials: 'same-origin' })
-      .then(async response => (response.ok ? response.json() : null))
-      .then(session => { if (mounted) setGlobalRole(session?.role ?? null); })
-      .catch(() => { if (mounted) setGlobalRole(null); });
-    return () => { mounted = false; };
-  }, []);
-
   useEffect(() => {
     setSelectedElementId(requestedElementId);
   }, [resourceId, requestedElementId]);
@@ -120,110 +104,31 @@ export const Component = () => {
 
         {!folderOpen ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, py: 1 }}>
-            <IconButton size="sm" variant={sidebarSection === 'resources' ? 'soft' : 'plain'} title="Référentiel" aria-label="Ouvrir le référentiel"
-              onClick={() => { setSidebarSection('resources'); setFolderOpen(true); }}>
+            <IconButton
+              size="sm"
+              variant="plain"
+              title="Explorateur"
+              aria-label="Ouvrir l’explorateur"
+              onClick={() => setFolderOpen(true)}
+            >
               <FolderOutlined />
             </IconButton>
-            <IconButton size="sm" variant={sidebarSection === 'activities' ? 'soft' : 'plain'} title="Processus et activités" aria-label="Ouvrir les processus et activités"
-              onClick={() => { setSidebarSection('activities'); setFolderOpen(true); }}>
-              <AccountTreeOutlined />
-            </IconButton>
-            <IconButton size="sm" variant={sidebarSection === 'raci' ? 'soft' : 'plain'} title="RACI" aria-label="Ouvrir le RACI"
-              onClick={() => { setSidebarSection('raci'); setFolderOpen(true); }}>
-              <GroupsOutlined />
-            </IconButton>
-{(globalRole === 'admin' || globalRole === 'modeler') && (
-              <IconButton size="sm" variant="plain" title="Projets" aria-label="Accéder aux projets" onClick={() => navigate('/projects')}>
-                <WorkspacesOutlined />
-              </IconButton>
-            )}
           </Box>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, overflow: 'hidden' }}>
-            <Stack direction="row" spacing={0.5} sx={{ px: 1, pb: 1 }} useFlexGap flexWrap="wrap">
-              <Button size="sm" variant={sidebarSection === 'resources' ? 'soft' : 'plain'}
-                color={sidebarSection === 'resources' ? 'primary' : 'neutral'}
-                startDecorator={<FolderOutlined />} onClick={() => setSidebarSection('resources')}>
-                Référentiel
-              </Button>
-              <Button size="sm" variant={sidebarSection === 'activities' ? 'soft' : 'plain'}
-                color={sidebarSection === 'activities' ? 'primary' : 'neutral'}
-                startDecorator={<AccountTreeOutlined />} onClick={() => setSidebarSection('activities')}>
-                Processus et activités
-              </Button>
-              <Button size="sm" variant={sidebarSection === 'raci' ? 'soft' : 'plain'}
-                color={sidebarSection === 'raci' ? 'primary' : 'neutral'}
-                startDecorator={<GroupsOutlined />} onClick={() => setSidebarSection('raci')}>
-                RACI
-              </Button>
-            </Stack>
+            <Box sx={{ px: 1.5, py: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <FolderOutlined fontSize="small" />
+              <Typography level="title-sm">Explorateur</Typography>
+            </Box>
             <Divider />
             <Box sx={{ overflowY: 'auto', minHeight: 0, flex: 1, pb: 2 }}>
-              {sidebarSection === 'resources' && (
-                <>
-                  <Box sx={{ px: 1.5, py: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <FolderOutlined fontSize="small" />
-                    <Typography level="title-sm">Dossiers et processus</Typography>
-                  </Box>
-                  <FolderTree
-                    selectedId={resourceId}
-                    onNodeClick={callbacks.folderTree.onFolderTreeItemClick}
-                  />
-{(globalRole === 'admin' || globalRole === 'modeler') && (
-                    <Box sx={{ px: 1.5, py: 1 }}>
-                      <Button size="sm" variant="outlined" color="neutral" fullWidth
-                        startDecorator={<WorkspacesOutlined />} onClick={() => navigate('/projects')}>
-                        Gérer les projets
-                      </Button>
-                    </Box>
-                  )}
-                </>
-              )}
-
-              {sidebarSection === 'activities' && (
-                <>
-                  <Box sx={{ px: 1.5, py: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <AccountTreeOutlined fontSize="small" />
-                    <Typography level="title-sm">Processus et activités</Typography>
-                  </Box>
-                  {resource?.type === ResourceType.Process && processXml && (
-                    <ProcessHierarchyTree
-                      xmlContent={processXml}
-                      selectedElementId={selectedElementId}
-                      onElementClick={setSelectedElementId}
-                    />
-                  )}
-                  {resource?.type === ResourceType.Process && !processXml && (
-                    <Typography level="body-xs" sx={{ px: 1.5, py: 1 }} textColor="neutral">
-                      {publishedContent ? 'Chargement du diagramme…' : 'Aucune version publiée.'}
-                    </Typography>
-                  )}
-                  {resource?.type !== ResourceType.Process && (
-                    <Typography level="body-sm" sx={{ px: 1.5, py: 1 }} textColor="neutral">
-                      Ouvrez un processus dans le référentiel pour parcourir ses activités.
-                    </Typography>
-                  )}
-                </>
-              )}
-
-              {sidebarSection === 'raci' && (
-                <>
-                  <Box sx={{ px: 1.5, py: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <GroupsOutlined fontSize="small" />
-                    <Typography level="title-sm">RACI du projet</Typography>
-                  </Box>
-                  <ProjectRaciPanel
-                    currentResourceId={resourceId}
-                    onActivityClick={(targetResourceId, elementId) => {
-                      setSelectedElementId(elementId);
-                      setSidebarSection('activities');
-                      if (targetResourceId !== resourceId) {
-                        navigate(`/${targetResourceId}?elementId=${encodeURIComponent(elementId)}`);
-                      }
-                    }}
-                  />
-                </>
-              )}
+              <FolderTree
+                selectedId={resourceId}
+                onNodeClick={callbacks.folderTree.onFolderTreeItemClick}
+                processXml={resource?.type === ResourceType.Process ? processXml : undefined}
+                selectedElementId={selectedElementId}
+                onElementClick={setSelectedElementId}
+              />
             </Box>
           </Box>
         )}
