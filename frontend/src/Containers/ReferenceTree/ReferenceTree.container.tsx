@@ -113,7 +113,7 @@ export const Component = () => {
     { length: maxDepth + 1 },
     (_, depth) => nodes.filter(node => node.depth === depth).length,
   ));
-  const graphWidth = Math.max(viewport.width, maxNodesAtLevel * MIN_NODE_SPACING + 80);
+  const graphWidth = Math.max(viewport.width, maxNodesAtLevel * MIN_NODE_SPACING + NODE_WIDTH + 40);
   const graphHeight = Math.max(viewport.height, (maxDepth + 1) * LEVEL_HEIGHT + 80);
 
   const basePositions = useMemo<Record<string, Point>>(() => {
@@ -126,7 +126,7 @@ export const Component = () => {
     });
 
     byDepth.forEach((level, depth) => {
-      const margin = 40;
+      const margin = NODE_WIDTH / 2 + 12;
       const availableWidth = Math.max(0, graphWidth - margin * 2);
       level.forEach((node, index) => {
         positions[node.id] = {
