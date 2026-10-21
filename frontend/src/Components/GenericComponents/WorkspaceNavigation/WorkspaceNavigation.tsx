@@ -252,7 +252,7 @@ export const WorkspaceNavigation = () => {
 
           if (scope === 'all' || scope === 'roles' || scope === 'raci') {
             const matrix = deriveRaciMatrixFromXml(xml);
-            if (scope !== 'raci') {
+            {
               matrix.roles
                 .filter(role => matchesTerm(role, term))
                 .forEach(role => {
