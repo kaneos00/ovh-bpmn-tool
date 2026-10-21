@@ -12,7 +12,7 @@
 }
 
 .viewerLayout.sidebar-open {
-  grid-template-columns: 255px minmax(0, 1fr) 0;
+  grid-template-columns: 285px minmax(0, 1fr) 0;
 }
 
 .viewerLayout.info-open {
@@ -20,7 +20,7 @@
 }
 
 .viewerLayout.sidebar-open.info-open {
-  grid-template-columns: 255px minmax(0, 1fr) 285px;
+  grid-template-columns: 285px minmax(0, 1fr) 285px;
 }
 
 .viewerFolderPanel {
@@ -34,7 +34,7 @@
 }
 
 .viewerFolderPanel.open {
-  width: 255px;
+  width: 285px;
 }
 
 .viewerFolderPanel.collapsed {
