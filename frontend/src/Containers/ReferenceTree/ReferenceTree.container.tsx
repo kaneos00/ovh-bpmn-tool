@@ -212,7 +212,9 @@ export const Component = () => {
           <div className="referenceTreeContextHeading">{selectedResource.name}</div>
           <Divider />
           <button role="menuitem" onClick={() => { setContextMenu(null); navigate(`/${selectedResource.id}/edit`); }}>Modifier</button>
-          <button role="menuitem" onClick={() => { setContextMenu(null); cloneResource.mutate(selectedResource.id); }} disabled={cloneResource.isLoading}>Dupliquer</button>
+          {selectedResource.type !== ResourceType.Folder && (
+            <button role="menuitem" onClick={() => { setContextMenu(null); cloneResource.mutate(selectedResource.id); }} disabled={cloneResource.isLoading}>Dupliquer</button>
+          )}
           <button role="menuitem" onClick={() => { setContextMenu(null); navigate(`/${selectedResource.id}/share`); }}>Partager</button>
           <button role="menuitem" className="isDanger" onClick={() => { setContextMenu(null); navigate(`/${selectedResource.id}/delete`); }}>Supprimer</button>
         </div>
