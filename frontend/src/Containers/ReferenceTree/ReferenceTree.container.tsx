@@ -100,10 +100,12 @@ export const Component = () => {
     const hasChildren = node.children.length > 0;
     const defaultExpanded = depth < 2;
     const isExpanded = expanded[node.id] ?? defaultExpanded;
+    let disclosureSymbol = '·';
+    if (hasChildren) disclosureSymbol = isExpanded ? '−' : '+';
     const isRoot = node.kind === 'root';
     const isFolder = node.kind === 'folder' || isRoot;
     return (
-      <li className={`referenceTreeItem referenceTreeItem-${node.kind}`} key={node.id} role="treeitem" aria-expanded={hasChildren ? isExpanded : undefined}>
+      <li className={`referenceTreeItem referenceTreeItem-${node.kind}`} key={node.id} role="treeitem" aria-selected={false} aria-expanded={hasChildren ? isExpanded : undefined}>
         <div className="referenceTreeNodeRow">
           <button
             type="button"
@@ -113,7 +115,7 @@ export const Component = () => {
             disabled={!hasChildren}
             onClick={() => toggle(node.id, defaultExpanded)}
           >
-            {hasChildren ? (isExpanded ? '−' : '+') : '·'}
+            {disclosureSymbol}
           </button>
           <button
             type="button"
@@ -201,8 +203,10 @@ export const Component = () => {
           className="referenceTreeContextMenu"
           style={{ left: contextMenu.x, top: contextMenu.y }}
           role="menu"
+          tabIndex={-1}
           aria-label={`Actions pour ${selectedResource.name}`}
           onClick={event => event.stopPropagation()}
+          onKeyDown={event => { if (event.key === 'Escape') setContextMenu(null); }}
         >
           <div className="referenceTreeContextHeading">{selectedResource.name}</div>
           <Divider />
