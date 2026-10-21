@@ -439,6 +439,7 @@ export const Component = () => {
                             {activity.cells.map(cell => (
                               <td
                                 key={cell.role}
+                                className={selectedRole === cell.role ? 'raci-role-column-selected' : undefined}
                                 title={`${STATUS_LABELS[cell.status]} — ${
                                   cell.codes.length
                                     ? cell.codes.join('/')
