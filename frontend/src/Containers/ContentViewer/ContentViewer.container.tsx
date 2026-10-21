@@ -14,19 +14,16 @@ import {
   Typography,
 } from '@mui/joy';
 import {
-  AccountTreeOutlined,
   ChevronLeft,
   Close,
   FolderOutlined,
   GroupsOutlined,
   Menu as MenuIcon,
-  TaskAltOutlined,
 } from '@mui/icons-material';
 import { useQuery } from 'react-query';
 
 import { FolderTree } from '../../Components/BusinessComponents/FolderTree';
 import { UserAccountMenu } from '../../Components/GenericComponents/UserAccountMenu/UserAccountMenu';
-import { ProcessHierarchyTree } from '../../Components/BusinessComponents/ProcessHierarchyTree/ProcessHierarchyTree';
 import { ProcessViewer } from '../../Components/BusinessComponents/ProcessViewer';
 import { Breadcrumbs } from '../../Components/GenericComponents/Breadcrumbs/Breadcrumbs';
 import { useBpmnLayoutBreadcrumbs } from '../BpmnLayout/hooks/useBpmnLayoutBreadcrumbs';
@@ -65,7 +62,6 @@ export const Component = () => {
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
   const [searchParams] = useSearchParams();
   const [folderOpen, setFolderOpen] = useState(false);
-  const [navigationSection, setNavigationSection] = useState<'resources' | 'processes' | 'activities'>('resources');
   const [infoTab, setInfoTab] = useState<0 | 1>(0);
   const [infoPanelOpen, setInfoPanelOpen] = useState(false);
   const [actorFilter, setActorFilter] = useState('');
@@ -77,6 +73,10 @@ export const Component = () => {
 
   useEffect(() => {
     setSelectedActivityId(searchParams.get('elementId'));
+    if (searchParams.get('raci') === '1') {
+      setInfoTab(1);
+      setInfoPanelOpen(true);
+    }
   }, [resourceId, contentId, searchParams]);
 
   const { data: contents = [] } = useQuery(contentsQuery(resourceId));
@@ -97,6 +97,31 @@ export const Component = () => {
         : { roles: [], activities: [] },
     [xmlContent],
   );
+
+  const { laneRoleByElement, laneIdByRole } = useMemo(() => {
+    const roleByElement = new Map<string, string>();
+    const idByRole = new Map<string, string>();
+    if (!xmlContent || typeof DOMParser === 'undefined') {
+      return { laneRoleByElement: roleByElement, laneIdByRole: idByRole };
+    }
+    const document = new DOMParser().parseFromString(xmlContent, 'application/xml');
+    Array.from(document.getElementsByTagNameNS('http://www.omg.org/spec/BPMN/20100524/MODEL', 'lane'))
+      .forEach(lane => {
+        const laneId = lane.getAttribute('id');
+        const role = lane.getAttribute('name')?.trim();
+        if (!laneId || !role) return;
+        roleByElement.set(laneId, role);
+        idByRole.set(role, laneId);
+        Array.from(lane.getElementsByTagNameNS('http://www.omg.org/spec/BPMN/20100524/MODEL', 'flowNodeRef'))
+          .forEach(reference => {
+            const elementId = reference.textContent?.trim();
+            if (elementId) roleByElement.set(elementId, role);
+          });
+      });
+    return { laneRoleByElement: roleByElement, laneIdByRole: idByRole };
+  }, [xmlContent]);
+
+  const selectedRole = selectedActivityId ? laneRoleByElement.get(selectedActivityId) ?? '' : '';
 
   const raciAnalysis = useMemo(
     () => analyzeRaciMatrix(raciMatrix),
@@ -168,88 +193,11 @@ export const Component = () => {
           <>
             <Divider />
             <Box className="viewerFolderTree">
-              <Stack spacing={0.5} className="viewerNavigationMenu">
-                <Button
-                  className={`viewerNavigationItem ${navigationSection === 'resources' ? 'active' : ''}`}
-                  size="sm"
-                  variant={navigationSection === 'resources' ? 'soft' : 'plain'}
-                  color={navigationSection === 'resources' ? 'primary' : 'neutral'}
-                  startDecorator={<FolderOutlined />}
-                  onClick={() => setNavigationSection('resources')}
-                  fullWidth
-                >
-                  Ressources
-                </Button>
-                <Button
-                  className={`viewerNavigationItem ${navigationSection === 'processes' ? 'active' : ''}`}
-                  size="sm"
-                  variant={navigationSection === 'processes' ? 'soft' : 'plain'}
-                  color={navigationSection === 'processes' ? 'primary' : 'neutral'}
-                  startDecorator={<AccountTreeOutlined />}
-                  onClick={() => setNavigationSection('processes')}
-                  fullWidth
-                >
-                  Processus
-                </Button>
-                <Button
-                  className={`viewerNavigationItem ${navigationSection === 'activities' ? 'active' : ''}`}
-                  size="sm"
-                  variant={navigationSection === 'activities' ? 'soft' : 'plain'}
-                  color={navigationSection === 'activities' ? 'primary' : 'neutral'}
-                  startDecorator={<TaskAltOutlined />}
-                  onClick={() => setNavigationSection('activities')}
-                  fullWidth
-                >
-                  Activités ({raciMatrix.activities.length})
-                </Button>
-                <Button
-                  className={`viewerNavigationItem viewerNavigationRaci ${infoTab === 1 ? 'active' : ''}`}
-                  size="sm"
-                  variant={infoTab === 1 ? 'soft' : 'plain'}
-                  color={infoTab === 1 ? 'primary' : 'neutral'}
-                  startDecorator={<GroupsOutlined />}
-                  onClick={() => { setInfoTab(1); setInfoPanelOpen(true); }}
-                  fullWidth
-                >
-                  RACI
-                </Button>
-              </Stack>
               <Divider sx={{ my: 1 }} />
-              {navigationSection === 'resources' && (
-                <FolderTree
-                  selectedId={resourceId}
-                  onNodeClick={id => navigate(`/${id}`)}
-                />
-              )}
-              {navigationSection === 'processes' && (
-                <ProcessHierarchyTree
-                  xmlContent={xmlContent ?? ''}
-                  selectedElementId={selectedActivityId}
-                  onElementClick={setSelectedActivityId}
-                />
-              )}
-              {navigationSection === 'activities' && (
-                <Stack spacing={0.5}>
-                  {raciMatrix.activities.length ? raciMatrix.activities.map(activity => (
-                    <Button
-                      key={activity.elementId}
-                      size="sm"
-                      variant={selectedActivityId === activity.elementId ? 'soft' : 'plain'}
-                      color={selectedActivityId === activity.elementId ? 'primary' : 'neutral'}
-                      startDecorator={<TaskAltOutlined />}
-                      onClick={() => setSelectedActivityId(activity.elementId)}
-                      title={activity.activity}
-                      fullWidth
-                    >
-                      <span className="viewerActivityLabel">{activity.activity}</span>
-                    </Button>
-                  )) : (
-                    <Typography level="body-sm" textColor="neutral">
-                      Aucune activité détectée.
-                    </Typography>
-                  )}
-                </Stack>
-              )}
+              <FolderTree
+                selectedId={resourceId}
+                onNodeClick={id => navigate(`/${id}`)}
+              />
             </Box>
           </>
         )}
@@ -422,6 +370,7 @@ export const Component = () => {
                         {raciMatrix.roles.map(role => (
                           <th
                             key={role}
+                            className={selectedRole === role ? 'raci-role-column-selected' : undefined}
                             style={{
                               padding: 8,
                               minWidth: 100,
@@ -431,7 +380,18 @@ export const Component = () => {
                                 'var(--joy-palette-background-surface, white)',
                             }}
                           >
-                            {role}
+                            <button
+                              type="button"
+                              className="raciRoleLink"
+                              aria-pressed={selectedRole === role}
+                              onClick={() => {
+                                const laneId = laneIdByRole.get(role);
+                                if (laneId) setSelectedActivityId(laneId);
+                              }}
+                              title={`Sélectionner la lane BPMN correspondant au rôle ${role}`}
+                            >
+                              {role}
+                            </button>
                           </th>
                         ))}
                         <th
