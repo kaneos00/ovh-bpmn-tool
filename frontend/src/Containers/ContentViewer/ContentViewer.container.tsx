@@ -61,7 +61,7 @@ export const Component = () => {
   const navigate = useNavigate();
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
   const [searchParams] = useSearchParams();
-  const [folderOpen, setFolderOpen] = useState(false);
+  const [folderOpen, setFolderOpen] = useState(true);
   const [infoTab, setInfoTab] = useState<0 | 1>(0);
   const [infoPanelOpen, setInfoPanelOpen] = useState(false);
   const [actorFilter, setActorFilter] = useState('');
