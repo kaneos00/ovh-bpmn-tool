@@ -355,3 +355,40 @@
   background: var(--joy-palette-neutral-softBg, #f1f5f9);
   border-color: var(--joy-palette-divider, #e2e8f0);
 }
+
+
+.raciRoleLink {
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.raciRoleLink:hover,
+.raciRoleLink:focus-visible {
+  color: var(--joy-palette-primary-700, #0b6bcb);
+  background: var(--joy-palette-primary-softBg, #eff6ff);
+  outline: none;
+}
+
+.raci-role-column-selected {
+  background: var(--joy-palette-primary-softBg, #eaf2ff) !important;
+  box-shadow: inset 2px 0 0 var(--joy-palette-primary-500, #2864d7),
+    inset -2px 0 0 var(--joy-palette-primary-500, #2864d7);
+}
+
+.viewerRaciTable thead .raci-role-column-selected {
+  box-shadow: inset 2px 0 0 var(--joy-palette-primary-500, #2864d7),
+    inset -2px 0 0 var(--joy-palette-primary-500, #2864d7),
+    inset 0 2px 0 var(--joy-palette-primary-500, #2864d7);
+}
+
+.viewerRaciTable tbody tr:last-child .raci-role-column-selected {
+  box-shadow: inset 2px 0 0 var(--joy-palette-primary-500, #2864d7),
+    inset -2px 0 0 var(--joy-palette-primary-500, #2864d7),
+    inset 0 -2px 0 var(--joy-palette-primary-500, #2864d7);
+}
