@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Button, Card, Stack, Typography } from '@mui/joy';
+import React, { useMemo, useState } from 'react';
+import { Box, Button, Card, Chip, Divider, Stack, Typography } from '@mui/joy';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 
+import { apiClient } from '../../queryClient';
 import { resourcesQuery } from '../../api/resources/resources.queries';
 import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
 import { ResourceType } from '../../shared/types/BpmnResource';
@@ -10,282 +11,206 @@ import type { Resource } from '../../Types';
 
 import './ReferenceTree.scss';
 
-type TreeNode = {
-  id: string;
-  name: string;
-  type: 'root' | 'folder' | 'process';
-  parentId: string | null;
-  depth: number;
+type TreeNode = Resource & {
+  kind: 'root' | 'folder' | 'process';
+  children: TreeNode[];
 };
 
-type Point = { x: number; y: number };
-type DragState = {
-  id: string;
-  startClientX: number;
-  startClientY: number;
-  startOffset: Point;
-};
+type Session = { role?: string };
 
-const ROOT_ID = 'root';
-const NODE_WIDTH = 180;
-const NODE_HEIGHT = 48;
-const LEVEL_HEIGHT = 125;
-const MIN_NODE_SPACING = 210;
+const ROOT_ID = 'reference-root';
 
 export const Component = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data: resources = [], isLoading, isError } = useQuery<Resource[]>(resourcesQuery());
-  const canvasRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<DragState | null>(null);
-  const movedDuringDragRef = useRef(false);
-  const [viewport, setViewport] = useState({ width: 900, height: 620 });
-  const [offsets, setOffsets] = useState<Record<string, Point>>({});
+  const { data: session } = useQuery<Session>(
+    ['auth-session'],
+    () => apiClient.get('/auth/session'),
+    { retry: false },
+  );
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [contextMenu, setContextMenu] = useState<{ id: string; x: number; y: number } | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const canManage = ['editor', 'admin'].includes((session?.role ?? '').toLowerCase());
 
-  useEffect(() => {
-    const element = canvasRef.current;
-    if (!element || typeof ResizeObserver === 'undefined') return undefined;
+  const cloneResource = useMutation(
+    (resourceId: string) => apiClient.post(`/resources/${resourceId}/clone`, {
+      name: `${resources.find(resource => resource.id === resourceId)?.name ?? 'Processus'} (copie)`,
+    }),
+    {
+      onSuccess: async (result: { id?: string; resource?: { id: string } }) => {
+        setActionError(null);
+        setContextMenu(null);
+        await queryClient.invalidateQueries(['resources']);
+        const clonedId = result.id ?? result.resource?.id;
+        if (clonedId) navigate(`/${clonedId}/edit`);
+      },
+      onError: (error: Error) => setActionError(error.message || 'La duplication a échoué.'),
+    },
+  );
 
-    const observer = new ResizeObserver(entries => {
-      const rect = entries[0]?.contentRect;
-      if (!rect || rect.width <= 0 || rect.height <= 0) return;
-      setViewport(current => (
-        Math.abs(current.width - rect.width) < 1 && Math.abs(current.height - rect.height) < 1
-          ? current
-          : { width: rect.width, height: rect.height }
-      ));
-    });
-
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
-
-  const nodes = useMemo<TreeNode[]>(() => {
-    const ids = new Set(resources.map(resource => resource.id));
-    const childrenByParent = new Map<string, Resource[]>();
-
+  const roots = useMemo<TreeNode[]>(() => {
+    const byId = new Map<string, TreeNode>();
     resources.forEach(resource => {
-      const parentId = resource.parentId && ids.has(resource.parentId)
-        ? resource.parentId
-        : ROOT_ID;
-      const children = childrenByParent.get(parentId) ?? [];
-      children.push(resource);
-      childrenByParent.set(parentId, children);
+      byId.set(resource.id, {
+        ...resource,
+        kind: resource.type === ResourceType.Folder ? 'folder' : 'process',
+        children: [],
+      });
     });
-
-    childrenByParent.forEach(children => children.sort((a, b) => {
-      if (a.type !== b.type) return a.type === ResourceType.Folder ? -1 : 1;
-      return a.name.localeCompare(b.name, 'fr');
-    }));
-
-    const result: TreeNode[] = [{
+    const topLevel: TreeNode[] = [];
+    resources.forEach(resource => {
+      const node = byId.get(resource.id);
+      if (!node) return;
+      const parent = resource.parentId ? byId.get(resource.parentId) : undefined;
+      if (parent && parent.id !== resource.id) parent.children.push(node);
+      else topLevel.push(node);
+    });
+    const sortNodes = (nodes: TreeNode[]) => {
+      nodes.sort((a, b) => {
+        if (a.kind !== b.kind) return a.kind === 'folder' ? -1 : 1;
+        return a.name.localeCompare(b.name, 'fr');
+      });
+      nodes.forEach(node => sortNodes(node.children));
+    };
+    sortNodes(topLevel);
+    return [{
       id: ROOT_ID,
       name: 'Référentiel',
-      type: 'root',
-      parentId: null,
+      description: 'Tous les processus et dossiers',
       depth: 0,
+      type: ResourceType.Folder,
+      kind: 'root',
+      children: topLevel,
     }];
-    const visited = new Set<string>();
-
-    const append = (resource: Resource, parentId: string, depth: number) => {
-      if (visited.has(resource.id)) return;
-      visited.add(resource.id);
-      result.push({
-        id: resource.id,
-        name: resource.name,
-        type: resource.type === ResourceType.Folder ? 'folder' : 'process',
-        parentId,
-        depth,
-      });
-      (childrenByParent.get(resource.id) ?? []).forEach(child => append(child, resource.id, depth + 1));
-    };
-
-    (childrenByParent.get(ROOT_ID) ?? []).forEach(resource => append(resource, ROOT_ID, 1));
-    // Keep orphaned resources visible rather than silently dropping them.
-    resources.forEach(resource => {
-      if (!visited.has(resource.id)) append(resource, ROOT_ID, 1);
-    });
-
-    return result;
   }, [resources]);
 
-  const maxDepth = Math.max(0, ...nodes.map(node => node.depth));
-  const maxNodesAtLevel = Math.max(1, ...Array.from(
-    { length: maxDepth + 1 },
-    (_, depth) => nodes.filter(node => node.depth === depth).length,
-  ));
-  const graphWidth = Math.max(viewport.width, maxNodesAtLevel * MIN_NODE_SPACING + NODE_WIDTH + 40);
-  const graphHeight = Math.max(viewport.height, (maxDepth + 1) * LEVEL_HEIGHT + 80);
-
-  const basePositions = useMemo<Record<string, Point>>(() => {
-    const positions: Record<string, Point> = {};
-    const byDepth = new Map<number, TreeNode[]>();
-    nodes.forEach(node => {
-      const level = byDepth.get(node.depth) ?? [];
-      level.push(node);
-      byDepth.set(node.depth, level);
-    });
-
-    byDepth.forEach((level, depth) => {
-      const margin = NODE_WIDTH / 2 + 12;
-      const availableWidth = Math.max(0, graphWidth - margin * 2);
-      level.forEach((node, index) => {
-        positions[node.id] = {
-          x: level.length === 1
-            ? graphWidth / 2
-            : margin + (availableWidth * index) / (level.length - 1),
-          y: 45 + depth * LEVEL_HEIGHT,
-        };
-      });
-    });
-
-    return positions;
-  }, [nodes, graphWidth]);
-
-  const getPosition = (id: string): Point => {
-    const base = basePositions[id] ?? { x: graphWidth / 2, y: 45 };
-    const offset = offsets[id] ?? { x: 0, y: 0 };
-    return { x: base.x + offset.x, y: base.y + offset.y };
+  const toggle = (id: string, defaultExpanded: boolean) => {
+    setExpanded(current => ({ ...current, [id]: !(current[id] ?? defaultExpanded) }));
   };
 
-  const handleNodeOpen = (node: TreeNode) => {
-    if (movedDuringDragRef.current) {
-      movedDuringDragRef.current = false;
-      return;
-    }
-    if (node.id !== ROOT_ID) navigate(`/${node.id}`);
+  const openNode = (node: TreeNode) => {
+    setContextMenu(null);
+    if (node.kind !== 'root') navigate(`/${node.id}`);
+    else navigate('/root');
   };
 
-  const handlePointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
-    const drag = dragRef.current;
-    if (!drag) return;
-
-    const deltaX = event.clientX - drag.startClientX;
-    const deltaY = event.clientY - drag.startClientY;
-    if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) movedDuringDragRef.current = true;
-
-    const svg = event.currentTarget;
-    const rect = svg.getBoundingClientRect();
-    const scaleX = rect.width > 0 ? graphWidth / rect.width : 1;
-    const scaleY = rect.height > 0 ? graphHeight / rect.height : 1;
-    setOffsets(current => ({
-      ...current,
-      [drag.id]: {
-        x: drag.startOffset.x + deltaX * scaleX,
-        y: drag.startOffset.y + deltaY * scaleY,
-      },
-    }));
+  const renderNode = (node: TreeNode, depth = 0): React.ReactNode => {
+    const hasChildren = node.children.length > 0;
+    const defaultExpanded = depth < 2;
+    const isExpanded = expanded[node.id] ?? defaultExpanded;
+    const isRoot = node.kind === 'root';
+    const isFolder = node.kind === 'folder' || isRoot;
+    return (
+      <li className={`referenceTreeItem referenceTreeItem-${node.kind}`} key={node.id} role="treeitem" aria-expanded={hasChildren ? isExpanded : undefined}>
+        <div className="referenceTreeNodeRow">
+          <button
+            type="button"
+            className={`referenceTreeDisclosure ${hasChildren ? '' : 'isLeaf'}`}
+            aria-label={isExpanded ? `Replier ${node.name}` : `Déplier ${node.name}`}
+            aria-expanded={hasChildren ? isExpanded : undefined}
+            disabled={!hasChildren}
+            onClick={() => toggle(node.id, defaultExpanded)}
+          >
+            {hasChildren ? (isExpanded ? '−' : '+') : '·'}
+          </button>
+          <button
+            type="button"
+            className={`referenceTreeNodeCard ${isFolder ? 'isFolder' : 'isProcess'}`}
+            onClick={() => openNode(node)}
+            onContextMenu={event => {
+              if (!canManage || isRoot) return;
+              event.preventDefault();
+              setContextMenu({ id: node.id, x: Math.min(event.clientX, window.innerWidth - 210), y: Math.min(event.clientY, window.innerHeight - 230) });
+            }}
+            title={node.description || node.name}
+          >
+            <span className="referenceTreeNodeIcon" aria-hidden="true">{isFolder ? '▰' : '◇'}</span>
+            <span className="referenceTreeNodeText">
+              <span className="referenceTreeNodeName">{node.name}</span>
+              {node.description && <span className="referenceTreeNodeDescription">{node.description}</span>}
+            </span>
+            <span className="referenceTreeNodeCount">{hasChildren ? node.children.length : null}</span>
+          </button>
+          {canManage && !isRoot && (
+            <button
+              type="button"
+              className="referenceTreeMore"
+              aria-label={`Actions pour ${node.name}`}
+              title="Actions"
+              onClick={event => {
+                const rect = event.currentTarget.getBoundingClientRect();
+                setContextMenu({ id: node.id, x: Math.min(rect.left, window.innerWidth - 210), y: Math.min(rect.bottom, window.innerHeight - 230) });
+              }}
+            >⋯</button>
+          )}
+        </div>
+        {hasChildren && isExpanded && (
+          <ul className="referenceTreeChildren" role="group">
+            {node.children.map(child => renderNode(child, depth + 1))}
+          </ul>
+        )}
+      </li>
+    );
   };
 
-  const handlePointerUp = () => {
-    dragRef.current = null;
-  };
+  const selectedResource = resources.find(resource => resource.id === contextMenu?.id);
 
   return (
-    <Box className="referenceTreePage">
+    <Box className="referenceTreePage" onClick={() => contextMenu && setContextMenu(null)}>
       <WorkspaceNavigation />
       <Box className="referenceTreeContent">
         <Stack direction="row" alignItems="center" justifyContent="space-between" gap={2} flexWrap="wrap">
           <Box>
             <Typography level="h2">Arborescence du référentiel</Typography>
             <Typography level="body-sm" textColor="neutral">
-              Cliquez sur un dossier ou un processus pour l’ouvrir. Faites glisser un nœud pour le repositionner.
+              Explorez les dossiers et processus. Utilisez les flèches pour développer ou replier chaque branche.
             </Typography>
           </Box>
-          <Button variant="outlined" onClick={() => navigate('/root')}>Retour au référentiel</Button>
+          <Stack direction="row" gap={1}>
+            <Button variant="outlined" color="neutral" onClick={() => setExpanded({})}>Replier les branches</Button>
+            <Button variant="outlined" onClick={() => navigate('/root')}>Retour au référentiel</Button>
+          </Stack>
         </Stack>
+        {actionError && <Typography color="danger" role="alert">{actionError}</Typography>}
         <Card variant="outlined" className="referenceTreeCard">
           {isLoading && <Typography>Chargement de l’arborescence…</Typography>}
           {!isLoading && isError && <Typography color="danger">Impossible de charger les ressources du référentiel.</Typography>}
-          {!isLoading && !isError && nodes.length > 1 && (
-            <Box ref={canvasRef} className="referenceTreeCanvas">
-              <svg
-                className="referenceTreeSvg"
-                width={graphWidth}
-                height={graphHeight}
-                viewBox={`0 0 ${graphWidth} ${graphHeight}`}
-                role="tree"
-                aria-label="Arborescence interactive du référentiel"
-                onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerUp}
-                onPointerCancel={handlePointerUp}
-              >
-                {nodes.filter(node => node.parentId).map(node => {
-                  const parent = getPosition(node.parentId as string);
-                  const child = getPosition(node.id);
-                  const middleY = (parent.y + child.y) / 2;
-                  return (
-                    <path
-                      key={`link-${node.id}`}
-                      className="referenceTreeLink"
-                      d={`M ${parent.x} ${parent.y + NODE_HEIGHT / 2} V ${middleY} H ${child.x} V ${child.y - NODE_HEIGHT / 2}`}
-                    />
-                  );
-                })}
-                {nodes.map(node => {
-                  const point = getPosition(node.id);
-                  let colors: { fill: string; stroke: string };
-                  if (node.type === 'folder') {
-                    colors = { fill: '#e5f4e8', stroke: '#72b58a' };
-                  } else if (node.type === 'process') {
-                    colors = { fill: '#e7efff', stroke: '#7da3e8' };
-                  } else {
-                    colors = { fill: '#f1f5f9', stroke: '#94a3b8' };
-                  }
-
-                  return (
-                    <g
-                      key={node.id}
-                      className={`referenceTreeNode referenceTreeNode-${node.type}`}
-                      transform={`translate(${point.x}, ${point.y})`}
-                      role="treeitem"
-                      tabIndex={0}
-                      aria-label={node.name}
-                      onPointerDown={event => {
-                        if (event.button !== 0) return;
-                        event.preventDefault();
-                        event.stopPropagation();
-                        movedDuringDragRef.current = false;
-                        dragRef.current = {
-                          id: node.id,
-                          startClientX: event.clientX,
-                          startClientY: event.clientY,
-                          startOffset: offsets[node.id] ?? { x: 0, y: 0 },
-                        };
-                        event.currentTarget.setPointerCapture(event.pointerId);
-                      }}
-                      onClick={() => handleNodeOpen(node)}
-                      onKeyDown={event => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          handleNodeOpen(node);
-                        }
-                      }}
-                    >
-                      <rect
-                        x={-NODE_WIDTH / 2}
-                        y={-NODE_HEIGHT / 2}
-                        width={NODE_WIDTH}
-                        height={NODE_HEIGHT}
-                        rx={9}
-                        fill={colors.fill}
-                        stroke={colors.stroke}
-                        strokeWidth={1.5}
-                      />
-                      <text textAnchor="middle" dy="4" fontSize="12" fill="#1e293b">
-                        {node.name.length > 23 ? `${node.name.slice(0, 20)}…` : node.name}
-                      </text>
-                      <title>{node.name}</title>
-                    </g>
-                  );
-                })}
-              </svg>
+          {!isLoading && !isError && (
+            <Box className="referenceTreeCanvas">
+              <Box className="referenceTreeLegend">
+                <Chip size="sm" variant="soft" color="success">Dossier</Chip>
+                <Chip size="sm" variant="soft" color="primary">Processus BPMN</Chip>
+                <Typography level="body-xs" textColor="neutral">{resources.length} ressource(s)</Typography>
+              </Box>
+              {resources.length === 0 ? (
+                <Typography>Aucune ressource à afficher.</Typography>
+              ) : (
+                <ul className="referenceTreeRoot" role="tree" aria-label="Arborescence du référentiel">
+                  {roots.map(node => renderNode(node))}
+                </ul>
+              )}
             </Box>
-          )}
-          {!isLoading && !isError && nodes.length <= 1 && (
-            <Typography>Aucune ressource à afficher.</Typography>
           )}
         </Card>
       </Box>
+      {contextMenu && canManage && selectedResource && (
+        <div
+          className="referenceTreeContextMenu"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          role="menu"
+          aria-label={`Actions pour ${selectedResource.name}`}
+          onClick={event => event.stopPropagation()}
+        >
+          <div className="referenceTreeContextHeading">{selectedResource.name}</div>
+          <Divider />
+          <button role="menuitem" onClick={() => { setContextMenu(null); navigate(`/${selectedResource.id}/edit`); }}>Modifier</button>
+          <button role="menuitem" onClick={() => { setContextMenu(null); cloneResource.mutate(selectedResource.id); }} disabled={cloneResource.isLoading}>Dupliquer</button>
+          <button role="menuitem" onClick={() => { setContextMenu(null); navigate(`/${selectedResource.id}/share`); }}>Partager</button>
+          <button role="menuitem" className="isDanger" onClick={() => { setContextMenu(null); navigate(`/${selectedResource.id}/delete`); }}>Supprimer</button>
+        </div>
+      )}
     </Box>
   );
 };
