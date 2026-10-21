@@ -174,7 +174,7 @@ export const Component = () => {
           {folderOpen && (
             <Stack direction="row" spacing={1} alignItems="center">
               <FolderOutlined fontSize="small" />
-              <Typography level="title-md">Navigation</Typography>
+              <Typography level="title-md">Explorateur</Typography>
             </Stack>
           )}
           <IconButton
