@@ -252,8 +252,7 @@ export const WorkspaceNavigation = () => {
 
           if (scope === 'all' || scope === 'roles' || scope === 'raci') {
             const matrix = deriveRaciMatrixFromXml(xml);
-            {
-              matrix.roles
+            matrix.roles
                 .filter(role => matchesTerm(role, term))
                 .forEach(role => {
                   const lane = bpmnElements.find(element =>
@@ -269,7 +268,6 @@ export const WorkspaceNavigation = () => {
                     openRaci: true,
                   });
                 });
-            }
 
             matrix.activities.forEach(activity => {
               activity.cells.forEach(cell => {
