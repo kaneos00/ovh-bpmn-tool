@@ -78,7 +78,8 @@ export const Component = () => {
       <Sheet
         className="folderTree"
         sx={{
-          position: 'sticky',
+          minWidth: 0,
+          minHeight: 0,
           borderRight: '1px solid',
           borderColor: 'divider',
         }}
