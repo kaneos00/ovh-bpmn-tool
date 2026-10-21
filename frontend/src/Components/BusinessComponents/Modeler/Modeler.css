@@ -166,3 +166,16 @@
   pointer-events: none;
   user-select: none;
 }
+
+/* Dedicated content area inside the Viewer central panel.
+   It owns the remaining height below the existing diagram toolbar. */
+.processViewerDiagramContent {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
