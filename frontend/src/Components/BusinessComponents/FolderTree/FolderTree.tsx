@@ -232,7 +232,14 @@ export const FolderTree = ({ selectedId, onNodeClick, processXml, selectedElemen
                 return (
                   <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, width: '100%', minWidth: 0 }}>
                     {node?.type === 'folder' ? <FolderOutlined fontSize="small" /> : <DescriptionOutlined fontSize="small" />}
-                    <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</Box>
+                    <Box component="span" sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', py: 0.25 }}>
+                      <Box component="span" sx={{ width: '100%', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: nodeId === selectedId ? 700 : 500, lineHeight: 1.35 }}>{title}</Box>
+                      {node?.type !== 'folder' && node?.description?.trim() && (
+                        <Typography component="span" level="body-xs" sx={{ display: '-webkit-box', width: '100%', minWidth: 0, color: 'text.tertiary', lineHeight: 1.35, whiteSpace: 'normal', overflow: 'hidden', overflowWrap: 'anywhere', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                          {node.description.trim()}
+                        </Typography>
+                      )}
+                    </Box>
                     {node && nodeId !== 'root' && (
                       <IconButton
                         size="sm"

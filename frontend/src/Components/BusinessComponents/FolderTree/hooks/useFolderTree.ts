@@ -126,6 +126,7 @@ export const useFolderTree = (
       return {
         id: treeId,
         name: item.name,
+        description: item.description,
         type: nodeType,
         targetId,
         children,
