@@ -142,6 +142,7 @@ export const Component = () => {
               aria-label={`Actions pour ${node.name}`}
               title="Actions"
               onClick={event => {
+                event.stopPropagation();
                 const rect = event.currentTarget.getBoundingClientRect();
                 setContextMenu({ id: node.id, x: Math.min(rect.left, window.innerWidth - 210), y: Math.min(rect.bottom, window.innerHeight - 230) });
               }}
