@@ -253,21 +253,21 @@ export const WorkspaceNavigation = () => {
           if (scope === 'all' || scope === 'roles' || scope === 'raci') {
             const matrix = deriveRaciMatrixFromXml(xml);
             matrix.roles
-                .filter(role => matchesTerm(role, term))
-                .forEach(role => {
-                  const lane = bpmnElements.find(element =>
-                    element.localName === 'lane' &&
-                    (element.getAttribute('name') || '').trim() === role,
-                  );
-                  found.push({
-                    key: `${process.id}:role:${role}`,
-                    title: role,
-                    detail: `Rôle · ${process.name}`,
-                    resourceId: process.id,
-                    elementId: lane?.getAttribute('id') || undefined,
-                    openRaci: true,
-                  });
+              .filter(role => matchesTerm(role, term))
+              .forEach(role => {
+                const lane = bpmnElements.find(element =>
+                  element.localName === 'lane' &&
+                  (element.getAttribute('name') || '').trim() === role,
+                );
+                found.push({
+                  key: `${process.id}:role:${role}`,
+                  title: role,
+                  detail: `Rôle · ${process.name}`,
+                  resourceId: process.id,
+                  elementId: lane?.getAttribute('id') || undefined,
+                  openRaci: true,
                 });
+              });
 
             matrix.activities.forEach(activity => {
               activity.cells.forEach(cell => {
