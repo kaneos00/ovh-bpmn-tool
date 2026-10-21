@@ -193,7 +193,6 @@ export const Component = () => {
           <>
             <Divider />
             <Box className="viewerFolderTree">
-              <Divider sx={{ my: 1 }} />
               <FolderTree
                 selectedId={resourceId}
                 onNodeClick={id => navigate(`/${id}`)}
