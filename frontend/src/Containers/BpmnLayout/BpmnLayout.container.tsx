@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Await, Outlet, useParams, useSearchParams } from 'react-router-dom';
 import { Box, Button, Divider, IconButton, Sheet, Stack, Typography } from '@mui/joy';
 import { AccountTreeOutlined, ChevronLeft, ChevronRight, FolderOutlined } from '@mui/icons-material';
-import { useQuery } from 'react-query';
 
 import { ResourceExplorer } from '../../Components/BusinessComponents/ResourceExplorer';
 import { ProcessDetails } from '../../Components/BusinessComponents/ProcessDetails';
@@ -19,8 +18,6 @@ import {
   FolderActions,
 } from './components';
 import { isFolder, isRoot } from '../../shared/helpers/resource';
-import { getXmlContentQuery } from '../../api/contents/contents.queries';
-import { ContentStatusEnum } from '../../Types';
 
 import type { BpmnLayoutRouteParams } from '.';
 import { ResourceType } from '../../shared/types/BpmnResource';
@@ -38,17 +35,6 @@ export const Component = () => {
   }, [resourceId, requestedElementId]);
 
   const { resource, contents, navigationFns, callbacks } = useBpmnLayout();
-  const publishedContent = useMemo(
-    () =>
-      contents
-        .filter(({ status }) => status === ContentStatusEnum.Published)
-        .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0],
-    [contents],
-  );
-  const xmlQuery = getXmlContentQuery(resourceId, publishedContent?.id ?? '');
-  const { data: processXml } = useQuery(xmlQuery.queryKey, xmlQuery.queryFn, {
-    enabled: Boolean(publishedContent?.id && resource?.type === ResourceType.Process),
-  });
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
 
   const actions = useMemo(() => {
