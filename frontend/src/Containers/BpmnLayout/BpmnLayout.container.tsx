@@ -126,9 +126,6 @@ export const Component = () => {
               <FolderTree
                 selectedId={resourceId}
                 onNodeClick={callbacks.folderTree.onFolderTreeItemClick}
-                processXml={resource?.type === ResourceType.Process ? processXml : undefined}
-                selectedElementId={selectedElementId}
-                onElementClick={setSelectedElementId}
               />
             </Box>
           </Box>
