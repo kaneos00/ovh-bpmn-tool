@@ -262,7 +262,7 @@ export const WorkspaceNavigation = () => {
                   found.push({
                     key: `${process.id}:role:${role}`,
                     title: role,
-                    detail: `Rôle · ${process.name} · RACI`,
+                    detail: `Rôle · ${process.name}`,
                     resourceId: process.id,
                     elementId: lane?.getAttribute('id') || undefined,
                     openRaci: true,
