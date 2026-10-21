@@ -32,7 +32,7 @@ export const Component = () => {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [contextMenu, setContextMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const canManage = ['editor', 'admin'].includes((session?.role ?? '').toLowerCase());
+  const canManage = ['editor', 'modeler', 'admin'].includes((session?.role ?? '').toLowerCase());
 
   const cloneResource = useMutation(
     (resourceId: string) => apiClient.post(`/resources/${resourceId}/clone`, {
