@@ -30,11 +30,6 @@ const destinations = [
     matches: (path: string) => path === '/root' || /^\/[0-9a-f-]+(?:\/|$)/i.test(path),
   },
   {
-    label: 'Arborescence',
-    path: '/reference/tree',
-    matches: (path: string) => path === '/reference/tree',
-  },
-  {
     label: 'Projets',
     path: '/projects',
     matches: (path: string) => path.startsWith('/projects') || path === '/workspace',
