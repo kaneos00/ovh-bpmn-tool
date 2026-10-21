@@ -169,7 +169,8 @@ export const Component = () => {
             </Typography>
           </Box>
           <Stack direction="row" gap={1}>
-            <Button variant="outlined" color="neutral" onClick={() => setExpanded({})}>Replier les branches</Button>
+            <Button variant="outlined" color="neutral" onClick={() => setExpanded(Object.fromEntries([ROOT_ID, ...resources.map(resource => resource.id)].map(id => [id, false])))}>Replier les branches</Button>
+            <Button variant="outlined" color="neutral" onClick={() => setExpanded(Object.fromEntries([ROOT_ID, ...resources.map(resource => resource.id)].map(id => [id, true])))}>Développer tout</Button>
             <Button variant="outlined" onClick={() => navigate('/root')}>Retour au référentiel</Button>
           </Stack>
         </Stack>
