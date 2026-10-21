@@ -223,11 +223,14 @@ export const Component = () => {
                 })}
                 {nodes.map(node => {
                   const point = getPosition(node.id);
-                  const colors = node.type === 'folder'
-                    ? { fill: '#e5f4e8', stroke: '#72b58a' }
-                    : node.type === 'process'
-                      ? { fill: '#e7efff', stroke: '#7da3e8' }
-                      : { fill: '#f1f5f9', stroke: '#94a3b8' };
+                  let colors: { fill: string; stroke: string };
+                  if (node.type === 'folder') {
+                    colors = { fill: '#e5f4e8', stroke: '#72b58a' };
+                  } else if (node.type === 'process') {
+                    colors = { fill: '#e7efff', stroke: '#7da3e8' };
+                  } else {
+                    colors = { fill: '#f1f5f9', stroke: '#94a3b8' };
+                  }
 
                   return (
                     <g
