@@ -214,13 +214,15 @@ export const useProcessViewer = (
     const onElementClick = (event: any) => {
       const element = event?.element;
       if (!element?.id || typeof element.type !== 'string') return;
-      const isSelectableActivity =
+      const isSelectableElement =
+        element.type === 'bpmn:Lane' ||
+        element.type === 'bpmn:Participant' ||
         element.type === 'bpmn:Task' ||
         element.type.endsWith('Task') ||
         element.type === 'bpmn:CallActivity' ||
         element.type === 'bpmn:SubProcess' ||
         element.type === 'bpmn:Transaction';
-      if (isSelectableActivity) onElementSelectRef.current?.(element.id);
+      if (isSelectableElement) onElementSelectRef.current?.(element.id);
     };
 
     viewer.importXML(xmlContent)
