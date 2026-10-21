@@ -1,3 +1,4 @@
+.processViewerWorkspace,
 .viewerLayout {
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr) 0;
@@ -23,6 +24,7 @@
   grid-template-columns: 285px minmax(0, 1fr) 285px;
 }
 
+.processTaskPanel,
 .viewerFolderPanel {
   min-width: 0;
   height: 100%;
@@ -119,6 +121,7 @@
   width: 100%;
 }
 
+.processViewerDiagram,
 .viewerDiagram {
   display: flex;
   flex-direction: column;
