@@ -18,6 +18,7 @@ type SearchResult = {
   detail: string;
   resourceId: string;
   elementId?: string;
+  openRaci?: boolean;
 };
 
 const BPMN_MODEL_NS = 'http://www.omg.org/spec/BPMN/20100524/MODEL';
@@ -254,12 +255,20 @@ export const WorkspaceNavigation = () => {
             if (scope !== 'raci') {
               matrix.roles
                 .filter(role => matchesTerm(role, term))
-                .forEach(role => found.push({
-                  key: `${process.id}:role:${role}`,
-                  title: role,
-                  detail: `Rôle · ${process.name}`,
-                  resourceId: process.id,
-                }));
+                .forEach(role => {
+                  const lane = bpmnElements.find(element =>
+                    element.localName === 'lane' &&
+                    (element.getAttribute('name') || '').trim() === role,
+                  );
+                  found.push({
+                    key: `${process.id}:role:${role}`,
+                    title: role,
+                    detail: `Rôle · ${process.name} · RACI`,
+                    resourceId: process.id,
+                    elementId: lane?.getAttribute('id') || undefined,
+                    openRaci: true,
+                  });
+                });
             }
 
             matrix.activities.forEach(activity => {
@@ -278,6 +287,7 @@ export const WorkspaceNavigation = () => {
                     detail: `RACI · ${process.name} · ${activity.activity} — ${cell.role} (${cell.codes.join('/')})`,
                     resourceId: process.id,
                     elementId: activity.elementId,
+                    openRaci: true,
                   });
                 }
               });
@@ -348,9 +358,11 @@ export const WorkspaceNavigation = () => {
   const openResult = (result: SearchResult) => {
     setSearchOpen(false);
     setSearch('');
-    navigate(result.elementId
-      ? `/${result.resourceId}?elementId=${encodeURIComponent(result.elementId)}`
-      : `/${result.resourceId}`);
+    const params = new URLSearchParams();
+    if (result.elementId) params.set('elementId', result.elementId);
+    if (result.openRaci) params.set('raci', '1');
+    const query = params.toString();
+    navigate(query ? `/${result.resourceId}?${query}` : `/${result.resourceId}`);
   };
 
   const isLoading = resources.isLoading || deepSearchLoading;
