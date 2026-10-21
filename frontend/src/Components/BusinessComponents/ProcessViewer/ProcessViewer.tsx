@@ -61,15 +61,17 @@ export const ProcessViewer = ({
           {toolbarExtra}
         </Stack>
       </Stack>
-      {importError && (
-        <Alert color="danger" variant="soft" sx={{ m: 1 }}>
-          {importError}
-        </Alert>
-      )}
-      <Box
-        className={`process-viewer-canvas ${minimapVisible ? 'has-minimap' : 'minimap-not-needed'}`}
-        ref={viewerRef}
-      />
+      <Box className="processViewerDiagramContent">
+        {importError && (
+          <Alert color="danger" variant="soft" sx={{ m: 1 }}>
+            {importError}
+          </Alert>
+        )}
+        <Box
+          className={`process-viewer-canvas ${minimapVisible ? 'has-minimap' : 'minimap-not-needed'}`}
+          ref={viewerRef}
+        />
+      </Box>
     </Box>
   );
 };
