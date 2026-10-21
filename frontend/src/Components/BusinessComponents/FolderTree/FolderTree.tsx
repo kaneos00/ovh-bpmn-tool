@@ -166,10 +166,6 @@ export const FolderTree = ({ selectedId, onNodeClick, processXml, selectedElemen
         minWidth: 0,
       }}
     >
-      <ListSubheader role="presentation" sx={{ color: 'text.primary', fontWeight: 750, px: 1 }}>
-        Explorateur
-      </ListSubheader>
-
       <Input
         size="sm"
         value={search}
