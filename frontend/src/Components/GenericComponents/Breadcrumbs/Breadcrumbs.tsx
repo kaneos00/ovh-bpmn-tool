@@ -3,7 +3,6 @@ import { ChevronRight, Home } from '@mui/icons-material';
 import {
   Breadcrumbs as MUIBreadcrumbs,
   Link,
-  IconButton,
   Typography,
   Skeleton,
 } from '@mui/joy';
