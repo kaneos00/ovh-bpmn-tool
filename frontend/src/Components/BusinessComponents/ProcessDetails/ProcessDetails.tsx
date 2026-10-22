@@ -92,6 +92,46 @@ export const ProcessDetails = ({
   const [explorerCollapsed, setExplorerCollapsed] = useState(false);
   const [taskPanelCollapsed, setTaskPanelCollapsed] = useState(false);
   const [taskPanelSection, setTaskPanelSection] = useState<'details' | 'documentation' | 'raci'>('details');
+  const [panelPreferenceKey, setPanelPreferenceKey] = useState<string | null>(null);
+
+  // Panel preferences are stored separately for each authenticated user.
+  useEffect(() => {
+    let active = true;
+    const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\\/+$/, '');
+    fetch(`${apiBase}/auth/session`, {
+      credentials: 'same-origin',
+      headers: { accept: 'application/json' },
+    })
+      .then(async response => response.ok ? response.json() as Promise<{ userId?: string }> : null)
+      .then(session => {
+        if (!active || !session?.userId) return;
+        const key = `bpmn-process-viewer-panels:${session.userId}`;
+        try {
+          const saved = localStorage.getItem(key);
+          if (saved) {
+            const preferences = JSON.parse(saved) as { explorerCollapsed?: boolean; taskPanelCollapsed?: boolean };
+            if (typeof preferences.explorerCollapsed === 'boolean') setExplorerCollapsed(preferences.explorerCollapsed);
+            if (typeof preferences.taskPanelCollapsed === 'boolean') setTaskPanelCollapsed(preferences.taskPanelCollapsed);
+          }
+        } catch {
+          // Ignore unavailable storage or invalid preferences and keep defaults.
+        }
+        setPanelPreferenceKey(key);
+      })
+      .catch(() => {
+        // Keep default panel states when the session endpoint is unavailable.
+      });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!panelPreferenceKey) return;
+    try {
+      localStorage.setItem(panelPreferenceKey, JSON.stringify({ explorerCollapsed, taskPanelCollapsed }));
+    } catch {
+      // The viewer remains usable if browser storage is unavailable.
+    }
+  }, [panelPreferenceKey, explorerCollapsed, taskPanelCollapsed]);
 
   useEffect(() => {
     const onHistoryShortcut = (event: KeyboardEvent) => {
@@ -169,7 +209,16 @@ export const ProcessDetails = ({
               {!explorerCollapsed && (
                 <Stack direction="row" spacing={1} alignItems="center">
                   <FolderOutlined fontSize="small" />
-                  <Typography level="title-sm">Explorateur</Typography>
+                  <Typography
+                    level="title-sm"
+                    role="button"
+                    tabIndex={0}
+                    sx={{ cursor: 'pointer', userSelect: 'none' }}
+                    onClick={() => setExplorerCollapsed(true)}
+                    onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') setExplorerCollapsed(true); }}
+                  >
+                    Explorateur
+                  </Typography>
                 </Stack>
               )}
               <IconButton
@@ -192,32 +241,35 @@ export const ProcessDetails = ({
               </Box>
             )}
             <Stack
-              direction={explorerCollapsed ? 'column' : 'row'}
-              spacing={0.5}
+              direction="column"
+              spacing={0.75}
               className="processExplorerHistory"
-              alignItems="center"
-              justifyContent="center"
+              alignItems="stretch"
             >
-              <IconButton
+              <Button
                 size="sm"
                 variant="outlined"
                 color="neutral"
+                fullWidth
+                startDecorator={<ArrowBack />}
                 title="Retour (Ctrl+Z)"
                 aria-label="Retour (Ctrl+Z)"
                 onClick={() => navigate(-1)}
               >
-                <ArrowBack />
-              </IconButton>
-              <IconButton
+                {!explorerCollapsed && 'Retour'}
+              </Button>
+              <Button
                 size="sm"
                 variant="outlined"
                 color="neutral"
+                fullWidth
+                startDecorator={<ArrowForward />}
                 title="Suivant"
                 aria-label="Suivant"
                 onClick={() => navigate(1)}
               >
-                <ArrowForward />
-              </IconButton>
+                {!explorerCollapsed && 'Suivant'}
+              </Button>
             </Stack>
           </Sheet>
           <Sheet className="processViewerDiagram" variant="outlined">
@@ -279,7 +331,16 @@ export const ProcessDetails = ({
                 className="processTaskPanelHeader"
               >
                 {!taskPanelCollapsed && (
-                  <Typography level="title-sm">Fiche de la tâche</Typography>
+                  <Typography
+                    level="title-sm"
+                    role="button"
+                    tabIndex={0}
+                    sx={{ cursor: 'pointer', userSelect: 'none' }}
+                    onClick={() => setTaskPanelCollapsed(true)}
+                    onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') setTaskPanelCollapsed(true); }}
+                  >
+                    Fiche de la tâche
+                  </Typography>
                 )}
                 <IconButton
                   size="sm"
