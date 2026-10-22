@@ -75,29 +75,6 @@ export const useProcessViewer = (
     alignDiagramTopLeft();
   };
 
-  const setMinimapForDiagram = () => {
-    // The minimap service can be ready before the BPMN registry reports usable
-    // bounds. Do not gate visibility on those bounds: doing so left the minimap
-    // hidden until the first user interaction changed the canvas viewbox.
-    if (!viewerRef.current || !importedRef.current) return;
-
-    try {
-      const minimap = viewer.get('minimap') as any;
-      minimap.open();
-      setMinimapVisible(true);
-    } catch {
-      // Retry after the browser has laid out the imported canvas.
-      requestAnimationFrame(() => {
-        if (!importedRef.current || !viewerRef.current) return;
-        try {
-          (viewer.get('minimap') as any).open();
-          setMinimapVisible(true);
-        } catch {
-          setMinimapVisible(false);
-        }
-      });
-    }
-  };
 
   const zoomIn = () => {
     if (!importedRef.current) return;
@@ -105,7 +82,6 @@ export const useProcessViewer = (
     const container = canvas.getContainer();
     const rect = container.getBoundingClientRect();
     canvas.zoom(canvas.zoom() * ZOOM_STEP, { x: rect.width / 2, y: rect.height / 2 });
-    setMinimapForDiagram();
   };
 
   const zoomOut = () => {
@@ -197,7 +173,7 @@ export const useProcessViewer = (
         clickListenerAttached = true;
         fitDiagramToWidth();
         importedRef.current = true;
-        setMinimapForDiagram();
+        // Keep the minimap closed on import; users can open it manually from the viewer controls.
         applySelectionRef.current();
       })
       .catch((error: unknown) => {
@@ -222,25 +198,6 @@ export const useProcessViewer = (
     applySelectionRef.current();
   }, [selectedElementId]);
 
-  useEffect(() => {
-    const eventBus = viewer.get('eventBus') as {
-      on: (event: string, listener: () => void) => void;
-      off: (event: string, listener: () => void) => void;
-    };
-    let frame = 0;
-    const refreshMinimap = () => {
-      if (frame) cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        frame = 0;
-        if (importedRef.current) setMinimapForDiagram();
-      });
-    };
-    eventBus.on('canvas.viewbox.changed', refreshMinimap);
-    return () => {
-      eventBus.off('canvas.viewbox.changed', refreshMinimap);
-      if (frame) cancelAnimationFrame(frame);
-    };
-  }, [viewer, xmlContent, resourceId, contentId]);
 
   useEffect(() => () => {
     try {
