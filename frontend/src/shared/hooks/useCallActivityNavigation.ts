@@ -33,9 +33,8 @@ type BpmnInstance = {
 };
 
 /**
- * In the viewer, linked Call Activities are navigable on a single click and
- * receive a visible blue arrow indicator. In the modeler, keep double-click
- * navigation so a single click remains available for selecting/editing.
+ * Linked Call Activities open their target process on double-click. A single
+ * click remains available to select the activity and show its details.
  */
 export const useCallActivityNavigation = (
   bpmnInstance: BpmnInstance,
@@ -126,7 +125,6 @@ export const useCallActivityNavigation = (
     eventBus.on('element.dblclick', 1500, navigateToCalledProcess);
 
     if (enableSingleClick) {
-      eventBus.on('element.click', 1500, navigateToCalledProcess);
       eventBus.on('import.done', 1000, decorateCallActivities);
       // Some viewer instances are already imported when the hook is mounted.
       decorateCallActivities();
@@ -135,7 +133,6 @@ export const useCallActivityNavigation = (
     return () => {
       eventBus.off('element.dblclick', navigateToCalledProcess);
       if (enableSingleClick) {
-        eventBus.off('element.click', navigateToCalledProcess);
         eventBus.off('import.done', decorateCallActivities);
         removeIndicators();
       }
