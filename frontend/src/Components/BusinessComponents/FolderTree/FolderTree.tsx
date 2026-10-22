@@ -233,7 +233,20 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                 const node = nodeById.get(nodeId);
                 const isFavorite = favorites.includes(nodeId);
                 return (
-                  <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, width: '100%', minWidth: 0 }}>
+                  <Box
+                    component="span"
+                    onClick={event => {
+                      if (node?.type !== 'folder') return;
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setExpandedNodes(current =>
+                        current.includes(nodeId)
+                          ? current.filter(id => id !== nodeId)
+                          : [...current, nodeId],
+                      );
+                    }}
+                    sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, width: '100%', minWidth: 0 }}
+                  >
                     {node?.type === 'folder' ? <FolderOutlined fontSize="small" /> : <DescriptionOutlined fontSize="small" />}
                     <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</Box>
                     {node && nodeId !== 'root' && (
