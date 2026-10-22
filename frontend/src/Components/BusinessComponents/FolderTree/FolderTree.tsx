@@ -152,7 +152,19 @@ export const FolderTree = ({ selectedId, onNodeClick, processXml, selectedElemen
     const selected = items.length ? String(items[0]) : '';
     if (!selected || selected === 'root') return;
     const node = nodeById.get(selected);
-    onNodeClick(node?.targetId ?? selected);
+    if (!node) return;
+
+    // Folder labels expand/collapse in place; only process rows navigate.
+    if (node.type === 'folder') {
+      setExpandedNodes(current =>
+        current.includes(selected)
+          ? current.filter(id => id !== selected)
+          : [...current, selected],
+      );
+      return;
+    }
+
+    onNodeClick(node.targetId ?? selected);
   };
 
   return (
