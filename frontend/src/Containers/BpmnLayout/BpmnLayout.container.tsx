@@ -59,8 +59,9 @@ export const Component = () => {
 
   return (
     <div
-      className={`mainContainer ${folderOpen ? 'folderOpen' : 'folderCollapsed'}`}
+      className={`mainContainer ${folderOpen ? 'folderOpen' : 'folderCollapsed'} ${resource && !isFolder(resource) ? 'processViewerActive' : ''}`}
     >
+      {resource && isFolder(resource) && (
       <Sheet
         className="folderTree"
         sx={{
@@ -117,6 +118,7 @@ export const Component = () => {
           </Box>
         )}
       </Sheet>
+      )}
 
       <Sheet className="innerContent">
         <React.Suspense fallback={<BpmnContentLoading />}>
@@ -132,17 +134,19 @@ export const Component = () => {
                   actions={
                     <Stack direction="row" spacing={1} alignItems="center">
                       {actions}
-                      <Button
-                        size="sm"
-                        variant={folderOpen ? 'soft' : 'outlined'}
-                        color="neutral"
-                        startDecorator={<AccountTreeOutlined />}
-                        onClick={() => setFolderOpen(value => !value)}
-                        aria-expanded={folderOpen}
-                        aria-label={folderOpen ? 'Masquer l’arborescence' : 'Ouvrir l’arborescence'}
-                      >
-                        {folderOpen ? 'Masquer l’arborescence' : 'Arborescence'}
-                      </Button>
+                      {isFolder(resource) && (
+                        <Button
+                          size="sm"
+                          variant={folderOpen ? 'soft' : 'outlined'}
+                          color="neutral"
+                          startDecorator={<AccountTreeOutlined />}
+                          onClick={() => setFolderOpen(value => !value)}
+                          aria-expanded={folderOpen}
+                          aria-label={folderOpen ? 'Masquer l’arborescence' : 'Ouvrir l’arborescence'}
+                        >
+                          {folderOpen ? 'Masquer l’arborescence' : 'Arborescence'}
+                        </Button>
+                      )}
                     </Stack>
                   }
                 />

@@ -121,19 +121,9 @@ export const useProcessViewer = (
       return;
     }
 
-    const available = container.getBoundingClientRect();
-    const scale = (viewer.get('canvas') as any).zoom();
-    const needsMinimap =
-      bounds.width * scale > Math.max(0, available.width - DIAGRAM_PADDING * 2) ||
-      bounds.height * scale > Math.max(0, available.height - DIAGRAM_PADDING * 2);
-
     const minimap = viewer.get('minimap') as any;
-    if (needsMinimap) {
-      minimap.open();
-    } else {
-      minimap.close();
-    }
-    setMinimapVisible(needsMinimap);
+    minimap.open();
+    setMinimapVisible(true);
   };
 
   const zoomIn = () => {

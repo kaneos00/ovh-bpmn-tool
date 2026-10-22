@@ -44,6 +44,14 @@
     }
   }
 
+  &.processViewerActive {
+    grid-template-columns: minmax(0, 1fr);
+
+    .innerContent {
+      grid-column: 1;
+    }
+  }
+
   .innerContent {
     grid-column: 2;
     min-width: 0;

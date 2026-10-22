@@ -1,5 +1,5 @@
 import React, { FC } from 'react';
-import { ArrowBack, ChevronRight, Home } from '@mui/icons-material';
+import { ChevronRight, Home } from '@mui/icons-material';
 import {
   Breadcrumbs as MUIBreadcrumbs,
   Link,
@@ -8,7 +8,7 @@ import {
   Skeleton,
 } from '@mui/joy';
 import Box from '@mui/joy/Box';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 
 export type BreadcrumbItem = {
   id: string;
@@ -25,27 +25,12 @@ export const Breadcrumbs: FC<BreadcrumbsProps> = ({
   isLoading,
   breadcrumbItems,
 }) => {
-  const navigate = useNavigate();
-
   return (
     <Box sx={{ display: 'flex', alignItems: 'center' }}>
       {isLoading ? (
         <Skeleton variant="text" width={500} height={24} />
       ) : (
         <>
-          {breadcrumbItems.length > 0 && (
-            <IconButton
-              size="sm"
-              variant="plain"
-              color="neutral"
-              aria-label="Revenir à la page précédente"
-              title="Revenir à la page précédente"
-              onClick={() => navigate(-1)}
-              sx={{ mr: 0.5, flexShrink: 0 }}
-            >
-              <ArrowBack fontSize="small" />
-            </IconButton>
-          )}
           <MUIBreadcrumbs
             size="sm"
             aria-label="breadcrumbs"

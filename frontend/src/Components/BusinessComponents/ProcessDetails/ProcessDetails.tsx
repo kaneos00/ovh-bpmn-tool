@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -14,7 +14,7 @@ import {
   Tabs,
   Typography,
 } from '@mui/joy';
-import { Compare, FileCopy, ChevronLeft, ChevronRight, DescriptionOutlined, FolderOutlined, GroupsOutlined, InfoOutlined } from '@mui/icons-material';
+import { ArrowBack, ArrowForward, Compare, FileCopy, ChevronLeft, ChevronRight, DescriptionOutlined, FolderOutlined, GroupsOutlined, InfoOutlined } from '@mui/icons-material';
 import { useQuery } from 'react-query';
 
 import { useProcessDetails } from './hooks/useProcessDetails';
@@ -92,6 +92,18 @@ export const ProcessDetails = ({
   const [explorerCollapsed, setExplorerCollapsed] = useState(false);
   const [taskPanelCollapsed, setTaskPanelCollapsed] = useState(false);
   const [taskPanelSection, setTaskPanelSection] = useState<'details' | 'documentation' | 'raci'>('details');
+
+  useEffect(() => {
+    const onHistoryShortcut = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'z') return;
+      const target = event.target;
+      if (target instanceof HTMLElement && target.closest('input, textarea, select, [contenteditable="true"]')) return;
+      event.preventDefault();
+      navigate(-1);
+    };
+    window.addEventListener('keydown', onHistoryShortcut);
+    return () => window.removeEventListener('keydown', onHistoryShortcut);
+  }, [navigate]);
 
   const selectedTask = useMemo(() => {
     if (!xmlContent || !selectedElementId) return null;
@@ -179,6 +191,34 @@ export const ProcessDetails = ({
                 />
               </Box>
             )}
+            <Stack
+              direction={explorerCollapsed ? 'column' : 'row'}
+              spacing={0.5}
+              className="processExplorerHistory"
+              alignItems="center"
+              justifyContent="center"
+            >
+              <IconButton
+                size="sm"
+                variant="outlined"
+                color="neutral"
+                title="Retour (Ctrl+Z)"
+                aria-label="Retour (Ctrl+Z)"
+                onClick={() => navigate(-1)}
+              >
+                <ArrowBack />
+              </IconButton>
+              <IconButton
+                size="sm"
+                variant="outlined"
+                color="neutral"
+                title="Suivant"
+                aria-label="Suivant"
+                onClick={() => navigate(1)}
+              >
+                <ArrowForward />
+              </IconButton>
+            </Stack>
           </Sheet>
           <Sheet className="processViewerDiagram" variant="outlined">
             {publishedContent ? (
