@@ -191,7 +191,7 @@ export const Component = () => {
               Cliquez sur un dossier ou un processus pour l’ouvrir. Faites glisser un nœud pour le repositionner.
             </Typography>
           </Box>
-          <Button variant="outlined" onClick={() => navigate('/root')}>Retour au référentiel</Button>
+          <Button variant="outlined" onClick={() => navigate('/reference/tree')}>Retour au référentiel</Button>
         </Stack>
         <Card variant="outlined" className="referenceTreeCard">
           {isLoading && <Typography>Chargement de l’arborescence…</Typography>}
