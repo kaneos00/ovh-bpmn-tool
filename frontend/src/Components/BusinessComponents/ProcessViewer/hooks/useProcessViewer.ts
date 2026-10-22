@@ -146,6 +146,13 @@ export const useProcessViewer = (
       off: (event: string, listener: (event: any) => void) => void;
     };
     let clickListenerAttached = false;
+    let pendingSelectionTimer: ReturnType<typeof setTimeout> | null = null;
+    let lastClickedElementId: string | null = null;
+    let lastClickAt = 0;
+    const cancelPendingSelection = () => {
+      if (pendingSelectionTimer) clearTimeout(pendingSelectionTimer);
+      pendingSelectionTimer = null;
+    };
     const onElementClick = (event: any) => {
       const element = event?.element;
       if (!element?.id || typeof element.type !== 'string') return;
@@ -157,7 +164,28 @@ export const useProcessViewer = (
         element.type === 'bpmn:CallActivity' ||
         element.type === 'bpmn:SubProcess' ||
         element.type === 'bpmn:Transaction';
-      if (isSelectableElement) onElementSelectRef.current?.(element.id);
+      if (!isSelectableElement) return;
+
+      const now = Date.now();
+      const isRapidSecondClick =
+        lastClickedElementId === element.id && now - lastClickAt < 280;
+      lastClickedElementId = element.id;
+      lastClickAt = now;
+      cancelPendingSelection();
+
+      // Wait briefly so bpmn-js can emit element.dblclick before we treat a
+      // rapid second click as a deselection.
+      if (isRapidSecondClick) return;
+      pendingSelectionTimer = setTimeout(() => {
+        pendingSelectionTimer = null;
+        const currentlySelected = selectedIdRef.current;
+        onElementSelectRef.current?.(currentlySelected === element.id ? '' : element.id);
+      }, 220);
+    };
+    const onElementDoubleClick = () => {
+      cancelPendingSelection();
+      lastClickedElementId = null;
+      lastClickAt = 0;
     };
 
     viewer.importXML(xmlContent)
@@ -166,6 +194,7 @@ export const useProcessViewer = (
         // Register selection only after the diagram import has completed. This
         // avoids a stale click handler when returning to the viewer after editing.
         eventBus.on('element.click', onElementClick);
+        eventBus.on('element.dblclick', onElementDoubleClick);
         clickListenerAttached = true;
         fitDiagramToWidth();
         importedRef.current = true;
@@ -186,7 +215,11 @@ export const useProcessViewer = (
 
     return () => {
       cancelled = true;
-      if (clickListenerAttached) eventBus.off('element.click', onElementClick);
+      cancelPendingSelection();
+      if (clickListenerAttached) {
+        eventBus.off('element.click', onElementClick);
+        eventBus.off('element.dblclick', onElementDoubleClick);
+      }
     };
   }, [xmlContent, resourceId, contentId, viewer]);
 
