@@ -246,39 +246,41 @@ export const ProcessDetails = ({
                 />
               </Box>
             )}
-            <Stack
-              direction={explorerCollapsed ? 'column' : 'row'}
-              spacing={0.75}
-              className="processExplorerHistory"
-              alignItems="stretch"
-            >
-              <Button
-                size="sm"
-                fullWidth
-                variant="outlined"
-                color="neutral"
-                title="Retour (Ctrl+Z)"
-                aria-label="Retour (Ctrl+Z)"
-                onClick={() => navigate(-1)}
-                startDecorator={<ArrowBack />}
-                sx={{ flex: 1, minWidth: 0 }}
+            {!explorerCollapsed && (
+              <Stack
+                direction="row"
+                spacing={0.75}
+                className="processExplorerHistory"
+                alignItems="stretch"
               >
-                {!explorerCollapsed && 'Retour'}
-              </Button>
-              <Button
-                size="sm"
-                fullWidth
-                variant="outlined"
-                color="neutral"
-                title="Suivant"
-                aria-label="Suivant"
-                onClick={() => navigate(1)}
-                startDecorator={<ArrowForward />}
-                sx={{ flex: 1, minWidth: 0 }}
-              >
-                {!explorerCollapsed && 'Suivant'}
-              </Button>
-            </Stack>
+                <Button
+                  size="sm"
+                  fullWidth
+                  variant="outlined"
+                  color="neutral"
+                  title="Retour (Ctrl+Z)"
+                  aria-label="Retour (Ctrl+Z)"
+                  onClick={() => navigate(-1)}
+                  startDecorator={<ArrowBack />}
+                  sx={{ flex: 1, minWidth: 0 }}
+                >
+                  Retour
+                </Button>
+                <Button
+                  size="sm"
+                  fullWidth
+                  variant="outlined"
+                  color="neutral"
+                  title="Suivant"
+                  aria-label="Suivant"
+                  onClick={() => navigate(1)}
+                  startDecorator={<ArrowForward />}
+                  sx={{ flex: 1, minWidth: 0 }}
+                >
+                  Suivant
+                </Button>
+              </Stack>
+            )}
           </Sheet>
           {!explorerCollapsed && (
             <Box
