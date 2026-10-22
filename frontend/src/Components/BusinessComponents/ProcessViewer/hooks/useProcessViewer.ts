@@ -68,39 +68,6 @@ export const useProcessViewer = (
     });
   };
 
-  const getDiagramBounds = () => {
-    const canvas = viewer.get('canvas') as any;
-    const elementRegistry = viewer.get('elementRegistry') as any;
-    const bounds = elementRegistry
-      .getAll()
-      .filter((element: any) =>
-        element &&
-        !element.labelTarget &&
-        !element.waypoints &&
-        Number.isFinite(element.x) &&
-        Number.isFinite(element.y) &&
-        element.width > 0 &&
-        element.height > 0,
-      )
-      .map((element: any) => canvas.getAbsoluteBBox(element))
-      .filter((bbox: any) =>
-        bbox &&
-        Number.isFinite(bbox.x) &&
-        Number.isFinite(bbox.y) &&
-        Number.isFinite(bbox.width) &&
-        Number.isFinite(bbox.height),
-      );
-
-    if (!bounds.length) return null;
-
-    const minX = Math.min(...bounds.map((bbox: any) => bbox.x));
-    const minY = Math.min(...bounds.map((bbox: any) => bbox.y));
-    const maxX = Math.max(...bounds.map((bbox: any) => bbox.x + bbox.width));
-    const maxY = Math.max(...bounds.map((bbox: any) => bbox.y + bbox.height));
-
-    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
-  };
-
   const fitDiagramToWidth = () => {
     // The viewer starts at a true 1:1 scale, anchored at the diagram's
     // upper-left corner. Users can still choose "Ajuster" from the toolbar.
@@ -109,21 +76,27 @@ export const useProcessViewer = (
   };
 
   const setMinimapForDiagram = () => {
-    const container = viewerRef.current;
-    const bounds = getDiagramBounds();
-    if (!container || !bounds) {
-      setMinimapVisible(false);
-      try {
-        (viewer.get('minimap') as any).close();
-      } catch {
-        // The minimap service may not be available until the canvas is initialized.
-      }
-      return;
-    }
+    // The minimap service can be ready before the BPMN registry reports usable
+    // bounds. Do not gate visibility on those bounds: doing so left the minimap
+    // hidden until the first user interaction changed the canvas viewbox.
+    if (!viewerRef.current || !importedRef.current) return;
 
-    const minimap = viewer.get('minimap') as any;
-    minimap.open();
-    setMinimapVisible(true);
+    try {
+      const minimap = viewer.get('minimap') as any;
+      minimap.open();
+      setMinimapVisible(true);
+    } catch {
+      // Retry after the browser has laid out the imported canvas.
+      requestAnimationFrame(() => {
+        if (!importedRef.current || !viewerRef.current) return;
+        try {
+          (viewer.get('minimap') as any).open();
+          setMinimapVisible(true);
+        } catch {
+          setMinimapVisible(false);
+        }
+      });
+    }
   };
 
   const zoomIn = () => {
