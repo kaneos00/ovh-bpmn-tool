@@ -207,6 +207,7 @@ export const useProcessViewer = (
     content: xmlContent ?? '',
     importError,
     minimapVisible,
+    setMinimapVisible,
     zoomIn,
     zoomOut,
     resetZoom,
