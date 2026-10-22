@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -13,12 +14,13 @@ import {
   Tabs,
   Typography,
 } from '@mui/joy';
-import { Compare, FileCopy, ChevronLeft, ChevronRight, DescriptionOutlined, GroupsOutlined, InfoOutlined } from '@mui/icons-material';
+import { Compare, FileCopy, ChevronLeft, ChevronRight, DescriptionOutlined, FolderOutlined, GroupsOutlined, InfoOutlined } from '@mui/icons-material';
 import { useQuery } from 'react-query';
 
 import { useProcessDetails } from './hooks/useProcessDetails';
 import { ProcessContentList } from '../ProcessContentList/ProcessContentList';
 import { ProcessViewer } from '../ProcessViewer';
+import { FolderTree } from '../FolderTree';
 import { getXmlContentQuery } from '../../../api/contents/contents.queries';
 import {
   deriveRaciMatrixFromXml,
@@ -86,6 +88,8 @@ export const ProcessDetails = ({
     [raciMatrix],
   );
 
+  const navigate = useNavigate();
+  const [explorerCollapsed, setExplorerCollapsed] = useState(false);
   const [taskPanelCollapsed, setTaskPanelCollapsed] = useState(false);
   const [taskPanelSection, setTaskPanelSection] = useState<'details' | 'documentation' | 'raci'>('details');
 
@@ -140,6 +144,42 @@ export const ProcessDetails = ({
 
         <TabPanel value={0} className="processViewerTabPanel processViewerProcessTab">
           <Box className="processViewerWorkspace">
+          <Sheet
+            className={`processExplorerPanel ${explorerCollapsed ? 'collapsed' : ''}`}
+            variant="outlined"
+          >
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent={explorerCollapsed ? 'center' : 'space-between'}
+              className="processExplorerPanelHeader"
+            >
+              {!explorerCollapsed && (
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <FolderOutlined fontSize="small" />
+                  <Typography level="title-sm">Explorateur</Typography>
+                </Stack>
+              )}
+              <IconButton
+                size="sm"
+                variant="plain"
+                color="neutral"
+                onClick={() => setExplorerCollapsed(value => !value)}
+                aria-label={explorerCollapsed ? 'Développer le panneau de navigation' : 'Replier le panneau de navigation'}
+                title={explorerCollapsed ? 'Développer le panneau de navigation' : 'Replier le panneau de navigation'}
+              >
+                {explorerCollapsed ? <ChevronRight /> : <ChevronLeft />}
+              </IconButton>
+            </Stack>
+            {!explorerCollapsed && (
+              <Box className="processExplorerPanelContent">
+                <FolderTree
+                  selectedId={resourceId}
+                  onNodeClick={id => navigate(`/${id}`)}
+                />
+              </Box>
+            )}
+          </Sheet>
           <Sheet className="processViewerDiagram" variant="outlined">
             {publishedContent ? (
               <>

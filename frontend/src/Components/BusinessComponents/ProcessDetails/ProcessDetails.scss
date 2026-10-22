@@ -60,6 +60,38 @@
   overflow: hidden;
 }
 
+.processExplorerPanel {
+  flex: 0 0 248px;
+  width: 248px;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--joy-palette-background-surface, #fff);
+  transition: width 160ms ease, flex-basis 160ms ease;
+}
+
+.processExplorerPanel.collapsed {
+  flex-basis: 44px;
+  width: 44px;
+}
+
+.processExplorerPanelHeader {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--joy-palette-divider);
+}
+
+.processExplorerPanelContent {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
 .processViewerDiagram {
   flex: 1 1 auto;
   width: 0;
@@ -99,6 +131,11 @@
 }
 
 @media (max-width: 1100px) {
+  .processExplorerPanel:not(.collapsed) {
+    flex-basis: 220px;
+    width: 220px;
+  }
+
   .processTaskPanel:not(.collapsed) {
     flex-basis: 270px;
     width: 270px;
@@ -107,6 +144,11 @@
 }
 
 @media (max-width: 760px) {
+  .processExplorerPanel:not(.collapsed) {
+    flex-basis: 190px;
+    width: 190px;
+  }
+
   .processViewerWorkspace {
     gap: 4px;
   }
