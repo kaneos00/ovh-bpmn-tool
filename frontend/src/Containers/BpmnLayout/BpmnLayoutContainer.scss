@@ -3,6 +3,7 @@
   position: relative;
   grid-template-columns: 42px minmax(0, 1fr);
   height: 100vh;
+  height: 100dvh;
   width: 100%;
   min-width: 0;
   overflow: hidden;
@@ -53,9 +54,12 @@
   }
 
   .innerContent {
+    box-sizing: border-box;
     grid-column: 2;
     min-width: 0;
+    min-height: 0;
     height: 100vh;
+    height: 100dvh;
     display: flex;
     flex-direction: column;
     padding: 16px;
