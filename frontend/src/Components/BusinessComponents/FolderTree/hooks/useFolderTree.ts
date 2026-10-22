@@ -76,7 +76,7 @@ export const useFolderTree = (
     processInfo.forEach(info => {
       info.processIds.forEach(id => {
         const matches = resourcesByProcessId.get(id) ?? [];
-        if (!matches.some(resource => resource.id === info.resource.id)) {
+        if (!matches.some(candidateResource => candidateResource.id === info.resource.id)) {
           matches.push(info.resource);
         }
         resourcesByProcessId.set(id, matches);
