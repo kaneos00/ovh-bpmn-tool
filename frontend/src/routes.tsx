@@ -70,7 +70,7 @@ export const routes = [
       },
       {
         path: '/reference/tree',
-        loader: () => redirect('/root'),
+        lazy: () => import('./Containers/ReferenceTree'),
       },
       {
         path: '/projects',
