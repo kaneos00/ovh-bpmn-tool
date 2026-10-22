@@ -336,6 +336,15 @@ export const ProcessDetails = ({
             )}
           </Sheet>
 
+          {publishedContent && !taskPanelCollapsed && (
+            <Box
+              className="processViewerResizeHandle"
+              role="separator"
+              aria-label="Redimensionner le panneau de tâche"
+              title="Glisser pour régler la largeur du panneau de tâche"
+              onMouseDown={event => startPanelResize('task', event)}
+            />
+          )}
           {publishedContent && (
             <Sheet
               className={`processTaskPanel ${taskPanelCollapsed ? 'collapsed' : ''}`}
@@ -474,15 +483,6 @@ export const ProcessDetails = ({
                 </Stack>
               )}
             </Sheet>
-          )}
-          {publishedContent && !taskPanelCollapsed && (
-            <Box
-              className="processViewerResizeHandle"
-              role="separator"
-              aria-label="Redimensionner le panneau de tâche"
-              title="Glisser pour régler la largeur du panneau de tâche"
-              onMouseDown={event => startPanelResize('task', event)}
-            />
           )}
           </Box>
         </TabPanel>
