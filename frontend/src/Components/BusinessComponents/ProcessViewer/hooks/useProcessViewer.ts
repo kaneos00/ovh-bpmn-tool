@@ -75,7 +75,6 @@ export const useProcessViewer = (
     alignDiagramTopLeft();
   };
 
-
   const zoomIn = () => {
     if (!importedRef.current) return;
     const canvas = viewer.get('canvas') as any;
@@ -90,20 +89,17 @@ export const useProcessViewer = (
     const container = canvas.getContainer();
     const rect = container.getBoundingClientRect();
     canvas.zoom(canvas.zoom() / ZOOM_STEP, { x: rect.width / 2, y: rect.height / 2 });
-    setMinimapForDiagram();
   };
 
   const resetZoom = () => {
     if (!importedRef.current) return;
     (viewer.get('canvas') as any).zoom(1);
-    setMinimapForDiagram();
   };
 
   const fitDiagram = () => {
     if (!importedRef.current) return;
     (viewer.get('canvas') as any).zoom('fit-viewport');
     alignDiagramTopLeft();
-    setMinimapForDiagram();
   };
 
   const applySelection = () => {
@@ -197,7 +193,6 @@ export const useProcessViewer = (
   useEffect(() => {
     applySelectionRef.current();
   }, [selectedElementId]);
-
 
   useEffect(() => () => {
     try {
