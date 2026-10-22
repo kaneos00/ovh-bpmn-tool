@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { apiClient } from '../../queryClient';
+import queryClient from '../../queryClient';
+import { getResourceQuery } from '../../api/resources/resources.queries';
 import { useSnackbar } from './useSnackbar';
 
 type CallActivityEvent = {
@@ -65,8 +66,11 @@ export const useCallActivityNavigation = (
         return;
       }
 
-      void apiClient
-        .get(`/resources/${encodeURIComponent(targetResourceId)}`)
+      // Populate the same React Query cache used by the route loader. This
+      // avoids a second resource request during navigation, reducing the blank
+      // interval before the target process renders while retaining access checks.
+      void queryClient
+        .fetchQuery(getResourceQuery(targetResourceId))
         .then(() => navigate(`/${targetResourceId}`))
         .catch(() =>
           showAlert({
