@@ -95,7 +95,6 @@ export const useCallActivityNavigation = (
 
       const registry = bpmnInstance.get('elementRegistry');
       const canvas = bpmnInstance.get('canvas');
-      const overlays = bpmnInstance.get('overlays');
       const elements = registry?.getAll?.() ?? [];
 
       elements.forEach((element: any) => {
@@ -108,7 +107,6 @@ export const useCallActivityNavigation = (
         }
 
         canvas?.addMarker?.(element.id, 'bpmn-call-activity-navigable');
-
       });
     };
 
