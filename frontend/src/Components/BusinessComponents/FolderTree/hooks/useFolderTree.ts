@@ -66,19 +66,34 @@ export const useFolderTree = (
         return { resource: process, ...getProcessLinks(xml) };
       });
 
+    // Resource IDs are unambiguous and always take precedence. BPMN process
+    // IDs can be duplicated across imported models, so resolve them only when
+    // exactly one resource declares that ID; guessing would create false links.
     const byIdentifier = new Map<string, Resource>();
+    processInfo.forEach(info => byIdentifier.set(info.resource.id, info.resource));
+
+    const resourcesByProcessId = new Map<string, Resource[]>();
     processInfo.forEach(info => {
-      byIdentifier.set(info.resource.id, info.resource);
       info.processIds.forEach(id => {
-        if (!byIdentifier.has(id)) byIdentifier.set(id, info.resource);
+        const matches = resourcesByProcessId.get(id) ?? [];
+        if (!matches.some(resource => resource.id === info.resource.id)) {
+          matches.push(info.resource);
+        }
+        resourcesByProcessId.set(id, matches);
       });
+    });
+    resourcesByProcessId.forEach((matches, processId) => {
+      if (matches.length === 1 && !byIdentifier.has(processId)) {
+        byIdentifier.set(processId, matches[0]);
+      }
     });
 
     const linked = new Map<string, Resource[]>();
     processInfo.forEach(info => {
       const targets = Array.from(new Set(info.targets))
         .map(targetId => byIdentifier.get(targetId))
-        .filter((target): target is Resource => target !== undefined && target.id !== info.resource.id);
+        .filter((target): target is Resource => target !== undefined && target.id !== info.resource.id)
+        .filter((target, index, all) => all.findIndex(candidate => candidate.id === target.id) === index);
       linked.set(info.resource.id, targets);
     });
     return linked;
