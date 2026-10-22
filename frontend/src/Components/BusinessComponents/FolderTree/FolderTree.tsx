@@ -134,7 +134,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
     const addNode = (node: RenderTree) => {
       items[node.id] = {
         index: node.id,
-        isFolder: Boolean(node.children?.length),
+        isFolder: node.type === 'folder' || Boolean(node.children?.length),
         children: node.children?.map(child => child.id) ?? [],
         data: node,
       };
