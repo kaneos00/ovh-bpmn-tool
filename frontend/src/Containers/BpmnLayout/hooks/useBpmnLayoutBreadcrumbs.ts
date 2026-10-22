@@ -22,8 +22,8 @@ export const useBpmnLayoutBreadcrumbs = () => {
       isProcess(resource) ? (resource.parentId as string) : resourceId,
     ).map(({ id, name }) => ({
       id,
-      label: name,
-      to: `/${id}`,
+      label: id === 'root' ? 'Référentiel' : name,
+      to: id === 'root' ? '/reference/tree' : `/${id}`,
     }));
 
     return [
