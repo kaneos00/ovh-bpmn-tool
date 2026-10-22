@@ -20,6 +20,11 @@
 }
 
 .processViewerProcessTab {
+  /* The active tab panel must provide a real flex-height for the three
+     workspace columns; otherwise percentage heights can collapse/misalign. */
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -52,8 +57,9 @@
 .processViewerWorkspace {
   min-width: 0;
   min-height: 0;
-  height: 100%;
-  flex: 1;
+  height: auto;
+  flex: 1 1 0;
+  align-self: stretch;
   display: flex;
   align-items: stretch;
   gap: 8px;
