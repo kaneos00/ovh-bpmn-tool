@@ -1,8 +1,8 @@
 import { BpmnLayoutRouteParams } from '.';
 import queryClient from '../../queryClient';
-import { getResourceQuery } from '../../api/resources/resources.queries';
+import { getResourceQuery, resourcesQuery } from '../../api/resources/resources.queries';
 import { getRootResource, isRoot } from '../../shared/helpers/resource';
-import { resourcesQuery } from '../../api/resources/resources.queries';
+
 import { ResourceType } from '../../shared/types/BpmnResource';
 import { redirect } from 'react-router-dom';
 
