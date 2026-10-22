@@ -97,7 +97,7 @@ export const ProcessDetails = ({
   // Panel preferences are stored separately for each authenticated user.
   useEffect(() => {
     let active = true;
-    const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\\/+$/, '');
+    const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
     fetch(`${apiBase}/auth/session`, {
       credentials: 'same-origin',
       headers: { accept: 'application/json' },
