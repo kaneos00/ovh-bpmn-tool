@@ -23,16 +23,12 @@ import { ControlledTreeEnvironment, Tree } from 'react-complex-tree';
 import 'react-complex-tree/lib/style-modern.css';
 
 import { useFolderTree } from './hooks/useFolderTree';
-import { ProcessHierarchyTree } from '../ProcessHierarchyTree/ProcessHierarchyTree';
 
 import type { RenderTree } from '.';
 
 type FolderTreeProps = {
   selectedId: string;
   onNodeClick: (nodeId: string) => void;
-  processXml?: string;
-  selectedElementId?: string | null;
-  onElementClick?: (elementId: string) => void;
 };
 
 type ExplorerView = 'tree' | 'recent' | 'favorites';
@@ -49,7 +45,7 @@ const readIds = (key: string): string[] => {
   }
 };
 
-export const FolderTree = ({ selectedId, onNodeClick, processXml, selectedElementId, onElementClick }: FolderTreeProps) => {
+export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
   const { dataTree, expandedNodes, setExpandedNodes, isLoading } =
     useFolderTree(selectedId, { onNodeClick });
   const [view, setView] = useState<ExplorerView>('tree');
@@ -261,13 +257,6 @@ export const FolderTree = ({ selectedId, onNodeClick, processXml, selectedElemen
             </ControlledTreeEnvironment>
           </ListItemContent>
         </ListItem>
-        {processXml && onElementClick && (
-          <ProcessHierarchyTree
-            xmlContent={processXml}
-            selectedElementId={selectedElementId}
-            onElementClick={onElementClick}
-          />
-        )}
         </>
       ) : (
         <Box sx={{ display: 'grid', gap: 0.5 }}>
