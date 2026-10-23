@@ -45,6 +45,8 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
         canvas.addMarker(element.id, 'bpmn-end-event');
       } else if (element?.type === 'bpmn:DataStoreReference') {
         canvas.addMarker(element.id, 'bpmn-data-store');
+      } else if (element?.type === 'bpmn:DataObjectReference') {
+        canvas.addMarker(element.id, 'bpmn-data-object-reference');
       }
     });
 
