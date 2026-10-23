@@ -153,16 +153,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
     const node = nodeById.get(selected);
     if (!node) return;
 
-    // Folder labels expand/collapse in place; only process rows navigate.
-    if (node.type === 'folder') {
-      setExpandedNodes(current =>
-        current.includes(selected)
-          ? current.filter(id => id !== selected)
-          : [...current, selected],
-      );
-      return;
-    }
-
+    // Selecting a row navigates to that resource; expansion is handled only by its arrow.
     onNodeClick(node.targetId ?? selected);
   };
 
@@ -231,6 +222,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
               onExpandItem={item => setExpandedNodes(current => current.includes(String(item.index)) ? current : [...current, String(item.index)])}
               onCollapseItem={item => setExpandedNodes(current => current.filter(id => id !== String(item.index)))}
               onSelectItems={handleTreeSelection}
+              renderItemArrow={() => null}
               renderItemTitle={({ item, title }) => {
                 const nodeId = String(item.index);
                 const node = nodeById.get(nodeId);
@@ -238,16 +230,6 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                 return (
                   <Box
                     component="span"
-                    onClick={event => {
-                      if (node?.type !== 'folder') return;
-                      event.preventDefault();
-                      event.stopPropagation();
-                      setExpandedNodes(current =>
-                        current.includes(nodeId)
-                          ? current.filter(id => id !== nodeId)
-                          : [...current, nodeId],
-                      );
-                    }}
                     sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, width: '100%', minWidth: 0 }}
                   >
                     {node?.type === 'folder' ? <FolderOutlined fontSize="small" /> : <DescriptionOutlined fontSize="small" />}
