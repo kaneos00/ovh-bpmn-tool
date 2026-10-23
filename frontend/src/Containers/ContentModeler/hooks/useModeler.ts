@@ -35,6 +35,19 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
 
     bpmnModelerInstance.attachTo(diagramContainerRef.current);
 
+    // Apply semantic color markers to the imported BPMN elements in the editor.
+    const canvas = bpmnModelerInstance.get('canvas') as any;
+    const elementRegistry = bpmnModelerInstance.get('elementRegistry') as any;
+    elementRegistry.getAll().forEach((element: any) => {
+      if (element?.type === 'bpmn:StartEvent') {
+        canvas.addMarker(element.id, 'bpmn-start-event');
+      } else if (element?.type === 'bpmn:EndEvent') {
+        canvas.addMarker(element.id, 'bpmn-end-event');
+      } else if (element?.type === 'bpmn:DataStoreReference') {
+        canvas.addMarker(element.id, 'bpmn-data-store');
+      }
+    });
+
     if (!providersRegisteredRef.current) {
       const providers = getModelerProviders();
 
