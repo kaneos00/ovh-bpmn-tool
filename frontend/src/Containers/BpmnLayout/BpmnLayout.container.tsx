@@ -33,7 +33,7 @@ export const Component = () => {
     setSelectedElementId(requestedElementId);
   }, [resourceId, requestedElementId]);
 
-  const { resource, contents, navigationFns, callbacks } = useBpmnLayout();
+  const { resource, contents, callbacks } = useBpmnLayout();
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
 
   const actions = useMemo(() => {
