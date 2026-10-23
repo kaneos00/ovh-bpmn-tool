@@ -68,72 +68,11 @@ export const useProcessViewer = (
     });
   };
 
-  const getDiagramBounds = () => {
-    const canvas = viewer.get('canvas') as any;
-    const elementRegistry = viewer.get('elementRegistry') as any;
-    const bounds = elementRegistry
-      .getAll()
-      .filter((element: any) =>
-        element &&
-        !element.labelTarget &&
-        !element.waypoints &&
-        Number.isFinite(element.x) &&
-        Number.isFinite(element.y) &&
-        element.width > 0 &&
-        element.height > 0,
-      )
-      .map((element: any) => canvas.getAbsoluteBBox(element))
-      .filter((bbox: any) =>
-        bbox &&
-        Number.isFinite(bbox.x) &&
-        Number.isFinite(bbox.y) &&
-        Number.isFinite(bbox.width) &&
-        Number.isFinite(bbox.height),
-      );
-
-    if (!bounds.length) return null;
-
-    const minX = Math.min(...bounds.map((bbox: any) => bbox.x));
-    const minY = Math.min(...bounds.map((bbox: any) => bbox.y));
-    const maxX = Math.max(...bounds.map((bbox: any) => bbox.x + bbox.width));
-    const maxY = Math.max(...bounds.map((bbox: any) => bbox.y + bbox.height));
-
-    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
-  };
-
   const fitDiagramToWidth = () => {
     // The viewer starts at a true 1:1 scale, anchored at the diagram's
     // upper-left corner. Users can still choose "Ajuster" from the toolbar.
     (viewer.get('canvas') as any).zoom(1);
     alignDiagramTopLeft();
-  };
-
-  const setMinimapForDiagram = () => {
-    const container = viewerRef.current;
-    const bounds = getDiagramBounds();
-    if (!container || !bounds) {
-      setMinimapVisible(false);
-      try {
-        (viewer.get('minimap') as any).close();
-      } catch {
-        // The minimap service may not be available until the canvas is initialized.
-      }
-      return;
-    }
-
-    const available = container.getBoundingClientRect();
-    const scale = (viewer.get('canvas') as any).zoom();
-    const needsMinimap =
-      bounds.width * scale > Math.max(0, available.width - DIAGRAM_PADDING * 2) ||
-      bounds.height * scale > Math.max(0, available.height - DIAGRAM_PADDING * 2);
-
-    const minimap = viewer.get('minimap') as any;
-    if (needsMinimap) {
-      minimap.open();
-    } else {
-      minimap.close();
-    }
-    setMinimapVisible(needsMinimap);
   };
 
   const zoomIn = () => {
@@ -142,7 +81,6 @@ export const useProcessViewer = (
     const container = canvas.getContainer();
     const rect = container.getBoundingClientRect();
     canvas.zoom(canvas.zoom() * ZOOM_STEP, { x: rect.width / 2, y: rect.height / 2 });
-    setMinimapForDiagram();
   };
 
   const zoomOut = () => {
@@ -151,20 +89,17 @@ export const useProcessViewer = (
     const container = canvas.getContainer();
     const rect = container.getBoundingClientRect();
     canvas.zoom(canvas.zoom() / ZOOM_STEP, { x: rect.width / 2, y: rect.height / 2 });
-    setMinimapForDiagram();
   };
 
   const resetZoom = () => {
     if (!importedRef.current) return;
     (viewer.get('canvas') as any).zoom(1);
-    setMinimapForDiagram();
   };
 
   const fitDiagram = () => {
     if (!importedRef.current) return;
     (viewer.get('canvas') as any).zoom('fit-viewport');
     alignDiagramTopLeft();
-    setMinimapForDiagram();
   };
 
   const applySelection = () => {
@@ -211,6 +146,13 @@ export const useProcessViewer = (
       off: (event: string, listener: (event: any) => void) => void;
     };
     let clickListenerAttached = false;
+    let pendingSelectionTimer: ReturnType<typeof setTimeout> | null = null;
+    let lastClickedElementId: string | null = null;
+    let lastClickAt = 0;
+    const cancelPendingSelection = () => {
+      if (pendingSelectionTimer) clearTimeout(pendingSelectionTimer);
+      pendingSelectionTimer = null;
+    };
     const onElementClick = (event: any) => {
       const element = event?.element;
       if (!element?.id || typeof element.type !== 'string') return;
@@ -222,7 +164,28 @@ export const useProcessViewer = (
         element.type === 'bpmn:CallActivity' ||
         element.type === 'bpmn:SubProcess' ||
         element.type === 'bpmn:Transaction';
-      if (isSelectableElement) onElementSelectRef.current?.(element.id);
+      if (!isSelectableElement) return;
+
+      const now = Date.now();
+      const isRapidSecondClick =
+        lastClickedElementId === element.id && now - lastClickAt < 280;
+      lastClickedElementId = element.id;
+      lastClickAt = now;
+      cancelPendingSelection();
+
+      // Wait briefly so bpmn-js can emit element.dblclick before we treat a
+      // rapid second click as a deselection.
+      if (isRapidSecondClick) return;
+      pendingSelectionTimer = setTimeout(() => {
+        pendingSelectionTimer = null;
+        const currentlySelected = selectedIdRef.current;
+        onElementSelectRef.current?.(currentlySelected === element.id ? '' : element.id);
+      }, 220);
+    };
+    const onElementDoubleClick = () => {
+      cancelPendingSelection();
+      lastClickedElementId = null;
+      lastClickAt = 0;
     };
 
     viewer.importXML(xmlContent)
@@ -231,10 +194,11 @@ export const useProcessViewer = (
         // Register selection only after the diagram import has completed. This
         // avoids a stale click handler when returning to the viewer after editing.
         eventBus.on('element.click', onElementClick);
+        eventBus.on('element.dblclick', onElementDoubleClick);
         clickListenerAttached = true;
         fitDiagramToWidth();
         importedRef.current = true;
-        setMinimapForDiagram();
+        // Keep the minimap closed on import; users can open it manually from the viewer controls.
         applySelectionRef.current();
       })
       .catch((error: unknown) => {
@@ -251,33 +215,17 @@ export const useProcessViewer = (
 
     return () => {
       cancelled = true;
-      if (clickListenerAttached) eventBus.off('element.click', onElementClick);
+      cancelPendingSelection();
+      if (clickListenerAttached) {
+        eventBus.off('element.click', onElementClick);
+        eventBus.off('element.dblclick', onElementDoubleClick);
+      }
     };
   }, [xmlContent, resourceId, contentId, viewer]);
 
   useEffect(() => {
     applySelectionRef.current();
   }, [selectedElementId]);
-
-  useEffect(() => {
-    const eventBus = viewer.get('eventBus') as {
-      on: (event: string, listener: () => void) => void;
-      off: (event: string, listener: () => void) => void;
-    };
-    let frame = 0;
-    const refreshMinimap = () => {
-      if (frame) cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        frame = 0;
-        if (importedRef.current) setMinimapForDiagram();
-      });
-    };
-    eventBus.on('canvas.viewbox.changed', refreshMinimap);
-    return () => {
-      eventBus.off('canvas.viewbox.changed', refreshMinimap);
-      if (frame) cancelAnimationFrame(frame);
-    };
-  }, [viewer, xmlContent, resourceId, contentId]);
 
   useEffect(() => () => {
     try {
@@ -292,6 +240,7 @@ export const useProcessViewer = (
     content: xmlContent ?? '',
     importError,
     minimapVisible,
+    setMinimapVisible,
     zoomIn,
     zoomOut,
     resetZoom,

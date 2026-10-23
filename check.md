@@ -1,0 +1,113 @@
+# Check — suivi des corrections et évolutions BPMN V2
+
+Dernière mise à jour : 23 octobre 2026  
+Dépôt : [kaneos00/ovh-bpmn-tool](https://github.com/kaneos00/ovh-bpmn-tool)  
+Branche de référence : `work/v2.1-reprise-2026-10-21`
+
+Ce document est la **référence unique de suivi**. Les statuts reflètent les informations et tests rapportés à ce jour ; ils ne signifient pas qu'un comportement est validé si le test n'a pas été explicitement confirmé.
+
+## Légende
+
+### Statut
+- **Validé** : le test fonctionnel a été explicitement déclaré OK.
+- **Partiel** : code présent ou test partiel, mais résultat incomplet.
+- **À corriger** : un défaut est signalé ou la fonctionnalité reste à faire.
+- **À tester** : le code existe, mais le test fonctionnel n'est pas confirmé.
+- **À planifier** : évolution future, non considérée comme un correctif V2.1.
+
+### Facilité estimée
+- **Facile** : changement local et bien circonscrit.
+- **Moyenne** : plusieurs composants, interactions ou tests sont concernés.
+- **Difficile** : dépendances ou modèle de données à analyser, risque de régression ou refonte nécessaire.
+
+### Impact estimé
+- **Faible — IHM** : modification locale d'interface.
+- **Moyen — plusieurs IHM / backend** : plusieurs vues ou interactions concernées, ou modification du backend/API/données.
+- **Fort — refonte** : architecture, navigation centrale, modèle métier ou refonte importante.
+
+Les estimations sont préliminaires, à confirmer après lecture du code et définition des critères d'acceptation. « Impact » décrit l'étendue du changement, pas sa gravité pour l'utilisateur.
+
+## A. Correctifs V2.1 et régressions à fermer
+
+| N° | Point / résultat attendu | Traité dans le code ? | Test fonctionnel | Statut / prochaine action | Facilité | Impact |
+|---:|---|---|---|---|---|---|
+| 1 | Minimap : fermée à l'ouverture/sélection d'un processus ; ouverture/fermeture uniquement via l'action prévue (+/−) ; diagramme initial à l'échelle 1:1, en haut à gauche | Oui, plusieurs commits ; comportement retouché, dont `37575a4` | Partiel ; minimap encore signalée visible à la sélection du processus | **À corriger**. Comparer les commits précédents où le comportement avait été corrigé, puis tester sélection, import et boutons | Moyenne | Faible — IHM |
+| 2 | Les trois panneaux (explorateur gauche, BPMN central, détail droit) vont jusqu'en bas, ont la même hauteur et des coins carrés ; le BPMN garde un maximum d'espace | Oui, plusieurs retouches CSS/Flex ; PR #26 | Partiel : hauteur déclarée OK à un moment, puis débordement et diagramme central trop réduit signalés | **À corriger / retester**. Éviter les règles de hauteur concurrentes ; vérifier différentes tailles d'écran | Moyenne | Faible — IHM |
+| 3 | Boutons Retour/Suivant sur toute la largeur du bas de l'explorateur ; raccourci Ctrl+Z ; boutons masqués ou adaptés lorsque le panneau est replié | Oui | Retour/Suivant et Ctrl+Z déclarés OK, mais boutons encore visibles quand le panneau est replié | **Partiel**. Corriger l'affichage dans l'état replié et refaire la recette | Facile | Faible — IHM |
+| 4 | Largeur des panneaux gauche et droit réglable à la souris et mémorisée | Oui, poignée droite repositionnée | Poignée droite entre BPMN et détail : validée ; persistance/largeur gauche à confirmer | **Partiel**. Tester redimensionnement des deux côtés et persistance après rechargement/reconnexion | Moyenne | Faible — IHM |
+| 5 | Panneau de détail droit fermé par défaut ; clic sur son titre pour ouvrir/fermer ; sélection d'un élément BPMN ouvre le détail ; état mémorisé selon le besoin validé | Oui, PR #26 et retouches associées | Partiel | **À tester** : fermeture au démarrage, ouverture par sélection/clic, comportement lorsque les panneaux sont repliés, persistance | Moyenne | Faible — IHM |
+| 6 | Retirer définitivement l'ancien panneau à l'extrême gauche et l'ancienne zone « Processus et activités » ; ne garder qu'un explorateur avec Arborescence, Récents et Favoris | Oui, retrait/retouches dans PR #25 et branche de reprise | Partiel : explorateur placé correctement, mais anciens parcours réapparaissent depuis certaines navigations | **Partiel**. Rechercher les routes et composants hérités encore accessibles | Moyenne | Moyen — plusieurs IHM |
+| 7 | Au clic sur un dossier de l'explorateur, développer/réduire ses enfants sans quitter l'écran, y compris pour un dossier vide | Partiel | Échec rapporté : clic sur un répertoire renvoie vers l'ancienne page de liste | **À corriger**. Distinguer action d'expansion et navigation vers un processus | Moyenne | Moyen — plusieurs IHM |
+| 8 | Référentiel comme écran d'accueil après connexion ; bouton Home ramène au Référentiel ; fil d'Ariane vers le parent reste dans le nouveau parcours | Partiel : Home vers Référentiel déclaré OK | Échec partiel : clic sur un répertoire/fil d'Ariane renvoie encore vers l'ancienne page | **À corriger**. Supprimer l'ancienne route/page de liste lorsqu'elle n'est plus utilisée et tester tous les chemins de retour | Moyenne | Moyen — plusieurs IHM |
+| 9 | Simple clic sur un élément BPMN = sélection ; second clic sur le même élément = désélection, sans navigation involontaire | Oui, plusieurs retouches | Non confirmé pour tous les types d'éléments | **À tester** : tâche, événement, sous-processus et Call Activity | Moyenne | Moyen — plusieurs IHM |
+| 10 | Pour une Call Activity / un sous-processus navigable : simple clic sélectionne ; double-clic entre dans le processus appelé | Oui, plusieurs commits | Partiel ; doublons et clignotements/rechargements signalés | **À diagnostiquer**. Vérifier la résolution de `calledElement` vers l'ID de ressource, l'accès et l'absence de requêtes/navigation en double | Difficile | Moyen — plusieurs IHM / backend |
+| 11 | Flèche bleue de lien externe ou d'appel visible uniquement après clic sur l'élément concerné ; curseur cohérent avec une cible réellement navigable | Oui, plusieurs commits | Partiel | **À tester / corriger** : aucun badge affiché par défaut ; badge limité à l'élément sélectionné ; clic suivant désélectionne | Moyenne | Faible — IHM |
+| 12 | Récents et Favoris : afficher les processus appelés attendus sans doublons, en distinguant ID de ressource et ID de nœud de l'arbre | Oui, commits `c5ce338` et `4d095fe` | Partiel : commit testé, doublons ensuite signalés | **À corriger**. Tracer la source des doublons et dédupliquer sur un identifiant métier stable | Difficile | Moyen — plusieurs IHM / backend |
+| 13 | Navigation entre processus fluide, sans rechargement complet de page ni clignotement non nécessaire | Pas de correction confirmée | Défaut intermittent rapporté lors du changement de processus | **À diagnostiquer** : mesurer les requêtes, remounts et changements de route ; définir un scénario reproductible avant correction | Difficile | Moyen — plusieurs IHM / backend |
+| 14 | CI de la branche de reprise | Oui | CI Validate verte sur les commits consultés, dont `4c39aea` | **Contrôles automatisés OK**, mais ne remplace pas la recette navigateur. Ne pas considérer les points ci-dessus validés sur cette seule base | — | Moyen — plusieurs composants |
+
+## B. Recherche, RACI et interactions dans le Viewer
+
+| N° | Point / résultat attendu | Traité dans le code ? | Test fonctionnel | Statut / prochaine action | Facilité | Impact |
+|---:|---|---|---|---|---|---|
+| 15 | Dans le panneau de recherche, intégrer des liens vers les fiches/matrices RACI correspondantes | Non confirmé | Non confirmé | **À analyser puis réaliser**. Définir la destination et le comportement du lien | Moyenne | Moyen — plusieurs IHM |
+| 16 | Lorsqu'un rôle est choisi dans les résultats de recherche, mettre en surbrillance les lanes correspondantes dans le diagramme BPMN | Non confirmé | Non testé | **À planifier** : établir la correspondance rôle ↔ lane BPMN et gérer les rôles présents dans plusieurs processus | Moyenne | Moyen — plusieurs IHM |
+| 17 | Rendre les lanes BPMN sélectionnables | Non confirmé | Non testé | **À réaliser** : sélectionner une lane sans casser la sélection des tâches et événements | Moyenne | Moyen — plusieurs IHM |
+| 18 | Sélectionner une lane met en évidence la colonne du rôle correspondant dans le tableau RACI du Viewer, avec un cadre visible autour de la colonne | Non confirmé | Non testé | **À réaliser** : définir une correspondance robuste entre lane et rôle de matrice RACI ; gérer les rôles absents ou ambigus | Difficile | Moyen — plusieurs IHM / données |
+| 19 | Afficher les badges R/A/C/I avec les mêmes couleurs pastel que celles déjà utilisées dans l'application | Partiel / réutilisation possible des styles existants | Pas de test spécifique rapporté | **À vérifier puis harmoniser** sans créer une deuxième palette de couleurs | Facile | Faible — IHM |
+| 20 | Depuis une cellule/activité du tableau RACI, cliquer pour pointer vers l'élément BPMN correspondant et le mettre en évidence | Non confirmé | Non testé | **À réaliser** : associer ligne/activité à l'ID BPMN, centrer ou surligner l'élément et gérer les éléments hors diagramme courant | Difficile | Moyen — plusieurs IHM / données |
+| 21 | Dans le Viewer, disposer les onglets Processus, RACI et Historique entre l'explorateur gauche et le détail droit ; permettre une navigation RACI aussi naturelle que celle des processus | Non confirmé | Non testé | **À planifier** après stabilisation V2.1 ; définir la navigation, l'état des onglets et les liens croisés | Difficile | Fort — refonte de la zone Viewer |
+| 22 | Dans le détail droit, présenter verticalement et dans l'ordre : informations de tâche, RACI, documentation ; afficher le lien externe dans la section documentation | Partiel : détail existant, mais réorganisation non confirmée | Non testé pour cette organisation | **À réaliser** en conservant les données et les interactions existantes | Moyenne | Faible — IHM |
+
+## C. Référentiel et explorateur en arborescence graphique
+
+| N° | Point / résultat attendu | Traité dans le code ? | Test fonctionnel | Statut / prochaine action | Facilité | Impact |
+|---:|---|---|---|---|---|---|
+| 23 | Dans le conteneur gauche `/html/body/div[1]/div/div[1]`, conserver un seul explorateur avec Arborescence, Récents et Favoris ; retirer la liste séparée « Processus et activités » | Partiel | Explorateur repositionné, ancienne navigation encore accessible dans certains cas | **À terminer** avec les points 6 à 8 ; éviter deux arbres/listes concurrents | Moyenne | Moyen — plusieurs IHM |
+| 24 | Mettre le panneau explorateur à gauche au même niveau visuel que le panneau de détail droit, avec une structure et un style cohérents | Partiel | Position de l'explorateur déclarée correcte ; cohérence complète à retester | **À retester** : alignement, bordures, hauteur, largeur, coins carrés et états repliés | Facile | Faible — IHM |
+| 25 | Remplacer, dans le Référentiel, l'explorateur actuel par l'arborescence de la page Arborescence (tree view), avec une présentation inspirée de [fokolo/family-tree](https://github.com/fokolo/family-tree) | Non confirmé | Aucune recette | **À concevoir** : réutiliser la source de données et les actions existantes ; ne pas confondre inspiration visuelle et dépendance obligatoire au projet externe | Difficile | Fort — refonte de l'explorateur |
+| 26 | Arborescence graphique dynamique, réorganisée selon la taille de l'écran | Non | Non testé | **À concevoir** : définir le comportement responsive, le zoom/déplacement éventuel, les niveaux visibles et l'accessibilité | Difficile | Fort — refonte de l'explorateur |
+| 27 | Menu contextuel au clic droit sur un nœud : Edit, Clone, Share, Delete ; disponible pour éditeurs et administrateurs, pas pour Viewer simple | Non confirmé | Non testé | **À réaliser** avec contrôle des rôles côté serveur et dans l'IHM ; confirmer les droits de chaque action | Difficile | Moyen — plusieurs IHM / backend |
+| 28 | Prévoir une maquette HTML de l'explorateur en arbre familial avant de développer | Non | Non testé | **À faire en amont du point 25** pour valider le look, le responsive et les menus de rôle ; maquette non encore créée | Moyenne | Faible — IHM |
+
+## D. Hiérarchie des processus, rôles et responsabilités
+
+| N° | Point / résultat attendu | Traité dans le code ? | Test fonctionnel | Statut / prochaine action | Facilité | Impact |
+|---:|---|---|---|---|---|---|
+| 29 | Dans l'explorateur, placer sous chaque processus parent les processus référencés par ses Call Activities et sous-processus BPMN « collapsed » | Partiel / résolution en cours | Partiel ; doublons et clignotements rapportés | **À corriger** avec les points 10 et 12 : déduire les liens du BPMN, résoudre les IDs vers les ressources et éviter les cycles/doublons | Difficile | Moyen — plusieurs IHM / backend |
+| 30 | Étudier si cette hiérarchie peut être réutilisée ailleurs | Non | Non applicable | **À étudier plus tard**, sans en faire une exigence de la première livraison | Moyenne | Moyen — plusieurs IHM |
+| 31 | Associer un rôle à chaque utilisateur dans chaque projet à partir des rôles des processus du projet | Non confirmé | Non testé | **À cadrer** : règles d'héritage, plusieurs rôles, exceptions et droits ; distinguer rôle de processus et autorisation d'accès | Difficile | Fort — modèle métier / backend |
+| 32 | Fiche de poste par utilisateur : récapitulatif de toutes ses tâches et responsabilités sur tous les projets, avec plusieurs modes de regroupement | Non | Non testé | **À concevoir** : maquette d'écran et regroupements possibles (par projet, processus, rôle, type RACI) avant développement | Difficile | Fort — nouvelle fonctionnalité / modèle métier |
+| 33 | Prévoir un responsable pour chaque processus, capable d'éditer, valider et publier le processus | Non confirmé | Non testé | **À cadrer** : cycle de vie brouillon/revue/validation/publication, permissions et historique des versions | Difficile | Fort — workflow métier / backend |
+| 34 | Prévoir une option « acting » pour les rôles sans personne actuellement en poste | Non | Non testé | **À cadrer** : suppléance temporaire, dates de validité, délégation et traçabilité | Difficile | Moyen — modèle métier / backend |
+
+## E. Couleurs BPMN, recherche et données
+
+| N° | Point / résultat attendu | Traité dans le code ? | Test fonctionnel | Statut / prochaine action | Facilité | Impact |
+|---:|---|---|---|---|---|---|
+| 35 | Colorer les événements de début/Start en vert et les événements de fin/End en rouge | Non confirmé | Non testé | **À réaliser** en vérifiant contraste, thème et légende | Facile | Faible — IHM |
+| 36 | Colorer les Data Store en orange et permettre de les lier ou pointer vers l'outil associé | Non confirmé | Non testé | **À réaliser** : définir où stocker l'URL/référence outil et comment la modifier | Moyenne | Moyen — IHM / données |
+| 37 | Ajouter une recherche en langage naturel avec une page de résultats | Non | Non testé | **À cadrer** : sources recherchées (processus, tâches, RACI, documentation), pertinence, droits d'accès et moteur requis | Difficile | Fort — nouvelle fonctionnalité / architecture |
+| 38 | Ajouter une page de saisie/inventaire des données qui recense fichiers et bases de données avec leurs informations | Non | Non testé | **À cadrer** : métadonnées, types de sources, propriétaires, liens, droits et éventuelles intégrations | Difficile | Fort — nouvelle fonctionnalité / modèle métier |
+| 39 | Ajouter un moteur de vérification de la formulation des actions, pour s'assurer qu'une action est claire et bien exprimée | Non | Non testé | **À cadrer** : critères de qualité, règles de validation, suggestions et éventuelle assistance linguistique ; ne pas bloquer une action sans règle définie | Difficile | Fort — nouvelle fonctionnalité / moteur de validation |
+
+## F. Ordre de traitement recommandé
+
+Cet ordre privilégie la stabilisation et les corrections qui bloquent la navigation avant les évolutions de plus grande ampleur.
+
+1. **Navigation et explorateur** : points 6–8 et 23.
+2. **Minimap et espace de travail** : points 1–5.
+3. **Navigation BPMN, appels, doublons et fluidité** : points 9–13 et 29.
+4. **Référentiel arbre graphique** : maquette 28, puis points 25–27.
+5. **Détail tâche, recherche et RACI** : points 15–22.
+6. **Couleurs BPMN et Data Store** : points 35–36.
+7. **Responsabilités et gouvernance** : points 31–34.
+8. **Fonctionnalités nouvelles** : points 32, 37–39, après cadrage métier.
+
+## Règles de mise à jour
+
+- Conserver les numéros pour permettre de vérifier les corrections une par une.
+- Pour passer un point à **Validé**, indiquer la date, le commit/PR et le résultat du test concret.
+- Une CI verte n'est pas une preuve de validation fonctionnelle dans le navigateur.
+- Ne pas refaire un correctif qui existe déjà : comparer les commits et réutiliser la correction validée lorsqu'elle est pertinente.
+- Aucun déploiement ou merge n'est autorisé implicitement par ce tableau ; attendre la validation prévue dans le workflow du projet.

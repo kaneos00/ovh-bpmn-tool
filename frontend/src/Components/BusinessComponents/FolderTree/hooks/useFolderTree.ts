@@ -66,23 +66,70 @@ export const useFolderTree = (
         return { resource: process, ...getProcessLinks(xml) };
       });
 
+    // Resource IDs are unambiguous and always take precedence. BPMN process
+    // IDs can be duplicated across imported models, so resolve them only when
+    // exactly one resource declares that ID; guessing would create false links.
     const byIdentifier = new Map<string, Resource>();
+    processInfo.forEach(info => byIdentifier.set(info.resource.id, info.resource));
+
+    const resourcesByProcessId = new Map<string, Resource[]>();
     processInfo.forEach(info => {
-      byIdentifier.set(info.resource.id, info.resource);
       info.processIds.forEach(id => {
-        if (!byIdentifier.has(id)) byIdentifier.set(id, info.resource);
+        const matches = resourcesByProcessId.get(id) ?? [];
+        if (!matches.some(candidateResource => candidateResource.id === info.resource.id)) {
+          matches.push(info.resource);
+        }
+        resourcesByProcessId.set(id, matches);
+      });
+    });
+    resourcesByProcessId.forEach((matches, processId) => {
+      if (matches.length === 1 && !byIdentifier.has(processId)) {
+        byIdentifier.set(processId, matches[0]);
+      }
+    });
+
+    const resolvedTargets = new Map<string, Resource[]>();
+    processInfo.forEach(info => {
+      const targets = Array.from(new Set(info.targets))
+        .map(targetId => byIdentifier.get(targetId))
+        .filter((target): target is Resource => target !== undefined && target.id !== info.resource.id)
+        .filter((target, index, all) => all.findIndex(candidate => candidate.id === target.id) === index);
+      resolvedTargets.set(info.resource.id, targets);
+    });
+
+    // Keep each called process under one caller only. Reject edges that would
+    // create a cycle, so linked processes remain reachable from the tree root.
+    const reaches = (fromId: string, soughtId: string, visited = new Set<string>()): boolean => {
+      if (fromId === soughtId) return true;
+      if (visited.has(fromId)) return false;
+      visited.add(fromId);
+      return (resolvedTargets.get(fromId) ?? []).some(target => reaches(target.id, soughtId, visited));
+    };
+    const parentByTarget = new Map<string, string>();
+    processInfo.forEach(info => {
+      (resolvedTargets.get(info.resource.id) ?? []).forEach(target => {
+        if (!parentByTarget.has(target.id) && !reaches(target.id, info.resource.id)) {
+          parentByTarget.set(target.id, info.resource.id);
+        }
       });
     });
 
     const linked = new Map<string, Resource[]>();
     processInfo.forEach(info => {
-      const targets = Array.from(new Set(info.targets))
-        .map(targetId => byIdentifier.get(targetId))
-        .filter((target): target is Resource => target !== undefined && target.id !== info.resource.id);
-      linked.set(info.resource.id, targets);
+      linked.set(
+        info.resource.id,
+        (resolvedTargets.get(info.resource.id) ?? []).filter(
+          target => parentByTarget.get(target.id) === info.resource.id,
+        ),
+      );
     });
     return linked;
   }, [processResources, xmlQueries]);
+
+  const linkedTargetIds = useMemo(
+    () => new Set(Array.from(linkedChildrenByResource.values()).flat().map(target => target.id)),
+    [linkedChildrenByResource],
+  );
 
   const dataTree: RenderTree = useMemo(() => {
     const rootResources = resources ?? [];
@@ -98,7 +145,7 @@ export const useFolderTree = (
 
       if (item.type === ResourceType.Folder) {
         children = rootResources
-          .filter(child => (child.parentId ?? 'root') === item.id)
+          .filter(child => (child.parentId ?? 'root') === item.id && !(child.type === ResourceType.Process && linkedTargetIds.has(child.id)))
           .sort((a, b) => {
             if (a.type !== b.type) return a.type === ResourceType.Folder ? -1 : 1;
             return a.name.localeCompare(b.name, 'fr');
@@ -134,7 +181,7 @@ export const useFolderTree = (
 
     const createChildren = (parentId: string, ancestry: string[] = []): RenderTree[] =>
       rootResources
-        .filter(item => (item.parentId ?? 'root') === parentId)
+        .filter(item => (item.parentId ?? 'root') === parentId && !(item.type === ResourceType.Process && linkedTargetIds.has(item.id)))
         .sort((a, b) => {
           if (a.type !== b.type) return a.type === ResourceType.Folder ? -1 : 1;
           return a.name.localeCompare(b.name, 'fr');
@@ -147,7 +194,7 @@ export const useFolderTree = (
       type: 'folder',
       children: createChildren('root'),
     };
-  }, [resources, linkedChildrenByResource]);
+  }, [resources, linkedChildrenByResource, linkedTargetIds]);
 
   const findNode = (node: RenderTree, id: string): RenderTree | undefined => {
     if (node.id === id) return node;

@@ -160,9 +160,9 @@ export const Component = () => {
   ]);
 
   return (
-    <Box className={`viewerLayout ${folderOpen ? 'sidebar-open' : 'sidebar-collapsed'} ${infoPanelOpen ? 'info-open' : ''}`}>
+    <Box className={`processViewerWorkspace viewerLayout ${folderOpen ? 'sidebar-open' : 'sidebar-collapsed'} ${infoPanelOpen ? 'info-open' : ''}`}>
       <Sheet
-        className={`viewerFolderPanel ${folderOpen ? 'open' : 'collapsed'}`}
+        className={`processTaskPanel viewerFolderPanel ${folderOpen ? 'open' : 'collapsed'}`}
         variant="outlined"
       >
         <Stack
@@ -174,7 +174,7 @@ export const Component = () => {
           {folderOpen && (
             <Stack direction="row" spacing={1} alignItems="center">
               <FolderOutlined fontSize="small" />
-              <Typography level="title-md">Navigation</Typography>
+              <Typography level="title-md">Explorateur</Typography>
             </Stack>
           )}
           <IconButton
@@ -201,7 +201,7 @@ export const Component = () => {
         )}
       </Sheet>
 
-      <Box className="viewerDiagram">
+      <Box className="processViewerDiagram viewerDiagram">
         <Box className="viewerBreadcrumb">
           <Breadcrumbs breadcrumbItems={getBreadCrumbs()} />
         </Box>
@@ -216,7 +216,7 @@ export const Component = () => {
         />
       </Box>
 
-      <Sheet className={`viewerInfoPanel ${infoPanelOpen ? 'open mobile-visible' : ''}`} variant="outlined">
+      <Sheet className={`processTaskPanel viewerInfoPanel ${infoPanelOpen ? 'open mobile-visible' : ''}`} variant="outlined">
         <Stack spacing={1.5} className="viewerInfoHeader">
           <Stack direction="row" alignItems="center" justifyContent="space-between">
             <Typography level="title-lg">Informations du processus</Typography>

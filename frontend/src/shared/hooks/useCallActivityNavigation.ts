@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { apiClient } from '../../queryClient';
+import queryClient from '../../queryClient';
+import { getResourceQuery } from '../../api/resources/resources.queries';
 import { useSnackbar } from './useSnackbar';
 
 type CallActivityEvent = {
@@ -33,9 +34,8 @@ type BpmnInstance = {
 };
 
 /**
- * In the viewer, linked Call Activities are navigable on a single click and
- * receive a visible blue arrow indicator. In the modeler, keep double-click
- * navigation so a single click remains available for selecting/editing.
+ * Linked Call Activities open their target process on double-click. A single
+ * click remains available to select the activity and show its details.
  */
 export const useCallActivityNavigation = (
   bpmnInstance: BpmnInstance,
@@ -46,7 +46,8 @@ export const useCallActivityNavigation = (
 
   useEffect(() => {
     const eventBus = bpmnInstance.get('eventBus') as BpmnEventBus;
-    const overlayIds: Array<string | number> = [];
+    let indicatorOverlayId: string | number | undefined;
+    let indicatedElementId: string | null = null;
 
     const navigateToCalledProcess = (event: CallActivityEvent) => {
       const businessObject = event.element?.businessObject;
@@ -65,8 +66,11 @@ export const useCallActivityNavigation = (
         return;
       }
 
-      void apiClient
-        .get(`/resources/${encodeURIComponent(targetResourceId)}`)
+      // Populate the same React Query cache used by the route loader. This
+      // avoids a second resource request during navigation, reducing the blank
+      // interval before the target process renders while retaining access checks.
+      void queryClient
+        .fetchQuery(getResourceQuery(targetResourceId))
         .then(() => navigate(`/${targetResourceId}`))
         .catch(() =>
           showAlert({
@@ -81,52 +85,65 @@ export const useCallActivityNavigation = (
       const overlays = bpmnInstance.get('overlays');
       const canvas = bpmnInstance.get('canvas');
       const registry = bpmnInstance.get('elementRegistry');
-      overlayIds.forEach(id => overlays?.remove?.(id));
-      overlayIds.length = 0;
+      if (indicatorOverlayId !== undefined) overlays?.remove?.(indicatorOverlayId);
+      indicatorOverlayId = undefined;
+      indicatedElementId = null;
       (registry?.getAll?.() ?? []).forEach((element: any) => {
         canvas?.removeMarker?.(element.id, 'bpmn-call-activity-navigable');
       });
     };
 
+    // Mark linked activities only with a pointer cursor. The blue link badge
+    // itself is created only after the user clicks a specific activity.
     const decorateCallActivities = () => {
       if (!enableSingleClick) return;
-      removeIndicators();
-
       const registry = bpmnInstance.get('elementRegistry');
       const canvas = bpmnInstance.get('canvas');
-      const overlays = bpmnInstance.get('overlays');
       const elements = registry?.getAll?.() ?? [];
 
       elements.forEach((element: any) => {
         const businessObject = element.businessObject;
         if (
-          businessObject?.$type !== 'bpmn:CallActivity' ||
-          !String(businessObject.calledElement ?? '').trim()
+          businessObject?.$type === 'bpmn:CallActivity' &&
+          String(businessObject.calledElement ?? '').trim()
         ) {
-          return;
-        }
-
-        canvas?.addMarker?.(element.id, 'bpmn-call-activity-navigable');
-
-        const indicator = document.createElement('span');
-        indicator.className = 'bpmn-call-activity-link-indicator';
-        indicator.textContent = '↗';
-        indicator.setAttribute('aria-hidden', 'true');
-
-        const overlayId = overlays?.add?.(element, {
-          position: { top: -10, right: -10 },
-          html: indicator,
-        });
-        if (overlayId !== undefined && overlayId !== null) {
-          overlayIds.push(overlayId);
+          canvas?.addMarker?.(element.id, 'bpmn-call-activity-navigable');
         }
       });
+    };
+
+    const showIndicatorForClickedCallActivity = (event: CallActivityEvent) => {
+      if (!enableSingleClick) return;
+      const element = event.element;
+      if (indicatorOverlayId !== undefined) {
+        bpmnInstance.get('overlays')?.remove?.(indicatorOverlayId);
+        indicatorOverlayId = undefined;
+      }
+      if (
+        !element?.id ||
+        element.businessObject?.$type !== 'bpmn:CallActivity' ||
+        !String(element.businessObject.calledElement ?? '').trim() ||
+        indicatedElementId === element.id
+      ) {
+        indicatedElementId = null;
+        return;
+      }
+
+      const indicator = document.createElement('span');
+      indicator.className = 'bpmn-call-activity-link-indicator';
+      indicator.textContent = '↗';
+      indicator.setAttribute('aria-hidden', 'true');
+      indicatorOverlayId = bpmnInstance.get('overlays')?.add?.(element, {
+        position: { top: -10, right: -10 },
+        html: indicator,
+      });
+      indicatedElementId = element.id;
     };
 
     eventBus.on('element.dblclick', 1500, navigateToCalledProcess);
 
     if (enableSingleClick) {
-      eventBus.on('element.click', 1500, navigateToCalledProcess);
+      eventBus.on('element.click', 1000, showIndicatorForClickedCallActivity);
       eventBus.on('import.done', 1000, decorateCallActivities);
       // Some viewer instances are already imported when the hook is mounted.
       decorateCallActivities();
@@ -135,8 +152,8 @@ export const useCallActivityNavigation = (
     return () => {
       eventBus.off('element.dblclick', navigateToCalledProcess);
       if (enableSingleClick) {
-        eventBus.off('element.click', navigateToCalledProcess);
         eventBus.off('import.done', decorateCallActivities);
+        eventBus.off('element.click', showIndicatorForClickedCallActivity);
         removeIndicators();
       }
     };

@@ -8,7 +8,6 @@ import {
   List,
   ListItem,
   ListItemContent,
-  ListSubheader,
   Skeleton,
   Typography,
 } from '@mui/joy';
@@ -24,16 +23,12 @@ import { ControlledTreeEnvironment, Tree } from 'react-complex-tree';
 import 'react-complex-tree/lib/style-modern.css';
 
 import { useFolderTree } from './hooks/useFolderTree';
-import { ProcessHierarchyTree } from '../ProcessHierarchyTree/ProcessHierarchyTree';
 
 import type { RenderTree } from '.';
 
 type FolderTreeProps = {
   selectedId: string;
   onNodeClick: (nodeId: string) => void;
-  processXml?: string;
-  selectedElementId?: string | null;
-  onElementClick?: (elementId: string) => void;
 };
 
 type ExplorerView = 'tree' | 'recent' | 'favorites';
@@ -50,7 +45,7 @@ const readIds = (key: string): string[] => {
   }
 };
 
-export const FolderTree = ({ selectedId, onNodeClick, processXml, selectedElementId, onElementClick }: FolderTreeProps) => {
+export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
   const { dataTree, expandedNodes, setExpandedNodes, isLoading } =
     useFolderTree(selectedId, { onNodeClick });
   const [view, setView] = useState<ExplorerView>('tree');
@@ -112,10 +107,11 @@ export const FolderTree = ({ selectedId, onNodeClick, processXml, selectedElemen
     const ids = view === 'favorites' ? favorites : recent;
     const term = search.trim().toLocaleLowerCase('fr');
     return ids
-      .map(id => nodeById.get(id))
+      .map(id => nodeById.get(id) ?? flatNodes.find(node => node.targetId === id))
       .filter((node): node is RenderTree => Boolean(node))
+      .filter((node, index, all) => all.findIndex(candidate => candidate.id === node.id) === index)
       .filter(node => !term || node.name.toLocaleLowerCase('fr').includes(term));
-  }, [view, favorites, recent, nodeById, search]);
+  }, [view, favorites, recent, nodeById, flatNodes, search]);
 
   const toggleFavorite = (event: React.MouseEvent, nodeId: string) => {
     event.preventDefault();
@@ -139,7 +135,7 @@ export const FolderTree = ({ selectedId, onNodeClick, processXml, selectedElemen
     const addNode = (node: RenderTree) => {
       items[node.id] = {
         index: node.id,
-        isFolder: Boolean(node.children?.length),
+        isFolder: node.type === 'folder' || Boolean(node.children?.length),
         children: node.children?.map(child => child.id) ?? [],
         data: node,
       };
@@ -153,7 +149,19 @@ export const FolderTree = ({ selectedId, onNodeClick, processXml, selectedElemen
     const selected = items.length ? String(items[0]) : '';
     if (!selected || selected === 'root') return;
     const node = nodeById.get(selected);
-    onNodeClick(node?.targetId ?? selected);
+    if (!node) return;
+
+    // Folder labels expand/collapse in place; only process rows navigate.
+    if (node.type === 'folder') {
+      setExpandedNodes(current =>
+        current.includes(selected)
+          ? current.filter(id => id !== selected)
+          : [...current, selected],
+      );
+      return;
+    }
+
+    onNodeClick(node.targetId ?? selected);
   };
 
   return (
@@ -166,10 +174,6 @@ export const FolderTree = ({ selectedId, onNodeClick, processXml, selectedElemen
         minWidth: 0,
       }}
     >
-      <ListSubheader role="presentation" sx={{ color: 'text.primary', fontWeight: 750, px: 1 }}>
-        Explorateur
-      </ListSubheader>
-
       <Input
         size="sm"
         value={search}
@@ -230,7 +234,20 @@ export const FolderTree = ({ selectedId, onNodeClick, processXml, selectedElemen
                 const node = nodeById.get(nodeId);
                 const isFavorite = favorites.includes(nodeId);
                 return (
-                  <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, width: '100%', minWidth: 0 }}>
+                  <Box
+                    component="span"
+                    onClick={event => {
+                      if (node?.type !== 'folder') return;
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setExpandedNodes(current =>
+                        current.includes(nodeId)
+                          ? current.filter(id => id !== nodeId)
+                          : [...current, nodeId],
+                      );
+                    }}
+                    sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, width: '100%', minWidth: 0 }}
+                  >
                     {node?.type === 'folder' ? <FolderOutlined fontSize="small" /> : <DescriptionOutlined fontSize="small" />}
                     <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</Box>
                     {node && nodeId !== 'root' && (
@@ -254,13 +271,6 @@ export const FolderTree = ({ selectedId, onNodeClick, processXml, selectedElemen
             </ControlledTreeEnvironment>
           </ListItemContent>
         </ListItem>
-        {processXml && onElementClick && (
-          <ProcessHierarchyTree
-            xmlContent={processXml}
-            selectedElementId={selectedElementId}
-            onElementClick={onElementClick}
-          />
-        )}
         </>
       ) : (
         <Box sx={{ display: 'grid', gap: 0.5 }}>

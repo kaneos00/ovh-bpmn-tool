@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -13,12 +14,13 @@ import {
   Tabs,
   Typography,
 } from '@mui/joy';
-import { Compare, FileCopy, ChevronLeft, ChevronRight, DescriptionOutlined, GroupsOutlined, InfoOutlined } from '@mui/icons-material';
+import { ArrowBack, ArrowForward, Compare, FileCopy, ChevronLeft, ChevronRight, DescriptionOutlined, FolderOutlined, GroupsOutlined, InfoOutlined } from '@mui/icons-material';
 import { useQuery } from 'react-query';
 
 import { useProcessDetails } from './hooks/useProcessDetails';
 import { ProcessContentList } from '../ProcessContentList/ProcessContentList';
 import { ProcessViewer } from '../ProcessViewer';
+import { FolderTree } from '../FolderTree';
 import { getXmlContentQuery } from '../../../api/contents/contents.queries';
 import {
   deriveRaciMatrixFromXml,
@@ -86,8 +88,73 @@ export const ProcessDetails = ({
     [raciMatrix],
   );
 
-  const [taskPanelCollapsed, setTaskPanelCollapsed] = useState(false);
+  const navigate = useNavigate();
+  const [explorerCollapsed, setExplorerCollapsed] = useState(false);
+  const [taskPanelCollapsed, setTaskPanelCollapsed] = useState(true);
+  const [explorerWidth, setExplorerWidth] = useState(() => {
+    const saved = Number(window.localStorage.getItem('bpmn-viewer-explorer-width'));
+    return Number.isFinite(saved) && saved >= 180 && saved <= 480 ? saved : 248;
+  });
+  const [taskPanelWidth, setTaskPanelWidth] = useState(() => {
+    const saved = Number(window.localStorage.getItem('bpmn-viewer-task-width'));
+    return Number.isFinite(saved) && saved >= 240 && saved <= 560 ? saved : 320;
+  });
+  const resizeCleanupRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    window.localStorage.setItem('bpmn-viewer-explorer-width', String(explorerWidth));
+  }, [explorerWidth]);
+
+  useEffect(() => {
+    window.localStorage.setItem('bpmn-viewer-task-width', String(taskPanelWidth));
+  }, [taskPanelWidth]);
+
+  useEffect(() => {
+    if (selectedElementId) setTaskPanelCollapsed(false);
+  }, [selectedElementId]);
+
+  useEffect(() => () => {
+    resizeCleanupRef.current?.();
+  }, []);
+
+  const startPanelResize = (
+    panel: 'explorer' | 'task',
+    event: React.MouseEvent<HTMLDivElement>,
+  ) => {
+    event.preventDefault();
+    resizeCleanupRef.current?.();
+    const startX = event.clientX;
+    const startWidth = panel === 'explorer' ? explorerWidth : taskPanelWidth;
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const delta = moveEvent.clientX - startX;
+      if (panel === 'explorer') {
+        setExplorerWidth(Math.min(480, Math.max(180, startWidth + delta)));
+      } else {
+        setTaskPanelWidth(Math.min(560, Math.max(240, startWidth - delta)));
+      }
+    };
+    const cleanup = () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', cleanup);
+      resizeCleanupRef.current = null;
+    };
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', cleanup);
+    resizeCleanupRef.current = cleanup;
+  };
   const [taskPanelSection, setTaskPanelSection] = useState<'details' | 'documentation' | 'raci'>('details');
+
+  useEffect(() => {
+    const onHistoryShortcut = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'z') return;
+      const target = event.target;
+      if (target instanceof HTMLElement && target.closest('input, textarea, select, [contenteditable="true"]')) return;
+      event.preventDefault();
+      navigate(-1);
+    };
+    window.addEventListener('keydown', onHistoryShortcut);
+    return () => window.removeEventListener('keydown', onHistoryShortcut);
+  }, [navigate]);
 
   const selectedTask = useMemo(() => {
     if (!xmlContent || !selectedElementId) return null;
@@ -139,7 +206,91 @@ export const ProcessDetails = ({
         </TabList>
 
         <TabPanel value={0} className="processViewerTabPanel processViewerProcessTab">
-          <Box className="processViewerWorkspace">
+          <Box className="processViewerWorkspace" style={{ "--explorer-width": `${explorerWidth}px`, "--task-panel-width": `${taskPanelWidth}px` } as React.CSSProperties}>
+          <Sheet
+            className={`processExplorerPanel ${explorerCollapsed ? 'collapsed' : ''}`}
+            variant="outlined"
+          >
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent={explorerCollapsed ? 'center' : 'space-between'}
+              className="processExplorerPanelHeader"
+              onClick={() => setExplorerCollapsed(value => !value)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') setExplorerCollapsed(value => !value); }}
+            >
+              {!explorerCollapsed && (
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <FolderOutlined fontSize="small" />
+                  <Typography level="title-sm">Explorateur</Typography>
+                </Stack>
+              )}
+              <IconButton
+                size="sm"
+                variant="plain"
+                color="neutral"
+                onClick={event => { event.stopPropagation(); setExplorerCollapsed(value => !value); }}
+                aria-label={explorerCollapsed ? 'Développer le panneau de navigation' : 'Replier le panneau de navigation'}
+                title={explorerCollapsed ? 'Développer le panneau de navigation' : 'Replier le panneau de navigation'}
+              >
+                {explorerCollapsed ? <ChevronRight /> : <ChevronLeft />}
+              </IconButton>
+            </Stack>
+            {!explorerCollapsed && (
+              <Box className="processExplorerPanelContent">
+                <FolderTree
+                  selectedId={resourceId}
+                  onNodeClick={id => navigate(`/${id}`)}
+                />
+              </Box>
+            )}
+            {!explorerCollapsed && (
+              <Stack
+                direction="row"
+                spacing={0.75}
+                className="processExplorerHistory"
+                alignItems="stretch"
+              >
+                <Button
+                  size="sm"
+                  fullWidth
+                  variant="outlined"
+                  color="neutral"
+                  title="Retour (Ctrl+Z)"
+                  aria-label="Retour (Ctrl+Z)"
+                  onClick={() => navigate(-1)}
+                  startDecorator={<ArrowBack />}
+                  sx={{ flex: 1, minWidth: 0 }}
+                >
+                  Retour
+                </Button>
+                <Button
+                  size="sm"
+                  fullWidth
+                  variant="outlined"
+                  color="neutral"
+                  title="Suivant"
+                  aria-label="Suivant"
+                  onClick={() => navigate(1)}
+                  startDecorator={<ArrowForward />}
+                  sx={{ flex: 1, minWidth: 0 }}
+                >
+                  Suivant
+                </Button>
+              </Stack>
+            )}
+          </Sheet>
+          {!explorerCollapsed && (
+            <Box
+              className="processViewerResizeHandle"
+              role="separator"
+              aria-label="Redimensionner le panneau explorateur"
+              title="Glisser pour régler la largeur de l’explorateur"
+              onMouseDown={event => startPanelResize('explorer', event)}
+            />
+          )}
           <Sheet className="processViewerDiagram" variant="outlined">
             {publishedContent ? (
               <>
@@ -187,6 +338,15 @@ export const ProcessDetails = ({
             )}
           </Sheet>
 
+          {publishedContent && !taskPanelCollapsed && (
+            <Box
+              className="processViewerResizeHandle"
+              role="separator"
+              aria-label="Redimensionner le panneau de tâche"
+              title="Glisser pour régler la largeur du panneau de tâche"
+              onMouseDown={event => startPanelResize('task', event)}
+            />
+          )}
           {publishedContent && (
             <Sheet
               className={`processTaskPanel ${taskPanelCollapsed ? 'collapsed' : ''}`}
@@ -197,6 +357,10 @@ export const ProcessDetails = ({
                 alignItems="center"
                 justifyContent={taskPanelCollapsed ? 'center' : 'space-between'}
                 className="processTaskPanelHeader"
+                onClick={() => setTaskPanelCollapsed(value => !value)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') setTaskPanelCollapsed(value => !value); }}
               >
                 {!taskPanelCollapsed && (
                   <Typography level="title-sm">Fiche de la tâche</Typography>
@@ -205,7 +369,7 @@ export const ProcessDetails = ({
                   size="sm"
                   variant="plain"
                   color="neutral"
-                  onClick={() => setTaskPanelCollapsed(value => !value)}
+                  onClick={event => { event.stopPropagation(); setTaskPanelCollapsed(value => !value); }}
                   aria-label={taskPanelCollapsed ? 'Développer le panneau de tâche' : 'Replier le panneau de tâche'}
                   title={taskPanelCollapsed ? 'Développer le panneau' : 'Replier le panneau'}
                 >

@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Await, Outlet, useParams, useSearchParams } from 'react-router-dom';
 import { Box, Button, Divider, IconButton, Sheet, Stack, Typography } from '@mui/joy';
 import { AccountTreeOutlined, ChevronLeft, ChevronRight, FolderOutlined } from '@mui/icons-material';
-import { useQuery } from 'react-query';
 
 import { ResourceExplorer } from '../../Components/BusinessComponents/ResourceExplorer';
 import { ProcessDetails } from '../../Components/BusinessComponents/ProcessDetails';
@@ -19,8 +18,6 @@ import {
   FolderActions,
 } from './components';
 import { isFolder, isRoot } from '../../shared/helpers/resource';
-import { getXmlContentQuery } from '../../api/contents/contents.queries';
-import { ContentStatusEnum } from '../../Types';
 
 import type { BpmnLayoutRouteParams } from '.';
 import { ResourceType } from '../../shared/types/BpmnResource';
@@ -38,17 +35,6 @@ export const Component = () => {
   }, [resourceId, requestedElementId]);
 
   const { resource, contents, navigationFns, callbacks } = useBpmnLayout();
-  const publishedContent = useMemo(
-    () =>
-      contents
-        .filter(({ status }) => status === ContentStatusEnum.Published)
-        .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0],
-    [contents],
-  );
-  const xmlQuery = getXmlContentQuery(resourceId, publishedContent?.id ?? '');
-  const { data: processXml } = useQuery(xmlQuery.queryKey, xmlQuery.queryFn, {
-    enabled: Boolean(publishedContent?.id && resource?.type === ResourceType.Process),
-  });
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
 
   const actions = useMemo(() => {
@@ -73,12 +59,14 @@ export const Component = () => {
 
   return (
     <div
-      className={`mainContainer ${folderOpen ? 'folderOpen' : 'folderCollapsed'}`}
+      className={`mainContainer ${folderOpen ? 'folderOpen' : 'folderCollapsed'} ${resource && !isFolder(resource) ? 'processViewerActive' : ''}`}
     >
+      {resource && isFolder(resource) && (
       <Sheet
         className="folderTree"
         sx={{
-          position: 'sticky',
+          minWidth: 0,
+          minHeight: 0,
           borderRight: '1px solid',
           borderColor: 'divider',
         }}
@@ -125,14 +113,12 @@ export const Component = () => {
               <FolderTree
                 selectedId={resourceId}
                 onNodeClick={callbacks.folderTree.onFolderTreeItemClick}
-                processXml={resource?.type === ResourceType.Process ? processXml : undefined}
-                selectedElementId={selectedElementId}
-                onElementClick={setSelectedElementId}
               />
             </Box>
           </Box>
         )}
       </Sheet>
+      )}
 
       <Sheet className="innerContent">
         <React.Suspense fallback={<BpmnContentLoading />}>
@@ -148,17 +134,19 @@ export const Component = () => {
                   actions={
                     <Stack direction="row" spacing={1} alignItems="center">
                       {actions}
-                      <Button
-                        size="sm"
-                        variant={folderOpen ? 'soft' : 'outlined'}
-                        color="neutral"
-                        startDecorator={<AccountTreeOutlined />}
-                        onClick={() => setFolderOpen(value => !value)}
-                        aria-expanded={folderOpen}
-                        aria-label={folderOpen ? 'Masquer l’arborescence' : 'Ouvrir l’arborescence'}
-                      >
-                        {folderOpen ? 'Masquer l’arborescence' : 'Arborescence'}
-                      </Button>
+                      {isFolder(resource) && (
+                        <Button
+                          size="sm"
+                          variant={folderOpen ? 'soft' : 'outlined'}
+                          color="neutral"
+                          startDecorator={<AccountTreeOutlined />}
+                          onClick={() => setFolderOpen(value => !value)}
+                          aria-expanded={folderOpen}
+                          aria-label={folderOpen ? 'Masquer l’arborescence' : 'Ouvrir l’arborescence'}
+                        >
+                          {folderOpen ? 'Masquer l’arborescence' : 'Arborescence'}
+                        </Button>
+                      )}
                     </Stack>
                   }
                 />

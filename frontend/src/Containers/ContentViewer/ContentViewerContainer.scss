@@ -1,3 +1,4 @@
+.processViewerWorkspace,
 .viewerLayout {
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr) 0;
@@ -6,6 +7,8 @@
   box-sizing: border-box;
   transition: grid-template-columns 160ms ease;
   height: 100vh;
+  height: 100dvh;
+  min-height: 0;
   width: 100%;
   overflow: hidden;
   background: var(--bpmn-page, #eef2f6);
@@ -23,13 +26,14 @@
   grid-template-columns: 285px minmax(0, 1fr) 285px;
 }
 
+.processTaskPanel,
 .viewerFolderPanel {
   min-width: 0;
   height: 100%;
   min-height: 0;
   overflow: hidden;
   transition: width 160ms ease;
-  border-radius: 10px;
+  border-radius: 0;
   background: var(--joy-palette-background-surface, #fff);
 }
 
@@ -119,6 +123,7 @@
   width: 100%;
 }
 
+.processViewerDiagram,
 .viewerDiagram {
   display: flex;
   flex-direction: column;
@@ -154,7 +159,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  border-radius: 10px;
+  border-radius: 0;
   background: var(--joy-palette-background-surface, #fff);
 }
 
@@ -222,9 +227,12 @@
 
 
 @media (max-width: 1100px) {
-  .viewerLayout,
-  .viewerLayout.sidebar-open {
+  .viewerLayout {
     grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .viewerLayout.sidebar-open {
+    grid-template-columns: 285px minmax(0, 1fr);
   }
 
   .viewerLayout.info-open {
@@ -232,7 +240,7 @@
   }
 
   .viewerLayout.sidebar-open.info-open {
-    grid-template-columns: 42px minmax(0, 1fr);
+    grid-template-columns: 285px minmax(0, 1fr);
   }
 
   .viewerInfoPanel {
