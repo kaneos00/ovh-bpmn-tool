@@ -435,7 +435,7 @@ export const ProcessDetails = ({
                         {selectedTask.externalUrl ? (
                           <Typography level="body-sm">
                             <a
-                              href={/^(https?:)?\\/\\//i.test(selectedTask.externalUrl) ? selectedTask.externalUrl : `https://${selectedTask.externalUrl}`}
+                              href={selectedTask.externalUrl.startsWith('http://') || selectedTask.externalUrl.startsWith('https://') ? selectedTask.externalUrl : `https://${selectedTask.externalUrl}`}
                               target="_blank"
                               rel="noopener noreferrer"
                             >
