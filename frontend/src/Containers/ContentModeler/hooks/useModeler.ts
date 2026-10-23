@@ -47,6 +47,14 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
         canvas.addMarker(element.id, 'bpmn-data-store');
       } else if (element?.type === 'bpmn:DataObjectReference') {
         canvas.addMarker(element.id, 'bpmn-data-object-reference');
+      } else if (element?.type === 'bpmn:ParallelGateway') {
+        canvas.addMarker(element.id, 'bpmn-gateway-parallel');
+      } else if (element?.type === 'bpmn:InclusiveGateway') {
+        canvas.addMarker(element.id, 'bpmn-gateway-inclusive');
+      } else if (element?.type === 'bpmn:ComplexGateway') {
+        canvas.addMarker(element.id, 'bpmn-gateway-complex');
+      } else if (element?.type === 'bpmn:EventBasedGateway') {
+        canvas.addMarker(element.id, 'bpmn-gateway-event-based');
       }
     });
 
