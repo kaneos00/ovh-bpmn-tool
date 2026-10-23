@@ -17,7 +17,7 @@ L'utilisateur Basic Auth défini dans `DEMO_AUTH_USER` est aussi créé comme me
 ## Déploiement
 
 1. Dans Coolify, créer une **nouvelle ressource Compose**, distincte de toute application existante.
-2. Relier le dépôt `kaneos00/ovh-bpmn-tool` et choisir la branche `fix/v2-resource-tree-deletion-guards`.
+2. Relier le dépôt `kaneos00/ovh-bpmn-tool` et choisir la branche de la version candidate `feature/v2-organization-admin` (ou la branche de release après validation).
 3. Chemin du fichier Compose : `deploy/coolify/compose.yaml`.
 4. Définir les variables ci-dessous dans Coolify.
 5. Configurer le domaine HTTPS sur le service `frontend`, port `80`.
@@ -43,4 +43,4 @@ Les scripts PostgreSQL d'initialisation ne s'exécutent que lorsque le volume es
 
 La suppression du volume PostgreSQL efface les données de démonstration. Ne supprimer le volume que si cette perte est intentionnelle. Pour mettre à jour le schéma après le premier démarrage, ajouter une migration dédiée.
 
-La stack utilise un seul compte Basic Auth avec des droits de démonstration en lecture/écriture. C'est un environnement de visualisation, pas une authentification multi-utilisateur de production.
+La stack utilise un seul compte Basic Auth. Dans cette stack strictement isolée, le proxy ajoute les groupes `bpmn-tool-readwrite-demo` et `bpmn-tool-admin-demo` pour permettre de tester aussi l’administration organisationnelle. Cette élévation est limitée au compte de démonstration et ne doit pas être copiée dans la configuration d’authentification de production. C'est un environnement de validation, pas une authentification multi-utilisateur de production.
