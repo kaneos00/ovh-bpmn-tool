@@ -85,6 +85,11 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
   }, [dataTree]);
 
   const nodeById = useMemo(() => new Map(flatNodes.map(node => [node.id, node])), [flatNodes]);
+  // Recent history stores the resource ID used for navigation. A called
+  // process can have a synthetic tree ID so it can appear under its caller;
+  // resolve those history entries through targetId as well.
+  const findResourceNode = (id: string) =>
+    nodeById.get(id) ?? flatNodes.find(node => node.targetId === id);
   const filteredTree = useMemo(() => {
     const term = search.trim().toLocaleLowerCase('fr');
     const filterNode = (node: RenderTree): RenderTree | null => {
@@ -107,10 +112,11 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
     const ids = view === 'favorites' ? favorites : recent;
     const term = search.trim().toLocaleLowerCase('fr');
     return ids
-      .map(id => nodeById.get(id))
+      .map(findResourceNode)
       .filter((node): node is RenderTree => Boolean(node))
+      .filter((node, index, all) => all.findIndex(candidate => candidate.id === node.id) === index)
       .filter(node => !term || node.name.toLocaleLowerCase('fr').includes(term));
-  }, [view, favorites, recent, nodeById, search]);
+  }, [view, favorites, recent, nodeById, flatNodes, search]);
 
   const toggleFavorite = (event: React.MouseEvent, nodeId: string) => {
     event.preventDefault();
