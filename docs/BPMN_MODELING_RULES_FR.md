@@ -127,6 +127,9 @@ flowchart LR
 
 Avant de considérer un diagramme comme prêt, vérifier que :
 
+- [ ] Les libellés des tâches décrivent une action et commencent, autant que possible, par un **verbe d'action à l'infinitif** suivi d'un complément précis (par exemple « Vérifier la demande »), plutôt que par un nom seul (« Vérification »).
+- [ ] Lorsqu'une action est suivie d'un test dont le résultat détermine la suite, l'action est représentée par une tâche et le test par une **passerelle de décision** distincte (généralement XOR), formulée clairement comme une question ou un critère (« Dossier complet ? »).
+- [ ] Les flux sortant de chaque passerelle de décision indiquent explicitement les résultats possibles (« Oui » / « Non », ou des libellés métier tels que « Conforme » / « Non conforme ») et conduisent chacun à une suite cohérente.
 - [ ] Le but et le périmètre du processus sont compréhensibles.
 - [ ] Les événements de début et de fin sont identifiables et cohérents.
 - [ ] Chaque tâche a un nom explicite et se trouve dans la lane responsable.
