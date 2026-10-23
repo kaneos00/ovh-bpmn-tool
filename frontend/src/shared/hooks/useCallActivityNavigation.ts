@@ -47,7 +47,6 @@ export const useCallActivityNavigation = (
   useEffect(() => {
     const eventBus = bpmnInstance.get('eventBus') as BpmnEventBus;
     let indicatorOverlayId: string | number | undefined;
-    let indicatedElementId: string | null = null;
 
     const navigateToCalledProcess = (event: CallActivityEvent) => {
       const businessObject = event.element?.businessObject;
@@ -87,7 +86,6 @@ export const useCallActivityNavigation = (
       const registry = bpmnInstance.get('elementRegistry');
       if (indicatorOverlayId !== undefined) overlays?.remove?.(indicatorOverlayId);
       indicatorOverlayId = undefined;
-      indicatedElementId = null;
       (registry?.getAll?.() ?? []).forEach((element: any) => {
         canvas?.removeMarker?.(element.id, 'bpmn-call-activity-navigable');
       });
@@ -118,7 +116,6 @@ export const useCallActivityNavigation = (
         bpmnInstance.get('overlays')?.remove?.(indicatorOverlayId);
         indicatorOverlayId = undefined;
       }
-      indicatedElementId = null;
 
       const element = (event.newSelection ?? [])[0];
       if (
@@ -137,7 +134,6 @@ export const useCallActivityNavigation = (
         position: { top: -10, right: -10 },
         html: indicator,
       });
-      indicatedElementId = element.id;
     };
 
     eventBus.on('element.dblclick', 1500, navigateToCalledProcess);
