@@ -2,7 +2,7 @@
 
 Dernière mise à jour : 23 octobre 2026  
 Dépôt : [kaneos00/ovh-bpmn-tool](https://github.com/kaneos00/ovh-bpmn-tool)  
-Branche de référence : `work/v2.1-reprise-2026-10-21`
+Branche de référence : `release/v2.2-reference-2026-10-23`
 
 Ce document est la **référence unique de suivi**. Les statuts reflètent les informations et tests rapportés à ce jour ; ils ne signifient pas qu'un comportement est validé si le test n'a pas été explicitement confirmé.
 
@@ -57,7 +57,7 @@ Les estimations sont préliminaires, à confirmer après lecture du code et déf
 | 19 | Afficher les badges R/A/C/I avec les mêmes couleurs pastel que celles déjà utilisées dans l'application | Partiel / réutilisation possible des styles existants | Pas de test spécifique rapporté | **À vérifier puis harmoniser** sans créer une deuxième palette de couleurs | Facile | Faible — IHM |
 | 20 | Depuis une cellule/activité du tableau RACI, cliquer pour pointer vers l'élément BPMN correspondant et le mettre en évidence | Non confirmé | Non testé | **À réaliser** : associer ligne/activité à l'ID BPMN, centrer ou surligner l'élément et gérer les éléments hors diagramme courant | Difficile | Moyen — plusieurs IHM / données |
 | 21 | Dans le Viewer, disposer les onglets Processus, RACI et Historique entre l'explorateur gauche et le détail droit ; permettre une navigation RACI aussi naturelle que celle des processus | Non confirmé | Non testé | **À planifier** après stabilisation V2.1 ; définir la navigation, l'état des onglets et les liens croisés | Difficile | Fort — refonte de la zone Viewer |
-| 22 | Dans le détail droit, présenter verticalement et dans l'ordre : informations de tâche, RACI, documentation ; afficher le lien externe dans la section documentation | Implémenté : informations, RACI et documentation affichés verticalement ; lien externe du modèle affiché dans la documentation lorsqu'il existe | CI en cours ; recette navigateur à faire : sélectionner une tâche avec/sans RACI, documentation et URL, vérifier l'ordre et l'ouverture du lien | 🟡 **À valider** après CI et test Coolify | Moyenne | Faible — IHM |
+| 22 | Dans le détail droit, présenter verticalement et dans l'ordre : informations de tâche, RACI, documentation ; afficher le lien externe dans la section documentation | Oui | Recette utilisateur du 23/10/2026 : point confirmé OK sur la version de référence V2.2 | ✅ **Validé — point fermé le 23/10/2026**. Référence logicielle : `ad9178b` (PR #31) | Moyenne | Faible — IHM |
 
 ## C. Référentiel et explorateur en arborescence graphique
 
