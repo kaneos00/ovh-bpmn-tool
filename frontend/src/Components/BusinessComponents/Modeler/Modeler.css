@@ -148,7 +148,8 @@
   cursor: pointer;
 }
 
-.bpmn-call-activity-link-indicator {
+.bpmn-call-activity-link-indicator,
+.bpmn-selection-arrow {
   display: inline-flex;
   align-items: center;
   justify-content: center;
