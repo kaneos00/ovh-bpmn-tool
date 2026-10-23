@@ -103,11 +103,11 @@ export const useCallActivityNavigation = (
 
       elements.forEach((element: any) => {
         const businessObject = element.businessObject;
-        if (
-          businessObject?.$type === 'bpmn:CallActivity' &&
-          String(businessObject.calledElement ?? '').trim()
-        ) {
-          canvas?.addMarker?.(element.id, 'bpmn-call-activity-navigable');
+        if (businessObject?.$type === 'bpmn:CallActivity') {
+          canvas?.addMarker?.(element.id, 'bpmn-call-activity');
+          if (String(businessObject.calledElement ?? '').trim()) {
+            canvas?.addMarker?.(element.id, 'bpmn-call-activity-navigable');
+          }
         }
       });
     };
