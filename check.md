@@ -95,7 +95,7 @@ Les estimations sont préliminaires, à confirmer après lecture du code et déf
 
 Cet ordre privilégie la stabilisation et les corrections qui bloquent la navigation avant les évolutions de plus grande ampleur.
 
-1. **Navigation et explorateur** : points 7–8 et 23 ; la flèche d'expansion et la présentation des pages dossier restent à corriger.
+1. **Navigation et explorateur** : points 7–8 et 23 ; correctifs candidats ajoutés sur `fix/v2.1-folder-breadcrumb-layout`, validation CI et navigateur requise avant déploiement.
 2. **Minimap et espace de travail** : points 1–5.
 3. **Navigation BPMN, appels, doublons et fluidité** : points 9–13 et 29. Hiérarchie OK et doublons éliminés ; ne pas retoucher les clignotements avant diagnostic des processus.
 4. **Référentiel arbre graphique** : maquette 28, puis points 25–27.
