@@ -61,6 +61,25 @@ function UrlClickHandler(
     return is(element, 'bpmn:Task') && !!getUrl(element);
   }
 
+  function isSubProcess(element: any) {
+    return is(element, 'bpmn:SubProcess') || is(element, 'bpmn:Transaction');
+  }
+
+  function addSubProcessOverlay(element: any) {
+    if (!isSubProcess(element)) return;
+
+    overlays.add(element, 'bpmn-subprocess-link', {
+      position: { top: -10, right: -10 },
+      html: `
+        <span
+          class="bpmn-selection-arrow bpmn-selection-arrow-inward"
+          title="Sous-processus"
+          aria-hidden="true"
+        >↙</span>
+      `,
+    });
+  }
+
   function openUrl(url: string) {
     const normalizedUrl = /^https?:\/\//i.test(url)
       ? url
@@ -160,8 +179,20 @@ function UrlClickHandler(
           data-url-task-id="${element.id}"
           title="Ouvrir le lien"
           style="
-            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            min-width: 22px;
+            min-height: 22px;
+            padding: 0;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            color: #fff;
             background: #1976d2;
+            box-shadow: 0 1px 4px rgb(0 0 0 / 30%);
+            line-height: 1;
           "
         >
           ${ARROW_UP_RIGHT_SVG}
@@ -229,14 +260,9 @@ function UrlClickHandler(
    */
 
   function removeUrlOverlay(element: any) {
-    if (!element) {
-      return;
-    }
-
-    overlays.remove({
-      element,
-      type: 'url-link',
-    });
+    if (!element) return;
+    overlays.remove({ element, type: 'url-link' });
+    overlays.remove({ element, type: 'bpmn-subprocess-link' });
   }
 
   eventBus.on('selection.changed', (event: any) => {
@@ -259,25 +285,24 @@ function UrlClickHandler(
      * sont pas des Tasks.
      */
     newSelection.forEach((element: any) => {
-      if (!is(element, 'bpmn:Task')) {
-        removeUrlOverlay(element);
-      }
+      removeUrlOverlay(element);
     });
 
     const selected = newSelection[0];
+    if (!selected) return;
 
-    if (!selected || !isUrlTask(selected)) {
-      return;
+    if (isUrlTask(selected)) {
+      addOverlay(selected);
+    } else if (isSubProcess(selected)) {
+      addSubProcessOverlay(selected);
     }
-
-    addOverlay(selected);
   });
 
   eventBus.on('element.changed', (event: any) => {
 
     const element = event.element;
 
-    if (!is(element, 'bpmn:Task')) {
+    if (!is(element, 'bpmn:Task') && !isSubProcess(element)) {
       return;
     }
 
@@ -291,13 +316,13 @@ function UrlClickHandler(
     const currentSelection = selection.get();
     const isSelected = currentSelection?.includes(element);
 
-    overlays.remove({
-      element,
-      type: 'url-link',
-    });
+    overlays.remove({ element, type: 'url-link' });
+    overlays.remove({ element, type: 'bpmn-subprocess-link' });
 
-    if (isSelected) {
+    if (isSelected && isUrlTask(element)) {
       addOverlay(element);
+    } else if (isSelected && isSubProcess(element)) {
+      addSubProcessOverlay(element);
     }
   });
 
