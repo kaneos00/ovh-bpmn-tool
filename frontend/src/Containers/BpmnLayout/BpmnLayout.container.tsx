@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Await, Outlet, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Box, Button, Sheet, Stack, Typography } from '@mui/joy';
 import { ArrowBack, ArrowForward, FolderOutlined } from '@mui/icons-material';
@@ -28,6 +28,36 @@ export const Component = () => {
   const [searchParams] = useSearchParams();
   const requestedElementId = searchParams.get('elementId');
   const navigate = useNavigate();
+  const [folderExplorerWidth, setFolderExplorerWidth] = useState(() => {
+    const saved = Number(window.localStorage.getItem('bpmn-viewer-explorer-width'));
+    return Number.isFinite(saved) && saved >= 180 && saved <= 480 ? saved : 248;
+  });
+  const folderResizeCleanupRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    window.localStorage.setItem('bpmn-viewer-explorer-width', String(folderExplorerWidth));
+  }, [folderExplorerWidth]);
+
+  useEffect(() => () => folderResizeCleanupRef.current?.(), []);
+
+  const startFolderExplorerResize = (event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    folderResizeCleanupRef.current?.();
+    const startX = event.clientX;
+    const startWidth = folderExplorerWidth;
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      setFolderExplorerWidth(Math.min(480, Math.max(180, startWidth + moveEvent.clientX - startX)));
+    };
+    const cleanup = () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', cleanup);
+      folderResizeCleanupRef.current = null;
+    };
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', cleanup);
+    folderResizeCleanupRef.current = cleanup;
+  };
+
   const [selectedElementId, setSelectedElementId] = useState<string | null>(requestedElementId);
   useEffect(() => {
     setSelectedElementId(requestedElementId);
@@ -80,7 +110,7 @@ export const Component = () => {
                 />
                 {isFolder(resource) ? (
                   <Box className="processViewerLayout" aria-label="Espace du dossier">
-                    <Box className="processViewerWorkspace">
+                    <Box className="processViewerWorkspace" style={{ "--explorer-width": `${folderExplorerWidth}px` } as React.CSSProperties}>
                       <Sheet className="processExplorerPanel" variant="outlined">
                         <Stack direction="row" alignItems="center" spacing={1} className="processExplorerPanelHeader">
                           <FolderOutlined fontSize="small" />
@@ -97,6 +127,13 @@ export const Component = () => {
                           <Button size="sm" fullWidth variant="outlined" color="neutral" title="Suivant" aria-label="Suivant" onClick={() => navigate(1)} startDecorator={<ArrowForward />} sx={{ flex: 1, minWidth: 0 }}>Suivant</Button>
                         </Stack>
                       </Sheet>
+                      <Box
+                        className="processViewerResizeHandle"
+                        role="separator"
+                        aria-label="Redimensionner le panneau explorateur"
+                        title="Glisser pour régler la largeur de l’explorateur"
+                        onMouseDown={startFolderExplorerResize}
+                      />
                       <Sheet className="processViewerDiagram folderViewerEmptyState" variant="outlined">
                         <Stack spacing={1} alignItems="center" justifyContent="center" sx={{ height: '100%', p: 3, textAlign: 'center' }}>
                           <FolderOutlined sx={{ fontSize: 40, color: 'text.tertiary' }} />
