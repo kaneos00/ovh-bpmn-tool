@@ -57,8 +57,12 @@ function UrlClickHandler(
     return element?.businessObject?.link || '';
   }
 
-  function isUrlTask(element: any) {
-    return is(element, 'bpmn:Task') && !!getUrl(element);
+  function isUrlElement(element: any) {
+    return (
+      is(element, 'bpmn:Task') ||
+      is(element, 'bpmn:DataStoreReference') ||
+      is(element, 'bpmn:DataObjectReference')
+    ) && !!getUrl(element);
   }
 
   function openUrl(url: string) {
@@ -75,7 +79,7 @@ function UrlClickHandler(
 
   function addOverlay(element: any) {
 
-    if (!isUrlTask(element)) {
+    if (!isUrlElement(element)) {
       return;
     }
 
@@ -259,14 +263,14 @@ function UrlClickHandler(
      * sont pas des Tasks.
      */
     newSelection.forEach((element: any) => {
-      if (!is(element, 'bpmn:Task')) {
+      if (!isUrlElement(element)) {
         removeUrlOverlay(element);
       }
     });
 
     const selected = newSelection[0];
 
-    if (!selected || !isUrlTask(selected)) {
+    if (!selected || !isUrlElement(selected)) {
       return;
     }
 
@@ -277,7 +281,7 @@ function UrlClickHandler(
 
     const element = event.element;
 
-    if (!is(element, 'bpmn:Task')) {
+    if (!is(element, 'bpmn:Task') && !is(element, 'bpmn:DataStoreReference') && !is(element, 'bpmn:DataObjectReference')) {
       return;
     }
 
