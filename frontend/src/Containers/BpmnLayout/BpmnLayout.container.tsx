@@ -58,7 +58,7 @@ export const Component = () => {
 
   return (
     <div
-      className={`mainContainer processViewerActive`}
+      className="mainContainer processViewerActive"
     >
       <Sheet className="innerContent">
         <React.Suspense fallback={<BpmnContentLoading />}>
