@@ -201,3 +201,30 @@
   stroke: #ed8b00 !important;
   stroke-width: 2px !important;
 }
+
+
+/* Gateway colors: distinct, pastel fills with stronger accessible outlines. */
+.djs-element.bpmn-gateway-parallel .djs-visual > polygon,
+.djs-element.bpmn-gateway-parallel .djs-visual > path {
+  fill: #e3f2fd !important;
+  stroke: #1565c0 !important;
+  stroke-width: 2px !important;
+}
+.djs-element.bpmn-gateway-inclusive .djs-visual > polygon,
+.djs-element.bpmn-gateway-inclusive .djs-visual > path {
+  fill: #f3e5f5 !important;
+  stroke: #7b1fa2 !important;
+  stroke-width: 2px !important;
+}
+.djs-element.bpmn-gateway-complex .djs-visual > polygon,
+.djs-element.bpmn-gateway-complex .djs-visual > path {
+  fill: #ede7f6 !important;
+  stroke: #512da8 !important;
+  stroke-width: 2px !important;
+}
+.djs-element.bpmn-gateway-event-based .djs-visual > polygon,
+.djs-element.bpmn-gateway-event-based .djs-visual > path {
+  fill: #e0f2f1 !important;
+  stroke: #00796b !important;
+  stroke-width: 2px !important;
+}
