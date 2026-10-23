@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="230" viewBox="0 0 900 230" role="img" aria-labelledby="title desc">
+<title id="title">Exemple BPMN : début, tâche et fin</title><desc id="desc">Un événement de début mène à la tâche Vérifier la demande, puis à un événement de fin.</desc>
+<rect width="900" height="230" fill="#fff"/><rect x="18" y="18" width="864" height="194" rx="4" fill="none" stroke="#555" stroke-width="1.5"/><text x="36" y="43" font-family="Arial,sans-serif" font-size="15" fill="#333">Processus : traiter une demande</text>
+<circle cx="112" cy="125" r="22" fill="#fff" stroke="#333" stroke-width="2"/><text x="112" y="166" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="#333">Début</text>
+<path d="M134 125 H285" stroke="#333" stroke-width="2" fill="none"/><path d="M275 119 L285 125 L275 131" stroke="#333" stroke-width="2" fill="none"/>
+<rect x="285" y="91" width="270" height="68" rx="10" fill="#fff" stroke="#333" stroke-width="2"/><text x="420" y="120" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" fill="#333">Vérifier la demande</text><text x="420" y="141" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#555">Tâche</text>
+<path d="M555 125 H735" stroke="#333" stroke-width="2" fill="none"/><path d="M725 119 L735 125 L725 131" stroke="#333" stroke-width="2" fill="none"/>
+<circle cx="760" cy="125" r="22" fill="#fff" stroke="#333" stroke-width="4"/><text x="760" y="166" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="#333">Fin</text>
+</svg>
