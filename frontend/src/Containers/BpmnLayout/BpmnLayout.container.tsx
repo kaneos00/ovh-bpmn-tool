@@ -3,7 +3,6 @@ import { Await, Outlet, useParams, useSearchParams } from 'react-router-dom';
 import { Box, Button, Divider, IconButton, Sheet, Stack, Typography } from '@mui/joy';
 import { AccountTreeOutlined, ChevronLeft, ChevronRight, FolderOutlined } from '@mui/icons-material';
 
-import { ResourceExplorer } from '../../Components/BusinessComponents/ResourceExplorer';
 import { ProcessDetails } from '../../Components/BusinessComponents/ProcessDetails';
 
 import { useBpmnLayout } from './hooks/useBpmnLayout';
@@ -34,7 +33,7 @@ export const Component = () => {
     setSelectedElementId(requestedElementId);
   }, [resourceId, requestedElementId]);
 
-  const { resource, contents, navigationFns, callbacks } = useBpmnLayout();
+  const { resource, contents, callbacks } = useBpmnLayout();
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
 
   const actions = useMemo(() => {
@@ -151,11 +150,11 @@ export const Component = () => {
                   }
                 />
                 {isFolder(resource) ? (
-                  <ResourceExplorer
-                    parentId={resourceId}
-                    getActionLink={navigationFns.getResourceActionLink}
-                    getResourceLink={navigationFns.getResourceLink}
-                  />
+                  <Box sx={{ flex: 1, minHeight: 0 }} aria-label="Contenu du dossier">
+                    <Typography level="body-sm" sx={{ p: 2, color: 'text.tertiary' }}>
+                      Sélectionnez un processus dans l’explorateur pour l’ouvrir.
+                    </Typography>
+                  </Box>
                 ) : (
                   <ProcessDetails
                     resourceId={resourceId}
