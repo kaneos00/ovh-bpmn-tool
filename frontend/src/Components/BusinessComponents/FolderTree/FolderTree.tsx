@@ -208,7 +208,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
       ) : view === 'tree' ? (
         <>
         <ListItem sx={{ p: 0, display: 'block', minWidth: 0 }}>
-          <ListItemContent sx={{ minWidth: 0 }}>
+          <ListItemContent sx={{ minWidth: 0, "& .rct-tree-item-arrow": { display: "none !important" } }}>
             <ControlledTreeEnvironment
               items={treeItems}
               getItemTitle={item => item.data.name}
