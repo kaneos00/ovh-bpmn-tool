@@ -88,7 +88,7 @@ function UrlEntry(props: any) {
 
     id,
 
-    label: 'URL',
+    label: is(element, 'bpmn:DataStoreReference') ? 'URL de l’outil associé' : 'URL',
 
     getValue,
 
