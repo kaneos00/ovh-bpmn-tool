@@ -204,16 +204,13 @@
 }
 
 
-/* All BPMN gateways (exclusive, parallel, inclusive, complex, event-based)
-   use the same dark purple diamond. The first visual child is the gateway outline
-   across the different bpmn-js renderers. */
+/* All BPMN gateways use the same dark-purple outline; keep their fill unchanged. */
 .djs-element.bpmn-gateway-exclusive .djs-visual > :first-child,
 .djs-element.bpmn-gateway-exclusive .djs-visual > :first-child,
 .djs-element.bpmn-gateway-parallel .djs-visual > :first-child,
 .djs-element.bpmn-gateway-inclusive .djs-visual > :first-child,
 .djs-element.bpmn-gateway-complex .djs-visual > :first-child,
 .djs-element.bpmn-gateway-event-based .djs-visual > :first-child {
-  fill: #6a0dad !important;
   stroke: #6a0dad !important;
   stroke-width: 2px !important;
 }
