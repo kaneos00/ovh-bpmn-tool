@@ -69,8 +69,10 @@ export const routes = [
         lazy: () => import('./Containers/MyWorkspace'),
       },
       {
+        // Compatibility redirect for old bookmarks; the legacy graph page is
+        // replaced by the root folder in the main BPMN layout.
         path: '/reference/tree',
-        lazy: () => import('./Containers/ReferenceTree'),
+        loader: () => redirect('/root'),
       },
       {
         path: '/projects',
