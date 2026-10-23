@@ -142,7 +142,6 @@ export const ProcessDetails = ({
     window.addEventListener('mouseup', cleanup);
     resizeCleanupRef.current = cleanup;
   };
-  const [taskPanelSection, setTaskPanelSection] = useState<'details' | 'documentation' | 'raci'>('details');
 
   useEffect(() => {
     const onHistoryShortcut = (event: KeyboardEvent) => {
