@@ -258,7 +258,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                         variant="plain"
                         color="neutral"
                         title={expandedNodes.includes(nodeId) ? 'Replier les éléments' : 'Développer les éléments'}
-                        aria-label={expandedNodes.includes(nodeId) ? 'Replier ' + node?.name : 'Développer ' + node?.name}
+                        aria-label={expandedNodes.includes(nodeId) ? `Replier ${node?.name}` : `Développer ${node?.name}`}
                         onClick={event => {
                           event.preventDefault();
                           event.stopPropagation();
