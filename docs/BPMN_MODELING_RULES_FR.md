@@ -2,6 +2,28 @@
 
 > Objectif : disposer d'un guide court et cohérent pour créer, relire et, plus tard, contrôler les diagrammes dans BPMN Tool. Ce document présente des règles pratiques ; il ne remplace pas la spécification BPMN 2.0.
 
+## Illustrations BPMN
+
+Les schémas ci-dessous illustrent les conventions avec une notation BPMN classique. Les fichiers SVG sont des aperçus statiques adaptés à la lecture dans GitHub.
+
+### 1. Événement de début, tâche et événement de fin
+
+![Exemple BPMN : début, tâche et fin](images/bpmn-basic-flow.svg)
+
+Un événement de début lance le processus, une tâche réalise une action et un événement de fin marque la fin du chemin.
+
+### 2. Décision avec une passerelle exclusive
+
+![Exemple BPMN : passerelle exclusive et conditions Oui/Non](images/bpmn-decision.svg)
+
+La passerelle exclusive (XOR) dirige le flux vers un seul chemin. Les conditions « Oui » et « Non » sont indiquées sur les flux sortants.
+
+### 3. Fichier et référentiel partagés entre processus
+
+![Exemple BPMN : deux processus qui utilisent un référentiel](images/bpmn-data-reference.svg)
+
+Le premier processus met à jour le fichier ou référentiel ; le second le consulte. Les associations de données en pointillés représentent l'utilisation des données et **ne signifient pas à elles seules que le processus B attend la fin du processus A**. Si une dépendance temporelle est nécessaire, elle doit être modélisée séparément.
+
 ## 1. Structure générale
 
 - Décrire un processus avec un objectif clair et un nom explicite, formulé avec un verbe d'action si possible.
