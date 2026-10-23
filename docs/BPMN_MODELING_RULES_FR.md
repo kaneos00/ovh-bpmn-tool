@@ -50,6 +50,12 @@ Le premier processus met à jour le fichier ou référentiel ; le second le cons
 - Employer un sous-processus pour regrouper des étapes liées qui méritent leur propre niveau de détail.
 - Une **Call Activity** (activité d'appel) sert à invoquer un processus réutilisable distinct ; ne pas la confondre avec un sous-processus intégré.
 
+### Bien formuler une action suivie d'un test
+
+Nommer une tâche avec **un verbe d'action à l'infinitif et un complément précis** : « Vérifier la conformité de la facture », plutôt que « Facture » ou « Vérification ». Une tâche décrit le travail réalisé ; si le résultat détermine la suite du processus, représenter la décision séparément par une **passerelle exclusive (XOR)**. Formuler son libellé comme une question ou un critère clair, par exemple « Facture conforme ? », puis nommer chaque flux sortant selon son résultat : « Conforme » / « Non conforme » (ou « Oui » / « Non »). Chaque chemin doit conduire à une suite cohérente. Ne pas remplacer la passerelle par une tâche nommée « Vérifier si… » lorsque le processus doit réellement se diviser.
+
+**Exemple :** « Contrôler les pièces justificatives » → passerelle « Dossier complet ? » → « Oui » : « Instruire la demande » ; « Non » : « Demander les pièces manquantes ». Si plusieurs résultats métier sont possibles, prévoir un chemin explicite pour chacun ou préciser les regroupements.
+
 ## 4. Flux et décisions
 
 - Le **flux de séquence** (trait continu avec flèche) indique l'ordre d'exécution. Il reste à l'intérieur d'un même pool, y compris entre ses lanes.
