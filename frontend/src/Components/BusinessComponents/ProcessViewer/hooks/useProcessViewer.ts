@@ -227,6 +227,26 @@ export const useProcessViewer = (
     applySelectionRef.current();
   }, [selectedElementId]);
 
+  // Keep the React toolbar state and the diagram-js minimap service in sync.
+  // Toggling only the canvas CSS class unhides the minimap container but does
+  // not open the minimap itself when the viewer was created with open: false.
+  useEffect(() => {
+    try {
+      const minimap = viewer.get('minimap') as {
+        open?: () => void;
+        close?: () => void;
+      };
+      if (minimapVisible) {
+        minimap.open?.();
+      } else {
+        minimap.close?.();
+      }
+    } catch {
+      // The viewer may not have registered the minimap service in a test or
+      // alternate viewer configuration; the rest of the process viewer works.
+    }
+  }, [minimapVisible, viewer]);
+
   useEffect(() => () => {
     try {
       viewer.destroy();
