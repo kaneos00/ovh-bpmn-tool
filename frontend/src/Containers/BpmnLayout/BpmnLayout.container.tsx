@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Await, Outlet, useParams, useSearchParams } from 'react-router-dom';
+import { Await, Outlet, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Box, Button, Divider, IconButton, Sheet, Stack, Typography } from '@mui/joy';
-import { AccountTreeOutlined, ChevronLeft, ChevronRight, FolderOutlined } from '@mui/icons-material';
+import { ArrowBack, ArrowForward, FolderOutlined } from '@mui/icons-material';
 
 import { ProcessDetails } from '../../Components/BusinessComponents/ProcessDetails';
 
@@ -27,7 +27,7 @@ export const Component = () => {
   const { resourceId } = useParams() as BpmnLayoutRouteParams;
   const [searchParams] = useSearchParams();
   const requestedElementId = searchParams.get('elementId');
-  const [folderOpen, setFolderOpen] = useState(false);
+  const navigate = useNavigate();
   const [selectedElementId, setSelectedElementId] = useState<string | null>(requestedElementId);
   useEffect(() => {
     setSelectedElementId(requestedElementId);
@@ -58,67 +58,8 @@ export const Component = () => {
 
   return (
     <div
-      className={`mainContainer ${folderOpen ? 'folderOpen' : 'folderCollapsed'} ${resource && !isFolder(resource) ? 'processViewerActive' : ''}`}
+      className={`mainContainer processViewerActive`}
     >
-      {resource && isFolder(resource) && (
-      <Sheet
-        className="folderTree"
-        sx={{
-          minWidth: 0,
-          minHeight: 0,
-          borderRight: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: folderOpen ? 'flex-end' : 'center',
-            padding: '8px',
-            minHeight: '48px',
-          }}
-        >
-          <IconButton
-            size="sm"
-            variant="plain"
-            onClick={() => setFolderOpen(value => !value)}
-            title={folderOpen ? 'Replier le panneau du référentiel' : 'Développer le panneau du référentiel'}
-            aria-label={folderOpen ? 'Replier le panneau du référentiel' : 'Développer le panneau du référentiel'}
-          >
-            {folderOpen ? <ChevronLeft /> : <ChevronRight />}
-          </IconButton>
-        </Box>
-
-        {!folderOpen ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, py: 1 }}>
-            <IconButton
-              size="sm"
-              variant="plain"
-              title="Explorateur"
-              aria-label="Ouvrir l’explorateur"
-              onClick={() => setFolderOpen(true)}
-            >
-              <FolderOutlined />
-            </IconButton>
-          </Box>
-        ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1, overflow: 'hidden' }}>
-            <Box sx={{ px: 1.5, py: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <FolderOutlined fontSize="small" />
-              <Typography level="title-sm">Explorateur</Typography>
-            </Box>
-            <Divider />
-            <Box sx={{ overflowY: 'auto', minHeight: 0, flex: 1, pb: 2 }}>
-              <FolderTree
-                selectedId={resourceId}
-                onNodeClick={callbacks.folderTree.onFolderTreeItemClick}
-              />
-            </Box>
-          </Box>
-        )}
-      </Sheet>
-      )}
-
       <Sheet className="innerContent">
         <React.Suspense fallback={<BpmnContentLoading />}>
           <Await resolve={resource}>
@@ -133,27 +74,39 @@ export const Component = () => {
                   actions={
                     <Stack direction="row" spacing={1} alignItems="center">
                       {actions}
-                      {isFolder(resource) && (
-                        <Button
-                          size="sm"
-                          variant={folderOpen ? 'soft' : 'outlined'}
-                          color="neutral"
-                          startDecorator={<AccountTreeOutlined />}
-                          onClick={() => setFolderOpen(value => !value)}
-                          aria-expanded={folderOpen}
-                          aria-label={folderOpen ? 'Masquer l’arborescence' : 'Ouvrir l’arborescence'}
-                        >
-                          {folderOpen ? 'Masquer l’arborescence' : 'Arborescence'}
-                        </Button>
-                      )}
+
                     </Stack>
                   }
                 />
                 {isFolder(resource) ? (
-                  <Box sx={{ flex: 1, minHeight: 0 }} aria-label="Contenu du dossier">
-                    <Typography level="body-sm" sx={{ p: 2, color: 'text.tertiary' }}>
-                      Sélectionnez un processus dans l’explorateur pour l’ouvrir.
-                    </Typography>
+                  <Box className="processViewerLayout" aria-label="Espace du dossier">
+                    <Box className="processViewerWorkspace">
+                      <Sheet className="processExplorerPanel" variant="outlined">
+                        <Stack direction="row" alignItems="center" spacing={1} className="processExplorerPanelHeader">
+                          <FolderOutlined fontSize="small" />
+                          <Typography level="title-sm">Explorateur</Typography>
+                        </Stack>
+                        <Box className="processExplorerPanelContent">
+                          <FolderTree
+                            selectedId={resourceId}
+                            onNodeClick={callbacks.folderTree.onFolderTreeItemClick}
+                          />
+                        </Box>
+                        <Stack direction="row" spacing={0.75} className="processExplorerHistory" alignItems="stretch">
+                          <Button size="sm" fullWidth variant="outlined" color="neutral" title="Retour" aria-label="Retour" onClick={() => navigate(-1)} startDecorator={<ArrowBack />} sx={{ flex: 1, minWidth: 0 }}>Retour</Button>
+                          <Button size="sm" fullWidth variant="outlined" color="neutral" title="Suivant" aria-label="Suivant" onClick={() => navigate(1)} startDecorator={<ArrowForward />} sx={{ flex: 1, minWidth: 0 }}>Suivant</Button>
+                        </Stack>
+                      </Sheet>
+                      <Sheet className="processViewerDiagram folderViewerEmptyState" variant="outlined">
+                        <Stack spacing={1} alignItems="center" justifyContent="center" sx={{ height: '100%', p: 3, textAlign: 'center' }}>
+                          <FolderOutlined sx={{ fontSize: 40, color: 'text.tertiary' }} />
+                          <Typography level="title-lg">{resource.name}</Typography>
+                          <Typography level="body-sm" sx={{ color: 'text.tertiary' }}>
+                            Sélectionnez un processus dans l’explorateur pour afficher son diagramme.
+                          </Typography>
+                        </Stack>
+                      </Sheet>
+                    </Box>
                   </Box>
                 ) : (
                   <ProcessDetails
