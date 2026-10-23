@@ -93,11 +93,23 @@ export const useCallActivityNavigation = (
       });
     };
 
-    // Do not mark every linked activity on import. The link indicator is shown
-    // only for the activity the user clicks, keeping the diagram visually quiet.
+    // Mark linked activities only with a pointer cursor. The blue link badge
+    // itself is created only after the user clicks a specific activity.
     const decorateCallActivities = () => {
       if (!enableSingleClick) return;
-      removeIndicators();
+      const registry = bpmnInstance.get('elementRegistry');
+      const canvas = bpmnInstance.get('canvas');
+      const elements = registry?.getAll?.() ?? [];
+
+      elements.forEach((element: any) => {
+        const businessObject = element.businessObject;
+        if (
+          businessObject?.$type === 'bpmn:CallActivity' &&
+          String(businessObject.calledElement ?? '').trim()
+        ) {
+          canvas?.addMarker?.(element.id, 'bpmn-call-activity-navigable');
+        }
+      });
     };
 
     const showIndicatorForClickedCallActivity = (event: CallActivityEvent) => {
