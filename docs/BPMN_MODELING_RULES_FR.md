@@ -56,10 +56,34 @@ Nommer une tâche avec **un verbe d'action à l'infinitif et un complément pré
 
 **Exemple :** « Contrôler les pièces justificatives » → passerelle « Dossier complet ? » → « Oui » : « Instruire la demande » ; « Non » : « Demander les pièces manquantes ». Si plusieurs résultats métier sont possibles, prévoir un chemin explicite pour chacun ou préciser les regroupements.
 
+Vue schématique du même principe (le losange représente la décision ; le schéma Mermaid explique la logique et ne remplace pas la notation BPMN) :
+
+```mermaid
+flowchart LR
+    A("Contrôler les pièces justificatives") --> B{"Dossier complet ?"}
+    B -->|Oui| C("Instruire la demande")
+    B -->|Non| D("Demander les pièces manquantes")
+```
+
 ## 4. Flux et décisions
 
 - Le **flux de séquence** (trait continu avec flèche) indique l'ordre d'exécution. Il reste à l'intérieur d'un même pool, y compris entre ses lanes.
 - Le **flux de message** (trait discontinu avec cercle au départ et flèche ouverte) représente un échange entre participants/pools différents. Il ne remplace pas un flux de séquence.
+
+Repère visuel : le flux de séquence ordonne les étapes d'un même processus ; le flux de message représente un échange entre participants.
+
+```mermaid
+flowchart LR
+    subgraph P1["Pool : Client"]
+        A("Envoyer la demande")
+    end
+    subgraph P2["Pool : Entreprise"]
+        B("Recevoir la demande")
+        C("Étudier la demande")
+        B --> C
+    end
+    A -. "Message" .-> B
+```
 - Une **association** (trait pointillé) relie un élément à une information ou à une annotation ; elle ne définit pas l'ordre d'exécution.
 - Utiliser une **passerelle** (losange) pour représenter une divergence ou une convergence du flux :
   - **Exclusive (XOR)** : un seul chemin est choisi selon une condition.
