@@ -31,9 +31,16 @@ const getProcessLinks = (xml: string) => {
     processIds: Array.from(document.getElementsByTagNameNS(BPMN_MODEL_NS, 'process'))
       .map(element => element.getAttribute('id')?.trim() || '')
       .filter(Boolean),
-    targets: Array.from(document.getElementsByTagNameNS(BPMN_MODEL_NS, 'callActivity'))
-      .map(element => element.getAttribute('calledElement')?.trim() || '')
-      .filter(Boolean),
+    targets: [
+      ...Array.from(document.getElementsByTagNameNS(BPMN_MODEL_NS, 'callActivity'))
+        .map(element => element.getAttribute('calledElement')?.trim() || ''),
+      // A collapsed BPMN sub-process can represent a separately modelled
+      // resource in this repository. Link it only when its BPMN id resolves
+      // unambiguously to another process resource below.
+      ...Array.from(document.getElementsByTagNameNS(BPMN_MODEL_NS, 'subProcess'))
+        .filter(element => element.getAttribute('isExpanded') === 'false')
+        .map(element => element.getAttribute('id')?.trim() || ''),
+    ].filter(Boolean),
   };
 };
 
