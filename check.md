@@ -91,7 +91,14 @@ Les estimations sont préliminaires, à confirmer après lecture du code et déf
 | 38 | Ajouter une page de saisie/inventaire des données qui recense fichiers et bases de données avec leurs informations | Non | Non testé | **À cadrer** : métadonnées, types de sources, propriétaires, liens, droits et éventuelles intégrations | Difficile | Fort — nouvelle fonctionnalité / modèle métier |
 | 39 | Ajouter un moteur de vérification de la formulation des actions, pour s'assurer qu'une action est claire et bien exprimée | Non | Non testé | **À cadrer** : critères de qualité, règles de validation, suggestions et éventuelle assistance linguistique ; ne pas bloquer une action sans règle définie | Difficile | Fort — nouvelle fonctionnalité / moteur de validation |
 
-## F. Ordre de traitement recommandé
+## F. Modèles BPMN et export documentaire
+
+| N° | Point / résultat attendu | Traité dans le code ? | Test fonctionnel | Statut / prochaine action | Facilité | Impact |
+|---:|---|---|---|---|---|---|
+| 40 | Proposer des modèles BPMN réutilisables, dont un modèle avec des lanes préconfigurées pour trois rôles ; les noms des rôles doivent être personnalisables et le modèle doit pouvoir servir de point de départ à un nouveau processus | Non | Non testé | **À cadrer puis concevoir** : définir le mécanisme de création/duplication de modèle, les libellés par défaut des trois lanes, leur personnalisation et la manière de maintenir les modèles. Vérifier que le résultat reste un BPMN valide et éditable | Moyenne | Moyen — IHM / gestion des modèles |
+| 41 | Exporter un diagramme BPMN en SVG prêt à intégrer dans un document A4. Si le processus est trop long, proposer une découpe automatique en plusieurs pages/segments, avec en-têtes cohérents et identiques ; la première page doit montrer le point d'arrêt et la page suivante le point de reprise, clairement reliés et sans ambiguïté sur la continuité du flux | Non | Non testé | **À cadrer puis prototyper** : définir les dimensions et marges A4, l'échelle/lecture minimale, la règle de découpe et les cas où une activité ou un flux traverse la coupure. Répéter les en-têtes et ajouter des repères de continuation/reprise correspondants ; produire un SVG distinct par page et vérifier que l'ensemble reste lisible et fidèle au BPMN source. Prévoir aperçu avant export et tests sur processus courts, longs et avec plusieurs lanes | Difficile | Fort — rendu BPMN / export documentaire |
+ 
+## G. Ordre de traitement recommandé
 
 Cet ordre privilégie la stabilisation et les corrections qui bloquent la navigation avant les évolutions de plus grande ampleur.
 
@@ -103,6 +110,7 @@ Cet ordre privilégie la stabilisation et les corrections qui bloquent la naviga
 6. **Couleurs BPMN et Data Store** : points 35–36.
 7. **Responsabilités et gouvernance** : points 31–34.
 8. **Fonctionnalités nouvelles** : points 32, 37–39, après cadrage métier.
+9. **Modèles BPMN et export A4/SVG** : points 40–41 ; cadrer le modèle à trois rôles puis prototyper la pagination automatique SVG.
 
 ## Règles de mise à jour
 
