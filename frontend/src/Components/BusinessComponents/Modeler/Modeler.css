@@ -217,7 +217,7 @@
 }
 
 /* Call Activity outlines should remain distinct but not overly heavy. */
-.djs-element.bpmn-call-activity-navigable .djs-visual > rect,
-.djs-element.bpmn-call-activity-navigable .djs-visual > path {
+.djs-element.bpmn-call-activity .djs-visual > rect,
+.djs-element.bpmn-call-activity .djs-visual > path {
   stroke-width: 1.5px !important;
 }
