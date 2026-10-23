@@ -196,6 +196,17 @@ export const useProcessViewer = (
         eventBus.on('element.click', onElementClick);
         eventBus.on('element.dblclick', onElementDoubleClick);
         clickListenerAttached = true;
+        const canvas = viewer.get('canvas') as any;
+        const elementRegistry = viewer.get('elementRegistry') as any;
+        elementRegistry.getAll().forEach((element: any) => {
+          if (element?.type === 'bpmn:StartEvent') {
+            canvas.addMarker(element.id, 'bpmn-start-event');
+          } else if (element?.type === 'bpmn:EndEvent') {
+            canvas.addMarker(element.id, 'bpmn-end-event');
+          } else if (element?.type === 'bpmn:DataStoreReference') {
+            canvas.addMarker(element.id, 'bpmn-data-store');
+          }
+        });
         fitDiagramToWidth();
         importedRef.current = true;
         // Keep the minimap closed on import; users can open it manually from the viewer controls.
