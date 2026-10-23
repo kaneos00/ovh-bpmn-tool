@@ -179,3 +179,23 @@
   min-height: 0;
   overflow: hidden;
 }
+
+
+/* Semantic BPMN colors shared by the editor and read-only viewer. */
+.djs-element.bpmn-start-event .djs-visual > circle {
+  stroke: #2e7d32 !important;
+}
+.djs-element.bpmn-end-event .djs-visual > circle {
+  stroke: #c62828 !important;
+  stroke-width: 3px !important;
+}
+.djs-element.bpmn-data-store .djs-visual > path {
+  fill: #fff0d6 !important;
+  stroke: #ed8b00 !important;
+  stroke-width: 2px !important;
+}
+.djs-element.bpmn-data-store .djs-visual > rect {
+  fill: #fff0d6 !important;
+  stroke: #ed8b00 !important;
+  stroke-width: 2px !important;
+}
