@@ -383,16 +383,26 @@ export const ProcessDetails = ({
                     <>
                       <Box>
                         <Typography level="title-lg">{selectedTask.name}</Typography>
-                        <Typography level="body-xs" textColor="neutral">
-                          {selectedTask.type} · {selectedTask.id}
-                        </Typography>
+                        <Typography level="body-sm">Type BPMN : {selectedTask.type}</Typography>
+                        <Typography level="body-sm">Identifiant : {selectedTask.id}</Typography>
                       </Box>
 
                       <Divider />
                       <Stack spacing={1}>
-                        <Typography level="title-sm">1. Informations de la tâche</Typography>
-                        <Typography level="body-sm">Type BPMN : {selectedTask.type}</Typography>
-                        <Typography level="body-sm">Identifiant : {selectedTask.id}</Typography>
+                        <Typography level="title-sm">1. Description de la tâche</Typography>
+                        {selectedTask.documentation.length ? (
+                          selectedTask.documentation.map((entry, index) => (
+                            <Sheet key={index} variant="soft" sx={{ p: 1, borderRadius: 'sm' }}>
+                              <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>
+                                {entry}
+                              </Typography>
+                            </Sheet>
+                          ))
+                        ) : (
+                          <Typography level="body-sm" textColor="neutral">
+                            Aucune description n'est renseignée pour cette tâche.
+                          </Typography>
+                        )}
                       </Stack>
 
                       <Divider />
@@ -418,19 +428,6 @@ export const ProcessDetails = ({
                       <Divider />
                       <Stack spacing={1}>
                         <Typography level="title-sm">3. Documentation</Typography>
-                        {selectedTask.documentation.length ? (
-                          selectedTask.documentation.map((entry, index) => (
-                            <Sheet key={index} variant="soft" sx={{ p: 1, borderRadius: 'sm' }}>
-                              <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>
-                                {entry}
-                              </Typography>
-                            </Sheet>
-                          ))
-                        ) : (
-                          <Typography level="body-sm" textColor="neutral">
-                            Aucune documentation n'est renseignée dans le modèle BPMN.
-                          </Typography>
-                        )}
                         {selectedTask.externalUrl ? (
                           <Typography level="body-sm">
                             <a
@@ -438,7 +435,7 @@ export const ProcessDetails = ({
                               target="_blank"
                               rel="noopener noreferrer"
                             >
-                              Ouvrir le lien externe associé
+                              {selectedTask.externalUrl}
                             </a>
                           </Typography>
                         ) : null}
