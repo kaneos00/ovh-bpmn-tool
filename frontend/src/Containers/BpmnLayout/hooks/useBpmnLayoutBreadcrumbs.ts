@@ -23,7 +23,7 @@ export const useBpmnLayoutBreadcrumbs = () => {
     ).map(({ id, name }) => ({
       id,
       label: id === 'root' ? 'Référentiel' : name,
-      to: id === 'root' ? '/reference/tree' : `/${id}`,
+      to: id === 'root' ? '/root' : `/${id}`,
     }));
 
     return [
