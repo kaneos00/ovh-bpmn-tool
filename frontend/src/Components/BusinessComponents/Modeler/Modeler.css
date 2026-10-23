@@ -189,12 +189,14 @@
   stroke: #c62828 !important;
   stroke-width: 3px !important;
 }
-.djs-element.bpmn-data-store .djs-visual > path {
+.djs-element.bpmn-data-store .djs-visual > path,
+.djs-element.bpmn-data-object-reference .djs-visual > path {
   fill: #fff0d6 !important;
   stroke: #ed8b00 !important;
   stroke-width: 2px !important;
 }
-.djs-element.bpmn-data-store .djs-visual > rect {
+.djs-element.bpmn-data-store .djs-visual > rect,
+.djs-element.bpmn-data-object-reference .djs-visual > rect {
   fill: #fff0d6 !important;
   stroke: #ed8b00 !important;
   stroke-width: 2px !important;
