@@ -15,6 +15,8 @@ import {
   AccessTime,
   DescriptionOutlined,
   FolderOutlined,
+  ChevronRight,
+  ExpandMore,
   Star,
   StarBorder,
   Search,
@@ -151,16 +153,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
     const node = nodeById.get(selected);
     if (!node) return;
 
-    // Folder labels expand/collapse in place; only process rows navigate.
-    if (node.type === 'folder') {
-      setExpandedNodes(current =>
-        current.includes(selected)
-          ? current.filter(id => id !== selected)
-          : [...current, selected],
-      );
-      return;
-    }
-
+    // Selecting a row navigates to that resource; expansion is handled only by its arrow.
     onNodeClick(node.targetId ?? selected);
   };
 
@@ -215,7 +208,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
       ) : view === 'tree' ? (
         <>
         <ListItem sx={{ p: 0, display: 'block', minWidth: 0 }}>
-          <ListItemContent sx={{ minWidth: 0 }}>
+          <ListItemContent sx={{ minWidth: 0, "& .rct-tree-item-arrow": { display: "none !important" } }}>
             <ControlledTreeEnvironment
               items={treeItems}
               getItemTitle={item => item.data.name}
@@ -229,6 +222,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
               onExpandItem={item => setExpandedNodes(current => current.includes(String(item.index)) ? current : [...current, String(item.index)])}
               onCollapseItem={item => setExpandedNodes(current => current.filter(id => id !== String(item.index)))}
               onSelectItems={handleTreeSelection}
+              renderItemArrow={() => null}
               renderItemTitle={({ item, title }) => {
                 const nodeId = String(item.index);
                 const node = nodeById.get(nodeId);
@@ -236,20 +230,29 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                 return (
                   <Box
                     component="span"
-                    onClick={event => {
-                      if (node?.type !== 'folder') return;
-                      event.preventDefault();
-                      event.stopPropagation();
-                      setExpandedNodes(current =>
-                        current.includes(nodeId)
-                          ? current.filter(id => id !== nodeId)
-                          : [...current, nodeId],
-                      );
-                    }}
                     sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, width: '100%', minWidth: 0 }}
                   >
                     {node?.type === 'folder' ? <FolderOutlined fontSize="small" /> : <DescriptionOutlined fontSize="small" />}
                     <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</Box>
+                    {Boolean(node?.children?.length) && (
+                      <IconButton
+                        size="sm"
+                        variant="plain"
+                        color="neutral"
+                        title={expandedNodes.includes(nodeId) ? 'Replier les éléments' : 'Développer les éléments'}
+                        aria-label={expandedNodes.includes(nodeId) ? `Replier ${node?.name}` : `Développer ${node?.name}`}
+                        onClick={event => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setExpandedNodes(current => current.includes(nodeId)
+                            ? current.filter(id => id !== nodeId)
+                            : [...current, nodeId]);
+                        }}
+                        sx={{ minWidth: 24, minHeight: 24, p: 0.25, flexShrink: 0 }}
+                      >
+                        {expandedNodes.includes(nodeId) ? <ExpandMore fontSize="small" /> : <ChevronRight fontSize="small" />}
+                      </IconButton>
+                    )}
                     {node && nodeId !== 'root' && (
                       <IconButton
                         size="sm"

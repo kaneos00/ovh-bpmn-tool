@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
+  Chip,
   Divider,
   IconButton,
   Sheet,
@@ -14,7 +15,7 @@ import {
   Tabs,
   Typography,
 } from '@mui/joy';
-import { ArrowBack, ArrowForward, Compare, FileCopy, ChevronLeft, ChevronRight, DescriptionOutlined, FolderOutlined, GroupsOutlined, InfoOutlined } from '@mui/icons-material';
+import { ArrowBack, ArrowForward, Compare, FileCopy, ChevronLeft, ChevronRight, FolderOutlined } from '@mui/icons-material';
 import { useQuery } from 'react-query';
 
 import { useProcessDetails } from './hooks/useProcessDetails';
@@ -41,6 +42,15 @@ type ProcessDetailsProps = {
   onCompareClick: (leftContentId: string, rightContentId: string) => void;
   selectedElementId?: string | null;
   onElementSelect?: (elementId: string) => void;
+};
+
+const getElementTypeBadgeColor = (type: string) => {
+  if (type === 'startEvent') return 'success';
+  if (type === 'endEvent') return 'danger';
+  if (type.toLowerCase().includes('gateway')) return 'success';
+  if (type === 'callActivity' || type === 'subProcess' || type === 'transaction') return 'primary';
+  if (type.toLowerCase().includes('data')) return 'warning';
+  return 'primary';
 };
 
 export const ProcessDetails = ({
@@ -142,7 +152,6 @@ export const ProcessDetails = ({
     window.addEventListener('mouseup', cleanup);
     resizeCleanupRef.current = cleanup;
   };
-  const [taskPanelSection, setTaskPanelSection] = useState<'details' | 'documentation' | 'raci'>('details');
 
   useEffect(() => {
     const onHistoryShortcut = (event: KeyboardEvent) => {
@@ -177,6 +186,7 @@ export const ProcessDetails = ({
       name: element.getAttribute('name')?.trim() || selectedElementId,
       type: element.localName,
       documentation,
+      externalUrl: Array.from(element.attributes).find(attribute => attribute.localName === 'link')?.value?.trim() || '',
     };
   }, [xmlContent, selectedElementId]);
 
@@ -363,7 +373,7 @@ export const ProcessDetails = ({
                 onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') setTaskPanelCollapsed(value => !value); }}
               >
                 {!taskPanelCollapsed && (
-                  <Typography level="title-sm">Fiche de la tâche</Typography>
+                  <Typography level="title-sm">Fiche de l’élément</Typography>
                 )}
                 <IconButton
                   size="sm"
@@ -383,102 +393,76 @@ export const ProcessDetails = ({
                     <>
                       <Box>
                         <Typography level="title-lg">{selectedTask.name}</Typography>
-                        <Typography level="body-xs" textColor="neutral">
-                          {selectedTask.type} · {selectedTask.id}
-                        </Typography>
+                        <Chip
+                          size="md"
+                          variant="soft"
+                          color={getElementTypeBadgeColor(selectedTask.type)}
+                          sx={{ alignSelf: 'flex-start', fontWeight: 600 }}
+                        >
+                          {selectedTask.type.replace(/([A-Z])/g, ' $1').replace(/^./, value => value.toUpperCase()).trim()}
+                        </Chip>
+                        <Typography level="body-sm">Identifiant : {selectedTask.id}</Typography>
                       </Box>
 
-                      <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-                        <Button
-                          size="sm"
-                          variant={taskPanelSection === 'details' ? 'soft' : 'plain'}
-                          color={taskPanelSection === 'details' ? 'primary' : 'neutral'}
-                          startDecorator={<InfoOutlined />}
-                          onClick={() => setTaskPanelSection('details')}
-                        >
-                          Fiche
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={taskPanelSection === 'documentation' ? 'soft' : 'plain'}
-                          color={taskPanelSection === 'documentation' ? 'primary' : 'neutral'}
-                          startDecorator={<DescriptionOutlined />}
-                          onClick={() => setTaskPanelSection('documentation')}
-                        >
-                          Documentation
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={taskPanelSection === 'raci' ? 'soft' : 'plain'}
-                          color={taskPanelSection === 'raci' ? 'primary' : 'neutral'}
-                          startDecorator={<GroupsOutlined />}
-                          onClick={() => setTaskPanelSection('raci')}
-                        >
-                          RACI
-                        </Button>
-                      </Stack>
                       <Divider />
+                      <Stack spacing={1}>
+                        <Typography level="title-sm">1. Description de la tâche</Typography>
+                        {selectedTask.documentation.length ? (
+                          selectedTask.documentation.map((entry, index) => (
+                            <Sheet key={index} variant="soft" sx={{ p: 1, borderRadius: 'sm' }}>
+                              <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>
+                                {entry}
+                              </Typography>
+                            </Sheet>
+                          ))
+                        ) : (
+                          <Typography level="body-sm" textColor="neutral">
+                            Aucune description n'est renseignée pour cette tâche.
+                          </Typography>
+                        )}
+                      </Stack>
 
-                      {taskPanelSection === 'details' && (
-                        <Stack spacing={1}>
-                          <Typography level="title-sm">Informations</Typography>
+                      <Divider />
+                      <Stack spacing={1}>
+                        <Typography level="title-sm">2. RACI</Typography>
+                        {selectedTaskRaciCells.length ? (
+                          selectedTaskRaciCells.map(cell => (
+                            <Stack key={cell.role} direction="row" spacing={1} alignItems="center">
+                              <Typography level="body-sm" sx={{ flex: 1 }}>{cell.role}</Typography>
+                              <Typography level="title-sm">{cell.codes.join(' / ')}</Typography>
+                            </Stack>
+                          ))
+                        ) : (
+                          <Typography level="body-sm" textColor="neutral">
+                            Aucun rôle RACI détecté pour cette tâche.
+                          </Typography>
+                        )}
+                        <Typography level="body-xs" textColor="neutral">
+                          R = Réalise · A = Approuve / redevable · C = Consulté · I = Informé
+                        </Typography>
+                      </Stack>
+
+                      <Divider />
+                      <Stack spacing={1}>
+                        <Typography level="title-sm">3. Documentation</Typography>
+                        {selectedTask.externalUrl ? (
                           <Typography level="body-sm">
-                            Type BPMN : {selectedTask.type}
+                            <a
+                              href={selectedTask.externalUrl.startsWith('http://') || selectedTask.externalUrl.startsWith('https://') ? selectedTask.externalUrl : `https://${selectedTask.externalUrl}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {selectedTask.externalUrl}
+                            </a>
                           </Typography>
-                          <Typography level="body-sm">
-                            Documentation : {selectedTask.documentation.length ? 'disponible' : 'non renseignée'}
-                          </Typography>
-                          <Typography level="body-xs" textColor="neutral">
-                            Sélectionnez Documentation ou RACI pour consulter les informations associées à cette tâche.
-                          </Typography>
-                        </Stack>
-                      )}
-
-                      {taskPanelSection === 'documentation' && (
-                        <Stack spacing={1}>
-                          <Typography level="title-sm">Documentation associée</Typography>
-                          {selectedTask.documentation.length ? (
-                            selectedTask.documentation.map((entry, index) => (
-                              <Sheet key={index} variant="soft" sx={{ p: 1, borderRadius: 'sm' }}>
-                                <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>
-                                  {entry}
-                                </Typography>
-                              </Sheet>
-                            ))
-                          ) : (
-                            <Typography level="body-sm" textColor="neutral">
-                              Aucune documentation n'est renseignée dans le modèle BPMN pour cette tâche.
-                            </Typography>
-                          )}
-                        </Stack>
-                      )}
-
-                      {taskPanelSection === 'raci' && (
-                        <Stack spacing={1}>
-                          <Typography level="title-sm">Rôles RACI associés</Typography>
-                          {selectedTaskRaciCells.length ? (
-                            selectedTaskRaciCells.map(cell => (
-                                <Stack key={cell.role} direction="row" spacing={1} alignItems="center">
-                                  <Typography level="body-sm" sx={{ flex: 1 }}>{cell.role}</Typography>
-                                  <Typography level="title-sm">{cell.codes.join(' / ')}</Typography>
-                                </Stack>
-                              ))
-                          ) : (
-                            <Typography level="body-sm" textColor="neutral">
-                              Aucun rôle RACI détecté pour cette tâche.
-                            </Typography>
-                          )}
-                          <Typography level="body-xs" textColor="neutral">
-                            R = Réalise · A = Approuve / redevable · C = Consulté · I = Informé
-                          </Typography>
-                        </Stack>
-                      )}
+                        ) : null}
+                      </Stack>
                     </>
                   ) : (
                     <Stack spacing={1}>
-                      <Typography level="title-md">Aucune tâche sélectionnée</Typography>
+                      <Typography level="title-md">Aucun élément sélectionné</Typography>
                       <Typography level="body-sm" textColor="neutral">
-                        Sélectionnez une tâche dans le diagramme ou dans l'arborescence de gauche pour afficher sa fiche, sa documentation et son RACI.
+                        Sélectionnez un élément dans le diagramme pour afficher ses informations, sa documentation et, pour les activités, son RACI.
                       </Typography>
                     </Stack>
                   )}

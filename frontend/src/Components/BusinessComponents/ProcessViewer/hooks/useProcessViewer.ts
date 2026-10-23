@@ -163,7 +163,10 @@ export const useProcessViewer = (
         element.type.endsWith('Task') ||
         element.type === 'bpmn:CallActivity' ||
         element.type === 'bpmn:SubProcess' ||
-        element.type === 'bpmn:Transaction';
+        element.type === 'bpmn:Transaction' ||
+        element.type === 'bpmn:StartEvent' ||
+        element.type === 'bpmn:EndEvent' ||
+        element.type.endsWith('Gateway');
       if (!isSelectableElement) return;
 
       const now = Date.now();
@@ -196,6 +199,29 @@ export const useProcessViewer = (
         eventBus.on('element.click', onElementClick);
         eventBus.on('element.dblclick', onElementDoubleClick);
         clickListenerAttached = true;
+        const canvas = viewer.get('canvas') as any;
+        const elementRegistry = viewer.get('elementRegistry') as any;
+        elementRegistry.getAll().forEach((element: any) => {
+          if (element?.type === 'bpmn:StartEvent') {
+            canvas.addMarker(element.id, 'bpmn-start-event');
+          } else if (element?.type === 'bpmn:EndEvent') {
+            canvas.addMarker(element.id, 'bpmn-end-event');
+          } else if (element?.type === 'bpmn:DataStoreReference') {
+            canvas.addMarker(element.id, 'bpmn-data-store');
+          } else if (element?.type === 'bpmn:DataObjectReference') {
+            canvas.addMarker(element.id, 'bpmn-data-object-reference');
+          } else if (element?.type === 'bpmn:ExclusiveGateway') {
+            canvas.addMarker(element.id, 'bpmn-gateway-exclusive');
+          } else if (element?.type === 'bpmn:ParallelGateway') {
+            canvas.addMarker(element.id, 'bpmn-gateway-parallel');
+          } else if (element?.type === 'bpmn:InclusiveGateway') {
+            canvas.addMarker(element.id, 'bpmn-gateway-inclusive');
+          } else if (element?.type === 'bpmn:ComplexGateway') {
+            canvas.addMarker(element.id, 'bpmn-gateway-complex');
+          } else if (element?.type === 'bpmn:EventBasedGateway') {
+            canvas.addMarker(element.id, 'bpmn-gateway-event-based');
+          }
+        });
         fitDiagramToWidth();
         importedRef.current = true;
         // Keep the minimap closed on import; users can open it manually from the viewer controls.

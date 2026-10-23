@@ -18,7 +18,7 @@ class UrlPropertiesProvider {
        * Il ne doit donc pas apparaître dans le panneau de propriétés
        * lorsqu'une Lane, un Participant ou un autre élément est sélectionné.
        */
-      if (!is(element, 'bpmn:Task')) {
+      if (!is(element, 'bpmn:Task') && !is(element, 'bpmn:DataStoreReference') && !is(element, 'bpmn:DataObjectReference')) {
         return groups;
       }
 
@@ -30,7 +30,7 @@ class UrlPropertiesProvider {
 
         id: 'url',
 
-        label: 'URL',
+        label: (is(element, 'bpmn:DataStoreReference') || is(element, 'bpmn:DataObjectReference')) ? 'URL de l’outil associé' : 'URL',
 
         entries: [
 
@@ -88,7 +88,7 @@ function UrlEntry(props: any) {
 
     id,
 
-    label: 'URL',
+    label: is(element, 'bpmn:DataStoreReference') ? 'URL de l’outil associé' : 'URL',
 
     getValue,
 

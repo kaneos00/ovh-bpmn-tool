@@ -179,3 +179,46 @@
   min-height: 0;
   overflow: hidden;
 }
+
+
+/* Semantic BPMN colors shared by the editor and read-only viewer. */
+.djs-element.bpmn-start-event .djs-visual > circle {
+  stroke: #2e7d32 !important;
+}
+.djs-element.bpmn-end-event .djs-visual > circle {
+  stroke: #c62828 !important;
+  stroke-width: 3px !important;
+}
+.djs-element.bpmn-data-store .djs-visual > path,
+.djs-element.bpmn-data-object-reference .djs-visual > path {
+  fill: #fff0d6 !important;
+  stroke: #ed8b00 !important;
+  stroke-width: 2px !important;
+}
+.djs-element.bpmn-data-store .djs-visual > rect,
+.djs-element.bpmn-data-object-reference .djs-visual > rect {
+  fill: #fff0d6 !important;
+  stroke: #ed8b00 !important;
+  stroke-width: 2px !important;
+}
+
+
+/* All BPMN gateways (exclusive, parallel, inclusive, complex, event-based)
+   use the same green diamond. The first visual child is the gateway outline
+   across the different bpmn-js renderers. */
+.djs-element.bpmn-gateway-exclusive .djs-visual > :first-child,
+.djs-element.bpmn-gateway-exclusive .djs-visual > :first-child,
+.djs-element.bpmn-gateway-parallel .djs-visual > :first-child,
+.djs-element.bpmn-gateway-inclusive .djs-visual > :first-child,
+.djs-element.bpmn-gateway-complex .djs-visual > :first-child,
+.djs-element.bpmn-gateway-event-based .djs-visual > :first-child {
+  fill: #e8f5e9 !important;
+  stroke: #2e7d32 !important;
+  stroke-width: 2px !important;
+}
+
+/* Call Activity outlines should remain distinct but not overly heavy. */
+.djs-element.bpmn-call-activity .djs-visual > rect,
+.djs-element.bpmn-call-activity .djs-visual > path {
+  stroke-width: 1.5px !important;
+}
