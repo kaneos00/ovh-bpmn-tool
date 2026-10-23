@@ -148,7 +148,8 @@
   cursor: pointer;
 }
 
-.bpmn-call-activity-link-indicator {
+.bpmn-call-activity-link-indicator,
+.bpmn-selection-arrow {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -203,17 +204,14 @@
 }
 
 
-/* All BPMN gateways (exclusive, parallel, inclusive, complex, event-based)
-   use the same green diamond. The first visual child is the gateway outline
-   across the different bpmn-js renderers. */
+/* All BPMN gateways use the same dark-purple outline; keep their fill unchanged. */
 .djs-element.bpmn-gateway-exclusive .djs-visual > :first-child,
 .djs-element.bpmn-gateway-exclusive .djs-visual > :first-child,
 .djs-element.bpmn-gateway-parallel .djs-visual > :first-child,
 .djs-element.bpmn-gateway-inclusive .djs-visual > :first-child,
 .djs-element.bpmn-gateway-complex .djs-visual > :first-child,
 .djs-element.bpmn-gateway-event-based .djs-visual > :first-child {
-  fill: #e8f5e9 !important;
-  stroke: #2e7d32 !important;
+  stroke: #6a0dad !important;
   stroke-width: 2px !important;
 }
 
