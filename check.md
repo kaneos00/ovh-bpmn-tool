@@ -10,9 +10,9 @@ Ce document est la **référence unique de suivi**. Les statuts reflètent les i
 
 ### Statut — repères visuels
 - 🟢 **Validé** : le test fonctionnel a été explicitement déclaré OK.
-- 🟡 🟡 **Partiel** : code présent ou test partiel, mais résultat incomplet.
-- 🔴 🔴 **À corriger** : un défaut est signalé ou la fonctionnalité reste à faire.
-- 🔵 🔵 **À tester** : le code existe, mais le test fonctionnel n'est pas confirmé.
+- 🟡 **Partiel** : code présent ou test partiel, mais résultat incomplet.
+- 🔴 **À corriger** : un défaut est signalé ou la fonctionnalité reste à faire.
+- 🔵 **À tester** : le code existe, mais le test fonctionnel n'est pas confirmé.
 - 🟣 **À planifier / cadrer** : évolution future ou besoin métier à définir.
 - ⚪ **Non confirmé / non testé** : aucune preuve suffisante à ce stade.
 
