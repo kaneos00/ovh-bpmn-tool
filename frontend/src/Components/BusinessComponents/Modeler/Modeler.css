@@ -207,6 +207,7 @@
    use the same green diamond. The first visual child is the gateway outline
    across the different bpmn-js renderers. */
 .djs-element.bpmn-gateway-exclusive .djs-visual > :first-child,
+.djs-element.bpmn-gateway-exclusive .djs-visual > :first-child,
 .djs-element.bpmn-gateway-parallel .djs-visual > :first-child,
 .djs-element.bpmn-gateway-inclusive .djs-visual > :first-child,
 .djs-element.bpmn-gateway-complex .djs-visual > :first-child,
