@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
+  Chip,
   Divider,
   IconButton,
   Sheet,
@@ -363,7 +364,7 @@ export const ProcessDetails = ({
                 onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') setTaskPanelCollapsed(value => !value); }}
               >
                 {!taskPanelCollapsed && (
-                  <Typography level="title-sm">Fiche de la tâche</Typography>
+                  <Typography level="title-sm">Fiche de l’élément</Typography>
                 )}
                 <IconButton
                   size="sm"
@@ -383,7 +384,21 @@ export const ProcessDetails = ({
                     <>
                       <Box>
                         <Typography level="title-lg">{selectedTask.name}</Typography>
-                        <Typography level="body-sm">Type BPMN : {selectedTask.type}</Typography>
+                        <Chip
+                          size="md"
+                          variant="soft"
+                          color={
+                            selectedTask.type === 'startEvent' ? 'success' :
+                            selectedTask.type === 'endEvent' ? 'danger' :
+                            selectedTask.type.toLowerCase().includes('gateway') ? 'success' :
+                            selectedTask.type === 'callActivity' ? 'primary' :
+                            selectedTask.type === 'subProcess' || selectedTask.type === 'transaction' ? 'primary' :
+                            selectedTask.type.toLowerCase().includes('data') ? 'warning' : 'primary'
+                          }
+                          sx={{ alignSelf: 'flex-start', fontWeight: 600 }}
+                        >
+                          {selectedTask.type.replace(/([A-Z])/g, ' $1').replace(/^./, value => value.toUpperCase()).trim()}
+                        </Chip>
                         <Typography level="body-sm">Identifiant : {selectedTask.id}</Typography>
                       </Box>
 
@@ -443,9 +458,9 @@ export const ProcessDetails = ({
                     </>
                   ) : (
                     <Stack spacing={1}>
-                      <Typography level="title-md">Aucune tâche sélectionnée</Typography>
+                      <Typography level="title-md">Aucun élément sélectionné</Typography>
                       <Typography level="body-sm" textColor="neutral">
-                        Sélectionnez une tâche dans le diagramme ou dans l'arborescence de gauche pour afficher sa fiche, sa documentation et son RACI.
+                        Sélectionnez un élément dans le diagramme pour afficher ses informations, sa documentation et, pour les activités, son RACI.
                       </Typography>
                     </Stack>
                   )}
