@@ -79,3 +79,25 @@ test('explorer exposes tree, recent and favorites views with explicit expand/col
   assert.match(tree, /onExpandItem=\{item => setExpandedNodes/);
   assert.match(tree, /onCollapseItem=\{item => setExpandedNodes/);
 });
+
+
+test('external link indicator is limited to the selected linked Call Activity', async () => {
+  const navigation = await read('src/shared/hooks/useCallActivityNavigation.ts');
+
+  assert.match(navigation, /eventBus\\.on\\('selection\\.changed', 1000, showIndicatorForSelectedCallActivity\\)/);
+  assert.match(navigation, /if \\(indicatorOverlayId !== undefined\\)[\\s\\S]*?overlays\\?\\.remove\\?\\.\\(indicatorOverlayId\\)/);
+  assert.match(navigation, /element\\.businessObject\\?\\.\\$type !== 'bpmn:CallActivity'/);
+  assert.match(navigation, /!String\\(element\\.businessObject\\.calledElement \\?\\? ''\\)\\.trim\\(\\)/);
+  assert.match(navigation, /indicator\\.className = 'bpmn-call-activity-link-indicator bpmn-selection-arrow-inward'/);
+  assert.match(navigation, /indicatorOverlayId = bpmnInstance\\.get\\('overlays'\\)\\?\\.add\\?\\.\\(element/);
+  assert.match(navigation, /eventBus\\.off\\('selection\\.changed', showIndicatorForSelectedCallActivity\\)/);
+});
+
+test('external task URL is rendered as a safe external link in the documentation section', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.match(details, /selectedTask\\.externalUrl \\? \\(/);
+  assert.match(details, /href=\\{selectedTask\\.externalUrl/);
+  assert.match(details, /target="_blank"/);
+  assert.match(details, /rel="noreferrer"/);
+});
