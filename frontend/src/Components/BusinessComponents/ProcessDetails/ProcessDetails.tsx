@@ -47,7 +47,7 @@ type ProcessDetailsProps = {
 const getElementTypeBadgeColor = (type: string) => {
   if (type === 'startEvent') return 'success';
   if (type === 'endEvent') return 'danger';
-  if (type.toLowerCase().includes('gateway')) return 'success';
+  if (type.toLowerCase().includes('gateway')) return 'neutral';
   if (type === 'callActivity' || type === 'subProcess' || type === 'transaction') return 'primary';
   if (type.toLowerCase().includes('data')) return 'warning';
   return 'primary';
@@ -397,7 +397,17 @@ export const ProcessDetails = ({
                           size="md"
                           variant="soft"
                           color={getElementTypeBadgeColor(selectedTask.type)}
-                          sx={{ alignSelf: 'flex-start', fontWeight: 600 }}
+                          sx={{
+                            alignSelf: 'flex-start',
+                            fontWeight: 600,
+                            ...(selectedTask.type.toLowerCase().includes('gateway')
+                              ? {
+                                  color: '#6a0dad',
+                                  backgroundColor: '#f3e8ff',
+                                  border: '1px solid #6a0dad',
+                                }
+                              : {}),
+                          }}
                         >
                           {selectedTask.type.replace(/([A-Z])/g, ' $1').replace(/^./, value => value.toUpperCase()).trim()}
                         </Chip>
