@@ -1,8 +1,8 @@
 # Check — suivi des corrections et évolutions BPMN V2
 
-Dernière mise à jour : 23 octobre 2026  
+Dernière mise à jour : 24 octobre 2026  
 Dépôt : [kaneos00/ovh-bpmn-tool](https://github.com/kaneos00/ovh-bpmn-tool)  
-Branche de référence : `release/v2.2-reference-2026-10-23`
+Branche de référence : `release/v2.2-reference-2026-10-24`
 
 Ce document est la **référence unique de suivi**. Les statuts reflètent les informations et tests rapportés à ce jour ; ils ne signifient pas qu'un comportement est validé si le test n'a pas été explicitement confirmé.
 
@@ -32,7 +32,7 @@ Les estimations sont préliminaires, à confirmer après lecture du code et déf
 | N° | Point / résultat attendu | Traité dans le code ? | Test fonctionnel | Statut / prochaine action | Facilité | Impact |
 |---:|---|---|---|---|---|---|
 | 1 | Minimap : fermée à l'ouverture/sélection d'un processus ; ouverture/fermeture uniquement via l'action prévue (+/−) ; diagramme initial à l'échelle 1:1, en haut à gauche | Oui, plusieurs commits ; comportement retouché, dont `37575a4` | Partiel ; minimap encore signalée visible à la sélection du processus | **À corriger**. Comparer les commits précédents où le comportement avait été corrigé, puis tester sélection, import et boutons | Moyenne | Faible — IHM |
-| 2 | Les trois panneaux (explorateur gauche, BPMN central, détail droit) vont jusqu'en bas, ont la même hauteur et des coins carrés ; le BPMN garde un maximum d'espace | Oui, plusieurs retouches CSS/Flex ; PR #26 | Partiel : hauteur déclarée OK à un moment, puis débordement et diagramme central trop réduit signalés | **À corriger / retester**. Éviter les règles de hauteur concurrentes ; vérifier différentes tailles d'écran | Moyenne | Faible — IHM |
+| 2 | Les trois panneaux (explorateur gauche, BPMN central, détail droit) restent visibles, vont jusqu'en bas, ont la même hauteur et des coins carrés ; le BPMN garde un maximum d'espace | Oui : correctifs CSS/Flex validés sur la branche de référence `release/v2.2-reference-2026-10-24` (`6490a45`, `bf0a5e0`) | Recette Coolify du 24 octobre 2026 : l'utilisateur confirme que les trois panneaux sont visibles et descendent jusqu'en bas de la fenêtre | ✅ **Validé — point fermé le 24/10/2026**. La recette utilisateur confirme le résultat attendu ; CI verte sur le commit de référence | Moyenne | Faible — IHM |
 | 3 | Boutons Retour/Suivant sur toute la largeur du bas de l'explorateur ; raccourci Ctrl+Z ; boutons masqués ou adaptés lorsque le panneau est replié | Oui, confirmé dans les commits précédents | Retour/Suivant, Ctrl+Z et affichage dans l'état replié testés OK ; fonctionnement confirmé après reconnexion | **✅ Validé — point fermé** | Facile | Faible — IHM |
 | 4 | Largeur des panneaux gauche et droit réglable à la souris et mémorisée | Oui, correction présente dans les commits précédents | Redimensionnement des deux côtés et mémorisation testés OK, y compris après reconnexion | **✅ Validé — point fermé** | Moyenne | Faible — IHM |
 | 5 | Panneau de détail droit fermé par défaut ; clic sur son titre pour ouvrir/fermer ; sélection d'un élément BPMN ouvre le détail ; état mémorisé selon le besoin validé | Oui, PR #26 et retouches associées | Partiel | **À tester** : fermeture au démarrage, ouverture par sélection/clic, comportement lorsque les panneaux sont repliés, persistance | Moyenne | Faible — IHM |
@@ -57,7 +57,7 @@ Les estimations sont préliminaires, à confirmer après lecture du code et déf
 | 19 | Afficher les badges R/A/C/I avec les mêmes couleurs pastel que celles déjà utilisées dans l'application | Partiel / réutilisation possible des styles existants | Pas de test spécifique rapporté | **À vérifier puis harmoniser** sans créer une deuxième palette de couleurs | Facile | Faible — IHM |
 | 20 | Depuis une cellule/activité du tableau RACI, cliquer pour pointer vers l'élément BPMN correspondant et le mettre en évidence | Non confirmé | Non testé | **À réaliser** : associer ligne/activité à l'ID BPMN, centrer ou surligner l'élément et gérer les éléments hors diagramme courant | Difficile | Moyen — plusieurs IHM / données |
 | 21 | Dans le Viewer, disposer les onglets Processus, RACI et Historique entre l'explorateur gauche et le détail droit ; permettre une navigation RACI aussi naturelle que celle des processus | Non confirmé | Non testé | **À planifier** après stabilisation V2.1 ; définir la navigation, l'état des onglets et les liens croisés | Difficile | Fort — refonte de la zone Viewer |
-| 22 | Dans le détail droit, présenter verticalement et dans l'ordre : informations de tâche, RACI, documentation ; afficher le lien externe dans la section documentation | Oui | Recette utilisateur du 23/10/2026 : point confirmé OK sur la version de référence V2.2 | ✅ **Validé — point fermé le 23/10/2026**. Référence logicielle : `ad9178b` (PR #31) | Moyenne | Faible — IHM |
+| 22 | Dans le détail droit, présenter verticalement et dans l'ordre : informations de tâche, RACI, documentation ; afficher le lien externe dans la section documentation | Oui | Recette utilisateur confirmée OK ; fonctionnalité conservée dans la référence V2.2 | ✅ **Validé — point fermé le 24/10/2026**. Référence V2.2 : `bf0a5e0` (CI verte) | Moyenne | Faible — IHM |
 
 ## C. Référentiel et explorateur en arborescence graphique
 
