@@ -57,3 +57,25 @@ test('explorer node selection navigates to the selected resource', async () => {
 
   assert.match(details, /<FolderTree[\s\S]*?selectedId=\{resourceId\}[\s\S]*?onNodeClick=\{id => navigate\(\`\/\$\{id\}\`\)\}/);
 });
+
+test('linked Call Activity opens its target only on double-click and handles missing targets', async () => {
+  const navigation = await read('src/shared/hooks/useCallActivityNavigation.ts');
+
+  assert.match(navigation, /eventBus\.on\('element\.dblclick', 1500, navigateToCalledProcess\)/);
+  assert.match(navigation, /businessObject\?\.\$type !== 'bpmn:CallActivity'/);
+  assert.match(navigation, /String\(businessObject\.calledElement \?\? ''\)\.trim\(\)/);
+  assert.match(navigation, /navigate\(\`\/\$\{targetResourceId\}\`\)/);
+  assert.match(navigation, /Cette activité d’appel n’est pas liée à un processus BPMN Tool/);
+  assert.match(navigation, /Accès au processus impossible/);
+});
+
+test('explorer exposes tree, recent and favorites views with explicit expand/collapse handlers', async () => {
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+
+  assert.match(tree, /type ExplorerView = 'tree' \| 'recent' \| 'favorites'/);
+  assert.match(tree, /\['tree', 'Arborescence'\]/);
+  assert.match(tree, /\['recent', 'Récents'\]/);
+  assert.match(tree, /\['favorites', 'Favoris'\]/);
+  assert.match(tree, /onExpandItem=\{item => setExpandedNodes/);
+  assert.match(tree, /onCollapseItem=\{item => setExpandedNodes/);
+});
