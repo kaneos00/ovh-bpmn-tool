@@ -11,7 +11,7 @@ test('viewer starts with the minimap hidden and exposes an explicit toggle', asy
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
   const component = await read('src/Components/BusinessComponents/ProcessViewer/ProcessViewer.tsx');
 
-  assert.match(hook, /useState\(false\).*?minimapVisible/s);
+  assert.match(hook, /const \[minimapVisible, setMinimapVisible\] = useState\(false\)/);
   assert.match(hook, /Keep the minimap closed on import/);
   assert.match(component, /onClick=\{\(\) => setMinimapVisible\(visible => !visible\)\}/);
   assert.match(component, /aria-label=\{minimapVisible \? 'Masquer la mini-carte' : 'Afficher la mini-carte'\}/);
@@ -47,7 +47,7 @@ test('viewer delegates called-process navigation to the shared hook', async () =
 test('detail panel starts collapsed and opens when an element is selected', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
 
-  assert.match(details, /useState\(true\);\s*\n\s*const \[explorerWidth/);
+  assert.match(details, /const \[taskPanelCollapsed, setTaskPanelCollapsed\] = useState\(true\)/);
   assert.match(details, /if \(selectedElementId\) setTaskPanelCollapsed\(false\)/);
   assert.match(details, /externalUrl:\s*Array\.from\(element\.attributes\)[\s\S]*?attribute\.localName === 'link'/);
 });
