@@ -28,3 +28,41 @@ jobs:
           node-version: 24
       - name: Run deterministic viewer regression tests
         run: node --test frontend/tests/ui-regression.test.mjs frontend/tests/viewer-interactions.test.mjs
+
+  frontend-unit-tests:
+    name: Frontend business unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.3
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+      - name: Compile isolated TypeScript modules for Node's test runner
+        working-directory: frontend
+        run: >-
+          pnpm exec tsc
+          src/api/helpers.ts
+          src/api/types.ts
+          src/Components/BusinessComponents/Modeler/helpers.ts
+          src/extensions/raci-engine.ts
+          --target ES2022
+          --module ESNext
+          --moduleResolution bundler
+          --outDir .test-dist
+          --skipLibCheck
+          --strict false
+      - name: Run frontend business unit tests
+        working-directory: frontend
+        run: node --test tests/unit/*.test.mjs
