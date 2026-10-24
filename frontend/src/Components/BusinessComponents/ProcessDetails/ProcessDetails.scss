@@ -2,7 +2,8 @@
   box-sizing: border-box;
   min-height: 0;
   flex: 1 1 0;
-  height: auto;
+  /* This is a flex child below the app header: let flex allocate the remaining height. */
+  height: 0;
   width: 100%;
   display: flex;
   overflow: hidden;
@@ -12,6 +13,7 @@
   box-sizing: border-box;
   min-height: 0;
   min-width: 0;
+  height: 0;
   /* Keep the tab stack tied to the available viewport height, not panel content. */
   flex: 1 1 0;
   display: flex;
@@ -34,7 +36,7 @@
   flex: 1 1 0;
   flex-direction: column;
   min-height: 0;
-  height: auto;
+  height: 0;
   align-self: stretch;
   overflow: hidden;
 }
