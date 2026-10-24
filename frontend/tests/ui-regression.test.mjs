@@ -36,10 +36,10 @@ test('all five BPMN gateway types map to markers styled with the same violet str
 
   for (const [type, marker] of gateways) {
     assert.match(viewer, new RegExp(`bpmn:${type}[^\\n]*\\n\\s*canvas\\.addMarker\\(element\\.id, 'bpmn-gateway-${marker}'\\)`));
-    assert.ok(modelerCss.includes(`.djs-element.bpmn-gateway-${marker} .djs-visual > :first-child`), `missing shared gateway style for ${type}`);
+    assert.ok(modelerCss.includes(`.djs-element.bpmn-gateway-${marker} .djs-visual > *`), `missing shared gateway style for ${type}`);
   }
 
-  const sharedGatewayStyle = modelerCss.match(/\/\* All BPMN gateways use the same[\s\S]*?\*\/([\s\S]*?)(?=\/\*|$)/);
+  const sharedGatewayStyle = modelerCss.match(/\/\* All gateways share a dark-purple outline[\s\S]*?\*\/([\s\S]*?)(?=\/\*|$)/);
   assert.ok(sharedGatewayStyle, 'shared gateway style block should exist');
   assert.match(sharedGatewayStyle[1], /stroke:\s*#6a0dad\s*!important;/i);
   assert.doesNotMatch(sharedGatewayStyle[1], /fill\s*:/i, 'gateway outline styling must not replace the gateway fill');
