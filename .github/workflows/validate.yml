@@ -35,6 +35,9 @@ jobs:
       - name: Install dependencies
         working-directory: frontend
         run: pnpm install --frozen-lockfile
+      - name: UI regression contract tests
+        working-directory: frontend
+        run: pnpm test:ui-regressions
       - name: Lint
         working-directory: frontend
         run: pnpm lint
