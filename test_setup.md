@@ -203,3 +203,14 @@ Fournir ensuite les preuves : commandes exécutées, extraits de résultats pert
 ## Journal d'exécution
 
 Ne pas préremplir ce journal avec des résultats supposés. Ajouter une entrée datée après chaque lot terminé, avec commit et preuve associée.
+
+### 2026-10-24 — Premier lot frontend (en cours)
+
+- **Branche de travail :** `test/frontend-unit-tests-first-lot-2026-10-24`
+- **Base :** `release/v2.2-reference-2026-10-23` (référence V2.2).
+- **Inventaire vérifié dans le dépôt :** le frontend n'avait pas de script de tests dédié ; le workflow `.github/workflows/validate.yml` exécutait déjà le lint et le build frontend, ainsi que les tests unitaires backend.
+- **Choix technique :** utiliser `node:test` fourni par Node 24, sans ajouter de dépendance ni modifier le lockfile. La documentation Node confirme la prise en charge stable du retrait des types TypeScript sur Node 24.12 et versions ultérieures.
+- **Premier périmètre :** tests de `checkForLinterIssues` (aucune anomalie, avertissements/informations seuls, erreur présente et erreur parmi plusieurs éléments).
+- **Fichiers prévus :** `frontend/tests/unit/modeler-helpers.test.mjs`, `frontend/package.json`, `.github/workflows/validate.yml`.
+- **État de validation :** les modifications sont préparées sur la branche dédiée. Les tests locaux n'ont pas été exécutés dans cet environnement ; le statut CI doit être vérifié sur le commit résultant. Aucun déploiement ni merge.
+- **Limite :** le premier lot protège une fonction isolée ; il ne remplace pas les tests d'intégration ni les vérifications visuelles BPMN.
