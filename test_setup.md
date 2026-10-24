@@ -214,3 +214,13 @@ Ne pas préremplir ce journal avec des résultats supposés. Ajouter une entrée
 - **Fichiers prévus :** `frontend/tests/unit/modeler-helpers.test.mjs`, `frontend/package.json`, `.github/workflows/validate.yml`.
 - **État de validation :** les modifications sont préparées sur la branche dédiée. Les tests locaux n'ont pas été exécutés dans cet environnement ; le statut CI doit être vérifié sur le commit résultant. Aucun déploiement ni merge.
 - **Limite :** le premier lot protège une fonction isolée ; il ne remplace pas les tests d'intégration ni les vérifications visuelles BPMN.
+
+### 2026-10-24 — Deuxième lot frontend : API et RACI (en cours)
+
+- **Base du lot :** commit `077d6d5f49a1dff65942d5725090fc04626a6d9b`, branche `test/frontend-unit-tests-first-lot-2026-10-24`.
+- **Nouveaux tests API :** `frontend/tests/unit/api-helpers.test.mjs` vérifie la requête vide, le tri ASC/DESC, les noms de paramètres attendus et l'encodage des valeurs.
+- **Nouveaux tests RACI :** `frontend/tests/unit/raci-engine.test.mjs` vérifie la sérialisation/déduplication des acteurs, le filtrage des noms vides, les cas R/A manquants, les A multiples, les acteurs inutilisés et les libellés français.
+- **Outillage :** réutilisation de `node:test`, sans dépendance supplémentaire et sans modification du comportement applicatif.
+- **Validation :** les nouveaux tests sont committés sur la branche. Le CI doit encore confirmer leur exécution sur le commit final ; aucune exécution locale n'est revendiquée depuis cet environnement.
+- **Déploiement / fusion :** aucun.
+
