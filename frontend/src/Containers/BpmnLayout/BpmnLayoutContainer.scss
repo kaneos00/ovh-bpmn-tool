@@ -67,8 +67,8 @@
     overflow: hidden;
   }
 
-  /* The process viewer should use nearly the full viewport height. */
+  /* Let the viewer panels reach the bottom edge of the available viewport. */
   &.processViewerActive .innerContent {
-    padding-bottom: 4px;
+    padding-bottom: 0;
   }
 }
