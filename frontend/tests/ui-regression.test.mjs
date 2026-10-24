@@ -38,7 +38,7 @@ test('all five BPMN gateway types map to markers styled with the same violet str
 
   for (const [type, marker] of gateways) {
     assert.match(viewer, new RegExp(`bpmn:${type}[^\\n]*\\n\\s*canvas\\.addMarker\\(element\\.id, 'bpmn-gateway-${marker}'\\)`));
-    assert.ok(modelerCss.includes(`.djs-element.bpmn-gateway-${marker} .djs-visual > *`), `missing shared gateway style for ${type}`);
+    assert.ok(modelerCss.includes(`.djs-element.bpmn-gateway-${marker} .djs-visual > :first-child`), `missing shared gateway style for ${type}`);
   }
 
   assert.match(modelerCss, /\.djs-element\.bpmn-gateway-exclusive[\s\S]*?stroke:\s*#6a0dad\s*!important;/i);
