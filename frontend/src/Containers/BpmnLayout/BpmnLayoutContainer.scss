@@ -66,4 +66,9 @@
     gap: 4px;
     overflow: hidden;
   }
+
+  /* Let the viewer panels reach the bottom edge of the available viewport. */
+  &.processViewerActive .innerContent {
+    padding-bottom: 0;
+  }
 }

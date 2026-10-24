@@ -12,7 +12,7 @@
   box-sizing: border-box;
   min-height: 0;
   min-width: 0;
-  flex: 1 1 auto;
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
 }
@@ -27,19 +27,22 @@
 }
 
 .processViewerProcessTab {
-  /* The active tab panel must provide a real flex-height for the three
-     workspace columns; otherwise percentage heights can collapse/misalign. */
   display: flex;
+  flex: 1 1 0;
   flex-direction: column;
   min-height: 0;
-  height: 100%;
+  height: auto;
+  align-self: stretch;
   overflow: hidden;
 }
 
 .processViewerDiagram {
+  box-sizing: border-box;
   min-width: 0;
   min-height: 0;
-  height: 100%;
+  height: auto;
+  border-radius: 0;
+  border-bottom: 1px solid var(--joy-palette-neutral-outlinedBorder, #d9dfe7);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -63,10 +66,11 @@
 }
 
 .processViewerWorkspace {
+  box-sizing: border-box;
   min-width: 0;
   min-height: 0;
-  height: 100%;
-  flex: 1 1 auto;
+  height: auto;
+  flex: 1 1 0;
   align-self: stretch;
   display: flex;
   align-items: stretch;
@@ -80,11 +84,11 @@
   width: var(--explorer-width, 248px);
   min-width: 0;
   min-height: 0;
-  height: 100%;
+  height: auto;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: 0;
   background: var(--joy-palette-background-surface, #fff);
   transition: width 160ms ease, flex-basis 160ms ease;
 }
@@ -136,19 +140,21 @@
 }
 
 .processViewerDiagram {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   width: 0;
+  min-height: 0;
 }
 
 .processTaskPanel {
   box-sizing: border-box;
-  border-radius: 10px;
+  border-radius: 0;
   flex: 0 0 var(--task-panel-width, 320px);
   width: var(--task-panel-width, 320px);
   max-width: 45vw;
   min-width: 0;
   min-height: 0;
-  height: 100%;
+  height: auto;
+  align-self: stretch;
   display: flex;
   flex-direction: column;
   overflow: hidden;
