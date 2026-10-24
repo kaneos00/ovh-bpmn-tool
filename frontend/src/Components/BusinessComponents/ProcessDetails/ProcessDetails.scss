@@ -164,6 +164,9 @@
   flex: 0 0 44px;
   width: 44px;
   max-width: 44px;
+  /* Match the left explorer: the outer frame disappears when collapsed. */
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .processTaskPanelHeader {
