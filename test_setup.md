@@ -125,12 +125,12 @@ Après la mise en place de tests unitaires stables, sélectionner au moins un pa
 ### Lot 4 — Intégration au CI
 - [x] Workflow `frontend-regression-tests.yml` ajouté sur push, pull request et lancement manuel ; exécute contrats UI et tests métier.
 - [x] Workflow aligné sur Node 24, pnpm 11.1.3 et installation `--frozen-lockfile`.
-- [ ] Utiliser une installation reproductible (mode strict du gestionnaire de paquets approprié).
-- [ ] Faire échouer le job si les tests échouent.
-- [ ] Vérifier les permissions, variables et services requis sans exposer de secrets.
-- [ ] S'assurer que les tests ne requièrent ni accès réseau externe non maîtrisé ni données de production.
-- [ ] Vérifier l'ordre et les dépendances des jobs afin que le statut global attende bien les tests.
-- [ ] Déclencher le CI et consulter le résultat effectif, les logs et le SHA testé.
+- [x] Installation reproductible configurée : `pnpm install --frozen-lockfile`.
+- [x] Les commandes `node --test` / `pnpm test:unit` propagent les échecs et font échouer le job CI.
+- [x] Workflow de tests avec permissions minimales `contents: read` ; aucun secret ni service externe requis.
+- [x] Tests déterministes, locaux au dépôt, sans accès réseau externe ni données de production.
+- [x] Workflow dédié avec deux jobs bloquants ; le workflow de validation principal reste distinct et inchangé.
+- [x] CI de tests réussi sur `84cb2a91d0c416f09c714610b3ed5077e2ba93bd` : [run 40115588395](https://github.com/kaneos00/ovh-bpmn-tool/actions/runs/40115588395). 14 contrats et 15 tests métier passés. Le workflow complet `Validate` est encore en attente sur cette tête.
 
 **Gate :** le CI est vert sur le commit visé et le job de test apparaît bien dans les résultats. Un fichier de workflow modifié ou un test local vert ne suffisent pas à affirmer que le CI est vert.
 
@@ -144,7 +144,7 @@ Après la mise en place de tests unitaires stables, sélectionner au moins un pa
 ### Lot 6 — E2E, seulement si les lots précédents sont stables
 - [ ] Évaluer le démarrage de l'application et des services nécessaires dans un environnement isolé.
 - [ ] Créer des données de test déterministes et un nettoyage fiable.
-- [ ] Ajouter un parcours Playwright à forte valeur.
+- [ ] Ajouter un parcours Playwright à forte valeur — reporté au lot suivant ; aucun navigateur/E2E n'a été installé.
 - [ ] Exécuter localement puis dans le CI, vérifier la stabilité et le temps d'exécution.
 - [ ] Si l'infrastructure est trop fragile, consigner le blocage plutôt que d'ajouter un job intermittent.
 
@@ -207,10 +207,10 @@ Ne pas préremplir ce journal avec des résultats supposés. Ajouter une entrée
 ### Journal d'exécution — 24 octobre 2026
 
 - **Base de départ vérifiée :** `release/v2.2-reference-2026-10-24`, SHA `bf0a5e0e3f0d6e23e9c5099312dc174559570bf5`. CI de référence réussie : [run 40106918343](https://github.com/kaneos00/ovh-bpmn-tool/actions/runs/40106918343).
-- **Tests unitaires :** 15 tests présents dans `frontend/tests/unit/` (helpers API, helpers du Modeler, moteur RACI).
-- **Contrats Viewer/explorateur :** assertions couvrent hauteur/repli des panneaux, cinq types de gateways, minimap fermée par défaut, sélection simple/double, sélection et navigation Call Activity, expansion de l'arbre et liens externes.
+- **Tests unitaires :** 15 tests présents dans `frontend/tests/unit/` (helpers API, helpers du Modeler, moteur RACI), tous passés en CI.
+- **Contrats Viewer/explorateur :** 14 tests passés en CI couvrent hauteur/repli des panneaux, cinq types de gateways, minimap fermée par défaut, sélection simple/double, sélection et navigation Call Activity, liens externes, expansion et sélection de l'arbre, résolution non ambiguë des processus appelés, déduplication et prévention des cycles.
 - **Commandes locales documentées :** `pnpm test:regression`, `pnpm test:unit`, `pnpm test:all`. `test:unit` compile les modules isolés dans `.test-dist`, puis exécute `node:test`.
-- **CI initial observé avant les derniers ajustements :** [Frontend regression tests, run 40107690199](https://github.com/kaneos00/ovh-bpmn-tool/actions/runs/40107690199) et [Validate, run 40107690211](https://github.com/kaneos00/ovh-bpmn-tool/actions/runs/40107690211) réussis sur `6d319e7`. Ces résultats ne valident pas les commits plus récents.
+- **CI récent vérifié :** [Frontend regression tests, run 40115588395](https://github.com/kaneos00/ovh-bpmn-tool/actions/runs/40115588395) réussi sur `84cb2a9` (14/14 contrats, 15/15 tests unitaires). Le workflow `Validate` complet est encore en attente ; ne pas annoncer son succès avant observation.
 - **PR :** [#33](https://github.com/kaneos00/ovh-bpmn-tool/pull/33) ouverte et maintenant ciblée sur la référence du 24 octobre. Scripts locaux, commande CI et assertions liens externes ajoutés ; CI de la nouvelle tête à revérifier.
-- **Limites :** assertions de contrat sur le code source, pas d'interactions navigateur réelles ; pas de Playwright ; aucune exécution locale ni mesure de durée locale dans cette session. Aucun code métier applicatif modifié, aucun déploiement et aucune fusion.
-- **Étape suivante :** vérifier les workflows sur le SHA courant ; corriger uniquement les problèmes des tests ; ensuite ajouter des tests ciblés sur les relations `SubProcess` / Call Activity et la navigation de l'arbre, sans modifier le comportement applicatif.
+- **Limites :** assertions de contrat sur le code source, pas d'interactions navigateur réelles ; pas de Playwright ; aucune exécution locale ni mesure de durée locale dans cette session. Aucun changement applicatif effectif par rapport à la référence : `Modeler.css` a été aligné sur le contenu exact de la V2.2. Aucun déploiement et aucune fusion.
+- **Échec intermédiaire et correction :** une exécution a détecté que la branche de tests contenait encore l'ancien sélecteur gateway `> :first-child`, alors que la V2.2 validée utilise `> *` pour les symboles internes. La feuille `Modeler.css` de la branche de tests a été réalignée exactement sur celle de la référence ; le workflow de tests est ensuite passé.
