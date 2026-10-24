@@ -44,3 +44,26 @@ test('all five BPMN gateway types map to markers styled with the same violet str
   assert.match(sharedGatewayStyle[1], /stroke:\s*#6a0dad\s*!important;/i);
   assert.doesNotMatch(sharedGatewayStyle[1], /fill\s*:/i, 'gateway outline styling must not replace the gateway fill');
 });
+
+
+test('called-process tree resolution is unambiguous, deduplicated and cycle-safe', async () => {
+  const tree = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
+
+  assert.ok(tree.includes("getElementsByTagNameNS(BPMN_MODEL_NS, 'callActivity')"));
+  assert.ok(tree.includes("element.getAttribute('calledElement')?.trim() || ''"));
+  assert.ok(tree.includes("element.getAttribute('isExpanded') === 'false'"));
+  assert.ok(tree.includes('matches.length === 1 && !byIdentifier.has(processId)'));
+  assert.ok(tree.includes('const targets = Array.from(new Set(info.targets))'));
+  assert.ok(tree.includes('target.id !== info.resource.id'));
+  assert.ok(tree.includes('!parentByTarget.has(target.id) && !reaches(target.id, info.resource.id)'));
+  assert.ok(tree.includes('`linked-process:${item.id}:${target.id}`'));
+});
+
+test('explorer label selection navigates to the target and expands nodes with children', async () => {
+  const tree = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
+
+  assert.ok(tree.includes('if (!nodeId || !isLabelClick(event)) return'));
+  assert.ok(tree.includes('onNodeClick(node?.targetId ?? nodeId)'));
+  assert.ok(tree.includes('if (node?.children?.length && !expandedNodes.includes(nodeId))'));
+  assert.ok(tree.includes('setExpandedNodes(current => current.includes(nodeId) ? current : [...current, nodeId])'));
+});
