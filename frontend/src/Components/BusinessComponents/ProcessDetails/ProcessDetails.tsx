@@ -412,6 +412,7 @@ export const ProcessDetails = ({
                           {selectedTask.type.replace(/([A-Z])/g, ' $1').replace(/^./, value => value.toUpperCase()).trim()}
                         </Chip>
                         <Typography level="body-sm">Identifiant : {selectedTask.id}</Typography>
+                        <Typography level="body-sm" textColor="neutral">{getElementTypeDescription(selectedTask.type)}</Typography>
                       </Box>
 
                       <Divider />
