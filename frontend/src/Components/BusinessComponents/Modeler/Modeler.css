@@ -204,13 +204,13 @@
 }
 
 
-/* All BPMN gateways use the same dark-purple outline; keep their fill unchanged. */
-.djs-element.bpmn-gateway-exclusive .djs-visual > :first-child,
-.djs-element.bpmn-gateway-exclusive .djs-visual > :first-child,
-.djs-element.bpmn-gateway-parallel .djs-visual > :first-child,
-.djs-element.bpmn-gateway-inclusive .djs-visual > :first-child,
-.djs-element.bpmn-gateway-complex .djs-visual > :first-child,
-.djs-element.bpmn-gateway-event-based .djs-visual > :first-child {
+/* All gateways share a dark-purple outline and purple internal symbols.
+   Do not override fill: the gateway's existing fill palette is preserved. */
+.djs-element.bpmn-gateway-exclusive .djs-visual > *,
+.djs-element.bpmn-gateway-parallel .djs-visual > *,
+.djs-element.bpmn-gateway-inclusive .djs-visual > *,
+.djs-element.bpmn-gateway-complex .djs-visual > *,
+.djs-element.bpmn-gateway-event-based .djs-visual > * {
   stroke: #6a0dad !important;
   stroke-width: 2px !important;
 }
