@@ -44,6 +44,42 @@ type ProcessDetailsProps = {
   onElementSelect?: (elementId: string) => void;
 };
 
+const getElementTypeDescription = (type: string): string => {
+  const descriptions: Record<string, string> = {
+    task: 'Tâche générique : représente une activité à réaliser dans le processus.',
+    userTask: 'Tâche utilisateur : représente une action réalisée par une personne avec l’aide d’une application.',
+    manualTask: 'Tâche manuelle : représente une action réalisée par une personne sans automatisation par le moteur.',
+    serviceTask: 'Tâche de service : représente une action exécutée automatiquement par un service ou une application.',
+    scriptTask: 'Tâche script : représente l’exécution automatique d’un script.',
+    businessRuleTask: 'Tâche de règle métier : représente l’évaluation de règles métier.',
+    sendTask: 'Tâche d’envoi : représente l’envoi d’un message à un participant.',
+    receiveTask: 'Tâche de réception : représente l’attente ou la réception d’un message.',
+    exclusiveGateway: 'Passerelle exclusive : permet de choisir un seul chemin parmi plusieurs possibilités, selon une condition.',
+    inclusiveGateway: 'Passerelle inclusive : permet d’activer un ou plusieurs chemins selon les conditions.',
+    parallelGateway: 'Passerelle parallèle : permet de lancer plusieurs chemins en parallèle ou de synchroniser leur arrivée.',
+    eventBasedGateway: 'Passerelle événementielle : dirige le processus selon le premier événement qui survient.',
+    complexGateway: 'Passerelle complexe : représente une règle de divergence ou de synchronisation plus élaborée.',
+    startEvent: 'Événement de début : indique le déclenchement du processus ou du sous-processus.',
+    endEvent: 'Événement de fin : indique la fin du chemin de processus.',
+    intermediateCatchEvent: 'Événement intermédiaire d’attente : représente l’attente d’un événement, d’un message ou d’une échéance.',
+    intermediateThrowEvent: 'Événement intermédiaire émis : représente la production d’un événement ou l’envoi d’un signal ou message.',
+    boundaryEvent: 'Événement de bordure : interrompt ou accompagne une activité lorsqu’un événement survient.',
+    subProcess: 'Sous-processus : regroupe plusieurs étapes dans une activité détaillée.',
+    callActivity: 'Activité d’appel : appelle un processus ou une activité réutilisable définie séparément.',
+    transaction: 'Transaction : regroupe des activités devant être traitées comme une transaction.',
+    participant: 'Participant : représente un acteur ou une organisation prenant part à la collaboration.',
+    lane: 'Couloir (lane) : regroupe les activités prises en charge par un rôle, une équipe ou un participant.',
+    dataObject: 'Objet de données : représente une information utilisée ou produite par le processus.',
+    dataObjectReference: 'Référence à un objet de données : indique où une donnée est utilisée ou produite.',
+    dataStoreReference: 'Référence à un stockage de données : représente des données conservées au-delà d’une instance du processus.',
+    sequenceFlow: 'Flux de séquence : indique l’ordre d’exécution entre les éléments du processus.',
+    messageFlow: 'Flux de message : représente un échange de message entre participants distincts.',
+    textAnnotation: 'Annotation textuelle : ajoute une précision documentaire au diagramme.',
+  };
+
+  return descriptions[type] ?? 'Élément BPMN : représente une étape, un événement, une décision ou un échange dans le processus.';
+};
+
 const getElementTypeBadgeColor = (type: string) => {
   if (type === 'startEvent') return 'success';
   if (type === 'endEvent') return 'danger';
