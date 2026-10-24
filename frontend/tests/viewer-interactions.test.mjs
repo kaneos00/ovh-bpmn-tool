@@ -101,5 +101,5 @@ test('external task URL is rendered as a safe external link in the documentation
   assert.ok(details.includes('selectedTask.externalUrl ? ('));
   assert.ok(details.includes('href={selectedTask.externalUrl.startsWith'));
   assert.ok(details.includes('target="_blank"'));
-  assert.ok(details.includes('rel="noreferrer"'));
+  assert.ok(details.includes('rel="noopener noreferrer"'));
 });
