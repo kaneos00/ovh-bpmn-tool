@@ -49,20 +49,6 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: pnpm install --frozen-lockfile
-      - name: Compile isolated TypeScript modules for Node's test runner
+      - name: Compile isolated modules and run frontend business unit tests
         working-directory: frontend
-        run: >-
-          pnpm exec tsc
-          src/api/helpers.ts
-          src/api/types.ts
-          src/Components/BusinessComponents/Modeler/helpers.ts
-          src/extensions/raci-engine.ts
-          --target ES2022
-          --module ESNext
-          --moduleResolution bundler
-          --outDir .test-dist
-          --skipLibCheck
-          --strict false
-      - name: Run frontend business unit tests
-        working-directory: frontend
-        run: node --test tests/unit/*.test.mjs
+        run: pnpm test:unit
