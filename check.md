@@ -99,6 +99,15 @@ Les estimations sont préliminaires, à confirmer après lecture du code et déf
 | 41 | Exporter un diagramme BPMN en SVG prêt à intégrer dans un document A4. Si le processus est trop long, proposer une découpe automatique en plusieurs pages/segments, avec en-têtes cohérents et identiques ; la première page doit montrer le point d'arrêt et la page suivante le point de reprise, clairement reliés et sans ambiguïté sur la continuité du flux | Non | Non testé | **À cadrer puis prototyper** : définir les dimensions et marges A4, l'échelle/lecture minimale, la règle de découpe et les cas où une activité ou un flux traverse la coupure. Répéter les en-têtes et ajouter des repères de continuation/reprise correspondants ; produire un SVG distinct par page et vérifier que l'ensemble reste lisible et fidèle au BPMN source. Prévoir aperçu avant export et tests sur processus courts, longs et avec plusieurs lanes | Difficile | Fort — rendu BPMN / export documentaire |
 | 42 | Donner aux gateways BPMN (Exclusive, Parallel, Inclusive, Complex et Event-Based) un contour et un motif intérieur violets cohérents ; badge du panneau droit violet également, sans modifier les remplissages existants | Correctif CSS/TSX présent sur la branche candidate | Recette utilisateur Coolify du 24/10/2026 : contour, symbole intérieur et badge confirmés OK | ✅ **Validé sur la branche candidate** ; ne reste pas bloquant pour les deux retouches de layout du point 2 | Facile | Faible — IHM |
  
+## Couverture des tests automatisés (premier lot — 24 octobre 2026)
+
+Le workflow **Validate** exécute désormais `pnpm test:ui-regressions` dans le job Frontend, sans dépendance supplémentaire (runner natif `node:test`).
+
+- **Point 2 — panneaux Viewer** : tests de contrat vérifiant les règles CSS de dimensionnement flex, les contraintes de débordement, le padding inférieur et l'absence de bordure transparente forcée sur le panneau droit replié.
+- **Point 42 — gateways** : tests vérifiant le mapping des cinq types BPMN vers leurs marqueurs, la règle de contour violet partagée, la préservation des remplissages et le style violet du badge du panneau droit.
+- **Limite assumée** : ces contrôles protègent les règles source contre certaines régressions ; ils ne mesurent pas la géométrie calculée par un navigateur et ne remplacent pas la recette visuelle Coolify.
+- **Lot suivant recommandé** : tests unitaires isolés de la hiérarchie des processus appelés (point 29), après extraction ou identification d'une fonction testable sans monter toute l'IHM.
+
 ## G. Ordre de traitement recommandé
 
 Cet ordre privilégie la stabilisation et les corrections qui bloquent la navigation avant les évolutions de plus grande ampleur.
