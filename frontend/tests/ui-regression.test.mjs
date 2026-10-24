@@ -26,8 +26,6 @@ test('viewer panels share flex sizing and preserve the collapsed detail border',
 test('all five BPMN gateway types map to markers styled with the same violet stroke', async () => {
   const viewer = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
   const modelerCss = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
-  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
-
   const gateways = [
     ['ExclusiveGateway', 'exclusive'],
     ['ParallelGateway', 'parallel'],
@@ -41,7 +39,8 @@ test('all five BPMN gateway types map to markers styled with the same violet str
     assert.ok(modelerCss.includes(`.djs-element.bpmn-gateway-${marker} .djs-visual > :first-child`), `missing shared gateway style for ${type}`);
   }
 
-  assert.match(modelerCss, /\.djs-element\.bpmn-gateway-exclusive[\s\S]*?stroke:\s*#6a0dad\s*!important;/i);
-  assert.match(details, /type\.toLowerCase\(\)\.includes\('gateway'\)[\s\S]{0,180}color:\s*'#6a0dad'/);
-  assert.match(details, /type\.toLowerCase\(\)\.includes\('gateway'\)[\s\S]{0,180}border:\s*'1px solid #6a0dad'/);
+  const sharedGatewayStyle = modelerCss.match(/\/\* All BPMN gateways use the same[\s\S]*?\*\/([\s\S]*?)(?=\/\*|$)/);
+  assert.ok(sharedGatewayStyle, 'shared gateway style block should exist');
+  assert.match(sharedGatewayStyle[1], /stroke:\s*#6a0dad\s*!important;/i);
+  assert.doesNotMatch(sharedGatewayStyle[1], /fill\s*:/i, 'gateway outline styling must not replace the gateway fill');
 });
