@@ -15,6 +15,7 @@
     "start": "vite --port 8080 --host 0.0.0.0",
     "start:dev": "vite --port 8080",
     "build": "tsc && vite build",
+    "test:unit": "node --test tests/unit/*.test.mjs",
     "format": "prettier --write \"src/**/*.{ts,js}\"",
     "format:check": "prettier --check \"src/**/*.{ts,js}\"",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
