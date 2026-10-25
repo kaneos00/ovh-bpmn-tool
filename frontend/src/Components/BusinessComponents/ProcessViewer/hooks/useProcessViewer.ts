@@ -137,12 +137,22 @@ export const useProcessViewer = (
       };
     }
 
+    const clearViewerAfterQueuedImports = () => {
+      const clearTask = importQueueRef.current
+        .catch(() => undefined)
+        .then(() => {
+          if (cancelled || generation !== importGenerationRef.current) return;
+          viewer.clear();
+        });
+      importQueueRef.current = clearTask;
+    };
+
     if (isXmlError) {
       importedRef.current = false;
       highlightedIdRef.current = null;
-      viewer.clear();
       setImportError('Le contenu XML du diagramme est indisponible.');
       setIsImporting(false);
+      clearViewerAfterQueuedImports();
       return () => {
         cancelled = true;
         if (importGenerationRef.current === generation) importGenerationRef.current += 1;
@@ -150,12 +160,19 @@ export const useProcessViewer = (
     }
 
     if (!xmlContent) {
-      // Do not clear the currently displayed diagram during the short query gap
-      // caused by route changes. The loading layer hides it until the next import.
       setMinimapVisible(false);
-      setImportError(null);
-      setIsImporting(isXmlLoading);
-      if (!importedRef.current && !isXmlLoading) viewer.clear();
+      if (isXmlLoading) {
+        // Keep the previous canvas covered while a route change fetches its XML.
+        setImportError(null);
+        setIsImporting(true);
+        if (!importedRef.current) clearViewerAfterQueuedImports();
+      } else {
+        importedRef.current = false;
+        highlightedIdRef.current = null;
+        setImportError('Le processus ne contient pas de diagramme XML exploitable.');
+        setIsImporting(false);
+        clearViewerAfterQueuedImports();
+      }
       return () => {
         cancelled = true;
         if (importGenerationRef.current === generation) importGenerationRef.current += 1;
