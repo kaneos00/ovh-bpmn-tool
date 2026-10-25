@@ -60,13 +60,16 @@ test('called-process tree resolution is unambiguous, deduplicated and cycle-safe
   assert.ok(tree.includes('linked-process:'));
 });
 
-test('explorer label selection navigates to the target and expands nodes with children', async () => {
-  const tree = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
+test('explorer folder-label selection opens one level without collapsing other branches', async () => {
+  const explorer = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
 
-  assert.ok(tree.includes('if (!nodeId || !isLabelClick(event)) return'));
-  assert.ok(tree.includes('onNodeClick(node?.targetId ?? nodeId)'));
-  assert.ok(tree.includes('if (node?.children?.length && !expandedNodes.includes(nodeId))'));
-  assert.ok(tree.includes('setExpandedNodes(current => current.includes(nodeId) ? current : [...current, nodeId])'));
+  assert.ok(explorer.includes('const handleTreeSelection = (items: (string | number)[]) =>'));
+  assert.ok(explorer.includes("if (node.type === 'folder' && node.children?.length)"));
+  assert.ok(explorer.includes('current.includes(node.id) ? current : [...current, node.id]'));
+  assert.ok(explorer.includes('onNodeClick(node.targetId ?? selected)'));
+
+  const treeHook = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
+  assert.ok(treeHook.includes('getFolderHierarchy(parentId).map(({ id }) => id)'));
 });
 
 
