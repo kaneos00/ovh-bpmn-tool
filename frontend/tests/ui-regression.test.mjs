@@ -169,3 +169,12 @@ test('legacy ResourceExplorer has no source imports outside its own directory', 
 
   assert.deepEqual(references, []);
 });
+
+
+test('folder hook exposes read-only diagnostics for broken parent/depth data', async () => {
+  const hook = await read('src/shared/hooks/useFolders.ts');
+
+  assert.ok(hook.includes('auditFolderHierarchy(folders ?? [])'));
+  assert.ok(hook.includes("console.warn('[BPMN Explorer] Folder hierarchy integrity issues'"));
+  assert.ok(hook.includes('hierarchyIssues,'));
+});
