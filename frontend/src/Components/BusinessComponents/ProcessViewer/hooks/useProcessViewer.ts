@@ -34,6 +34,12 @@ export const useProcessViewer = (
   );
 
   const viewer = useMemo(() => getViewerInstance(), []);
+  const setMinimapVisibility = (visible: boolean) => {
+    setMinimapVisible(visible);
+    const minimap = viewer.get('minimap') as { open?: () => void; close?: () => void };
+    if (visible) minimap?.open?.();
+    else minimap?.close?.();
+  };
   useCallActivityNavigation(viewer, true);
 
   const alignDiagramTopLeft = () => {
@@ -160,7 +166,7 @@ export const useProcessViewer = (
     }
 
     if (!xmlContent) {
-      setMinimapVisible(false);
+      setMinimapVisibility(false);
       if (isXmlLoading) {
         // Keep the previous canvas covered while a route change fetches its XML.
         setImportError(null);
@@ -329,7 +335,7 @@ export const useProcessViewer = (
     importError,
     isLoading: isXmlLoading || isImporting,
     minimapVisible,
-    setMinimapVisible,
+    setMinimapVisible: setMinimapVisibility,
     zoomIn,
     zoomOut,
     resetZoom,
