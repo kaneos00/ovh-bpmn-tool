@@ -11,6 +11,18 @@ import { getProcessLinks, resolveLinkedChildren } from '../processLinks';
 
 import type { RenderTree } from '..';
 
+const EXPANDED_NODES_KEY = 'bpmn-tool:explorer-expanded-nodes';
+
+const readExpandedNodes = (): string[] => {
+  try {
+    const value = window.localStorage.getItem(EXPANDED_NODES_KEY);
+    const parsed: unknown = value ? JSON.parse(value) : [];
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : [];
+  } catch {
+    return [];
+  }
+};
+
 const getPublishedContent = (contents: Content[] | undefined) =>
   (contents ?? [])
     .filter(content => content.status === ContentStatusEnum.Published)
@@ -19,7 +31,15 @@ const getPublishedContent = (contents: Content[] | undefined) =>
 
 
 export const useFolderTree = (selectedResourceId: string) => {
-  const [expandedNodes, setExpandedNodes] = useState<string[]>([]);
+  const [expandedNodes, setExpandedNodes] = useState<string[]>(readExpandedNodes);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(EXPANDED_NODES_KEY, JSON.stringify(expandedNodes));
+    } catch {
+      // Expansion state is best-effort when browser storage is disabled.
+    }
+  }, [expandedNodes]);
+
   const { getFolderHierarchy } = useFolders();
   const { resource } = useResource(selectedResourceId);
   const { data: resources, isLoading } = useQuery<Resource[]>(resourcesQuery());
