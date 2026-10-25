@@ -52,7 +52,10 @@ test('called-process tree resolution is unambiguous, deduplicated and cycle-safe
 
   assert.ok(links.includes("getElementsByTagNameNS(BPMN_MODEL_NS, 'callActivity')"));
   assert.ok(links.includes("element.getAttribute('calledElement')?.trim() || ''"));
-  assert.ok(links.includes("element.getAttribute('isExpanded') === 'false'"));
+  assert.ok(links.includes("getElementsByTagNameNS('*', 'BPMNShape')"));
+  assert.ok(links.includes("shape.getAttribute('isExpanded') === 'false'"));
+  assert.ok(links.includes("shape.getAttribute('bpmnElement')?.trim() || ''"));
+  assert.ok(links.includes('collapsedShapeElementIds.has(id)'));
   assert.ok(links.includes('matches.length === 1 && !byIdentifier.has(processId)'));
   assert.ok(links.includes('const targets = Array.from(new Set(info.targets))'));
   assert.ok(links.includes('target.id !== info.resource.id'));
@@ -85,10 +88,12 @@ test('explorer delegates Call Activity and collapsed SubProcess links to the tes
   assert.match(hook, /import \{ getProcessLinks, resolveLinkedChildren \} from '\.\.\/processLinks'/);
   assert.match(hook, /return resolveLinkedChildren\(processInfo\)/);
   assert.ok(processLinks.includes("getElementsByTagNameNS(BPMN_MODEL_NS, 'callActivity')"));
-  assert.match(
-    processLinks,
-    /getElementsByTagNameNS\(BPMN_MODEL_NS, 'subProcess'\)[\s\S]*?filter\(element => element\.getAttribute\('isExpanded'\) === 'false'\)/,
-  );
+  assert.ok(processLinks.includes("getElementsByTagNameNS('*', 'BPMNShape')"));
+  assert.ok(processLinks.includes("shape.getAttribute('isExpanded') === 'false'"));
+  assert.ok(processLinks.includes("shape.getAttribute('bpmnElement')?.trim() || ''"));
+  const navigation = await read('src/shared/hooks/useCallActivityNavigation.ts');
+  assert.ok(navigation.includes('element?.businessObject?.di?.isExpanded'));
+  assert.ok(navigation.includes("return expandedState === false || expandedState === 'false'"));
 });
 
 test('viewer mounts a single FolderTree explorer instead of the legacy ResourceExplorer', async () => {
@@ -114,7 +119,10 @@ test('breadcrumb ancestry shares the tree resource snapshot and detects broken p
   assert.ok(folders.includes('useQuery<Resource[]>(resourcesQuery())'));
   assert.ok(folders.includes('resolveFolderHierarchy(folders, folderId)'));
   assert.ok(folders.includes('inspectFolderHierarchy'));
-  assert.ok(breadcrumbs.includes("resource.parentId ?? 'root'"));
+  assert.ok(breadcrumbs.includes('useFolderTree(resourceId)'));
+  assert.ok(breadcrumbs.includes('const treePath = findPath(dataTree)'));
+  assert.ok(breadcrumbs.includes('to: node.id === \'root\' ? \'/root\' : `/${node.targetId ?? node.id}`'));
+  assert.ok(breadcrumbs.includes("resource.parentId ?? 'root'"), 'keep a fallback for resources missing from the tree');
   assert.ok(hierarchy.includes("code: 'missing-parent'"));
   assert.ok(hierarchy.includes("code: 'cycle'"));
   assert.ok(hierarchy.includes("code: 'depth-mismatch'"));
