@@ -25,7 +25,7 @@ test('single-click selection is delayed and rapid double-click cancels it', asyn
   assert.match(hook, /now - lastClickAt < 280/);
   assert.match(hook, /setTimeout\(\(\) => \{[\s\S]*?currentlySelected === element\.id \? '' : element\.id[\s\S]*?\}, 220\)/);
   assert.match(hook, /const onElementDoubleClick = \(event: any\) => \{\s*cancelPendingSelection\(\)/);
-  assert.match(hook, /element\.type\?\.endsWith\('Task'\)[\s\S]*?window\.open\(normalizedUrl, '_blank', 'noopener,noreferrer'\)/);
+  assert.match(hook, /element\?\.type\?\.endsWith\('Task'\)[\s\S]*?window\.open\(normalizedUrl, '_blank', 'noopener,noreferrer'\)/);
   assert.match(hook, /eventBus\.off\('element\.click', onElementClick\)/);
   assert.match(hook, /eventBus\.off\('element\.dblclick', onElementDoubleClick\)/);
 });
