@@ -21,14 +21,19 @@ export const useProcessViewer = (
   const importedRef = useRef(false);
   const highlightedIdRef = useRef<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
   const [minimapVisible, setMinimapVisible] = useState(false);
+  const importGenerationRef = useRef(0);
+  const importQueueRef = useRef<Promise<unknown>>(Promise.resolve());
 
   selectedIdRef.current = selectedElementId;
   onElementSelectRef.current = onElementSelect;
 
-  const { data: xmlContent } = useQuery(
-    getXmlContentQuery(resourceId, contentId),
-  );
+  const {
+    data: xmlContent,
+    isLoading: isXmlLoading,
+    isError: isXmlError,
+  } = useQuery(getXmlContentQuery(resourceId, contentId));
 
   const viewer = useMemo(() => getViewerInstance(), []);
   useCallActivityNavigation(viewer, true, resourceId);
@@ -137,19 +142,66 @@ export const useProcessViewer = (
 
   useEffect(() => {
     let cancelled = false;
+    const generation = ++importGenerationRef.current;
 
-    if (!viewerRef.current || !xmlContent) {
-      importedRef.current = false;
-      highlightedIdRef.current = null;
-      setMinimapVisible(false);
-      setImportError(null);
-      viewer.clear();
+    const clearViewerAfterQueuedImports = () => {
+      const clearTask = importQueueRef.current
+        .catch(() => undefined)
+        .then(() => {
+          if (cancelled || generation !== importGenerationRef.current) return;
+          importedRef.current = false;
+          highlightedIdRef.current = null;
+          viewer.clear();
+        });
+      importQueueRef.current = clearTask;
+    };
+
+    if (!viewerRef.current) {
+      setIsImporting(false);
       return () => {
         cancelled = true;
+        if (importGenerationRef.current === generation) importGenerationRef.current += 1;
       };
     }
 
-    importedRef.current = false;
+    if (isXmlError) {
+      importedRef.current = false;
+      highlightedIdRef.current = null;
+      setImportError('Le contenu XML du diagramme est indisponible.');
+      setIsImporting(false);
+      clearViewerAfterQueuedImports();
+      return () => {
+        cancelled = true;
+        if (importGenerationRef.current === generation) importGenerationRef.current += 1;
+      };
+    }
+
+    if (!xmlContent) {
+      setMinimapVisible(false);
+      if (isXmlLoading) {
+        const hadPreviousDiagram = importedRef.current;
+        importedRef.current = false;
+        highlightedIdRef.current = null;
+        setImportError(null);
+        setIsImporting(true);
+        // Keep the previous canvas underneath the loading cover while the next
+        // resource loads. If no diagram was imported, clear only after queued
+        // imports settle so a stale import cannot repaint it afterwards.
+        if (!hadPreviousDiagram) clearViewerAfterQueuedImports();
+      } else {
+        importedRef.current = false;
+        highlightedIdRef.current = null;
+        setImportError('Le processus ne contient pas de diagramme XML exploitable.');
+        setIsImporting(false);
+        clearViewerAfterQueuedImports();
+      }
+      return () => {
+        cancelled = true;
+        if (importGenerationRef.current === generation) importGenerationRef.current += 1;
+      };
+    }
+
+    setIsImporting(true);
     setMinimapVisible(false);
     setImportError(null);
     viewer.attachTo(viewerRef.current);
@@ -210,22 +262,23 @@ export const useProcessViewer = (
       if (!element?.type?.endsWith('Task') || !url) return;
 
       event.stopPropagation?.();
-      const normalizedUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+      const normalizedUrl = /^https?:\/\//i.test(url) ? url : ['https://', url].join('');
       window.open(normalizedUrl, '_blank', 'noopener,noreferrer');
     };
 
-    viewer.importXML(xmlContent)
-      .then(() => {
-        if (cancelled) return;
-        // Register selection only after the diagram import has completed. This
-        // avoids a stale click handler when returning to the viewer after editing.
+    const importTask = importQueueRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        if (cancelled || generation !== importGenerationRef.current) return;
+        await viewer.importXML(xmlContent);
+        if (cancelled || generation !== importGenerationRef.current) return;
+
+        // Register interaction listeners only for the latest completed import.
         eventBus.on('element.click', onElementClick);
         eventBus.on('element.dblclick', onElementDoubleClick);
         clickListenerAttached = true;
         const canvas = viewer.get('canvas') as any;
         const elementRegistry = viewer.get('elementRegistry') as any;
-        // bpmn-js adds a permanent native drilldown arrow to collapsed
-        // SubProcesses. The Viewer uses the selected-item blue arrow instead.
         const overlays = viewer.get('overlays') as any;
         elementRegistry.getAll().forEach((element: any) => {
           if (element?.type === 'bpmn:SubProcess') {
@@ -253,30 +306,30 @@ export const useProcessViewer = (
         });
         fitDiagramToWidth();
         importedRef.current = true;
-        // Keep the minimap closed on import; users can open it manually from the viewer controls.
+        setImportError(null);
+        setIsImporting(false);
         applySelectionRef.current();
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        importedRef.current = false;
-        highlightedIdRef.current = null;
-        viewer.clear();
-        setImportError(
-          error instanceof Error
-            ? `Le diagramme BPMN ne peut pas être affiché : ${error.message}`
-            : 'Le diagramme BPMN ne peut pas être affiché : erreur lors de son import.',
-        );
       });
+
+    importQueueRef.current = importTask.catch((error: unknown) => {
+      if (cancelled || generation !== importGenerationRef.current) return;
+      importedRef.current = false;
+      highlightedIdRef.current = null;
+      viewer.clear();
+      setImportError(error instanceof Error ? error.message : 'Erreur lors de l’import du diagramme BPMN.');
+      setIsImporting(false);
+    });
 
     return () => {
       cancelled = true;
       cancelPendingSelection();
+      if (importGenerationRef.current === generation) importGenerationRef.current += 1;
       if (clickListenerAttached) {
         eventBus.off('element.click', onElementClick);
         eventBus.off('element.dblclick', onElementDoubleClick);
       }
     };
-  }, [xmlContent, resourceId, contentId, viewer]);
+  }, [xmlContent, resourceId, contentId, viewer, isXmlLoading, isXmlError]);
 
   useEffect(() => {
     applySelectionRef.current();
@@ -294,6 +347,7 @@ export const useProcessViewer = (
     viewerRef,
     content: xmlContent ?? '',
     importError,
+    isImporting,
     minimapVisible,
     setMinimapVisible,
     zoomIn,
