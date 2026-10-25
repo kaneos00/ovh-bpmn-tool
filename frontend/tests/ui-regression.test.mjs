@@ -151,3 +151,17 @@ test('Start/End events and data references keep their semantic markers and style
   assert.ok(urlModule.includes("is(element, 'bpmn:DataObjectReference')"));
   assert.match(urlModule, /position:\s*\{\s*bottom:\s*-7,\s*right:\s*-8/s);
 });
+
+
+test('detail panel starts collapsed, opens on element selection and exposes task/RACI/documentation in order', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.match(details, /useState\(true\);[\s\S]*?taskPanelCollapsed/);
+  assert.match(details, /if \(selectedElementId\) setTaskPanelCollapsed\(false\)/);
+  assert.match(details, /className="processTaskPanelHeader"[\s\S]*?onClick=\{\(\) => setTaskPanelCollapsed\(value => !value\)\}/);
+  assert.match(details, /aria-label=\{taskPanelCollapsed \? 'Développer le panneau de tâche' : 'Replier le panneau de tâche'\}/);
+  const taskInfo = details.indexOf('1. Description de la tâche');
+  const raci = details.indexOf('2. RACI');
+  const documentation = details.indexOf('3. Documentation');
+  assert.ok(taskInfo >= 0 && raci > taskInfo && documentation > raci, 'detail sections should stay in the required order');
+});
