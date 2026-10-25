@@ -163,7 +163,7 @@ function RechercheModule(
         button.appendChild(badge);
         const title = document.createElement('div'); title.textContent = result.name || result.id || result.processName || 'Résultat'; title.style.fontWeight = '600'; button.appendChild(title);
         const details = document.createElement('div');
-        const resultType = result.type === 'bpmn:TextAnnotation'
+        const resultType = result.type.toLocaleLowerCase('en') === 'bpmn:textannotation'
           ? 'Description'
           : result.type.replace(/^bpmn:/, '');
         details.textContent = [resultType, result.processName, result.resourceName, result.role, result.raci].filter(Boolean).join(' · ');
