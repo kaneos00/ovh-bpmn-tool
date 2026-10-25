@@ -79,14 +79,14 @@ export const useCallActivityNavigation = (
         processInfoPromise = (async () => {
           const resourceQuery = resourcesQuery();
           const cachedResources = queryClient.getQueryData(resourceQuery.queryKey) as Resource[] | undefined;
-          const resources = cachedResources ?? await queryClient.fetchQuery(resourceQuery);
+          const resources = cachedResources ?? await queryClient.fetchQuery(resourceQuery) ?? [];
           const processResources = resources.filter(resource => resource.type === ResourceType.Process);
 
           return Promise.all(processResources.map(async resource => {
             try {
               const resourceContentsQuery = contentsQuery(resource.id);
               const cachedContents = queryClient.getQueryData(resourceContentsQuery.queryKey) as Content[] | undefined;
-              const contents = cachedContents ?? await queryClient.fetchQuery(resourceContentsQuery);
+              const contents = cachedContents ?? await queryClient.fetchQuery(resourceContentsQuery) ?? [];
               const publishedContent = contents
                 .filter(content => content.status === ContentStatusEnum.Published)
                 .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0];
@@ -95,7 +95,7 @@ export const useCallActivityNavigation = (
 
               const xmlQuery = getXmlContentQuery(resource.id, publishedContent.id);
               const cachedXml = queryClient.getQueryData(xmlQuery.queryKey) as string | undefined;
-              const xml = cachedXml ?? await queryClient.fetchQuery(xmlQuery);
+              const xml = cachedXml ?? await queryClient.fetchQuery(xmlQuery) ?? '';
               return { resource, processIds: getProcessLinks(xml).processIds };
             } catch {
               // Keep the failed resource visible to diagnostics instead of treating
