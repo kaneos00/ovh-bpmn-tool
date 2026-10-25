@@ -2,7 +2,11 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import queryClient from '../../queryClient';
-import { getResourceQuery } from '../../api/resources/resources.queries';
+import { getResourceQuery, resourcesQuery } from '../../api/resources/resources.queries';
+import { contentsQuery, getXmlContentQuery } from '../../api/contents/contents.queries';
+import { ContentStatusEnum, type Content, type Resource } from '../../Types';
+import { ResourceType } from '../types/BpmnResource';
+import { getProcessLinks } from '../../Components/BusinessComponents/FolderTree/processLinks';
 import { useSnackbar } from './useSnackbar';
 
 type CallActivityEvent = {
@@ -11,7 +15,9 @@ type CallActivityEvent = {
     type?: string;
     businessObject?: {
       $type?: string;
+      id?: string;
       calledElement?: string;
+      isExpanded?: boolean;
     };
   };
   stopPropagation: () => void;
@@ -27,6 +33,7 @@ type BpmnEventBus = {
     eventName: string,
     callback: (event: any) => void,
   ) => void;
+  fire: (eventName: string, event: any) => void;
 };
 
 type BpmnInstance = {
@@ -40,6 +47,7 @@ type BpmnInstance = {
 export const useCallActivityNavigation = (
   bpmnInstance: BpmnInstance,
   enableSingleClick = false,
+  currentResourceId?: string,
 ) => {
   const navigate = useNavigate();
   const { showAlert } = useSnackbar();
@@ -48,29 +56,81 @@ export const useCallActivityNavigation = (
     const eventBus = bpmnInstance.get('eventBus') as BpmnEventBus;
     let indicatorOverlayId: string | number | undefined;
 
+    const resolveTargetResourceId = async (reference: string): Promise<string | undefined> => {
+      // Resource IDs take precedence. Some collapsed SubProcesses refer to a
+      // BPMN process ID instead, so fall back to an unambiguous XML lookup.
+      try {
+        const directResource = await queryClient.fetchQuery(getResourceQuery(reference));
+        if (directResource?.id && directResource.id !== currentResourceId) {
+          return directResource.id;
+        }
+      } catch {
+        // The reference may be a BPMN process ID rather than a resource ID.
+      }
+
+      const resources = await queryClient.fetchQuery(
+        resourcesQuery({ type: ResourceType.Process }),
+      );
+      const candidates = await Promise.all(resources
+        .filter((resource: Resource) => resource.id !== currentResourceId)
+        .map(async (resource: Resource) => {
+          const contents = await queryClient.fetchQuery(contentsQuery(resource.id)).catch(() => [] as Content[]);
+          const publishedContent = contents
+            .filter((content: Content) => content.status === ContentStatusEnum.Published)
+            .sort((a: Content, b: Content) => (b.version ?? 0) - (a.version ?? 0))[0];
+          if (!publishedContent) return null;
+
+          const xml = await queryClient
+            .fetchQuery(getXmlContentQuery(resource.id, publishedContent.id))
+            .catch(() => '');
+          return { id: resource.id, processIds: getProcessLinks(xml).processIds };
+        }));
+
+      const matches = candidates.filter(
+        (candidate): candidate is { id: string; processIds: string[] } =>
+          Boolean(candidate?.processIds.includes(reference)),
+      );
+      return matches.length === 1 ? matches[0].id : undefined;
+    };
+
     const navigateToCalledProcess = (event: CallActivityEvent) => {
       const businessObject = event.element?.businessObject;
-      if (businessObject?.$type !== 'bpmn:CallActivity') {
+      const isCallActivity = businessObject?.$type === 'bpmn:CallActivity';
+      const isLinkedSubProcess = enableSingleClick &&
+        (businessObject?.$type === 'bpmn:SubProcess' || businessObject?.$type === 'bpmn:Transaction') &&
+        businessObject?.isExpanded === false;
+
+      if (!isCallActivity && !isLinkedSubProcess) {
         return;
       }
 
       event.stopPropagation();
-      const targetResourceId = String(businessObject.calledElement ?? '').trim();
-      if (!targetResourceId) {
+      const reference = String(
+        isCallActivity ? businessObject?.calledElement ?? '' : businessObject?.id ?? '',
+      ).trim();
+      if (!reference) {
         showAlert({
-          message:
-            'Cette activité d’appel n’est pas liée à un processus BPMN Tool. Sélectionnez un processus cible dans les propriétés de l’activité.',
+          message: isCallActivity
+            ? 'Cette activité d’appel n’est pas liée à un processus BPMN Tool. Sélectionnez un processus cible dans les propriétés de l’activité.'
+            : 'Ce sous-processus ne référence aucun processus cible identifiable.',
           severity: 'warning',
         });
         return;
       }
 
-      // Populate the same React Query cache used by the route loader. This
-      // avoids a second resource request during navigation, reducing the blank
-      // interval before the target process renders while retaining access checks.
-      void queryClient
-        .fetchQuery(getResourceQuery(targetResourceId))
-        .then(() => navigate(`/${targetResourceId}`))
+      void resolveTargetResourceId(reference)
+        .then(async targetResourceId => {
+          if (!targetResourceId) {
+            showAlert({
+              message: 'Le processus cible est introuvable ou sa référence BPMN est ambiguë.',
+              severity: 'warning',
+            });
+            return;
+          }
+          // Populate the same cache used by the route loader before navigating.
+          await queryClient.fetchQuery(getResourceQuery(targetResourceId));
+          navigate(`/${targetResourceId}`);
+        })
         .catch(() =>
           showAlert({
             message:
@@ -126,12 +186,24 @@ export const useCallActivityNavigation = (
         return;
       }
 
-      const indicator = document.createElement('span');
+      const indicator = document.createElement('button');
+      indicator.type = 'button';
       indicator.className = 'bpmn-call-activity-link-indicator bpmn-selection-arrow-inward';
       indicator.textContent = '↙';
-      indicator.setAttribute('aria-hidden', 'true');
+      indicator.title = 'Ouvrir le processus appelé';
+      indicator.setAttribute('aria-label', 'Ouvrir le processus appelé');
+      indicator.style.pointerEvents = 'auto';
+      indicator.style.cursor = 'pointer';
+      indicator.addEventListener('click', clickEvent => {
+        clickEvent.preventDefault();
+        clickEvent.stopPropagation();
+        eventBus.fire('element.dblclick', {
+          element,
+          stopPropagation: () => undefined,
+        });
+      });
       indicatorOverlayId = bpmnInstance.get('overlays')?.add?.(element, {
-        position: { top: -10, right: -10 },
+        position: { bottom: -7, right: -8 },
         html: indicator,
       });
     };
@@ -153,5 +225,5 @@ export const useCallActivityNavigation = (
         removeIndicators();
       }
     };
-  }, [bpmnInstance, enableSingleClick, navigate, showAlert]);
+  }, [bpmnInstance, enableSingleClick, currentResourceId, navigate, showAlert]);
 };

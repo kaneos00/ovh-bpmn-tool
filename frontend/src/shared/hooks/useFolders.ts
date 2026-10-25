@@ -12,14 +12,22 @@ export const useFolders = () => {
   const makeFlatHierarchy = (
     flatTree: Resource[],
     resourceId: string,
+    visited = new Set<string>(),
   ): Resource[] => {
+    // Malformed parent references can form cycles. Keep each folder once and
+    // stop at the first repeated ID instead of recursing forever.
+    if (visited.has(resourceId)) {
+      return flatTree;
+    }
+    visited.add(resourceId);
+
     const folder = (folders as Resource[]).find(({ id }) => id === resourceId);
     if (folder) {
       flatTree.push(folder);
     }
 
     return folder?.parentId
-      ? makeFlatHierarchy(flatTree, folder?.parentId)
+      ? makeFlatHierarchy(flatTree, folder.parentId, visited)
       : flatTree;
   };
 

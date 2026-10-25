@@ -36,6 +36,16 @@ type FolderTreeProps = {
 type ExplorerView = 'tree' | 'recent' | 'favorites';
 const FAVORITES_KEY = 'bpmn-tool:favorite-resources';
 const RECENT_KEY = 'bpmn-tool:recent-resources';
+const VIEW_KEY = 'bpmn-tool:explorer-view';
+
+const readView = (): ExplorerView => {
+  try {
+    const value = window.localStorage.getItem(VIEW_KEY);
+    return value === 'recent' || value === 'favorites' ? value : 'tree';
+  } catch {
+    return 'tree';
+  }
+};
 
 const readIds = (key: string): string[] => {
   try {
@@ -50,10 +60,18 @@ const readIds = (key: string): string[] => {
 export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
   const { dataTree, expandedNodes, setExpandedNodes, isLoading } =
     useFolderTree(selectedId, { onNodeClick });
-  const [view, setView] = useState<ExplorerView>('tree');
+  const [view, setView] = useState<ExplorerView>(readView);
   const [search, setSearch] = useState('');
   const [favorites, setFavorites] = useState<string[]>(readIds(FAVORITES_KEY));
   const [recent, setRecent] = useState<string[]>(readIds(RECENT_KEY));
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(VIEW_KEY, view);
+    } catch {
+      // The explorer remains usable when browser storage is disabled.
+    }
+  }, [view]);
 
   useEffect(() => {
     try {
@@ -153,7 +171,13 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
     const node = nodeById.get(selected);
     if (!node) return;
 
-    // Selecting a row navigates to that resource; expansion is handled only by its arrow.
+    // Selecting a folder opens its immediate children if needed, without collapsing
+    // any other expanded branch. The row still navigates to the selected resource.
+    if (node.type === 'folder' && node.children?.length) {
+      setExpandedNodes(current =>
+        current.includes(node.id) ? current : [...current, node.id],
+      );
+    }
     onNodeClick(node.targetId ?? selected);
   };
 

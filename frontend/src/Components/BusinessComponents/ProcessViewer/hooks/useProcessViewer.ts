@@ -31,7 +31,19 @@ export const useProcessViewer = (
   );
 
   const viewer = useMemo(() => getViewerInstance(), []);
-  useCallActivityNavigation(viewer, true);
+  useCallActivityNavigation(viewer, true, resourceId);
+
+  useEffect(() => {
+    const minimap = viewer.get('minimap') as {
+      open?: () => void;
+      close?: () => void;
+    };
+    if (minimapVisible) {
+      minimap?.open?.();
+    } else {
+      minimap?.close?.();
+    }
+  }, [minimapVisible, viewer]);
 
   const alignDiagramTopLeft = () => {
     const canvas = viewer.get('canvas') as any;
@@ -166,6 +178,8 @@ export const useProcessViewer = (
         element.type === 'bpmn:Transaction' ||
         element.type === 'bpmn:StartEvent' ||
         element.type === 'bpmn:EndEvent' ||
+        element.type === 'bpmn:DataStoreReference' ||
+        element.type === 'bpmn:DataObjectReference' ||
         element.type.endsWith('Gateway');
       if (!isSelectableElement) return;
 
@@ -185,10 +199,19 @@ export const useProcessViewer = (
         onElementSelectRef.current?.(currentlySelected === element.id ? '' : element.id);
       }, 220);
     };
-    const onElementDoubleClick = () => {
+    const onElementDoubleClick = (event: any) => {
       cancelPendingSelection();
       lastClickedElementId = null;
       lastClickAt = 0;
+
+      // External Task URLs open on double-click in the read-only Viewer only.
+      const element = event?.element;
+      const url = String(element?.businessObject?.link ?? '').trim();
+      if (!element?.type?.endsWith('Task') || !url) return;
+
+      event.stopPropagation?.();
+      const normalizedUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+      window.open(normalizedUrl, '_blank', 'noopener,noreferrer');
     };
 
     viewer.importXML(xmlContent)
@@ -201,7 +224,13 @@ export const useProcessViewer = (
         clickListenerAttached = true;
         const canvas = viewer.get('canvas') as any;
         const elementRegistry = viewer.get('elementRegistry') as any;
+        // bpmn-js adds a permanent native drilldown arrow to collapsed
+        // SubProcesses. The Viewer uses the selected-item blue arrow instead.
+        const overlays = viewer.get('overlays') as any;
         elementRegistry.getAll().forEach((element: any) => {
+          if (element?.type === 'bpmn:SubProcess') {
+            overlays?.remove?.({ element, type: 'drilldown' });
+          }
           if (element?.type === 'bpmn:StartEvent') {
             canvas.addMarker(element.id, 'bpmn-start-event');
           } else if (element?.type === 'bpmn:EndEvent') {
