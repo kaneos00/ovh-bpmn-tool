@@ -1,45 +1,39 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useQuery } from 'react-query';
 
-import { foldersQuery } from '../../api/resources/resources.queries';
+import { resourcesQuery } from '../../api/resources/resources.queries';
 import { getRootResource } from '../helpers/resource';
+import { resolveFolderHierarchy } from '../helpers/folderHierarchy';
+import { ResourceType } from '../types/BpmnResource';
 
 import type { Resource } from '../../Types';
 
 export const useFolders = () => {
-  const { data: folders, isLoading } = useQuery(foldersQuery());
+  // Share the same resources cache as the explorer tree. A separate folders-only
+  // query could temporarily expose a different ancestry snapshot during navigation.
+  const { data: resources, isLoading } = useQuery<Resource[]>(resourcesQuery());
+  const folders = useMemo(
+    () => (resources ?? []).filter(resource => resource.type === ResourceType.Folder),
+    [resources],
+  );
 
-  const makeFlatHierarchy = (
-    flatTree: Resource[],
-    resourceId: string,
-  ): Resource[] => {
-    const folder = (folders as Resource[]).find(({ id }) => id === resourceId);
-    if (folder) {
-      flatTree.push(folder);
-    }
-
-    return folder?.parentId
-      ? makeFlatHierarchy(flatTree, folder?.parentId)
-      : flatTree;
-  };
-
-  /**
-   * Return a flat hierarchy of folders
-   */
-  const getFolderHierarchy = useCallback(
-    (folderId: string) => {
-      if (!folders) {
-        return [];
-      }
-
-      return [getRootResource(), ...makeFlatHierarchy([], folderId).reverse()];
-    },
+  const inspectFolderHierarchy = useCallback(
+    (folderId: string) => resolveFolderHierarchy(folders, folderId),
     [folders],
   );
 
+  const getFolderHierarchy = useCallback(
+    (folderId: string) => {
+      const { hierarchy } = inspectFolderHierarchy(folderId);
+      return [getRootResource(), ...(hierarchy as Resource[])];
+    },
+    [inspectFolderHierarchy],
+  );
+
   return {
-    folders: folders ?? [],
+    folders,
     isLoading,
     getFolderHierarchy,
+    inspectFolderHierarchy,
   };
 };
