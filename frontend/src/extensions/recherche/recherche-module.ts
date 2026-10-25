@@ -57,10 +57,19 @@ function RechercheModule(
   function closePanel() { document.getElementById(PANEL_ID)?.remove(); }
 
   function navigateToResult(result: RechercheResult) {
-    if (result.element) {
-      highlightSearchElement(result.element);
-      selection.select(result.element);
-      canvas.scrollToElement(result.element);
+    // Repository search results carry BPMN IDs but not live diagram objects.
+    // If the result belongs to the currently open process, resolve the ID in
+    // the live registry and select the actual task/annotation without reloading.
+    const currentResourceId = rechercheService.getContext().resourceId;
+    const liveElement = result.element ?? (
+      result.resourceId && result.resourceId === currentResourceId
+        ? elementRegistry.get(result.id)
+        : undefined
+    );
+    if (liveElement) {
+      highlightSearchElement(liveElement);
+      selection.select(liveElement);
+      canvas.scrollToElement(liveElement);
       return;
     }
     if (result.link) window.location.assign(result.link);
@@ -142,7 +151,11 @@ function RechercheModule(
       } else {
         button.appendChild(badge);
         const title = document.createElement('div'); title.textContent = result.name || result.id || result.processName || 'Résultat'; title.style.fontWeight = '600'; button.appendChild(title);
-        const details = document.createElement('div'); details.textContent = [result.type, result.processName, result.resourceName, result.role, result.raci].filter(Boolean).join(' · ');
+        const details = document.createElement('div');
+        const resultType = result.type === 'bpmn:TextAnnotation'
+          ? 'Description'
+          : result.type.replace(/^bpmn:/, '');
+        details.textContent = [resultType, result.processName, result.resourceName, result.role, result.raci].filter(Boolean).join(' · ');
         Object.assign(details.style, { fontSize: '11px', color: '#66758a', marginTop: '2px' }); button.appendChild(details);
         if (result.documentation) {
           const documentation = document.createElement('div'); documentation.textContent = result.documentation;
