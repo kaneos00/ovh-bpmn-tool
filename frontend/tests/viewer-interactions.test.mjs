@@ -92,7 +92,7 @@ test('external link indicator is limited to the selected linked Call Activity', 
   assert.ok(navigation.includes("eventBus.on('selection.changed', 1000, showIndicatorForSelectedLinkedElement)"));
   assert.ok(navigation.includes('if (indicatorOverlayId !== undefined)'));
   assert.ok(navigation.includes("bpmnInstance.get('overlays')?.remove?.(indicatorOverlayId)"));
-  assert.ok(navigation.includes("indicator.className = 'bpmn-call-activity-link-indicator'"));
+  assert.ok(navigation.includes("indicator.className = 'bjs-drilldown url-link-overlay bpmn-call-activity-link-indicator'"));
   assert.ok(navigation.includes("position: { bottom: -7, right: -8 }"));
   assert.ok(navigation.includes("indicator.addEventListener('click'"));
   assert.ok(navigation.includes("eventBus.off('selection.changed', showIndicatorForSelectedLinkedElement)"));
@@ -135,7 +135,7 @@ test('task, subprocess and Call Activity arrows share the bottom-right position 
   assert.match(navigation, /position:\s*\{ bottom: -7, right: -8 \}/);
   assert.ok(navigation.includes("indicator.addEventListener('click'"));
   assert.ok(!urlModule.includes('bpmn-subprocess-link'));
-  assert.match(css, /\.djs-overlay \.bjs-drilldown:not\(\.url-link-overlay\)\s*\{[^}]*display:\s*none\s*!important;/s);
+  assert.match(css, /\.bjs-drilldown:not\(\.url-link-overlay\)[\s\S]*?display:\s*none\s*!important;/s);
   assert.match(css, /\.bpmn-call-activity-link-indicator\s*\{[^}]*pointer-events:\s*auto/s);
 });
 
@@ -149,7 +149,7 @@ test('explorer remembers the selected tab and highlights linked-process resource
   assert.ok(tree.includes('selectedTreeNodeId'));
 });
 
-test('viewer serializes imports and covers the previous canvas during navigation', async () => {
+test('viewer serializes imports and avoids loading-cover flashes during navigation', async () => {
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
   const component = await read('src/Components/BusinessComponents/ProcessViewer/ProcessViewer.tsx');
   const css = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
@@ -159,6 +159,7 @@ test('viewer serializes imports and covers the previous canvas during navigation
   assert.ok(hook.includes('const clearViewerAfterQueuedImports = () =>'));
   assert.ok(hook.includes('importQueueRef.current = clearTask'));
   assert.ok(component.includes('process-viewer-loading'));
+  assert.ok(hook.includes('isLoading: (isXmlLoading || isImporting) && !importedRef.current'));
   assert.match(css, /\.process-viewer-loading\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*0;/s);
 });
 
