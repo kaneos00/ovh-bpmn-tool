@@ -13,6 +13,7 @@ test('viewer starts with the minimap hidden and exposes an explicit toggle', asy
 
   assert.match(hook, /const \[minimapVisible, setMinimapVisible\] = useState\(false\)/);
   assert.match(hook, /Keep the minimap closed on import/);
+  assert.match(hook, /setIsImporting\(true\);[\s\S]*?setMinimapVisibility\(false\);/);
   assert.match(component, /onClick=\{\(\) => setMinimapVisible\(!minimapVisible\)\}/);
   assert.ok(hook.includes("minimap?.open?.()"));
   assert.ok(hook.includes("minimap?.close?.()"));
