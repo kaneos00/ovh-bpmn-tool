@@ -173,4 +173,7 @@ test('folder labels expand in place and recent items are limited to processes', 
   assert.match(tree, /const processId = selectedNode\.targetId \?\? selectedNode\.id/);
   assert.match(hook, /bpmn-tool:explorer-expanded-nodes/);
   assert.match(hook, /localStorage\.setItem\(EXPANDED_NODES_KEY, JSON\.stringify\(expandedNodes\)\)/);
+  assert.ok(hook.includes('const findPath = (node: RenderTree'));
+  assert.ok(hook.includes('node.targetId === selectedResourceId'));
+  assert.ok(hook.includes('const treeAncestors = selectedPath'));
 });
