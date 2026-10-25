@@ -199,10 +199,19 @@ export const useProcessViewer = (
         onElementSelectRef.current?.(currentlySelected === element.id ? '' : element.id);
       }, 220);
     };
-    const onElementDoubleClick = () => {
+    const onElementDoubleClick = (event: any) => {
       cancelPendingSelection();
       lastClickedElementId = null;
       lastClickAt = 0;
+
+      // External Task URLs open on double-click in the read-only Viewer only.
+      const element = event?.element;
+      const url = String(element?.businessObject?.link ?? '').trim();
+      if (!element?.type?.endsWith('Task') || !url) return;
+
+      event.stopPropagation?.();
+      const normalizedUrl = /^https?:\\/\\//i.test(url) ? url : `https://${url}`;
+      window.open(normalizedUrl, '_blank', 'noopener,noreferrer');
     };
 
     viewer.importXML(xmlContent)
