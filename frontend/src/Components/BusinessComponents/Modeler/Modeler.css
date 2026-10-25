@@ -218,6 +218,13 @@
   stroke-width: 2px !important;
 }
 
+/* Parallel Gateway's inner plus is a filled SVG path, not a stroked line.
+   Color the symbol itself violet while leaving the diamond's fill untouched. */
+.djs-element.bpmn-gateway-parallel .djs-visual > path {
+  fill: #6a0dad !important;
+  stroke: #6a0dad !important;
+}
+
 /* Call Activity outlines should remain distinct but not overly heavy. */
 .djs-element.bpmn-call-activity .djs-visual > rect,
 .djs-element.bpmn-call-activity .djs-visual > path {
