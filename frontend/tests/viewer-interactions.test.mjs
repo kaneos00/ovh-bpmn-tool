@@ -41,7 +41,7 @@ test('viewer delegates called-process navigation to the shared hook', async () =
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
 
   assert.match(hook, /import \{ useCallActivityNavigation \} from '[^']*useCallActivityNavigation'/);
-  assert.match(hook, /useCallActivityNavigation\(viewer, true\)/);
+  assert.match(hook, /useCallActivityNavigation\(viewer, true, resourceId\)/);
 });
 
 test('detail panel starts collapsed and opens when an element is selected', async () => {
@@ -58,12 +58,15 @@ test('explorer node selection navigates to the selected resource', async () => {
   assert.match(details, /<FolderTree[\s\S]*?selectedId=\{resourceId\}[\s\S]*?onNodeClick=\{id => navigate\(\`\/\$\{id\}\`\)\}/);
 });
 
-test('linked Call Activity opens its target only on double-click and handles missing targets', async () => {
+test('Call Activity and linked collapsed SubProcess navigate only on double-click', async () => {
   const navigation = await read('src/shared/hooks/useCallActivityNavigation.ts');
 
   assert.match(navigation, /eventBus\.on\('element\.dblclick', 1500, navigateToCalledProcess\)/);
-  assert.match(navigation, /businessObject\?\.\$type !== 'bpmn:CallActivity'/);
-  assert.match(navigation, /String\(businessObject\.calledElement \?\? ''\)\.trim\(\)/);
+  assert.match(navigation, /businessObject\?\.\$type === 'bpmn:CallActivity'/);
+  assert.match(navigation, /businessObject\?\.\$type === 'bpmn:SubProcess'/);
+  assert.match(navigation, /businessObject\?\.isExpanded === false/);
+  assert.match(navigation, /resourcesQuery\(\{ type: ResourceType\.Process \}\)/);
+  assert.match(navigation, /isCallActivity \? businessObject\?\.calledElement/);
   assert.match(navigation, /navigate\(\`\/\$\{targetResourceId\}\`\)/);
   assert.match(navigation, /Cette activité d’appel n’est pas liée à un processus BPMN Tool/);
   assert.match(navigation, /Accès au processus impossible/);
