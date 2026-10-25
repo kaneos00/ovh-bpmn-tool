@@ -149,8 +149,7 @@
   cursor: pointer;
 }
 
-.bpmn-call-activity-link-indicator,
-.bpmn-selection-arrow {
+.bpmn-call-activity-link-indicator {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -225,11 +224,6 @@
   stroke-width: 1.5px !important;
 }
 
-
-/* The toolbar is the only minimap visibility control; hide the library's internal toggle. */
-.djs-minimap .toggle {
-  display: none !important;
-}
 
 /* Keep the previous canvas covered while the next BPMN XML is imported. */
 .process-viewer-loading {
