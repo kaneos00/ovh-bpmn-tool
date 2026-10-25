@@ -49,7 +49,7 @@ describe('resolveProcessTarget', () => {
 });
 
 describe('resolveLinkedChildren', () => {
-  it('deduplicates links and rejects self-links and cycles', () => {
+  it('deduplicates links, rejects self-links and keeps the valid acyclic portion of a cycle', () => {
     const a = { id: 'A' };
     const b = { id: 'B' };
     const c = { id: 'C' };
@@ -59,8 +59,8 @@ describe('resolveLinkedChildren', () => {
       { resource: c, processIds: ['pc'], targets: ['A'] },
     ]);
 
-    assert.deepEqual((linked.get('A') ?? []).map(resource => resource.id), []);
-    assert.deepEqual((linked.get('B') ?? []).map(resource => resource.id), []);
+    assert.deepEqual((linked.get('A') ?? []).map(resource => resource.id), ['B']);
+    assert.deepEqual((linked.get('B') ?? []).map(resource => resource.id), ['C']);
     assert.deepEqual((linked.get('C') ?? []).map(resource => resource.id), []);
   });
 
