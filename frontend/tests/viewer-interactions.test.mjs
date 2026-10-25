@@ -12,7 +12,7 @@ test('viewer starts with the minimap hidden and exposes an explicit toggle', asy
   const component = await read('src/Components/BusinessComponents/ProcessViewer/ProcessViewer.tsx');
 
   assert.match(hook, /const \[minimapVisible, setMinimapVisible\] = useState\(false\)/);
-  assert.match(hook, /Keep the minimap closed on import/);
+  assert.match(hook, /setMinimapVisible\(false\)/);
   assert.match(component, /onClick=\{\(\) => setMinimapVisible\(visible => !visible\)\}/);
   assert.match(component, /aria-label=\{minimapVisible \? 'Masquer la mini-carte' : 'Afficher la mini-carte'\}/);
 });
