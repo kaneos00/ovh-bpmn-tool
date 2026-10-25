@@ -126,8 +126,9 @@ test('viewer supports data-reference selection and consistent clickable navigati
   assert.ok(callNavigation.includes('position: { bottom: -7, right: -8 }'));
   assert.ok(callNavigation.includes('currentResourceId, navigate, showAlert'));
 
-  assert.ok(urlModule.includes("eventBus.on('element.dblclick', openTaskUrlOnDoubleClick)"));
-  assert.ok(urlModule.includes("if (!is(element, 'bpmn:Task')) return"));
+  assert.ok(viewer.includes("const url = String(element?.businessObject?.link ?? '').trim()"));
+  assert.ok(viewer.includes("window.open(normalizedUrl, '_blank', 'noopener,noreferrer')"));
+  assert.ok(!urlModule.includes('openTaskUrlOnDoubleClick'));
   assert.ok(urlModule.includes("position: { bottom: -7, right: -8 }"));
   assert.ok(urlModule.includes("eventBus.fire('element.dblclick'"));
 });
