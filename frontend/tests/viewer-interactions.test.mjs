@@ -141,6 +141,7 @@ test('task, subprocess and Call Activity arrows share the bottom-right position 
   const css = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
 
   assert.match(urlModule, /position:\s*\{\s*bottom:\s*-7,\s*right:\s*-8/s);
+  assert.ok(urlModule.includes('bpmn-call-activity-link-indicator'));
   assert.match(navigation, /position:\s*\{ bottom: -7, right: -8 \}/);
   assert.ok(navigation.includes("indicator.addEventListener('click'"));
   assert.ok(!urlModule.includes('bpmn-subprocess-link'));

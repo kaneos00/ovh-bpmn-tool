@@ -124,64 +124,12 @@ function UrlClickHandler(
      * ============================================================
      */
 
-    const ARROW_UP_RIGHT_SVG = `
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="20"
-        height="20"
-        viewBox="0 0 16 16"
-      >
-        <path
-          fill="white"
-          fill-rule="evenodd"
-          d="
-            M3.5,12.5
-            L12,4
-            L12,8
-            L13.5,8
-            L13.5,1.5
-            L7,1.5
-            L7,3
-            L11,3
-            L2.5,11.5
-            Z
-          "
-        />
-      </svg>
-    `;
-
     overlays.add(element, 'url-link', {
       position: {
         bottom: -7,
         right: -8,
       },
-
-      html: `
-        <button
-          type="button"
-          class="bjs-drilldown url-link-overlay"
-          data-url-task-id="${element.id}"
-          title="Ouvrir le lien"
-          style="
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 22px;
-            height: 22px;
-            min-width: 22px;
-            min-height: 22px;
-            padding: 0;
-            border: 2px solid #fff;
-            border-radius: 50%;
-            color: #fff;
-            background: #1976d2;
-            box-shadow: 0 1px 4px rgb(0 0 0 / 30%);
-            line-height: 1;
-          "
-        >
-          ${ARROW_UP_RIGHT_SVG}
-        </button>
-      `,
+      html: '<button type="button" class="bjs-drilldown url-link-overlay bpmn-call-activity-link-indicator" data-url-task-id="' + element.id + '" title="Ouvrir le lien" aria-label="Ouvrir le lien"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 16 16" aria-hidden="true"><path fill="white" fill-rule="evenodd" d="M3.5 12.5 12 4v4h1.5V1.5H7V3h4L2.5 11.5z"/></svg></button>',
     });
 
     /*
