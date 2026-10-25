@@ -64,6 +64,9 @@ test('linked Call Activity opens its target only on double-click and handles mis
   const navigation = await read('src/shared/hooks/useCallActivityNavigation.ts');
 
   assert.match(navigation, /eventBus\.on\('element\.dblclick', 1500, navigateToLinkedProcess\)/);
+  assert.ok(navigation.includes('const getExternalTaskUrl = (element: any): string =>'));
+  assert.ok(navigation.includes('const url = getExternalTaskUrl(event.element)'));
+  assert.ok(navigation.includes('openExternalUrl(url)'));
   assert.match(navigation, /type === 'bpmn:CallActivity'/);
   assert.match(navigation, /type === 'bpmn:SubProcess'/);
   assert.match(navigation, /type === 'bpmn:Transaction'/);
