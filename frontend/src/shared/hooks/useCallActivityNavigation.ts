@@ -73,6 +73,8 @@ export const useCallActivityNavigation = (
     let indicatorGeneration = 0;
     let processInfoPromise: Promise<Array<{ resource: Resource; processIds: string[] }>> | null = null;
     const processInfoFailures = new Set<string>();
+    let lastSubProcessClick: { id: string; at: number } | null = null;
+    let lastSubProcessFallback: { id: string; at: number } | null = null;
 
     const getProcessInfo = () => {
       if (!processInfoPromise) {
@@ -153,6 +155,15 @@ export const useCallActivityNavigation = (
 
     const navigateToLinkedProcess = (event: LinkedElementEvent) => {
       if (isLinkedElement(event.element)) {
+        const type = event.element?.businessObject?.$type ?? event.element?.type;
+        const wasHandledByClickFallback =
+          (type === 'bpmn:SubProcess' || type === 'bpmn:Transaction') &&
+          lastSubProcessFallback?.id === event.element.id &&
+          Date.now() - lastSubProcessFallback.at < 350;
+        if (wasHandledByClickFallback) {
+          event.stopPropagation();
+          return;
+        }
         event.stopPropagation();
         void openLinkedProcess(event.element);
         return;
@@ -164,6 +175,23 @@ export const useCallActivityNavigation = (
       if (!url) return;
       event.stopPropagation();
       openExternalUrl(url);
+    };
+
+    const handleCollapsedSubProcessClickFallback = (event: LinkedElementEvent) => {
+      const element = event.element;
+      const type = element?.businessObject?.$type ?? element?.type;
+      if (type !== 'bpmn:SubProcess' && type !== 'bpmn:Transaction') return;
+
+      const now = Date.now();
+      if (lastSubProcessClick?.id === element.id && now - lastSubProcessClick.at < 350) {
+        lastSubProcessClick = null;
+        lastSubProcessFallback = { id: element.id, at: now };
+        // Do not stop propagation here: the Viewer click handler must cancel
+        // its pending single-click selection before navigation completes.
+        void openLinkedProcess(element);
+        return;
+      }
+      lastSubProcessClick = { id: element.id, at: now };
     };
 
     const clearIndicator = () => {
@@ -233,6 +261,9 @@ export const useCallActivityNavigation = (
     };
 
     eventBus.on('element.dblclick', 1500, navigateToLinkedProcess);
+    // Some BPMN subprocess shapes do not consistently emit element.dblclick
+    // across viewer integrations; retain a click-pair fallback for collapsed links.
+    eventBus.on('element.click', 1500, handleCollapsedSubProcessClickFallback);
 
     if (enableSingleClick) {
       eventBus.on('selection.changed', 1000, showIndicatorForSelectedLinkedElement);
@@ -242,6 +273,7 @@ export const useCallActivityNavigation = (
 
     return () => {
       eventBus.off('element.dblclick', navigateToLinkedProcess);
+      eventBus.off('element.click', handleCollapsedSubProcessClickFallback);
       indicatorGeneration += 1;
       if (enableSingleClick) {
         eventBus.off('import.done', decorateCallActivities);
