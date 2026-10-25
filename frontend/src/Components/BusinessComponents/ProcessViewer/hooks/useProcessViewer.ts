@@ -33,6 +33,18 @@ export const useProcessViewer = (
   const viewer = useMemo(() => getViewerInstance(), []);
   useCallActivityNavigation(viewer, true, resourceId);
 
+  useEffect(() => {
+    const minimap = viewer.get('minimap') as {
+      open?: () => void;
+      close?: () => void;
+    };
+    if (minimapVisible) {
+      minimap?.open?.();
+    } else {
+      minimap?.close?.();
+    }
+  }, [minimapVisible, viewer]);
+
   const alignDiagramTopLeft = () => {
     const canvas = viewer.get('canvas') as any;
     const elementRegistry = viewer.get('elementRegistry') as any;
