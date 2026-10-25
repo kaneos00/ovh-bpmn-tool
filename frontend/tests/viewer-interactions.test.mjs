@@ -106,3 +106,14 @@ test('external task URL is rendered as a safe external link in the documentation
   assert.ok(details.includes('target="_blank"'));
   assert.ok(details.includes('rel="noopener noreferrer"'));
 });
+
+
+test('viewer toolbar is the only minimap open/close control', async () => {
+  const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+  const styles = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
+
+  assert.match(hook, /viewer\.get\('minimap'\)/);
+  assert.match(hook, /minimap\?\.open\?\.\(\)/);
+  assert.match(hook, /minimap\?\.close\?\.\(\)/);
+  assert.match(styles, /\.process-viewer-canvas \.djs-minimap \.toggle\s*\{\s*display: none !important;/);
+});
