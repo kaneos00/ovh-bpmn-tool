@@ -46,6 +46,29 @@ test('all five BPMN gateway types map to markers styled with the same violet str
 });
 
 
+
+test('Parallel Gateway inner plus is violet without changing the diamond fill', async () => {
+  const css = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
+
+  assert.match(css, /\.djs-element\.bpmn-gateway-parallel \.djs-visual > path\s*\{[^}]*fill:\s*#6a0dad\s*!important;[^}]*stroke:\s*#6a0dad\s*!important;/s);
+  assert.match(css, /\.djs-element\.bpmn-gateway-event-based \.djs-visual > \*/);
+});
+
+test('description search indexes text annotations and selects a live matching BPMN element', async () => {
+  const provider = await read('src/extensions/recherche/recherche-repository-provider.ts');
+  const module = await read('src/extensions/recherche/recherche-module.ts');
+
+  assert.ok(provider.includes("node.localName !== 'textAnnotation'"));
+  assert.ok(provider.includes("child.localName === 'text'"));
+  assert.ok(provider.includes('name: node.getAttribute(\'name\') || annotationText(node)'));
+  assert.ok(provider.includes('documentation: [documentationText(node), annotationText(node)]'));
+  assert.ok(module.includes('const liveElement = result.element ?? ('));
+  assert.ok(module.includes('elementRegistry.get(result.id)'));
+  assert.ok(module.includes("? 'Description'"));
+  assert.ok(module.includes('selection.select(liveElement)'));
+});
+
+
 test('called-process tree resolution is unambiguous, deduplicated and cycle-safe', async () => {
   const links = await read('src/Components/BusinessComponents/FolderTree/processLinks.ts');
   const tree = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
