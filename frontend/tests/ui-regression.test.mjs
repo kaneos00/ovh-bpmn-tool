@@ -64,9 +64,10 @@ test('explorer folder-label selection opens one level without collapsing other b
   const explorer = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
 
   assert.ok(explorer.includes('const handleTreeSelection = (items: (string | number)[]) =>'));
-  assert.ok(explorer.includes("if (node.type === 'folder' && node.children?.length)"));
+  assert.ok(explorer.includes("if (node.type === 'folder')"));
   assert.ok(explorer.includes('current.includes(node.id) ? current : [...current, node.id]'));
   assert.ok(explorer.includes('onNodeClick(node.targetId ?? selected)'));
+  assert.ok(explorer.includes('return;'), 'folder clicks must expand in place without navigating away');
 
   const treeHook = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
   assert.ok(treeHook.includes('resource.type === ResourceType.Folder'));
