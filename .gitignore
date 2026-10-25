@@ -144,3 +144,6 @@ coverage/
 
 # project
 package-lock.json
+
+# Temporary TypeScript output for isolated frontend unit tests
+frontend/.test-dist/
