@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useQuery } from 'react-query';
 
 import { foldersQuery } from '../../api/resources/resources.queries';
 import { getRootResource } from '../helpers/resource';
 import { auditFolderHierarchy } from '../helpers/folderHierarchyAudit';
+import { useSnackbar } from './useSnackbar';
 
 import type { Resource } from '../../Types';
 
@@ -14,14 +15,18 @@ export const useFolders = () => {
     () => auditFolderHierarchy(folders ?? []),
     [folders],
   );
+  const hierarchyWarningShownRef = useRef(false);
+  const { showAlert } = useSnackbar();
 
   useEffect(() => {
-    if (hierarchyIssues.length > 0) {
-      // This is a read-only diagnostic: it reports bad parent/depth data but
-      // never mutates or repairs user resources.
-      console.warn('[BPMN Explorer] Folder hierarchy integrity issues', hierarchyIssues);
+    if (hierarchyIssues.length > 0 && !hierarchyWarningShownRef.current) {
+      hierarchyWarningShownRef.current = true;
+      showAlert({
+        message: `Le référentiel contient ${hierarchyIssues.length} incohérence(s) de hiérarchie (parent absent, cycle ou profondeur). Aucune donnée n'a été modifiée.`,
+        severity: 'warning',
+      });
     }
-  }, [hierarchyIssues]);
+  }, [hierarchyIssues, showAlert]);
 
   const makeFlatHierarchy = (
     flatTree: Resource[],
