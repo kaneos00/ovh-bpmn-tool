@@ -26,6 +26,7 @@ export const ProcessViewer = ({
   const {
     viewerRef,
     importError,
+    isLoading,
     minimapVisible,
     setMinimapVisible,
     zoomIn,
@@ -73,6 +74,11 @@ export const ProcessViewer = ({
           className={`process-viewer-canvas ${minimapVisible ? 'has-minimap' : 'minimap-not-needed'}`}
           ref={viewerRef}
         />
+        {isLoading && !importError && (
+          <Box className="process-viewer-loading" role="status" aria-live="polite">
+            Chargement du diagramme…
+          </Box>
+        )}
       </Box>
     </Box>
   );
