@@ -60,6 +60,7 @@ export const useCallActivityNavigation = (
     let indicatorOverlayId: string | number | undefined;
     let indicatorGeneration = 0;
     let processInfoPromise: Promise<Array<{ resource: Resource; processIds: string[] }>> | null = null;
+    const processInfoFailures = new Set<string>();
 
     const getProcessInfo = () => {
       if (!processInfoPromise) {
@@ -85,7 +86,9 @@ export const useCallActivityNavigation = (
               const xml = cachedXml ?? await queryClient.fetchQuery(xmlQuery);
               return { resource, processIds: getProcessLinks(xml).processIds };
             } catch {
-              // An inaccessible or malformed process cannot be a navigation target.
+              // Keep the failed resource visible to diagnostics instead of treating
+              // a partial scan as proof that the target does not exist.
+              processInfoFailures.add(resource.id);
               return { resource, processIds: [] as string[] };
             }
           }));
@@ -115,9 +118,12 @@ export const useCallActivityNavigation = (
       try {
         const targetResourceId = await resolveTargetResourceId(targetId);
         if (!targetResourceId) {
+          const hasResolutionFailures = processInfoFailures.size > 0;
           showAlert({
-            message: 'Le processus cible est absent ou son identifiant BPMN est ambigu.',
-            severity: 'warning',
+            message: hasResolutionFailures
+              ? `Impossible de vérifier la cible : lecture de ${processInfoFailures.size} processus en échec.`
+              : 'Le processus cible est absent ou son identifiant BPMN est ambigu.',
+            severity: hasResolutionFailures ? 'danger' : 'warning',
           });
           return;
         }
