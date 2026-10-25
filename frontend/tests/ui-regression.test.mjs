@@ -70,6 +70,7 @@ test('explorer folder-label selection opens one level without collapsing other b
 
   const treeHook = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
   assert.ok(treeHook.includes('resource.type === ResourceType.Folder'));
+  assert.match(treeHook, /resource\.type === ResourceType\.Folder\s*\?\s*resource\.id/);
   assert.ok(treeHook.includes('getFolderHierarchy(hierarchyResourceId).map(({ id }) => id)'));
 });
 
