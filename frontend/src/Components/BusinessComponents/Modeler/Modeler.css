@@ -134,7 +134,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.82);
+  background: var(--joy-palette-background-surface, #fff);
 }
 
 .process-viewer-canvas {
@@ -147,6 +147,11 @@
 }
 
 .process-viewer-canvas.minimap-not-needed .djs-minimap {
+  display: none !important;
+}
+
+/* Remove the native grey drilldown arrow; the selected-element blue arrow is the only control. */
+.process-viewer-canvas .djs-overlay-drilldown {
   display: none !important;
 }
 
@@ -168,6 +173,7 @@
   cursor: pointer;
 }
 
+.bpmn-url-link-indicator,
 .bpmn-call-activity-link-indicator,
 .bpmn-selection-arrow {
   display: inline-flex;
@@ -184,7 +190,8 @@
   font-size: 16px;
   font-weight: 700;
   line-height: 1;
-  pointer-events: none;
+  cursor: pointer;
+  pointer-events: auto;
   user-select: none;
 }
 
@@ -239,4 +246,10 @@
 .djs-element.bpmn-call-activity .djs-visual > rect,
 .djs-element.bpmn-call-activity .djs-visual > path {
   stroke-width: 1.5px !important;
+}
+
+
+.process-viewer-import-error {
+  position: relative;
+  z-index: 11;
 }

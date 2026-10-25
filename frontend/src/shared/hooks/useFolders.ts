@@ -60,12 +60,12 @@ export const useFolders = () => {
    * Return a flat hierarchy of folders
    */
   const getFolderHierarchy = useCallback(
-    (folderId: string) => {
+    (folderId: string | null | undefined) => {
       if (!folders) {
         return [];
       }
 
-      return [getRootResource(), ...makeFlatHierarchy([], folderId).reverse()];
+      return [getRootResource(), ...makeFlatHierarchy([], folderId ?? '').reverse()];
     },
     [folders],
   );

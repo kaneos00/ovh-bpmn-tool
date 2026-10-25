@@ -64,14 +64,14 @@ export const ProcessViewer = ({
           {toolbarExtra}
         </Stack>
       </Stack>
-      <Box className="processViewerDiagramContent">
+      <Box className="processViewerDiagramContent" aria-busy={isImporting}>
         {isImporting && (
           <Box className="process-viewer-loading-overlay" role="status" aria-live="polite">
             <Typography level="body-sm">Chargement du diagramme…</Typography>
           </Box>
         )}
         {importError && (
-          <Alert color="danger" variant="soft" sx={{ m: 1 }}>
+          <Alert className="process-viewer-import-error" color="danger" variant="soft" sx={{ m: 1 }}>
             {importError}
           </Alert>
         )}

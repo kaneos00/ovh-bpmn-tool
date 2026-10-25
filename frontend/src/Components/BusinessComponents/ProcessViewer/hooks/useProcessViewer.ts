@@ -259,7 +259,10 @@ export const useProcessViewer = (
       // External Task URLs open on double-click in the read-only Viewer only.
       const element = event?.element;
       const url = String(element?.businessObject?.link ?? '').trim();
-      if (!element?.type?.endsWith('Task') || !url) return;
+      const isExternalUrlElement = element?.type?.endsWith('Task') ||
+        element?.type === 'bpmn:DataStoreReference' ||
+        element?.type === 'bpmn:DataObjectReference';
+      if (!isExternalUrlElement || !url) return;
 
       event.stopPropagation?.();
       const normalizedUrl = /^https?:\/\//i.test(url) ? url : ['https://', url].join('');
@@ -281,7 +284,7 @@ export const useProcessViewer = (
         const elementRegistry = viewer.get('elementRegistry') as any;
         const overlays = viewer.get('overlays') as any;
         elementRegistry.getAll().forEach((element: any) => {
-          if (element?.type === 'bpmn:SubProcess') {
+          if (element?.type === 'bpmn:SubProcess' || element?.type === 'bpmn:Transaction') {
             overlays?.remove?.({ element, type: 'drilldown' });
           }
           if (element?.type === 'bpmn:StartEvent') {

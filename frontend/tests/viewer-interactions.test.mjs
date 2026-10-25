@@ -25,7 +25,7 @@ test('single-click selection is delayed and rapid double-click cancels it', asyn
   assert.match(hook, /now - lastClickAt < 280/);
   assert.match(hook, /setTimeout\(\(\) => \{[\s\S]*?currentlySelected === element\.id \? '' : element\.id[\s\S]*?\}, 220\)/);
   assert.match(hook, /const onElementDoubleClick = \(event: any\) => \{\s*cancelPendingSelection\(\)/);
-  assert.match(hook, /element\?\.type\?\.endsWith\('Task'\)[\s\S]*?window\.open\(normalizedUrl, '_blank', 'noopener,noreferrer'\)/);
+  assert.match(hook, /element\?\.type\?\.endsWith\('Task'\)[\s\S]*?element\?\.type === 'bpmn:DataStoreReference'[\s\S]*?element\?\.type === 'bpmn:DataObjectReference'[\s\S]*?window\.open\(normalizedUrl, '_blank', 'noopener,noreferrer'\)/);
   assert.match(hook, /eventBus\.off\('element\.click', onElementClick\)/);
   assert.match(hook, /eventBus\.off\('element\.dblclick', onElementDoubleClick\)/);
 });
@@ -132,4 +132,21 @@ test('viewer serializes imports and covers the previous canvas during navigation
   assert.match(hook, /if \(!hadPreviousDiagram\) clearViewerAfterQueuedImports\(\)/);
   assert.ok(component.includes('className="process-viewer-loading-overlay"'));
   assert.match(styles, /\.process-viewer-loading-overlay\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*0;/s);
+  assert.match(styles, /\.process-viewer-loading-overlay\s*\{[^}]*background:\s*var\(--joy-palette-background-surface,\s*#fff\);/s);
+  assert.match(styles, /\.process-viewer-canvas \.djs-overlay-drilldown\s*\{\s*display: none !important;/s);
+  assert.ok(component.includes('aria-busy={isImporting}'));
+  assert.ok(component.includes('className="process-viewer-import-error"'));
+});
+
+
+test('URL arrows are blue, bottom-right, directly clickable and not native drilldown buttons', async () => {
+  const urlModule = await read('src/extensions/url-click-module.ts');
+  const styles = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
+
+  assert.match(urlModule, /arrow\.className = 'url-link-overlay bpmn-url-link-indicator'/);
+  assert.match(urlModule, /arrow\.addEventListener\('click'/);
+  assert.match(urlModule, /position:\s*\{\s*bottom:\s*-7,\s*right:\s*-8\s*\}/);
+  assert.doesNotMatch(urlModule, /setTimeout\(/);
+  assert.doesNotMatch(urlModule, /bjs-drilldown/);
+  assert.match(styles, /\.bpmn-url-link-indicator,[\s\S]*?\.bpmn-call-activity-link-indicator,[\s\S]*?\.bpmn-selection-arrow/);
 });
