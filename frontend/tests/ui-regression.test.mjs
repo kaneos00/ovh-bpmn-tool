@@ -106,5 +106,6 @@ test('breadcrumb hierarchy traversal stops safely when parent IDs form a cycle',
   const folders = await read('src/shared/hooks/useFolders.ts');
 
   assert.match(folders, /if \(visited\.has\(resourceId\)\)\s*\{\s*return flatTree;/);
+  assert.match(folders, /visited\.add\(resourceId\)/);
   assert.match(folders, /makeFlatHierarchy\(flatTree, folder\.parentId, visited\)/);
 });
