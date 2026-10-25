@@ -131,11 +131,16 @@ test('folder navigation does not rely on the stored depth field for breadcrumb o
 
 test('Start/End events and data references keep their semantic markers and styles', async () => {
   const viewer = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+  const editor = await read('src/Containers/ContentModeler/hooks/useModeler.ts');
   const css = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
   const urlModule = await read('src/extensions/url-click-module.ts');
 
   assert.match(viewer, /element\?\.type === 'bpmn:StartEvent'[\s\S]*?canvas\.addMarker\(element\.id, 'bpmn-start-event'\)/);
   assert.match(viewer, /element\?\.type === 'bpmn:EndEvent'[\s\S]*?canvas\.addMarker\(element\.id, 'bpmn-end-event'\)/);
+  assert.match(editor, /element\.type === 'bpmn:StartEvent'[\s\S]*?canvas\.addMarker\(element\.id, 'bpmn-start-event'\)/);
+  assert.match(editor, /element\.type === 'bpmn:EndEvent'[\s\S]*?canvas\.addMarker\(element\.id, 'bpmn-end-event'\)/);
+  assert.match(editor, /element\.type === 'bpmn:DataStoreReference'[\s\S]*?canvas\.addMarker\(element\.id, 'bpmn-data-store'\)/);
+  assert.match(editor, /element\.type === 'bpmn:DataObjectReference'[\s\S]*?canvas\.addMarker\(element\.id, 'bpmn-data-object-reference'\)/);
   assert.match(css, /\.djs-element\.bpmn-start-event \.djs-visual > circle\s*\{[^}]*stroke:\s*#2e7d32\s*!important;/s);
   assert.match(css, /\.djs-element\.bpmn-end-event \.djs-visual > circle\s*\{[^}]*stroke:\s*#c62828\s*!important;/s);
   assert.ok(css.includes('.djs-element.bpmn-data-store .djs-visual > rect'));
