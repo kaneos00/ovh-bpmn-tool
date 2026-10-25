@@ -85,3 +85,17 @@ test('explorer delegates Call Activity and collapsed SubProcess links to the tes
     /getElementsByTagNameNS\(BPMN_MODEL_NS, 'subProcess'\)[\s\S]*?filter\(element => element\.getAttribute\('isExpanded'\) === 'false'\)/,
   );
 });
+
+test('viewer mounts a single FolderTree explorer instead of the legacy ResourceExplorer', async () => {
+  const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const routes = await read('src/routes.tsx');
+
+  assert.ok(layout.includes("import { FolderTree } from '../../Components/BusinessComponents/FolderTree'"));
+  assert.ok(layout.includes('<FolderTree'));
+  assert.ok(!layout.includes('ResourceExplorer'));
+  assert.ok(details.includes("import { FolderTree } from '../FolderTree'"));
+  assert.ok(details.includes('<FolderTree'));
+  assert.ok(!details.includes('ResourceExplorer'));
+  assert.ok(routes.includes("lazy: () => import('./Containers/BpmnLayout')"));
+});
