@@ -21,12 +21,15 @@ export const useProcessViewer = (
   const importedRef = useRef(false);
   const highlightedIdRef = useRef<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
   const [minimapVisible, setMinimapVisible] = useState(false);
+  const importGenerationRef = useRef(0);
+  const importQueueRef = useRef<Promise<unknown>>(Promise.resolve());
 
   selectedIdRef.current = selectedElementId;
   onElementSelectRef.current = onElementSelect;
 
-  const { data: xmlContent } = useQuery(
+  const { data: xmlContent, isLoading: isXmlLoading, isError: isXmlError } = useQuery(
     getXmlContentQuery(resourceId, contentId),
   );
 
@@ -125,19 +128,41 @@ export const useProcessViewer = (
 
   useEffect(() => {
     let cancelled = false;
+    const generation = ++importGenerationRef.current;
 
-    if (!viewerRef.current || !xmlContent) {
-      importedRef.current = false;
-      highlightedIdRef.current = null;
-      setMinimapVisible(false);
-      setImportError(null);
-      viewer.clear();
+    if (!viewerRef.current) {
+      setIsImporting(false);
       return () => {
         cancelled = true;
       };
     }
 
-    importedRef.current = false;
+    if (isXmlError) {
+      importedRef.current = false;
+      highlightedIdRef.current = null;
+      viewer.clear();
+      setImportError('Le contenu XML du diagramme est indisponible.');
+      setIsImporting(false);
+      return () => {
+        cancelled = true;
+        if (importGenerationRef.current === generation) importGenerationRef.current += 1;
+      };
+    }
+
+    if (!xmlContent) {
+      // Do not clear the currently displayed diagram during the short query gap
+      // caused by route changes. The loading layer hides it until the next import.
+      setMinimapVisible(false);
+      setImportError(null);
+      setIsImporting(isXmlLoading);
+      if (!importedRef.current && !isXmlLoading) viewer.clear();
+      return () => {
+        cancelled = true;
+        if (importGenerationRef.current === generation) importGenerationRef.current += 1;
+      };
+    }
+
+    setIsImporting(true);
     setMinimapVisible(false);
     setImportError(null);
     viewer.attachTo(viewerRef.current);
@@ -166,7 +191,9 @@ export const useProcessViewer = (
         element.type === 'bpmn:Transaction' ||
         element.type === 'bpmn:StartEvent' ||
         element.type === 'bpmn:EndEvent' ||
-        element.type.endsWith('Gateway');
+        element.type.endsWith('Gateway') ||
+        element.type === 'bpmn:DataStoreReference' ||
+        element.type === 'bpmn:DataObjectReference';
       if (!isSelectableElement) return;
 
       const now = Date.now();
@@ -185,17 +212,31 @@ export const useProcessViewer = (
         onElementSelectRef.current?.(currentlySelected === element.id ? '' : element.id);
       }, 220);
     };
-    const onElementDoubleClick = () => {
+    const onElementDoubleClick = (event: any) => {
       cancelPendingSelection();
       lastClickedElementId = null;
       lastClickAt = 0;
+
+      const element = event?.element;
+      const elementType = element?.businessObject?.$type ?? element?.type;
+      const isTaskWithUrl =
+        (elementType === 'bpmn:Task' || String(elementType ?? '').endsWith('Task')) &&
+        elementType !== 'bpmn:CallActivity';
+      const url = String(element?.businessObject?.link ?? '').trim();
+      if (!isTaskWithUrl || !url) return;
+
+      const normalizedUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+      window.open(normalizedUrl, '_blank', 'noopener,noreferrer');
     };
 
-    viewer.importXML(xmlContent)
-      .then(() => {
-        if (cancelled) return;
-        // Register selection only after the diagram import has completed. This
-        // avoids a stale click handler when returning to the viewer after editing.
+    const importTask = importQueueRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        if (cancelled || generation !== importGenerationRef.current) return;
+        await viewer.importXML(xmlContent);
+        if (cancelled || generation !== importGenerationRef.current) return;
+
+        // Attach interaction listeners only for the latest completed import.
         eventBus.on('element.click', onElementClick);
         eventBus.on('element.dblclick', onElementDoubleClick);
         clickListenerAttached = true;
@@ -224,30 +265,34 @@ export const useProcessViewer = (
         });
         fitDiagramToWidth();
         importedRef.current = true;
+        setIsImporting(false);
         // Keep the minimap closed on import; users can open it manually from the viewer controls.
         applySelectionRef.current();
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        importedRef.current = false;
-        highlightedIdRef.current = null;
-        viewer.clear();
-        setImportError(
-          error instanceof Error
-            ? `Le diagramme BPMN ne peut pas être affiché : ${error.message}`
-            : 'Le diagramme BPMN ne peut pas être affiché : erreur lors de son import.',
-        );
       });
+
+    importQueueRef.current = importTask.catch((error: unknown) => {
+      if (cancelled || generation !== importGenerationRef.current) return;
+      importedRef.current = false;
+      highlightedIdRef.current = null;
+      viewer.clear();
+      setImportError(
+        error instanceof Error
+          ? `Le diagramme BPMN ne peut pas être affiché : ${error.message}`
+          : 'Le diagramme BPMN ne peut pas être affiché : erreur lors de son import.',
+      );
+      setIsImporting(false);
+    });
 
     return () => {
       cancelled = true;
+      if (importGenerationRef.current === generation) importGenerationRef.current += 1;
       cancelPendingSelection();
       if (clickListenerAttached) {
         eventBus.off('element.click', onElementClick);
         eventBus.off('element.dblclick', onElementDoubleClick);
       }
     };
-  }, [xmlContent, resourceId, contentId, viewer]);
+  }, [xmlContent, resourceId, contentId, viewer, isXmlLoading, isXmlError]);
 
   useEffect(() => {
     applySelectionRef.current();
@@ -265,6 +310,7 @@ export const useProcessViewer = (
     viewerRef,
     content: xmlContent ?? '',
     importError,
+    isLoading: isXmlLoading || isImporting,
     minimapVisible,
     setMinimapVisible,
     zoomIn,
