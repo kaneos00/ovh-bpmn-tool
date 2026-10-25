@@ -56,7 +56,9 @@ test('called-process tree resolution is unambiguous, deduplicated and cycle-safe
   assert.ok(links.includes('matches.length === 1 && !byIdentifier.has(processId)'));
   assert.ok(links.includes('const targets = Array.from(new Set(info.targets))'));
   assert.ok(links.includes('target.id !== info.resource.id'));
-  assert.ok(links.includes('!parentByTarget.has(target.id) && !reaches(target.id, info.resource.id)'));
+  assert.ok(links.includes('if (parentByTarget.has(target.id)) return;'));
+  assert.ok(links.includes('reaches(linked, target.id, info.resource.id)'));
+  assert.ok(links.includes('linked.get(info.resource.id)?.push(target)'));
   assert.ok(tree.includes('linked-process:'));
 });
 
