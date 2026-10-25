@@ -69,7 +69,7 @@ Commencer par des tests déterministes, rapides et à forte valeur. Adapter la l
 - [ ] Validation des éléments BPMN et règles de cohérence, là où elles sont implémentées.
 - [ ] Conversion, import/export ou traitement XML : cas nominal, entrée invalide et cas limites.
 - [ ] Identifiants et recherche de nœuds : unicité, nœud absent et données limites.
-- [ ] Gestion de l'arbre et relations parent/enfant : ajout, sélection, expansion et parent invalide.
+- [x] Arbre et relations parent/enfant : résolution de liens, parent unique, ambiguïtés, auto-liens et cycles couverts par tests unitaires ; sélection/expansion couverts par contrats source.
 - [ ] Règles RACI ou fonctions de recherche associées, si elles sont isolables.
 
 ### C2. Régressions fonctionnelles de l'éditeur BPMN
@@ -77,10 +77,10 @@ Vérifier d'abord si les cas sont reproductibles et comment ils sont représent�
 
 - [ ] Style cohérent des gateways.
 - [ ] Représentation des flèches rondes / marqueurs des tâches associées à une URL, si cette fonctionnalité existe.
-- [ ] Rendu et comportement des éléments `SubProcess` et `Call Activity`.
+- [x] `SubProcess` / `Call Activity` : extraction XML, résolution de cible par ID de ressource ou ID BPMN unique, cibles ambiguës, déduplication et cycles testés ; pas encore d'interactions navigateur réelles.
 - [ ] Comportement de la minimap lors de la sélection, du déplacement et de la mise à jour du diagramme.
 - [ ] Différenciation clic simple / double clic et navigation associée.
-- [ ] Navigation, favoris, recherche et expansion de l'arbre de dossiers.
+- [x] Navigation et expansion/repli de l'arbre couvertes par contrats source ; filtrage réel des favoris et recherche restent à compléter.
 
 Ces éléments proviennent de l'audit et de régressions évoquées précédemment : ils sont des **candidats à vérifier**, pas des défauts à présumer. Si un comportement ne peut pas être testé de façon fiable dans un test automatisé rapide, expliquer pourquoi et le planifier séparément.
 
@@ -109,13 +109,13 @@ Après la mise en place de tests unitaires stables, sélectionner au moins un pa
 - [x] Modules isolés retenus : helpers API, helpers du Modeler et moteur RACI.
 - [x] Cas nominaux et limites couverts : paramètres API vides/encodés, problèmes de Modeler, règles RACI R/A manquants, A multiples et acteurs inutilisés.
 - [ ] Éviter les mocks excessifs et les tests dépendant de détails d'implémentation.
-- [ ] Exécuter les tests concernés puis l'ensemble des contrôles pertinents.
+- [x] Contrôles exécutés dans le CI sur le SHA 2503ab14edd31057ff47da85196ebbfb903ddbdd : 23/23 tests unitaires, 15/15 contrats, Validate complet réussi. Aucune exécution locale n'est revendiquée.
 - [ ] Documenter les défauts découverts séparément.
 
 **Gate :** tests déterministes, compréhensibles et reproductibles.
 
 ### Lot 3 — Régressions BPMN prioritaires
-- [x] Contrats de régression ajoutés pour panneaux, cinq types de gateways, minimap, sélection simple/double, sélection BPMN, explorateur, navigation Call Activity et liens externes.
+- [x] 15 contrats de régression : panneaux, cinq types de gateways, minimap, sélection simple/double, sélection BPMN, explorateur, navigation Call Activity, liens externes et délégation de l'arbre vers le résolveur testé.
 - [x] Chaque contrat relie un comportement attendu à des assertions sur le code source concerné.
 - [ ] Vérifier que les tests échouent si le comportement attendu est cassé, lorsque cette vérification est praticable.
 - [ ] Ne pas faire dépendre les tests de captures d'écran ou de temporisations arbitraires si une assertion plus robuste est possible.
@@ -130,7 +130,7 @@ Après la mise en place de tests unitaires stables, sélectionner au moins un pa
 - [x] Workflow de tests avec permissions minimales `contents: read` ; aucun secret ni service externe requis.
 - [x] Tests déterministes, locaux au dépôt, sans accès réseau externe ni données de production.
 - [x] Workflow dédié avec deux jobs bloquants ; le workflow de validation principal reste distinct et inchangé.
-- [x] CI de tests réussi sur `84cb2a91d0c416f09c714610b3ed5077e2ba93bd` : [run 40115588395](https://github.com/kaneos00/ovh-bpmn-tool/actions/runs/40115588395). 14 contrats et 15 tests métier passés. Le workflow complet `Validate` est encore en attente sur cette tête.
+- [x] CI final vert sur le SHA de tête `2503ab14edd31057ff47da85196ebbfb903ddbdd` : [Frontend regression tests, run 40168970949](https://github.com/kaneos00/ovh-bpmn-tool/actions/runs/40168970949) (15/15 contrats, 23/23 tests unitaires) et [Validate, run 40168971603](https://github.com/kaneos00/ovh-bpmn-tool/actions/runs/40168971603) (lint/build frontend, lint/build/tests backend, builds Compose/Docker et smoke tests démo tous réussis). SHA de merge PR testé par Actions : `1bfebcba0407774ec3c67d0f0d94371fd5324edd`.
 
 **Gate :** le CI est vert sur le commit visé et le job de test apparaît bien dans les résultats. Un fichier de workflow modifié ou un test local vert ne suffisent pas à affirmer que le CI est vert.
 
@@ -152,16 +152,16 @@ Après la mise en place de tests unitaires stables, sélectionner au moins un pa
 
 Le travail n'est considéré comme terminé que si les points applicables ci-dessous sont prouvés :
 
-- [ ] L'inventaire distingue tests existants, tests ajoutés et zones non couvertes.
-- [ ] Les nouvelles commandes de test sont documentées et reproductibles.
+- [x] Inventaire documenté : tests Jest backend conservés ; frontend `node:test` (15 contrats + 23 tests unitaires) ; tests navigateur/E2E absents et explicitement reportés.
+- [x] Les commandes `pnpm test:regression`, `pnpm test:unit` et `pnpm test:all` sont documentées ; le CI les exécute avec Node 24 et pnpm 11.1.3.
 - [ ] Les tests ajoutés passent localement dans l'environnement documenté.
-- [ ] Lint et build n'ont pas régressé.
-- [ ] Le CI a réellement exécuté les tests sur le commit annoncé.
-- [ ] Le statut CI final est consulté et cité ; les échecs ou jobs non exécutés sont explicitement signalés.
-- [ ] Aucun test ou contrôle existant n'a été désactivé pour faire passer la pipeline.
-- [ ] Aucun déploiement ni changement de production n'a été effectué.
-- [ ] Les modifications sont limitées au périmètre annoncé.
-- [ ] Les commits, liens, résultats et limites sont listés dans le rapport final.
+- [x] Lint/build frontend et lint/build/tests backend réussis dans `Validate` run 40168971603.
+- [x] Le CI a exécuté les tests sur le SHA de tête annoncé (`2503ab14...`) ; la merge ref CI est `1bfebcba...`.
+- [x] Statuts finaux consultés et cités ci-dessus ; l'échec intermédiaire du contrat source obsolète est décrit dans le journal du 25 octobre.
+- [x] Aucun test, job ou contrôle existant n'a été désactivé, ignoré ou assoupli.
+- [x] Aucun déploiement, publication d'image ni changement de production n'a été effectué.
+- [x] Modifications limitées aux tests, à leur script et à l'extraction sans changement fonctionnel du résolveur d'arbre.
+- [x] SHA, commits, liens CI, résultats, limites et prochaines étapes consignés dans le journal du 25 octobre.
 
 **Si le CI ne peut pas être lancé ou si un résultat reste indéterminé, le résultat doit être présenté comme incomplet, avec le blocage précis. Ne jamais annoncer un succès non observé.**
 
@@ -171,20 +171,20 @@ Compléter ce tableau dans le bilan final (ou dans une section datée ci-dessous
 
 | Élément | Résultat à renseigner |
 |---|---|
-| Branche et SHA de départ | À relever |
-| Branche et SHA final | À relever |
-| Inventaire des tests existants | À documenter |
-| Outil de test retenu et justification | À documenter |
-| Fichiers créés/modifiés | Liste exacte |
-| Commandes locales exécutées | Commandes et résultat |
-| Nombre de tests ajoutés/exécutés | Valeurs observées |
-| Lint / build | Résultat réel |
-| URL du workflow CI | URL réelle, si disponible |
-| SHA vérifié par le CI | SHA réel |
-| Statut du CI | Vert, rouge, annulé ou non exécuté |
-| Problèmes découverts | Séparer défauts confirmés et hypothèses |
-| Points restant à faire | Liste priorisée |
-| Déploiement | Aucun |
+| Branche et SHA de départ | `release/v2.2-reference-2026-10-24` @ `bf0a5e0e3f0d6e23e9c5099312dc174559570bf5` |
+| Branche et SHA final | Branche de tests @ `2503ab14edd31057ff47da85196ebbfb903ddbdd` (SHA du code testé ; commit documentaire postérieur) |
+| Inventaire des tests existants | Suite Jest backend conservée ; frontend `node:test` : 15 contrats et 23 tests unitaires ; aucun E2E navigateur. |
+| Outil de test retenu et justification | `node:test` fourni par Node 24 ; aucun framework/dépendance de test supplémentaire ; TypeScript compilé dans `.test-dist/`. |
+| Fichiers créés/modifiés | `FolderTree/processLinks.ts` (nouveau), `FolderTree/hooks/useFolderTree.ts`, `frontend/package.json`, `tests/unit/process-links.test.mjs` (nouveau), `tests/ui-regression.test.mjs`, `test_setup.md`. Aucun lockfile changé ; `Modeler.css` identique à la référence (blob `fd2b2306…`). |
+| Commandes locales exécutées | Aucune revendiquée. CI : `node --test frontend/tests/ui-regression.test.mjs frontend/tests/viewer-interactions.test.mjs` et `pnpm test:unit`. |
+| Nombre de tests ajoutés/exécutés | 15/15 contrats (dont 1 nouveau) ; 23/23 tests unitaires (8 nouveaux) ; 38 cas passés au total. |
+| Lint / build | Succès dans `Validate` run 40168971603 : frontend lint/build, backend lint/build/tests, Docker/Compose et smoke démo. |
+| URL du workflow CI | [Frontend regression tests #40168970949](https://github.com/kaneos00/ovh-bpmn-tool/actions/runs/40168970949) ; [Validate #40168971603](https://github.com/kaneos00/ovh-bpmn-tool/actions/runs/40168971603). |
+| SHA vérifié par le CI | Tête PR `2503ab14edd31057ff47da85196ebbfb903ddbdd` ; merge ref Actions `1bfebcba0407774ec3c67d0f0d94371fd5324edd`. |
+| Statut du CI | Vert : deux workflows finaux réussis ; aucun job échoué/non exécuté. |
+| Problèmes découverts | Échec intermédiaire d'un contrat source devenu obsolète après extraction ; corrigé sans modifier le comportement. Aucun défaut applicatif confirmé. |
+| Points restant à faire | Test de mutation pour démontrer la détection des régressions ; interactions navigateur/E2E ; filtrage réel des favoris/recherche ; exécution locale et durée globale. |
+| Déploiement | Aucun ; PR #33 ouverte, non fusionnée ; branche de référence conservée. |
 
 ## 9. Format du rapport à présenter au matin
 
@@ -214,3 +214,13 @@ Ne pas préremplir ce journal avec des résultats supposés. Ajouter une entrée
 - **PR :** [#33](https://github.com/kaneos00/ovh-bpmn-tool/pull/33) ouverte et maintenant ciblée sur la référence du 24 octobre. Scripts locaux, commande CI et assertions liens externes ajoutés ; CI de la nouvelle tête à revérifier.
 - **Limites :** assertions de contrat sur le code source, pas d'interactions navigateur réelles ; pas de Playwright ; aucune exécution locale ni mesure de durée locale dans cette session. Aucun changement applicatif effectif par rapport à la référence : `Modeler.css` a été aligné sur le contenu exact de la V2.2. Aucun déploiement et aucune fusion.
 - **Échec intermédiaire et correction :** une exécution a détecté que la branche de tests contenait encore l'ancien sélecteur gateway `> :first-child`, alors que la V2.2 validée utilise `> *` pour les symboles internes. La feuille `Modeler.css` de la branche de tests a été réalignée exactement sur celle de la référence ; le workflow de tests est ensuite passé.
+### Journal d'exécution — 25 octobre 2026
+
+- **État initial vérifié avant modification :** sur la tête précédente `57ad778aa2035fa0354b4faea35b93e51c437640`, [Validate run 40115809190](https://github.com/kaneos00/ovh-bpmn-tool/actions/runs/40115809190) et [Frontend regression tests run 40115809244](https://github.com/kaneos00/ovh-bpmn-tool/actions/runs/40115809244) étaient tous deux réussis.
+- **Tests ajoutés :** `frontend/tests/unit/process-links.test.mjs` ajoute 8 tests déterministes sur l'extraction des cibles XML, les Call Activities, les sous-processus repliés, les ID BPMN ambigus, la déduplication, les liens vers soi, le parent unique et les cycles. Le contrat Viewer passe à 15 tests.
+- **Refactor sans changement fonctionnel recherché :** l'extraction XML et l'algorithme de résolution ont été déplacés à l'identique de `useFolderTree.ts` vers `FolderTree/processLinks.ts` ; le hook appelle ce module. Les tests couvrent maintenant directement le résolveur utilisé par l'application. `Modeler.css` a le même blob que la référence V2.2 (`fd2b23063bb3705fb271a5d52a514aeca50f7580`).
+- **Échec intermédiaire transparent :** [Frontend regression tests run 40168901527](https://github.com/kaneos00/ovh-bpmn-tool/actions/runs/40168901527), sur le SHA `920206a45fadc95afbfc17ef020d50502d04ad55`, a échoué sur 1 contrat / 15 : l'assertion cherchait encore l'extraction XML dans le hook après son déplacement. Les tests unitaires du même run ont réussi (23/23). L'assertion a été corrigée pour viser le nouveau module ; aucun défaut de comportement applicatif n'a été identifié.
+- **SHA de code testé après correction :** `2503ab14edd31057ff47da85196ebbfb903ddbdd` — [commit](https://github.com/kaneos00/ovh-bpmn-tool/commit/2503ab14edd31057ff47da85196ebbfb903ddbdd). La PR CI a testé la merge ref `1bfebcba0407774ec3c67d0f0d94371fd5324edd` sur la base de référence `bf0a5e0e3f0d6e23e9c5099312dc174559570bf5`.
+- **Résultats finaux observés :** [Frontend regression tests run 40168970949](https://github.com/kaneos00/ovh-bpmn-tool/actions/runs/40168970949) réussi : 15/15 contrats et 23/23 tests unitaires, zéro échec/skip. [Validate run 40168971603](https://github.com/kaneos00/ovh-bpmn-tool/actions/runs/40168971603) réussi : lint/build frontend, lint/build/tests backend, builds Docker/Compose et smoke tests de démonstration.
+- **Périmètre et limites :** aucune dépendance ajoutée, aucun lockfile changé, aucun contrôle désactivé. Pas d'exécution locale ni de navigateur/E2E dans cette session. Aucun déploiement, aucune fusion ; la référence V2.2 reste inchangée et la PR [#33](https://github.com/kaneos00/ovh-bpmn-tool/pull/33) reste ouverte.
+- **Suite recommandée :** ajouter un test de mutation ciblé et évaluer ensuite un parcours Playwright isolé ; tester séparément le filtrage effectif des favoris et de la recherche. Ne pas déclarer la couverture E2E terminée.
