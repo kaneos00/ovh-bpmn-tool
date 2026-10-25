@@ -109,3 +109,24 @@ test('breadcrumb hierarchy traversal stops safely when parent IDs form a cycle',
   assert.match(folders, /visited\.add\(resourceId\)/);
   assert.match(folders, /makeFlatHierarchy\(flatTree, folder\.parentId, visited\)/);
 });
+
+
+test('viewer supports data-reference selection and consistent clickable navigation arrows', async () => {
+  const viewer = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+  const callNavigation = await read('src/shared/hooks/useCallActivityNavigation.ts');
+  const urlModule = await read('src/extensions/url-click-module.ts');
+
+  assert.ok(viewer.includes("element.type === 'bpmn:DataStoreReference'"));
+  assert.ok(viewer.includes("element.type === 'bpmn:DataObjectReference'"));
+  assert.ok(viewer.includes("overlays?.remove?.({ element, type: 'drilldown' })"));
+
+  assert.ok(callNavigation.includes("businessObject?.$type === 'bpmn:SubProcess'"));
+  assert.ok(callNavigation.includes('businessObject?.isExpanded === false'));
+  assert.ok(callNavigation.includes("eventBus.fire('element.dblclick'"));
+  assert.ok(callNavigation.includes('position: { bottom: -7, right: -8 }'));
+
+  assert.ok(urlModule.includes("eventBus.on('element.dblclick', openTaskUrlOnDoubleClick)"));
+  assert.ok(urlModule.includes("if (!is(element, 'bpmn:Task')) return"));
+  assert.ok(urlModule.includes("position: { bottom: -7, right: -8 }"));
+  assert.ok(urlModule.includes("eventBus.fire('element.dblclick'"));
+});
