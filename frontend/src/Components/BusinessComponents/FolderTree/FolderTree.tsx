@@ -88,11 +88,6 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
     }
   }, [recent]);
 
-  useEffect(() => {
-    if (!selectedId || selectedId === 'root') return;
-    setRecent(current => [selectedId, ...current.filter(id => id !== selectedId)].slice(0, 12));
-  }, [selectedId]);
-
   const flatNodes = useMemo(() => {
     const nodes: RenderTree[] = [];
     const visit = (node: RenderTree) => {
@@ -104,6 +99,13 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
   }, [dataTree]);
 
   const nodeById = useMemo(() => new Map(flatNodes.map(node => [node.id, node])), [flatNodes]);
+  useEffect(() => {
+    if (!selectedId || selectedId === 'root') return;
+    const selectedNode = nodeById.get(selectedId) ?? flatNodes.find(node => node.targetId === selectedId);
+    if (!selectedNode || (selectedNode.type !== 'process' && selectedNode.type !== 'linked-process')) return;
+    const processId = selectedNode.targetId ?? selectedNode.id;
+    setRecent(current => [processId, ...current.filter(id => id !== processId)].slice(0, 12));
+  }, [selectedId, nodeById, flatNodes]);
   const selectedTreeNodeId = useMemo(() => {
     if (nodeById.has(selectedId)) return selectedId;
     return flatNodes.find(node => node.targetId === selectedId)?.id ?? selectedId;
@@ -133,6 +135,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
       .map(id => nodeById.get(id) ?? flatNodes.find(node => node.targetId === id))
       .filter((node): node is RenderTree => Boolean(node))
       .filter((node, index, all) => all.findIndex(candidate => candidate.id === node.id) === index)
+      .filter(node => view !== 'recent' || node.type === 'process' || node.type === 'linked-process')
       .filter(node => !term || node.name.toLocaleLowerCase('fr').includes(term));
   }, [view, favorites, recent, nodeById, flatNodes, search]);
 
@@ -174,10 +177,13 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
     const node = nodeById.get(selected);
     if (!node) return;
 
-    // A folder-name click navigates to the folder and opens its immediate children
-    // only when closed. It must never collapse the tree or other open branches.
-    if (node.type === 'folder' && node.children?.length) {
-      setExpandedNodes(current => current.includes(node.id) ? current : [...current, node.id]);
+    // Folder labels expand in place. The dedicated chevron is the only control
+    // that collapses a branch; opening one folder never resets sibling branches.
+    if (node.type === 'folder') {
+      if (node.children?.length) {
+        setExpandedNodes(current => current.includes(node.id) ? current : [...current, node.id]);
+      }
+      return;
     }
     onNodeClick(node.targetId ?? selected);
   };
