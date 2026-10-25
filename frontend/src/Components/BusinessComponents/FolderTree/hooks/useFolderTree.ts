@@ -136,17 +136,33 @@ export const useFolderTree = (selectedResourceId: string) => {
   }, [resources, linkedChildrenByResource, linkedTargetIds]);
 
   useEffect(() => {
-    if (resources?.length && resource) {
-      // When the selected resource is a folder, include that folder itself so
-      // its immediate children are visible after navigation/remount as well.
-      // For a process, expand only its parent-folder chain.
-      const hierarchyResourceId = resource.type === ResourceType.Folder
-        ? resource.id
-        : resource.parentId ?? selectedResourceId;
-      const ancestors = getFolderHierarchy(hierarchyResourceId).map(({ id }) => id);
-      setExpandedNodes(current => Array.from(new Set([...current, ...ancestors])));
-    }
-  }, [selectedResourceId, resources, resource, getFolderHierarchy]);
+    if (!resources?.length || !resource) return;
+
+    // Keep the normal folder ancestry open, and also expand the actual tree path.
+    // This second path is important for linked processes: their tree IDs differ
+    // from resource IDs and they may live below a Call Activity/SubProcess node.
+    const hierarchyResourceId = resource.type === ResourceType.Folder
+      ? resource.id
+      : resource.parentId ?? selectedResourceId;
+    const folderAncestors = getFolderHierarchy(hierarchyResourceId).map(({ id }) => id);
+
+    const findPath = (node: RenderTree, path: RenderTree[] = []): RenderTree[] | null => {
+      const currentPath = [...path, node];
+      if (node.id === selectedResourceId || node.targetId === selectedResourceId) return currentPath;
+      for (const child of node.children ?? []) {
+        const found = findPath(child, currentPath);
+        if (found) return found;
+      }
+      return null;
+    };
+    const selectedPath = findPath(dataTree) ?? [];
+    const treeAncestors = selectedPath
+      .slice(0, resource.type === ResourceType.Folder ? selectedPath.length : -1)
+      .map(node => node.id)
+      .filter(id => id !== 'root');
+
+    setExpandedNodes(current => Array.from(new Set([...current, ...folderAncestors, ...treeAncestors])));
+  }, [selectedResourceId, resources, resource, getFolderHierarchy, dataTree]);
 
   return { dataTree, expandedNodes, setExpandedNodes, isLoading };
 };
