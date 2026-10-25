@@ -20,36 +20,39 @@ export type FolderHierarchyResult = {
 };
 
 /**
- * Resolves folder ancestry from parentId, not from the stored depth field.
- * The depth field is checked as a diagnostic only: parent links are the
- * authoritative structure used by both the tree and the breadcrumb.
+ * Resolves ancestry from parentId, not from the stored depth field.
+ * Stored depth is diagnostic only and is checked against the structural
+ * root-to-leaf position once the complete ancestry has been resolved.
  */
 export const resolveFolderHierarchy = (
   folders: FolderRecord[],
   folderId?: string | null,
 ): FolderHierarchyResult => {
-  const foldersById = new Map(folders.map(folder => [folder.id, folder]));
+  const resourcesById = new Map(folders.map(resource => [resource.id, resource]));
   const hierarchy: FolderRecord[] = [];
   const issues: FolderHierarchyIssue[] = [];
   const visited = new Set<string>();
   let currentId = folderId ?? undefined;
+  let reachedRoot = !currentId || currentId === 'root';
 
   while (currentId && currentId !== 'root') {
     if (visited.has(currentId)) {
       issues.push({ code: 'cycle', resourceId: currentId });
-      // A cyclic ancestry has no valid breadcrumb order. Do not fabricate one.
       hierarchy.length = 0;
+      reachedRoot = false;
       break;
     }
     visited.add(currentId);
 
-    const current = foldersById.get(currentId);
+    const current = resourcesById.get(currentId);
     if (!current) {
       issues.push({ code: 'missing-folder', resourceId: currentId });
+      reachedRoot = false;
       break;
     }
     if (current.type !== 'folder') {
       issues.push({ code: 'parent-not-folder', resourceId: currentId });
+      reachedRoot = false;
       break;
     }
 
@@ -57,24 +60,18 @@ export const resolveFolderHierarchy = (
     const parentId = current.parentId ?? undefined;
 
     if (!parentId || parentId === 'root') {
-      if (current.depth !== 0) {
-        issues.push({
-          code: 'depth-mismatch',
-          resourceId: current.id,
-          expectedDepth: 0,
-          actualDepth: current.depth,
-        });
-      }
+      reachedRoot = true;
       break;
     }
 
-    const parent = foldersById.get(parentId);
+    const parent = resourcesById.get(parentId);
     if (!parent) {
       issues.push({
         code: 'missing-parent',
         resourceId: current.id,
         parentId,
       });
+      reachedRoot = false;
       break;
     }
     if (parent.type !== 'folder') {
@@ -83,31 +80,32 @@ export const resolveFolderHierarchy = (
         resourceId: current.id,
         parentId,
       });
+      reachedRoot = false;
       break;
     }
-
-    // Prefer reporting a structural cycle over secondary depth mismatches.
-    // The parent will be visited on the next iteration, but checking here avoids
-    // reporting a misleading depth warning first.
     if (visited.has(parentId)) {
       issues.push({ code: 'cycle', resourceId: parentId });
       hierarchy.length = 0;
+      reachedRoot = false;
       break;
-    }
-
-    const expectedDepth = parent.depth + 1;
-    if (current.depth !== expectedDepth) {
-      issues.push({
-        code: 'depth-mismatch',
-        resourceId: current.id,
-        parentId,
-        expectedDepth,
-        actualDepth: current.depth,
-      });
     }
 
     currentId = parentId;
   }
 
-  return { hierarchy: hierarchy.reverse(), issues };
+  const orderedHierarchy = hierarchy.reverse();
+  if (reachedRoot) {
+    orderedHierarchy.forEach((folder, index) => {
+      if (folder.depth !== index) {
+        issues.push({
+          code: 'depth-mismatch',
+          resourceId: folder.id,
+          expectedDepth: index,
+          actualDepth: folder.depth,
+        });
+      }
+    });
+  }
+
+  return { hierarchy: orderedHierarchy, issues };
 };

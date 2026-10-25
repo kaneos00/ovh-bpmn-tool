@@ -18,8 +18,8 @@ export const useFolders = () => {
   );
 
   const inspectFolderHierarchy = useCallback(
-    (folderId: string) => resolveFolderHierarchy(folders, folderId),
-    [folders],
+    (folderId: string) => resolveFolderHierarchy(resources ?? [], folderId),
+    [resources],
   );
 
   const getFolderHierarchy = useCallback(

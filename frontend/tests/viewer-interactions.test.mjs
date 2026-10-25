@@ -177,7 +177,9 @@ test('folder labels expand in place and recent items are limited to processes', 
   const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
   const hook = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
 
-  assert.match(tree, /node\.type === 'folder'[\s\S]*?setExpandedNodes\(current => current\.includes\(node\.id\) \? current : \[\.\.\.current, node\.id\]\)[\s\S]*?return;/);
+  assert.ok(tree.includes('setExpandedNodes(current => expandTreeNode(current, node.id))'));
+  assert.ok(tree.includes('setExpandedNodes(current => toggleTreeNode(current, nodeId))'));
+  assert.ok(tree.includes('expandedItems: expandedNodes'));
   assert.match(tree, /view !== 'recent' \|\| node\.type === 'process' \|\| node\.type === 'linked-process'/);
   assert.match(tree, /const processId = selectedNode\.targetId \?\? selectedNode\.id/);
   assert.match(hook, /bpmn-tool:explorer-expanded-nodes/);

@@ -65,7 +65,8 @@ test('explorer folder-label selection opens one level without collapsing other b
 
   assert.ok(explorer.includes('const handleTreeSelection = (items: (string | number)[]) =>'));
   assert.ok(explorer.includes("if (node.type === 'folder')"));
-  assert.ok(explorer.includes('current.includes(node.id) ? current : [...current, node.id]'));
+  assert.ok(explorer.includes('setExpandedNodes(current => expandTreeNode(current, node.id))'));
+  assert.ok(explorer.includes('setExpandedNodes(current => toggleTreeNode(current, nodeId))'));
   assert.ok(explorer.includes('onNodeClick(node.targetId ?? selected)'));
   assert.ok(explorer.includes('return;'), 'folder clicks must expand in place without navigating away');
 
@@ -110,7 +111,7 @@ test('breadcrumb ancestry shares the tree resource snapshot and detects broken p
   const breadcrumbs = await read('src/Containers/BpmnLayout/hooks/useBpmnLayoutBreadcrumbs.ts');
 
   assert.ok(folders.includes('useQuery<Resource[]>(resourcesQuery())'));
-  assert.ok(folders.includes('resolveFolderHierarchy(folders, folderId)'));
+  assert.ok(folders.includes('resolveFolderHierarchy(resources ?? [], folderId)'));
   assert.ok(folders.includes('inspectFolderHierarchy'));
   assert.ok(breadcrumbs.includes("resource.parentId ?? 'root'"));
   assert.ok(hierarchy.includes("code: 'missing-parent'"));
@@ -123,7 +124,7 @@ test('folder navigation does not rely on the stored depth field for breadcrumb o
   const hierarchy = await read('src/shared/helpers/folderHierarchy.ts');
   const hook = await read('src/shared/hooks/useFolders.ts');
 
-  assert.ok(hierarchy.includes('const expectedDepth = parent.depth + 1'));
+  assert.ok(hierarchy.includes('expectedDepth: index'));
   assert.ok(hierarchy.includes('return { hierarchy: hierarchy.reverse(), issues }'));
   assert.ok(hook.includes('return [getRootResource(), ...(hierarchy as Resource[])]'));
 });

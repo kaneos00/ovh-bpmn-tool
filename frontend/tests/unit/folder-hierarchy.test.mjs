@@ -55,12 +55,27 @@ describe('resolveFolderHierarchy', () => {
     ], 'c');
 
     assert.deepEqual(result.hierarchy.map(item => item.id), ['a', 'b', 'c']);
-    assert.ok(result.issues.some(issue =>
-      issue.code === 'depth-mismatch' &&
-      issue.resourceId === 'b' &&
-      issue.expectedDepth === 1 &&
-      issue.actualDepth === 4,
-    ));
+    assert.deepEqual(
+      result.issues
+        .filter(issue => issue.code === 'depth-mismatch')
+        .map(issue => [issue.resourceId, issue.expectedDepth, issue.actualDepth]),
+      [['b', 1, 4], ['c', 2, 5]],
+      'child depth must be checked against its structural position, not the stale parent depth',
+    );
+  });
+
+  it('reports a parentId that points to a process instead of a folder', () => {
+    const result = resolveFolderHierarchy([
+      folder('process-parent', undefined, 0),
+      folder('child', 'process-parent', 1),
+    ], 'child');
+
+    assert.deepEqual(result.hierarchy.map(item => item.id), ['child']);
+    assert.deepEqual(result.issues, [{
+      code: 'parent-not-folder',
+      resourceId: 'child',
+      parentId: 'process-parent',
+    }]);
   });
 
   it('returns only the virtual root for an unknown folder id', () => {
