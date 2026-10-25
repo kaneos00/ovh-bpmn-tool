@@ -32,7 +32,11 @@ const isCollapsedLinkedSubProcess = (element: any): boolean => {
 
   // Only collapsed subprocesses can represent links to separately modelled
   // processes. Intercepting an expanded subprocess prevents normal BPMN drilldown.
-  return element?.businessObject?.isExpanded === false || element?.isExpanded === false;
+  const expandedState = element?.businessObject?.di?.isExpanded ??
+    element?.di?.isExpanded ??
+    element?.isExpanded ??
+    element?.businessObject?.isExpanded;
+  return expandedState === false || expandedState === 'false';
 };
 
 const getLinkedTargetId = (element: any): string => {
