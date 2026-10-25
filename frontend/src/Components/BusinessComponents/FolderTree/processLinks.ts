@@ -84,7 +84,7 @@ export const resolveLinkedChildren = <TResource extends ProcessResource>(
   };
   const parentByTarget = new Map<string, string>();
   const linked = new Map<string, TResource[]>(
-    processInfo.map(info => [info.resource.id, [] as TResource[]]),
+    processInfo.map(info => [info.resource.id, [] as TResource[]] as const),
   );
 
   processInfo.forEach(info => {
