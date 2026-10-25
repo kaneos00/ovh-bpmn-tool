@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from 'react-query';
 
 import { getXmlContentQuery } from '../../../../api/contents/contents.queries';
@@ -34,12 +34,12 @@ export const useProcessViewer = (
   );
 
   const viewer = useMemo(() => getViewerInstance(), []);
-  const setMinimapVisibility = (visible: boolean) => {
+  const setMinimapVisibility = useCallback((visible: boolean) => {
     setMinimapVisible(visible);
     const minimap = viewer.get('minimap') as { open?: () => void; close?: () => void };
     if (visible) minimap?.open?.();
     else minimap?.close?.();
-  };
+  }, [viewer]);
   useCallActivityNavigation(viewer, true);
 
   const alignDiagramTopLeft = () => {
@@ -315,7 +315,7 @@ export const useProcessViewer = (
         eventBus.off('element.dblclick', onElementDoubleClick);
       }
     };
-  }, [xmlContent, resourceId, contentId, viewer, isXmlLoading, isXmlError]);
+  }, [xmlContent, resourceId, contentId, viewer, isXmlLoading, isXmlError, setMinimapVisibility]);
 
   useEffect(() => {
     applySelectionRef.current();
