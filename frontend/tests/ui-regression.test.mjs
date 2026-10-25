@@ -101,3 +101,28 @@ test('viewer mounts a single FolderTree explorer instead of the legacy ResourceE
   assert.ok(!details.includes('ResourceExplorer'));
   assert.ok(routes.includes("lazy: () => import('./Containers/BpmnLayout')"));
 });
+
+
+test('breadcrumb ancestry shares the tree resource snapshot and detects broken parent chains', async () => {
+  const folders = await read('src/shared/hooks/useFolders.ts');
+  const hierarchy = await read('src/shared/helpers/folderHierarchy.ts');
+  const breadcrumbs = await read('src/Containers/BpmnLayout/hooks/useBpmnLayoutBreadcrumbs.ts');
+
+  assert.ok(folders.includes('useQuery<Resource[]>(resourcesQuery())'));
+  assert.ok(folders.includes('resolveFolderHierarchy(folders, folderId)'));
+  assert.ok(folders.includes('inspectFolderHierarchy'));
+  assert.ok(breadcrumbs.includes("resource.parentId ?? 'root'"));
+  assert.ok(hierarchy.includes("code: 'missing-parent'"));
+  assert.ok(hierarchy.includes("code: 'cycle'"));
+  assert.ok(hierarchy.includes("code: 'depth-mismatch'"));
+  assert.ok(hierarchy.includes('hierarchy.length = 0'));
+});
+
+test('folder navigation does not rely on the stored depth field for breadcrumb ordering', async () => {
+  const hierarchy = await read('src/shared/helpers/folderHierarchy.ts');
+  const hook = await read('src/shared/hooks/useFolders.ts');
+
+  assert.ok(hierarchy.includes('const expectedDepth = parent.depth + 1'));
+  assert.ok(hierarchy.includes('return { hierarchy: hierarchy.reverse(), issues }'));
+  assert.ok(hook.includes('return [getRootResource(), ...(hierarchy as Resource[])]'));
+});
