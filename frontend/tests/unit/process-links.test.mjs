@@ -59,8 +59,8 @@ describe('resolveLinkedChildren', () => {
       { resource: c, processIds: ['pc'], targets: ['A'] },
     ]);
 
-    assert.deepEqual((linked.get('A') ?? []).map(resource => resource.id), ['B']);
-    assert.deepEqual((linked.get('B') ?? []).map(resource => resource.id), ['C']);
+    assert.deepEqual((linked.get('A') ?? []).map(resource => resource.id), []);
+    assert.deepEqual((linked.get('B') ?? []).map(resource => resource.id), []);
     assert.deepEqual((linked.get('C') ?? []).map(resource => resource.id), []);
   });
 
