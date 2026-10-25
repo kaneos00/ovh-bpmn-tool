@@ -10,7 +10,7 @@ import type { BpmnLayoutRouteParams } from '..';
 export const useBpmnLayoutBreadcrumbs = () => {
   const { resourceId } = useParams() as BpmnLayoutRouteParams;
 
-  const { folders, getFolderHierarchy } = useFolders();
+  const { getFolderHierarchy } = useFolders();
   const { resource } = useResource(resourceId);
 
   const getBreadCrumbs = useCallback(() => {
@@ -38,7 +38,7 @@ export const useBpmnLayoutBreadcrumbs = () => {
           ]
         : []),
     ];
-  }, [resourceId, resource, folders]);
+  }, [resourceId, resource, getFolderHierarchy]);
 
   return { getBreadCrumbs };
 };
