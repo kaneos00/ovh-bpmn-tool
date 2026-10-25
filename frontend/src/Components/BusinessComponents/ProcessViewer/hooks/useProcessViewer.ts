@@ -333,7 +333,9 @@ export const useProcessViewer = (
     viewerRef,
     content: xmlContent ?? '',
     importError,
-    isLoading: isXmlLoading || isImporting,
+    // Keep the previous diagram visible while a subsequent process is fetched/imported.
+    // Show the loading cover only before the first successful import.
+    isLoading: (isXmlLoading || isImporting) && !importedRef.current,
     minimapVisible,
     setMinimapVisible: setMinimapVisibility,
     zoomIn,
