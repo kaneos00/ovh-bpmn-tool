@@ -2,40 +2,51 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import queryClient from '../../queryClient';
-import { getResourceQuery } from '../../api/resources/resources.queries';
+import { contentsQuery, getXmlContentQuery } from '../../api/contents/contents.queries';
+import { getResourceQuery, resourcesQuery } from '../../api/resources/resources.queries';
+import { ContentStatusEnum, type Content, type Resource } from '../../Types';
+import { ResourceType } from '../types/BpmnResource';
+import {
+  getProcessLinks,
+  resolveProcessTarget,
+} from '../../Components/BusinessComponents/FolderTree/processLinks';
 import { useSnackbar } from './useSnackbar';
 
-type CallActivityEvent = {
-  element?: {
-    id?: string;
-    type?: string;
-    businessObject?: {
-      $type?: string;
-      calledElement?: string;
-    };
-  };
+type LinkedElementEvent = {
+  element?: any;
   stopPropagation: () => void;
 };
 
 type BpmnEventBus = {
-  on: (
-    eventName: string,
-    priority: number,
-    callback: (event: any) => void,
-  ) => void;
-  off: (
-    eventName: string,
-    callback: (event: any) => void,
-  ) => void;
+  on: (eventName: string, priority: number, callback: (event: any) => void) => void;
+  off: (eventName: string, callback: (event: any) => void) => void;
 };
 
 type BpmnInstance = {
   get: (serviceName: string) => any;
 };
 
+const getLinkedTargetId = (element: any): string => {
+  const type = element?.businessObject?.$type ?? element?.type;
+  if (type === 'bpmn:CallActivity') {
+    return String(element.businessObject?.calledElement ?? '').trim();
+  }
+  if (type === 'bpmn:SubProcess' || type === 'bpmn:Transaction') {
+    return String(element.businessObject?.id ?? element.id ?? '').trim();
+  }
+  return '';
+};
+
+const isLinkedElement = (element: any): boolean => {
+  const type = element?.businessObject?.$type ?? element?.type;
+  return type === 'bpmn:CallActivity' ||
+    type === 'bpmn:SubProcess' ||
+    type === 'bpmn:Transaction';
+};
+
 /**
- * Linked Call Activities open their target process on double-click. A single
- * click remains available to select the activity and show its details.
+ * Call Activities and collapsed SubProcesses navigate only when a target can
+ * be resolved to one accessible process resource. Single click still selects.
  */
 export const useCallActivityNavigation = (
   bpmnInstance: BpmnInstance,
@@ -47,59 +58,108 @@ export const useCallActivityNavigation = (
   useEffect(() => {
     const eventBus = bpmnInstance.get('eventBus') as BpmnEventBus;
     let indicatorOverlayId: string | number | undefined;
+    let indicatorGeneration = 0;
+    let processInfoPromise: Promise<Array<{ resource: Resource; processIds: string[] }>> | null = null;
 
-    const navigateToCalledProcess = (event: CallActivityEvent) => {
-      const businessObject = event.element?.businessObject;
-      if (businessObject?.$type !== 'bpmn:CallActivity') {
-        return;
+    const getProcessInfo = () => {
+      if (!processInfoPromise) {
+        processInfoPromise = (async () => {
+          const resourceQuery = resourcesQuery();
+          const cachedResources = queryClient.getQueryData(resourceQuery.queryKey) as Resource[] | undefined;
+          const resources = cachedResources ?? await queryClient.fetchQuery(resourceQuery);
+          const processResources = resources.filter(resource => resource.type === ResourceType.Process);
+
+          return Promise.all(processResources.map(async resource => {
+            try {
+              const resourceContentsQuery = contentsQuery(resource.id);
+              const cachedContents = queryClient.getQueryData(resourceContentsQuery.queryKey) as Content[] | undefined;
+              const contents = cachedContents ?? await queryClient.fetchQuery(resourceContentsQuery);
+              const publishedContent = contents
+                .filter(content => content.status === ContentStatusEnum.Published)
+                .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0];
+
+              if (!publishedContent) return { resource, processIds: [] as string[] };
+
+              const xmlQuery = getXmlContentQuery(resource.id, publishedContent.id);
+              const cachedXml = queryClient.getQueryData(xmlQuery.queryKey) as string | undefined;
+              const xml = cachedXml ?? await queryClient.fetchQuery(xmlQuery);
+              return { resource, processIds: getProcessLinks(xml).processIds };
+            } catch {
+              // An inaccessible or malformed process cannot be a navigation target.
+              return { resource, processIds: [] as string[] };
+            }
+          }));
+        })().catch(error => {
+          processInfoPromise = null;
+          throw error;
+        });
       }
+      return processInfoPromise;
+    };
 
-      event.stopPropagation();
-      const targetResourceId = String(businessObject.calledElement ?? '').trim();
-      if (!targetResourceId) {
+    const resolveTargetResourceId = async (targetId: string): Promise<string | undefined> => {
+      const processInfo = await getProcessInfo();
+      return resolveProcessTarget(targetId, processInfo)?.id;
+    };
+
+    const openLinkedProcess = async (element: any) => {
+      const targetId = getLinkedTargetId(element);
+      if (!targetId) {
         showAlert({
-          message:
-            'Cette activité d’appel n’est pas liée à un processus BPMN Tool. Sélectionnez un processus cible dans les propriétés de l’activité.',
+          message: 'Aucune cible n’est définie pour cet élément BPMN.',
           severity: 'warning',
         });
         return;
       }
 
-      // Populate the same React Query cache used by the route loader. This
-      // avoids a second resource request during navigation, reducing the blank
-      // interval before the target process renders while retaining access checks.
-      void queryClient
-        .fetchQuery(getResourceQuery(targetResourceId))
-        .then(() => navigate(`/${targetResourceId}`))
-        .catch(() =>
+      try {
+        const targetResourceId = await resolveTargetResourceId(targetId);
+        if (!targetResourceId) {
           showAlert({
-            message:
-              'Accès au processus impossible : vous ne disposez pas des droits nécessaires ou le processus n’est plus disponible.',
-            severity: 'danger',
-          }),
-        );
+            message: 'Le processus cible est absent ou son identifiant BPMN est ambigu.',
+            severity: 'warning',
+          });
+          return;
+        }
+
+        // Reuse the route loader cache and keep the API access check before navigation.
+        await queryClient.fetchQuery(getResourceQuery(targetResourceId));
+        navigate(`/${targetResourceId}`);
+      } catch {
+        showAlert({
+          message: 'Accès au processus impossible : vous ne disposez pas des droits nécessaires ou le processus n’est plus disponible.',
+          severity: 'danger',
+        });
+      }
+    };
+
+    const navigateToLinkedProcess = (event: LinkedElementEvent) => {
+      if (!isLinkedElement(event.element)) return;
+      event.stopPropagation();
+      void openLinkedProcess(event.element);
+    };
+
+    const clearIndicator = () => {
+      if (indicatorOverlayId !== undefined) {
+        bpmnInstance.get('overlays')?.remove?.(indicatorOverlayId);
+        indicatorOverlayId = undefined;
+      }
     };
 
     const removeIndicators = () => {
-      const overlays = bpmnInstance.get('overlays');
+      clearIndicator();
       const canvas = bpmnInstance.get('canvas');
       const registry = bpmnInstance.get('elementRegistry');
-      if (indicatorOverlayId !== undefined) overlays?.remove?.(indicatorOverlayId);
-      indicatorOverlayId = undefined;
       (registry?.getAll?.() ?? []).forEach((element: any) => {
         canvas?.removeMarker?.(element.id, 'bpmn-call-activity-navigable');
       });
     };
 
-    // Mark linked activities only with a pointer cursor. The blue link badge
-    // itself is created only after the user clicks a specific activity.
     const decorateCallActivities = () => {
       if (!enableSingleClick) return;
       const registry = bpmnInstance.get('elementRegistry');
       const canvas = bpmnInstance.get('canvas');
-      const elements = registry?.getAll?.() ?? [];
-
-      elements.forEach((element: any) => {
+      (registry?.getAll?.() ?? []).forEach((element: any) => {
         const businessObject = element.businessObject;
         if (businessObject?.$type === 'bpmn:CallActivity') {
           canvas?.addMarker?.(element.id, 'bpmn-call-activity');
@@ -110,46 +170,53 @@ export const useCallActivityNavigation = (
       });
     };
 
-    const showIndicatorForSelectedCallActivity = (event: any) => {
+    const showIndicatorForSelectedLinkedElement = (event: any) => {
       if (!enableSingleClick) return;
-      if (indicatorOverlayId !== undefined) {
-        bpmnInstance.get('overlays')?.remove?.(indicatorOverlayId);
-        indicatorOverlayId = undefined;
-      }
-
+      clearIndicator();
+      const generation = ++indicatorGeneration;
       const element = (event.newSelection ?? [])[0];
-      if (
-        !element?.id ||
-        element.businessObject?.$type !== 'bpmn:CallActivity' ||
-        !String(element.businessObject.calledElement ?? '').trim()
-      ) {
-        return;
-      }
+      if (!isLinkedElement(element) || !getLinkedTargetId(element)) return;
 
-      const indicator = document.createElement('span');
-      indicator.className = 'bpmn-call-activity-link-indicator bpmn-selection-arrow-inward';
-      indicator.textContent = '↙';
-      indicator.setAttribute('aria-hidden', 'true');
-      indicatorOverlayId = bpmnInstance.get('overlays')?.add?.(element, {
-        position: { top: -10, right: -10 },
-        html: indicator,
+      void resolveTargetResourceId(getLinkedTargetId(element)).then(targetResourceId => {
+        if (!targetResourceId || generation !== indicatorGeneration) return;
+        const selection = bpmnInstance.get('selection')?.get?.() ?? [];
+        if (!selection.some((selected: any) => selected.id === element.id)) return;
+
+        const indicator = document.createElement('button');
+        indicator.type = 'button';
+        indicator.className = 'bpmn-call-activity-link-indicator';
+        indicator.textContent = '↗';
+        indicator.title = 'Ouvrir le processus lié';
+        indicator.setAttribute('aria-label', 'Ouvrir le processus lié');
+        indicator.addEventListener('click', clickEvent => {
+          clickEvent.preventDefault();
+          clickEvent.stopPropagation();
+          void openLinkedProcess(element);
+        });
+
+        indicatorOverlayId = bpmnInstance.get('overlays')?.add?.(element, {
+          position: { bottom: -7, right: -8 },
+          html: indicator,
+        });
+      }).catch(() => {
+        // Do not show a navigational indicator when target resolution failed.
       });
     };
 
-    eventBus.on('element.dblclick', 1500, navigateToCalledProcess);
+    eventBus.on('element.dblclick', 1500, navigateToLinkedProcess);
 
     if (enableSingleClick) {
-      eventBus.on('selection.changed', 1000, showIndicatorForSelectedCallActivity);
+      eventBus.on('selection.changed', 1000, showIndicatorForSelectedLinkedElement);
       eventBus.on('import.done', 1000, decorateCallActivities);
-      // Some viewer instances are already imported when the hook is mounted.
       decorateCallActivities();
     }
 
     return () => {
-      eventBus.off('element.dblclick', navigateToCalledProcess);
+      eventBus.off('element.dblclick', navigateToLinkedProcess);
+      indicatorGeneration += 1;
       if (enableSingleClick) {
         eventBus.off('import.done', decorateCallActivities);
-        eventBus.off('selection.changed', showIndicatorForSelectedCallActivity);
+        eventBus.off('selection.changed', showIndicatorForSelectedLinkedElement);
         removeIndicators();
       }
     };
