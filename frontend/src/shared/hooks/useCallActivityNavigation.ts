@@ -84,8 +84,6 @@ export const useCallActivityNavigation = (
     let indicatorGeneration = 0;
     let processInfoPromise: Promise<Array<{ resource: Resource; processIds: string[] }>> | null = null;
     const processInfoFailures = new Set<string>();
-    let lastSubProcessClick: { id: string; at: number } | null = null;
-    let lastSubProcessFallback: { id: string; at: number } | null = null;
 
     const getProcessInfo = () => {
       if (!processInfoPromise) {
@@ -166,17 +164,9 @@ export const useCallActivityNavigation = (
 
     const navigateToLinkedProcess = (event: LinkedElementEvent) => {
       if (isLinkedElement(event.element)) {
-        const type = event.element?.businessObject?.$type ?? event.element?.type;
-        const fallback = lastSubProcessFallback;
-        const wasHandledByClickFallback =
-          (type === 'bpmn:SubProcess' || type === 'bpmn:Transaction') &&
-          fallback !== null &&
-          fallback.id === event.element.id &&
-          Date.now() - fallback.at < 350;
-        if (wasHandledByClickFallback) {
-          event.stopPropagation();
-          return;
-        }
+        // Navigation is handled only at the double-click boundary. Do not
+        // intercept element.click for SubProcesses: the Viewer must be able
+        // to complete its normal single-click selection first.
         event.stopPropagation();
         void openLinkedProcess(event.element);
         return;
@@ -190,22 +180,6 @@ export const useCallActivityNavigation = (
       openExternalUrl(url);
     };
 
-    const handleCollapsedSubProcessClickFallback = (event: LinkedElementEvent) => {
-      const element = event.element;
-      if (!isCollapsedLinkedSubProcess(element)) return;
-
-      const now = Date.now();
-      const previousClick = lastSubProcessClick;
-      if (previousClick !== null && previousClick.id === element.id && now - previousClick.at < 350) {
-        lastSubProcessClick = null;
-        lastSubProcessFallback = { id: element.id, at: now };
-        // Do not stop propagation here: the Viewer click handler must cancel
-        // its pending single-click selection before navigation completes.
-        void openLinkedProcess(element);
-        return;
-      }
-      lastSubProcessClick = { id: element.id, at: now };
-    };
 
     const clearIndicator = () => {
       if (indicatorOverlayId !== undefined) {
@@ -274,9 +248,6 @@ export const useCallActivityNavigation = (
     };
 
     eventBus.on('element.dblclick', 1500, navigateToLinkedProcess);
-    // Some BPMN subprocess shapes do not consistently emit element.dblclick
-    // across viewer integrations; retain a click-pair fallback for collapsed links.
-    eventBus.on('element.click', 1500, handleCollapsedSubProcessClickFallback);
 
     if (enableSingleClick) {
       eventBus.on('selection.changed', 1000, showIndicatorForSelectedLinkedElement);
@@ -286,7 +257,6 @@ export const useCallActivityNavigation = (
 
     return () => {
       eventBus.off('element.dblclick', navigateToLinkedProcess);
-      eventBus.off('element.click', handleCollapsedSubProcessClickFallback);
       indicatorGeneration += 1;
       if (enableSingleClick) {
         eventBus.off('import.done', decorateCallActivities);
