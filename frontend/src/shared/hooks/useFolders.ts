@@ -21,8 +21,14 @@ export const useFolders = () => {
   useEffect(() => {
     if (hierarchyIssues.length > 0 && !hierarchyWarningShownRef.current) {
       hierarchyWarningShownRef.current = true;
+      const issueSummary = hierarchyIssues
+        .slice(0, 3)
+        .map(issue => `${issue.resourceId} (${issue.type})`)
+        .join(', ');
+      const remainingCount = hierarchyIssues.length - 3;
+      const remainingSummary = remainingCount > 0 ? `, +${remainingCount} autre(s)` : '';
       showAlert({
-        message: `Le référentiel contient ${hierarchyIssues.length} incohérence(s) de hiérarchie (parent absent, cycle ou profondeur). Aucune donnée n'a été modifiée.`,
+        message: `Incohérences de hiérarchie du référentiel : ${issueSummary}${remainingSummary}. Aucune donnée n'a été modifiée.`,
         severity: 'warning',
       });
     }
