@@ -136,7 +136,7 @@ test('task, subprocess and Call Activity arrows share the bottom-right position 
   assert.ok(navigation.includes("indicator.addEventListener('click'"));
   assert.ok(!urlModule.includes('bpmn-subprocess-link'));
   assert.match(css, /\.djs-overlay \.bjs-drilldown:not\(\.url-link-overlay\)\s*\{[^}]*display:\s*none\s*!important;/s);
-  assert.match(css, /\.bpmn-call-activity-link-indicator,[\s\S]*?pointer-events:\s*auto/);
+  assert.match(css, /\.bpmn-call-activity-link-indicator\s*\{[^}]*pointer-events:\s*auto/s);
 });
 
 test('explorer remembers the selected tab and highlights linked-process resources by target ID', async () => {
