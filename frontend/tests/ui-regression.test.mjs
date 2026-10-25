@@ -131,3 +131,13 @@ test('viewer supports data-reference selection and consistent clickable navigati
   assert.ok(urlModule.includes("position: { bottom: -7, right: -8 }"));
   assert.ok(urlModule.includes("eventBus.fire('element.dblclick'"));
 });
+
+
+test('explorer preserves Récents and Favoris view when navigation remounts the panel', async () => {
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+
+  assert.ok(tree.includes("const VIEW_KEY = 'bpmn-tool:explorer-view'"));
+  assert.ok(tree.includes('const [view, setView] = useState<ExplorerView>(readView)'));
+  assert.ok(tree.includes('window.localStorage.setItem(VIEW_KEY, view)'));
+  assert.ok(tree.includes('return value === \'recent\' || value === \'favorites\' ? value : \'tree\''));
+});
