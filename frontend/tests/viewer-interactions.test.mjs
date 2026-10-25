@@ -89,7 +89,7 @@ test('external link indicator is limited to the selected linked Call Activity', 
 
   assert.ok(navigation.includes("eventBus.on('selection.changed', 1000, showIndicatorForSelectedLinkedElement)"));
   assert.ok(navigation.includes('if (indicatorOverlayId !== undefined)'));
-  assert.ok(navigation.includes('overlays?.remove?.(indicatorOverlayId)'));
+  assert.ok(navigation.includes("bpmnInstance.get('overlays')?.remove?.(indicatorOverlayId)"));
   assert.ok(navigation.includes("indicator.className = 'bpmn-call-activity-link-indicator'"));
   assert.ok(navigation.includes("position: { bottom: -7, right: -8 }"));
   assert.ok(navigation.includes("indicator.addEventListener('click'"));
