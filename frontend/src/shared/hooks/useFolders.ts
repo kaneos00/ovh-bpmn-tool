@@ -1,13 +1,27 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useQuery } from 'react-query';
 
 import { foldersQuery } from '../../api/resources/resources.queries';
 import { getRootResource } from '../helpers/resource';
+import { auditFolderHierarchy } from '../helpers/folderHierarchyAudit';
 
 import type { Resource } from '../../Types';
 
 export const useFolders = () => {
   const { data: folders, isLoading } = useQuery(foldersQuery());
+
+  const hierarchyIssues = useMemo(
+    () => auditFolderHierarchy(folders ?? []),
+    [folders],
+  );
+
+  useEffect(() => {
+    if (hierarchyIssues.length > 0) {
+      // This is a read-only diagnostic: it reports bad parent/depth data but
+      // never mutates or repairs user resources.
+      console.warn('[BPMN Explorer] Folder hierarchy integrity issues', hierarchyIssues);
+    }
+  }, [hierarchyIssues]);
 
   const makeFlatHierarchy = (
     flatTree: Resource[],
@@ -49,5 +63,6 @@ export const useFolders = () => {
     folders: folders ?? [],
     isLoading,
     getFolderHierarchy,
+    hierarchyIssues,
   };
 };
