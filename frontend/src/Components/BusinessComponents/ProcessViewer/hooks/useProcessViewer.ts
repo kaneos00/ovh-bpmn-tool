@@ -210,7 +210,7 @@ export const useProcessViewer = (
       if (!element?.type?.endsWith('Task') || !url) return;
 
       event.stopPropagation?.();
-      const normalizedUrl = /^https?:\/\//i.test(url) ? url : 'https://' + url;
+      const normalizedUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
       window.open(normalizedUrl, '_blank', 'noopener,noreferrer');
     };
 
