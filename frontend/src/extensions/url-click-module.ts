@@ -19,7 +19,7 @@ function UrlClickHandler(
     is(element, 'bpmn:SubProcess') || is(element, 'bpmn:Transaction');
 
   const openUrl = (url: string) => {
-    const normalizedUrl = /^https?:\/\//i.test(url) ? url : 'https://' + url;
+    const normalizedUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
     window.open(normalizedUrl, '_blank', 'noopener,noreferrer');
   };
 
