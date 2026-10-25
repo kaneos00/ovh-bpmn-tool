@@ -154,7 +154,8 @@ test('viewer serializes imports and covers the previous canvas during navigation
 
   assert.ok(hook.includes('importGenerationRef'));
   assert.ok(hook.includes('importQueueRef.current'));
-  assert.ok(hook.includes('if (!importedRef.current && !isXmlLoading) viewer.clear()'));
+  assert.ok(hook.includes('const clearViewerAfterQueuedImports = () =>'));
+  assert.ok(hook.includes('importQueueRef.current = clearTask'));
   assert.ok(component.includes('process-viewer-loading'));
   assert.match(css, /\.process-viewer-loading\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*0;/s);
 });
