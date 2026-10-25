@@ -175,6 +175,8 @@ test('folder hook exposes read-only diagnostics for broken parent/depth data', a
   const hook = await read('src/shared/hooks/useFolders.ts');
 
   assert.ok(hook.includes('auditFolderHierarchy(folders ?? [])'));
-  assert.ok(hook.includes("console.warn('[BPMN Explorer] Folder hierarchy integrity issues'"));
+  assert.ok(hook.includes('showAlert({'));
+  assert.ok(hook.includes('hierarchyWarningShownRef.current = true'));
+  assert.ok(hook.includes('hierarchyIssues, showAlert'));
   assert.ok(hook.includes('hierarchyIssues,'));
 });
