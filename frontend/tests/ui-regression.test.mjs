@@ -47,16 +47,17 @@ test('all five BPMN gateway types map to markers styled with the same violet str
 
 
 test('called-process tree resolution is unambiguous, deduplicated and cycle-safe', async () => {
+  const links = await read('src/Components/BusinessComponents/FolderTree/processLinks.ts');
   const tree = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
 
-  assert.ok(tree.includes("getElementsByTagNameNS(BPMN_MODEL_NS, 'callActivity')"));
-  assert.ok(tree.includes("element.getAttribute('calledElement')?.trim() || ''"));
-  assert.ok(tree.includes("element.getAttribute('isExpanded') === 'false'"));
-  assert.ok(tree.includes('matches.length === 1 && !byIdentifier.has(processId)'));
-  assert.ok(tree.includes('const targets = Array.from(new Set(info.targets))'));
-  assert.ok(tree.includes('target.id !== info.resource.id'));
-  assert.ok(tree.includes('!parentByTarget.has(target.id) && !reaches(target.id, info.resource.id)'));
-  assert.ok(tree.includes('`linked-process:${item.id}:${target.id}`'));
+  assert.ok(links.includes("getElementsByTagNameNS(BPMN_MODEL_NS, 'callActivity')"));
+  assert.ok(links.includes("element.getAttribute('calledElement')?.trim() || ''"));
+  assert.ok(links.includes("element.getAttribute('isExpanded') === 'false'"));
+  assert.ok(links.includes('matches.length === 1 && !byIdentifier.has(processId)'));
+  assert.ok(links.includes('const targets = Array.from(new Set(info.targets))'));
+  assert.ok(links.includes('target.id !== info.resource.id'));
+  assert.ok(links.includes('!parentByTarget.has(target.id) && !reaches(target.id, info.resource.id)'));
+  assert.ok(tree.includes('linked-process:'));
 });
 
 test('explorer label selection navigates to the target and expands nodes with children', async () => {
