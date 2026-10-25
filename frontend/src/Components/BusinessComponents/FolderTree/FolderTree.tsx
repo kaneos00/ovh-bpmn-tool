@@ -36,6 +36,7 @@ type FolderTreeProps = {
 type ExplorerView = 'tree' | 'recent' | 'favorites';
 const FAVORITES_KEY = 'bpmn-tool:favorite-resources';
 const RECENT_KEY = 'bpmn-tool:recent-resources';
+const VIEW_KEY = 'bpmn-tool:explorer-view';
 
 const readIds = (key: string): string[] => {
   try {
@@ -47,13 +48,29 @@ const readIds = (key: string): string[] => {
   }
 };
 
+const readView = (): ExplorerView => {
+  try {
+    const value = window.localStorage.getItem(VIEW_KEY);
+    return value === 'recent' || value === 'favorites' || value === 'tree' ? value : 'tree';
+  } catch {
+    return 'tree';
+  }
+};
+
 export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
-  const { dataTree, expandedNodes, setExpandedNodes, isLoading } =
-    useFolderTree(selectedId, { onNodeClick });
-  const [view, setView] = useState<ExplorerView>('tree');
+  const { dataTree, expandedNodes, setExpandedNodes, isLoading } = useFolderTree(selectedId);
+  const [view, setView] = useState<ExplorerView>(readView);
   const [search, setSearch] = useState('');
   const [favorites, setFavorites] = useState<string[]>(readIds(FAVORITES_KEY));
   const [recent, setRecent] = useState<string[]>(readIds(RECENT_KEY));
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(VIEW_KEY, view);
+    } catch {
+      // The selected explorer view is best-effort when browser storage is disabled.
+    }
+  }, [view]);
 
   useEffect(() => {
     try {
@@ -87,6 +104,10 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
   }, [dataTree]);
 
   const nodeById = useMemo(() => new Map(flatNodes.map(node => [node.id, node])), [flatNodes]);
+  const selectedTreeNodeId = useMemo(() => {
+    if (nodeById.has(selectedId)) return selectedId;
+    return flatNodes.find(node => node.targetId === selectedId)?.id ?? selectedId;
+  }, [nodeById, flatNodes, selectedId]);
   const filteredTree = useMemo(() => {
     const term = search.trim().toLocaleLowerCase('fr');
     const filterNode = (node: RenderTree): RenderTree | null => {
@@ -153,7 +174,11 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
     const node = nodeById.get(selected);
     if (!node) return;
 
-    // Selecting a row navigates to that resource; expansion is handled only by its arrow.
+    // A folder-name click navigates to the folder and opens its immediate children
+    // only when closed. It must never collapse the tree or other open branches.
+    if (node.type === 'folder' && node.children?.length) {
+      setExpandedNodes(current => current.includes(node.id) ? current : [...current, node.id]);
+    }
     onNodeClick(node.targetId ?? selected);
   };
 
@@ -214,9 +239,9 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
               getItemTitle={item => item.data.name}
               viewState={{
                 'repository-tree': {
-                  focusedItem: selectedId || 'root',
+                  focusedItem: selectedTreeNodeId || 'root',
                   expandedItems: search.trim() ? searchExpandedNodes : expandedNodes,
-                  selectedItems: selectedId ? [selectedId] : [],
+                  selectedItems: selectedTreeNodeId ? [selectedTreeNodeId] : [],
                 },
               }}
               onExpandItem={item => setExpandedNodes(current => current.includes(String(item.index)) ? current : [...current, String(item.index)])}
@@ -286,14 +311,15 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
             </Typography>
           ) : visibleNodes.map(node => {
             const isFavorite = favorites.includes(node.id);
+            const isSelected = (node.targetId ?? node.id) === selectedId;
             return (
-              <Box key={node.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, borderRadius: '8px', bgcolor: node.id === selectedId ? '#eaf1ff' : 'transparent', '&:hover': { bgcolor: node.id === selectedId ? '#eaf1ff' : 'background.level1' } }}>
+              <Box key={node.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, borderRadius: '8px', bgcolor: isSelected ? '#eaf1ff' : 'transparent', '&:hover': { bgcolor: isSelected ? '#eaf1ff' : 'background.level1' } }}>
                 <Button
                   variant="plain"
-                  color={node.id === selectedId ? 'primary' : 'neutral'}
+                  color={isSelected ? 'primary' : 'neutral'}
                   onClick={() => onNodeClick(node.targetId ?? node.id)}
                   startDecorator={view === 'recent' ? <AccessTime fontSize="small" /> : node.type === 'folder' ? <FolderOutlined fontSize="small" /> : <DescriptionOutlined fontSize="small" />}
-                  sx={{ flex: 1, minWidth: 0, justifyContent: 'flex-start', textAlign: 'left', fontWeight: node.id === selectedId ? 700 : 500, overflow: 'hidden', '& .MuiButton-startDecorator': { flexShrink: 0 }, '& > span:last-of-type': { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }}
+                  sx={{ flex: 1, minWidth: 0, justifyContent: 'flex-start', textAlign: 'left', fontWeight: isSelected ? 700 : 500, overflow: 'hidden', '& .MuiButton-startDecorator': { flexShrink: 0 }, '& > span:last-of-type': { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }}
                 >
                   {node.name}
                 </Button>
