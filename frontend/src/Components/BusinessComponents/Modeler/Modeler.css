@@ -122,6 +122,21 @@
   background: var(--joy-palette-background-surface, #fff);
 }
 
+.processViewerDiagramContent {
+  position: relative;
+  min-height: 0;
+}
+
+.process-viewer-loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.82);
+}
+
 .process-viewer-canvas {
   position: relative;
   flex: 1 1 auto;
