@@ -70,17 +70,28 @@ function UrlClickHandler(
   }
 
   function addSubProcessOverlay(element: any) {
-    if (!isSubProcess(element)) return;
+    if (!isSubProcess(element) || element?.businessObject?.isExpanded !== false) return;
+
+    const arrow = document.createElement('button');
+    arrow.type = 'button';
+    arrow.className = 'bpmn-selection-arrow';
+    arrow.textContent = '↙';
+    arrow.title = 'Ouvrir le processus appelé';
+    arrow.setAttribute('aria-label', 'Ouvrir le processus appelé');
+    arrow.style.pointerEvents = 'auto';
+    arrow.style.cursor = 'pointer';
+    arrow.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      eventBus.fire('element.dblclick', {
+        element,
+        stopPropagation: () => undefined,
+      });
+    });
 
     overlays.add(element, 'bpmn-subprocess-link', {
-      position: { top: -10, right: -10 },
-      html: `
-        <span
-          class="bpmn-selection-arrow"
-          title="Sous-processus"
-          aria-hidden="true"
-        >↙</span>
-      `,
+      position: { bottom: -7, right: -8 },
+      html: arrow,
     });
   }
 
@@ -95,6 +106,18 @@ function UrlClickHandler(
       'noopener,noreferrer',
     );
   }
+
+  const openTaskUrlOnDoubleClick = (event: any) => {
+    const element = event?.element;
+    if (!is(element, 'bpmn:Task')) return;
+    const url = getUrl(element);
+    if (!url) return;
+
+    event.stopPropagation?.();
+    openUrl(url);
+  };
+
+  eventBus.on('element.dblclick', openTaskUrlOnDoubleClick);
 
   function addOverlay(element: any) {
 
