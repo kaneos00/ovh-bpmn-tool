@@ -68,9 +68,10 @@ test('linked Call Activity opens its target only on double-click and handles mis
   assert.ok(navigation.includes('const getExternalTaskUrl = (element: any): string =>'));
   assert.ok(navigation.includes('const url = getExternalTaskUrl(event.element)'));
   assert.ok(navigation.includes('openExternalUrl(url)'));
-  assert.ok(navigation.includes('handleCollapsedSubProcessClickFallback'));
-  assert.ok(navigation.includes("eventBus.on('element.click', 1500, handleCollapsedSubProcessClickFallback)"));
-  assert.ok(navigation.includes("eventBus.off('element.click', handleCollapsedSubProcessClickFallback)"));
+  assert.ok(!navigation.includes('handleCollapsedSubProcessClickFallback'),
+    'SubProcess navigation must not intercept element.click and suppress simple-click selection');
+  assert.ok(!navigation.includes("eventBus.on('element.click', 1500"),
+    'the shared navigation hook must leave single-click events to the Viewer selection handler');
   assert.match(navigation, /type === 'bpmn:CallActivity'/);
   assert.match(navigation, /type === 'bpmn:SubProcess'/);
   assert.match(navigation, /type === 'bpmn:Transaction'/);
