@@ -264,3 +264,17 @@ Ne pas préremplir ce journal avec des résultats supposés. Ajouter une entrée
 - **Contrat supplémentaire :** le panneau de détail doit présenter une description pédagogique du type BPMN immédiatement sous l'identifiant. Le contrat vérifie plusieurs types, notamment les passerelles et événements Start/End ; le rendu visuel reste à valider dans le navigateur.
 - **Suivi :** `check.md` a été actualisé avec le SHA `035ac68`, les preuves CI et le statut du point 43.
 - **État de livraison :** branche de travail uniquement ; aucune fusion dans la référence V2.2 et aucun déploiement Coolify. Les points fonctionnels 1, 5, 7, 8, 10, 11, 12 et 13 restent soumis à la recette navigateur.
+
+
+## Recette manuelle Coolify — points encore ouverts
+
+**Statut : non exécutée dans cette session.** Cette liste est destinée à la validation humaine après déploiement du candidat ; elle ne remplace pas les tests CI et ne doit pas être cochée avant observation réelle.
+
+1. **Mini-carte et panneau droit (points 1 et 5)** : ouvrir un processus publié ; vérifier que la mini-carte est masquée au départ, que le diagramme démarre à 1:1 en haut à gauche, puis ouvrir/fermer la mini-carte avec le bouton. Vérifier que le panneau de détail est fermé au départ, s'ouvre par son titre et s'ouvre lorsqu'un élément BPMN est sélectionné. Confirmer l'ordre Description, RACI, Documentation.
+2. **Explorateur (points 7, 8 et 12)** : ouvrir un dossier par son nom sans quitter l'écran ; replier/déplier avec le chevron et vérifier que les autres branches restent ouvertes. Refaire le test sur un dossier qui contient des processus avec Call Activities ou sous-processus. Depuis un dossier et un processus, utiliser le fil d'Ariane pour revenir au parent puis au Référentiel. Dans Récents, vérifier qu'il n'y a que des processus, qu'un clic ouvre le processus et qu'il n'y a pas de doublons.
+3. **Navigation BPMN et flèches (points 10 et 11)** : un clic simple doit sélectionner sans naviguer ; un double-clic sur une Call Activity ou un sous-processus navigable doit ouvrir sa cible. Un double-clic sur une tâche portant une URL doit ouvrir le lien dans un nouvel onglet. Comparer l'icône, la taille et la position des flèches ; vérifier qu'aucune flèche fantôme n'apparaît sur un élément non navigable.
+4. **Fluidité (point 13)** : naviguer plusieurs fois entre processus courts et longs, y compris avec des appels. Noter tout écran blanc, clignotement, ancien diagramme affiché à tort ou délai anormal ; consigner les deux processus concernés pour reproduction.
+5. **Couleurs et liens (points 35 et 36)** : vérifier plusieurs événements Start (contour vert) et End (contour rouge), puis Data Store et Data Object Reference (orange). Si une URL est associée à une donnée, sélectionner l'élément, vérifier la flèche et cliquer le lien. Si l'éditeur permet la modification, enregistrer puis recharger pour confirmer la persistance.
+6. **Description du type BPMN (point 43)** : sélectionner une tâche, chaque type de gateway, un événement Start/End, un sous-processus et une référence de données ; confirmer que le texte pédagogique correspond au type et se trouve juste sous l'identifiant.
+
+Pour chaque étape, noter : date, version/commit déployé, ressource ou processus testé, résultat (OK/KO), capture ou description du défaut et étapes exactes de reproduction. Ne pas fermer un point si le résultat est seulement partiel.
