@@ -192,7 +192,6 @@ export const useCallActivityNavigation = (
 
     const handleCollapsedSubProcessClickFallback = (event: LinkedElementEvent) => {
       const element = event.element;
-      const type = element?.businessObject?.$type ?? element?.type;
       if (!isCollapsedLinkedSubProcess(element)) return;
 
       const now = Date.now();
