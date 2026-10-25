@@ -153,7 +153,13 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
     const node = nodeById.get(selected);
     if (!node) return;
 
-    // Selecting a row navigates to that resource; expansion is handled only by its arrow.
+    // Selecting a folder opens its immediate children if needed, without collapsing
+    // any other expanded branch. The row still navigates to the selected resource.
+    if (node.type === 'folder' && node.children?.length) {
+      setExpandedNodes(current =>
+        current.includes(node.id) ? current : [...current, node.id],
+      );
+    }
     onNodeClick(node.targetId ?? selected);
   };
 
