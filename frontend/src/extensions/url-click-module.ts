@@ -37,11 +37,10 @@ import { is } from 'bpmn-js/lib/util/ModelUtil';
  * NOUVELLE VERSION
  * ============================================================
  *
- * - uniquement les bpmn:Task
- * - le clic sur le Task reste normal
- * - une petite flèche bleue apparaît si une URL existe
- * - seul le clic sur cette flèche ouvre l'URL
- * - les SubProcess et CallActivity ne sont pas concernés
+ * - tâches et références de données portant une URL
+ * - le clic simple conserve la sélection BPMN normale
+ * - une flèche bleue apparaît uniquement sur l'élément sélectionné
+ * - le clic sur cette flèche ouvre l'URL ; les liens de processus sont gérés par le Viewer
  * - position identique au contrôle Drilldown natif de bpmn-js
  *
  * ============================================================
@@ -63,25 +62,6 @@ function UrlClickHandler(
       is(element, 'bpmn:DataStoreReference') ||
       is(element, 'bpmn:DataObjectReference')
     ) && !!getUrl(element);
-  }
-
-  function isSubProcess(element: any) {
-    return is(element, 'bpmn:SubProcess') || is(element, 'bpmn:Transaction');
-  }
-
-  function addSubProcessOverlay(element: any) {
-    if (!isSubProcess(element)) return;
-
-    overlays.add(element, 'bpmn-subprocess-link', {
-      position: { top: -10, right: -10 },
-      html: `
-        <span
-          class="bpmn-selection-arrow"
-          title="Sous-processus"
-          aria-hidden="true"
-        >↙</span>
-      `,
-    });
   }
 
   function openUrl(url: string) {
@@ -266,7 +246,6 @@ function UrlClickHandler(
   function removeUrlOverlay(element: any) {
     if (!element) return;
     overlays.remove({ element, type: 'url-link' });
-    overlays.remove({ element, type: 'bpmn-subprocess-link' });
   }
 
   eventBus.on('selection.changed', (event: any) => {
@@ -297,8 +276,6 @@ function UrlClickHandler(
 
     if (isUrlElement(selected)) {
       addOverlay(selected);
-    } else if (isSubProcess(selected)) {
-      addSubProcessOverlay(selected);
     }
   });
 
@@ -309,8 +286,7 @@ function UrlClickHandler(
     if (
       !is(element, 'bpmn:Task') &&
       !is(element, 'bpmn:DataStoreReference') &&
-      !is(element, 'bpmn:DataObjectReference') &&
-      !isSubProcess(element)
+      !is(element, 'bpmn:DataObjectReference')
     ) {
       return;
     }
@@ -326,12 +302,9 @@ function UrlClickHandler(
     const isSelected = currentSelection?.includes(element);
 
     overlays.remove({ element, type: 'url-link' });
-    overlays.remove({ element, type: 'bpmn-subprocess-link' });
 
     if (isSelected && isUrlElement(element)) {
       addOverlay(element);
-    } else if (isSelected && isSubProcess(element)) {
-      addSubProcessOverlay(element);
     }
   });
 
