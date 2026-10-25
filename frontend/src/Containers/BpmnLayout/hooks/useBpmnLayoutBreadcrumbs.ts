@@ -19,7 +19,7 @@ export const useBpmnLayoutBreadcrumbs = () => {
     }
 
     const folderHierarchy = getFolderHierarchy(
-      isProcess(resource) ? (resource.parentId as string) : resourceId,
+      isProcess(resource) ? (resource.parentId ?? 'root') : resourceId,
     ).map(({ id, name }) => ({
       id,
       label: id === 'root' ? 'Référentiel' : name,
