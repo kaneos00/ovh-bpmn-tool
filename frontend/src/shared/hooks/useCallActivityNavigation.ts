@@ -156,10 +156,12 @@ export const useCallActivityNavigation = (
     const navigateToLinkedProcess = (event: LinkedElementEvent) => {
       if (isLinkedElement(event.element)) {
         const type = event.element?.businessObject?.$type ?? event.element?.type;
+        const fallback = lastSubProcessFallback;
         const wasHandledByClickFallback =
           (type === 'bpmn:SubProcess' || type === 'bpmn:Transaction') &&
-          lastSubProcessFallback?.id === event.element.id &&
-          Date.now() - lastSubProcessFallback.at < 350;
+          fallback !== null &&
+          fallback.id === event.element.id &&
+          Date.now() - fallback.at < 350;
         if (wasHandledByClickFallback) {
           event.stopPropagation();
           return;
@@ -183,7 +185,8 @@ export const useCallActivityNavigation = (
       if (type !== 'bpmn:SubProcess' && type !== 'bpmn:Transaction') return;
 
       const now = Date.now();
-      if (lastSubProcessClick?.id === element.id && now - lastSubProcessClick.at < 350) {
+      const previousClick = lastSubProcessClick;
+      if (previousClick !== null && previousClick.id === element.id && now - previousClick.at < 350) {
         lastSubProcessClick = null;
         lastSubProcessFallback = { id: element.id, at: now };
         // Do not stop propagation here: the Viewer click handler must cancel
