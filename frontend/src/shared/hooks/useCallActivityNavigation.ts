@@ -225,5 +225,5 @@ export const useCallActivityNavigation = (
         removeIndicators();
       }
     };
-  }, [bpmnInstance, enableSingleClick, navigate, showAlert]);
+  }, [bpmnInstance, enableSingleClick, currentResourceId, navigate, showAlert]);
 };
