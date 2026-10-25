@@ -96,3 +96,24 @@ export const resolveLinkedChildren = <TResource extends ProcessResource>(
   });
   return linked;
 };
+
+/**
+ * Resolves a resource ID first, then a unique BPMN process ID.
+ * Ambiguous BPMN IDs deliberately return undefined instead of guessing.
+ */
+export const resolveProcessTarget = <TResource extends ProcessResource>(
+  targetId: string,
+  processInfo: Array<{ resource: TResource; processIds: string[] }>,
+): TResource | undefined => {
+  const directMatch = processInfo.find(info => info.resource.id === targetId);
+  if (directMatch) return directMatch.resource;
+
+  const matches = processInfo
+    .filter(info => info.processIds.includes(targetId))
+    .map(info => info.resource)
+    .filter((resource, index, all) =>
+      all.findIndex(candidate => candidate.id === resource.id) === index,
+    );
+
+  return matches.length === 1 ? matches[0] : undefined;
+};
