@@ -26,12 +26,21 @@ type BpmnInstance = {
   get: (serviceName: string) => any;
 };
 
+const isCollapsedLinkedSubProcess = (element: any): boolean => {
+  const type = element?.businessObject?.$type ?? element?.type;
+  if (type !== 'bpmn:SubProcess' && type !== 'bpmn:Transaction') return false;
+
+  // Only collapsed subprocesses can represent links to separately modelled
+  // processes. Intercepting an expanded subprocess prevents normal BPMN drilldown.
+  return element?.businessObject?.isExpanded === false || element?.isExpanded === false;
+};
+
 const getLinkedTargetId = (element: any): string => {
   const type = element?.businessObject?.$type ?? element?.type;
   if (type === 'bpmn:CallActivity') {
     return String(element.businessObject?.calledElement ?? '').trim();
   }
-  if (type === 'bpmn:SubProcess' || type === 'bpmn:Transaction') {
+  if (isCollapsedLinkedSubProcess(element)) {
     return String(element.businessObject?.id ?? element.id ?? '').trim();
   }
   return '';
@@ -39,9 +48,7 @@ const getLinkedTargetId = (element: any): string => {
 
 const isLinkedElement = (element: any): boolean => {
   const type = element?.businessObject?.$type ?? element?.type;
-  return type === 'bpmn:CallActivity' ||
-    type === 'bpmn:SubProcess' ||
-    type === 'bpmn:Transaction';
+  return type === 'bpmn:CallActivity' || isCollapsedLinkedSubProcess(element);
 };
 
 const getExternalTaskUrl = (element: any): string => {
@@ -182,7 +189,7 @@ export const useCallActivityNavigation = (
     const handleCollapsedSubProcessClickFallback = (event: LinkedElementEvent) => {
       const element = event.element;
       const type = element?.businessObject?.$type ?? element?.type;
-      if (type !== 'bpmn:SubProcess' && type !== 'bpmn:Transaction') return;
+      if (!isCollapsedLinkedSubProcess(element)) return;
 
       const now = Date.now();
       const previousClick = lastSubProcessClick;
