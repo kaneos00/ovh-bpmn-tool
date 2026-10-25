@@ -22,7 +22,8 @@ export const auditFolderHierarchy = (folders: FolderLike[]): FolderHierarchyIssu
 
   folders.forEach(folder => {
     let parentId = folder.parentId || 'root';
-    let expectedDepth = 1;
+    // Backend Resource.computeDepth() defines root-level folders as depth 0.
+    let expectedDepth = 0;
     let canCompareDepth = true;
     const visited = new Set([folder.id]);
 

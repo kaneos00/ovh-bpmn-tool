@@ -74,7 +74,7 @@ test('explorer folder-label selection opens one level without collapsing other b
 
   assert.ok(explorer.includes('const handleTreeSelection = (items: (string | number)[]) =>'));
   assert.ok(explorer.includes("if (node.type === 'folder' && node.children?.length)"));
-  assert.ok(explorer.includes('current.includes(node.id) ? current : [...current, node.id]'));
+  assert.ok(explorer.includes('addExpandedNode(current, node.id)'));
   assert.ok(explorer.includes('onNodeClick(node.targetId ?? selected)'));
 
   const treeHook = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
@@ -181,4 +181,27 @@ test('folder hook exposes read-only diagnostics for broken parent/depth data', a
   assert.ok(hook.includes('issue.resourceId'));
   assert.ok(hook.includes('issue.type'));
   assert.ok(hook.includes('hierarchyIssues,'));
+});
+
+
+test('folder expansion state survives panel remounts and preserves other expanded branches', async () => {
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+  const hook = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
+  const state = await read('src/Components/BusinessComponents/FolderTree/treeState.ts');
+
+  assert.ok(state.includes("EXPANDED_NODES_STORAGE_KEY = 'bpmn-tool:expanded-nodes'"));
+  assert.ok(state.includes('export const addExpandedNode'));
+  assert.ok(state.includes('export const removeExpandedNode'));
+  assert.ok(state.includes('export const mergeExpandedNodes'));
+  assert.ok(hook.includes('readExpandedNodeIds(window.localStorage)'));
+  assert.ok(hook.includes('window.localStorage.setItem(EXPANDED_NODES_STORAGE_KEY, JSON.stringify(expandedNodes))'));
+  assert.ok(hook.includes('mergeExpandedNodes(current, ancestors)'));
+  assert.ok(tree.includes('addExpandedNode(current, node.id)'));
+});
+
+test('folder hook no longer contains unused MUI tree selection handlers', async () => {
+  const hook = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
+
+  assert.doesNotMatch(hook, /SyntheticEvent|treeItemClasses|onNodeSelect|onNodeToggle/);
+  assert.doesNotMatch(hook, /const findNode =/);
 });

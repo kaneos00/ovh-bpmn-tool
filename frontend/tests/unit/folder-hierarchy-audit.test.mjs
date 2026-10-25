@@ -6,9 +6,9 @@ import { auditFolderHierarchy } from '../../.test-dist/shared/helpers/folderHier
 describe('auditFolderHierarchy', () => {
   it('accepts a consistent folder tree', () => {
     assert.deepEqual(auditFolderHierarchy([
-      { id: 'folder-a', parentId: 'root', depth: 1 },
-      { id: 'folder-b', parentId: 'folder-a', depth: 2 },
-      { id: 'folder-c', parentId: 'folder-b', depth: 3 },
+      { id: 'folder-a', parentId: null, depth: 0 },
+      { id: 'folder-b', parentId: 'folder-a', depth: 1 },
+      { id: 'folder-c', parentId: 'folder-b', depth: 2 },
     ]), []);
   });
 
@@ -29,7 +29,7 @@ describe('auditFolderHierarchy', () => {
     ]), [{
       type: 'depth-mismatch',
       resourceId: 'top-level',
-      expectedDepth: 1,
+      expectedDepth: 0,
       actualDepth: 4,
     }]);
   });

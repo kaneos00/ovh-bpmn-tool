@@ -25,6 +25,7 @@ import { ControlledTreeEnvironment, Tree } from 'react-complex-tree';
 import 'react-complex-tree/lib/style-modern.css';
 
 import { useFolderTree } from './hooks/useFolderTree';
+import { addExpandedNode, removeExpandedNode } from './treeState';
 
 import type { RenderTree } from '.';
 
@@ -59,7 +60,7 @@ const readIds = (key: string): string[] => {
 
 export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
   const { dataTree, expandedNodes, setExpandedNodes, isLoading } =
-    useFolderTree(selectedId, { onNodeClick });
+    useFolderTree(selectedId);
   const [view, setView] = useState<ExplorerView>(readView);
   const [search, setSearch] = useState('');
   const [favorites, setFavorites] = useState<string[]>(readIds(FAVORITES_KEY));
@@ -174,9 +175,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
     // Selecting a folder opens its immediate children if needed, without collapsing
     // any other expanded branch. The row still navigates to the selected resource.
     if (node.type === 'folder' && node.children?.length) {
-      setExpandedNodes(current =>
-        current.includes(node.id) ? current : [...current, node.id],
-      );
+      setExpandedNodes(current => addExpandedNode(current, node.id));
     }
     onNodeClick(node.targetId ?? selected);
   };
@@ -243,8 +242,8 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                   selectedItems: selectedId ? [selectedId] : [],
                 },
               }}
-              onExpandItem={item => setExpandedNodes(current => current.includes(String(item.index)) ? current : [...current, String(item.index)])}
-              onCollapseItem={item => setExpandedNodes(current => current.filter(id => id !== String(item.index)))}
+              onExpandItem={item => setExpandedNodes(current => addExpandedNode(current, String(item.index)))}
+              onCollapseItem={item => setExpandedNodes(current => removeExpandedNode(current, String(item.index)))}
               onSelectItems={handleTreeSelection}
               renderItemArrow={() => null}
               renderItemTitle={({ item, title }) => {
@@ -269,8 +268,8 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                           event.preventDefault();
                           event.stopPropagation();
                           setExpandedNodes(current => current.includes(nodeId)
-                            ? current.filter(id => id !== nodeId)
-                            : [...current, nodeId]);
+                            ? removeExpandedNode(current, nodeId)
+                            : addExpandedNode(current, nodeId));
                         }}
                         sx={{ minWidth: 24, minHeight: 24, p: 0.25, flexShrink: 0 }}
                       >

@@ -1,5 +1,4 @@
-import { useMemo, SyntheticEvent, useState, useEffect } from 'react';
-import { treeItemClasses } from '@mui/x-tree-view/TreeItem';
+import { useMemo, useState, useEffect } from 'react';
 import { useQueries, useQuery } from 'react-query';
 
 import { resourcesQuery } from '../../../../api/resources/resources.queries';
@@ -9,12 +8,9 @@ import { useFolders } from '../../../../shared/hooks/useFolders';
 import { useResource } from '../../../../shared/hooks/useResource';
 import { ResourceType } from '../../../../shared/types/BpmnResource';
 import { getProcessLinks, resolveLinkedChildren } from '../processLinks';
+import { EXPANDED_NODES_STORAGE_KEY, mergeExpandedNodes, readExpandedNodeIds } from '../treeState';
 
 import type { RenderTree } from '..';
-
-type UseFolderTreeCallbacks = {
-  onNodeClick: (nodeId: string) => void;
-};
 
 const getPublishedContent = (contents: Content[] | undefined) =>
   (contents ?? [])
@@ -23,11 +19,24 @@ const getPublishedContent = (contents: Content[] | undefined) =>
 
 
 
-export const useFolderTree = (
-  selectedResourceId: string,
-  { onNodeClick }: UseFolderTreeCallbacks,
-) => {
-  const [expandedNodes, setExpandedNodes] = useState<string[]>([]);
+export const useFolderTree = (selectedResourceId: string) => {
+  const [expandedNodes, setExpandedNodes] = useState<string[]>(() => {
+    try {
+      return typeof window === 'undefined' ? [] : readExpandedNodeIds(window.localStorage);
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(EXPANDED_NODES_STORAGE_KEY, JSON.stringify(expandedNodes));
+      }
+    } catch {
+      // The explorer remains usable when browser storage is disabled.
+    }
+  }, [expandedNodes]);
   const { getFolderHierarchy } = useFolders();
   const { resource } = useResource(selectedResourceId);
   const { data: resources, isLoading } = useQuery<Resource[]>(resourcesQuery());
@@ -123,30 +132,6 @@ export const useFolderTree = (
     };
   }, [resources, linkedChildrenByResource, linkedTargetIds]);
 
-  const findNode = (node: RenderTree, id: string): RenderTree | undefined => {
-    if (node.id === id) return node;
-    for (const child of node.children ?? []) {
-      const match = findNode(child, id);
-      if (match) return match;
-    }
-    return undefined;
-  };
-
-  const isLabelClick = (event: SyntheticEvent) =>
-    Boolean((event.target as HTMLElement).closest(`.${treeItemClasses.label}`));
-
-  const onNodeSelect = (event: SyntheticEvent, nodeId: string | null) => {
-    if (!nodeId || !isLabelClick(event)) return;
-    const node = findNode(dataTree, nodeId);
-    onNodeClick(node?.targetId ?? nodeId);
-    if (node?.children?.length && !expandedNodes.includes(nodeId)) {
-      setExpandedNodes(current => current.includes(nodeId) ? current : [...current, nodeId]);
-    }
-  };
-
-  const onNodeToggle = (event: SyntheticEvent, nodeIds: string[]) => {
-    if (!isLabelClick(event)) setExpandedNodes(nodeIds);
-  };
 
   useEffect(() => {
     if (resources?.length && resource) {
@@ -157,9 +142,9 @@ export const useFolderTree = (
         ? resource.id
         : resource.parentId ?? selectedResourceId;
       const ancestors = getFolderHierarchy(hierarchyResourceId).map(({ id }) => id);
-      setExpandedNodes(current => Array.from(new Set([...current, ...ancestors])));
+      setExpandedNodes(current => mergeExpandedNodes(current, ancestors));
     }
   }, [selectedResourceId, resources, resource, getFolderHierarchy]);
 
-  return { dataTree, onNodeSelect, onNodeToggle, expandedNodes, setExpandedNodes, isLoading };
+  return { dataTree, expandedNodes, setExpandedNodes, isLoading };
 };
