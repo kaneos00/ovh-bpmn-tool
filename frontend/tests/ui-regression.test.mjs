@@ -67,3 +67,17 @@ test('explorer label selection navigates to the target and expands nodes with ch
   assert.ok(tree.includes('if (node?.children?.length && !expandedNodes.includes(nodeId))'));
   assert.ok(tree.includes('setExpandedNodes(current => current.includes(nodeId) ? current : [...current, nodeId])'));
 });
+
+
+test('explorer delegates Call Activity and collapsed SubProcess links to the tested resolver', async () => {
+  const hook = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
+  const processLinks = await read('src/Components/BusinessComponents/FolderTree/processLinks.ts');
+
+  assert.match(hook, /import \\{ getProcessLinks, resolveLinkedChildren \\} from '\\.\\.\\/processLinks'/);
+  assert.match(hook, /return resolveLinkedChildren\\(processInfo\\)/);
+  assert.ok(processLinks.includes("getElementsByTagNameNS(BPMN_MODEL_NS, 'callActivity')"));
+  assert.match(
+    processLinks,
+    /getElementsByTagNameNS\\(BPMN_MODEL_NS, 'subProcess'\\)[\\s\\S]*?filter\\(element => element\\.getAttribute\\('isExpanded'\\) === 'false'\\)/,
+  );
+});
