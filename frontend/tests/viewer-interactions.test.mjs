@@ -118,3 +118,18 @@ test('viewer toolbar is the only minimap open/close control', async () => {
   assert.match(hook, /minimap\?\.close\?\.\(\)/);
   assert.match(styles, /\.process-viewer-canvas \.djs-minimap \.toggle\s*\{\s*display: none !important;/);
 });
+
+
+test('viewer serializes imports and covers the previous canvas during navigation', async () => {
+  const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+  const component = await read('src/Components/BusinessComponents/ProcessViewer/ProcessViewer.tsx');
+  const styles = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
+
+  assert.match(hook, /importGenerationRef = useRef\(0\)/);
+  assert.match(hook, /importQueueRef = useRef<Promise<unknown>>\(Promise\.resolve\(\)\)/);
+  assert.match(hook, /if \(cancelled \|\| generation !== importGenerationRef\.current\) return/);
+  assert.match(hook, /if \(isXmlLoading\)/);
+  assert.match(hook, /if \(!hadPreviousDiagram\) clearViewerAfterQueuedImports\(\)/);
+  assert.ok(component.includes('className="process-viewer-loading-overlay"'));
+  assert.match(styles, /\.process-viewer-loading-overlay\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*0;/s);
+});
