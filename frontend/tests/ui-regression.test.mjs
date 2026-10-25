@@ -178,5 +178,7 @@ test('folder hook exposes read-only diagnostics for broken parent/depth data', a
   assert.ok(hook.includes('showAlert({'));
   assert.ok(hook.includes('hierarchyWarningShownRef.current = true'));
   assert.ok(hook.includes('hierarchyIssues, showAlert'));
+  assert.ok(hook.includes('issue.resourceId'));
+  assert.ok(hook.includes('issue.type'));
   assert.ok(hook.includes('hierarchyIssues,'));
 });
