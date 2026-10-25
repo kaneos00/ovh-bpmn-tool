@@ -101,3 +101,10 @@ test('viewer mounts a single FolderTree explorer instead of the legacy ResourceE
   assert.ok(!details.includes('ResourceExplorer'));
   assert.ok(routes.includes("lazy: () => import('./Containers/BpmnLayout')"));
 });
+
+test('breadcrumb hierarchy traversal stops safely when parent IDs form a cycle', async () => {
+  const folders = await read('src/shared/hooks/useFolders.ts');
+
+  assert.match(folders, /if \(visited\.has\(resourceId\)\)\s*\{\s*return flatTree;/);
+  assert.match(folders, /makeFlatHierarchy\(flatTree, folder\.parentId, visited\)/);
+});
