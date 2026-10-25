@@ -254,3 +254,13 @@ Ne pas préremplir ce journal avec des résultats supposés. Ajouter une entrée
 - **Documentation :** `check.md` mis à jour pour les points 5, 14 et 29 et les liens CI. Le commit documentaire peut avoir sa propre exécution CI ; le résultat applicatif ci-dessus reste la preuve du code testé.
 - **Limites restantes :** pas de test navigateur/E2E exécuté ; les points 1, 5, 7, 8, 10, 11, 12 et 13 exigent encore une recette fonctionnelle dans Coolify. Les contrats source ne prouvent pas à eux seuls les interactions réelles.
 - **Prochaine étape :** vérifier la CI du dernier commit documentaire, puis tester sur Coolify les points ouverts dans cet ordre : panneau/minimap, expansion des dossiers et fil d'Ariane, double-clic et flèches, Récents, clignotement lors de la navigation. Aucun point ne doit être fermé sur la seule base d'une CI verte.
+
+
+### Complément de validation — 25 octobre 2026
+
+- **Commit testé :** `035ac68698d7e3342da556c3aea814ccc2abe806` ([commit](https://github.com/kaneos00/ovh-bpmn-tool/commit/035ac68698d7e3342da556c3aea814ccc2abe806)).
+- **Validate :** [run 1518](https://github.com/kaneos00/ovh-bpmn-tool/actions/runs/40189970316) réussi, incluant lint/build frontend et backend, tests backend, validation Compose, construction des images Docker et smoke-test login/session/API.
+- **Tests frontend :** [run 226](https://github.com/kaneos00/ovh-bpmn-tool/actions/runs/40189970355) réussi : **27/27 contrats de régression et 27/27 tests unitaires**, zéro échec et zéro test ignoré.
+- **Contrat supplémentaire :** le panneau de détail doit présenter une description pédagogique du type BPMN immédiatement sous l'identifiant. Le contrat vérifie plusieurs types, notamment les passerelles et événements Start/End ; le rendu visuel reste à valider dans le navigateur.
+- **Suivi :** `check.md` a été actualisé avec le SHA `035ac68`, les preuves CI et le statut du point 43.
+- **État de livraison :** branche de travail uniquement ; aucune fusion dans la référence V2.2 et aucun déploiement Coolify. Les points fonctionnels 1, 5, 7, 8, 10, 11, 12 et 13 restent soumis à la recette navigateur.
