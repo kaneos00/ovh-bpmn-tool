@@ -44,6 +44,18 @@ const isLinkedElement = (element: any): boolean => {
     type === 'bpmn:Transaction';
 };
 
+const getExternalTaskUrl = (element: any): string => {
+  const type = element?.businessObject?.$type ?? element?.type;
+  const isTask = (type === 'bpmn:Task' || String(type ?? '').endsWith('Task')) &&
+    type !== 'bpmn:CallActivity';
+  return isTask ? String(element?.businessObject?.link ?? '').trim() : '';
+};
+
+const openExternalUrl = (url: string) => {
+  const normalizedUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+  window.open(normalizedUrl, '_blank', 'noopener,noreferrer');
+};
+
 /**
  * Call Activities and collapsed SubProcesses navigate only when a target can
  * be resolved to one accessible process resource. Single click still selects.
@@ -140,9 +152,18 @@ export const useCallActivityNavigation = (
     };
 
     const navigateToLinkedProcess = (event: LinkedElementEvent) => {
-      if (!isLinkedElement(event.element)) return;
+      if (isLinkedElement(event.element)) {
+        event.stopPropagation();
+        void openLinkedProcess(event.element);
+        return;
+      }
+
+      // Handle task URLs at the same high-priority BPMN event boundary as
+      // process links, so the Viewer selection handler cannot swallow them.
+      const url = getExternalTaskUrl(event.element);
+      if (!url) return;
       event.stopPropagation();
-      void openLinkedProcess(event.element);
+      openExternalUrl(url);
     };
 
     const clearIndicator = () => {
