@@ -1,11 +1,20 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import path from 'node:path';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = relativePath => readFile(path.join(root, relativePath), 'utf8');
+const walkFiles = async directory => {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const nested = await Promise.all(entries.map(entry => {
+    const fullPath = path.join(directory, entry.name);
+    return entry.isDirectory() ? walkFiles(fullPath) : [fullPath];
+  }));
+  return nested.flat();
+};
+
 
 test('viewer panels share flex sizing and preserve the collapsed detail border', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.scss');
@@ -141,4 +150,22 @@ test('explorer preserves Récents and Favoris view when navigation remounts the 
   assert.ok(tree.includes('const [view, setView] = useState<ExplorerView>(readView)'));
   assert.ok(tree.includes('window.localStorage.setItem(VIEW_KEY, view)'));
   assert.ok(tree.includes('return value === \'recent\' || value === \'favorites\' ? value : \'tree\''));
+});
+
+test('legacy ResourceExplorer has no source imports outside its own directory', async () => {
+  const sourceRoot = path.join(root, 'src');
+  const legacyDirectory = path.join(sourceRoot, 'Components/BusinessComponents/ResourceExplorer');
+  const files = (await walkFiles(sourceRoot)).filter(file =>
+    !file.startsWith(legacyDirectory + path.sep) && /\.(ts|tsx|js|jsx)$/.test(file),
+  );
+  const references = [];
+
+  await Promise.all(files.map(async file => {
+    const source = await readFile(file, 'utf8');
+    if (/ResourceExplorer|BusinessComponents\/ResourceExplorer/.test(source)) {
+      references.push(path.relative(sourceRoot, file));
+    }
+  }));
+
+  assert.deepEqual(references, []);
 });
