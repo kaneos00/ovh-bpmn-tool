@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import { useFolders } from '../../../shared/hooks/useFolders';
 import { useResource } from '../../../shared/hooks/useResource';
 import { useFolderTree } from '../../../Components/BusinessComponents/FolderTree/hooks/useFolderTree';
+import type { RenderTree } from '../../../Components/BusinessComponents/FolderTree';
 import { isProcess } from '../../../shared/helpers/resource';
 
 import type { BpmnLayoutRouteParams } from '..';
@@ -21,9 +22,9 @@ export const useBpmnLayoutBreadcrumbs = () => {
     if (!resource) return [];
 
     const findPath = (
-      node: { id: string; name: string; type: string; targetId?: string; children?: any[] },
-      ancestors: Array<{ id: string; name: string; type: string; targetId?: string }> = [],
-    ): Array<{ id: string; name: string; type: string; targetId?: string }> | null => {
+      node: RenderTree,
+      ancestors: RenderTree[] = [],
+    ): RenderTree[] | null => {
       const current = [...ancestors, node];
       if (node.id === resourceId || node.targetId === resourceId) return current;
       for (const child of node.children ?? []) {
