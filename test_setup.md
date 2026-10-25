@@ -268,3 +268,16 @@ Ne pas préremplir ce journal avec des résultats supposés. Ajouter une entrée
 - **Point 36 :** Data Store Reference et Data Object Reference inclus dans la sélection du Viewer ; vérifier sur navigateur la sélection, le panneau droit, le lien, la sauvegarde et le rechargement.
 - **Point 13 :** non corrigé à ce stade. Le code efface le Viewer lorsque xmlContent est temporairement absent lors d'un changement de ressource, ce qui peut créer un intervalle blanc ; cause probable à vérifier avec une stratégie d'import qui évite les imports obsolètes. Ne pas masquer les erreurs BPMN.
 - **Point 29 :** logique de résolution et de déduplication testée ; point fermé côté code/tests selon la demande, avec la recette visuelle couverte au point 7.
+
+
+### Journal d'exécution — suppression de l'ancien explorateur, 25 octobre 2026
+
+- **Commit de code validé :** `f1c61b5915448f2ac713b03c26209849096a0036` (`f1c61b5`) sur la branche de travail `test/frontend-ci-regression-suite-2026-10-24`.
+- **CI de régression :** [run 40179717027](https://github.com/kaneos00/ovh-bpmn-tool/actions/runs/40179717027) réussi : contrats de régression et tests unitaires frontend réussis.
+- **Validation complète :** [run 40179717071](https://github.com/kaneos00/ovh-bpmn-tool/actions/runs/40179717071) réussi : lint/build frontend, lint/build/tests backend, images et smoke tests réussis.
+- **Point 6 :** le scan automatisé des sources TS/JS n'a trouvé aucune référence à ResourceExplorer en dehors de son propre dossier. Le composant historique, ses deux composants, son hook, son index et son style ont été supprimés de la branche de travail. La référence V2.2 n'est pas modifiée. Le test d'audit des imports reste en place.
+- **Point 7 :** expansion additive sur le clic du dossier et expansion du dossier sélectionné après navigation/remontage. CI vert ; la validation du comportement réel dans Coolify reste à faire.
+- **Point 8 :** protection contre les cycles de parentId en place. Le modèle stocke parentId et depth séparément, et la création calcule depth à partir du parent. Aucune inspection de la base Coolify n'a été faite ; aucune donnée n'a été modifiée. Une relation parent absente peut encore tronquer le fil d'Ariane.
+- **Points 1, 10, 11, 12, 36 :** corrections candidates présentes dans le commit f1c61b5 et CI vert. Elles nécessitent une recette navigateur pour confirmer les interactions et le rendu.
+- **Point 13 :** reste ouvert. Le code actuel efface le diagramme lorsque xmlContent est absent pendant le changement de ressource ; une stratégie d'import sérialisée et un état de chargement sont à examiner pour réduire les clignotements sans masquer les erreurs BPMN.
+- **Déploiement/fusion :** aucun. PR #33 reste ouverte, base `release/v2.2-reference-2026-10-24`; aucun déploiement Coolify effectué.
