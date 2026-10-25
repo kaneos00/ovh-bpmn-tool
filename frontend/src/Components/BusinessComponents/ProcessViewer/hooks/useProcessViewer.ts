@@ -31,7 +31,7 @@ export const useProcessViewer = (
   );
 
   const viewer = useMemo(() => getViewerInstance(), []);
-  useCallActivityNavigation(viewer, true);
+  useCallActivityNavigation(viewer, true, resourceId);
 
   const alignDiagramTopLeft = () => {
     const canvas = viewer.get('canvas') as any;
@@ -166,6 +166,8 @@ export const useProcessViewer = (
         element.type === 'bpmn:Transaction' ||
         element.type === 'bpmn:StartEvent' ||
         element.type === 'bpmn:EndEvent' ||
+        element.type === 'bpmn:DataStoreReference' ||
+        element.type === 'bpmn:DataObjectReference' ||
         element.type.endsWith('Gateway');
       if (!isSelectableElement) return;
 
@@ -201,7 +203,13 @@ export const useProcessViewer = (
         clickListenerAttached = true;
         const canvas = viewer.get('canvas') as any;
         const elementRegistry = viewer.get('elementRegistry') as any;
+        // bpmn-js adds a permanent native drilldown arrow to collapsed
+        // SubProcesses. The Viewer uses the selected-item blue arrow instead.
+        const overlays = viewer.get('overlays') as any;
         elementRegistry.getAll().forEach((element: any) => {
+          if (element?.type === 'bpmn:SubProcess') {
+            overlays?.remove?.({ element, type: 'drilldown' });
+          }
           if (element?.type === 'bpmn:StartEvent') {
             canvas.addMarker(element.id, 'bpmn-start-event');
           } else if (element?.type === 'bpmn:EndEvent') {
