@@ -36,6 +36,7 @@ function RechercheModule(
   if (rechercheProvider) rechercheService.setProvider(rechercheProvider);
   let inputElement: HTMLInputElement | undefined;
   let highlightedElementId: string | undefined;
+  let pendingFocusTimer: ReturnType<typeof setTimeout> | undefined;
 
   function clearSearchHighlight() {
     if (!highlightedElementId) return;
@@ -72,21 +73,31 @@ function RechercheModule(
       canvas.scrollToElement(liveElement);
       return;
     }
-    if (result.link) window.location.assign(result.link);
+    if (result.link) {
+      const target = new URL(result.link, window.location.origin);
+      if (result.metadata?.kind === 'bpmn-element') {
+        target.searchParams.set('element', result.id);
+      }
+      window.location.assign(`${target.pathname}${target.search}${target.hash}`);
+    }
   }
 
-  function focusElementFromUrl() {
+  function focusElementFromUrl(attempt = 0) {
     const elementId = new URLSearchParams(window.location.search).get('element');
-
-    if (!elementId) {
-      return;
-    }
+    if (!elementId) return;
 
     const element = elementRegistry.get(elementId);
     if (!element) {
+      // Some route/import combinations emit import.done just before the
+      // registry has finished exposing the imported shapes. Retry briefly.
+      if (attempt < 10) {
+        pendingFocusTimer = setTimeout(() => focusElementFromUrl(attempt + 1), 50);
+      }
       return;
     }
 
+    if (pendingFocusTimer) clearTimeout(pendingFocusTimer);
+    pendingFocusTimer = undefined;
     highlightSearchElement(element);
     selection.select(element);
     canvas.scrollToElement(element, 80);
@@ -338,6 +349,8 @@ function RechercheModule(
   eventBus.on('diagram.destroy', () => {
     closePanel();
     clearSearchHighlight();
+    if (pendingFocusTimer) clearTimeout(pendingFocusTimer);
+    pendingFocusTimer = undefined;
     // The search UI is owned by this BPMN instance. Always remove it when
     // that instance is destroyed; do not depend on another viewer existing.
     document.getElementById(BAR_ID)?.remove();
