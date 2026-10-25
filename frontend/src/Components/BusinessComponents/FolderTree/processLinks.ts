@@ -17,19 +17,30 @@ export const getProcessLinks = (xml: string) => {
     return { processIds: [] as string[], targets: [] as string[] };
   }
 
-  return {
-    processIds: Array.from(document.getElementsByTagNameNS(BPMN_MODEL_NS, 'process'))
-      .map(element => element.getAttribute('id')?.trim() || '')
+  const processIds = Array.from(document.getElementsByTagNameNS(BPMN_MODEL_NS, 'process'))
+    .map(element => element.getAttribute('id')?.trim() || '')
+    .filter(Boolean);
+
+  // BPMN-DI stores collapsed/expanded state on BPMNShape, not on the semantic
+  // bpmn:subProcess element. Resolve collapsed shape references back to their
+  // subprocess IDs; checking isExpanded on the subprocess XML silently misses
+  // the link and makes double-click navigation appear broken.
+  const collapsedShapeElementIds = new Set(
+    Array.from(document.getElementsByTagNameNS('*', 'BPMNShape'))
+      .filter(shape => shape.getAttribute('isExpanded') === 'false')
+      .map(shape => shape.getAttribute('bpmnElement')?.trim() || '')
       .filter(Boolean),
+  );
+  const collapsedSubProcessIds = Array.from(document.getElementsByTagNameNS(BPMN_MODEL_NS, 'subProcess'))
+    .map(element => element.getAttribute('id')?.trim() || '')
+    .filter(id => id && collapsedShapeElementIds.has(id));
+
+  return {
+    processIds,
     targets: [
       ...Array.from(document.getElementsByTagNameNS(BPMN_MODEL_NS, 'callActivity'))
         .map(element => element.getAttribute('calledElement')?.trim() || ''),
-      // A collapsed BPMN sub-process can represent a separately modelled
-      // resource in this repository. Link it only when its BPMN id resolves
-      // unambiguously to another process resource below.
-      ...Array.from(document.getElementsByTagNameNS(BPMN_MODEL_NS, 'subProcess'))
-        .filter(element => element.getAttribute('isExpanded') === 'false')
-        .map(element => element.getAttribute('id')?.trim() || ''),
+      ...collapsedSubProcessIds,
     ].filter(Boolean),
   };
 };
