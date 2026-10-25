@@ -127,3 +127,22 @@ test('folder navigation does not rely on the stored depth field for breadcrumb o
   assert.ok(hierarchy.includes('return { hierarchy: hierarchy.reverse(), issues }'));
   assert.ok(hook.includes('return [getRootResource(), ...(hierarchy as Resource[])]'));
 });
+
+
+test('Start/End events and data references keep their semantic markers and styles', async () => {
+  const viewer = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+  const css = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
+  const urlModule = await read('src/extensions/url-click-module.ts');
+
+  assert.match(viewer, /element\?\.type === 'bpmn:StartEvent'[\s\S]*?canvas\.addMarker\(element\.id, 'bpmn-start-event'\)/);
+  assert.match(viewer, /element\?\.type === 'bpmn:EndEvent'[\s\S]*?canvas\.addMarker\(element\.id, 'bpmn-end-event'\)/);
+  assert.match(css, /\.djs-element\.bpmn-start-event \.djs-visual > circle\s*\{[^}]*stroke:\s*#2e7d32\s*!important;/s);
+  assert.match(css, /\.djs-element\.bpmn-end-event \.djs-visual > circle\s*\{[^}]*stroke:\s*#c62828\s*!important;/s);
+  assert.ok(css.includes('.djs-element.bpmn-data-store .djs-visual > rect'));
+  assert.ok(css.includes('.djs-element.bpmn-data-object-reference .djs-visual > rect'));
+  assert.ok(css.includes('fill: #fff0d6'));
+  assert.ok(css.includes('stroke: #ed8b00'));
+  assert.ok(urlModule.includes("is(element, 'bpmn:DataStoreReference')"));
+  assert.ok(urlModule.includes("is(element, 'bpmn:DataObjectReference')"));
+  assert.match(urlModule, /position:\s*\{\s*bottom:\s*-7,\s*right:\s*-8/s);
+});
