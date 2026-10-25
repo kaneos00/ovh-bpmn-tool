@@ -114,7 +114,7 @@ test('minimap internal open/close control is hidden while the toolbar toggle rem
 
   assert.match(css, /\.djs-minimap \.toggle\s*\{[^}]*display:\s*none\s*!important;/s);
   assert.ok(component.includes('Mini-carte'));
-  assert.ok(component.includes('setMinimapVisible(visible => !visible)'));
+  assert.ok(component.includes('onClick={() => setMinimapVisible(!minimapVisible)}'));
 });
 
 test('data references are selectable and task URLs open on double-click', async () => {
@@ -160,4 +160,16 @@ test('viewer serializes imports and covers the previous canvas during navigation
   assert.ok(hook.includes('importQueueRef.current = clearTask'));
   assert.ok(component.includes('process-viewer-loading'));
   assert.match(css, /\.process-viewer-loading\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*0;/s);
+});
+
+
+test('folder labels expand in place and recent items are limited to processes', async () => {
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+  const hook = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
+
+  assert.match(tree, /node\.type === 'folder'[\s\S]*?setExpandedNodes\(current => current\.includes\(node\.id\) \? current : \[\.\.\.current, node\.id\]\)[\s\S]*?return;/);
+  assert.match(tree, /view !== 'recent' \|\| node\.type === 'process' \|\| node\.type === 'linked-process'/);
+  assert.match(tree, /const processId = selectedNode\.targetId \?\? selectedNode\.id/);
+  assert.match(hook, /bpmn-tool:explorer-expanded-nodes/);
+  assert.match(hook, /localStorage\.setItem\(EXPANDED_NODES_KEY, JSON\.stringify\(expandedNodes\)\)/);
 });
