@@ -167,3 +167,14 @@ test('detail panel starts collapsed, opens on element selection and exposes task
   const documentation = details.indexOf('3. Documentation');
   assert.ok(taskInfo >= 0 && raci > taskInfo && documentation > raci, 'detail sections should stay in the required order');
 });
+
+
+test('selected BPMN element shows a pedagogical type description immediately below its ID', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.ok(details.includes("exclusiveGateway: 'Passerelle exclusive : permet de choisir un seul chemin"));
+  assert.ok(details.includes("parallelGateway: 'Passerelle parallèle : permet de lancer plusieurs chemins"));
+  assert.ok(details.includes("startEvent: 'Événement de début : indique le déclenchement"));
+  assert.ok(details.includes("endEvent: 'Événement de fin : indique la fin"));
+  assert.match(details, /Identifiant : \{selectedTask\.id\}<\/Typography>\s*<Typography level="body-sm" textColor="neutral">\{getElementTypeDescription\(selectedTask\.type\)\}/);
+});
