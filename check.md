@@ -1,4 +1,4 @@
-# Check — suivi des corrections et évolutions BPMN V2
+| 8 | Référentiel comme écran d'accueil ; bouton Home et fil d'Ariane permettent de revenir au référentiel et de naviguer vers les dossiers parents en conservant la nouvelle interface Viewer et une profondeur cohérente | Audit initial : `useBpmnLayoutBreadcrumbs.ts` construit le fil via `getFolderHierarchy`; `useFolders.ts` remonte `parentId` récursivement sans garde de cycle. Une référence parent manquante tronque la hiérarchie ; la valeur `depth` n'est pas la source du fil d'Ariane | Audit de code confirmé ; cohérence avec les données réelles non encore établie | 🟡 **Audit en cours**. Ajouter une protection contre cycles/parents absents, puis comparer profondeur calculée, `parentId` et champ `depth` sur des données représentatives sans les modifier | Difficile | Fort — navigation et layout Viewer |
 
 Dernière mise à jour : 23 octobre 2026  
 Dépôt : [kaneos00/ovh-bpmn-tool](https://github.com/kaneos00/ovh-bpmn-tool)  
