@@ -137,10 +137,10 @@ test('Start/End events and data references keep their semantic markers and style
 
   assert.match(viewer, /element\?\.type === 'bpmn:StartEvent'[\s\S]*?canvas\.addMarker\(element\.id, 'bpmn-start-event'\)/);
   assert.match(viewer, /element\?\.type === 'bpmn:EndEvent'[\s\S]*?canvas\.addMarker\(element\.id, 'bpmn-end-event'\)/);
-  assert.match(editor, /element\.type === 'bpmn:StartEvent'[\s\S]*?canvas\.addMarker\(element\.id, 'bpmn-start-event'\)/);
-  assert.match(editor, /element\.type === 'bpmn:EndEvent'[\s\S]*?canvas\.addMarker\(element\.id, 'bpmn-end-event'\)/);
-  assert.match(editor, /element\.type === 'bpmn:DataStoreReference'[\s\S]*?canvas\.addMarker\(element\.id, 'bpmn-data-store'\)/);
-  assert.match(editor, /element\.type === 'bpmn:DataObjectReference'[\s\S]*?canvas\.addMarker\(element\.id, 'bpmn-data-object-reference'\)/);
+  assert.match(editor, /element\?\.type === 'bpmn:StartEvent'[\s\S]*?canvas\.addMarker\(element\.id, 'bpmn-start-event'\)/);
+  assert.match(editor, /element\?\.type === 'bpmn:EndEvent'[\s\S]*?canvas\.addMarker\(element\.id, 'bpmn-end-event'\)/);
+  assert.match(editor, /element\?\.type === 'bpmn:DataStoreReference'[\s\S]*?canvas\.addMarker\(element\.id, 'bpmn-data-store'\)/);
+  assert.match(editor, /element\?\.type === 'bpmn:DataObjectReference'[\s\S]*?canvas\.addMarker\(element\.id, 'bpmn-data-object-reference'\)/);
   assert.match(css, /\.djs-element\.bpmn-start-event \.djs-visual > circle\s*\{[^}]*stroke:\s*#2e7d32\s*!important;/s);
   assert.match(css, /\.djs-element\.bpmn-end-event \.djs-visual > circle\s*\{[^}]*stroke:\s*#c62828\s*!important;/s);
   assert.ok(css.includes('.djs-element.bpmn-data-store .djs-visual > rect'));
