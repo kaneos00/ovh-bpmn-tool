@@ -281,3 +281,14 @@ Ne pas préremplir ce journal avec des résultats supposés. Ajouter une entrée
 - **Points 1, 10, 11, 12, 36 :** corrections candidates présentes dans le commit f1c61b5 et CI vert. Elles nécessitent une recette navigateur pour confirmer les interactions et le rendu.
 - **Point 13 :** reste ouvert. Le code actuel efface le diagramme lorsque xmlContent est absent pendant le changement de ressource ; une stratégie d'import sérialisée et un état de chargement sont à examiner pour réduire les clignotements sans masquer les erreurs BPMN.
 - **Déploiement/fusion :** aucun. PR #33 reste ouverte, base `release/v2.2-reference-2026-10-24`; aucun déploiement Coolify effectué.
+
+
+### Journal d'exécution — imports Viewer sérialisés, 25 octobre 2026
+
+- **Commit de code validé :** `aa08088e923da000ba7c564300e7b40acd14afe5` (`aa08088`) sur la branche `test/frontend-ci-regression-suite-2026-10-24`, PR #33 ouverte.
+- **CI de régression frontend :** [run 40180060197](https://github.com/kaneos00/ovh-bpmn-tool/actions/runs/40180060197) réussi : contrats de régression et tests unitaires frontend réussis.
+- **Validation complète :** [run 40180060193](https://github.com/kaneos00/ovh-bpmn-tool/actions/runs/40180060193) réussi : lint/build frontend, lint/build/tests backend, images et smoke tests réussis.
+- **Point 13 — correction candidate :** les imports de diagrammes sont sérialisés ; chaque import est associé à une génération, les imports obsolètes ne peuvent pas enregistrer leurs anciens listeners, et le canvas précédent reste couvert par un état de chargement jusqu'à l'arrivée du nouvel XML. Les erreurs d'import restent affichées. Le CI vérifie le contrat source ; la fluidité réelle doit encore être testée sur Coolify.
+- **Point 6 — suppression de code :** le composant ResourceExplorer et ses fichiers associés ont été retirés après qu'un scan des sources a confirmé l'absence de références externes. Le test d'audit des imports reste dans la suite.
+- **Points 1, 7, 8, 10, 11, 12 et 36 :** les corrections candidates sont toujours présentes et le CI est vert sur aa08088. Une recette navigateur reste requise pour valider le comportement réel, notamment les niveaux 3–4 du fil d'Ariane, les flèches, les interactions double-clic et les Data Store/Data Object.
+- **Aucune fusion ni aucun déploiement** n'a été effectué ; la référence `release/v2.2-reference-2026-10-24` reste inchangée.
