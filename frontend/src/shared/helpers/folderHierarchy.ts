@@ -86,6 +86,15 @@ export const resolveFolderHierarchy = (
       break;
     }
 
+    // Prefer reporting a structural cycle over secondary depth mismatches.
+    // The parent will be visited on the next iteration, but checking here avoids
+    // reporting a misleading depth warning first.
+    if (visited.has(parentId)) {
+      issues.push({ code: 'cycle', resourceId: parentId });
+      hierarchy.length = 0;
+      break;
+    }
+
     const expectedDepth = parent.depth + 1;
     if (current.depth !== expectedDepth) {
       issues.push({
