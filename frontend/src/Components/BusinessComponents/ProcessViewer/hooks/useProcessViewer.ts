@@ -186,7 +186,8 @@ export const useProcessViewer = (
     }
 
     setIsImporting(true);
-    setMinimapVisible(false);
+    // Close the actual minimap service as well as hiding its React wrapper.
+    setMinimapVisibility(false);
     setImportError(null);
     viewer.attachTo(viewerRef.current);
     const eventBus = viewer.get('eventBus') as {
