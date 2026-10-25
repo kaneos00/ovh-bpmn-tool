@@ -190,8 +190,10 @@ export const useCallActivityNavigation = (
 
         const indicator = document.createElement('button');
         indicator.type = 'button';
-        indicator.className = 'bpmn-call-activity-link-indicator';
-        indicator.textContent = '↗';
+        // Reuse the URL-link arrow styling and explicitly exempt this
+        // controlled overlay from the native BPMN drilldown-arrow suppression.
+        indicator.className = 'bjs-drilldown url-link-overlay bpmn-call-activity-link-indicator';
+        indicator.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 16 16" aria-hidden="true"><path fill="white" fill-rule="evenodd" d="M3.5 12.5 12 4v4h1.5V1.5H7V3h4L2.5 11.5z"/></svg>';
         indicator.title = 'Ouvrir le processus lié';
         indicator.setAttribute('aria-label', 'Ouvrir le processus lié');
         indicator.addEventListener('click', clickEvent => {
