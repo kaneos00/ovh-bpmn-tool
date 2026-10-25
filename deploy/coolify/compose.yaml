@@ -65,6 +65,9 @@ services:
       args:
         VITE_API_URL: /bpmn-api
         VITE_APP_BASE_PATH: /
+        VITE_BUILD_RUN_NUMBER: ${VITE_BUILD_RUN_NUMBER:-unknown}
+        VITE_BUILD_COMMIT: ${VITE_BUILD_COMMIT:-unknown}
+        VITE_BUILD_BRANCH: ${VITE_BUILD_BRANCH:-unknown}
     depends_on:
       - backend
     expose:
