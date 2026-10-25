@@ -31,6 +31,13 @@ const documentationText = (node: Element) =>
     .map(item => item.textContent || '')
     .join(' ');
 
+const annotationText = (node: Element) => {
+  if (node.localName !== 'textAnnotation') return '';
+  return Array.from(node.children)
+    .find(child => child.localName === 'text')
+    ?.textContent?.trim() ?? '';
+};
+
 const attributeText = (node: Element, names: string[]) =>
   names
     .flatMap(name => [node.getAttribute(name), node.getAttribute(`camunda:${name}`)])
@@ -71,8 +78,10 @@ const parseProcess = (xml: string, resource: Resource): RechercheResult[] => {
       sourceType = 'raci';
     }
     return {
-      element: undefined, id, type: node.localName ? `bpmn:${node.localName}` : '', name: node.getAttribute('name') || '',
-      documentation: documentationText(node), role: role || undefined, raci: raci || undefined,
+      element: undefined, id, type: node.localName ? `bpmn:${node.localName}` : '',
+      name: node.getAttribute('name') || annotationText(node),
+      documentation: [documentationText(node), annotationText(node)].filter(Boolean).join(' '),
+      role: role || undefined, raci: raci || undefined,
       processId: resource.id, processName: resource.name, resourceId: resource.id, resourceType: resource.type, resourceName: resource.name,
       sourceType, link: `/${resource.id}?element=${encodeURIComponent(id)}`,
       metadata: { source: 'repository', kind: 'bpmn-element', raci: raci || undefined, role: role || undefined },
