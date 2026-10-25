@@ -150,8 +150,13 @@ export const useFolderTree = (
 
   useEffect(() => {
     if (resources?.length && resource) {
-      const parentId = resource.parentId ? resource.parentId : selectedResourceId;
-      const ancestors = getFolderHierarchy(parentId).map(({ id }) => id);
+      // When the selected resource is a folder, include that folder itself so
+      // its immediate children are visible after navigation/remount as well.
+      // For a process, expand only its parent-folder chain.
+      const hierarchyResourceId = resource.type === ResourceType.Folder
+        ? resource.id
+        : resource.parentId ?? selectedResourceId;
+      const ancestors = getFolderHierarchy(hierarchyResourceId).map(({ id }) => id);
       setExpandedNodes(current => Array.from(new Set([...current, ...ancestors])));
     }
   }, [selectedResourceId, resources, resource, getFolderHierarchy]);
