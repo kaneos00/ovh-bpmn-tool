@@ -80,7 +80,8 @@ Vérifier d'abord si les cas sont reproductibles et comment ils sont représent�
 - [x] `SubProcess` / `Call Activity` : extraction XML, résolution de cible par ID de ressource ou ID BPMN unique, cibles ambiguës, déduplication et cycles testés ; pas encore d'interactions navigateur réelles.
 - [ ] Comportement de la minimap lors de la sélection, du déplacement et de la mise à jour du diagramme.
 - [ ] Différenciation clic simple / double clic et navigation associée.
-- [x] Navigation et expansion/repli de l'arbre couvertes par contrats source ; filtrage réel des favoris et recherche restent à compléter.
+- [x] Navigation et expansion/repli de l'arbre couvertes par contrats source.
+- [ ] Filtrage effectif des favoris et recherche à tester séparément.
 
 Ces éléments proviennent de l'audit et de régressions évoquées précédemment : ils sont des **candidats à vérifier**, pas des défauts à présumer. Si un comportement ne peut pas être testé de façon fiable dans un test automatisé rapide, expliquer pourquoi et le planifier séparément.
 
@@ -110,7 +111,7 @@ Après la mise en place de tests unitaires stables, sélectionner au moins un pa
 - [x] Cas nominaux et limites couverts : paramètres API vides/encodés, problèmes de Modeler, règles RACI R/A manquants, A multiples et acteurs inutilisés.
 - [ ] Éviter les mocks excessifs et les tests dépendant de détails d'implémentation.
 - [x] Contrôles exécutés dans le CI sur le SHA 2503ab14edd31057ff47da85196ebbfb903ddbdd : 23/23 tests unitaires, 15/15 contrats, Validate complet réussi. Aucune exécution locale n'est revendiquée.
-- [ ] Documenter les défauts découverts séparément.
+- [x] Aucun défaut applicatif confirmé ; l'échec intermédiaire du contrat source est consigné séparément dans le journal du 25 octobre.
 
 **Gate :** tests déterministes, compréhensibles et reproductibles.
 
@@ -138,8 +139,8 @@ Après la mise en place de tests unitaires stables, sélectionner au moins un pa
 - [ ] Vérifier l'absence de tests ignorés ou de suites silencieusement non découvertes.
 - [ ] Mesurer la durée de la suite et repérer les lenteurs évidentes.
 - [ ] Ajouter une couverture chiffrée seulement si elle est supportée proprement ; ne pas imposer un seuil arbitraire sans baseline.
-- [ ] Documenter les commandes pour les développeurs et les limites connues.
-- [ ] Préparer un rapport de fin de travail avec preuves.
+- [x] Commandes et limites documentées dans le bilan ci-dessous.
+- [x] Rapport de bilan avec SHA et preuves CI ajouté au compte rendu ci-dessous.
 
 ### Lot 6 — E2E, seulement si les lots précédents sont stables
 - [ ] Évaluer le démarrage de l'application et des services nécessaires dans un environnement isolé.
