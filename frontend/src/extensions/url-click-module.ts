@@ -107,18 +107,6 @@ function UrlClickHandler(
     );
   }
 
-  const openTaskUrlOnDoubleClick = (event: any) => {
-    const element = event?.element;
-    if (!is(element, 'bpmn:Task')) return;
-    const url = getUrl(element);
-    if (!url) return;
-
-    event.stopPropagation?.();
-    openUrl(url);
-  };
-
-  eventBus.on('element.dblclick', openTaskUrlOnDoubleClick);
-
   function addOverlay(element: any) {
 
     if (!isUrlElement(element)) {
