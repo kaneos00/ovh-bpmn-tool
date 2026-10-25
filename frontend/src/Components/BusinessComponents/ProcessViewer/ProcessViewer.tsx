@@ -26,6 +26,7 @@ export const ProcessViewer = ({
   const {
     viewerRef,
     importError,
+    isImporting,
     minimapVisible,
     setMinimapVisible,
     zoomIn,
@@ -64,6 +65,11 @@ export const ProcessViewer = ({
         </Stack>
       </Stack>
       <Box className="processViewerDiagramContent">
+        {isImporting && (
+          <Box className="process-viewer-loading-overlay" role="status" aria-live="polite">
+            <Typography level="body-sm">Chargement du diagramme…</Typography>
+          </Box>
+        )}
         {importError && (
           <Alert color="danger" variant="soft" sx={{ m: 1 }}>
             {importError}
