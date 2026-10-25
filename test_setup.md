@@ -241,3 +241,14 @@ Ne pas préremplir ce journal avec des résultats supposés. Ajouter une entrée
 
 - **Complément point 7 après revue du cycle de navigation :** le clic initial peut faire démonter/remonter `FolderTree` lorsque l'on passe de la vue processus à la vue dossier. Pour ne pas dépendre de l'état local avant navigation, `useFolderTree.ts` développe désormais aussi le dossier sélectionné dans son effet d'initialisation (la chaîne d'ancêtres inclut le dossier lui-même quand la ressource courante est un dossier). Cela complète la mise à jour additive de `expandedNodes` dans `FolderTree.tsx`.
 - **Derniers commits du lot explorateur :** correction d'expansion après navigation `80de6fbb8d18faf6d499e8c9b9e25a0714af43c7`, contrat de test correspondant `c35383cfc2c4c7a9346bcc9d7601ceaf0b0d1f6b`, suivi `check.md` `ebf1aca446d152912e3f6c5134036ba06d67e6d6`. Le CI doit être relu sur la tête de branche la plus récente, pas déduit des exécutions antérieures.
+
+
+### Journal d'exécution — résultat après corrections explorateur, 25 octobre 2026
+
+- **SHA testé :** `0704d647783e3f571edf1c93f48bbc4ccfc07af6` sur la branche de travail `test/frontend-ci-regression-suite-2026-10-24`, PR #33 basée sur `release/v2.2-reference-2026-10-24`.
+- **CI de régression :** [run 40178069796](https://github.com/kaneos00/ovh-bpmn-tool/actions/runs/40178069796) réussi. Les deux jobs frontend — contrats de régression et tests unitaires métier — ont réussi.
+- **Validation complète :** [run 40178069809](https://github.com/kaneos00/ovh-bpmn-tool/actions/runs/40178069809) réussi : lint/build frontend, lint/build/tests backend et job Compose/images/smoke tests réussis.
+- **Point 7 :** la sélection d'un dossier développe le niveau enfant sans retirer les branches déjà ouvertes ; le hook développe également le dossier sélectionné après navigation/remontage. CI vert, mais pas encore de recette navigateur.
+- **Point 6 :** contrat source confirme que le shell Viewer actif utilise `FolderTree` pour les dossiers et que `ProcessDetails` intègre `FolderTree` pour les processus, sans importer `ResourceExplorer`. La classe historique `ResourceExplorer` existe toujours dans le dépôt ; l'audit de toutes ses références n'est pas assez complet pour la supprimer ou fermer définitivement le point 6.
+- **Point 8 :** ajout d'une garde contre les cycles dans la chaîne `parentId` de `useFolders.ts`; le CI contient un contrat source. Les parents manquants et les écarts entre `depth` et les relations parent-enfant ne peuvent pas être diagnostiqués sur la seule base du code ; aucune base de données de l'environnement Coolify n'a été interrogée et aucune donnée n'a été modifiée.
+- **Déploiement :** aucun. Le commit `10002c7` reste un candidat isolé pour tester les points 6/7 sans le correctif de garde point 8 ; la tête courante `0704d64` contient également cette garde. La référence V2.2 n'a pas été modifiée.
