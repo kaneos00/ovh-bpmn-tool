@@ -66,7 +66,7 @@ describe('resolveFolderHierarchy', () => {
 
   it('reports a parentId that points to a process instead of a folder', () => {
     const result = resolveFolderHierarchy([
-      folder('process-parent', undefined, 0),
+      { id: 'process-parent', name: 'process-parent', type: 'process', depth: 0 },
       folder('child', 'process-parent', 1),
     ], 'child');
 

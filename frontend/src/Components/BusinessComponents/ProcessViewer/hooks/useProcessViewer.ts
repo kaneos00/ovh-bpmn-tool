@@ -168,10 +168,12 @@ export const useProcessViewer = (
     if (!xmlContent) {
       setMinimapVisibility(false);
       if (isXmlLoading) {
-        // Keep the previous canvas covered while a route change fetches its XML.
+        // Preserve the last successful diagram while the next XML is fetched.
         setImportError(null);
-        setIsImporting(true);
-        if (!importedRef.current) clearViewerAfterQueuedImports();
+        if (!importedRef.current) {
+          setIsImporting(true);
+          clearViewerAfterQueuedImports();
+        }
       } else {
         importedRef.current = false;
         highlightedIdRef.current = null;
@@ -335,7 +337,7 @@ export const useProcessViewer = (
     importError,
     // Keep the previous diagram visible while a subsequent process is fetched/imported.
     // Show the loading cover only before the first successful import.
-    isLoading: (isXmlLoading || isImporting) && !importedRef.current,
+    isLoading: isImporting || (isXmlLoading && !importedRef.current),
     minimapVisible,
     setMinimapVisible: setMinimapVisibility,
     zoomIn,

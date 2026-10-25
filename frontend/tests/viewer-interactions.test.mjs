@@ -168,7 +168,9 @@ test('viewer serializes imports and avoids loading-cover flashes during navigati
   assert.ok(hook.includes('const clearViewerAfterQueuedImports = () =>'));
   assert.ok(hook.includes('importQueueRef.current = clearTask'));
   assert.ok(component.includes('process-viewer-loading'));
-  assert.ok(hook.includes('isLoading: (isXmlLoading || isImporting) && !importedRef.current'));
+  assert.ok(hook.includes('isLoading: isImporting || (isXmlLoading && !importedRef.current)'));
+  assert.ok(hook.includes('Le diagramme BPMN ne peut pas être affiché'));
+  assert.ok(component.includes('{importError && ('));
   assert.match(css, /\.process-viewer-loading\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*0;/s);
 });
 

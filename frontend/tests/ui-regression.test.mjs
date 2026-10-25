@@ -125,6 +125,40 @@ test('folder navigation does not rely on the stored depth field for breadcrumb o
   const hook = await read('src/shared/hooks/useFolders.ts');
 
   assert.ok(hierarchy.includes('expectedDepth: index'));
-  assert.ok(hierarchy.includes('return { hierarchy: hierarchy.reverse(), issues }'));
+  assert.ok(hierarchy.includes('return { hierarchy: orderedHierarchy, issues }'));
   assert.ok(hook.includes('return [getRootResource(), ...(hierarchy as Resource[])]'));
+});
+
+
+test('search expansion remains user-controlled after the initial matching paths open', async () => {
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+
+  assert.ok(tree.includes('setExpandedNodes(current => Array.from(new Set([...current, ...searchExpandedNodes])))'));
+  assert.ok(tree.includes('expandedItems: expandedNodes'));
+  assert.ok(tree.includes('toggleTreeNode(current, nodeId)'));
+});
+
+test('Start/End colors and pedagogical BPMN type descriptions remain available', async () => {
+  const viewer = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+  const css = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.ok(viewer.includes("element.type === 'bpmn:StartEvent'"));
+  assert.ok(viewer.includes("canvas.addMarker(element.id, 'bpmn-start-event')"));
+  assert.ok(viewer.includes("canvas.addMarker(element.id, 'bpmn-end-event')"));
+  assert.ok(css.includes('.djs-element.bpmn-start-event .djs-visual > circle'));
+  assert.ok(css.includes('stroke: #2e7d32 !important;'));
+  assert.ok(css.includes('.djs-element.bpmn-end-event .djs-visual > circle'));
+  assert.ok(css.includes('stroke: #c62828 !important;'));
+  assert.ok(details.includes("exclusiveGateway: 'Passerelle exclusive : permet de choisir un seul chemin"));
+  assert.ok(details.includes('Identifiant : {selectedTask.id}'));
+  assert.ok(details.includes('getElementTypeDescription(selectedTask.type)'));
+});
+
+test('detail panel header remains keyboard- and pointer-toggleable', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.ok(details.includes('onClick={() => setTaskPanelCollapsed(value => !value)}'));
+  assert.ok(details.includes('role="button"'));
+  assert.ok(details.includes("event.key === 'Enter' || event.key === ' '"));
 });
