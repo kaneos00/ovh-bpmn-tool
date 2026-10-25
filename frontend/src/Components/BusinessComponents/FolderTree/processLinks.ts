@@ -68,32 +68,35 @@ export const resolveLinkedChildren = <TResource extends ProcessResource>(
     resolvedTargets.set(info.resource.id, targets);
   });
 
-  // Keep each called process under one caller only. Reject edges that would
-  // create a cycle, so linked processes remain reachable from the tree root.
-  const reaches = (fromId: string, soughtId: string, visited = new Set<string>()): boolean => {
+  // Build an acyclic forest incrementally. Checking reachability against the
+  // full candidate graph would reject every edge in a cycle; checking only
+  // already accepted edges preserves the earliest valid links deterministically.
+  const reaches = (
+    graph: Map<string, TResource[]>,
+    fromId: string,
+    soughtId: string,
+    visited = new Set<string>(),
+  ): boolean => {
     if (fromId === soughtId) return true;
     if (visited.has(fromId)) return false;
     visited.add(fromId);
-    return (resolvedTargets.get(fromId) ?? []).some(target => reaches(target.id, soughtId, visited));
+    return (graph.get(fromId) ?? []).some(target => reaches(graph, target.id, soughtId, visited));
   };
   const parentByTarget = new Map<string, string>();
+  const linked = new Map<string, TResource[]>(
+    processInfo.map(info => [info.resource.id, [] as TResource[]]),
+  );
+
   processInfo.forEach(info => {
     (resolvedTargets.get(info.resource.id) ?? []).forEach(target => {
-      if (!parentByTarget.has(target.id) && !reaches(target.id, info.resource.id)) {
-        parentByTarget.set(target.id, info.resource.id);
-      }
+      if (parentByTarget.has(target.id)) return;
+      if (reaches(linked, target.id, info.resource.id)) return;
+
+      parentByTarget.set(target.id, info.resource.id);
+      linked.get(info.resource.id)?.push(target);
     });
   });
 
-  const linked = new Map<string, TResource[]>();
-  processInfo.forEach(info => {
-    linked.set(
-      info.resource.id,
-      (resolvedTargets.get(info.resource.id) ?? []).filter(
-        target => parentByTarget.get(target.id) === info.resource.id,
-      ),
-    );
-  });
   return linked;
 };
 
