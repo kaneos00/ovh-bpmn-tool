@@ -27,7 +27,7 @@ type ModelerActionBarProps = {
   resourceId: string;
   hasLintError: boolean;
   onFileUpload: (files: FileList) => void;
-  onFileExport: (exportType: 'svg' | 'bpmn') => void;
+  onFileExport: (exportType: 'svg' | 'bpmn' | 'svg-a4-portrait' | 'svg-a4-landscape') => void;
   onDiagramSave: () => void;
   onDiagramPublish: () => void;
   onShortcutDisplay: () => void;
@@ -106,6 +106,18 @@ export const ModelerActionBar = ({
                 <Image />
               </ListItemDecorator>
               Export as SVG
+            </MenuItem>
+            <MenuItem onClick={() => onFileExport('svg-a4-portrait')}>
+              <ListItemDecorator>
+                <Image />
+              </ListItemDecorator>
+              SVG A4 (portrait)
+            </MenuItem>
+            <MenuItem onClick={() => onFileExport('svg-a4-landscape')}>
+              <ListItemDecorator>
+                <Image />
+              </ListItemDecorator>
+              SVG A4 (paysage)
             </MenuItem>
             <MenuItem onClick={() => onFileExport('bpmn')}>
               <ListItemDecorator>
