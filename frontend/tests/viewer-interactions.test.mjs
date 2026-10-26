@@ -34,6 +34,16 @@ test('new element selection is immediate; rapid double-click cancels deselection
   assert.match(hook, /eventBus\.off\('element\.dblclick', onElementDoubleClick\)/);
 });
 
+test('viewer selection recognizes collapsed SubProcesses through their BPMN business-object type', async () => {
+  const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+
+  assert.match(hook, /const elementType = element\.businessObject\?\.\$type \?\? element\.type/);
+  assert.match(hook, /elementType\.startsWith\('bpmn:'\)/);
+  assert.match(hook, /!element\.labelTarget/);
+  assert.match(hook, /!Array\.isArray\(element\.waypoints\)/);
+  assert.match(hook, /onElementSelectRef\.current\?\.\(element\.id\)/);
+});
+
 test('selection marker is removed before the next selection is applied', async () => {
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
 
