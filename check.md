@@ -104,18 +104,13 @@ Les estimations sont préliminaires, à confirmer après lecture du code et déf
 
 ## G. Ordre de traitement recommandé
 
-Cet ordre privilégie la stabilisation et les corrections qui bloquent la navigation avant les évolutions de plus grande ampleur.
+Ordre convenu pour la prochaine séquence de travail. Le point 4 (tests de non-régression dédiés aux nouvelles fonctions) sera cadré séparément juste après ces trois chantiers.
 
-1. **Navigation et explorateur** : points 7–8 et 23 ; correctifs candidats sur `fix/v2.2-checks-1-14-final-2026-10-25`, CI verte sur `1c43a6c`, validation navigateur requise avant déploiement.
-2. **Minimap et espace de travail** : points 1–5.
-3. **Navigation BPMN, appels, doublons et fluidité** : points 9–13 et 29. Hiérarchie OK et doublons éliminés ; ne pas retoucher les clignotements avant diagnostic des processus.
-4. **Référentiel arbre graphique** : maquette 28, puis points 25–27.
-5. **Détail tâche, recherche et RACI** : points 15–22.
-6. **Couleurs BPMN et Data Store** : points 35–36.
-7. **Responsabilités et gouvernance** : points 31–34.
-8. **Fonctionnalités nouvelles** : points 32, 37–39, après cadrage métier.
-9. **Modèles BPMN et export A4/SVG** : points 40–41 ; cadrer le modèle à trois rôles puis prototyper la pagination automatique SVG.
-
+1. **Défauts de navigation et de recherche** : points 10 et 46. Reproduire les défauts signalés, confirmer le commit réellement testé, puis corriger si nécessaire ; vérifier sélection simple, double-clic, libellé « Description » et sélection/surlignage du résultat.
+2. **Panneau RACI du Viewer** : point 47. Comparer le panneau du modeleur et l'onglet RACI du Viewer ; réutiliser les composants et styles existants autant que possible, sans dégrader le modeleur.
+3. **Édition depuis le Viewer selon les permissions** : point 48. Examiner les règles d'accès, les API et les composants d'édition existants ; définir lecture/modification, sauvegarde et erreurs avant implémentation.
+4. **Tests automatisés spécifiques à ces changements** : à traiter juste après les trois chantiers ci-dessus, conformément à la demande utilisateur.
+5. **Autres points V2.2** : reprendre ensuite le reste du plan existant (explorateur, minimap, navigation sans rechargement, arbre graphique, gouvernance, couleurs BPMN et export), sans les considérer comme fermés sans recette.
 
 ## H. Évolution à planifier
 
