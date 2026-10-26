@@ -190,3 +190,13 @@ test('folder labels expand in place and recent items are limited to processes', 
   assert.ok(hook.includes('node.targetId === selectedResourceId'));
   assert.ok(hook.includes('const treeAncestors = selectedPath'));
 });
+
+test('global annotation search labels text annotations as Description and carries the BPMN element ID', async () => {
+  const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+
+  assert.match(navigation, /if \(\/annotation BPMN\/i\.test\(detail\)\)[\s\S]*?label: 'Description'/);
+  assert.match(navigation, /const isTextAnnotation = element\.localName\.toLocaleLowerCase\('fr'\) === 'textannotation'/);
+  assert.match(navigation, /const elementId = isTextAnnotation \? element\.getAttribute\('id'\) \|\| undefined : undefined/);
+  assert.match(navigation, /resourceId: process\.id,[\s\S]*?elementId,/);
+  assert.match(navigation, /if \(result\.elementId\) params\.set\('elementId', result\.elementId\)/);
+});
