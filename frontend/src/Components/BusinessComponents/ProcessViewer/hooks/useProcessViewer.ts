@@ -271,7 +271,8 @@ export const useProcessViewer = (
         if (cancelled || generation !== importGenerationRef.current) return;
 
         // Attach interaction listeners only for the latest completed import.
-        eventBus.on('element.click', onElementClick);
+        // Run before the Viewer drilldown handlers so collapsed SubProcess clicks are not consumed first.
+        eventBus.on('element.click', 1500, onElementClick);
         eventBus.on('element.dblclick', onElementDoubleClick);
         clickListenerAttached = true;
         const canvas = viewer.get('canvas') as any;
