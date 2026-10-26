@@ -136,11 +136,19 @@
   display: none !important;
 }
 
-/* Selected activities are highlighted consistently from the tree, diagram, and RACI. */
-.djs-element.task-selected .djs-visual > :first-child {
+/* Selected BPMN shapes are highlighted consistently from the tree, diagram,
+   and RACI. Apply the outline to every visual primitive: text annotations
+   and some non-task shapes do not use the same first SVG child as tasks. */
+.djs-element.task-selected .djs-visual > * {
   stroke: #1976d2 !important;
   stroke-width: 4px !important;
   filter: drop-shadow(0 0 2px rgba(25, 118, 210, 0.35));
+}
+
+/* Keep annotation text readable while highlighting its surrounding shape. */
+.djs-element.task-selected .djs-visual > text {
+  stroke: none !important;
+  filter: none !important;
 }
 
 
