@@ -314,6 +314,4 @@ jobs:
             echo "::error::GitHub Actions secret COOLIFY_TOKEN is not configured."
             exit 1
           fi
-          curl --fail --silent --show-error --request GET \\
-            --header "Authorization: Bearer $COOLIFY_TOKEN" \\
-            "$COOLIFY_WEBHOOK_URL"
+          curl --fail --silent --show-error --request GET --header "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_WEBHOOK_URL"
