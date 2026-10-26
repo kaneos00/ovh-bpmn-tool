@@ -242,3 +242,16 @@ test('viewer gets a fresh BPMN instance when the selected process or published v
   assert.ok(details.includes('key={`${resourceId}:${publishedContent.id}`}'));
   assert.match(details, /key=\{\`\$\{resourceId\}:\$\{publishedContent\.id\}\`\}[\s\S]*?resourceId=\{resourceId\}[\s\S]*?contentId=\{publishedContent\.id\}/);
 });
+
+test('cross-process search uses elementId and selects/scrolls to the BPMN element after import', async () => {
+  const searchModule = await read('src/extensions/recherche/recherche-module.ts');
+  const viewer = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+  const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
+
+  assert.ok(searchModule.includes("target.searchParams.set('elementId', result.id)"));
+  assert.ok(searchModule.includes("new URLSearchParams(window.location.search).get('elementId')"));
+  assert.ok(!searchModule.includes("new URLSearchParams(window.location.search).get('element')"));
+  assert.match(searchModule, /function focusElementFromUrl[\s\S]*?selection\.select\(element\)[\s\S]*?canvas\.scrollToElement\(element, 80\)/);
+  assert.match(viewer, /const selection = viewer\.get\('selection'\)[\s\S]*?selection\.select\(element\)[\s\S]*?canvas\.addMarker\(targetId, 'task-selected'\)[\s\S]*?canvas\.scrollToElement\(element, 80\)/);
+  assert.ok(layout.includes("searchParams.get('elementId')"));
+});

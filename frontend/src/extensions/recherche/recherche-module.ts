@@ -83,7 +83,7 @@ function RechercheModule(
   }
 
   function focusElementFromUrl(attempt = 0) {
-    const elementId = new URLSearchParams(window.location.search).get('element');
+    const elementId = new URLSearchParams(window.location.search).get('elementId');
     if (!elementId) return;
 
     const element = elementRegistry.get(elementId);

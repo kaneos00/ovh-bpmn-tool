@@ -125,7 +125,12 @@ export const useProcessViewer = (
     const element = (viewer.get('elementRegistry') as any).get(targetId);
     if (!element) return;
 
+    // Keep the React-driven selection in sync with diagram-js selection.
+    // A CSS marker alone does not select the BPMN element for real.
+    const selection = viewer.get('selection') as any;
+    selection.select(element);
     canvas.addMarker(targetId, 'task-selected');
+    canvas.scrollToElement(element, 80);
     highlightedIdRef.current = targetId;
   };
 
