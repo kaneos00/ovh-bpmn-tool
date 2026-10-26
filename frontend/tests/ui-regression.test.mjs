@@ -115,8 +115,10 @@ test('explorer delegates Call Activity and collapsed SubProcess links to the tes
   assert.ok(processLinks.includes("shape.getAttribute('isExpanded') === 'false'"));
   assert.ok(processLinks.includes("shape.getAttribute('bpmnElement')?.trim() || ''"));
   const navigation = await read('src/shared/hooks/useCallActivityNavigation.ts');
-  assert.ok(navigation.includes('element?.businessObject?.di?.isExpanded'));
-  assert.ok(navigation.includes("return expandedState === false || expandedState === 'false'"));
+  assert.ok(navigation.includes('businessObject?.di?.isExpanded'));
+  assert.ok(navigation.includes('businessObject?.di?.$attrs?.isExpanded'));
+  assert.ok(navigation.includes('element?.collapsed === true'));
+  assert.ok(navigation.includes("value === false || value === 'false'"));
 });
 
 test('viewer mounts a single FolderTree explorer instead of the legacy ResourceExplorer', async () => {
@@ -208,4 +210,26 @@ test('selected BPMN element shows a pedagogical type description immediately bel
   assert.ok(details.includes("startEvent: 'Événement de début : indique le déclenchement"));
   assert.ok(details.includes("endEvent: 'Événement de fin : indique la fin"));
   assert.match(details, /Identifiant : \{selectedTask\.id\}<\/Typography>\s*<Typography level="body-sm" textColor="neutral">\{getElementTypeDescription\(selectedTask\.type\)\}/);
+});
+
+
+test('global search selects a BPMN TextAnnotation and labels it Description', async () => {
+  const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+
+  assert.ok(navigation.includes("const isBpmnDescription = tag === 'textannotation' && Boolean(element.getAttribute('id'))"));
+  assert.ok(navigation.includes("elementId: isBpmnDescription ? element.getAttribute('id') || undefined : undefined"));
+  assert.ok(navigation.includes('Description BPMN'));
+  assert.ok(navigation.includes("label: 'Description'"));
+  assert.ok(navigation.includes("if (result.elementId) params.set('elementId', result.elementId)"));
+});
+
+test('test deployment always exposes a unique build identifier even when Coolify omits CI arguments', async () => {
+  const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+  const dockerfile = await read('../deploy/coolify/Dockerfile.frontend');
+
+  assert.ok(navigation.includes('VITE_BUILD_ID'));
+  assert.ok(navigation.includes('visibleBuildId'));
+  assert.ok(navigation.includes("'TEST BUILD'"));
+  assert.ok(dockerfile.includes('ARG VITE_BUILD_ID=unknown'));
+  assert.ok(dockerfile.includes('build-$(date -u +%Y%m%dT%H%M%SZ)'));
 });
