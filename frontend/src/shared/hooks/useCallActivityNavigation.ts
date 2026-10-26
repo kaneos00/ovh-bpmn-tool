@@ -27,16 +27,24 @@ type BpmnInstance = {
 };
 
 const isCollapsedLinkedSubProcess = (element: any): boolean => {
-  const type = element?.businessObject?.$type ?? element?.type;
+  const businessObject = element?.businessObject;
+  const type = businessObject?.$type ?? element?.type;
   if (type !== 'bpmn:SubProcess' && type !== 'bpmn:Transaction') return false;
 
-  // Only collapsed subprocesses can represent links to separately modelled
-  // processes. Intercepting an expanded subprocess prevents normal BPMN drilldown.
-  const expandedState = element?.businessObject?.di?.isExpanded ??
-    element?.di?.isExpanded ??
-    element?.isExpanded ??
-    element?.businessObject?.isExpanded;
-  return expandedState === false || expandedState === 'false';
+  // BPMN-DI stores isExpanded on the BPMNShape. Depending on whether the
+  // caller gives us the moddle object or the diagram-js shape, bpmn-js may
+  // expose that value through di.isExpanded, di.$attrs, or a collapsed flag.
+  // Treat the element as linked only when an explicit collapsed state exists.
+  const expandedStates = [
+    businessObject?.di?.isExpanded,
+    businessObject?.di?.$attrs?.isExpanded,
+    element?.di?.isExpanded,
+    element?.di?.$attrs?.isExpanded,
+    businessObject?.isExpanded,
+    element?.isExpanded,
+  ];
+  if (element?.collapsed === true || businessObject?.collapsed === true) return true;
+  return expandedStates.some(value => value === false || value === 'false');
 };
 
 const getLinkedTargetId = (element: any): string => {
