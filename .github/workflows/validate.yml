@@ -290,3 +290,23 @@ jobs:
             http://127.0.0.1:18080/bpmn-api/auth/logout)"
           test "$status" = "200"
           test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/bpmn-api/projects/administration/overview)" = "401"
+
+  deploy-coolify:
+    name: Deploy to Coolify test instance
+    runs-on: ubuntu-latest
+    needs:
+      - frontend
+      - backend
+      - coolify-demo
+    # Deploy only after a push has passed every CI job. Never deploy pull requests.
+    if: github.event_name == 'push'
+    steps:
+      - name: Trigger Coolify deployment
+        env:
+          COOLIFY_WEBHOOK_URL: ${{ secrets.COOLIFY_WEBHOOK_URL }}
+        run: |
+          if [ -z "$COOLIFY_WEBHOOK_URL" ]; then
+            echo "::error::GitHub Actions secret COOLIFY_WEBHOOK_URL is not configured."
+            exit 1
+          fi
+          curl --fail --silent --show-error --request GET "$COOLIFY_WEBHOOK_URL"
