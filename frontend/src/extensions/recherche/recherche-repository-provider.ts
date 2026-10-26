@@ -83,7 +83,7 @@ const parseProcess = (xml: string, resource: Resource): RechercheResult[] => {
       documentation: [documentationText(node), annotationText(node)].filter(Boolean).join(' '),
       role: role || undefined, raci: raci || undefined,
       processId: resource.id, processName: resource.name, resourceId: resource.id, resourceType: resource.type, resourceName: resource.name,
-      sourceType, link: `/${resource.id}?element=${encodeURIComponent(id)}`,
+      sourceType, link: `/${resource.id}?elementId=${encodeURIComponent(id)}`,
       metadata: { source: 'repository', kind: 'bpmn-element', raci: raci || undefined, role: role || undefined },
     };
   });
