@@ -252,6 +252,6 @@ test('cross-process search uses elementId and selects/scrolls to the BPMN elemen
   assert.ok(searchModule.includes("new URLSearchParams(window.location.search).get('elementId')"));
   assert.ok(!searchModule.includes("new URLSearchParams(window.location.search).get('element')"));
   assert.match(searchModule, /function focusElementFromUrl[\s\S]*?selection\.select\(element\)[\s\S]*?canvas\.scrollToElement\(element, 80\)/);
-  assert.match(viewer, /const selection = viewer\.get\('selection'\)[\s\S]*?selection\.select\(element\)[\s\S]*?canvas\.addMarker\(targetId, 'task-selected'\)[\s\S]*?canvas\.scrollToElement\(element, 80\)/);
+  assert.match(viewer, /const selection = viewer\.get\('selection'\)[\s\S]*?selection\.select\(element\)[\s\S]*?canvas\.addMarker\(element, 'task-selected'\)[\s\S]*?canvas\.scrollToElement\(element, 80\)/);\n  assert.match(viewer, /elementRegistry\.get\(targetId\)[\s\S]*?candidate\?\.businessObject\?\.id === targetId/);
   assert.ok(layout.includes("searchParams.get('elementId')"));
 });
