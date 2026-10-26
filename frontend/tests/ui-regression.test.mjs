@@ -252,8 +252,8 @@ test('viewer description editing is permission-gated and saves only the selected
   assert.match(details, /selectedTask && canEditDescription && !isEditingDescription/);
   assert.match(details, /aria-label="Modifier la description de l’élément"/);
   assert.match(details, /<Textarea[\s\S]*?value=\{descriptionDraft\}[\s\S]*?onChange=/);
-  assert.match(details, /<Button[\s\S]*?Annuler[\s\S]*?onClick=\{cancelDescriptionEdit\}/);
-  assert.match(details, /<Button[\s\S]*?Enregistrer[\s\S]*?onClick=\{saveDescriptionEdit\}/);
+  assert.match(details, /<Button[\s\S]*?onClick=\{cancelDescriptionEdit\}[\s\S]*?Annuler/);
+  assert.match(details, /<Button[\s\S]*?onClick=\{saveDescriptionEdit\}[\s\S]*?Enregistrer/);
   assert.match(details, /await saveContent\(resourceId, publishedContent\.id, \{ content: updatedXml \}\)/);
   assert.match(details, /new XMLSerializer\(\)\.serializeToString\(xmlDocument\)/);
   assert.match(details, /await queryClient\.invalidateQueries\(xmlContentQuery\.queryKey\)/);
