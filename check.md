@@ -1,6 +1,6 @@
 # Check — suivi des corrections et évolutions BPMN V2
 
-Dernière mise à jour : 25 octobre 2026 (retour de recette utilisateur)
+Dernière mise à jour : 26 octobre 2026 (retour de recette utilisateur)
 Dépôt : [kaneos00/ovh-bpmn-tool](https://github.com/kaneos00/ovh-bpmn-tool)  
 Branche de référence : `release/v2.2-reference-2026-10-24`
 
@@ -52,7 +52,7 @@ Les estimations sont préliminaires, à confirmer après lecture du code et déf
 |---:|---|---|---|---|---|---|
 | 15 | Dans le panneau de recherche, intégrer des liens vers les fiches/matrices RACI correspondantes | Non confirmé | Non confirmé | **À analyser puis réaliser**. Définir la destination et le comportement du lien | Moyenne | Moyen — plusieurs IHM |
 | 16 | Lorsqu'un rôle est choisi dans les résultats de recherche, mettre en surbrillance les lanes correspondantes dans le diagramme BPMN | Non confirmé | Non testé | **À planifier** : établir la correspondance rôle ↔ lane BPMN et gérer les rôles présents dans plusieurs processus | Moyenne | Moyen — plusieurs IHM |
-| 17 | Rendre les lanes BPMN sélectionnables | Non confirmé | Non testé | **À réaliser** : sélectionner une lane sans casser la sélection des tâches et événements | Moyenne | Moyen — plusieurs IHM |
+| 17 | Rendre les lanes BPMN sélectionnables | Oui | Recette utilisateur du 26/10/2026 : point déclaré OK sur la version déployée du commit `08810e9` | ✅ **Validé — point fermé le 26/10/2026**. Déploiement Coolify du commit [`08810e9`](https://github.com/kaneos00/ovh-bpmn-tool/commit/08810e9500305e65de1a415c973e791f75053bf9) réussi ; confirmation utilisateur | Moyenne | Moyen — plusieurs IHM |
 | 18 | Sélectionner une lane met en évidence la colonne du rôle correspondant dans le tableau RACI du Viewer, avec un cadre visible autour de la colonne | Non confirmé | Non testé | **À réaliser** : définir une correspondance robuste entre lane et rôle de matrice RACI ; gérer les rôles absents ou ambigus | Difficile | Moyen — plusieurs IHM / données |
 | 19 | Afficher les badges R/A/C/I avec les mêmes couleurs pastel que celles déjà utilisées dans l'application | Partiel / réutilisation possible des styles existants | Pas de test spécifique rapporté | **À vérifier puis harmoniser** sans créer une deuxième palette de couleurs | Facile | Faible — IHM |
 | 20 | Depuis une cellule/activité du tableau RACI, cliquer pour pointer vers l'élément BPMN correspondant et le mettre en évidence | Non confirmé | Non testé | **À réaliser** : associer ligne/activité à l'ID BPMN, centrer ou surligner l'élément et gérer les éléments hors diagramme courant | Difficile | Moyen — plusieurs IHM / données |
@@ -64,9 +64,9 @@ Les estimations sont préliminaires, à confirmer après lecture du code et déf
 | N° | Point / résultat attendu | Traité dans le code ? | Test fonctionnel | Statut / prochaine action | Facilité | Impact |
 |---:|---|---|---|---|---|---|
 | 23 | Dans le conteneur gauche `/html/body/div[1]/div/div[1]`, conserver un seul explorateur avec Arborescence, Récents et Favoris ; retirer la liste séparée « Processus et activités » | Partiel | Explorateur repositionné, ancienne navigation encore accessible dans certains cas | **À terminer** avec les points 6 à 8 ; éviter deux arbres/listes concurrents | Moyenne | Moyen — plusieurs IHM |
-| 24 | Mettre le panneau explorateur à gauche au même niveau visuel que le panneau de détail droit, avec une structure et un style cohérents | Partiel | Position de l'explorateur déclarée correcte ; cohérence complète à retester | **À retester** : alignement, bordures, hauteur, largeur, coins carrés et états repliés | Facile | Faible — IHM |
-| 25 | Remplacer, dans le Référentiel, l'explorateur actuel par l'arborescence de la page Arborescence (tree view), avec une présentation inspirée de [fokolo/family-tree](https://github.com/fokolo/family-tree) | Non confirmé | Aucune recette | **À concevoir** : réutiliser la source de données et les actions existantes ; ne pas confondre inspiration visuelle et dépendance obligatoire au projet externe | Difficile | Fort — refonte de l'explorateur |
-| 26 | Arborescence graphique dynamique, réorganisée selon la taille de l'écran | Non | Non testé | **À concevoir** : définir le comportement responsive, le zoom/déplacement éventuel, les niveaux visibles et l'accessibilité | Difficile | Fort — refonte de l'explorateur |
+| 24 | Mettre le panneau explorateur à gauche au même niveau visuel que le panneau de détail droit, avec une structure et un style cohérents | Oui | Recette utilisateur du 26/10/2026 : point déclaré OK sur la version déployée du commit `08810e9` | ✅ **Validé — point fermé le 26/10/2026**. Déploiement Coolify du commit [`08810e9`](https://github.com/kaneos00/ovh-bpmn-tool/commit/08810e9500305e65de1a415c973e791f75053bf9) réussi ; confirmation utilisateur | Facile | Faible — IHM |
+| 25 | Remplacer, dans le Référentiel, l'explorateur actuel par l'arborescence de la page Arborescence (tree view), avec une présentation inspirée de [fokolo/family-tree](https://github.com/fokolo/family-tree) | Oui | Recette utilisateur du 26/10/2026 : point déclaré OK sur la version déployée du commit `08810e9` | ✅ **Validé — point fermé le 26/10/2026**. Déploiement Coolify du commit [`08810e9`](https://github.com/kaneos00/ovh-bpmn-tool/commit/08810e9500305e65de1a415c973e791f75053bf9) réussi ; confirmation utilisateur | Difficile | Fort — refonte de l'explorateur |
+| 26 | Arborescence graphique dynamique, réorganisée selon la taille de l'écran | Oui | Recette utilisateur du 26/10/2026 : point déclaré OK sur la version déployée du commit `08810e9` | ✅ **Validé — point fermé le 26/10/2026**. Déploiement Coolify du commit [`08810e9`](https://github.com/kaneos00/ovh-bpmn-tool/commit/08810e9500305e65de1a415c973e791f75053bf9) réussi ; confirmation utilisateur | Difficile | Fort — refonte de l'explorateur |
 | 27 | Menu contextuel au clic droit sur un nœud : Edit, Clone, Share, Delete ; disponible pour éditeurs et administrateurs, pas pour Viewer simple | Non confirmé | Non testé | **À réaliser** avec contrôle des rôles côté serveur et dans l'IHM ; confirmer les droits de chaque action | Difficile | Moyen — plusieurs IHM / backend |
 | 28 | Prévoir une maquette HTML de l'explorateur en arbre familial avant de développer | Non | Non testé | **À faire en amont du point 25** pour valider le look, le responsive et les menus de rôle ; maquette non encore créée | Moyenne | Faible — IHM |
 
@@ -115,7 +115,6 @@ Cet ordre privilégie la stabilisation et les corrections qui bloquent la naviga
 7. **Responsabilités et gouvernance** : points 31–34.
 8. **Fonctionnalités nouvelles** : points 32, 37–39, après cadrage métier.
 9. **Modèles BPMN et export A4/SVG** : points 40–41 ; cadrer le modèle à trois rôles puis prototyper la pagination automatique SVG.
-
 
 ## H. Évolution à planifier
 
