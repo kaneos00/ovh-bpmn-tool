@@ -10,21 +10,24 @@ ARG VITE_BUILD_ID=unknown
 ARG VITE_BUILD_RUN_NUMBER=unknown
 ARG VITE_BUILD_COMMIT=unknown
 ARG VITE_BUILD_BRANCH=unknown
+ARG SOURCE_COMMIT=unknown
+ARG COOLIFY_BRANCH=unknown
 ENV VITE_API_URL=${VITE_API_URL}
 ENV VITE_APP_BASE_PATH=${VITE_APP_BASE_PATH}
 ENV VITE_BUILD_ID=${VITE_BUILD_ID}
 ENV VITE_BUILD_RUN_NUMBER=${VITE_BUILD_RUN_NUMBER}
 ENV VITE_BUILD_COMMIT=${VITE_BUILD_COMMIT}
 ENV VITE_BUILD_BRANCH=${VITE_BUILD_BRANCH}
-# When Coolify does not provide Git metadata, derive a reproducible identifier
-# from the exact frontend source and dependency manifests in this image build.
+ENV SOURCE_COMMIT=${SOURCE_COMMIT}
+ENV COOLIFY_BRANCH=${COOLIFY_BRANCH}
+# Bake the deployed Git metadata into Vite's static bundle. If Coolify does not
+# expose a commit during build, use a deterministic source hash as the build ID.
 RUN set -eu; \
     SOURCE_HASH="$( { find src dev -type f | LC_ALL=C sort | while IFS= read -r file; do sha256sum "$file"; done; sha256sum package.json pnpm-lock.yaml pnpm-workspace.yaml; } | sha256sum | cut -c1-12)"; \
-    if [ "$VITE_BUILD_ID" = "unknown" ]; then \
-      if [ "$VITE_BUILD_COMMIT" != "unknown" ]; then VITE_BUILD_ID="$VITE_BUILD_COMMIT"; \
-      else VITE_BUILD_ID="src-$SOURCE_HASH"; fi; \
-    fi; \
-    export VITE_BUILD_ID; \
+    if [ "$VITE_BUILD_COMMIT" = "unknown" ] && [ "$SOURCE_COMMIT" != "unknown" ]; then VITE_BUILD_COMMIT="$SOURCE_COMMIT"; fi; \
+    if [ "$VITE_BUILD_BRANCH" = "unknown" ] && [ "$COOLIFY_BRANCH" != "unknown" ]; then VITE_BUILD_BRANCH="$COOLIFY_BRANCH"; fi; \
+    if [ "$VITE_BUILD_ID" = "unknown" ]; then VITE_BUILD_ID="src-$SOURCE_HASH"; fi; \
+    export VITE_BUILD_ID VITE_BUILD_RUN_NUMBER VITE_BUILD_COMMIT VITE_BUILD_BRANCH; \
     pnpm build
 
 FROM nginx:1.28-alpine

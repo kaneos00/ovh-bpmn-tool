@@ -74,7 +74,8 @@ test('description search indexes text annotations and selects a live matching BP
   assert.ok(provider.includes('name: node.getAttribute(\'name\') || annotationText(node)'));
   assert.ok(provider.includes('documentation: [documentationText(node), annotationText(node)]'));
   assert.ok(module.includes('const liveElement = result.element ?? ('));
-  assert.ok(module.includes('elementRegistry.get(result.id)'));
+  assert.ok(module.includes('resolveLiveElement(result.id)'));
+  assert.match(module, /function resolveLiveElement\(elementId: string\)[\s\S]*?elementRegistry\.get\(elementId\)[\s\S]*?candidate\?\.businessObject\?\.id === elementId/);
   assert.ok(module.includes("? 'Description'"));
   assert.ok(module.includes('selection.select(liveElement)'));
 });
@@ -234,6 +235,14 @@ test('deployed frontend exposes a build identifier with a source-derived fallbac
   assert.ok(dockerfile.includes('SOURCE_HASH='));
   assert.ok(dockerfile.includes('VITE_BUILD_ID="src-$SOURCE_HASH"'));
   assert.ok(compose.includes('VITE_BUILD_ID: ${VITE_BUILD_ID:-unknown}'));
+  assert.ok(compose.includes('SOURCE_COMMIT: ${SOURCE_COMMIT:-unknown}'));
+  assert.ok(compose.includes('COOLIFY_BRANCH: ${COOLIFY_BRANCH:-unknown}'));
+  assert.ok(dockerfile.includes('VITE_BUILD_COMMIT="$SOURCE_COMMIT"'));
+  assert.ok(dockerfile.includes('export VITE_BUILD_ID VITE_BUILD_RUN_NUMBER VITE_BUILD_COMMIT VITE_BUILD_BRANCH'));
+  const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+  assert.ok(navigation.includes('TEST BUILD ${'));
+  assert.ok(navigation.includes('VITE_BUILD_ID'));
+  assert.ok(navigation.includes("'SHA ?'"));
 });
 
 test('viewer gets a fresh BPMN instance when the selected process or published version changes', async () => {
@@ -241,4 +250,18 @@ test('viewer gets a fresh BPMN instance when the selected process or published v
 
   assert.ok(details.includes('key={`${resourceId}:${publishedContent.id}`}'));
   assert.match(details, /key=\{\`\$\{resourceId\}:\$\{publishedContent\.id\}\`\}[\s\S]*?resourceId=\{resourceId\}[\s\S]*?contentId=\{publishedContent\.id\}/);
+});
+
+test('cross-process search uses elementId and selects/scrolls to the BPMN element after import', async () => {
+  const searchModule = await read('src/extensions/recherche/recherche-module.ts');
+  const viewer = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+  const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
+
+  assert.ok(searchModule.includes("target.searchParams.set('elementId', result.id)"));
+  assert.ok(searchModule.includes("new URLSearchParams(window.location.search).get('elementId')"));
+  assert.ok(!searchModule.includes("new URLSearchParams(window.location.search).get('element')"));
+  assert.match(searchModule, /function focusElementFromUrl[\s\S]*?selection\.select\(element\)[\s\S]*?canvas\.scrollToElement\(element, 80\)/);
+  assert.match(viewer, /const selection = viewer\.get\('selection'\)[\s\S]*?selection\.select\(element\)[\s\S]*?canvas\.addMarker\(element, 'task-selected'\)[\s\S]*?canvas\.scrollToElement\(element, 80\)/);
+  assert.match(viewer, /elementRegistry\.get\(targetId\)[\s\S]*?candidate\?\.businessObject\?\.id === targetId/);
+  assert.ok(layout.includes("searchParams.get('elementId')"));
 });

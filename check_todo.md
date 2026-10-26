@@ -1,6 +1,6 @@
 # Tickets à corriger ou à valider
 
-Dernière mise à jour : 26 octobre 2026. Ticket 29 validé par l'utilisateur sur l'instance Coolify de test après déploiement du commit `2a246869`; ticket clôturé dans ce suivi. Le travail passe maintenant au ticket 46 (recherche d'annotations BPMN : sélectionner l'élément correspondant après navigation vers un autre processus). Les tickets 13 et 10 restent hors périmètre ; le ticket 10 reste explicitement en pause.
+Dernière mise à jour : 26 octobre 2026. Ticket 29 validé par l'utilisateur sur l'instance Coolify de test après déploiement du commit `2a246869`; ticket clôturé dans ce suivi. Le ticket 46 reste non résolu et est mis en pause à la demande de l'utilisateur. La prochaine priorité est de cadrer les évolutions du Viewer, notamment l'édition de la description depuis le panneau droit. Les tickets 13 et 10 restent hors périmètre ; le ticket 10 reste explicitement en pause.
 
 ## A. Correctifs V2.1 et régressions à fermer
 
@@ -37,13 +37,19 @@ Dernière mise à jour : 26 octobre 2026. Ticket 29 validé par l'utilisateur su
 |---:|---|---|---|---|---|---|
 | 42 | Donner aux gateways BPMN (Exclusive, Parallel, Inclusive, Complex et Event-Based) un contour et un motif intérieur violets cohérents ; badge du panneau droit violet également, sans modifier les remplissages existants | Style commun présent pour les types de passerelles | Recette utilisateur du 26/10/2026 : OK | ✅ **Validé par recette navigateur le 26/10/2026** | Facile | Faible — IHM |
 | 43 | Afficher dans le panneau droit, juste sous l’identifiant de l’élément sélectionné, un descriptif pédagogique du rôle de son type BPMN | Code présent pour les principaux types BPMN | Recette utilisateur du 26/10/2026 : OK | ✅ **Validé par recette navigateur le 26/10/2026** | Facile | Faible — IHM |
-| 46 | Recherche d'annotations BPMN : afficher « Description » pour une annotation, rechercher son texte et sélectionner/surligner l'élément BPMN correspondant au clic, dans le processus courant ou après navigation vers un autre processus | Correctif candidat complété : lien de recherche inter-processus transmis au Viewer avec le paramètre `elementId`, consommé par `BpmnLayout` pour sélectionner l'élément | Ancien constat utilisateur : le bon processus s'ouvrait sans sélectionner l'élément. Correctif ciblé et test de non-régression ajoutés ; CI à vérifier, puis recette sur Coolify nécessaire | 🟡 **En cours — priorité active après clôture du ticket 29**. Cause identifiée : incohérence entre le paramètre d'URL émis (`element`) et celui lu par le Viewer (`elementId`). Le lien et la navigation utilisent maintenant `elementId`. Valider le CI puis tester une annotation dans le processus courant et une annotation dans un autre processus. Ne pas toucher aux tickets 13 ou 10 | Moyenne | Moyen — recherche / navigation BPMN |
+| 46 | Recherche d'annotations BPMN : afficher « Description » pour une annotation, rechercher son texte et sélectionner/surligner l'élément BPMN correspondant au clic, dans le processus courant ou après navigation vers un autre processus | Plusieurs correctifs candidats et tests statiques ajoutés sur la PR #34 ; un déploiement précédent n'a pas résolu le problème observé. Les derniers changements cherchent aussi l'élément via `businessObject.id` lorsque l'identifiant de forme ne correspond pas | **Échec de recette utilisateur confirmé le 26/10/2026** : le problème reste présent. Les tests automatisés ne prouvent pas le comportement réel dans le navigateur. La correction n'est pas validée fonctionnellement | ⏸️ **En pause à la demande de l'utilisateur — ne plus rechercher ni modifier de solution pour le moment.** Conserver les constats : navigation vers l'autre processus possible, mais sélection/surlignage attendu absent ; vérifier plus tard avec un vrai scénario navigateur, dans le processus courant et après navigation inter-processus. Ne pas déclarer résolu sur la seule base de la CI | Moyenne | Moyen — recherche / navigation BPMN |
 
 ## Ticket 39 — vérification de la formulation des actions (hors priorité actuelle)
 
 | N° | Point / résultat attendu | Traité dans le code ? | Test fonctionnel | Statut / prochaine action | Facilité | Impact |
 |---:|---|---|---|---|---|---|
 | 39 | Ajouter un mécanisme de vérification de la formulation des actions BPMN, pour aider à identifier les libellés ambigus ou mal formulés | Non confirmé ; ticket promu en priorité de développement à la demande de l'utilisateur | Aucun test exécuté | ⏸️ **Hors périmètre actuel** : l'utilisateur a corrigé sa demande ; la priorité est le ticket 29. Ne pas développer le ticket 39 pendant le travail sur le ticket 46 | Difficile | Fort — qualité métier / IHM |
+
+## Prochaine évolution — description modifiable dans le panneau droit du Viewer
+
+| N° | Point / résultat attendu | Traité dans le code ? | Test fonctionnel | Statut / prochaine action | Facilité | Impact |
+|---:|---|---|---|---|---|---|
+| 50 | Permettre de modifier la description de l'élément BPMN sélectionné directement depuis le panneau droit du Viewer | À cadrer ; aucune modification de code engagée pour cette évolution | Aucun test exécuté | 🟡 **Prochaine évolution à préciser avant développement.** Définir le champ exact à modifier (documentation de l'élément BPMN ou texte d'une annotation « Description »), les droits d'édition dans le Viewer, le déclenchement de l'enregistrement et la persistance côté serveur. Préserver la consultation en lecture seule si l'utilisateur n'a pas le droit de modifier. Ticket 46 reste en pause pendant ce travail | Moyenne | Moyen — édition BPMN / panneau droit |
 
 ## Identifiant de version déployée
 

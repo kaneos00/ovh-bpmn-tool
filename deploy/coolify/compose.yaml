@@ -67,8 +67,10 @@ services:
         VITE_APP_BASE_PATH: /
         VITE_BUILD_ID: ${VITE_BUILD_ID:-unknown}
         VITE_BUILD_RUN_NUMBER: ${VITE_BUILD_RUN_NUMBER:-unknown}
-        VITE_BUILD_COMMIT: ${VITE_BUILD_COMMIT:-unknown}
-        VITE_BUILD_BRANCH: ${VITE_BUILD_BRANCH:-unknown}
+        VITE_BUILD_COMMIT: ${VITE_BUILD_COMMIT:-${SOURCE_COMMIT:-unknown}}
+        VITE_BUILD_BRANCH: ${VITE_BUILD_BRANCH:-${COOLIFY_BRANCH:-unknown}}
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-unknown}
+        COOLIFY_BRANCH: ${COOLIFY_BRANCH:-unknown}
     depends_on:
       - backend
     expose:

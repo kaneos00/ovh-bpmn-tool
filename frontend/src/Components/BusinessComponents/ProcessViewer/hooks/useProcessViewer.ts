@@ -122,11 +122,24 @@ export const useProcessViewer = (
     const targetId = selectedIdRef.current;
     if (!targetId) return;
 
-    const element = (viewer.get('elementRegistry') as any).get(targetId);
+    const elementRegistry = viewer.get('elementRegistry') as any;
+    // Resolve both the diagram shape ID and the BPMN business-object ID.
+    // They normally match, but imported labels/annotations and custom moddle
+    // extensions can expose the business-object ID separately.
+    const element = elementRegistry.get(targetId) ??
+      elementRegistry.getAll().find((candidate: any) =>
+        candidate?.businessObject?.id === targetId,
+      );
     if (!element) return;
 
-    canvas.addMarker(targetId, 'task-selected');
-    highlightedIdRef.current = targetId;
+    // Use diagram-js' real selection service, not only a CSS marker. Keep the
+    // marker as an explicit visual cue because annotation shapes render
+    // differently from task rectangles.
+    const selection = viewer.get('selection') as any;
+    selection.select(element);
+    canvas.addMarker(element, 'task-selected');
+    canvas.scrollToElement(element, 80);
+    highlightedIdRef.current = element.id;
   };
 
   const applySelectionRef = useRef(applySelection);
