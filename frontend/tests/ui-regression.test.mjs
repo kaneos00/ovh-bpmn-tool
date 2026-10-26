@@ -54,6 +54,17 @@ test('Parallel Gateway inner plus is violet without changing the diamond fill', 
   assert.match(css, /\.djs-element\.bpmn-gateway-event-based \.djs-visual > \*/);
 });
 
+test('cross-process annotation search uses the Viewer selection query parameter', async () => {
+  const provider = await read('src/extensions/recherche/recherche-repository-provider.ts');
+  const module = await read('src/extensions/recherche/recherche-module.ts');
+  const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
+
+  assert.ok(provider.includes('`/${resource.id}?elementId=${encodeURIComponent(id)}`'));
+  assert.ok(module.includes("target.searchParams.set('elementId', result.id)"));
+  assert.ok(layout.includes("searchParams.get('elementId')"));
+  assert.ok(layout.includes('setSelectedElementId(requestedElementId)'));
+});
+
 test('description search indexes text annotations and selects a live matching BPMN element', async () => {
   const provider = await read('src/extensions/recherche/recherche-repository-provider.ts');
   const module = await read('src/extensions/recherche/recherche-module.ts');
