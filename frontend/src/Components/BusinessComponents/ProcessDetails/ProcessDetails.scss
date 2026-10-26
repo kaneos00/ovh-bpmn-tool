@@ -292,3 +292,11 @@
     padding: 12px;
   }
 }
+
+/* Description editing actions appear only while editing and keep the panel layout unchanged. */
+.processTaskPanelEditActions {
+  flex: 0 0 auto;
+  padding: 8px 12px 12px;
+  border-top: 1px solid var(--joy-palette-divider);
+  background: var(--joy-palette-background-surface, #fff);
+}
