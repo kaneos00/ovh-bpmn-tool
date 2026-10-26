@@ -76,7 +76,7 @@ function RechercheModule(
     if (result.link) {
       const target = new URL(result.link, window.location.origin);
       if (result.metadata?.kind === 'bpmn-element') {
-        target.searchParams.set('element', result.id);
+        target.searchParams.set('elementId', result.id);
       }
       window.location.assign(`${target.pathname}${target.search}${target.hash}`);
     }
