@@ -228,6 +228,6 @@ test('deployed frontend exposes a build identifier with a source-derived fallbac
 test('viewer gets a fresh BPMN instance when the selected process or published version changes', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
 
-  assert.match(details, /<ProcessViewer\\s+key=\\{\`\$\\{resourceId\}:\$\\{publishedContent\\.id\}\`\}/);
-  assert.match(details, /key=\\{\`\$\\{resourceId\}:\$\\{publishedContent\\.id\}\`\}[\\s\\S]*?resourceId=\\{resourceId\\}[\\s\\S]*?contentId=\\{publishedContent\\.id\\}/);
+  assert.ok(details.includes('key={`${resourceId}:${publishedContent.id}`}'));
+  assert.match(details, /key=\{\`\$\{resourceId\}:\$\{publishedContent\.id\}\`\}[\s\S]*?resourceId=\{resourceId\}[\s\S]*?contentId=\{publishedContent\.id\}/);
 });
