@@ -557,7 +557,7 @@ export const ProcessDetails = ({
                       <Divider />
                       <Stack spacing={1}>
                         <Typography level="title-sm">1. Description de la tâche</Typography>
-                        {isEditingDescription ? (
+                        {isEditingDescription && (
                           <Textarea
                             value={descriptionDraft}
                             onChange={event => setDescriptionDraft(event.target.value)}
@@ -567,15 +567,16 @@ export const ProcessDetails = ({
                             aria-label="Description de l’élément BPMN"
                             disabled={isSavingDescription}
                           />
-                        ) : selectedTask.documentation.length ? (
+                        )}
+                        {!isEditingDescription && selectedTask.documentation.length > 0 &&
                           selectedTask.documentation.map((entry, index) => (
                             <Sheet key={index} variant="soft" sx={{ p: 1, borderRadius: 'sm' }}>
                               <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>
                                 {entry}
                               </Typography>
                             </Sheet>
-                          ))
-                        ) : (
+                          ))}
+                        {!isEditingDescription && selectedTask.documentation.length === 0 && (
                           <Typography level="body-sm" textColor="neutral">
                             Aucune description n'est renseignée pour cette tâche.
                           </Typography>
