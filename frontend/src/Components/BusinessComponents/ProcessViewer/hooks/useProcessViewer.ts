@@ -204,20 +204,17 @@ export const useProcessViewer = (
     };
     const onElementClick = (event: any) => {
       const element = event?.element;
-      if (!element?.id || typeof element.type !== 'string') return;
+      if (!element?.id) return;
+
+      // Select BPMN shapes by their business-object type rather than a closed
+      // list of diagram-js shape types. This includes collapsed SubProcesses
+      // and future BPMN shape types, while excluding labels and connections.
+      const elementType = element.businessObject?.$type ?? element.type;
       const isSelectableElement =
-        element.type === 'bpmn:Lane' ||
-        element.type === 'bpmn:Participant' ||
-        element.type === 'bpmn:Task' ||
-        element.type.endsWith('Task') ||
-        element.type === 'bpmn:CallActivity' ||
-        element.type === 'bpmn:SubProcess' ||
-        element.type === 'bpmn:Transaction' ||
-        element.type === 'bpmn:StartEvent' ||
-        element.type === 'bpmn:EndEvent' ||
-        element.type.endsWith('Gateway') ||
-        element.type === 'bpmn:DataStoreReference' ||
-        element.type === 'bpmn:DataObjectReference';
+        typeof elementType === 'string' &&
+        elementType.startsWith('bpmn:') &&
+        !element.labelTarget &&
+        !Array.isArray(element.waypoints);
       if (!isSelectableElement) return;
 
       const now = Date.now();
