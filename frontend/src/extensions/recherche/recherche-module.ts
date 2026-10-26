@@ -55,6 +55,15 @@ function RechercheModule(
     highlightedElementId = element.id;
   }
 
+  // Repository BPMN IDs usually match diagram shape IDs, but imported
+  // labels/annotations can expose the business-object ID separately.
+  function resolveLiveElement(elementId: string) {
+    return elementRegistry.get(elementId) ??
+      elementRegistry.getAll().find((candidate: any) =>
+        candidate?.businessObject?.id === elementId,
+      );
+  }
+
   function closePanel() { document.getElementById(PANEL_ID)?.remove(); }
 
   function navigateToResult(result: RechercheResult) {
@@ -64,7 +73,7 @@ function RechercheModule(
     const currentResourceId = rechercheService.getContext().resourceId;
     const liveElement = result.element ?? (
       result.resourceId && result.resourceId === currentResourceId
-        ? elementRegistry.get(result.id)
+        ? resolveLiveElement(result.id)
         : undefined
     );
     if (liveElement) {
@@ -86,7 +95,7 @@ function RechercheModule(
     const elementId = new URLSearchParams(window.location.search).get('elementId');
     if (!elementId) return;
 
-    const element = elementRegistry.get(elementId);
+    const element = resolveLiveElement(elementId);
     if (!element) {
       // Some route/import combinations emit import.done just before the
       // registry has finished exposing the imported shapes. Retry briefly.
