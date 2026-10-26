@@ -129,6 +129,13 @@ const resultBadge = (detail: string) => {
 
 export const WorkspaceNavigation = () => {
   const location = useLocation();
+  const buildCommit = String(import.meta.env.VITE_BUILD_COMMIT || '').trim();
+  const buildRunNumber = String(import.meta.env.VITE_BUILD_RUN_NUMBER || '').trim();
+  const buildBranch = String(import.meta.env.VITE_BUILD_BRANCH || '').trim();
+  const buildId = String(import.meta.env.VITE_BUILD_ID || '').trim();
+  const hasBuildCommit = Boolean(buildCommit && buildCommit !== 'unknown');
+  const hasBuildId = Boolean(buildId && buildId !== 'unknown');
+  const visibleBuildId = hasBuildCommit ? buildCommit.slice(0, 7) : (hasBuildId ? buildId : 'ID absent');
   const [globalRole, setGlobalRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
 
   useEffect(() => {
@@ -390,8 +397,8 @@ export const WorkspaceNavigation = () => {
               <Typography level="title-lg" sx={{ lineHeight: 1.2, color: '#fff', fontWeight: 800 }}>KHI Flows</Typography>
               <Box
                 component="span"
-                title={`Commit compilé : ${import.meta.env.VITE_BUILD_COMMIT || 'non identifié'} · Branche : ${import.meta.env.VITE_BUILD_BRANCH || 'non identifiée'} · CI : ${import.meta.env.VITE_BUILD_RUN_NUMBER || 'non identifié'}`}
-                aria-label={`Version de test : commit ${(import.meta.env.VITE_BUILD_COMMIT || 'non-identifie').slice(0, 7)}`}
+                title={`Build : ${visibleBuildId} · Commit : ${hasBuildCommit ? buildCommit : 'non transmis'} · Branche : ${buildBranch && buildBranch !== 'unknown' ? buildBranch : 'non transmise'} · CI : ${buildRunNumber && buildRunNumber !== 'unknown' ? buildRunNumber : 'non transmis'}`}
+                aria-label={`Version de test : ${visibleBuildId}`}
                 sx={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -399,8 +406,8 @@ export const WorkspaceNavigation = () => {
                   py: 0.25,
                   borderRadius: '6px',
                   border: '1px solid',
-                  borderColor: import.meta.env.VITE_BUILD_COMMIT && import.meta.env.VITE_BUILD_COMMIT !== 'unknown' ? '#5f8ee8' : '#d99a42',
-                  bgcolor: import.meta.env.VITE_BUILD_COMMIT && import.meta.env.VITE_BUILD_COMMIT !== 'unknown' ? '#203f72' : '#60451e',
+                  borderColor: hasBuildCommit || hasBuildId ? '#5f8ee8' : '#d99a42',
+                  bgcolor: hasBuildCommit || hasBuildId ? '#203f72' : '#60451e',
                   color: '#fff',
                   fontSize: 10,
                   fontWeight: 800,
@@ -408,11 +415,11 @@ export const WorkspaceNavigation = () => {
                   whiteSpace: 'nowrap',
                 }}
               >
-                {import.meta.env.VITE_BUILD_RUN_NUMBER && import.meta.env.VITE_BUILD_RUN_NUMBER !== 'unknown'
-                  ? `TEST CI #${import.meta.env.VITE_BUILD_RUN_NUMBER}`
-                  : 'TEST · CI ?'}
+                {buildRunNumber && buildRunNumber !== 'unknown'
+                  ? `TEST CI #${buildRunNumber}`
+                  : 'TEST BUILD'}
                 {' · '}
-                {(import.meta.env.VITE_BUILD_COMMIT || 'unknown').slice(0, 7)}
+                {visibleBuildId}
               </Box>
             </Stack>
             <Typography level="body-xs" sx={{ color: '#b4c3d5' }}>
