@@ -23,7 +23,7 @@ test('viewer starts with the minimap hidden and exposes an explicit toggle', asy
 test('new element selection is immediate; rapid double-click cancels deselection', async () => {
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
 
-  assert.match(hook, /eventBus\.on\('element\.click', onElementClick\)/);
+  assert.match(hook, /eventBus\.on\('element\.click', 1500, onElementClick\)/);
   assert.match(hook, /eventBus\.on\('element\.dblclick', onElementDoubleClick\)/);
   assert.match(hook, /now - lastClickAt < 280/);
   assert.match(hook, /if \(currentlySelected !== element\.id\) \{\s*onElementSelectRef\.current\?\.\(element\.id\);\s*return;\s*\}/);
@@ -38,6 +38,7 @@ test('viewer selection recognizes collapsed SubProcesses through their BPMN busi
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
 
   assert.match(hook, /const elementType = element\.businessObject\?\.\$type \?\? element\.type/);
+  assert.match(hook, /eventBus\.on\('element\.click', 1500, onElementClick\)/);
   assert.match(hook, /elementType\.startsWith\('bpmn:'\)/);
   assert.match(hook, /!element\.labelTarget/);
   assert.match(hook, /!Array\.isArray\(element\.waypoints\)/);
