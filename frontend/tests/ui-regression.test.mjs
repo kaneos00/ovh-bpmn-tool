@@ -242,3 +242,20 @@ test('viewer gets a fresh BPMN instance when the selected process or published v
   assert.ok(details.includes('key={`${resourceId}:${publishedContent.id}`}'));
   assert.match(details, /key=\{\`\$\{resourceId\}:\$\{publishedContent\.id\}\`\}[\s\S]*?resourceId=\{resourceId\}[\s\S]*?contentId=\{publishedContent\.id\}/);
 });
+
+test('viewer description editing is permission-gated and saves only the selected BPMN documentation', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const styles = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.scss');
+
+  assert.match(details, /fetch\(\`\$\{apiBase\}\/auth\/session\`/);
+  assert.match(details, /sessionRole === 'admin' \|\| sessionRole === 'modeler'/);
+  assert.match(details, /selectedTask && canEditDescription && !isEditingDescription/);
+  assert.match(details, /aria-label="Modifier la description de l’élément"/);
+  assert.match(details, /<Textarea[\s\S]*?value=\{descriptionDraft\}[\s\S]*?onChange=/);
+  assert.match(details, /<Button[\s\S]*?Annuler[\s\S]*?onClick=\{cancelDescriptionEdit\}/);
+  assert.match(details, /<Button[\s\S]*?Enregistrer[\s\S]*?onClick=\{saveDescriptionEdit\}/);
+  assert.match(details, /await saveContent\(resourceId, publishedContent\.id, \{ content: updatedXml \}\)/);
+  assert.match(details, /new XMLSerializer\(\)\.serializeToString\(xmlDocument\)/);
+  assert.match(details, /await queryClient\.invalidateQueries\(xmlContentQuery\.queryKey\)/);
+  assert.match(styles, /\.processTaskPanelEditActions\s*\{[^}]*border-top:/s);
+});
