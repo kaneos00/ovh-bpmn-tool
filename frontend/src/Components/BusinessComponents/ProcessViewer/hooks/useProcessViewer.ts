@@ -191,7 +191,7 @@ export const useProcessViewer = (
     setImportError(null);
     viewer.attachTo(viewerRef.current);
     const eventBus = viewer.get('eventBus') as {
-      on: (event: string, listener: (event: any) => void) => void;
+      on: (event: string, listenerOrPriority: number | ((event: any) => void), listener?: (event: any) => void) => void;
       off: (event: string, listener: (event: any) => void) => void;
     };
     let clickListenerAttached = false;
