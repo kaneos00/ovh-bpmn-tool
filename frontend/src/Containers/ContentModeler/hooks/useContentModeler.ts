@@ -13,6 +13,7 @@ import { ActionResponse } from '../../../shared/types/ActionResponse';
 import { ContentStatusEnum, type Content } from '../../../Types';
 import { useResource } from '../../../shared/hooks/useResource';
 import Modeler from 'camunda-bpmn-js/lib/base/Modeler';
+import { paginateBpmnSvg } from '../../../shared/utils/paginatedBpmnSvg';
 import { HttpError } from '../../../shared/api/httpError';
 
 export const useContentModeler = (bpmnModelerInstance: Modeler) => {
@@ -102,11 +103,11 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
    * File export action
    */
   const triggerDownload = useCallback(
-    (content: string, exportType: 'svg' | 'bpmn'): void => {
+    (content: string, exportType: 'svg' | 'bpmn', suffix = ''): void => {
       if (resource && draftContent) {
         const hiddenElement = document.createElement('a');
         const fileContent = new Blob([content], { type: 'text/xml' });
-        const fileName = `${resource.name}_v${draftContent.version}`;
+        const fileName = `${resource.name}_v${draftContent.version}${suffix}`;
         hiddenElement.setAttribute('download', `${fileName}.${exportType}`);
         hiddenElement.setAttribute(
           'href',
@@ -115,14 +116,14 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
         hiddenElement.style.display = 'none';
         document.body.appendChild(hiddenElement);
         hiddenElement.click();
-        document.body.removeChild(hiddenElement);
+        document.body.removeChild(hiddenElement);\n        window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000);
       }
     },
     [draftContent, resource],
   );
 
   const onFileExport = useCallback(
-    async (exportType: 'svg' | 'bpmn') => {
+    async (exportType: 'svg' | 'bpmn' | 'svg-a4-portrait' | 'svg-a4-landscape') => {
       let file;
       try {
         if (exportType === 'svg') {
@@ -131,7 +132,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
         } else {
           file = await bpmnModelerInstance.saveXML({ format: true });
           if (file.xml) {
-            triggerDownload(file.xml, exportType);
+            triggerDownload(file.xml, 'bpmn');
           }
         }
       } catch {
