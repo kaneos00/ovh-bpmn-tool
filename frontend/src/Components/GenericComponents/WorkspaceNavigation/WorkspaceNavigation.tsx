@@ -103,6 +103,14 @@ const resultBadge = (detail: string) => {
       border: '#d5c8f0',
     };
   }
+  if (/Description BPMN/i.test(detail)) {
+    return {
+      label: 'Description',
+      color: '#4b5563',
+      background: '#f1f5f9',
+      border: '#d8e0e8',
+    };
+  }
   if (/IA comm\.|annotation BPMN/i.test(detail)) {
     return {
       label: 'Annotation',
@@ -293,18 +301,25 @@ export const WorkspaceNavigation = () => {
               const tag = element.localName.toLocaleLowerCase('fr');
               const text = element.textContent?.trim() || '';
               const name = element.getAttribute('name') || '';
+              const isNestedAnnotationText = tag === 'text' &&
+                element.parentElement?.localName.toLocaleLowerCase('fr') === 'textannotation';
               const isTextContent = /documentation|textannotation|text|message|communication|comment/i.test(tag);
-              return isTextContent && text && (matchesTerm(text, term) || matchesTerm(name, term));
+              return !isNestedAnnotationText && isTextContent && text &&
+                (matchesTerm(text, term) || matchesTerm(name, term));
             });
             textElements.forEach((element, index) => {
+              const tag = element.localName.toLocaleLowerCase('fr');
               const text = (element.getAttribute('name') || element.textContent || '').trim().replace(/\s+/g, ' ');
               const title = text.length > 100 ? `${text.slice(0, 97)}…` : text;
               if (!title) return;
+              const isBpmnDescription = tag === 'textannotation' && Boolean(element.getAttribute('id'));
               found.push({
                 key: `${process.id}:ia-comm:${element.localName}:${index}:${title}`,
                 title,
-                detail: `IA comm. / annotation BPMN · ${process.name} · ${element.localName}`,
+                detail: `${isBpmnDescription ? 'Description BPMN' : 'IA comm. / annotation BPMN'} · ${process.name} · ${element.localName}`,
                 resourceId: process.id,
+                // Only a BPMN TextAnnotation has a drawable shape to select.
+                elementId: isBpmnDescription ? element.getAttribute('id') || undefined : undefined,
               });
             });
           }
