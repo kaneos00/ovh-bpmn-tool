@@ -125,7 +125,7 @@ test('external link indicator is limited to the selected linked Call Activity', 
 test('external task URL is rendered as a safe external link in the documentation section', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
 
-  assert.ok(details.includes('selectedTask.externalUrl ? ('));
+  assert.ok(details.includes('!isEditingDescription && selectedTask.externalUrl && ('));
   assert.ok(details.includes('href={selectedTask.externalUrl.startsWith'));
   assert.ok(details.includes('target="_blank"'));
   assert.ok(details.includes('rel="noopener noreferrer"'));
