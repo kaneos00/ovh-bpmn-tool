@@ -633,7 +633,6 @@ export const ProcessDetails = ({
                         </Chip>
                         <Typography level="body-sm">Identifiant : {selectedTask.id}</Typography>
                         <Typography level="body-sm" textColor="neutral">{getElementTypeDescription(selectedTask.type)}</Typography>
-                      </Box>
 
                       <Divider />
                       <Stack spacing={1}>
