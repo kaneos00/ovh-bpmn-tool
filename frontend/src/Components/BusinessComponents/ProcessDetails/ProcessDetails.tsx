@@ -713,7 +713,7 @@ export const ProcessDetails = ({
                       <Divider />
                       <Stack spacing={1}>
                         <Typography level="title-sm">3. Documentation</Typography>
-                        {isEditingDescription ? (
+                        {isEditingDescription && (
                           <Input
                             value={urlDraft}
                             onChange={event => setUrlDraft(event.target.value)}
@@ -722,7 +722,8 @@ export const ProcessDetails = ({
                             disabled={isSavingDescription}
                             size="sm"
                           />
-                        ) : selectedTask.externalUrl ? (
+                        )}
+                        {!isEditingDescription && selectedTask.externalUrl && (
                           <Typography level="body-sm">
                             <a
                               href={selectedTask.externalUrl.startsWith('http://') || selectedTask.externalUrl.startsWith('https://') ? selectedTask.externalUrl : `https://${selectedTask.externalUrl}`}
@@ -732,7 +733,10 @@ export const ProcessDetails = ({
                               {selectedTask.externalUrl}
                             </a>
                           </Typography>
-                        ) : <Typography level="body-sm" textColor="neutral">Aucune URL renseignée.</Typography>}
+                        )}
+                        {!isEditingDescription && !selectedTask.externalUrl && (
+                          <Typography level="body-sm" textColor="neutral">Aucune URL renseignée.</Typography>
+                        )}
                       </Stack>
                     </>
                   ) : (
