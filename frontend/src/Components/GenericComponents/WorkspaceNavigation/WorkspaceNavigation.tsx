@@ -394,8 +394,8 @@ export const WorkspaceNavigation = () => {
               <Typography level="title-lg" sx={{ lineHeight: 1.2, color: '#fff', fontWeight: 800 }}>KHI Flows</Typography>
               <Box
                 component="span"
-                title={`Commit compilé : ${import.meta.env.VITE_BUILD_COMMIT || 'non identifié'} · Branche : ${import.meta.env.VITE_BUILD_BRANCH || 'non identifiée'} · CI : ${import.meta.env.VITE_BUILD_RUN_NUMBER || 'non identifié'}`}
-                aria-label={`Version de test : commit ${(import.meta.env.VITE_BUILD_COMMIT || 'non-identifie').slice(0, 7)}`}
+                title={`Build : ${import.meta.env.VITE_BUILD_ID || 'non identifié'} · Commit : ${import.meta.env.VITE_BUILD_COMMIT || 'non identifié'} · Branche : ${import.meta.env.VITE_BUILD_BRANCH || 'non identifiée'} · CI : ${import.meta.env.VITE_BUILD_RUN_NUMBER || 'non identifié'}`}
+                aria-label={`Version de test : build ${(import.meta.env.VITE_BUILD_ID || 'unknown').slice(0, 12)} · commit ${(import.meta.env.VITE_BUILD_COMMIT || 'unknown').slice(0, 7)}`}
                 sx={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -403,8 +403,8 @@ export const WorkspaceNavigation = () => {
                   py: 0.25,
                   borderRadius: '6px',
                   border: '1px solid',
-                  borderColor: import.meta.env.VITE_BUILD_COMMIT && import.meta.env.VITE_BUILD_COMMIT !== 'unknown' ? '#5f8ee8' : '#d99a42',
-                  bgcolor: import.meta.env.VITE_BUILD_COMMIT && import.meta.env.VITE_BUILD_COMMIT !== 'unknown' ? '#203f72' : '#60451e',
+                  borderColor: (import.meta.env.VITE_BUILD_COMMIT && import.meta.env.VITE_BUILD_COMMIT !== 'unknown') || (import.meta.env.VITE_BUILD_ID && import.meta.env.VITE_BUILD_ID !== 'unknown') ? '#5f8ee8' : '#d99a42',
+                  bgcolor: (import.meta.env.VITE_BUILD_COMMIT && import.meta.env.VITE_BUILD_COMMIT !== 'unknown') || (import.meta.env.VITE_BUILD_ID && import.meta.env.VITE_BUILD_ID !== 'unknown') ? '#203f72' : '#60451e',
                   color: '#fff',
                   fontSize: 10,
                   fontWeight: 800,
@@ -414,9 +414,11 @@ export const WorkspaceNavigation = () => {
               >
                 {import.meta.env.VITE_BUILD_RUN_NUMBER && import.meta.env.VITE_BUILD_RUN_NUMBER !== 'unknown'
                   ? `TEST CI #${import.meta.env.VITE_BUILD_RUN_NUMBER}`
-                  : 'TEST · CI ?'}
+                  : `TEST BUILD ${(import.meta.env.VITE_BUILD_ID || 'unknown').slice(0, 12)}`}
                 {' · '}
-                {(import.meta.env.VITE_BUILD_COMMIT || 'unknown').slice(0, 7)}
+                {import.meta.env.VITE_BUILD_COMMIT && import.meta.env.VITE_BUILD_COMMIT !== 'unknown'
+                  ? import.meta.env.VITE_BUILD_COMMIT.slice(0, 7)
+                  : 'SHA ?'}
               </Box>
             </Stack>
             <Typography level="body-xs" sx={{ color: '#b4c3d5' }}>
