@@ -1,6 +1,6 @@
 # Tickets vérifiés et validés
 
-Dernière mise à jour : 26 octobre 2026. Les statuts ci-dessous reposent sur des confirmations fonctionnelles explicites.
+Dernière mise à jour : 26 octobre 2026. Les statuts ci-dessous reposent sur des confirmations fonctionnelles explicites. Ticket 29 ajouté après validation utilisateur sur l'instance Coolify de test.
 
 ## A. Correctifs V2.1 et régressions à fermer
 
@@ -27,6 +27,13 @@ Dernière mise à jour : 26 octobre 2026. Les statuts ci-dessous reposent sur de
 | 36 | Colorer les Data Store et Data Object Reference en orange et permettre de les lier ou pointer vers l'outil associé | Oui : marqueurs Viewer/éditeur, styles orange, champ URL et flèche sur l'élément sélectionné | Recette utilisateur du 26/10/2026 : OK | ✅ **Validé par recette navigateur le 26/10/2026** | Moyenne | Moyen — IHM / données |
 | 42 | Contour et motif intérieur violets pour les passerelles BPMN, sans modifier les remplissages existants | Oui | Recette utilisateur du 26/10/2026 : OK | ✅ **Validé par recette navigateur le 26/10/2026** | Facile | Faible — IHM |
 | 43 | Afficher un descriptif pédagogique du type BPMN dans le panneau droit, sous l’identifiant | Oui | Recette utilisateur du 26/10/2026 : OK | ✅ **Validé par recette navigateur le 26/10/2026** | Facile | Faible — IHM |
+
+
+## D. Hiérarchie des processus — tickets clôturés
+
+| N° | Point / résultat attendu | Traité dans le code ? | Test fonctionnel | Statut / prochaine action | Facilité | Impact |
+|---:|---|---|---|---|---|---|
+| 29 | Dans l'explorateur, placer sous chaque processus parent les processus référencés par ses Call Activities et SubProcess BPMN repliés | Oui : résolution des processus liés et remontage du `ProcessViewer` à chaque changement de processus/version | CI vert sur le commit `2a246869`; validation utilisateur sur Coolify le 26/10/2026 : le diagramme cible s'affiche sans l'erreur `can't access property "id", e is undefined` | ✅ **Validé et clôturé le 26/10/2026** | Difficile | Moyen — plusieurs IHM / backend |
 
 
 ## Règles de suivi
