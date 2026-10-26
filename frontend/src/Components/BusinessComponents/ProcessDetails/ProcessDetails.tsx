@@ -329,12 +329,20 @@ export const ProcessDetails = ({
         { code: 'I', attribute: 'informed' },
       ];
       if (selectedTaskRaci) {
+        const raciNamespace = xmlDocument.documentElement.lookupNamespaceURI('raci') || 'https://ovh-bpmn-tool.local/schema/raci';
+        const hasRaciAssignment = raciAttributes.some(({ code }) => raciMatrix.roles.some(role => (raciDraft[role] ?? []).includes(code)));
+        if (hasRaciAssignment && !xmlDocument.documentElement.lookupNamespaceURI('raci')) {
+          xmlDocument.documentElement.setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:raci', raciNamespace);
+        }
         raciAttributes.forEach(({ code, attribute }) => {
           const value = raciMatrix.roles.filter(role => (raciDraft[role] ?? []).includes(code)).join(', ');
           const existing = Array.from(targetElement.attributes).find(item => item.localName === attribute);
           if (value) {
             if (existing) existing.value = value;
-            else targetElement.setAttribute(attribute, value);
+            else {
+              if (hasRaciAssignment) targetElement.setAttributeNS(raciNamespace, `raci:${attribute}`, value);
+              else targetElement.setAttribute(attribute, value);
+            }
           } else if (existing) {
             targetElement.removeAttributeNS(existing.namespaceURI, existing.localName);
           }
