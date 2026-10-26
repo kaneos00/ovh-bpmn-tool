@@ -132,7 +132,7 @@ export const ProcessDetails = ({
 
   useEffect(() => {
     let mounted = true;
-    const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\\/+$/, '');
+    const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
     fetch(`${apiBase}/auth/session`, {
       credentials: 'same-origin',
       headers: { accept: 'application/json' },
@@ -257,11 +257,11 @@ export const ProcessDetails = ({
 
   useEffect(() => {
     setIsEditingDescription(false);
-    setDescriptionDraft(selectedTask?.documentation.join('\\n\\n') ?? '');
+    setDescriptionDraft(selectedTask?.documentation.join('\n\n') ?? '');
   }, [selectedElementId, xmlContent]);
 
   const cancelDescriptionEdit = () => {
-    setDescriptionDraft(selectedTask?.documentation.join('\\n\\n') ?? '');
+    setDescriptionDraft(selectedTask?.documentation.join('\n\n') ?? '');
     setIsEditingDescription(false);
   };
 
@@ -504,7 +504,7 @@ export const ProcessDetails = ({
                     startDecorator={<EditOutlined />}
                     onClick={event => {
                       event.stopPropagation();
-                      setDescriptionDraft(selectedTask.documentation.join('\\n\\n'));
+                      setDescriptionDraft(selectedTask.documentation.join('\n\n'));
                       setIsEditingDescription(true);
                     }}
                     aria-label="Modifier la description de l’élément"
