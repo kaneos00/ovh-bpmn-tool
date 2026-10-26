@@ -5,7 +5,7 @@ import {
   RouteObject,
   RouterProvider,
 } from 'react-router-dom';
-import { CssVarsProvider } from '@mui/joy';
+import { Box, CssVarsProvider, Typography } from '@mui/joy';
 
 import { SnackbarProvider } from './Providers/Snackbar/Snackbar.provider';
 import { routes } from './routes';
@@ -22,6 +22,24 @@ const router = createBrowserRouter(routes as RouteObject[], {
   basename: import.meta.env.VITE_APP_BASE_PATH as string,
 });
 
+const buildCommit = import.meta.env.VITE_BUILD_COMMIT || 'unknown';
+const buildRunNumber = import.meta.env.VITE_BUILD_RUN_NUMBER || 'unknown';
+const buildBranch = import.meta.env.VITE_BUILD_BRANCH || 'unknown';
+const configuredBuildId = import.meta.env.VITE_BUILD_ID;
+const buildId =
+  configuredBuildId && configuredBuildId !== 'unknown'
+    ? configuredBuildId
+    : buildCommit !== 'unknown'
+      ? buildCommit
+      : 'local';
+const shortBuildId = buildId.slice(0, 12);
+const buildDetails = [
+  `Version déployée : ${buildId}`,
+  `Commit : ${buildCommit}`,
+  `Build CI : ${buildRunNumber}`,
+  `Branche : ${buildBranch}`,
+].join(' · ');
+
 type MainContainerProps = {
   options: BpmnToolOptions;
 };
@@ -34,6 +52,34 @@ export function MainContainer(props: MainContainerProps) {
         <QueryClientProvider client={queryClient}>
           <BpmnToolOptionsProvider options={props.options}>
             <RouterProvider router={router} />
+            <Box
+              component="div"
+              aria-label={`Identifiant de version déployée ${shortBuildId}`}
+              title={buildDetails}
+              sx={{
+                position: 'fixed',
+                right: 8,
+                bottom: 4,
+                zIndex: 2000,
+                pointerEvents: 'none',
+                opacity: 0.75,
+              }}
+            >
+              <Typography
+                level="body-xs"
+                sx={{
+                  px: 0.5,
+                  py: 0.25,
+                  borderRadius: '3px',
+                  bgcolor: 'background.surface',
+                  color: 'text.tertiary',
+                  fontSize: '10px',
+                  lineHeight: 1.2,
+                }}
+              >
+                Build {shortBuildId}
+              </Typography>
+            </Box>
           </BpmnToolOptionsProvider>
         </QueryClientProvider>
       </SnackbarProvider>
