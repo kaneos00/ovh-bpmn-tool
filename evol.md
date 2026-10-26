@@ -39,7 +39,7 @@ Dernière mise à jour : 26 octobre 2026. Cette liste regroupe les amélioration
 |---:|---|---|---|---|---|---|
 | 37 | Ajouter une recherche en langage naturel avec une page de résultats | Non | Non testé | **À cadrer** : sources recherchées (processus, tâches, RACI, documentation), pertinence, droits d'accès et moteur requis | Difficile | Fort — nouvelle fonctionnalité / architecture |
 | 38 | Ajouter une page de saisie/inventaire des données qui recense fichiers et bases de données avec leurs informations | Non | Non testé | **À cadrer** : métadonnées, types de sources, propriétaires, liens, droits et éventuelles intégrations | Difficile | Fort — nouvelle fonctionnalité / modèle métier |
-| 39 | Ajouter un moteur de vérification de la formulation des actions, pour s'assurer qu'une action est claire et bien exprimée | Non | Non testé | **À cadrer** : critères de qualité, règles de validation, suggestions et éventuelle assistance linguistique ; ne pas bloquer une action sans règle définie | Difficile | Fort — nouvelle fonctionnalité / moteur de validation |
+| 39 | Ajouter un moteur de vérification de la formulation des actions, pour s'assurer qu'une action est claire et bien exprimée | Promu dans `check_toto.md` à la demande de l'utilisateur le 26/10/2026 | Non testé | **Retiré de la liste des évolutions à planifier : développement prioritaire demandé.** Le périmètre sera défini à partir des règles de qualité BPMN déjà retenues ; les recommandations resteront non bloquantes | Difficile | Fort — nouvelle fonctionnalité / moteur de validation |
 
 ## F. Modèles BPMN et export documentaire
 
