@@ -19,7 +19,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,js}\"",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "test:unit": "pnpm exec tsc src/api/helpers.ts src/api/types.ts src/Components/BusinessComponents/Modeler/helpers.ts src/extensions/raci-engine.ts src/Components/BusinessComponents/FolderTree/processLinks.ts src/shared/helpers/folderHierarchy.ts --target ES2022 --module ESNext --moduleResolution bundler --outDir .test-dist --skipLibCheck --strict false && node --test tests/unit/*.test.mjs",
+    "test:unit": "pnpm exec tsc src/api/helpers.ts src/api/types.ts src/Components/BusinessComponents/Modeler/helpers.ts src/extensions/raci-engine.ts src/Components/BusinessComponents/FolderTree/processLinks.ts src/shared/helpers/folderHierarchy.ts src/shared/utils/paginatedBpmnSvg.ts --target ES2022 --module ESNext --moduleResolution bundler --outDir .test-dist --skipLibCheck --strict false && node --test tests/unit/*.test.mjs",
     "test:regression": "node --test tests/ui-regression.test.mjs tests/viewer-interactions.test.mjs",
     "test:all": "pnpm test:regression && pnpm test:unit"
   },
