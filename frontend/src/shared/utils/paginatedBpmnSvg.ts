@@ -321,6 +321,7 @@ export function paginateBpmnSvg(
     pageSvg.setAttribute('width', `${layout.pageWidthMm}mm`);
     pageSvg.setAttribute('height', `${layout.pageHeightMm}mm`);
     pageSvg.setAttribute('viewBox', `0 0 ${layout.pageWidthMm} ${layout.pageHeightMm}`);
+    pageSvg.setAttribute('font-family', options.fontFamily);
     pageSvg.setAttribute('role', 'img');
     pageSvg.setAttribute('aria-label', `${title} — page ${tile.page} sur ${pageTiles.length}`);
 
@@ -357,6 +358,7 @@ export function paginateBpmnSvg(
     nestedSvg.setAttribute('height', String(layout.contentHeightMm));
     nestedSvg.setAttribute('viewBox', `${tile.x} ${tile.y} ${tile.width} ${tile.height}`);
     nestedSvg.setAttribute('preserveAspectRatio', 'xMinYMin meet');
+    nestedSvg.setAttribute('font-family', options.fontFamily);
     nestedSvg.removeAttribute('style');
     pageSvg.appendChild(pageDocument.importNode(nestedSvg, true));
 
