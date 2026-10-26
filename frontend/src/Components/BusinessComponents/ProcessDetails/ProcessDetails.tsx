@@ -328,16 +328,18 @@ export const ProcessDetails = ({
         { code: 'C', attribute: 'consulted' },
         { code: 'I', attribute: 'informed' },
       ];
-      raciAttributes.forEach(({ code, attribute }) => {
-        const value = raciMatrix.roles.filter(role => (raciDraft[role] ?? []).includes(code)).join(', ');
-        const existing = Array.from(targetElement.attributes).find(item => item.localName === attribute);
-        if (value) {
-          if (existing) existing.value = value;
-          else targetElement.setAttribute(attribute, value);
-        } else if (existing) {
-          targetElement.removeAttributeNS(existing.namespaceURI, existing.localName);
-        }
-      });
+      if (selectedTaskRaci) {
+        raciAttributes.forEach(({ code, attribute }) => {
+          const value = raciMatrix.roles.filter(role => (raciDraft[role] ?? []).includes(code)).join(', ');
+          const existing = Array.from(targetElement.attributes).find(item => item.localName === attribute);
+          if (value) {
+            if (existing) existing.value = value;
+            else targetElement.setAttribute(attribute, value);
+          } else if (existing) {
+            targetElement.removeAttributeNS(existing.namespaceURI, existing.localName);
+          }
+        });
+      }
 
       if (!description) {
         documentationNodes.forEach(node => node.remove());
@@ -660,7 +662,7 @@ export const ProcessDetails = ({
                       <Divider />
                       <Stack spacing={1}>
                         <Typography level="title-sm">2. RACI</Typography>
-                        {isEditingDescription && raciMatrix.roles.length > 0 && raciMatrix.roles.map(role => (
+                        {isEditingDescription && selectedTaskRaci && raciMatrix.roles.length > 0 && raciMatrix.roles.map(role => (
                           <Stack key={role} direction="row" spacing={1} alignItems="center" justifyContent="space-between">
                             <Typography level="body-sm" sx={{ flex: 1 }}>{role}</Typography>
                             <Stack direction="row" spacing={0.75}>
@@ -679,7 +681,10 @@ export const ProcessDetails = ({
                             </Stack>
                           </Stack>
                         ))}
-                        {isEditingDescription && raciMatrix.roles.length === 0 && (
+                        {isEditingDescription && !selectedTaskRaci && (
+                          <Typography level="body-sm" textColor="neutral">Le RACI est disponible pour les activités BPMN.</Typography>
+                        )}
+                        {isEditingDescription && selectedTaskRaci && raciMatrix.roles.length === 0 && (
                           <Typography level="body-sm" textColor="neutral">Aucun rôle disponible pour le RACI.</Typography>
                         )}
                         {!isEditingDescription && selectedTaskRaciCells.length > 0 && selectedTaskRaciCells.map(cell => (
