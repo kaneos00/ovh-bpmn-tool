@@ -195,13 +195,6 @@ export const useProcessViewer = (
       off: (event: string, listener: (event: any) => void) => void;
     };
     let clickListenerAttached = false;
-    let pendingSelectionTimer: ReturnType<typeof setTimeout> | null = null;
-    let lastClickedElementId: string | null = null;
-    let lastClickAt = 0;
-    const cancelPendingSelection = () => {
-      if (pendingSelectionTimer) clearTimeout(pendingSelectionTimer);
-      pendingSelectionTimer = null;
-    };
     const onElementClick = (event: any) => {
       const element = event?.element;
       if (!element?.id || typeof element.type !== 'string') return;
@@ -220,26 +213,13 @@ export const useProcessViewer = (
         element.type === 'bpmn:DataObjectReference';
       if (!isSelectableElement) return;
 
-      const now = Date.now();
-      const isRapidSecondClick =
-        lastClickedElementId === element.id && now - lastClickAt < 280;
-      lastClickedElementId = element.id;
-      lastClickAt = now;
-      cancelPendingSelection();
-
-      // Wait briefly so bpmn-js can emit element.dblclick before we treat a
-      // rapid second click as a deselection.
-      if (isRapidSecondClick) return;
-      pendingSelectionTimer = setTimeout(() => {
-        pendingSelectionTimer = null;
-        const currentlySelected = selectedIdRef.current;
-        onElementSelectRef.current?.(currentlySelected === element.id ? '' : element.id);
-      }, 220);
+      // Select synchronously, like the modeler. Delaying every click to
+      // distinguish a double-click made the viewer feel noticeably slower.
+      // Selecting an already-selected element is intentionally idempotent;
+      // navigation remains owned by the element.dblclick handler.
+      onElementSelectRef.current?.(element.id);
     };
     const onElementDoubleClick = (event: any) => {
-      cancelPendingSelection();
-      lastClickedElementId = null;
-      lastClickAt = 0;
 
       const element = event?.element;
       const elementType = element?.businessObject?.$type ?? element?.type;
@@ -310,7 +290,6 @@ export const useProcessViewer = (
     return () => {
       cancelled = true;
       if (importGenerationRef.current === generation) importGenerationRef.current += 1;
-      cancelPendingSelection();
       if (clickListenerAttached) {
         eventBus.off('element.click', onElementClick);
         eventBus.off('element.dblclick', onElementDoubleClick);
