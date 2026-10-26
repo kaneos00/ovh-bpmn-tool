@@ -367,6 +367,7 @@ export const ProcessDetails = ({
                 <Divider />
                 <Box className="processViewerCanvas">
                   <ProcessViewer
+                    key={`${resourceId}:${publishedContent.id}`}
                     resourceId={resourceId}
                     contentId={publishedContent.id}
                     selectedElementId={selectedElementId}
