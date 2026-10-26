@@ -9,12 +9,22 @@ ARG VITE_APP_BASE_PATH=/
 ARG VITE_BUILD_RUN_NUMBER=unknown
 ARG VITE_BUILD_COMMIT=unknown
 ARG VITE_BUILD_BRANCH=unknown
+ARG VITE_BUILD_ID=unknown
 ENV VITE_API_URL=${VITE_API_URL}
 ENV VITE_APP_BASE_PATH=${VITE_APP_BASE_PATH}
 ENV VITE_BUILD_RUN_NUMBER=${VITE_BUILD_RUN_NUMBER}
 ENV VITE_BUILD_COMMIT=${VITE_BUILD_COMMIT}
 ENV VITE_BUILD_BRANCH=${VITE_BUILD_BRANCH}
-RUN pnpm build
+ENV VITE_BUILD_ID=${VITE_BUILD_ID}
+# Coolify does not always pass GitHub Actions build arguments. Generate a unique
+# build identifier in that case so test deployments never display "unknown".
+RUN if [ -z "$VITE_BUILD_ID" ] || [ "$VITE_BUILD_ID" = "unknown" ]; then \
+      if [ -n "$VITE_BUILD_RUN_NUMBER" ] && [ "$VITE_BUILD_RUN_NUMBER" != "unknown" ]; then \
+        export VITE_BUILD_ID="ci-${VITE_BUILD_RUN_NUMBER}"; \
+      else \
+        export VITE_BUILD_ID="build-$(date -u +%Y%m%dT%H%M%SZ)"; \
+      fi; \
+    fi && pnpm build
 
 FROM nginx:1.28-alpine
 COPY --from=build /app/dist /usr/share/nginx/html
