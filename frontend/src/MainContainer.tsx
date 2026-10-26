@@ -26,12 +26,16 @@ const buildCommit = import.meta.env.VITE_BUILD_COMMIT || 'unknown';
 const buildRunNumber = import.meta.env.VITE_BUILD_RUN_NUMBER || 'unknown';
 const buildBranch = import.meta.env.VITE_BUILD_BRANCH || 'unknown';
 const configuredBuildId = import.meta.env.VITE_BUILD_ID;
-const buildId =
-  configuredBuildId && configuredBuildId !== 'unknown'
-    ? configuredBuildId
-    : buildCommit !== 'unknown'
-      ? buildCommit
-      : 'local';
+function resolveBuildId() {
+  if (configuredBuildId && configuredBuildId !== 'unknown') {
+    return configuredBuildId;
+  }
+  if (buildCommit !== 'unknown') {
+    return buildCommit;
+  }
+  return 'local';
+}
+const buildId = resolveBuildId();
 const shortBuildId = buildId.slice(0, 12);
 const buildDetails = [
   `Version déployée : ${buildId}`,
@@ -51,8 +55,9 @@ export function MainContainer(props: MainContainerProps) {
       <SnackbarProvider>
         <QueryClientProvider client={queryClient}>
           <BpmnToolOptionsProvider options={props.options}>
-            <RouterProvider router={router} />
-            <Box
+            <>
+              <RouterProvider router={router} />
+              <Box
               component="div"
               aria-label={`Identifiant de version déployée ${shortBuildId}`}
               title={buildDetails}
@@ -79,7 +84,8 @@ export function MainContainer(props: MainContainerProps) {
               >
                 Build {shortBuildId}
               </Typography>
-            </Box>
+              </Box>
+            </>
           </BpmnToolOptionsProvider>
         </QueryClientProvider>
       </SnackbarProvider>
