@@ -6,6 +6,7 @@ import {
   Chip,
   Divider,
   IconButton,
+  Input,
   Sheet,
   Skeleton,
   Stack,
@@ -13,20 +14,22 @@ import {
   TabList,
   TabPanel,
   Tabs,
+  Textarea,
   Typography,
 } from '@mui/joy';
-import { ArrowBack, ArrowForward, Compare, FileCopy, ChevronLeft, ChevronRight, FolderOutlined } from '@mui/icons-material';
-import { useQuery } from 'react-query';
+import { ArrowBack, ArrowForward, Compare, FileCopy, ChevronLeft, ChevronRight, FolderOutlined, EditOutlined } from '@mui/icons-material';
+import { useQuery, useQueryClient } from 'react-query';
 
 import { useProcessDetails } from './hooks/useProcessDetails';
 import { ProcessContentList } from '../ProcessContentList/ProcessContentList';
 import { ProcessViewer } from '../ProcessViewer';
 import { FolderTree } from '../FolderTree';
-import { getXmlContentQuery } from '../../../api/contents/contents.queries';
+import { getXmlContentQuery, saveContent } from '../../../api/contents/contents.queries';
+import { useSnackbar } from '../../../shared/hooks/useSnackbar';
 import {
   deriveRaciMatrixFromXml,
 } from '../../../extensions/raci-viewer';
-import { analyzeRaciMatrix } from '../../../extensions/raci-engine';
+import { analyzeRaciMatrix, type RaciCode } from '../../../extensions/raci-engine';
 import { ConditionalRender } from '../../../Components/GenericComponents/ConditionalRender/ConditionalRender';
 import { DropZone } from '../../../Components/GenericComponents/DropZone/DropZone';
 
@@ -120,6 +123,29 @@ export const ProcessDetails = ({
     xmlContentQuery.queryFn,
     { enabled: Boolean(publishedContent) },
   );
+  const queryClient = useQueryClient();
+  const { showAlert } = useSnackbar();
+  const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [descriptionDraft, setDescriptionDraft] = useState('');
+  const [titleDraft, setTitleDraft] = useState('');
+  const [urlDraft, setUrlDraft] = useState('');
+  const [raciDraft, setRaciDraft] = useState<Record<string, RaciCode[]>>({});
+  const [isSavingDescription, setIsSavingDescription] = useState(false);
+  const canEditDescription = sessionRole === 'admin' || sessionRole === 'modeler';
+
+  useEffect(() => {
+    let mounted = true;
+    const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
+    fetch(`${apiBase}/auth/session`, {
+      credentials: 'same-origin',
+      headers: { accept: 'application/json' },
+    })
+      .then(async response => response.ok ? response.json() as Promise<{ role?: 'admin' | 'modeler' | 'viewer' }> : null)
+      .then(session => { if (mounted) setSessionRole(session?.role ?? null); })
+      .catch(() => { if (mounted) setSessionRole(null); });
+    return () => { mounted = false; };
+  }, []);
 
   const raciMatrix = useMemo(
     () =>
@@ -232,6 +258,128 @@ export const ProcessDetails = ({
   );
   const selectedTaskRaciCells =
     selectedTaskRaci?.cells.filter(cell => cell.codes.length) ?? [];
+
+  useEffect(() => {
+    setIsEditingDescription(false);
+    setDescriptionDraft(selectedTask?.documentation.join('\n\n') ?? '');
+    setTitleDraft(selectedTask?.name === selectedTask?.id ? '' : selectedTask?.name ?? '');
+    setUrlDraft(selectedTask?.externalUrl ?? '');
+    const assignments: Record<string, RaciCode[]> = {};
+    selectedTaskRaci?.cells.forEach(cell => { assignments[cell.role] = [...cell.codes]; });
+    setRaciDraft(assignments);
+  }, [selectedElementId, xmlContent, selectedTaskRaci, selectedTask]);
+
+  const cancelDescriptionEdit = () => {
+    setDescriptionDraft(selectedTask?.documentation.join('\n\n') ?? '');
+    setTitleDraft(selectedTask?.name === selectedTask?.id ? '' : selectedTask?.name ?? '');
+    setUrlDraft(selectedTask?.externalUrl ?? '');
+    const assignments: Record<string, RaciCode[]> = {};
+    selectedTaskRaci?.cells.forEach(cell => { assignments[cell.role] = [...cell.codes]; });
+    setRaciDraft(assignments);
+    setIsEditingDescription(false);
+  };
+
+  const toggleRaciCode = (role: string, code: RaciCode) => {
+    setRaciDraft(current => {
+      const codes = current[role] ?? [];
+      return {
+        ...current,
+        [role]: codes.includes(code) ? codes.filter(value => value !== code) : [...codes, code],
+      };
+    });
+  };
+
+  const saveDescriptionEdit = async () => {
+    if (!xmlContent || !publishedContent || !selectedTask || isSavingDescription) return;
+
+    setIsSavingDescription(true);
+    try {
+      const xmlDocument = new DOMParser().parseFromString(xmlContent, 'application/xml');
+      if (xmlDocument.getElementsByTagName('parsererror').length > 0) {
+        throw new Error('Le contenu BPMN ne peut pas être analysé.');
+      }
+
+      const targetElement = Array.from(xmlDocument.getElementsByTagName('*')).find(
+        candidate => candidate.getAttribute('id') === selectedTask.id,
+      );
+      if (!targetElement) throw new Error('L’élément sélectionné est introuvable dans le BPMN.');
+
+      const documentationNodes = Array.from(targetElement.children).filter(
+        child => child.localName === 'documentation',
+      );
+      const description = descriptionDraft.trim();
+      const title = titleDraft.trim();
+      const externalUrl = urlDraft.trim();
+
+      if (title) targetElement.setAttribute('name', title);
+      else targetElement.removeAttribute('name');
+
+      const urlAttribute = Array.from(targetElement.attributes).find(attribute => attribute.localName === 'link');
+      if (externalUrl) {
+        if (urlAttribute) urlAttribute.value = externalUrl;
+        else targetElement.setAttribute('link', externalUrl);
+      } else if (urlAttribute) {
+        targetElement.removeAttributeNS(urlAttribute.namespaceURI, urlAttribute.localName);
+      }
+
+      const raciAttributes: Array<{ code: RaciCode; attribute: string }> = [
+        { code: 'R', attribute: 'responsible' },
+        { code: 'A', attribute: 'accountable' },
+        { code: 'C', attribute: 'consulted' },
+        { code: 'I', attribute: 'informed' },
+      ];
+      if (selectedTaskRaci) {
+        const raciNamespace = xmlDocument.documentElement.lookupNamespaceURI('raci') || 'https://ovh-bpmn-tool.local/schema/raci';
+        const hasRaciAssignment = raciAttributes.some(({ code }) => raciMatrix.roles.some(role => (raciDraft[role] ?? []).includes(code)));
+        if (hasRaciAssignment && !xmlDocument.documentElement.lookupNamespaceURI('raci')) {
+          xmlDocument.documentElement.setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:raci', raciNamespace);
+        }
+        raciAttributes.forEach(({ code, attribute }) => {
+          const value = raciMatrix.roles.filter(role => (raciDraft[role] ?? []).includes(code)).join(', ');
+          const existing = Array.from(targetElement.attributes).find(item => item.localName === attribute);
+          if (value) {
+            if (existing) existing.value = value;
+            else {
+              if (hasRaciAssignment) targetElement.setAttributeNS(raciNamespace, `raci:${attribute}`, value);
+              else targetElement.setAttribute(attribute, value);
+            }
+          } else if (existing) {
+            targetElement.removeAttributeNS(existing.namespaceURI, existing.localName);
+          }
+        });
+      }
+
+      if (!description) {
+        documentationNodes.forEach(node => node.remove());
+      } else if (documentationNodes.length) {
+        documentationNodes[0].textContent = description;
+        documentationNodes.slice(1).forEach(node => node.remove());
+      } else {
+        const qualifiedName = targetElement.prefix ? `${targetElement.prefix}:documentation` : 'documentation';
+        const documentationNode = xmlDocument.createElementNS(targetElement.namespaceURI, qualifiedName);
+        documentationNode.textContent = description;
+        const firstElementChild = Array.from(targetElement.childNodes).find(
+          node => node.nodeType === Node.ELEMENT_NODE,
+        );
+        targetElement.insertBefore(documentationNode, firstElementChild ?? null);
+      }
+
+      const updatedXml = new XMLSerializer().serializeToString(xmlDocument);
+      await saveContent(resourceId, publishedContent.id, { content: updatedXml });
+      await queryClient.invalidateQueries(xmlContentQuery.queryKey);
+      setIsEditingDescription(false);
+      showAlert({ message: 'Fiche de l’élément enregistrée.', severity: 'success' });
+    } catch (error) {
+      const reason = error as { response?: { data?: { message?: string | string[] } }; message?: string };
+      const serverMessage = reason.response?.data?.message;
+      showAlert({
+        message: Array.isArray(serverMessage) ? serverMessage.join(', ') : serverMessage || reason.message || 'Impossible d’enregistrer la description.',
+        severity: 'danger',
+      });
+    } finally {
+      setIsSavingDescription(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -412,7 +560,7 @@ export const ProcessDetails = ({
                 {!taskPanelCollapsed && (
                   <Typography level="title-sm">Fiche de l’élément</Typography>
                 )}
-                <IconButton
+                        <IconButton
                   size="sm"
                   variant="plain"
                   color="neutral"
@@ -428,9 +576,44 @@ export const ProcessDetails = ({
                 <Stack spacing={1.5} className="processTaskPanelContent">
                   {selectedTask ? (
                     <>
-                      <Box>
-                        <Typography level="title-lg">{selectedTask.name}</Typography>
-                        <Chip
+                      <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
+                        <Box sx={{ minWidth: 0, flex: 1 }}>
+                          {isEditingDescription ? (
+                            <Input
+                              value={titleDraft}
+                              onChange={event => setTitleDraft(event.target.value)}
+                              placeholder="Titre de l’élément"
+                              aria-label="Titre de l’élément BPMN"
+                              disabled={isSavingDescription}
+                              size="sm"
+                            />
+                          ) : (
+                            <Typography level="title-lg">{selectedTask.name}</Typography>
+                          )}
+                        </Box>
+                        {canEditDescription && !isEditingDescription && (
+                          <IconButton
+                            size="sm"
+                            variant="plain"
+                            color="neutral"
+                            sx={{ ml: 1, mt: 0.25, flex: '0 0 auto' }}
+                            onClick={() => {
+                              setDescriptionDraft(selectedTask.documentation.join('\n\n'));
+                              setTitleDraft(selectedTask.name === selectedTask.id ? '' : selectedTask.name);
+                              setUrlDraft(selectedTask.externalUrl);
+                              const assignments: Record<string, RaciCode[]> = {};
+                              selectedTaskRaci?.cells.forEach(cell => { assignments[cell.role] = [...cell.codes]; });
+                              setRaciDraft(assignments);
+                              setIsEditingDescription(true);
+                            }}
+                            aria-label="Modifier la fiche de l’élément"
+                            title="Modifier la fiche de l’élément"
+                          >
+                            <EditOutlined />
+                          </IconButton>
+                        )}
+                      </Stack>
+                      <Chip
                           size="md"
                           variant="soft"
                           color={getElementTypeBadgeColor(selectedTask.type)}
@@ -450,20 +633,33 @@ export const ProcessDetails = ({
                         </Chip>
                         <Typography level="body-sm">Identifiant : {selectedTask.id}</Typography>
                         <Typography level="body-sm" textColor="neutral">{getElementTypeDescription(selectedTask.type)}</Typography>
-                      </Box>
 
                       <Divider />
                       <Stack spacing={1}>
                         <Typography level="title-sm">1. Description de la tâche</Typography>
-                        {selectedTask.documentation.length ? (
+                        {isEditingDescription && (
+                          <Typography level="body-xs" textColor="neutral">Description modifiable</Typography>
+                        )}
+                        {isEditingDescription && (
+                          <Textarea
+                            value={descriptionDraft}
+                            onChange={event => setDescriptionDraft(event.target.value)}
+                            minRows={4}
+                            maxRows={12}
+                            placeholder="Saisissez la description de cet élément…"
+                            aria-label="Description de l’élément BPMN"
+                            disabled={isSavingDescription}
+                          />
+                        )}
+                        {!isEditingDescription && selectedTask.documentation.length > 0 &&
                           selectedTask.documentation.map((entry, index) => (
                             <Sheet key={index} variant="soft" sx={{ p: 1, borderRadius: 'sm' }}>
                               <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>
                                 {entry}
                               </Typography>
                             </Sheet>
-                          ))
-                        ) : (
+                          ))}
+                        {!isEditingDescription && selectedTask.documentation.length === 0 && (
                           <Typography level="body-sm" textColor="neutral">
                             Aucune description n'est renseignée pour cette tâche.
                           </Typography>
@@ -473,14 +669,38 @@ export const ProcessDetails = ({
                       <Divider />
                       <Stack spacing={1}>
                         <Typography level="title-sm">2. RACI</Typography>
-                        {selectedTaskRaciCells.length ? (
-                          selectedTaskRaciCells.map(cell => (
-                            <Stack key={cell.role} direction="row" spacing={1} alignItems="center">
-                              <Typography level="body-sm" sx={{ flex: 1 }}>{cell.role}</Typography>
-                              <Typography level="title-sm">{cell.codes.join(' / ')}</Typography>
+                        {isEditingDescription && selectedTaskRaci && raciMatrix.roles.length > 0 && raciMatrix.roles.map(role => (
+                          <Stack key={role} direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                            <Typography level="body-sm" sx={{ flex: 1 }}>{role}</Typography>
+                            <Stack direction="row" spacing={0.75}>
+                              {(['R', 'A', 'C', 'I'] as RaciCode[]).map(code => (
+                                <label key={code} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12 }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={(raciDraft[role] ?? []).includes(code)}
+                                    onChange={() => toggleRaciCode(role, code)}
+                                    disabled={isSavingDescription}
+                                    aria-label={`${code} pour ${role}`}
+                                  />
+                                  {code}
+                                </label>
+                              ))}
                             </Stack>
-                          ))
-                        ) : (
+                          </Stack>
+                        ))}
+                        {isEditingDescription && !selectedTaskRaci && (
+                          <Typography level="body-sm" textColor="neutral">Le RACI est disponible pour les activités BPMN.</Typography>
+                        )}
+                        {isEditingDescription && selectedTaskRaci && raciMatrix.roles.length === 0 && (
+                          <Typography level="body-sm" textColor="neutral">Aucun rôle disponible pour le RACI.</Typography>
+                        )}
+                        {!isEditingDescription && selectedTaskRaciCells.length > 0 && selectedTaskRaciCells.map(cell => (
+                          <Stack key={cell.role} direction="row" spacing={1} alignItems="center">
+                            <Typography level="body-sm" sx={{ flex: 1 }}>{cell.role}</Typography>
+                            <Typography level="title-sm">{cell.codes.join(' / ')}</Typography>
+                          </Stack>
+                        ))}
+                        {!isEditingDescription && selectedTaskRaciCells.length === 0 && (
                           <Typography level="body-sm" textColor="neutral">
                             Aucun rôle RACI détecté pour cette tâche.
                           </Typography>
@@ -493,7 +713,17 @@ export const ProcessDetails = ({
                       <Divider />
                       <Stack spacing={1}>
                         <Typography level="title-sm">3. Documentation</Typography>
-                        {selectedTask.externalUrl ? (
+                        {isEditingDescription && (
+                          <Input
+                            value={urlDraft}
+                            onChange={event => setUrlDraft(event.target.value)}
+                            placeholder="https://…"
+                            aria-label="URL de documentation"
+                            disabled={isSavingDescription}
+                            size="sm"
+                          />
+                        )}
+                        {!isEditingDescription && selectedTask.externalUrl && (
                           <Typography level="body-sm">
                             <a
                               href={selectedTask.externalUrl.startsWith('http://') || selectedTask.externalUrl.startsWith('https://') ? selectedTask.externalUrl : `https://${selectedTask.externalUrl}`}
@@ -503,7 +733,10 @@ export const ProcessDetails = ({
                               {selectedTask.externalUrl}
                             </a>
                           </Typography>
-                        ) : null}
+                        )}
+                        {!isEditingDescription && !selectedTask.externalUrl && (
+                          <Typography level="body-sm" textColor="neutral">Aucune URL renseignée.</Typography>
+                        )}
                       </Stack>
                     </>
                   ) : (
@@ -514,6 +747,34 @@ export const ProcessDetails = ({
                       </Typography>
                     </Stack>
                   )}
+                </Stack>
+              )}
+              {!taskPanelCollapsed && selectedTask && isEditingDescription && (
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  justifyContent="flex-end"
+                  className="processTaskPanelEditActions"
+                >
+                  <Button
+                    size="sm"
+                    variant="outlined"
+                    color="neutral"
+                    disabled={isSavingDescription}
+                    onClick={cancelDescriptionEdit}
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="solid"
+                    color="primary"
+                    loading={isSavingDescription}
+                    disabled={isSavingDescription}
+                    onClick={saveDescriptionEdit}
+                  >
+                    Enregistrer
+                  </Button>
                 </Stack>
               )}
             </Sheet>

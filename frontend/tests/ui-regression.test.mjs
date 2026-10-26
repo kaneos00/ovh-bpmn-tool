@@ -242,3 +242,28 @@ test('viewer gets a fresh BPMN instance when the selected process or published v
   assert.ok(details.includes('key={`${resourceId}:${publishedContent.id}`}'));
   assert.match(details, /key=\{\`\$\{resourceId\}:\$\{publishedContent\.id\}\`\}[\s\S]*?resourceId=\{resourceId\}[\s\S]*?contentId=\{publishedContent\.id\}/);
 });
+
+test('viewer element details editing is permission-gated and saves title, description, RACI and URL', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const styles = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.scss');
+
+  assert.match(details, /fetch\(\`\$\{apiBase\}\/auth\/session\`/);
+  assert.match(details, /sessionRole === 'admin' \|\| sessionRole === 'modeler'/);
+  assert.match(details, /canEditDescription && !isEditingDescription/);
+  assert.match(details, /aria-label="Modifier la fiche de l’élément"/);
+  assert.match(details, /<Input[\s\S]*?value=\{titleDraft\}[\s\S]*?onChange=/);
+  assert.match(details, /<Textarea[\s\S]*?value=\{descriptionDraft\}[\s\S]*?onChange=/);
+  assert.match(details, /<Input[\s\S]*?value=\{urlDraft\}[\s\S]*?onChange=/);
+  assert.match(details, /toggleRaciCode/);
+  assert.match(details, /attribute: 'responsible'/);
+  assert.match(details, /attribute: 'accountable'/);
+  assert.match(details, /attribute: 'consulted'/);
+  assert.match(details, /attribute: 'informed'/);
+  assert.match(details, /<Button[\s\S]*?onClick=\{cancelDescriptionEdit\}[\s\S]*?Annuler/);
+  assert.match(details, /<Button[\s\S]*?onClick=\{saveDescriptionEdit\}[\s\S]*?Enregistrer/);
+  assert.match(details, /await saveContent\(resourceId, publishedContent\.id, \{ content: updatedXml \}\)/);
+  assert.match(details, /new XMLSerializer\(\)\.serializeToString\(xmlDocument\)/);
+  assert.match(details, /await queryClient\.invalidateQueries\(xmlContentQuery\.queryKey\)/);
+  assert.match(details, /sx=\{\{ ml: 1, mt: 0\.25, flex: '0 0 auto' \}\}/);
+  assert.match(styles, /\.processTaskPanelEditActions\s*\{[^}]*border-top:/s);
+});
