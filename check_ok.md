@@ -29,6 +29,12 @@ Dernière mise à jour : 26 octobre 2026. Les statuts ci-dessous reposent sur de
 | 43 | Afficher un descriptif pédagogique du type BPMN dans le panneau droit, sous l’identifiant | Oui | Recette utilisateur du 26/10/2026 : OK | ✅ **Validé par recette navigateur le 26/10/2026** | Facile | Faible — IHM |
 
 
+## C. Édition depuis le Viewer
+
+| N° | Point / résultat attendu | Traité dans le code ? | Test fonctionnel | Statut / prochaine action | Facilité | Impact |
+|---:|---|---|---|---|---|---|
+| 50 | Modification de la description d'un élément BPMN depuis la fiche du Viewer pour les rôles admin/modélisateur | Oui : édition et sauvegarde via l'API de contenu existante | Recette utilisateur sur Coolify après déploiement manuel du commit `78afca4` : fonctionnement confirmé | ✅ **Validé par recette utilisateur le 26/10/2026**. L'anomalie d'affichage de l'identifiant de commit à côté de « FHI Flow » est suivie séparément dans le ticket #84 ; elle n'empêche pas la validation de cette fonctionnalité | Moyenne | Moyen — édition BPMN / panneau droit |
+
 ## D. Hiérarchie des processus — tickets clôturés
 
 | N° | Point / résultat attendu | Traité dans le code ? | Test fonctionnel | Statut / prochaine action | Facilité | Impact |
