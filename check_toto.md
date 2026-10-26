@@ -1,6 +1,6 @@
 # Tickets à corriger ou à valider
 
-Dernière mise à jour : 26 octobre 2026. Recette navigateur utilisateur du 26/10/2026 intégrée. Priorité de développement demandée : ticket 39 uniquement. Le ticket 46 est reporté jusqu'à la fin du ticket 39. Le ticket 10 reste explicitement en pause.
+Dernière mise à jour : 26 octobre 2026. Recette navigateur utilisateur du 26/10/2026 intégrée. Correction prioritaire demandée le 26/10/2026 : ticket 29 uniquement (à la place du ticket 39, erreur de numéro signalée par l'utilisateur). Le ticket 46 est reporté jusqu'à la fin du ticket 29. Les tickets 13 et 10 restent hors périmètre ; le ticket 10 reste explicitement en pause.
 
 ## A. Correctifs V2.1 et régressions à fermer
 
@@ -22,7 +22,7 @@ Dernière mise à jour : 26 octobre 2026. Recette navigateur utilisateur du 26/1
 
 | N° | Point / résultat attendu | Traité dans le code ? | Test fonctionnel | Statut / prochaine action | Facilité | Impact |
 |---:|---|---|---|---|---|---|
-| 29 | Dans l'explorateur, placer sous chaque processus parent les processus référencés par ses Call Activities et SubProcess BPMN repliés | Correction d'extraction candidate présente ; échec fonctionnel encore constaté | Recette utilisateur du 26/10/2026 : KO. Le double-clic navigue vers le processus cible mais l'affichage échoue avec `can't access property "id", e is undefined` | 🔴 **KO confirmé — à diagnostiquer séparément**. Reproduire l'erreur de chargement du diagramme et identifier la référence/objet indéfini. Ne pas modifier ce ticket pendant le travail sur le ticket 39 | Difficile | Moyen — plusieurs IHM / backend |
+| 29 | Dans l'explorateur, placer sous chaque processus parent les processus référencés par ses Call Activities et SubProcess BPMN repliés | Correction d'extraction candidate présente ; échec fonctionnel encore constaté | Recette utilisateur du 26/10/2026 : KO. Le double-clic navigue vers le processus cible mais l'affichage échoue avec `can't access property "id", e is undefined` | 🔴 **KO confirmé — priorité de correction actuelle**. Reproduire l'erreur de chargement du diagramme et identifier la référence/objet indéfini (`can't access property "id", e is undefined`). Corriger et ajouter un test de non-régression. Ne pas toucher aux tickets 13, 46 ou 10 pendant ce travail | Difficile | Moyen — plusieurs IHM / backend |
 
 ## E. Couleurs BPMN, recherche et données
 
@@ -37,13 +37,13 @@ Dernière mise à jour : 26 octobre 2026. Recette navigateur utilisateur du 26/1
 |---:|---|---|---|---|---|---|
 | 42 | Donner aux gateways BPMN (Exclusive, Parallel, Inclusive, Complex et Event-Based) un contour et un motif intérieur violets cohérents ; badge du panneau droit violet également, sans modifier les remplissages existants | Style commun présent pour les types de passerelles | Recette utilisateur du 26/10/2026 : OK | ✅ **Validé par recette navigateur le 26/10/2026** | Facile | Faible — IHM |
 | 43 | Afficher dans le panneau droit, juste sous l’identifiant de l’élément sélectionné, un descriptif pédagogique du rôle de son type BPMN | Code présent pour les principaux types BPMN | Recette utilisateur du 26/10/2026 : OK | ✅ **Validé par recette navigateur le 26/10/2026** | Facile | Faible — IHM |
-| 46 | Recherche d'annotations BPMN : afficher « Description » pour une annotation, rechercher son texte et sélectionner/surligner l'élément BPMN correspondant au clic, dans le processus courant ou après navigation vers un autre processus | Correctif candidat présent : libellé « Description », indexation du texte des TextAnnotation et résolution des IDs dans le registre du diagramme courant | Recette utilisateur du 26/10/2026 : KO. Le résultat de recherche ouvre le bon processus, mais l'élément n'est pas sélectionné | ⏸️ **Reporté après le ticket 39**, conformément à la demande utilisateur. Ne pas intervenir sur le ticket 46 avant que le ticket 39 soit corrigé et retesté | Moyenne | Moyen — recherche / navigation BPMN |
+| 46 | Recherche d'annotations BPMN : afficher « Description » pour une annotation, rechercher son texte et sélectionner/surligner l'élément BPMN correspondant au clic, dans le processus courant ou après navigation vers un autre processus | Correctif candidat présent : libellé « Description », indexation du texte des TextAnnotation et résolution des IDs dans le registre du diagramme courant | Recette utilisateur du 26/10/2026 : KO. Le résultat de recherche ouvre le bon processus, mais l'élément n'est pas sélectionné | ⏸️ **Reporté après le ticket 29**, conformément à la demande utilisateur. Ne pas intervenir sur le ticket 46 avant que le ticket 29 soit corrigé et retesté | Moyenne | Moyen — recherche / navigation BPMN |
 
-## Ticket 39 — vérification de la formulation des actions
+## Ticket 39 — vérification de la formulation des actions (hors priorité actuelle)
 
 | N° | Point / résultat attendu | Traité dans le code ? | Test fonctionnel | Statut / prochaine action | Facilité | Impact |
 |---:|---|---|---|---|---|---|
-| 39 | Ajouter un mécanisme de vérification de la formulation des actions BPMN, pour aider à identifier les libellés ambigus ou mal formulés | Non confirmé ; ticket promu en priorité de développement à la demande de l'utilisateur | Aucun test exécuté | 🔵 **Seul ticket à développer dans le lot courant.** Avant codage, examiner les champs et validations existants ; définir des règles vérifiables et non bloquantes, puis ajouter des tests. Ne pas commencer les tickets 13, 29 ou 46 dans ce lot | Difficile | Fort — qualité métier / IHM |
+| 39 | Ajouter un mécanisme de vérification de la formulation des actions BPMN, pour aider à identifier les libellés ambigus ou mal formulés | Non confirmé ; ticket promu en priorité de développement à la demande de l'utilisateur | Aucun test exécuté | ⏸️ **Hors périmètre actuel** : l'utilisateur a corrigé sa demande ; la priorité est le ticket 29. Ne pas développer le ticket 39 tant que la priorité n'a pas été redéfinie | Difficile | Fort — qualité métier / IHM |
 
 ## Identifiant de version déployée
 
