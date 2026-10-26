@@ -19,7 +19,7 @@ ENV VITE_BUILD_BRANCH=${VITE_BUILD_BRANCH}
 # When Coolify does not provide Git metadata, derive a reproducible identifier
 # from the exact frontend source and dependency manifests in this image build.
 RUN set -eu; \
-    SOURCE_HASH="$( { find src dev -type f -print0 | sort -z | xargs -0 sha256sum; sha256sum package.json pnpm-lock.yaml pnpm-workspace.yaml; } | sha256sum | cut -c1-12)"; \
+    SOURCE_HASH="$( { find src dev -type f | LC_ALL=C sort | while IFS= read -r file; do sha256sum "$file"; done; sha256sum package.json pnpm-lock.yaml pnpm-workspace.yaml; } | sha256sum | cut -c1-12)"; \
     if [ "$VITE_BUILD_ID" = "unknown" ]; then \
       if [ "$VITE_BUILD_COMMIT" != "unknown" ]; then VITE_BUILD_ID="$VITE_BUILD_COMMIT"; \
       else VITE_BUILD_ID="src-$SOURCE_HASH"; fi; \
