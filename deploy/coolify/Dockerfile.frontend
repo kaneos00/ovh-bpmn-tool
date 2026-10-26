@@ -26,10 +26,7 @@ RUN set -eu; \
     SOURCE_HASH="$( { find src dev -type f | LC_ALL=C sort | while IFS= read -r file; do sha256sum "$file"; done; sha256sum package.json pnpm-lock.yaml pnpm-workspace.yaml; } | sha256sum | cut -c1-12)"; \
     if [ "$VITE_BUILD_COMMIT" = "unknown" ] && [ "$SOURCE_COMMIT" != "unknown" ]; then VITE_BUILD_COMMIT="$SOURCE_COMMIT"; fi; \
     if [ "$VITE_BUILD_BRANCH" = "unknown" ] && [ "$COOLIFY_BRANCH" != "unknown" ]; then VITE_BUILD_BRANCH="$COOLIFY_BRANCH"; fi; \
-    if [ "$VITE_BUILD_ID" = "unknown" ]; then \
-      if [ "$VITE_BUILD_COMMIT" != "unknown" ]; then VITE_BUILD_ID="$VITE_BUILD_COMMIT"; \
-      else VITE_BUILD_ID="src-$SOURCE_HASH"; fi; \
-    fi; \
+    if [ "$VITE_BUILD_ID" = "unknown" ]; then VITE_BUILD_ID="src-$SOURCE_HASH"; fi; \
     export VITE_BUILD_ID VITE_BUILD_RUN_NUMBER VITE_BUILD_COMMIT VITE_BUILD_BRANCH; \
     pnpm build
 
