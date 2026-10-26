@@ -6,6 +6,7 @@ import {
   Chip,
   Divider,
   IconButton,
+  Input,
   Sheet,
   Skeleton,
   Stack,
@@ -28,7 +29,7 @@ import { useSnackbar } from '../../../shared/hooks/useSnackbar';
 import {
   deriveRaciMatrixFromXml,
 } from '../../../extensions/raci-viewer';
-import { analyzeRaciMatrix } from '../../../extensions/raci-engine';
+import { analyzeRaciMatrix, type RaciCode } from '../../../extensions/raci-engine';
 import { ConditionalRender } from '../../../Components/GenericComponents/ConditionalRender/ConditionalRender';
 import { DropZone } from '../../../Components/GenericComponents/DropZone/DropZone';
 
@@ -127,6 +128,9 @@ export const ProcessDetails = ({
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState('');
+  const [titleDraft, setTitleDraft] = useState('');
+  const [urlDraft, setUrlDraft] = useState('');
+  const [raciDraft, setRaciDraft] = useState<Record<string, RaciCode[]>>({});
   const [isSavingDescription, setIsSavingDescription] = useState(false);
   const canEditDescription = sessionRole === 'admin' || sessionRole === 'modeler';
 
@@ -258,11 +262,31 @@ export const ProcessDetails = ({
   useEffect(() => {
     setIsEditingDescription(false);
     setDescriptionDraft(selectedTask?.documentation.join('\n\n') ?? '');
-  }, [selectedElementId, xmlContent]);
+    setTitleDraft(selectedTask?.name === selectedTask?.id ? '' : selectedTask?.name ?? '');
+    setUrlDraft(selectedTask?.externalUrl ?? '');
+    const assignments: Record<string, RaciCode[]> = {};
+    selectedTaskRaci?.cells.forEach(cell => { assignments[cell.role] = [...cell.codes]; });
+    setRaciDraft(assignments);
+  }, [selectedElementId, xmlContent, selectedTaskRaci, selectedTask]);
 
   const cancelDescriptionEdit = () => {
     setDescriptionDraft(selectedTask?.documentation.join('\n\n') ?? '');
+    setTitleDraft(selectedTask?.name === selectedTask?.id ? '' : selectedTask?.name ?? '');
+    setUrlDraft(selectedTask?.externalUrl ?? '');
+    const assignments: Record<string, RaciCode[]> = {};
+    selectedTaskRaci?.cells.forEach(cell => { assignments[cell.role] = [...cell.codes]; });
+    setRaciDraft(assignments);
     setIsEditingDescription(false);
+  };
+
+  const toggleRaciCode = (role: string, code: RaciCode) => {
+    setRaciDraft(current => {
+      const codes = current[role] ?? [];
+      return {
+        ...current,
+        [role]: codes.includes(code) ? codes.filter(value => value !== code) : [...codes, code],
+      };
+    });
   };
 
   const saveDescriptionEdit = async () => {
@@ -284,6 +308,36 @@ export const ProcessDetails = ({
         child => child.localName === 'documentation',
       );
       const description = descriptionDraft.trim();
+      const title = titleDraft.trim();
+      const externalUrl = urlDraft.trim();
+
+      if (title) targetElement.setAttribute('name', title);
+      else targetElement.removeAttribute('name');
+
+      const urlAttribute = Array.from(targetElement.attributes).find(attribute => attribute.localName === 'link');
+      if (externalUrl) {
+        if (urlAttribute) urlAttribute.value = externalUrl;
+        else targetElement.setAttribute('link', externalUrl);
+      } else if (urlAttribute) {
+        targetElement.removeAttributeNS(urlAttribute.namespaceURI, urlAttribute.localName);
+      }
+
+      const raciAttributes: Array<{ code: RaciCode; attribute: string }> = [
+        { code: 'R', attribute: 'responsible' },
+        { code: 'A', attribute: 'accountable' },
+        { code: 'C', attribute: 'consulted' },
+        { code: 'I', attribute: 'informed' },
+      ];
+      raciAttributes.forEach(({ code, attribute }) => {
+        const value = raciMatrix.roles.filter(role => (raciDraft[role] ?? []).includes(code)).join(', ');
+        const existing = Array.from(targetElement.attributes).find(item => item.localName === attribute);
+        if (value) {
+          if (existing) existing.value = value;
+          else targetElement.setAttribute(attribute, value);
+        } else if (existing) {
+          targetElement.removeAttributeNS(existing.namespaceURI, existing.localName);
+        }
+      });
 
       if (!description) {
         documentationNodes.forEach(node => node.remove());
@@ -304,7 +358,7 @@ export const ProcessDetails = ({
       await saveContent(resourceId, publishedContent.id, { content: updatedXml });
       await queryClient.invalidateQueries(xmlContentQuery.queryKey);
       setIsEditingDescription(false);
-      showAlert({ message: 'Description enregistrée.', severity: 'success' });
+      showAlert({ message: 'Fiche de l’élément enregistrée.', severity: 'success' });
     } catch (error) {
       const reason = error as { response?: { data?: { message?: string | string[] } }; message?: string };
       const serverMessage = reason.response?.data?.message;
@@ -496,25 +550,7 @@ export const ProcessDetails = ({
                 {!taskPanelCollapsed && (
                   <Typography level="title-sm">Fiche de l’élément</Typography>
                 )}
-                {!taskPanelCollapsed && selectedTask && canEditDescription && !isEditingDescription && (
-                  <Button
-                    size="sm"
-                    variant="plain"
-                    color="neutral"
-                    startDecorator={<EditOutlined />}
-                    onClick={event => {
-                      event.stopPropagation();
-                      setDescriptionDraft(selectedTask.documentation.join('\n\n'));
-                      setIsEditingDescription(true);
-                    }}
-                    aria-label="Modifier la description de l’élément"
-                    title="Modifier la description"
-                    onKeyDown={event => event.stopPropagation()}
-                  >
-                    Éditer
-                  </Button>
-                )}
-                <IconButton
+                        <IconButton
                   size="sm"
                   variant="plain"
                   color="neutral"
@@ -530,9 +566,44 @@ export const ProcessDetails = ({
                 <Stack spacing={1.5} className="processTaskPanelContent">
                   {selectedTask ? (
                     <>
-                      <Box>
-                        <Typography level="title-lg">{selectedTask.name}</Typography>
-                        <Chip
+                      <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
+                        <Box sx={{ minWidth: 0, flex: 1 }}>
+                          {isEditingDescription ? (
+                            <Input
+                              value={titleDraft}
+                              onChange={event => setTitleDraft(event.target.value)}
+                              placeholder="Titre de l’élément"
+                              aria-label="Titre de l’élément BPMN"
+                              disabled={isSavingDescription}
+                              size="sm"
+                            />
+                          ) : (
+                            <Typography level="title-lg">{selectedTask.name}</Typography>
+                          )}
+                        </Box>
+                        {canEditDescription && !isEditingDescription && (
+                          <IconButton
+                            size="sm"
+                            variant="plain"
+                            color="neutral"
+                            sx={{ ml: 1, mt: 0.25, flex: '0 0 auto' }}
+                            onClick={() => {
+                              setDescriptionDraft(selectedTask.documentation.join('\n\n'));
+                              setTitleDraft(selectedTask.name === selectedTask.id ? '' : selectedTask.name);
+                              setUrlDraft(selectedTask.externalUrl);
+                              const assignments: Record<string, RaciCode[]> = {};
+                              selectedTaskRaci?.cells.forEach(cell => { assignments[cell.role] = [...cell.codes]; });
+                              setRaciDraft(assignments);
+                              setIsEditingDescription(true);
+                            }}
+                            aria-label="Modifier la fiche de l’élément"
+                            title="Modifier la fiche de l’élément"
+                          >
+                            <EditOutlined />
+                          </IconButton>
+                        )}
+                      </Stack>
+                      <Chip
                           size="md"
                           variant="soft"
                           color={getElementTypeBadgeColor(selectedTask.type)}
@@ -557,6 +628,9 @@ export const ProcessDetails = ({
                       <Divider />
                       <Stack spacing={1}>
                         <Typography level="title-sm">1. Description de la tâche</Typography>
+                        {isEditingDescription && (
+                          <Typography level="body-xs" textColor="neutral">Description modifiable</Typography>
+                        )}
                         {isEditingDescription && (
                           <Textarea
                             value={descriptionDraft}
@@ -586,7 +660,27 @@ export const ProcessDetails = ({
                       <Divider />
                       <Stack spacing={1}>
                         <Typography level="title-sm">2. RACI</Typography>
-                        {selectedTaskRaciCells.length ? (
+                        {isEditingDescription ? (
+                          raciMatrix.roles.length ? raciMatrix.roles.map(role => (
+                            <Stack key={role} direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                              <Typography level="body-sm" sx={{ flex: 1 }}>{role}</Typography>
+                              <Stack direction="row" spacing={0.75}>
+                                {(['R', 'A', 'C', 'I'] as RaciCode[]).map(code => (
+                                  <label key={code} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12 }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={(raciDraft[role] ?? []).includes(code)}
+                                      onChange={() => toggleRaciCode(role, code)}
+                                      disabled={isSavingDescription}
+                                      aria-label={`${code} pour ${role}`}
+                                    />
+                                    {code}
+                                  </label>
+                                ))}
+                              </Stack>
+                            </Stack>
+                          )) : <Typography level="body-sm" textColor="neutral">Aucun rôle disponible pour le RACI.</Typography>
+                        ) : selectedTaskRaciCells.length ? (
                           selectedTaskRaciCells.map(cell => (
                             <Stack key={cell.role} direction="row" spacing={1} alignItems="center">
                               <Typography level="body-sm" sx={{ flex: 1 }}>{cell.role}</Typography>
@@ -606,7 +700,16 @@ export const ProcessDetails = ({
                       <Divider />
                       <Stack spacing={1}>
                         <Typography level="title-sm">3. Documentation</Typography>
-                        {selectedTask.externalUrl ? (
+                        {isEditingDescription ? (
+                          <Input
+                            value={urlDraft}
+                            onChange={event => setUrlDraft(event.target.value)}
+                            placeholder="https://…"
+                            aria-label="URL de documentation"
+                            disabled={isSavingDescription}
+                            size="sm"
+                          />
+                        ) : selectedTask.externalUrl ? (
                           <Typography level="body-sm">
                             <a
                               href={selectedTask.externalUrl.startsWith('http://') || selectedTask.externalUrl.startsWith('https://') ? selectedTask.externalUrl : `https://${selectedTask.externalUrl}`}
@@ -616,7 +719,7 @@ export const ProcessDetails = ({
                               {selectedTask.externalUrl}
                             </a>
                           </Typography>
-                        ) : null}
+                        ) : <Typography level="body-sm" textColor="neutral">Aucune URL renseignée.</Typography>}
                       </Stack>
                     </>
                   ) : (
