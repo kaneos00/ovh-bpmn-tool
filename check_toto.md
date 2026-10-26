@@ -43,7 +43,7 @@ Dernière mise à jour : 26 octobre 2026. La correction du double-clic SubProces
 
 | N° | Point / résultat attendu | Traité dans le code ? | Test fonctionnel | Statut / prochaine action | Facilité | Impact |
 |---:|---|---|---|---|---|---|
-| 49 | Afficher un identifiant unique et fiable de la version réellement déployée, afin de distinguer sans ambiguïté les builds testés dans l'instance | À analyser et corriger sur la branche de travail | Pas encore testé après correction | 🔴 **À corriger puis valider** : afficher un identifiant de build unique (au minimum SHA court du commit, idéalement accompagné de la date de build), injecté au build et consultable clairement dans l'application ; vérifier qu'un nouveau déploiement affiche bien le nouvel identifiant et qu'il correspond au commit déployé | Moyenne | Faible — IHM / configuration de build |
+| 49 | Afficher un identifiant unique et fiable de la version réellement déployée, afin de distinguer sans ambiguïté les builds testés dans l'instance | Implémentation candidate ajoutée : badge discret dans l'application ; Dockerfile calcule un identifiant source si Coolify ne fournit pas de SHA Git ; Compose transmet `VITE_BUILD_ID` | CI en cours ; recette navigateur après déploiement nécessaire | 🟡 **À vérifier après CI et déploiement de test** : confirmer que le badge `Build …` apparaît en bas à droite, que l'identifiant est stable pour le même contenu et change quand le code source change ; si Coolify fournit `VITE_BUILD_COMMIT`, le commit est affiché en priorité | Moyenne | Faible — IHM / configuration de build |
 
 
 ## Règles de suivi
