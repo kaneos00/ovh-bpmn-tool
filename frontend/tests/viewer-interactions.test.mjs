@@ -144,8 +144,8 @@ test('minimap internal open/close control is hidden while the toolbar toggle rem
 test('data references are selectable and task URLs open on double-click', async () => {
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
 
-  assert.ok(hook.includes("element.type === 'bpmn:DataStoreReference'"));
-  assert.ok(hook.includes("element.type === 'bpmn:DataObjectReference'"));
+  assert.ok(hook.includes("element?.type === 'bpmn:DataStoreReference'"));
+  assert.ok(hook.includes("element?.type === 'bpmn:DataObjectReference'"));
   assert.ok(hook.includes("const isTaskWithUrl ="));
   assert.ok(hook.includes("window.open(normalizedUrl, '_blank', 'noopener,noreferrer')"));
 });
