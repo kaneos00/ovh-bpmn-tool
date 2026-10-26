@@ -163,9 +163,13 @@ function RechercheModule(
         button.appendChild(badge);
         const title = document.createElement('div'); title.textContent = result.name || result.id || result.processName || 'Résultat'; title.style.fontWeight = '600'; button.appendChild(title);
         const details = document.createElement('div');
-        const resultType = result.type.toLocaleLowerCase('en') === 'bpmn:textannotation'
+        const normalizedResultType = String(result.type ?? '')
+          .split(':')
+          .pop()
+          ?.toLocaleLowerCase('en');
+        const resultType = normalizedResultType === 'textannotation'
           ? 'Description'
-          : result.type.replace(/^bpmn:/, '');
+          : String(result.type ?? '').replace(/^bpmn:/i, '');
         details.textContent = [resultType, result.processName, result.resourceName, result.role, result.raci].filter(Boolean).join(' · ');
         Object.assign(details.style, { fontSize: '11px', color: '#66758a', marginTop: '2px' }); button.appendChild(details);
         if (result.documentation) {
