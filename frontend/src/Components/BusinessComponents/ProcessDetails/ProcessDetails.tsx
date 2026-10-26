@@ -660,34 +660,35 @@ export const ProcessDetails = ({
                       <Divider />
                       <Stack spacing={1}>
                         <Typography level="title-sm">2. RACI</Typography>
-                        {isEditingDescription ? (
-                          raciMatrix.roles.length ? raciMatrix.roles.map(role => (
-                            <Stack key={role} direction="row" spacing={1} alignItems="center" justifyContent="space-between">
-                              <Typography level="body-sm" sx={{ flex: 1 }}>{role}</Typography>
-                              <Stack direction="row" spacing={0.75}>
-                                {(['R', 'A', 'C', 'I'] as RaciCode[]).map(code => (
-                                  <label key={code} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12 }}>
-                                    <input
-                                      type="checkbox"
-                                      checked={(raciDraft[role] ?? []).includes(code)}
-                                      onChange={() => toggleRaciCode(role, code)}
-                                      disabled={isSavingDescription}
-                                      aria-label={`${code} pour ${role}`}
-                                    />
-                                    {code}
-                                  </label>
-                                ))}
-                              </Stack>
+                        {isEditingDescription && raciMatrix.roles.length > 0 && raciMatrix.roles.map(role => (
+                          <Stack key={role} direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                            <Typography level="body-sm" sx={{ flex: 1 }}>{role}</Typography>
+                            <Stack direction="row" spacing={0.75}>
+                              {(['R', 'A', 'C', 'I'] as RaciCode[]).map(code => (
+                                <label key={code} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12 }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={(raciDraft[role] ?? []).includes(code)}
+                                    onChange={() => toggleRaciCode(role, code)}
+                                    disabled={isSavingDescription}
+                                    aria-label={`${code} pour ${role}`}
+                                  />
+                                  {code}
+                                </label>
+                              ))}
                             </Stack>
-                          )) : <Typography level="body-sm" textColor="neutral">Aucun rôle disponible pour le RACI.</Typography>
-                        ) : selectedTaskRaciCells.length ? (
-                          selectedTaskRaciCells.map(cell => (
-                            <Stack key={cell.role} direction="row" spacing={1} alignItems="center">
-                              <Typography level="body-sm" sx={{ flex: 1 }}>{cell.role}</Typography>
-                              <Typography level="title-sm">{cell.codes.join(' / ')}</Typography>
-                            </Stack>
-                          ))
-                        ) : (
+                          </Stack>
+                        ))}
+                        {isEditingDescription && raciMatrix.roles.length === 0 && (
+                          <Typography level="body-sm" textColor="neutral">Aucun rôle disponible pour le RACI.</Typography>
+                        )}
+                        {!isEditingDescription && selectedTaskRaciCells.length > 0 && selectedTaskRaciCells.map(cell => (
+                          <Stack key={cell.role} direction="row" spacing={1} alignItems="center">
+                            <Typography level="body-sm" sx={{ flex: 1 }}>{cell.role}</Typography>
+                            <Typography level="title-sm">{cell.codes.join(' / ')}</Typography>
+                          </Stack>
+                        ))}
+                        {!isEditingDescription && selectedTaskRaciCells.length === 0 && (
                           <Typography level="body-sm" textColor="neutral">
                             Aucun rôle RACI détecté pour cette tâche.
                           </Typography>
