@@ -298,8 +298,9 @@ jobs:
       - frontend
       - backend
       - coolify-demo
-    # Deploy only after a push has passed every CI job. Never deploy pull requests.
-    if: github.event_name == 'push'
+    # Keep CI independent from Coolify credentials. Opt in to deployment only after
+    # COOLIFY_WEBHOOK_URL and COOLIFY_TOKEN are configured and verified.
+    if: github.event_name == 'push' && vars.COOLIFY_DEPLOY_ENABLED == 'true'
     steps:
       - name: Trigger Coolify deployment
         env:
