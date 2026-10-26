@@ -509,6 +509,7 @@ export const ProcessDetails = ({
                     }}
                     aria-label="Modifier la description de l’élément"
                     title="Modifier la description"
+                    onKeyDown={event => event.stopPropagation()}
                   >
                     Éditer
                   </Button>
