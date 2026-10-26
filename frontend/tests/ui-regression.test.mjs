@@ -209,3 +209,18 @@ test('selected BPMN element shows a pedagogical type description immediately bel
   assert.ok(details.includes("endEvent: 'Événement de fin : indique la fin"));
   assert.match(details, /Identifiant : \{selectedTask\.id\}<\/Typography>\s*<Typography level="body-sm" textColor="neutral">\{getElementTypeDescription\(selectedTask\.type\)\}/);
 });
+
+
+test('deployed frontend exposes a build identifier with a source-derived fallback', async () => {
+  const mainContainer = await read('src/MainContainer.tsx');
+  const dockerfile = await read('../deploy/coolify/Dockerfile.frontend');
+  const compose = await read('../deploy/coolify/compose.yaml');
+
+  assert.ok(mainContainer.includes('VITE_BUILD_ID'));
+  assert.ok(mainContainer.includes('Identifiant de version déployée'));
+  assert.ok(mainContainer.includes('buildDetails'));
+  assert.ok(dockerfile.includes('ARG VITE_BUILD_ID=unknown'));
+  assert.ok(dockerfile.includes('SOURCE_HASH='));
+  assert.ok(dockerfile.includes('VITE_BUILD_ID="src-$SOURCE_HASH"'));
+  assert.ok(compose.includes('VITE_BUILD_ID: ${VITE_BUILD_ID:-unknown}'));
+});
