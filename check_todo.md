@@ -49,7 +49,6 @@ Dernière mise à jour : 26 octobre 2026. Ticket 29 validé par l'utilisateur su
 
 | N° | Point / résultat attendu | Traité dans le code ? | Test fonctionnel | Statut / prochaine action | Facilité | Impact |
 |---:|---|---|---|---|---|---|
-| 50 | Permettre au modeleur ou à l'administrateur de modifier la description de l'élément BPMN depuis la fiche du Viewer, avec un bouton « Éditer » dans l'en-tête et « Enregistrer » / « Annuler » en bas du panneau, sans modifier la disposition ni l'esthétique existantes | Implémentation ajoutée sur la branche `feat/viewer-edit-description-2026-10-26` : édition du champ documentation BPMN, sauvegarde via l'API de contenu existante, visibilité du bouton conditionnée au rôle de session | Tests de régression statiques ajoutés ; CI et recette navigateur encore nécessaires | 🟡 **À valider** : vérifier le bouton pour admin/modélisateur et son absence pour lecteur ; enregistrer une description existante, en créer une, l'effacer, annuler une modification, vérifier la persistance après rechargement. Le RACI et l'URL restent en lecture seule dans ce premier lot. Le ticket 46 reste en pause | Moyenne | Moyen — édition BPMN / panneau droit |
 
 ## Identifiant de version déployée
 
