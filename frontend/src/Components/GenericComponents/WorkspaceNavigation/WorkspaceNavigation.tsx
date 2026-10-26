@@ -135,7 +135,12 @@ export const WorkspaceNavigation = () => {
   const buildId = String(import.meta.env.VITE_BUILD_ID || '').trim();
   const hasBuildCommit = Boolean(buildCommit && buildCommit !== 'unknown');
   const hasBuildId = Boolean(buildId && buildId !== 'unknown');
-  const visibleBuildId = hasBuildCommit ? buildCommit.slice(0, 7) : (hasBuildId ? buildId : 'ID absent');
+  let visibleBuildId = 'ID absent';
+  if (hasBuildCommit) {
+    visibleBuildId = buildCommit.slice(0, 7);
+  } else if (hasBuildId) {
+    visibleBuildId = buildId;
+  }
   const [globalRole, setGlobalRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
 
   useEffect(() => {
