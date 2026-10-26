@@ -13,16 +13,18 @@ import {
   TabList,
   TabPanel,
   Tabs,
+  Textarea,
   Typography,
 } from '@mui/joy';
-import { ArrowBack, ArrowForward, Compare, FileCopy, ChevronLeft, ChevronRight, FolderOutlined } from '@mui/icons-material';
-import { useQuery } from 'react-query';
+import { ArrowBack, ArrowForward, Compare, FileCopy, ChevronLeft, ChevronRight, FolderOutlined, EditOutlined } from '@mui/icons-material';
+import { useQuery, useQueryClient } from 'react-query';
 
 import { useProcessDetails } from './hooks/useProcessDetails';
 import { ProcessContentList } from '../ProcessContentList/ProcessContentList';
 import { ProcessViewer } from '../ProcessViewer';
 import { FolderTree } from '../FolderTree';
-import { getXmlContentQuery } from '../../../api/contents/contents.queries';
+import { getXmlContentQuery, saveContent } from '../../../api/contents/contents.queries';
+import { useSnackbar } from '../../../shared/hooks/useSnackbar';
 import {
   deriveRaciMatrixFromXml,
 } from '../../../extensions/raci-viewer';
@@ -120,6 +122,26 @@ export const ProcessDetails = ({
     xmlContentQuery.queryFn,
     { enabled: Boolean(publishedContent) },
   );
+  const queryClient = useQueryClient();
+  const { showAlert } = useSnackbar();
+  const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [descriptionDraft, setDescriptionDraft] = useState('');
+  const [isSavingDescription, setIsSavingDescription] = useState(false);
+  const canEditDescription = sessionRole === 'admin' || sessionRole === 'modeler';
+
+  useEffect(() => {
+    let mounted = true;
+    const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\\/+$/, '');
+    fetch(`${apiBase}/auth/session`, {
+      credentials: 'same-origin',
+      headers: { accept: 'application/json' },
+    })
+      .then(async response => response.ok ? response.json() as Promise<{ role?: 'admin' | 'modeler' | 'viewer' }> : null)
+      .then(session => { if (mounted) setSessionRole(session?.role ?? null); })
+      .catch(() => { if (mounted) setSessionRole(null); });
+    return () => { mounted = false; };
+  }, []);
 
   const raciMatrix = useMemo(
     () =>
@@ -232,6 +254,68 @@ export const ProcessDetails = ({
   );
   const selectedTaskRaciCells =
     selectedTaskRaci?.cells.filter(cell => cell.codes.length) ?? [];
+
+  useEffect(() => {
+    setIsEditingDescription(false);
+    setDescriptionDraft(selectedTask?.documentation.join('\\n\\n') ?? '');
+  }, [selectedElementId, xmlContent]);
+
+  const cancelDescriptionEdit = () => {
+    setDescriptionDraft(selectedTask?.documentation.join('\\n\\n') ?? '');
+    setIsEditingDescription(false);
+  };
+
+  const saveDescriptionEdit = async () => {
+    if (!xmlContent || !publishedContent || !selectedTask || isSavingDescription) return;
+
+    setIsSavingDescription(true);
+    try {
+      const xmlDocument = new DOMParser().parseFromString(xmlContent, 'application/xml');
+      if (xmlDocument.getElementsByTagName('parsererror').length > 0) {
+        throw new Error('Le contenu BPMN ne peut pas être analysé.');
+      }
+
+      const targetElement = Array.from(xmlDocument.getElementsByTagName('*')).find(
+        candidate => candidate.getAttribute('id') === selectedTask.id,
+      );
+      if (!targetElement) throw new Error('L’élément sélectionné est introuvable dans le BPMN.');
+
+      const documentationNodes = Array.from(targetElement.children).filter(
+        child => child.localName === 'documentation',
+      );
+      const description = descriptionDraft.trim();
+
+      if (!description) {
+        documentationNodes.forEach(node => node.remove());
+      } else if (documentationNodes.length) {
+        documentationNodes[0].textContent = description;
+        documentationNodes.slice(1).forEach(node => node.remove());
+      } else {
+        const qualifiedName = targetElement.prefix ? `${targetElement.prefix}:documentation` : 'documentation';
+        const documentationNode = xmlDocument.createElementNS(targetElement.namespaceURI, qualifiedName);
+        documentationNode.textContent = description;
+        const firstElementChild = Array.from(targetElement.childNodes).find(
+          node => node.nodeType === Node.ELEMENT_NODE,
+        );
+        targetElement.insertBefore(documentationNode, firstElementChild ?? null);
+      }
+
+      const updatedXml = new XMLSerializer().serializeToString(xmlDocument);
+      await saveContent(resourceId, publishedContent.id, { content: updatedXml });
+      await queryClient.invalidateQueries(xmlContentQuery.queryKey);
+      setIsEditingDescription(false);
+      showAlert({ message: 'Description enregistrée.', severity: 'success' });
+    } catch (error) {
+      const reason = error as { response?: { data?: { message?: string | string[] } }; message?: string };
+      const serverMessage = reason.response?.data?.message;
+      showAlert({
+        message: Array.isArray(serverMessage) ? serverMessage.join(', ') : serverMessage || reason.message || 'Impossible d’enregistrer la description.',
+        severity: 'danger',
+      });
+    } finally {
+      setIsSavingDescription(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -412,6 +496,23 @@ export const ProcessDetails = ({
                 {!taskPanelCollapsed && (
                   <Typography level="title-sm">Fiche de l’élément</Typography>
                 )}
+                {!taskPanelCollapsed && selectedTask && canEditDescription && !isEditingDescription && (
+                  <Button
+                    size="sm"
+                    variant="plain"
+                    color="neutral"
+                    startDecorator={<EditOutlined />}
+                    onClick={event => {
+                      event.stopPropagation();
+                      setDescriptionDraft(selectedTask.documentation.join('\\n\\n'));
+                      setIsEditingDescription(true);
+                    }}
+                    aria-label="Modifier la description de l’élément"
+                    title="Modifier la description"
+                  >
+                    Éditer
+                  </Button>
+                )}
                 <IconButton
                   size="sm"
                   variant="plain"
@@ -455,7 +556,17 @@ export const ProcessDetails = ({
                       <Divider />
                       <Stack spacing={1}>
                         <Typography level="title-sm">1. Description de la tâche</Typography>
-                        {selectedTask.documentation.length ? (
+                        {isEditingDescription ? (
+                          <Textarea
+                            value={descriptionDraft}
+                            onChange={event => setDescriptionDraft(event.target.value)}
+                            minRows={4}
+                            maxRows={12}
+                            placeholder="Saisissez la description de cet élément…"
+                            aria-label="Description de l’élément BPMN"
+                            disabled={isSavingDescription}
+                          />
+                        ) : selectedTask.documentation.length ? (
                           selectedTask.documentation.map((entry, index) => (
                             <Sheet key={index} variant="soft" sx={{ p: 1, borderRadius: 'sm' }}>
                               <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>
@@ -514,6 +625,34 @@ export const ProcessDetails = ({
                       </Typography>
                     </Stack>
                   )}
+                </Stack>
+              )}
+              {!taskPanelCollapsed && selectedTask && isEditingDescription && (
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  justifyContent="flex-end"
+                  className="processTaskPanelEditActions"
+                >
+                  <Button
+                    size="sm"
+                    variant="outlined"
+                    color="neutral"
+                    disabled={isSavingDescription}
+                    onClick={cancelDescriptionEdit}
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="solid"
+                    color="primary"
+                    loading={isSavingDescription}
+                    disabled={isSavingDescription}
+                    onClick={saveDescriptionEdit}
+                  >
+                    Enregistrer
+                  </Button>
                 </Stack>
               )}
             </Sheet>
