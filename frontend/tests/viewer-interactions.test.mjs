@@ -20,14 +20,15 @@ test('viewer starts with the minimap hidden and exposes an explicit toggle', asy
   assert.match(component, /aria-label=\{minimapVisible \? 'Masquer la mini-carte' : 'Afficher la mini-carte'\}/);
 });
 
-test('single-click selection is delayed and rapid double-click cancels it', async () => {
+test('single-click selection is immediate and double-click remains separately handled', async () => {
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
 
   assert.match(hook, /eventBus\.on\('element\.click', onElementClick\)/);
   assert.match(hook, /eventBus\.on\('element\.dblclick', onElementDoubleClick\)/);
-  assert.match(hook, /now - lastClickAt < 280/);
-  assert.match(hook, /setTimeout\(\(\) => \{[\s\S]*?currentlySelected === element\.id \? '' : element\.id[\s\S]*?\}, 220\)/);
-  assert.match(hook, /const onElementDoubleClick = \(event: any\) => \{\s*cancelPendingSelection\(\)/);
+  assert.match(hook, /onElementSelectRef\.current\?\.\(element\.id\)/);
+  assert.ok(!hook.includes('pendingSelectionTimer'));
+  assert.ok(!hook.includes('lastClickAt'));
+  assert.match(hook, /const onElementDoubleClick = \(event: any\) => \{/);
   assert.match(hook, /eventBus\.off\('element\.click', onElementClick\)/);
   assert.match(hook, /eventBus\.off\('element\.dblclick', onElementDoubleClick\)/);
 });
