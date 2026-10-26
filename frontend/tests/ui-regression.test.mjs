@@ -224,3 +224,10 @@ test('deployed frontend exposes a build identifier with a source-derived fallbac
   assert.ok(dockerfile.includes('VITE_BUILD_ID="src-$SOURCE_HASH"'));
   assert.ok(compose.includes('VITE_BUILD_ID: ${VITE_BUILD_ID:-unknown}'));
 });
+
+test('viewer gets a fresh BPMN instance when the selected process or published version changes', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.match(details, /<ProcessViewer\\s+key=\\{\`\$\\{resourceId\}:\$\\{publishedContent\\.id\}\`\}/);
+  assert.match(details, /key=\\{\`\$\\{resourceId\}:\$\\{publishedContent\\.id\}\`\}[\\s\\S]*?resourceId=\\{resourceId\\}[\\s\\S]*?contentId=\\{publishedContent\\.id\\}/);
+});
