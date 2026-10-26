@@ -225,15 +225,28 @@ export const useProcessViewer = (
         lastClickedElementId === element.id && now - lastClickAt < 280;
       lastClickedElementId = element.id;
       lastClickAt = now;
-      cancelPendingSelection();
 
-      // Wait briefly so bpmn-js can emit element.dblclick before we treat a
-      // rapid second click as a deselection.
-      if (isRapidSecondClick) return;
+      // A rapid second click belongs to the double-click gesture. Cancel a
+      // pending deselection, but never delay selecting a new element.
+      if (isRapidSecondClick) {
+        cancelPendingSelection();
+        return;
+      }
+
+      cancelPendingSelection();
+      const currentlySelected = selectedIdRef.current;
+      if (currentlySelected !== element.id) {
+        onElementSelectRef.current?.(element.id);
+        return;
+      }
+
+      // Only delay deselection of an already-selected element so a double-click
+      // can cancel it. New selections are applied immediately.
       pendingSelectionTimer = setTimeout(() => {
         pendingSelectionTimer = null;
-        const currentlySelected = selectedIdRef.current;
-        onElementSelectRef.current?.(currentlySelected === element.id ? '' : element.id);
+        if (selectedIdRef.current === element.id) {
+          onElementSelectRef.current?.('');
+        }
       }, 220);
     };
     const onElementDoubleClick = (event: any) => {
