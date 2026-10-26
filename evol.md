@@ -1,6 +1,6 @@
 # Évolutions à planifier ou à développer
 
-Dernière mise à jour : 26 octobre 2026. Cette liste regroupe les améliorations et nouvelles fonctionnalités ; elles ne sont pas considérées comme des correctifs validés.
+Dernière mise à jour : 26 octobre 2026. Cette liste regroupe les améliorations et nouvelles fonctionnalités ; elles ne sont pas considérées comme des correctifs validés. Le ticket 46 est un correctif de recherche/navigation, suivi dans `check_toto.md` et non comme une évolution.
 
 ## B. Recherche, RACI et interactions dans le Viewer
 
