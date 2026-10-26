@@ -304,9 +304,16 @@ jobs:
       - name: Trigger Coolify deployment
         env:
           COOLIFY_WEBHOOK_URL: ${{ secrets.COOLIFY_WEBHOOK_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
         run: |
           if [ -z "$COOLIFY_WEBHOOK_URL" ]; then
             echo "::error::GitHub Actions secret COOLIFY_WEBHOOK_URL is not configured."
             exit 1
           fi
-          curl --fail --silent --show-error --request GET "$COOLIFY_WEBHOOK_URL"
+          if [ -z "$COOLIFY_TOKEN" ]; then
+            echo "::error::GitHub Actions secret COOLIFY_TOKEN is not configured."
+            exit 1
+          fi
+          curl --fail --silent --show-error --request GET \
+            --header "Authorization: Bearer $COOLIFY_TOKEN" \
+            "$COOLIFY_WEBHOOK_URL"
