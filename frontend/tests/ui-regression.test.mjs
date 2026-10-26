@@ -74,7 +74,8 @@ test('description search indexes text annotations and selects a live matching BP
   assert.ok(provider.includes('name: node.getAttribute(\'name\') || annotationText(node)'));
   assert.ok(provider.includes('documentation: [documentationText(node), annotationText(node)]'));
   assert.ok(module.includes('const liveElement = result.element ?? ('));
-  assert.ok(module.includes('elementRegistry.get(result.id)'));
+  assert.ok(module.includes('resolveLiveElement(result.id)'));
+  assert.match(module, /function resolveLiveElement\(elementId: string\)[\s\S]*?elementRegistry\.get\(elementId\)[\s\S]*?candidate\?\.businessObject\?\.id === elementId/);
   assert.ok(module.includes("? 'Description'"));
   assert.ok(module.includes('selection.select(liveElement)'));
 });
@@ -234,6 +235,14 @@ test('deployed frontend exposes a build identifier with a source-derived fallbac
   assert.ok(dockerfile.includes('SOURCE_HASH='));
   assert.ok(dockerfile.includes('VITE_BUILD_ID="src-$SOURCE_HASH"'));
   assert.ok(compose.includes('VITE_BUILD_ID: ${VITE_BUILD_ID:-unknown}'));
+  assert.ok(compose.includes('SOURCE_COMMIT: ${SOURCE_COMMIT:-unknown}'));
+  assert.ok(compose.includes('COOLIFY_BRANCH: ${COOLIFY_BRANCH:-unknown}'));
+  assert.ok(dockerfile.includes('VITE_BUILD_COMMIT="$SOURCE_COMMIT"'));
+  assert.ok(dockerfile.includes('export VITE_BUILD_ID VITE_BUILD_RUN_NUMBER VITE_BUILD_COMMIT VITE_BUILD_BRANCH'));
+  const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+  assert.ok(navigation.includes('TEST BUILD ${'));
+  assert.ok(navigation.includes('VITE_BUILD_ID'));
+  assert.ok(navigation.includes("'SHA ?'"));
 });
 
 test('viewer gets a fresh BPMN instance when the selected process or published version changes', async () => {
