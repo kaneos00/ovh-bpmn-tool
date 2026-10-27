@@ -21,7 +21,8 @@
     "preview": "vite preview",
     "test:unit": "pnpm exec tsc src/api/helpers.ts src/api/types.ts src/Components/BusinessComponents/Modeler/helpers.ts src/extensions/raci-engine.ts src/Components/BusinessComponents/FolderTree/processLinks.ts src/shared/helpers/folderHierarchy.ts src/shared/utils/paginatedBpmnSvg.ts --target ES2022 --module ESNext --moduleResolution bundler --outDir .test-dist --skipLibCheck --strict false && node --test tests/unit/*.test.mjs",
     "test:regression": "node --test tests/ui-regression.test.mjs tests/viewer-interactions.test.mjs",
-    "test:all": "pnpm test:regression && pnpm test:unit"
+    "test:pagination": "pnpm exec tsc src/shared/utils/paginatedBpmnSvg.ts --target ES2022 --module ESNext --moduleResolution bundler --outDir .test-dist --skipLibCheck --strict false && node --test tests/unit/paginatedBpmnSvg.test.mjs tests/unit/paginatedBpmnSvg.regression.test.mjs",
+    "test:all": "pnpm test:regression && pnpm test:unit && pnpm test:pagination"
   },
   "dependencies": {
     "@bpmn-io/properties-panel": "^3.44.1",
