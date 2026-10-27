@@ -233,29 +233,49 @@ export function extractShapeBounds(sourceSvg: SVGSVGElement): SvgShapeBounds[] {
     }
     const visual = shape.querySelector('.djs-visual') ?? shape;
     if (!visual) continue;
-    // Do not let a transparent hit-area or the outline determine the task size.
-    // Query inside djs-visual only and prefer the largest ordinary rectangle;
-    // this also works with BPMN extensions that prepend decorative rects.
-    const rects = typeof visual.querySelectorAll === 'function'
-      ? Array.from(visual.querySelectorAll('rect'))
-      : [visual.querySelector('rect')].filter((rect): rect is SVGRectElement => Boolean(rect));
-    const candidates = rects.map(rect => ({
-      rect,
-      x: Number(rect.getAttribute('x') ?? 0),
-      y: Number(rect.getAttribute('y') ?? 0),
-      width: Number(rect.getAttribute('width')),
-      height: Number(rect.getAttribute('height')),
-    })).filter(candidate =>
-      [candidate.x, candidate.y, candidate.width, candidate.height].every(Number.isFinite)
-      && candidate.width > 0 && candidate.height > 0
-      && Math.max(candidate.width, candidate.height) <= 180,
-    ).sort((left, right) => right.width * right.height - left.width * left.height);
-    const candidate = candidates[0];
-    if (!candidate) continue;
-    const { x, y, width, height } = candidate;
-    if (![x, y, width, height, a, b, c, d, e, f].every(Number.isFinite) || width <= 0 || height <= 0) continue;
-    // Pools/lanes are intentionally large and may span multiple pages.
-    if (Math.max(width, height) > 180) continue;
+
+    // Prefer the browser's SVG geometry engine: it handles rects, circles,
+    // ellipses, polygons and paths (including BPMN events/gateways). getBBox
+    // excludes the outer djs-shape transform, which is applied below.
+    // XML DOMs that lack getBBox use the rectangle fallback.
+    let localBounds: { x: number; y: number; width: number; height: number } | undefined;
+    const graphicsVisual = visual as SVGGraphicsElement;
+    if (typeof graphicsVisual.getBBox === 'function') {
+      try {
+        const box = graphicsVisual.getBBox();
+        if ([box.x, box.y, box.width, box.height].every(Number.isFinite)
+          && box.width > 0 && box.height > 0
+          && Math.max(box.width, box.height) <= 180) {
+          localBounds = { x: box.x, y: box.y, width: box.width, height: box.height };
+        }
+      } catch {
+        // Some detached SVG DOMs cannot compute geometry; use the fallback below.
+      }
+    }
+
+    if (!localBounds) {
+      // Rectangles cover common BPMN tasks. Select the largest ordinary rect
+      // to avoid tiny decorative or hit-area rectangles.
+      const rects = typeof visual.querySelectorAll === 'function'
+        ? Array.from(visual.querySelectorAll('rect'))
+        : [visual.querySelector('rect')].filter((rect): rect is SVGRectElement => Boolean(rect));
+      const candidates = rects.map(rect => ({
+        x: Number(rect.getAttribute('x') ?? 0),
+        y: Number(rect.getAttribute('y') ?? 0),
+        width: Number(rect.getAttribute('width')),
+        height: Number(rect.getAttribute('height')),
+      })).filter(candidate =>
+        [candidate.x, candidate.y, candidate.width, candidate.height].every(Number.isFinite)
+        && candidate.width > 0 && candidate.height > 0
+        && Math.max(candidate.width, candidate.height) <= 180,
+      ).sort((left, right) => right.width * right.height - left.width * left.height);
+      localBounds = candidates[0];
+    }
+
+    if (!localBounds) continue;
+    const { x, y, width, height } = localBounds;
+    if (![x, y, width, height, a, b, c, d, e, f].every(Number.isFinite)
+      || width <= 0 || height <= 0 || Math.max(width, height) > 180) continue;
     const corners = [
       [x, y], [x + width, y], [x, y + height], [x + width, y + height],
     ].map(([px, py]) => ({ x: a * px + c * py + e, y: b * px + d * py + f }));
@@ -432,7 +452,7 @@ export function paginateBpmnSvg(
     pageLabel.setAttribute('font-family', options.fontFamily);
     pageLabel.setAttribute('font-size', String(options.fontSizeMm));
     pageLabel.setAttribute('fill', '#52616b');
-    pageLabel.textContent = `Page ${tile.page}/${layout.pages.length}`;
+    pageLabel.textContent = `Page ${tile.page}/${pageTiles.length}`;
     pageSvg.appendChild(pageLabel);
 
     const nestedSvg = sourceSvg.cloneNode(true) as SVGSVGElement;
