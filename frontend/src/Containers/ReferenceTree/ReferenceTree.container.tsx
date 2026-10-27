@@ -122,9 +122,18 @@ export const Component = () => {
             className={`referenceTreeNodeCard ${isFolder ? 'isFolder' : 'isProcess'}`}
             onClick={() => openNode(node)}
             onContextMenu={event => {
-              if (!canManage || isRoot) return;
+              // Keep the browser menu out of the way for every role. Only
+              // authorized roles receive the application context menu.
               event.preventDefault();
-              setContextMenu({ id: node.id, x: Math.min(event.clientX, window.innerWidth - 210), y: Math.min(event.clientY, window.innerHeight - 230) });
+              if (!canManage || isRoot) {
+                setContextMenu(null);
+                return;
+              }
+              setContextMenu({
+                id: node.id,
+                x: Math.max(8, Math.min(event.clientX, window.innerWidth - 210)),
+                y: Math.max(8, Math.min(event.clientY, window.innerHeight - 230)),
+              });
             }}
             title={node.description || node.name}
           >
@@ -215,7 +224,9 @@ export const Component = () => {
           {selectedResource.type !== ResourceType.Folder && (
             <button role="menuitem" onClick={() => { setContextMenu(null); cloneResource.mutate(selectedResource.id); }} disabled={cloneResource.isLoading}>Dupliquer</button>
           )}
-          <button role="menuitem" onClick={() => { setContextMenu(null); navigate(`/${selectedResource.id}/share`); }}>Partager</button>
+          {selectedResource.type !== ResourceType.Folder && (
+            <button role="menuitem" onClick={() => { setContextMenu(null); navigate(`/${selectedResource.id}/share`); }}>Partager</button>
+          )}
           <button role="menuitem" className="isDanger" onClick={() => { setContextMenu(null); navigate(`/${selectedResource.id}/delete`); }}>Supprimer</button>
         </div>
       )}
