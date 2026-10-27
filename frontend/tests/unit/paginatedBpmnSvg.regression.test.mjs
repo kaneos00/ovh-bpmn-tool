@@ -7,6 +7,7 @@ import { dirname, resolve } from 'node:path';
 import {
   buildAxisTileOrigins,
   buildPageTiles,
+  buildShapeAwareTiles,
   calculateSvgPageLayout,
   paginateBpmnSvg,
 } from '../../.test-dist/shared/utils/paginatedBpmnSvg.js';
@@ -143,6 +144,25 @@ describe('paginated BPMN SVG regression contracts', () => {
       'the adjacent pages must overlap instead of leaving a gap');
     assert.equal(origins[1] + 1000 - origins[0], 1950,
       'viewport size remains constant, preserving print scale');
+  });
+
+
+  it('keeps an entire task inside at least one viewport when a cut crosses it', () => {
+    const viewBox = { x: 0, y: 0, width: 2500, height: 100 };
+    const layout = calculateSvgPageLayout(viewBox, 'landscape');
+    const task = { x: 1000, y: 20, width: 100, height: 60 };
+    const tiles = buildShapeAwareTiles(layout, viewBox, [task]);
+
+    assert.ok(tiles.length >= layout.pages.length,
+      'shape-aware pagination may add pages but must not remove coverage');
+    assert.ok(tiles.every(tile => tile.width === layout.tileWidth && tile.height === layout.tileHeight),
+      'all pages must retain the same source viewport and print scale');
+    assert.ok(tiles.some(tile =>
+      tile.x <= task.x && tile.x + tile.width >= task.x + task.width
+      && tile.y <= task.y && tile.y + tile.height >= task.y + task.height),
+    'the complete task must be visible on at least one page');
+    assert.ok(tiles.some(tile => tile.column > 0 && tile.x < tile.column * layout.tileWidth),
+      'the page boundary is shifted by overlap rather than cutting the task on every page');
   });
 
   it('does not add overlaps when page boundaries already fall in whitespace', () => {
