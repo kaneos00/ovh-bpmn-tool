@@ -256,6 +256,13 @@ test('viewer context menu is styled, avoids duplicate favorites action and gates
   assert.ok(tree.includes('navigate(`/${resourceId}/modeler`)'));
   assert.ok(tree.includes('Modifier dans le modeleur'));
   assert.ok(tree.includes('Partager'));
+  assert.ok(tree.includes("const isAdmin = sessionRole === 'admin'"));
+  assert.ok(tree.includes('isFolder && isAdmin'));
+  assert.ok(tree.includes('navigate(`/${resourceId}/add?type=folder`)'));
+  assert.ok(tree.includes('Créer un répertoire'));
+  assert.ok(tree.includes('navigate(`/${resourceId}/add?type=process`)'));
+  assert.ok(tree.includes('Créer un processus'));
+  assert.ok(tree.includes('{isAdmin && ('));
   assert.ok(tree.includes('Supprimer'));
   assert.ok(viewer.includes('KHI Flows'));
   assert.ok(viewer.includes('Version de build'));
