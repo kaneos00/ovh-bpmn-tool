@@ -28,7 +28,15 @@ class TestSvgNode {
   removeAttribute(name) { delete this.attributes[name]; }
   appendChild(child) { this.children.push(child); return child; }
   querySelector(selector) {
-    if (!selector.includes('rect') || !this.rawInner) return null;
+    if (!this.rawInner) return null;
+    if (selector === '.djs-visual') {
+      const match = this.rawInner.match(/<g\b([^>]*class="[^"]*djs-visual[^"]*"[^>]*)>([\s\S]*?)<\/g>/i);
+      if (!match) return null;
+      const attributes = {};
+      for (const item of match[1].matchAll(/([\w:-]+)="([^"]*)"/g)) attributes[item[1]] = item[2];
+      return new TestSvgNode('g', attributes, match[2]);
+    }
+    if (!selector.includes('rect')) return null;
     const match = this.rawInner.match(/<rect\b([^>]*)\/?>(?:<\/rect>)?/i);
     if (!match) return null;
     const attributes = {};
@@ -36,7 +44,17 @@ class TestSvgNode {
     return new TestSvgNode('rect', attributes);
   }
   querySelectorAll(selector) {
-    if (selector !== 'g.djs-element.djs-shape' || !this.rawInner) return [];
+    if (!this.rawInner) return [];
+    if (selector === 'rect') {
+      const result = [];
+      for (const match of this.rawInner.matchAll(/<rect\b([^>]*)\/?>(?:<\/rect>)?/gi)) {
+        const attributes = {};
+        for (const item of match[1].matchAll(/([\w:-]+)="([^"]*)"/g)) attributes[item[1]] = item[2];
+        result.push(new TestSvgNode('rect', attributes));
+      }
+      return result;
+    }
+    if (selector !== 'g.djs-element.djs-shape') return [];
     const result = [];
     for (const match of this.rawInner.matchAll(/<g\b([^>]*)>([\s\S]*?)<\/g>/gi)) {
       const attributes = {};
