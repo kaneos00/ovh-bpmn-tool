@@ -14,7 +14,7 @@ async function requireSession({ request }: { request: Request }) {
       const session = await response.json().catch(() => null) as { role?: string } | null;
       const isOrganizationPath = requestedUrl.pathname.startsWith('/organization');
       const isProjectsPath = requestedUrl.pathname.startsWith('/projects') || requestedUrl.pathname === '/workspace';
-      const isResourceManagementPath = /^\/[^/]+\/(edit|share|delete)$/.test(requestedUrl.pathname);
+      const isResourceManagementPath = /\/[^/]+\/(edit|share|delete)$/.test(requestedUrl.pathname);
       const canManageResources = ['editor', 'modeler', 'admin'].includes((session?.role ?? '').toLowerCase());
 
       if (isOrganizationPath && session?.role !== 'admin') throw redirect('/root');
