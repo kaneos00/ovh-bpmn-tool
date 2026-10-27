@@ -238,7 +238,12 @@ export function extractShapeBounds(sourceSvg: SVGSVGElement): SvgShapeBounds[] {
     // Real bpmn-js SVGs normally position shapes with matrix(1, 0, 0, 1, x, y),
     // not translate(x, y). Support both forms and compute the transformed
     // axis-aligned bounds so the pagination planner sees the actual coordinates.
-    let a = 1, b = 0, c = 0, d = 1, e = 0, f = 0;
+    let a = 1;
+    let b = 0;
+    let c = 0;
+    let d = 1;
+    let e = 0;
+    let f = 0;
     if (transform) {
       const translation = transform.match(/^\s*translate\(\s*(-?[\d.eE+-]+)(?:[ ,]+(-?[\d.eE+-]+))?\s*\)\s*$/);
       const matrix = transform.match(/^\s*matrix\(\s*([^)]*)\s*\)\s*$/);
