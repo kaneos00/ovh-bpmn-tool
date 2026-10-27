@@ -535,6 +535,252 @@ export const ProcessDetails = ({
             )}
           </Sheet>
 
+          {publishedContent && !taskPanelCollapsed && (
+            <Box
+              className="processViewerResizeHandle"
+              role="separator"
+              aria-label="Redimensionner le panneau de tâche"
+              title="Glisser pour régler la largeur du panneau de tâche"
+              onMouseDown={event => startPanelResize('task', event)}
+            />
+          )}
+          {publishedContent && (
+            <Sheet
+              className={`processTaskPanel ${taskPanelCollapsed ? 'collapsed' : ''}`}
+              variant="outlined"
+            >
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent={taskPanelCollapsed ? 'center' : 'space-between'}
+                className="processTaskPanelHeader"
+                onClick={() => setTaskPanelCollapsed(value => !value)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') setTaskPanelCollapsed(value => !value); }}
+              >
+                {!taskPanelCollapsed && (
+                  <Typography level="title-sm">Fiche de l’élément</Typography>
+                )}
+                        <IconButton
+                  size="sm"
+                  variant="plain"
+                  color="neutral"
+                  onClick={event => { event.stopPropagation(); setTaskPanelCollapsed(value => !value); }}
+                  aria-label={taskPanelCollapsed ? 'Développer le panneau de tâche' : 'Replier le panneau de tâche'}
+                  title={taskPanelCollapsed ? 'Développer le panneau' : 'Replier le panneau'}
+                >
+                  {taskPanelCollapsed ? <ChevronLeft /> : <ChevronRight />}
+                </IconButton>
+              </Stack>
+
+              {!taskPanelCollapsed && (
+                <Stack spacing={1.5} className="processTaskPanelContent">
+                  {selectedTask ? (
+                    <>
+                      <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
+                        <Box sx={{ minWidth: 0, flex: 1 }}>
+                          {isEditingDescription ? (
+                            <Input
+                              value={titleDraft}
+                              onChange={event => setTitleDraft(event.target.value)}
+                              placeholder="Titre de l’élément"
+                              aria-label="Titre de l’élément BPMN"
+                              disabled={isSavingDescription}
+                              size="sm"
+                            />
+                          ) : (
+                            <Typography level="title-lg">{selectedTask.name}</Typography>
+                          )}
+                        </Box>
+                        {canEditDescription && !isEditingDescription && (
+                          <IconButton
+                            size="sm"
+                            variant="plain"
+                            color="neutral"
+                            sx={{ ml: 1, mt: 0.25, flex: '0 0 auto' }}
+                            onClick={() => {
+                              setDescriptionDraft(selectedTask.documentation.join('\n\n'));
+                              setTitleDraft(selectedTask.name === selectedTask.id ? '' : selectedTask.name);
+                              setUrlDraft(selectedTask.externalUrl);
+                              const assignments: Record<string, RaciCode[]> = {};
+                              selectedTaskRaci?.cells.forEach(cell => { assignments[cell.role] = [...cell.codes]; });
+                              setRaciDraft(assignments);
+                              setIsEditingDescription(true);
+                            }}
+                            aria-label="Modifier la fiche de l’élément"
+                            title="Modifier la fiche de l’élément"
+                          >
+                            <EditOutlined />
+                          </IconButton>
+                        )}
+                      </Stack>
+                      <Chip
+                          size="md"
+                          variant="soft"
+                          color={getElementTypeBadgeColor(selectedTask.type)}
+                          sx={{
+                            alignSelf: 'flex-start',
+                            fontWeight: 600,
+                            ...(selectedTask.type.toLowerCase().includes('gateway')
+                              ? {
+                                  color: '#6a0dad',
+                                  backgroundColor: '#f3e8ff',
+                                  border: '1px solid #6a0dad',
+                                }
+                              : {}),
+                          }}
+                        >
+                          {selectedTask.type.replace(/([A-Z])/g, ' $1').replace(/^./, value => value.toUpperCase()).trim()}
+                        </Chip>
+                        <Typography level="body-sm">Identifiant : {selectedTask.id}</Typography>
+                        <Typography level="body-sm" textColor="neutral">{getElementTypeDescription(selectedTask.type)}</Typography>
+
+                      <Divider />
+                      <Stack spacing={1}>
+                        <Typography level="title-sm">1. Description de la tâche</Typography>
+                        {isEditingDescription && (
+                          <Typography level="body-xs" textColor="neutral">Description modifiable</Typography>
+                        )}
+                        {isEditingDescription && (
+                          <Textarea
+                            value={descriptionDraft}
+                            onChange={event => setDescriptionDraft(event.target.value)}
+                            minRows={4}
+                            maxRows={12}
+                            placeholder="Saisissez la description de cet élément…"
+                            aria-label="Description de l’élément BPMN"
+                            disabled={isSavingDescription}
+                          />
+                        )}
+                        {!isEditingDescription && selectedTask.documentation.length > 0 &&
+                          selectedTask.documentation.map((entry, index) => (
+                            <Sheet key={index} variant="soft" sx={{ p: 1, borderRadius: 'sm' }}>
+                              <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>
+                                {entry}
+                              </Typography>
+                            </Sheet>
+                          ))}
+                        {!isEditingDescription && selectedTask.documentation.length === 0 && (
+                          <Typography level="body-sm" textColor="neutral">
+                            Aucune description n'est renseignée pour cette tâche.
+                          </Typography>
+                        )}
+                      </Stack>
+
+                      <Divider />
+                      <Stack spacing={1}>
+                        <Typography level="title-sm">2. RACI</Typography>
+                        {isEditingDescription && selectedTaskRaci && raciMatrix.roles.length > 0 && raciMatrix.roles.map(role => (
+                          <Stack key={role} direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                            <Typography level="body-sm" sx={{ flex: 1 }}>{role}</Typography>
+                            <Stack direction="row" spacing={0.75}>
+                              {(['R', 'A', 'C', 'I'] as RaciCode[]).map(code => (
+                                <label key={code} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12 }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={(raciDraft[role] ?? []).includes(code)}
+                                    onChange={() => toggleRaciCode(role, code)}
+                                    disabled={isSavingDescription}
+                                    aria-label={`${code} pour ${role}`}
+                                  />
+                                  {code}
+                                </label>
+                              ))}
+                            </Stack>
+                          </Stack>
+                        ))}
+                        {isEditingDescription && !selectedTaskRaci && (
+                          <Typography level="body-sm" textColor="neutral">Le RACI est disponible pour les activités BPMN.</Typography>
+                        )}
+                        {isEditingDescription && selectedTaskRaci && raciMatrix.roles.length === 0 && (
+                          <Typography level="body-sm" textColor="neutral">Aucun rôle disponible pour le RACI.</Typography>
+                        )}
+                        {!isEditingDescription && selectedTaskRaciCells.length > 0 && selectedTaskRaciCells.map(cell => (
+                          <Stack key={cell.role} direction="row" spacing={1} alignItems="center">
+                            <Typography level="body-sm" sx={{ flex: 1 }}>{cell.role}</Typography>
+                            <Typography level="title-sm">{cell.codes.join(' / ')}</Typography>
+                          </Stack>
+                        ))}
+                        {!isEditingDescription && selectedTaskRaciCells.length === 0 && (
+                          <Typography level="body-sm" textColor="neutral">
+                            Aucun rôle RACI détecté pour cette tâche.
+                          </Typography>
+                        )}
+                        <Typography level="body-xs" textColor="neutral">
+                          R = Réalise · A = Approuve / redevable · C = Consulté · I = Informé
+                        </Typography>
+                      </Stack>
+
+                      <Divider />
+                      <Stack spacing={1}>
+                        <Typography level="title-sm">3. Documentation</Typography>
+                        {isEditingDescription && (
+                          <Input
+                            value={urlDraft}
+                            onChange={event => setUrlDraft(event.target.value)}
+                            placeholder="https://…"
+                            aria-label="URL de documentation"
+                            disabled={isSavingDescription}
+                            size="sm"
+                          />
+                        )}
+                        {!isEditingDescription && selectedTask.externalUrl && (
+                          <Typography level="body-sm">
+                            <a
+                              href={selectedTask.externalUrl.startsWith('http://') || selectedTask.externalUrl.startsWith('https://') ? selectedTask.externalUrl : `https://${selectedTask.externalUrl}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {selectedTask.externalUrl}
+                            </a>
+                          </Typography>
+                        )}
+                        {!isEditingDescription && !selectedTask.externalUrl && (
+                          <Typography level="body-sm" textColor="neutral">Aucune URL renseignée.</Typography>
+                        )}
+                      </Stack>
+                    </>
+                  ) : (
+                    <Stack spacing={1}>
+                      <Typography level="title-md">Aucun élément sélectionné</Typography>
+                      <Typography level="body-sm" textColor="neutral">
+                        Sélectionnez un élément dans le diagramme pour afficher ses informations, sa documentation et, pour les activités, son RACI.
+                      </Typography>
+                    </Stack>
+                  )}
+                </Stack>
+              )}
+              {!taskPanelCollapsed && selectedTask && isEditingDescription && (
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  justifyContent="flex-end"
+                  className="processTaskPanelEditActions"
+                >
+                  <Button
+                    size="sm"
+                    variant="outlined"
+                    color="neutral"
+                    disabled={isSavingDescription}
+                    onClick={cancelDescriptionEdit}
+                  >
+                    Annuler
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="solid"
+                    color="primary"
+                    loading={isSavingDescription}
+                    disabled={isSavingDescription}
+                    onClick={saveDescriptionEdit}
+                  >
+                    Enregistrer
+                  </Button>
+                </Stack>
+              )}
+            </Sheet>
+          )}
           </Box>
         </TabPanel>
 
