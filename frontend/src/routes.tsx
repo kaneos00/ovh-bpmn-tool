@@ -24,7 +24,10 @@ async function requireSession({ request }: { request: Request }) {
       if (isResourceManagementPath && !canManageResources) throw redirect('/root');
       return null;
     }
-  } catch {
+  } catch (error) {
+    // React Router redirects are thrown responses; preserve them instead of
+    // treating them as a failed session lookup.
+    if (error instanceof Response) throw error;
     // An unavailable session endpoint must fail closed, not expose app routes.
   }
   throw redirect(`/login?next=${encodeURIComponent(requestedPath)}`);
