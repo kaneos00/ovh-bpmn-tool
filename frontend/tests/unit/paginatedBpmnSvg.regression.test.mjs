@@ -29,20 +29,20 @@ class TestSvgNode {
   appendChild(child) { this.children.push(child); return child; }
   querySelector(selector) {
     if (!selector.includes('rect') || !this.rawInner) return null;
-    const match = this.rawInner.match(/<rect\\b([^>]*)\\/?>(?:<\\/rect>)?/i);
+    const match = this.rawInner.match(/<rect\b([^>]*)\/?>(?:<\/rect>)?/i);
     if (!match) return null;
     const attributes = {};
-    for (const item of match[1].matchAll(/([\\w:-]+)="([^"]*)"/g)) attributes[item[1]] = item[2];
+    for (const item of match[1].matchAll(/([\w:-]+)="([^"]*)"/g)) attributes[item[1]] = item[2];
     return new TestSvgNode('rect', attributes);
   }
   querySelectorAll(selector) {
     if (selector !== 'g.djs-element.djs-shape' || !this.rawInner) return [];
     const result = [];
-    for (const match of this.rawInner.matchAll(/<g\\b([^>]*)>([\\s\\S]*?)<\\/g>/gi)) {
+    for (const match of this.rawInner.matchAll(/<g\b([^>]*)>([\s\S]*?)<\/g>/gi)) {
       const attributes = {};
-      for (const item of match[1].matchAll(/([\\w:-]+)="([^"]*)"/g)) attributes[item[1]] = item[2];
-      if ((attributes.class ?? '').split(/\\s+/).includes('djs-element')
-        && (attributes.class ?? '').split(/\\s+/).includes('djs-shape')) {
+      for (const item of match[1].matchAll(/([\w:-]+)="([^"]*)"/g)) attributes[item[1]] = item[2];
+      if ((attributes.class ?? '').split(/\s+/).includes('djs-element')
+        && (attributes.class ?? '').split(/\s+/).includes('djs-shape')) {
         result.push(new TestSvgNode('g', attributes, match[2]));
       }
     }
@@ -355,12 +355,12 @@ describe('paginated BPMN SVG regression contracts', () => {
           assert.match(page, new RegExp(`width="${layout.pageWidthMm}mm"`));
           assert.match(page, new RegExp(`height="${layout.pageHeightMm}mm"`));
           assert.match(page, new RegExp(`aria-label="Matrix pagination witness — page ${index + 1} sur ${pages.length}"`));
-          const svgTags = [...page.matchAll(/<svg\\b([^>]*)>/g)];
+          const svgTags = [...page.matchAll(/<svg\b([^>]*)>/g)];
           assert.equal(svgTags.length, 2, 'each output must contain one A4 root and one source viewport');
           const nested = svgTags[1][1];
           assert.match(nested, /preserveAspectRatio="xMinYMin meet"/);
           assert.match(nested, /overflow="hidden"/);
-          const nestedViewBox = nested.match(/viewBox="([^"]+)"/)?.[1].split(/\\s+/).map(Number);
+          const nestedViewBox = nested.match(/viewBox="([^"]+)"/)?.[1].split(/\s+/).map(Number);
           assert.ok(nestedViewBox?.[2] > 0 && nestedViewBox[2] <= layout.tileWidth);
           assert.ok(nestedViewBox?.[3] > 0 && nestedViewBox[3] <= layout.tileHeight);
 
@@ -371,8 +371,8 @@ describe('paginated BPMN SVG regression contracts', () => {
             || (x <= task.x && x + width >= task.x + task.width
               && y <= task.y && y + height >= task.y + task.height),
           'a page that intersects the task must contain the entire task');
-          const nestedWidth = Number(nested.match(/\\bwidth="([^"]+)"/)?.[1]);
-          const nestedHeight = Number(nested.match(/\\bheight="([^"]+)"/)?.[1]);
+          const nestedWidth = Number(nested.match(/\bwidth="([^"]+)"/)?.[1]);
+          const nestedHeight = Number(nested.match(/\bheight="([^"]+)"/)?.[1]);
           assert.ok(Math.abs(nestedWidth - width * 25.4 / 96) < 0.001,
             'shortened viewports must keep the same horizontal print scale');
           assert.ok(Math.abs(nestedHeight - height * 25.4 / 96) < 0.001,
@@ -382,6 +382,6 @@ describe('paginated BPMN SVG regression contracts', () => {
     } finally {
       restore();
     }
-  });;
+  });
 
 });
