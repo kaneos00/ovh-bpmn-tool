@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -28,6 +28,7 @@ import { ProcessViewer } from '../../Components/BusinessComponents/ProcessViewer
 import { Breadcrumbs } from '../../Components/GenericComponents/Breadcrumbs/Breadcrumbs';
 import { useBpmnLayoutBreadcrumbs } from '../BpmnLayout/hooks/useBpmnLayoutBreadcrumbs';
 import { useContentViewer } from './hooks/useContentViewer';
+import { Component as ProjectHomeComponent } from '../ProjectViewer/ProjectViewer.container';
 import {
   contentsQuery,
   getXmlContentQuery,
@@ -64,7 +65,7 @@ const statusMarker = {
   missing: '—',
 } as const;
 
-export const Component = () => {
+const ProcessContentViewer = () => {
   const { resourceId, contentId } = useContentViewer();
   const navigate = useNavigate();
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
@@ -591,6 +592,22 @@ export const Component = () => {
       </Sheet>
     </Box>
   );
+};
+
+ProcessContentViewer.displayName = 'ProcessContentViewer';
+
+export const Component = () => {
+  const { projectId, resourceId, contentId } = useParams<{
+    projectId?: string;
+    resourceId?: string;
+    contentId?: string;
+  }>();
+
+  if (projectId && !resourceId && !contentId) {
+    return <ProjectHomeComponent />;
+  }
+
+  return <ProcessContentViewer />;
 };
 
 Component.displayName = 'ContentViewerContainer';
