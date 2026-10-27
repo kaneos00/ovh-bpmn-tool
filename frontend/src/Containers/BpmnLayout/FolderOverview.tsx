@@ -38,7 +38,7 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
   if (resources.isLoading) {
     return (
       <Card variant="outlined" sx={{ flex: 1, minHeight: 220, gap: 1 }}>
-        <Typography level="title-lg">{childResource.name}</Typography>
+        <Typography level="title-lg">{resource.name}</Typography>
         <Typography level="body-sm" color="neutral">Chargement du contenu…</Typography>
       </Card>
     );
@@ -128,7 +128,7 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
               >
                 <Box sx={{ minWidth: 0, flex: 1 }}>
                   <Typography level="title-sm" noWrap>
-                    {resource.name}
+                    {childResource.name}
                   </Typography>
                   <Typography level="body-xs" color="neutral">
                     {isFolder ? 'Répertoire' : 'Processus'}
