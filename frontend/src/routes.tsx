@@ -14,8 +14,14 @@ async function requireSession({ request }: { request: Request }) {
       const session = await response.json().catch(() => null) as { role?: string } | null;
       const isOrganizationPath = requestedUrl.pathname.startsWith('/organization');
       const isProjectsPath = requestedUrl.pathname.startsWith('/projects') || requestedUrl.pathname === '/workspace';
+      const isResourceManagementPath = /^\/[^/]+\/(edit|share|delete)$/.test(requestedUrl.pathname);
+      const canManageResources = ['editor', 'modeler', 'admin'].includes((session?.role ?? '').toLowerCase());
+
       if (isOrganizationPath && session?.role !== 'admin') throw redirect('/root');
       if (isProjectsPath && session?.role === 'viewer') throw redirect('/root');
+      // Context-menu actions must remain unavailable when a viewer navigates
+      // directly to a URL instead of using the tree UI.
+      if (isResourceManagementPath && !canManageResources) throw redirect('/root');
       return null;
     }
   } catch {
