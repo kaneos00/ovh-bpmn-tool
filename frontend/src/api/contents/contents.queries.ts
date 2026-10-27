@@ -30,6 +30,9 @@ export const getXmlContentQuery = (resourceId: string, contentId: string) => ({
   queryKey: [`${QUERY_KEY}_content_${resourceId}_${contentId}`],
   queryFn: async (): Promise<string> =>
     apiClient.get(`/resources/${resourceId}/contents/${contentId}/content`),
+  // BPMN XML can be large. Do not retain inactive document payloads for the
+  // global default cache window (5 minutes) after navigating away.
+  cacheTime: 60 * 1000,
 });
 
 export const createContent = (
