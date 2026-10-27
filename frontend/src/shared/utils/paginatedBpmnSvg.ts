@@ -40,6 +40,8 @@ const HEADER_MM = 12;
 const FOOTER_MM = 12;
 // Fail fast rather than freezing the browser or triggering hundreds of downloads.
 const MAX_EXPORT_PAGES = 500;
+// Leave a small safety gutter so the centered SVG stroke is not clipped at the cut.
+const SHAPE_CUT_PADDING = 4;
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 export function calculateSvgPageLayout(
@@ -279,9 +281,15 @@ export function buildShapeAwareTiles(
   shapes: SvgShapeBounds[],
 ): SvgPageTile[] {
   const xs = buildAxisTileOrigins(viewBox.x, viewBox.width, layout.tileWidth,
-    shapes.map(shape => ({ start: shape.x, end: shape.x + shape.width })));
+    shapes.map(shape => ({
+      start: shape.x - SHAPE_CUT_PADDING,
+      end: shape.x + shape.width + SHAPE_CUT_PADDING,
+    })));
   const ys = buildAxisTileOrigins(viewBox.y, viewBox.height, layout.tileHeight,
-    shapes.map(shape => ({ start: shape.y, end: shape.y + shape.height })));
+    shapes.map(shape => ({
+      start: shape.y - SHAPE_CUT_PADDING,
+      end: shape.y + shape.height + SHAPE_CUT_PADDING,
+    })));
   const count = xs.length * ys.length;
   if (count > MAX_EXPORT_PAGES) {
     throw new Error(`Le diagramme nécessite plus de ${MAX_EXPORT_PAGES} pages A4. Réduisez sa taille ou exportez-le par sections.`);
