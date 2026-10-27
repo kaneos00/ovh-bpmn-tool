@@ -188,11 +188,14 @@ test('viewer serializes imports and avoids loading-cover flashes during navigati
 });
 
 
-test('folder labels expand in place and recent items are limited to processes', async () => {
+test('folder labels navigate to their page, chevrons expand branches and recent items are limited to processes', async () => {
   const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
   const hook = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
 
-  assert.match(tree, /node\.type === 'folder'[\s\S]*?setExpandedNodes\(current => current\.includes\(node\.id\) \? current : \[\.\.\.current, node\.id\]\)[\s\S]*?return;/);
+  assert.match(tree, /const handleTreeSelection = \(items: \(string \| number\)\[\]\) =>/);
+  assert.ok(tree.includes('Selecting a folder opens its page; the dedicated chevron controls expansion.'));
+  assert.match(tree, /onNodeClick\(node\.targetId \?\? selected\)/);
+  assert.match(tree, /onClick=\{event => \{[\s\S]*?setExpandedNodes\(current => current\.includes\(nodeId\)/);
   assert.match(tree, /view !== 'recent' \|\| node\.type === 'process' \|\| node\.type === 'linked-process'/);
   assert.match(tree, /const processId = selectedNode\.targetId \?\? selectedNode\.id/);
   assert.match(hook, /bpmn-tool:explorer-expanded-nodes/);
