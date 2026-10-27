@@ -191,6 +191,95 @@ export function buildPageTiles(layout: SvgPageLayout): SvgPageTile[] {
   return layout.pages.map(tile => ({ ...tile }));
 }
 
+
+export type SvgShapeBounds = { x: number; y: number; width: number; height: number };
+
+/**
+ * Choose full-size viewport origins that overlap when a nominal page boundary
+ * would cross a protected BPMN shape. Overlap preserves the print scale and
+ * guarantees that a shape no wider/taller than one viewport is fully visible
+ * on at least one page. A small number of shapes may therefore be repeated.
+ */
+export function buildAxisTileOrigins(
+  start: number,
+  extent: number,
+  tileSize: number,
+  protectedRanges: Array<{ start: number; end: number }>,
+): number[] {
+  if (![start, extent, tileSize].every(Number.isFinite) || extent <= 0 || tileSize <= 0) {
+    throw new Error('Les dimensions de pagination doivent être positives et finies.');
+  }
+  const end = start + extent;
+  const origins = [start];
+  while (origins[origins.length - 1] + tileSize < end) {
+    const current = origins[origins.length - 1];
+    const nominal = current + tileSize;
+    const crossing = protectedRanges
+      .filter(range => Number.isFinite(range.start) && Number.isFinite(range.end)
+        && range.start > current + 0.5 && range.start < nominal
+        && range.end > nominal && range.end - range.start <= tileSize)
+      .sort((a, b) => a.start - b.start)[0];
+    const next = crossing ? crossing.start : nominal;
+    if (!(next > current)) throw new Error('Impossible de calculer les recouvrements de pagination.');
+    origins.push(next);
+    if (origins.length > MAX_EXPORT_PAGES) {
+      throw new Error(`Le diagramme nécessite plus de ${MAX_EXPORT_PAGES} pages A4. Réduisez sa taille ou exportez-le par sections.`);
+    }
+  }
+  return origins;
+}
+
+function extractShapeBounds(sourceSvg: SVGSVGElement): SvgShapeBounds[] {
+  if (typeof sourceSvg.querySelectorAll !== 'function') return [];
+  const bounds: SvgShapeBounds[] = [];
+  for (const shape of Array.from(sourceSvg.querySelectorAll('g.djs-element.djs-shape'))) {
+    const transform = shape.getAttribute('transform') ?? '';
+    // bpmn-js positions shapes with translate(x, y). Ignore unsupported
+    // transforms rather than guessing at geometry and shifting page cuts.
+    const translation = transform.match(/^\\s*translate\\(\\s*(-?[\\d.]+)(?:[ ,]+(-?[\\d.]+))?\\s*\\)\\s*$/);
+    if (transform && !translation) continue;
+    const rect = shape.querySelector('.djs-visual rect');
+    if (!rect) continue;
+    const x = Number(rect.getAttribute('x') ?? 0);
+    const y = Number(rect.getAttribute('y') ?? 0);
+    const width = Number(rect.getAttribute('width'));
+    const height = Number(rect.getAttribute('height'));
+    const tx = translation ? Number(translation[1]) : 0;
+    const ty = translation ? Number(translation[2] ?? 0) : 0;
+    if (![x, y, width, height, tx, ty].every(Number.isFinite) || width <= 0 || height <= 0) continue;
+    // Ignore pools/lanes: their large boundaries are intended to span pages.
+    if (Math.max(width, height) > 180) continue;
+    bounds.push({ x: tx + x, y: ty + y, width, height });
+  }
+  return bounds;
+}
+
+function buildShapeAwareTiles(
+  layout: SvgPageLayout,
+  viewBox: { x: number; y: number; width: number; height: number },
+  shapes: SvgShapeBounds[],
+): SvgPageTile[] {
+  const xs = buildAxisTileOrigins(viewBox.x, viewBox.width, layout.tileWidth,
+    shapes.map(shape => ({ start: shape.x, end: shape.x + shape.width })));
+  const ys = buildAxisTileOrigins(viewBox.y, viewBox.height, layout.tileHeight,
+    shapes.map(shape => ({ start: shape.y, end: shape.y + shape.height })));
+  const count = xs.length * ys.length;
+  if (count > MAX_EXPORT_PAGES) {
+    throw new Error(`Le diagramme nécessite plus de ${MAX_EXPORT_PAGES} pages A4. Réduisez sa taille ou exportez-le par sections.`);
+  }
+  const tiles: SvgPageTile[] = [];
+  for (let row = 0; row < ys.length; row += 1) {
+    for (let column = 0; column < xs.length; column += 1) {
+      tiles.push({
+        page: tiles.length + 1, column, row, x: xs[column], y: ys[row],
+        width: layout.tileWidth, height: layout.tileHeight,
+        columns: xs.length, rows: ys.length,
+      });
+    }
+  }
+  return tiles;
+}
+
 /**
  * Cuts the rendered BPMN SVG into printable A4 viewports. It deliberately does
  * not rewrite BPMN XML or invent BPMN events: page continuations are export-only
@@ -226,7 +315,7 @@ export function paginateBpmnSvg(
 
   const viewBox = parseViewBox(sourceSvg);
   const layout = calculateSvgPageLayout(viewBox, options.orientation);
-  const pageTiles = buildPageTiles(layout);
+  const pageTiles = buildShapeAwareTiles(layout, viewBox, extractShapeBounds(sourceSvg));
   const serializer = new XMLSerializer();
   const title = options.title?.trim() || 'Export BPMN';
   const fontOptions = {
@@ -302,8 +391,10 @@ export function paginateBpmnSvg(
     const markers: string[] = [];
     if (tile.column > 0) markers.push('← Reprise du segment précédent');
     if (tile.column < tile.columns - 1) markers.push('Suite du segment →');
+    if (tile.column > 0 && tile.x < viewBox.x + tile.column * layout.tileWidth - 0.5) markers.push('Zone de raccord recouverte');
     if (tile.row > 0) markers.push('↑ Reprise de la page précédente');
     if (tile.row < tile.rows - 1) markers.push('Suite page suivante ↓');
+    if (tile.row > 0 && tile.y < viewBox.y + tile.row * layout.tileHeight - 0.5) markers.push('Zone de raccord recouverte');
 
     if (markers.length) {
       pageSvg.appendChild(
