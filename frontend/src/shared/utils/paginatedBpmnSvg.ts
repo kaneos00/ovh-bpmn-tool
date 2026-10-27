@@ -360,11 +360,7 @@ export function buildShapeAwareTiles(
  * not rewrite BPMN XML or invent BPMN events: page continuations are export-only
  * labels, so the process semantics remain unchanged.
  */
-/**
- * Cuts the rendered BPMN SVG into printable A4 viewports. It deliberately does
- * not rewrite BPMN XML or invent BPMN events: page continuations are export-only
- * labels, so the process semantics remain unchanged.
- */
+
 export function paginateBpmnSvg(
   svgMarkup: string,
   options: PaginatedSvgOptions,
@@ -442,8 +438,11 @@ export function paginateBpmnSvg(
     const nestedSvg = sourceSvg.cloneNode(true) as SVGSVGElement;
     nestedSvg.setAttribute('x', String(layout.contentXmm));
     nestedSvg.setAttribute('y', String(layout.contentYmm));
-    nestedSvg.setAttribute('width', String(layout.contentWidthMm));
-    nestedSvg.setAttribute('height', String(layout.contentHeightMm));
+    // Preserve the source SVG's print scale even when a task-aware cut shortens
+    // a viewport. Stretching a smaller viewBox over the full printable area
+    // would make individual pages use a different scale.
+    nestedSvg.setAttribute('width', String(tile.width * MM_PER_INCH / SVG_UNITS_PER_INCH));
+    nestedSvg.setAttribute('height', String(tile.height * MM_PER_INCH / SVG_UNITS_PER_INCH));
     nestedSvg.setAttribute('viewBox', `${tile.x} ${tile.y} ${tile.width} ${tile.height}`);
     nestedSvg.setAttribute('preserveAspectRatio', 'xMinYMin meet');
     nestedSvg.setAttribute('font-family', options.fontFamily);
