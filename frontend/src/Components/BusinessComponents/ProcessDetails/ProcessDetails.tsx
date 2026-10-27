@@ -34,6 +34,7 @@ import { ConditionalRender } from '../../../Components/GenericComponents/Conditi
 import { DropZone } from '../../../Components/GenericComponents/DropZone/DropZone';
 
 import './ProcessDetails.scss';
+import '../../../raci.css';
 
 type ProcessDetailsProps = {
   resourceId: string;
@@ -394,9 +395,10 @@ export const ProcessDetails = ({
     <Box className="processViewerLayout">
       <Tabs defaultValue={0} className="processViewerTabs">
         <TabList sticky="top">
-          <Tab value={0}>Vue du processus</Tab>
-          <Tab value={1}>Historique des versions</Tab>
-          <Tab value={2}>RACI</Tab>
+          <Tab value={0}>Diagramme</Tab>
+          <Tab value={1}>Description</Tab>
+          <Tab value={2}>Historique</Tab>
+          <Tab value={3}>Matrice RACI</Tab>
         </TabList>
 
         <TabPanel value={0} className="processViewerTabPanel processViewerProcessTab">
@@ -783,6 +785,73 @@ export const ProcessDetails = ({
         </TabPanel>
 
         <TabPanel value={1} className="processViewerTabPanel">
+          <Sheet className="processViewerInfo" variant="outlined" sx={{ height: '100%', overflow: 'auto' }}>
+            <Stack spacing={1.5} className="processViewerInfoHeader">
+              <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography level="title-lg">{selectedTask?.name ?? 'Description du processus'}</Typography>
+                  <Typography level="body-sm" textColor="neutral">
+                    {selectedTask ? `${selectedTask.type} · Identifiant : ${selectedTask.id}` : resourceId}
+                  </Typography>
+                </Box>
+                {selectedTask && canEditDescription && !isEditingDescription && (
+                  <Button size="sm" variant="outlined" startDecorator={<EditOutlined />} onClick={() => {
+                    setDescriptionDraft(selectedTask.documentation.join('\\n\\n'));
+                    setTitleDraft(selectedTask.name === selectedTask.id ? '' : selectedTask.name);
+                    setUrlDraft(selectedTask.externalUrl);
+                    const assignments: Record<string, RaciCode[]> = {};
+                    selectedTaskRaci?.cells.forEach(cell => { assignments[cell.role] = [...cell.codes]; });
+                    setRaciDraft(assignments);
+                    setIsEditingDescription(true);
+                  }}>Modifier</Button>
+                )}
+              </Stack>
+              {publishedContent && (
+                <Typography level="body-xs" textColor="neutral">
+                  Dernière modification : {publishedContent.updatedBy} · Version {publishedContent.version ?? 'N/A'}
+                </Typography>
+              )}
+            </Stack>
+            <Divider />
+            <Stack spacing={2} sx={{ p: 2, maxWidth: 1000 }}>
+              {selectedTask ? (
+                <>
+                  {isEditingDescription ? (
+                    <>
+                      <Input value={titleDraft} onChange={event => setTitleDraft(event.target.value)} placeholder="Nom de l’élément" aria-label="Nom de l’élément BPMN" disabled={isSavingDescription} />
+                      <Typography level="title-sm">Description</Typography>
+                      <Textarea value={descriptionDraft} onChange={event => setDescriptionDraft(event.target.value)} minRows={5} maxRows={16} placeholder="Saisissez la description…" aria-label="Description de l’élément BPMN" disabled={isSavingDescription} />
+                      <Typography level="title-sm">Lien de documentation ou de processus associé</Typography>
+                      <Input value={urlDraft} onChange={event => setUrlDraft(event.target.value)} placeholder="https://… ou lien associé" aria-label="Lien associé" disabled={isSavingDescription} />
+                      <Stack direction="row" spacing={1} justifyContent="flex-end">
+                        <Button size="sm" variant="outlined" color="neutral" disabled={isSavingDescription} onClick={cancelDescriptionEdit}>Annuler</Button>
+                        <Button size="sm" loading={isSavingDescription} disabled={isSavingDescription} onClick={saveDescriptionEdit}>Enregistrer</Button>
+                      </Stack>
+                    </>
+                  ) : (
+                    <>
+                      <Typography level="title-sm">Description</Typography>
+                      {selectedTask.documentation.length ? selectedTask.documentation.map((entry, index) => <Typography key={index} level="body-md" sx={{ whiteSpace: 'pre-wrap' }}>{entry}</Typography>) : <Typography level="body-sm" textColor="neutral">Aucune description renseignée pour cet élément.</Typography>}
+                      <Divider />
+                      <Typography level="title-sm">Processus et documentation associés</Typography>
+                      {selectedTask.externalUrl ? <Typography level="body-sm"><a href={selectedTask.externalUrl.startsWith('http://') || selectedTask.externalUrl.startsWith('https://') ? selectedTask.externalUrl : `https://${selectedTask.externalUrl}`} target="_blank" rel="noopener noreferrer">{selectedTask.externalUrl}</a></Typography> : <Typography level="body-sm" textColor="neutral">Aucun lien associé renseigné.</Typography>}
+                      <Divider />
+                      <Typography level="title-sm">Type d’élément</Typography>
+                      <Typography level="body-sm">{getElementTypeDescription(selectedTask.type)}</Typography>
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Typography level="title-md">Description du processus</Typography>
+                  <Typography level="body-sm" textColor="neutral">Sélectionnez un élément du diagramme pour consulter ou modifier sa description. Les informations générales du processus figurent dans l’en-tête du viewer.</Typography>
+                </>
+              )}
+            </Stack>
+          </Sheet>
+        </TabPanel>
+
+        <TabPanel value={2} className="processViewerTabPanel">
           <Sheet className="processViewerInfo" variant="outlined">
             <Stack spacing={1.5} className="processViewerInfoHeader">
               <Typography level="title-lg">Historique des versions</Typography>
@@ -826,7 +895,7 @@ export const ProcessDetails = ({
           </Sheet>
         </TabPanel>
 
-        <TabPanel value={2} className="processViewerTabPanel">
+        <TabPanel value={3} className="processViewerTabPanel">
           <Sheet className="processViewerInfo" variant="outlined">
             <Stack spacing={1.5} className="processViewerInfoHeader">
               <Typography level="title-lg">
@@ -838,7 +907,7 @@ export const ProcessDetails = ({
             {raciMatrix.activities.length ? (
               <Box sx={{ overflowX: 'auto', maxWidth: '100%' }}>
                 <table
-                  className="processRaciTable"
+                  className="raci-table processRaciTable"
                   aria-label="Matrice RACI en lecture seule"
                   style={{
                     width: '100%',
@@ -884,7 +953,7 @@ export const ProcessDetails = ({
                               }}
                             >
                               <strong>
-                                {cell.codes.length ? cell.codes.join('/') : '—'}
+                                {cell.codes.length ? cell.codes.map(code => <span key={code} className={`raci-code-badge raci-code-${code}`}>{code}</span>) : '—'}
                               </strong>
                             </td>
                           ))}

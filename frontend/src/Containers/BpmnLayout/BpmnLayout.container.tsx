@@ -11,6 +11,7 @@ import { Header } from '../../Components/GenericComponents/Header/Header';
 import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
 import { ImpersonationBanner } from '../../Components/GenericComponents/ImpersonationBanner/ImpersonationBanner';
 import { FolderTree } from '../../Components/BusinessComponents/FolderTree';
+import { FolderOverview } from './FolderOverview';
 import {
   BpmnContentLoading,
   BusinessProcessActions,
@@ -135,13 +136,7 @@ export const Component = () => {
                         onMouseDown={startFolderExplorerResize}
                       />
                       <Sheet className="processViewerDiagram folderViewerEmptyState" variant="outlined">
-                        <Stack spacing={1} alignItems="center" justifyContent="center" sx={{ height: '100%', p: 3, textAlign: 'center' }}>
-                          <FolderOutlined sx={{ fontSize: 40, color: 'text.tertiary' }} />
-                          <Typography level="title-lg">{resource.name}</Typography>
-                          <Typography level="body-sm" sx={{ color: 'text.tertiary' }}>
-                            Sélectionnez un processus dans l’explorateur pour afficher son diagramme.
-                          </Typography>
-                        </Stack>
+                        <FolderOverview resource={resource} />
                       </Sheet>
                     </Box>
                   </Box>

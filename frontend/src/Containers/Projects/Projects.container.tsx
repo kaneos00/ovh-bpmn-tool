@@ -307,7 +307,10 @@ export const Component = () => {
                     </Typography>
                   )}
                   <Box>
-                    <Button variant="soft" onClick={() => navigate(`/projects/${project.id}`)}>Ouvrir le projet</Button>
+                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                    <Button variant="soft" onClick={() => navigate(`/projects/${project.id}/viewer`)}>Ouvrir dans le viewer</Button>
+                    <Button variant="outlined" color="neutral" onClick={() => navigate(`/projects/${project.id}`)}>Administration</Button>
+                  </Stack>
                   </Box>
                 </Card>
               );
@@ -324,7 +327,10 @@ export const Component = () => {
     <Sheet sx={{ width: '100%', maxWidth: 1440, boxSizing: 'border-box', mx: 'auto', p: { xs: 1, md: 2 }, bgcolor: 'transparent' }}>
       <Stack spacing={2}>
           <WorkspaceNavigation />
-        <Button variant="plain" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/projects')}>← Tous les projets</Button>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} useFlexGap flexWrap="wrap" sx={{ alignItems: { sm: 'center' } }}>
+          <Button variant="plain" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/projects')}>← Tous les projets</Button>
+          {projectId && <Button variant="soft" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate(`/projects/${projectId}/viewer`)}>Ouvrir l’accueil dans le viewer</Button>}
+        </Stack>
         <Button variant="outlined" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/organization/projects')}>Administration de l’organisation →</Button>
         {projectQuery.isLoading && <Typography>Chargement du projet…</Typography>}
         {projectQuery.isError && <Alert color="danger">Impossible de charger ce projet.</Alert>}
