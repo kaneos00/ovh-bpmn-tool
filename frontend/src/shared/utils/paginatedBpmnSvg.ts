@@ -325,12 +325,16 @@ export function buildShapeAwareTiles(
       // Then repeat the check at the *new* coordinate: that coordinate may
       // itself fall inside another task (the exact failure in Parking test 4).
       for (let pass = 0; pass < ranges.length + 1; pass += 1) {
-        const crossing = ranges
-          .filter(range => range.start > current + 0.5
+        let crossing: { start: number; end: number } | undefined;
+        for (const range of ranges) {
+          if (range.start > current + 0.5
             && range.start < candidate - 0.5
             && range.end > candidate
-            && range.end - range.start <= tileSize)
-          .sort((a, b) => a.start - b.start)[0];
+            && range.end - range.start <= tileSize
+            && (!crossing || range.start < crossing.start)) {
+            crossing = range;
+          }
+        }
         if (!crossing) break;
         candidate = crossing.start;
       }
