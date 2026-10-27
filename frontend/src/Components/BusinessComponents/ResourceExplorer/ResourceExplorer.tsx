@@ -36,7 +36,7 @@ export const ResourceExplorer = ({
             resource={cell.row.original}
             getActionLink={getActionLink}
             openContextMenu={contextMenuResourceId === cell.row.original.id}
-            onContextMenuOpened={() => setContextMenuResourceId(null)}
+            onContextMenuClosed={() => setContextMenuResourceId(null)}
           />
         );
       case 'name':
