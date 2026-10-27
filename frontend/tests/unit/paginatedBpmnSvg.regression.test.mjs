@@ -212,6 +212,18 @@ describe('paginated BPMN SVG regression contracts', () => {
       [{ x: 300, y: 100, width: 220, height: 80 }],
       'custom tasks wider than 180 SVG units must not be silently ignored',
     );
+    const label = {
+      getAttribute: name => name === 'transform' ? 'matrix(1, 0, 0, 1, 690, 245)' : null,
+      querySelector: () => null,
+      getBBox: () => ({ x: 0, y: -12, width: 130, height: 18 }),
+    };
+    assert.deepEqual(
+      extractShapeBounds({
+        querySelectorAll: selector => selector.includes('djs-label') ? [label] : [],
+      }),
+      [{ x: 690, y: 233, width: 130, height: 18 }],
+      'external BPMN labels must be protected from page cuts as well as shapes',
+    );
 
     const viewBox = { x: 155, y: 75, width: 2200, height: 1600 };
     const layout = calculateSvgPageLayout(viewBox, 'landscape');
