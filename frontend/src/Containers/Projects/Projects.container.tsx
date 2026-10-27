@@ -422,6 +422,16 @@ export const Component = () => {
         )}
         {error && <Alert color="danger">{error}</Alert>}
 
+        <ProjectProcessOverview
+          processes={(linkedProcessesQuery.data ?? [])
+            .filter((link) => Boolean(link.resource))
+            .map((link) => ({
+              resourceId: link.resourceId,
+              name: link.resource?.name ?? link.resourceId,
+              usage: link.usage,
+            }))}
+        />
+
         <Tabs
           value={activeProjectTab}
           onChange={(_event, value) => value !== null && setActiveProjectTab(value as number)}
@@ -526,16 +536,7 @@ export const Component = () => {
             </Stack>
             <Typography level="body-sm">Les processus communs sont partagés entre projets ; les variantes permettent une adaptation indépendante ; les processus spécifiques restent propres à ce projet.</Typography>
           </Card>
-          <ProjectProcessOverview
-            processes={(linkedProcessesQuery.data ?? [])
-              .filter((link) => Boolean(link.resource))
-              .map((link) => ({
-                resourceId: link.resourceId,
-                name: link.resource?.name ?? link.resourceId,
-                usage: link.usage,
-              }))}
-          />
-          <Typography level="title-lg">Gestion des associations de processus</Typography>
+          <Typography level="title-lg">Processus associés — gestion</Typography>
           {linkedProcessesQuery.isLoading && <Typography>Chargement des processus…</Typography>}
           {linkedProcessesQuery.isError && <Alert color="danger">Impossible de charger les processus liés au projet.</Alert>}
           {(linkedProcessesQuery.data ?? []).length === 0 && !linkedProcessesQuery.isLoading && (
