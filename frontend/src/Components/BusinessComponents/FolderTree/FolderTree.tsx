@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Button,
+  Divider,
   IconButton,
   Input,
   List,
@@ -67,7 +68,22 @@ const readView = (): ExplorerView => {
 export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
   const { dataTree, expandedNodes, setExpandedNodes, isLoading } = useFolderTree(selectedId);
   const navigate = useNavigate();
+  const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
   const [contextMenu, setContextMenu] = useState<{ nodeId: string; anchorEl: HTMLElement } | null>(null);
+  const canModifyBpmn = sessionRole === 'admin' || sessionRole === 'modeler';
+
+  useEffect(() => {
+    let mounted = true;
+    const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\\/+$/, '');
+    fetch(`${apiBase}/auth/session`, {
+      credentials: 'same-origin',
+      headers: { accept: 'application/json' },
+    })
+      .then(async response => response.ok ? response.json() as Promise<{ role?: 'admin' | 'modeler' | 'viewer' }> : null)
+      .then(session => { if (mounted) setSessionRole(session?.role ?? null); })
+      .catch(() => { if (mounted) setSessionRole(null); });
+    return () => { mounted = false; };
+  }, []);
   const [view, setView] = useState<ExplorerView>(readView);
   const [search, setSearch] = useState('');
   const [favorites, setFavorites] = useState<string[]>(readIds(FAVORITES_KEY));
@@ -366,67 +382,72 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
       anchorEl={contextMenu?.anchorEl ?? null}
       onClose={() => setContextMenu(null)}
       placement="right-start"
+      sx={{
+        minWidth: 208,
+        p: 0.75,
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: '12px',
+        bgcolor: 'background.popup',
+        boxShadow: '0 12px 32px rgba(15, 23, 42, 0.18), 0 2px 6px rgba(15, 23, 42, 0.08)',
+        '--ListItem-radius': '8px',
+        '--ListItem-minHeight': '38px',
+        zIndex: 1500,
+      }}
     >
-      {contextMenu && nodeById.get(contextMenu.nodeId) && (
-        <>
-          <MenuItem
-            onClick={() => {
-              const node = nodeById.get(contextMenu.nodeId);
+      {contextMenu && nodeById.get(contextMenu.nodeId) && (() => {
+        const node = nodeById.get(contextMenu.nodeId)!;
+        const resourceId = node.targetId ?? node.id;
+        const isBpmn = node.type === 'process' || node.type === 'linked-process';
+        const menuItemSx = {
+          gap: 1.25,
+          px: 1.25,
+          py: 0.75,
+          fontSize: 13,
+          fontWeight: 550,
+          color: 'text.primary',
+          '& > svg': { color: 'text.secondary', fontSize: 18 },
+          '&:hover': { bgcolor: 'background.level1' },
+          '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.500', outlineOffset: '-2px' },
+        };
+        return (
+          <>
+            <MenuItem sx={menuItemSx} onClick={() => {
               setContextMenu(null);
-              if (node) onNodeClick(node.targetId ?? node.id);
-            }}
-          >
-            <OpenInNew fontSize="small" />
-            Ouvrir
-          </MenuItem>
-          <MenuItem
-            onClick={() => {
-              const nodeId = contextMenu.nodeId;
-              setFavorites(current => current.includes(nodeId)
-                ? current.filter(id => id !== nodeId)
-                : [nodeId, ...current]);
-              setContextMenu(null);
-            }}
-          >
-            {favorites.includes(contextMenu.nodeId) ? <StarBorder fontSize="small" /> : <Star fontSize="small" />}
-            {favorites.includes(contextMenu.nodeId) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-          </MenuItem>
-          {nodeById.get(contextMenu.nodeId)?.type !== 'folder' && (
-            <>
-              <MenuItem
-                onClick={() => {
-                  const node = nodeById.get(contextMenu.nodeId);
-                  setContextMenu(null);
-                  if (node) navigate(`/${node.targetId ?? node.id}/edit`);
-                }}
-              >
+              onNodeClick(resourceId);
+            }}>
+              <OpenInNew fontSize="small" />
+              Ouvrir
+            </MenuItem>
+            {isBpmn && canModifyBpmn && (
+              <MenuItem sx={{ ...menuItemSx, '& > svg': { color: 'primary.600', fontSize: 18 } }} onClick={() => {
+                setContextMenu(null);
+                navigate(`/${resourceId}/modeler`);
+              }}>
                 <Edit fontSize="small" />
-                Modifier
+                Modifier dans le modeleur
               </MenuItem>
-              <MenuItem
-                onClick={() => {
-                  const node = nodeById.get(contextMenu.nodeId);
-                  setContextMenu(null);
-                  if (node) navigate(`/${node.targetId ?? node.id}/share`);
-                }}
-              >
+            )}
+            <Divider sx={{ my: 0.5, mx: 0.75 }} />
+            {node.type !== 'folder' && (
+              <MenuItem sx={menuItemSx} onClick={() => {
+                setContextMenu(null);
+                navigate(`/${resourceId}/share`);
+              }}>
                 <Share fontSize="small" />
                 Partager
               </MenuItem>
-            </>
-          )}
-          <MenuItem
-            onClick={() => {
-              const node = nodeById.get(contextMenu.nodeId);
+            )}
+            <MenuItem sx={{ ...menuItemSx, color: 'danger.600', '& > svg': { color: 'danger.600', fontSize: 18 }, '&:hover': { bgcolor: 'danger.softBg' } }} onClick={() => {
               setContextMenu(null);
-              if (node) navigate(`/${node.targetId ?? node.id}/delete`);
-            }}
-          >
-            <Delete fontSize="small" />
-            Supprimer
-          </MenuItem>
-        </>
-      )}
+              navigate(`/${resourceId}/delete`);
+            }}>
+              <Delete fontSize="small" />
+              Supprimer
+            </MenuItem>
+          </>
+        );
+      })()}
     </Menu>
     </>
   );
