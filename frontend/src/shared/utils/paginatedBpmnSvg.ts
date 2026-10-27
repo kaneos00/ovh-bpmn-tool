@@ -289,7 +289,7 @@ export function buildShapeAwareTiles(
   const axisSegments = (origins: number[], start: number, extent: number, tileSize: number) =>
     origins.map((origin, index) => {
       const nextOrigin = origins[index + 1];
-      const naturalEnd = Math.min(start + extent, origin + tileSize);
+      const naturalEnd = origin + tileSize;
       // When the next page starts at a task boundary before the nominal page
       // edge, stop this page there too. Otherwise the task would still appear
       // clipped on the preceding page despite being complete on the next one.
