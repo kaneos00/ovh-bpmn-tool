@@ -38,12 +38,17 @@ const SVG_UNITS_PER_INCH = 96;
 const MARGIN_MM = 10;
 const HEADER_MM = 12;
 const FOOTER_MM = 12;
+// Fail fast rather than freezing the browser or triggering hundreds of downloads.
+const MAX_EXPORT_PAGES = 500;
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 export function calculateSvgPageLayout(
   viewBox: { x: number; y: number; width: number; height: number },
   orientation: SvgPageOrientation,
 ): SvgPageLayout {
+  if (orientation !== 'portrait' && orientation !== 'landscape') {
+    throw new Error("L'orientation doit être « portrait » ou « landscape ».");
+  }
   if (
     !Number.isFinite(viewBox.x) ||
     !Number.isFinite(viewBox.y) ||
@@ -65,6 +70,17 @@ export function calculateSvgPageLayout(
   const tileHeight = (contentHeightMm / MM_PER_INCH) * SVG_UNITS_PER_INCH;
   const columns = Math.max(1, Math.ceil(viewBox.width / tileWidth));
   const rows = Math.max(1, Math.ceil(viewBox.height / tileHeight));
+  const pageCount = columns * rows;
+  if (
+    !Number.isSafeInteger(columns) ||
+    !Number.isSafeInteger(rows) ||
+    !Number.isSafeInteger(pageCount) ||
+    pageCount > MAX_EXPORT_PAGES
+  ) {
+    throw new Error(
+      `Le diagramme nécessite plus de ${MAX_EXPORT_PAGES} pages A4. Réduisez sa taille ou exportez-le par sections.`,
+    );
+  }
   const pages: SvgPageTile[] = [];
 
   for (let row = 0; row < rows; row += 1) {
@@ -287,7 +303,13 @@ export function paginateBpmnSvg(
   svgMarkup: string,
   options: PaginatedSvgOptions,
 ): string[] {
-  if (!options.fontFamily.trim()) {
+  if (!options || typeof options !== 'object') {
+    throw new Error("Les options d'export sont obligatoires.");
+  }
+  if (options.orientation !== 'portrait' && options.orientation !== 'landscape') {
+    throw new Error("L'orientation doit être « portrait » ou « landscape ».");
+  }
+  if (typeof options.fontFamily !== 'string' || !options.fontFamily.trim()) {
     throw new Error('La famille de police ne peut pas être vide.');
   }
   if (!Number.isFinite(options.fontSizeMm) || options.fontSizeMm <= 0) {
