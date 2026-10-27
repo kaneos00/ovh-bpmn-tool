@@ -394,8 +394,8 @@ export const WorkspaceNavigation = () => {
               <Typography level="title-lg" sx={{ lineHeight: 1.2, color: '#fff', fontWeight: 800 }}>KHI Flows</Typography>
               <Box
                 component="span"
-                title={`Commit compilé : ${import.meta.env.VITE_BUILD_COMMIT || 'non identifié'} · Branche : ${import.meta.env.VITE_BUILD_BRANCH || 'non identifiée'} · CI : ${import.meta.env.VITE_BUILD_RUN_NUMBER || 'non identifié'}`}
-                aria-label={`Version de test : commit ${(import.meta.env.VITE_BUILD_COMMIT || 'non-identifie').slice(0, 7)}`}
+                title={`Version de build : ${import.meta.env.VITE_BUILD_ID || import.meta.env.VITE_BUILD_COMMIT || 'local'} · Commit : ${import.meta.env.VITE_BUILD_COMMIT || 'non injecté par Coolify'} · Branche : ${import.meta.env.VITE_BUILD_BRANCH || 'non injectée par Coolify'} · CI : ${import.meta.env.VITE_BUILD_RUN_NUMBER || 'non injecté par Coolify'}`}
+                aria-label={`Version de build ${(import.meta.env.VITE_BUILD_ID || import.meta.env.VITE_BUILD_COMMIT || 'local').slice(0, 12)}`}
                 sx={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -413,10 +413,14 @@ export const WorkspaceNavigation = () => {
                 }}
               >
                 {import.meta.env.VITE_BUILD_RUN_NUMBER && import.meta.env.VITE_BUILD_RUN_NUMBER !== 'unknown'
-                  ? `TEST CI #${import.meta.env.VITE_BUILD_RUN_NUMBER}`
-                  : 'TEST · CI ?'}
+                  ? `CI #${import.meta.env.VITE_BUILD_RUN_NUMBER}`
+                  : 'BUILD'}
                 {' · '}
-                {(import.meta.env.VITE_BUILD_COMMIT || 'unknown').slice(0, 7)}
+                {(
+                  import.meta.env.VITE_BUILD_COMMIT && import.meta.env.VITE_BUILD_COMMIT !== 'unknown'
+                    ? import.meta.env.VITE_BUILD_COMMIT
+                    : import.meta.env.VITE_BUILD_ID || 'local'
+                ).slice(0, 12)}
               </Box>
             </Stack>
             <Typography level="body-xs" sx={{ color: '#b4c3d5' }}>
