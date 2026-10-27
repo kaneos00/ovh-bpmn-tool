@@ -91,7 +91,7 @@ test('linked Call Activity opens its target only on double-click and handles mis
   assert.match(navigation, /resolveProcessTarget\(targetId, processInfo\)/);
   assert.ok(navigation.includes('await queryClient.fetchQuery(resourceQuery) ?? []'));
   assert.ok(navigation.includes('await queryClient.fetchQuery(resourceContentsQuery) ?? []'));
-  assert.ok(navigation.includes('await queryClient.fetchQuery(xmlQuery) ?? \'\''));
+  assert.match(navigation, /await queryClient\.fetchQuery\(\s*xmlQuery\.queryKey,\s*xmlQuery\.queryFn,\s*\{\s*cacheTime:\s*0,\s*staleTime:\s*0,\s*\},?\s*\) \?\? ''/);
   assert.match(navigation, /navigate\(\`\/\$\{targetResourceId\}\`\)/);
   assert.match(navigation, /processus cible est absent ou son identifiant BPMN est ambigu/);
   assert.match(navigation, /Accès au processus impossible/);
