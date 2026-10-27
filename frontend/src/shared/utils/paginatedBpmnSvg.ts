@@ -259,12 +259,28 @@ export function extractShapeBounds(sourceSvg: SVGSVGElement): SvgShapeBounds[] {
         continue;
       }
     }
-    const rect = shape.querySelector('.djs-visual rect');
-    if (!rect) continue;
-    const x = Number(rect.getAttribute('x') ?? 0);
-    const y = Number(rect.getAttribute('y') ?? 0);
-    const width = Number(rect.getAttribute('width'));
-    const height = Number(rect.getAttribute('height'));
+    const visual = shape.querySelector('.djs-visual');
+    if (!visual) continue;
+    // Do not let a transparent hit-area or the outline determine the task size.
+    // Query inside djs-visual only and prefer the largest ordinary rectangle;
+    // this also works with BPMN extensions that prepend decorative rects.
+    const rects = typeof visual.querySelectorAll === 'function'
+      ? Array.from(visual.querySelectorAll('rect'))
+      : [visual.querySelector('rect')].filter((rect): rect is Element => Boolean(rect));
+    const candidates = rects.map(rect => ({
+      rect,
+      x: Number(rect.getAttribute('x') ?? 0),
+      y: Number(rect.getAttribute('y') ?? 0),
+      width: Number(rect.getAttribute('width')),
+      height: Number(rect.getAttribute('height')),
+    })).filter(candidate =>
+      [candidate.x, candidate.y, candidate.width, candidate.height].every(Number.isFinite)
+      && candidate.width > 0 && candidate.height > 0
+      && Math.max(candidate.width, candidate.height) <= 180,
+    ).sort((left, right) => right.width * right.height - left.width * left.height);
+    const candidate = candidates[0];
+    if (!candidate) continue;
+    const { x, y, width, height } = candidate;
     if (![x, y, width, height, a, b, c, d, e, f].every(Number.isFinite) || width <= 0 || height <= 0) continue;
     // Pools/lanes are intentionally large and may span multiple pages.
     if (Math.max(width, height) > 180) continue;
@@ -285,16 +301,49 @@ export function buildShapeAwareTiles(
   viewBox: { x: number; y: number; width: number; height: number },
   shapes: SvgShapeBounds[],
 ): SvgPageTile[] {
-  const xs = buildAxisTileOrigins(viewBox.x, viewBox.width, layout.tileWidth,
-    shapes.map(shape => ({
-      start: shape.x - SHAPE_CUT_PADDING,
-      end: shape.x + shape.width + SHAPE_CUT_PADDING,
-    })));
-  const ys = buildAxisTileOrigins(viewBox.y, viewBox.height, layout.tileHeight,
-    shapes.map(shape => ({
-      start: shape.y - SHAPE_CUT_PADDING,
-      end: shape.y + shape.height + SHAPE_CUT_PADDING,
-    })));
+  const xRanges = shapes
+    .filter(shape => [shape.x, shape.width].every(Number.isFinite) && shape.width > 0)
+    .map(shape => ({ start: shape.x - SHAPE_CUT_PADDING, end: shape.x + shape.width + SHAPE_CUT_PADDING }));
+  const yRanges = shapes
+    .filter(shape => [shape.y, shape.height].every(Number.isFinite) && shape.height > 0)
+    .map(shape => ({ start: shape.y - SHAPE_CUT_PADDING, end: shape.y + shape.height + SHAPE_CUT_PADDING }));
+
+  // Plan cuts against every protected shape, then validate the resulting cuts
+  // globally. This second pass is intentional: moving a cut around one shape
+  // must not leave it inside a different shape that happened to be farther
+  // from the original nominal boundary.
+  const safeOrigins = (start: number, extent: number, tileSize: number,
+    ranges: Array<{ start: number; end: number }>): number[] => {
+    let origins = buildAxisTileOrigins(start, extent, tileSize, ranges);
+    for (let pass = 0; pass < MAX_EXPORT_PAGES; pass += 1) {
+      let changed = false;
+      for (let index = 1; index < origins.length; index += 1) {
+        const previous = origins[index - 1];
+        const boundary = origins[index];
+        const crossing = ranges
+          .filter(range => range.start > previous + 0.5 && range.start < boundary
+            && range.end > boundary && range.end - range.start <= tileSize)
+          .sort((a, b) => a.start - b.start)[0];
+        if (crossing) {
+          origins[index] = crossing.start;
+          changed = true;
+        }
+      }
+      if (!changed) return origins;
+      // Recalculate downstream page starts from each safe boundary so the
+      // diagram remains covered without creating zero-width or oversized tiles.
+      const repaired: number[] = [start];
+      for (let index = 1; index < origins.length; index += 1) {
+        const previous = repaired[index - 1];
+        const proposed = origins[index];
+        repaired.push(proposed > previous ? proposed : previous + tileSize);
+      }
+      origins = repaired;
+    }
+    throw new Error('Impossible de sécuriser toutes les coupures du diagramme.');
+  };
+  const xs = safeOrigins(viewBox.x, viewBox.width, layout.tileWidth, xRanges);
+  const ys = safeOrigins(viewBox.y, viewBox.height, layout.tileHeight, yRanges);
   const count = xs.length * ys.length;
   if (count > MAX_EXPORT_PAGES) {
     throw new Error(`Le diagramme nécessite plus de ${MAX_EXPORT_PAGES} pages A4. Réduisez sa taille ou exportez-le par sections.`);
