@@ -17,6 +17,8 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
   const { getModelerProviders } = useBpmnToolOptions();
 
   const providersRegisteredRef = useRef(false);
+  const importGenerationRef = useRef(0);
+  const importQueueRef = useRef<Promise<void>>(Promise.resolve());
   const removeSelectionListenerRef = useRef<(() => void) | null>(null);
 
   const propertiesPanel: PropertiesPanel =
@@ -102,47 +104,54 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
   };
 
   useEffect(() => {
-    if (diagramContainerRef.current && diagramPropertiesRef.current) {
-      if (!content) {
-        bpmnModelerInstance
-          .createDiagram()
-          .then(() => attachModeler())
-          .catch(() =>
-            showAlert({
-              message: 'Failed to render file',
-              severity: 'danger',
-            }),
-          );
-      } else {
-        bpmnModelerInstance
-          .importXML(content)
-          .then(() => attachModeler())
-          .catch(() =>
-            showAlert({
-              message: 'Failed to import file',
-              severity: 'danger',
-            }),
-          );
-      }
+    const generation = ++importGenerationRef.current;
 
-      const onLintingCompleted = ({
-        issues,
-      }: {
-        issues: BpmnLintIssues;
-      }) => {
-        setHasLintError(checkForLinterIssues(issues));
-      };
-
-      bpmnModelerInstance.on('linting.completed', onLintingCompleted);
-
+    if (!diagramContainerRef.current || !diagramPropertiesRef.current) {
       return () => {
-        bpmnModelerInstance.off('linting.completed', onLintingCompleted);
-        removeSelectionListenerRef.current?.();
-        removeSelectionListenerRef.current = null;
+        if (importGenerationRef.current === generation) importGenerationRef.current += 1;
       };
     }
 
-    return undefined;
+    const onLintingCompleted = ({ issues }: { issues: BpmnLintIssues }) => {
+      if (generation === importGenerationRef.current) {
+        setHasLintError(checkForLinterIssues(issues));
+      }
+    };
+
+    bpmnModelerInstance.on('linting.completed', onLintingCompleted);
+
+    // Serialize imports on the shared Modeler. Rapid content changes must not
+    // leave older imports attaching listeners or panels after a newer render.
+    const importTask = importQueueRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        if (generation !== importGenerationRef.current) return;
+        if (content) {
+          await bpmnModelerInstance.importXML(content);
+        } else {
+          await bpmnModelerInstance.createDiagram();
+        }
+
+        if (generation !== importGenerationRef.current) return;
+        attachModeler();
+      })
+      .catch(() => {
+        if (generation === importGenerationRef.current) {
+          showAlert({
+            message: content ? 'Failed to import file' : 'Failed to render file',
+            severity: 'danger',
+          });
+        }
+      });
+
+    importQueueRef.current = importTask;
+
+    return () => {
+      if (importGenerationRef.current === generation) importGenerationRef.current += 1;
+      bpmnModelerInstance.off('linting.completed', onLintingCompleted);
+      removeSelectionListenerRef.current?.();
+      removeSelectionListenerRef.current = null;
+    };
   }, [bpmnModelerInstance, content, getModelerProviders, propertiesPanel, showAlert]);
 
   return {

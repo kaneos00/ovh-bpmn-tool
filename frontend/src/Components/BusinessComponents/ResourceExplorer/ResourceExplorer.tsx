@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Link, Sheet, Skeleton, Table } from '@mui/joy';
 import { ArrowDownward, ArrowUpward } from '@mui/icons-material';
 import { type Cell, flexRender } from '@tanstack/react-table';
@@ -20,12 +20,19 @@ type ResourceExplorerProps = {
   getResourceLink: (id: string) => string;
 };
 
+/**
+ * @deprecated Legacy table explorer. The active navigation is FolderTree
+ * in BpmnLayout and ContentViewer; /reference/tree has its own SVG tree.
+ * Do not extend or use this component for new features. Keep only for
+ * compatibility until its remaining references/tests are audited and it is removed.
+ */
 export const ResourceExplorer = ({
   parentId,
   getActionLink,
   getResourceLink,
 }: ResourceExplorerProps) => {
   const { table, columns, isLoading } = useResourceExplorer(parentId);
+  const [contextMenuResourceId, setContextMenuResourceId] = useState<string | null>(null);
 
   const getCellContent = (cell: Cell<Resource, unknown>) => {
     switch (cell.column.id) {
@@ -34,6 +41,8 @@ export const ResourceExplorer = ({
           <ResourceActions
             resource={cell.row.original}
             getActionLink={getActionLink}
+            openContextMenu={contextMenuResourceId === cell.row.original.id}
+            onContextMenuClosed={() => setContextMenuResourceId(null)}
           />
         );
       case 'name':
@@ -147,7 +156,13 @@ export const ResourceExplorer = ({
             )}
             <tbody>
               {table.getRowModel().rows.map(row => (
-                <tr key={row.id}>
+                <tr
+                  key={row.id}
+                  onContextMenu={event => {
+                    event.preventDefault();
+                    setContextMenuResourceId(row.original.id);
+                  }}
+                >
                   {row.getVisibleCells().map(cell => (
                     <td
                       key={cell.id}

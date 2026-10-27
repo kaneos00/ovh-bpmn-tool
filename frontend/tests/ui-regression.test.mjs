@@ -99,18 +99,16 @@ test('called-process tree resolution is unambiguous, deduplicated and cycle-safe
   assert.ok(tree.includes('linked-process:'));
 });
 
-test('explorer folder-label selection opens one level without collapsing other branches', async () => {
+test('explorer folder-label selection opens the folder page while the chevron controls expansion', async () => {
   const explorer = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
 
   assert.ok(explorer.includes('const handleTreeSelection = (items: (string | number)[]) =>'));
-  assert.ok(explorer.includes("if (node.type === 'folder')"));
-  assert.ok(explorer.includes('current.includes(node.id) ? current : [...current, node.id]'));
   assert.ok(explorer.includes('onNodeClick(node.targetId ?? selected)'));
-  assert.ok(explorer.includes('return;'), 'folder clicks must expand in place without navigating away');
+  assert.ok(explorer.includes('Selecting a folder opens its page; the dedicated chevron controls expansion.'));
+  assert.ok(!explorer.includes("if (node.type === 'folder')"), 'folder selection must not be intercepted as an expansion-only action');
 
   const treeHook = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
   assert.ok(treeHook.includes('resource.type === ResourceType.Folder'));
-  assert.match(treeHook, /resource\.type === ResourceType\.Folder\s*\?\s*resource\.id/);
   assert.ok(treeHook.includes('getFolderHierarchy(hierarchyResourceId).map(({ id }) => id)'));
 });
 
@@ -233,7 +231,39 @@ test('deployed frontend exposes a build identifier with a source-derived fallbac
   assert.ok(dockerfile.includes('ARG VITE_BUILD_ID=unknown'));
   assert.ok(dockerfile.includes('SOURCE_HASH='));
   assert.ok(dockerfile.includes('VITE_BUILD_ID="src-$SOURCE_HASH"'));
-  assert.ok(compose.includes('VITE_BUILD_ID: ${VITE_BUILD_ID:-unknown}'));
+  assert.ok(compose.includes('VITE_BUILD_ID: ${VITE_BUILD_ID:-${SOURCE_COMMIT:-unknown}}'));
+  assert.ok(compose.includes('VITE_BUILD_COMMIT: ${VITE_BUILD_COMMIT:-${SOURCE_COMMIT:-unknown}}'));
+  assert.ok(compose.includes('VITE_BUILD_BRANCH: ${VITE_BUILD_BRANCH:-${SOURCE_BRANCH:-unknown}}'));
+});
+
+test('viewer context menu is styled, avoids duplicate favorites action and gates modeler editing by role', async () => {
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+  const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+  const menuStart = tree.indexOf('<Menu\n      open={Boolean(contextMenu)}');
+  const menu = tree.slice(menuStart);
+
+  assert.ok(tree.includes('onContextMenu={event =>'));
+  assert.ok(tree.includes('setContextMenu({ nodeId, anchorEl: event.currentTarget as HTMLElement })'));
+  assert.ok(tree.includes("borderRadius: '12px'"));
+  assert.ok(tree.includes('boxShadow:'));
+  assert.ok(tree.includes('background.level1'));
+  assert.ok(!menu.includes('Ajouter aux favoris'));
+  assert.ok(!menu.includes('Retirer des favoris'));
+  assert.ok(tree.includes("sessionRole === 'admin' || sessionRole === 'modeler'"));
+  assert.ok(tree.includes('isBpmn && canModifyBpmn'));
+  assert.ok(tree.includes('navigate(`/${resourceId}/modeler`)'));
+  assert.ok(tree.includes('Modifier dans le modeleur'));
+  assert.ok(tree.includes('Partager'));
+  assert.ok(tree.includes("const isAdmin = sessionRole === 'admin'"));
+  assert.ok(tree.includes('isFolder && isAdmin'));
+  assert.ok(tree.includes('navigate(`/${resourceId}/add?type=folder`)'));
+  assert.ok(tree.includes('Créer un répertoire'));
+  assert.ok(tree.includes('navigate(`/${resourceId}/add?type=process`)'));
+  assert.ok(tree.includes('Créer un processus'));
+  assert.ok(tree.includes('{isAdmin && ('));
+  assert.ok(tree.includes('Supprimer'));
+  assert.ok(viewer.includes('KHI Flows'));
+  assert.ok(viewer.includes('Version de build'));
 });
 
 test('viewer gets a fresh BPMN instance when the selected process or published version changes', async () => {
@@ -266,4 +296,23 @@ test('viewer element details editing is permission-gated and saves title, descri
   assert.match(details, /await queryClient\.invalidateQueries\(xmlContentQuery\.queryKey\)/);
   assert.match(details, /sx=\{\{ ml: 1, mt: 0\.25, flex: '0 0 auto' \}\}/);
   assert.match(styles, /\.processTaskPanelEditActions\s*\{[^}]*border-top:/s);
+});
+
+
+test('viewer context-menu deletion passes the target resource and opens the existing confirmation flow', async () => {
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+  const routes = await read('src/routes.tsx');
+  const loader = await read('src/Containers/DeleteResource/DeleteResource.loader.ts');
+  const action = await read('src/Containers/DeleteResource/DeleteResource.action.ts');
+  const component = await read('src/Containers/DeleteResource/DeleteResource.container.tsx');
+  const hook = await read('src/Containers/DeleteResource/hooks/useDeleteResource.ts');
+
+  assert.ok(tree.includes('navigate(`/${resourceId}/delete?targetResourceId=${encodeURIComponent(resourceId)}`)'));
+  assert.ok(routes.includes("path: '/:resourceId/delete'"));
+  assert.ok(loader.includes("url.searchParams.get('targetResourceId')"));
+  assert.ok(loader.includes('if (!targetResourceId)'));
+  assert.ok(component.includes('<ConfirmModal'));
+  assert.ok(component.includes('onConfirm={callbacks.onModalConfirm}'));
+  assert.ok(hook.includes("submit("));
+  assert.ok(action.includes('await deleteResource(targetResourceId as string)'));
 });

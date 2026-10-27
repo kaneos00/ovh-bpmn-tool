@@ -35,13 +35,18 @@ import type { Resource } from '../../../../Types';
 type ResourceActionsProps = {
   resource: Resource;
   getActionLink: (id: string, action: ResourceAction) => string;
+  openContextMenu?: boolean;
+  onContextMenuClosed?: () => void;
 };
 
 export const ResourceActions = ({
   resource,
   getActionLink,
+  openContextMenu = false,
+  onContextMenuClosed,
 }: ResourceActionsProps) => {
   const [cloneDialogOpen, setCloneDialogOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [cloneName, setCloneName] = useState(`${resource.name} (copie)`);
   const [cloneError, setCloneError] = useState<string | null>(null);
   const { showAlert } = useSnackbar();
@@ -53,6 +58,7 @@ export const ResourceActions = ({
       onSuccess: async (clonedResource: Resource) => {
         setCloneError(null);
         setCloneDialogOpen(false);
+        setMenuOpen(false);
         await queryClient.invalidateQueries(['resources']);
         navigate(`/${clonedResource.id}/modeler`);
       },
@@ -102,11 +108,21 @@ export const ResourceActions = ({
 
   return (
     <Stack spacing={1} direction="row" justifyContent="flex-end">
-      <Dropdown>
+      <Dropdown
+        open={menuOpen || openContextMenu}
+        onOpenChange={(_, open) => {
+          setMenuOpen(open);
+          if (!open) onContextMenuClosed?.();
+        }}
+      >
         <MenuButton
           slots={{ root: IconButton }}
           slotProps={{
             root: { variant: 'outlined', color: 'neutral', size: 'sm' },
+          }}
+          onContextMenu={event => {
+            event.preventDefault();
+            setMenuOpen(true);
           }}
         >
           <MoreVert />

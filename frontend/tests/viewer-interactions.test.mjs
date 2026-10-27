@@ -91,7 +91,7 @@ test('linked Call Activity opens its target only on double-click and handles mis
   assert.match(navigation, /resolveProcessTarget\(targetId, processInfo\)/);
   assert.ok(navigation.includes('await queryClient.fetchQuery(resourceQuery) ?? []'));
   assert.ok(navigation.includes('await queryClient.fetchQuery(resourceContentsQuery) ?? []'));
-  assert.ok(navigation.includes('await queryClient.fetchQuery(xmlQuery) ?? \'\''));
+  assert.ok(navigation.includes("await queryClient.fetchQuery(\n                xmlQuery.queryKey,\n                xmlQuery.queryFn,\n                { cacheTime: 0, staleTime: 0 },\n              ) ?? ''"));
   assert.match(navigation, /navigate\(\`\/\$\{targetResourceId\}\`\)/);
   assert.match(navigation, /processus cible est absent ou son identifiant BPMN est ambigu/);
   assert.match(navigation, /Accès au processus impossible/);
@@ -104,8 +104,8 @@ test('explorer exposes tree, recent and favorites views with explicit expand/col
   assert.match(tree, /\['tree', 'Arborescence'\]/);
   assert.match(tree, /\['recent', 'Récents'\]/);
   assert.match(tree, /\['favorites', 'Favoris'\]/);
-  assert.match(tree, /onExpandItem=\{item => setExpandedNodes/);
-  assert.match(tree, /onCollapseItem=\{item => setExpandedNodes/);
+  assert.match(tree, /onExpandItem=\{item => \{[\s\S]*?if \(isSearching\) setSearchCollapsedNodes/);
+  assert.match(tree, /onCollapseItem=\{item => \{[\s\S]*?if \(isSearching\) setSearchCollapsedNodes/);
 });
 
 
@@ -188,11 +188,14 @@ test('viewer serializes imports and avoids loading-cover flashes during navigati
 });
 
 
-test('folder labels expand in place and recent items are limited to processes', async () => {
+test('folder labels navigate to their page, chevrons expand branches and recent items are limited to processes', async () => {
   const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
   const hook = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
 
-  assert.match(tree, /node\.type === 'folder'[\s\S]*?setExpandedNodes\(current => current\.includes\(node\.id\) \? current : \[\.\.\.current, node\.id\]\)[\s\S]*?return;/);
+  assert.match(tree, /const handleTreeSelection = \(items: \(string \| number\)\[\]\) =>/);
+  assert.ok(tree.includes('Selecting a folder opens its page; the dedicated chevron controls expansion.'));
+  assert.match(tree, /onNodeClick\(node\.targetId \?\? selected\)/);
+  assert.match(tree, /onClick=\{event => \{[\s\S]*?toggleNodeExpansion\(nodeId\)/);
   assert.match(tree, /view !== 'recent' \|\| node\.type === 'process' \|\| node\.type === 'linked-process'/);
   assert.match(tree, /const processId = selectedNode\.targetId \?\? selectedNode\.id/);
   assert.match(hook, /bpmn-tool:explorer-expanded-nodes/);
@@ -200,6 +203,21 @@ test('folder labels expand in place and recent items are limited to processes', 
   assert.ok(hook.includes('const findPath = (node: RenderTree'));
   assert.ok(hook.includes('node.targetId === selectedResourceId'));
   assert.ok(hook.includes('const treeAncestors = selectedPath'));
+});
+
+
+test('explorer search chevrons collapse and reopen branches using the visible expansion state', async () => {
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+
+  assert.ok(tree.includes('const [searchCollapsedNodes, setSearchCollapsedNodes] = useState<string[]>([])'));
+  assert.ok(tree.includes('const effectiveExpandedNodes = useMemo('));
+  assert.ok(tree.includes('searchExpandedNodes.filter(nodeId => !searchCollapsedNodes.includes(nodeId))'));
+  assert.ok(tree.includes('expandedItems: effectiveExpandedNodes'));
+  assert.ok(tree.includes('title={effectiveExpandedNodes.includes(nodeId)'));
+  assert.ok(tree.includes('aria-label={effectiveExpandedNodes.includes(nodeId)'));
+  assert.ok(tree.includes('const toggleNodeExpansion = (nodeId: string) =>'));
+  assert.ok(tree.includes('setSearchCollapsedNodes(current => current.includes(nodeId)'));
+  assert.ok(tree.includes('setSearchCollapsedNodes([])'));
 });
 
 test('global annotation search labels text annotations as Description and carries the BPMN element ID', async () => {

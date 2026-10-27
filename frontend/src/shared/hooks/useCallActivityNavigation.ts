@@ -93,7 +93,12 @@ export const useCallActivityNavigation = (
           const resources = cachedResources ?? await queryClient.fetchQuery(resourceQuery) ?? [];
           const processResources = resources.filter(resource => resource.type === ResourceType.Process);
 
-          return Promise.all(processResources.map(async resource => {
+          const results: Array<{ resource: Resource; processIds: string[] }> = [];
+
+          // Read one XML at a time. A parallel scan can hold many large BPMN
+          // documents in memory simultaneously, although only their process IDs
+          // are needed for target resolution.
+          for (const resource of processResources) {
             try {
               const resourceContentsQuery = contentsQuery(resource.id);
               const cachedContents = queryClient.getQueryData(resourceContentsQuery.queryKey) as Content[] | undefined;
@@ -102,19 +107,30 @@ export const useCallActivityNavigation = (
                 .filter(content => content.status === ContentStatusEnum.Published)
                 .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0];
 
-              if (!publishedContent) return { resource, processIds: [] as string[] };
+              if (!publishedContent) {
+                results.push({ resource, processIds: [] });
+                continue;
+              }
 
               const xmlQuery = getXmlContentQuery(resource.id, publishedContent.id);
               const cachedXml = queryClient.getQueryData(xmlQuery.queryKey) as string | undefined;
-              const xml = cachedXml ?? await queryClient.fetchQuery(xmlQuery) ?? '';
-              return { resource, processIds: getProcessLinks(xml).processIds };
+              // Scan-only XML must not be retained for the global default cache
+              // lifetime. Active/previously cached query data is left untouched.
+              const xml = cachedXml ?? await queryClient.fetchQuery(
+                xmlQuery.queryKey,
+                xmlQuery.queryFn,
+                { cacheTime: 0, staleTime: 0 },
+              ) ?? '';
+              results.push({ resource, processIds: getProcessLinks(xml).processIds });
             } catch {
               // Keep the failed resource visible to diagnostics instead of treating
               // a partial scan as proof that the target does not exist.
               processInfoFailures.add(resource.id);
-              return { resource, processIds: [] as string[] };
+              results.push({ resource, processIds: [] });
             }
-          }));
+          }
+
+          return results;
         })().catch(error => {
           processInfoPromise = null;
           throw error;

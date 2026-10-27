@@ -3,17 +3,26 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Button,
+  Divider,
   IconButton,
   Input,
   List,
   ListItem,
   ListItemContent,
+  Menu,
+  MenuItem,
   Skeleton,
   Typography,
 } from '@mui/joy';
 import {
   AccessTime,
+  Delete,
   DescriptionOutlined,
+  CreateNewFolder,
+  AddCircleOutline,
+  Edit,
+  OpenInNew,
+  Share,
   FolderOutlined,
   ChevronRight,
   ExpandMore,
@@ -21,6 +30,7 @@ import {
   StarBorder,
   Search,
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { ControlledTreeEnvironment, Tree } from 'react-complex-tree';
 import 'react-complex-tree/lib/style-modern.css';
 
@@ -59,8 +69,26 @@ const readView = (): ExplorerView => {
 
 export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
   const { dataTree, expandedNodes, setExpandedNodes, isLoading } = useFolderTree(selectedId);
+  const navigate = useNavigate();
+  const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ nodeId: string; anchorEl: HTMLElement } | null>(null);
+  const canModifyBpmn = sessionRole === 'admin' || sessionRole === 'modeler';
+
+  useEffect(() => {
+    let mounted = true;
+    const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
+    fetch(`${apiBase}/auth/session`, {
+      credentials: 'same-origin',
+      headers: { accept: 'application/json' },
+    })
+      .then(async response => response.ok ? response.json() as Promise<{ role?: 'admin' | 'modeler' | 'viewer' }> : null)
+      .then(session => { if (mounted) setSessionRole(session?.role ?? null); })
+      .catch(() => { if (mounted) setSessionRole(null); });
+    return () => { mounted = false; };
+  }, []);
   const [view, setView] = useState<ExplorerView>(readView);
   const [search, setSearch] = useState('');
+  const [searchCollapsedNodes, setSearchCollapsedNodes] = useState<string[]>([]);
   const [favorites, setFavorites] = useState<string[]>(readIds(FAVORITES_KEY));
   const [recent, setRecent] = useState<string[]>(readIds(RECENT_KEY));
 
@@ -127,6 +155,29 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
       nodes.flatMap(node => node.children?.length ? [node.id, ...collect(node.children)] : []);
     return collect(filteredTree);
   }, [filteredTree]);
+  const isSearching = Boolean(search.trim());
+  const effectiveExpandedNodes = useMemo(
+    () => isSearching
+      ? searchExpandedNodes.filter(nodeId => !searchCollapsedNodes.includes(nodeId))
+      : expandedNodes,
+    [isSearching, searchExpandedNodes, searchCollapsedNodes, expandedNodes],
+  );
+
+  useEffect(() => {
+    setSearchCollapsedNodes([]);
+  }, [search]);
+
+  const toggleNodeExpansion = (nodeId: string) => {
+    if (isSearching) {
+      setSearchCollapsedNodes(current => current.includes(nodeId)
+        ? current.filter(id => id !== nodeId)
+        : [...current, nodeId]);
+      return;
+    }
+    setExpandedNodes(current => current.includes(nodeId)
+      ? current.filter(id => id !== nodeId)
+      : [...current, nodeId]);
+  };
 
   const visibleNodes = useMemo(() => {
     const ids = view === 'favorites' ? favorites : recent;
@@ -177,18 +228,13 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
     const node = nodeById.get(selected);
     if (!node) return;
 
-    // Folder labels expand in place. The dedicated chevron is the only control
-    // that collapses a branch; opening one folder never resets sibling branches.
-    if (node.type === 'folder') {
-      if (node.children?.length) {
-        setExpandedNodes(current => current.includes(node.id) ? current : [...current, node.id]);
-      }
-      return;
-    }
+    // Selecting a folder opens its page; the dedicated chevron controls expansion.
+    // This keeps folder navigation separate from expanding/collapsing tree branches.
     onNodeClick(node.targetId ?? selected);
   };
 
   return (
+    <>
     <List
       sx={{
         '--ListItem-radius': '8px',
@@ -246,12 +292,20 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
               viewState={{
                 'repository-tree': {
                   focusedItem: selectedTreeNodeId || 'root',
-                  expandedItems: search.trim() ? searchExpandedNodes : expandedNodes,
+                  expandedItems: effectiveExpandedNodes,
                   selectedItems: selectedTreeNodeId ? [selectedTreeNodeId] : [],
                 },
               }}
-              onExpandItem={item => setExpandedNodes(current => current.includes(String(item.index)) ? current : [...current, String(item.index)])}
-              onCollapseItem={item => setExpandedNodes(current => current.filter(id => id !== String(item.index)))}
+              onExpandItem={item => {
+                const nodeId = String(item.index);
+                if (isSearching) setSearchCollapsedNodes(current => current.filter(id => id !== nodeId));
+                else setExpandedNodes(current => current.includes(nodeId) ? current : [...current, nodeId]);
+              }}
+              onCollapseItem={item => {
+                const nodeId = String(item.index);
+                if (isSearching) setSearchCollapsedNodes(current => current.includes(nodeId) ? current : [...current, nodeId]);
+                else setExpandedNodes(current => current.filter(id => id !== nodeId));
+              }}
               onSelectItems={handleTreeSelection}
               renderItemArrow={() => null}
               renderItemTitle={({ item, title }) => {
@@ -261,6 +315,11 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                 return (
                   <Box
                     component="span"
+                    onContextMenu={event => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setContextMenu({ nodeId, anchorEl: event.currentTarget as HTMLElement });
+                    }}
                     sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, width: '100%', minWidth: 0 }}
                   >
                     {node?.type === 'folder' ? <FolderOutlined fontSize="small" /> : <DescriptionOutlined fontSize="small" />}
@@ -270,18 +329,16 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                         size="sm"
                         variant="plain"
                         color="neutral"
-                        title={expandedNodes.includes(nodeId) ? 'Replier les éléments' : 'Développer les éléments'}
-                        aria-label={expandedNodes.includes(nodeId) ? `Replier ${node?.name}` : `Développer ${node?.name}`}
+                        title={effectiveExpandedNodes.includes(nodeId) ? 'Replier les éléments' : 'Développer les éléments'}
+                        aria-label={effectiveExpandedNodes.includes(nodeId) ? `Replier ${node?.name}` : `Développer ${node?.name}`}
                         onClick={event => {
                           event.preventDefault();
                           event.stopPropagation();
-                          setExpandedNodes(current => current.includes(nodeId)
-                            ? current.filter(id => id !== nodeId)
-                            : [...current, nodeId]);
+                          toggleNodeExpansion(nodeId);
                         }}
                         sx={{ minWidth: 24, minHeight: 24, p: 0.25, flexShrink: 0 }}
                       >
-                        {expandedNodes.includes(nodeId) ? <ExpandMore fontSize="small" /> : <ChevronRight fontSize="small" />}
+                        {effectiveExpandedNodes.includes(nodeId) ? <ExpandMore fontSize="small" /> : <ChevronRight fontSize="small" />}
                       </IconButton>
                     )}
                     {node && nodeId !== 'root' && (
@@ -346,5 +403,103 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
         </Box>
       )}
     </List>
+    <Menu
+      open={Boolean(contextMenu)}
+      anchorEl={contextMenu?.anchorEl ?? null}
+      onClose={() => setContextMenu(null)}
+      placement="right-start"
+      sx={{
+        minWidth: 208,
+        p: 0.75,
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: '12px',
+        bgcolor: 'background.popup',
+        boxShadow: '0 12px 32px rgba(15, 23, 42, 0.18), 0 2px 6px rgba(15, 23, 42, 0.08)',
+        '--ListItem-radius': '8px',
+        '--ListItem-minHeight': '38px',
+        zIndex: 1500,
+      }}
+    >
+      {contextMenu && nodeById.get(contextMenu.nodeId) && (() => {
+        const node = nodeById.get(contextMenu.nodeId)!;
+        const resourceId = node.targetId ?? node.id;
+        const isBpmn = node.type === 'process' || node.type === 'linked-process';
+        const isFolder = node.type === 'folder';
+        const isAdmin = sessionRole === 'admin';
+        const menuItemSx = {
+          gap: 1.25,
+          px: 1.25,
+          py: 0.75,
+          fontSize: 13,
+          fontWeight: 550,
+          color: 'text.primary',
+          '& > svg': { color: 'text.secondary', fontSize: 18 },
+          '&:hover': { bgcolor: 'background.level1' },
+          '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.500', outlineOffset: '-2px' },
+        };
+        return (
+          <>
+            <MenuItem sx={menuItemSx} onClick={() => {
+              setContextMenu(null);
+              onNodeClick(resourceId);
+            }}>
+              <OpenInNew fontSize="small" />
+              Ouvrir
+            </MenuItem>
+            {isBpmn && canModifyBpmn && (
+              <MenuItem sx={{ ...menuItemSx, '& > svg': { color: 'primary.600', fontSize: 18 } }} onClick={() => {
+                setContextMenu(null);
+                navigate(`/${resourceId}/modeler`);
+              }}>
+                <Edit fontSize="small" />
+                Modifier dans le modeleur
+              </MenuItem>
+            )}
+            {isFolder && isAdmin && (
+              <>
+                <Divider sx={{ my: 0.5, mx: 0.75 }} />
+                <MenuItem sx={menuItemSx} onClick={() => {
+                  setContextMenu(null);
+                  navigate(`/${resourceId}/add?type=folder`);
+                }}>
+                  <CreateNewFolder fontSize="small" />
+                  Créer un répertoire
+                </MenuItem>
+                <MenuItem sx={menuItemSx} onClick={() => {
+                  setContextMenu(null);
+                  navigate(`/${resourceId}/add?type=process`);
+                }}>
+                  <AddCircleOutline fontSize="small" />
+                  Créer un processus
+                </MenuItem>
+              </>
+            )}
+            {node.type !== 'folder' && (
+              <>
+                <Divider sx={{ my: 0.5, mx: 0.75 }} />
+                <MenuItem sx={menuItemSx} onClick={() => {
+                  setContextMenu(null);
+                  navigate(`/${resourceId}/share`);
+                }}>
+                  <Share fontSize="small" />
+                  Partager
+                </MenuItem>
+              </>
+            )}
+            {isAdmin && (
+              <MenuItem sx={{ ...menuItemSx, color: 'danger.600', '& > svg': { color: 'danger.600', fontSize: 18 }, '&:hover': { bgcolor: 'danger.softBg' } }} onClick={() => {
+                setContextMenu(null);
+                navigate(`/${resourceId}/delete?targetResourceId=${encodeURIComponent(resourceId)}`);
+              }}>
+                <Delete fontSize="small" />
+                Supprimer
+              </MenuItem>
+            )}
+          </>
+        );
+      })()}
+    </Menu>
+    </>
   );
 };
