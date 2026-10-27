@@ -236,7 +236,7 @@ function extractShapeBounds(sourceSvg: SVGSVGElement): SvgShapeBounds[] {
     const transform = shape.getAttribute('transform') ?? '';
     // bpmn-js positions shapes with translate(x, y). Ignore unsupported
     // transforms rather than guessing at geometry and shifting page cuts.
-    const translation = transform.match(/^\\s*translate\\(\\s*(-?[\\d.]+)(?:[ ,]+(-?[\\d.]+))?\\s*\\)\\s*$/);
+    const translation = transform.match(/^\s*translate\(\s*(-?[\d.]+)(?:[ ,]+(-?[\d.]+))?\s*\)\s*$/);
     if (transform && !translation) continue;
     const rect = shape.querySelector('.djs-visual rect');
     if (!rect) continue;
@@ -357,7 +357,7 @@ export function paginateBpmnSvg(
     pageLabel.setAttribute('font-family', options.fontFamily);
     pageLabel.setAttribute('font-size', String(options.fontSizeMm));
     pageLabel.setAttribute('fill', '#52616b');
-    pageLabel.textContent = `Page ${tile.page}/${layout.pages.length}`;
+    pageLabel.textContent = `Page ${tile.page}/${pageTiles.length}`;
     pageSvg.appendChild(pageLabel);
 
     // A clipped continuation column no longer contains the original pool/lane
