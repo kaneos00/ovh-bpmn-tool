@@ -52,3 +52,6 @@ jobs:
       - name: Compile isolated modules and run frontend business unit tests
         working-directory: frontend
         run: pnpm test:unit
+      - name: Run pagination engine unit and regression tests
+        working-directory: frontend
+        run: pnpm test:pagination
