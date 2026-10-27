@@ -8,12 +8,15 @@ import {
   List,
   ListItem,
   ListItemContent,
+  Menu,
+  MenuItem,
   Skeleton,
   Typography,
 } from '@mui/joy';
 import {
   AccessTime,
   DescriptionOutlined,
+  OpenInNew,
   FolderOutlined,
   ChevronRight,
   ExpandMore,
@@ -21,6 +24,7 @@ import {
   StarBorder,
   Search,
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { ControlledTreeEnvironment, Tree } from 'react-complex-tree';
 import 'react-complex-tree/lib/style-modern.css';
 
@@ -59,6 +63,8 @@ const readView = (): ExplorerView => {
 
 export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
   const { dataTree, expandedNodes, setExpandedNodes, isLoading } = useFolderTree(selectedId);
+  const navigate = useNavigate();
+  const [contextMenu, setContextMenu] = useState<{ nodeId: string; anchorEl: HTMLElement } | null>(null);
   const [view, setView] = useState<ExplorerView>(readView);
   const [search, setSearch] = useState('');
   const [favorites, setFavorites] = useState<string[]>(readIds(FAVORITES_KEY));
@@ -261,6 +267,11 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                 return (
                   <Box
                     component="span"
+                    onContextMenu={event => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setContextMenu({ nodeId, anchorEl: event.currentTarget as HTMLElement });
+                    }}
                     sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, width: '100%', minWidth: 0 }}
                   >
                     {node?.type === 'folder' ? <FolderOutlined fontSize="small" /> : <DescriptionOutlined fontSize="small" />}
