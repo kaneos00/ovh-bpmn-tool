@@ -27,6 +27,27 @@ class TestSvgNode {
   getAttribute(name) { return this.attributes[name] ?? null; }
   removeAttribute(name) { delete this.attributes[name]; }
   appendChild(child) { this.children.push(child); return child; }
+  querySelector(selector) {
+    if (!selector.includes('rect') || !this.rawInner) return null;
+    const match = this.rawInner.match(/<rect\\b([^>]*)\\/?>(?:<\\/rect>)?/i);
+    if (!match) return null;
+    const attributes = {};
+    for (const item of match[1].matchAll(/([\\w:-]+)="([^"]*)"/g)) attributes[item[1]] = item[2];
+    return new TestSvgNode('rect', attributes);
+  }
+  querySelectorAll(selector) {
+    if (selector !== 'g.djs-element.djs-shape' || !this.rawInner) return [];
+    const result = [];
+    for (const match of this.rawInner.matchAll(/<g\\b([^>]*)>([\\s\\S]*?)<\\/g>/gi)) {
+      const attributes = {};
+      for (const item of match[1].matchAll(/([\\w:-]+)="([^"]*)"/g)) attributes[item[1]] = item[2];
+      if ((attributes.class ?? '').split(/\\s+/).includes('djs-element')
+        && (attributes.class ?? '').split(/\\s+/).includes('djs-shape')) {
+        result.push(new TestSvgNode('g', attributes, match[2]));
+      }
+    }
+    return result;
+  }
   cloneNode() {
     const clone = new TestSvgNode(this.localName, this.attributes, this.rawInner);
     clone.textContent = this.textContent;
@@ -307,47 +328,60 @@ describe('paginated BPMN SVG regression contracts', () => {
     }
   });
 
-  it('generates paginated SVG output from the witness process in both orientations', () => {
-    const here = dirname(fileURLToPath(import.meta.url));
-    const bpmn = readFileSync(resolve(here, '../fixtures/pagination-witness.bpmn'), 'utf8');
-    const bounds = [...bpmn.matchAll(/<dc:Bounds\b[^>]*\bx="([\d.-]+)"[^>]*\by="([\d.-]+)"[^>]*\bwidth="([\d.-]+)"[^>]*\bheight="([\d.-]+)"[^>]*\/>/g)]
-      .map(match => ({ x: Number(match[1]), y: Number(match[2]), width: Number(match[3]), height: Number(match[4]) }));
-    const minX = Math.min(...bounds.map(bound => bound.x));
-    const minY = Math.min(...bounds.map(bound => bound.y));
-    const maxX = Math.max(...bounds.map(bound => bound.x + bound.width));
-    const maxY = Math.max(...bounds.map(bound => bound.y + bound.height));
-    const viewBox = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
-    const sourceSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}">${bounds.map((bound, index) => `<g data-witness-shape="${index}"><rect x="${bound.x}" y="${bound.y}" width="${bound.width}" height="${bound.height}"/></g>`).join('')}</svg>`;
+  it('paginates matrix-transformed tasks without clipping them in either orientation', () => {
+    // This is the transform syntax emitted by real bpmn-js SVGs. The task crosses
+    // both nominal first-page boundaries, which must be moved before the task.
+    const viewBox = { x: 0, y: 0, width: 2500, height: 1600 };
+    const task = { x: 1000, y: 600, width: 100, height: 80 };
+    const sourceSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2500 1600">
+      <g class="djs-element djs-shape" transform="matrix(1, 0, 0, 1, ${task.x}, ${task.y})">
+        <rect x="0" y="0" width="${task.width}" height="${task.height}"/>
+      </g>
+    </svg>`;
     const restore = installSvgDomTestShim();
 
     try {
       for (const orientation of orientations) {
-        const expected = calculateSvgPageLayout(viewBox, orientation);
+        const layout = calculateSvgPageLayout(viewBox, orientation);
         const pages = paginateBpmnSvg(sourceSvg, {
           orientation,
           fontFamily: 'Arial, sans-serif',
           fontSizeMm: 3.5,
-          title: 'Pagination witness',
+          title: 'Matrix pagination witness',
         });
 
-        assert.equal(pages.length, expected.pages.length);
+        assert.equal(pages.length, layout.pages.length);
         pages.forEach((page, index) => {
-          assert.match(page, new RegExp(`width="${expected.pageWidthMm}mm"`));
-          assert.match(page, new RegExp(`height="${expected.pageHeightMm}mm"`));
-          assert.match(page, new RegExp(`aria-label="Pagination witness — page ${index + 1} sur ${pages.length}"`));
-          const svgTags = [...page.matchAll(/<svg\b([^>]*)>/g)];
+          assert.match(page, new RegExp(`width="${layout.pageWidthMm}mm"`));
+          assert.match(page, new RegExp(`height="${layout.pageHeightMm}mm"`));
+          assert.match(page, new RegExp(`aria-label="Matrix pagination witness — page ${index + 1} sur ${pages.length}"`));
+          const svgTags = [...page.matchAll(/<svg\\b([^>]*)>/g)];
           assert.equal(svgTags.length, 2, 'each output must contain one A4 root and one source viewport');
           const nested = svgTags[1][1];
           assert.match(nested, /preserveAspectRatio="xMinYMin meet"/);
           assert.match(nested, /overflow="hidden"/);
-          const nestedViewBox = nested.match(/viewBox="([^"]+)"/)?.[1].split(/\s+/).map(Number);
-          assert.equal(nestedViewBox?.[2], expected.tileWidth);
-          assert.equal(nestedViewBox?.[3], expected.tileHeight);
+          const nestedViewBox = nested.match(/viewBox="([^"]+)"/)?.[1].split(/\\s+/).map(Number);
+          assert.ok(nestedViewBox?.[2] > 0 && nestedViewBox[2] <= layout.tileWidth);
+          assert.ok(nestedViewBox?.[3] > 0 && nestedViewBox[3] <= layout.tileHeight);
+
+          const [x, y, width, height] = nestedViewBox;
+          const overlapsX = x < task.x + task.width && x + width > task.x;
+          const overlapsY = y < task.y + task.height && y + height > task.y;
+          assert.ok(!(overlapsX && overlapsY)
+            || (x <= task.x && x + width >= task.x + task.width
+              && y <= task.y && y + height >= task.y + task.height),
+          'a page that intersects the task must contain the entire task');
+          const nestedWidth = Number(nested.match(/\\bwidth="([^"]+)"/)?.[1]);
+          const nestedHeight = Number(nested.match(/\\bheight="([^"]+)"/)?.[1]);
+          assert.ok(Math.abs(nestedWidth - width * 25.4 / 96) < 0.001,
+            'shortened viewports must keep the same horizontal print scale');
+          assert.ok(Math.abs(nestedHeight - height * 25.4 / 96) < 0.001,
+            'shortened viewports must keep the same vertical print scale');
         });
       }
     } finally {
       restore();
     }
-  });
+  });;
 
 });
