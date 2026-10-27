@@ -10,6 +10,91 @@ import {
   paginateBpmnSvg,
 } from '../../.test-dist/shared/utils/paginatedBpmnSvg.js';
 
+
+class TestSvgNode {
+  constructor(localName, attributes = {}, rawInner = null) {
+    this.localName = localName;
+    this.attributes = { ...attributes };
+    this.rawInner = rawInner;
+    this.children = [];
+    this.textContent = null;
+  }
+
+  setAttribute(name, value) { this.attributes[name] = String(value); }
+  getAttribute(name) { return this.attributes[name] ?? null; }
+  removeAttribute(name) { delete this.attributes[name]; }
+  appendChild(child) { this.children.push(child); return child; }
+  cloneNode() {
+    const clone = new TestSvgNode(this.localName, this.attributes, this.rawInner);
+    clone.textContent = this.textContent;
+    clone.children = this.children.map(child => child.cloneNode(true));
+    return clone;
+  }
+}
+
+function serializeTestSvgNode(node) {
+  const escapeXml = value => String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+  const attributes = Object.entries(node.attributes)
+    .map(([name, value]) => ` ${name}="${escapeXml(value)}"`)
+    .join('');
+  const inner = node.textContent !== null
+    ? escapeXml(node.textContent)
+    : node.children.length
+      ? node.children.map(serializeTestSvgNode).join('')
+      : node.rawInner ?? '';
+  return `<${node.localName}${attributes}>${inner}</${node.localName}>`;
+}
+
+function installSvgDomTestShim() {
+  const previous = {
+    document: globalThis.document,
+    DOMParser: globalThis.DOMParser,
+    XMLSerializer: globalThis.XMLSerializer,
+  };
+
+  class TestDocument {
+    constructor(rootName = 'svg') {
+      this.documentElement = new TestSvgNode(rootName);
+      this.implementation = {
+        createDocument: (_namespace, name) => new TestDocument(name),
+      };
+    }
+    createElementNS(_namespace, name) { return new TestSvgNode(name); }
+    importNode(node) { return node.cloneNode(true); }
+  }
+
+  globalThis.document = new TestDocument();
+  globalThis.DOMParser = class {
+    parseFromString(markup) {
+      const open = markup.match(/<svg\\b([^>]*)>/i);
+      if (!open) return { documentElement: new TestSvgNode('html'), querySelector: () => null };
+      const attributes = {};
+      for (const match of open[1].matchAll(/([\\w:-]+)="([^"]*)"/g)) {
+        attributes[match[1]] = match[2];
+      }
+      const inner = markup.slice(open.index + open[0].length).replace(/<\\/svg>\\s*$/i, '');
+      return {
+        documentElement: new TestSvgNode('svg', attributes, inner),
+        querySelector: () => null,
+      };
+    }
+  };
+  globalThis.XMLSerializer = class {
+    serializeToString(node) { return serializeTestSvgNode(node); }
+  };
+
+  return () => {
+    for (const key of Object.keys(previous)) {
+      if (previous[key] === undefined) delete globalThis[key];
+      else globalThis[key] = previous[key];
+    }
+  };
+}
+
 const orientations = ['portrait', 'landscape'];
 
 describe('paginated BPMN SVG regression contracts', () => {
@@ -125,6 +210,49 @@ describe('paginated BPMN SVG regression contracts', () => {
       assert.ok(layout.pages.length > 1, `witness process should paginate in ${orientation}`);
       assert.equal(layout.pages.length, layout.columns * layout.rows);
       assert.ok(layout.pages.every(page => page.width === layout.tileWidth && page.height === layout.tileHeight));
+    }
+  });
+
+  it('generates paginated SVG output from the witness process in both orientations', () => {
+    const here = dirname(fileURLToPath(import.meta.url));
+    const bpmn = readFileSync(resolve(here, '../fixtures/pagination-witness.bpmn'), 'utf8');
+    const bounds = [...bpmn.matchAll(/<dc:Bounds\\b[^>]*\\bx="([\\d.-]+)"[^>]*\\by="([\\d.-]+)"[^>]*\\bwidth="([\\d.-]+)"[^>]*\\bheight="([\\d.-]+)"[^>]*\\/>/g)]
+      .map(match => ({ x: Number(match[1]), y: Number(match[2]), width: Number(match[3]), height: Number(match[4]) }));
+    const minX = Math.min(...bounds.map(bound => bound.x));
+    const minY = Math.min(...bounds.map(bound => bound.y));
+    const maxX = Math.max(...bounds.map(bound => bound.x + bound.width));
+    const maxY = Math.max(...bounds.map(bound => bound.y + bound.height));
+    const viewBox = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+    const sourceSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}">${bounds.map((bound, index) => `<g data-witness-shape="${index}"><rect x="${bound.x}" y="${bound.y}" width="${bound.width}" height="${bound.height}"/></g>`).join('')}</svg>`;
+    const restore = installSvgDomTestShim();
+
+    try {
+      for (const orientation of orientations) {
+        const expected = calculateSvgPageLayout(viewBox, orientation);
+        const pages = paginateBpmnSvg(sourceSvg, {
+          orientation,
+          fontFamily: 'Arial, sans-serif',
+          fontSizeMm: 3.5,
+          title: 'Pagination witness',
+        });
+
+        assert.equal(pages.length, expected.pages.length);
+        pages.forEach((page, index) => {
+          assert.match(page, new RegExp(`width="${expected.pageWidthMm}mm"`));
+          assert.match(page, new RegExp(`height="${expected.pageHeightMm}mm"`));
+          assert.match(page, new RegExp(`aria-label="Pagination witness — page ${index + 1} sur ${pages.length}"`));
+          const svgTags = [...page.matchAll(/<svg\\b([^>]*)>/g)];
+          assert.equal(svgTags.length, 2, 'each output must contain one A4 root and one source viewport');
+          const nested = svgTags[1][1];
+          assert.match(nested, /preserveAspectRatio="xMinYMin meet"/);
+          assert.match(nested, /overflow="hidden"/);
+          const nestedViewBox = nested.match(/viewBox="([^"]+)"/)?.[1].split(/\\s+/).map(Number);
+          assert.equal(nestedViewBox?.[2], expected.tileWidth);
+          assert.equal(nestedViewBox?.[3], expected.tileHeight);
+        });
+      }
+    } finally {
+      restore();
     }
   });
 
