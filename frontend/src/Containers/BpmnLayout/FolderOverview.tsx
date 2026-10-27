@@ -16,10 +16,11 @@ import { ResourceType } from '../../shared/types/BpmnResource';
 import type { Resource } from '../../Types';
 
 type FolderOverviewProps = {
-  resourceId: string;
+  resource: Resource;
 };
 
-export const FolderOverview = ({ resourceId }: FolderOverviewProps) => {
+export const FolderOverview = ({ resource }: FolderOverviewProps) => {
+  const { id: resourceId } = resource;
   const navigate = useNavigate();
   const resources = useQuery<Resource[]>(resourcesQuery());
 
@@ -37,7 +38,7 @@ export const FolderOverview = ({ resourceId }: FolderOverviewProps) => {
   if (resources.isLoading) {
     return (
       <Card variant="outlined" sx={{ flex: 1, minHeight: 220, gap: 1 }}>
-        <Typography level="title-lg">Contenu du répertoire</Typography>
+        <Typography level="title-lg">{resource.name}</Typography>
         <Typography level="body-sm" color="neutral">Chargement du contenu…</Typography>
       </Card>
     );
@@ -46,7 +47,7 @@ export const FolderOverview = ({ resourceId }: FolderOverviewProps) => {
   if (resources.isError) {
     return (
       <Card variant="outlined" sx={{ flex: 1, minHeight: 220, gap: 1 }}>
-        <Typography level="title-lg">Contenu du répertoire</Typography>
+        <Typography level="title-lg">{resource.name}</Typography>
         <Typography level="body-sm" color="danger">
           Impossible de charger le contenu de ce répertoire.
         </Typography>
@@ -72,6 +73,9 @@ export const FolderOverview = ({ resourceId }: FolderOverviewProps) => {
       >
         <Box>
           <Typography level="title-lg">Contenu du répertoire</Typography>
+          <Typography level="body-sm" color="neutral" sx={{ whiteSpace: 'pre-wrap' }}>
+            {resource.description?.trim() || 'Aucun descriptif renseigné pour ce répertoire.'}
+          </Typography>
           <Typography level="body-sm" color="neutral">
             Sélectionnez un sous-répertoire ou un processus pour l’ouvrir.
           </Typography>
