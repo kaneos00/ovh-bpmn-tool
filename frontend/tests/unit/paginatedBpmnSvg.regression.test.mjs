@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 import {
+  buildAxisTileOrigins,
   buildPageTiles,
   calculateSvgPageLayout,
   paginateBpmnSvg,
@@ -127,6 +128,34 @@ describe('paginated BPMN SVG regression contracts', () => {
       }
     });
   }
+
+
+  it('moves a page boundary across a BPMN task by overlapping full-size viewports', () => {
+    const origins = buildAxisTileOrigins(0, 2500, 1000, [
+      { start: 950, end: 1050 },
+    ]);
+
+    assert.deepEqual(origins, [0, 950, 1950]);
+    assert.ok(origins.every(origin => Number.isFinite(origin)));
+    assert.ok(origins.some(origin => origin <= 950 && origin + 1000 >= 1050),
+      'at least one full-size page viewport must contain the complete task');
+    assert.ok(origins[1] < origins[0] + 1000,
+      'the adjacent pages must overlap instead of leaving a gap');
+    assert.equal(origins[1] + 1000 - origins[0], 1950,
+      'viewport size remains constant, preserving print scale');
+  });
+
+  it('does not add overlaps when page boundaries already fall in whitespace', () => {
+    assert.deepEqual(
+      buildAxisTileOrigins(0, 2500, 1000, [{ start: 1200, end: 1300 }]),
+      [0, 1000, 2000],
+    );
+  });
+
+  it('rejects invalid axis dimensions and never loops on impossible input', () => {
+    assert.throws(() => buildAxisTileOrigins(0, 0, 100, []), /positives/i);
+    assert.throws(() => buildAxisTileOrigins(0, 100, Number.NaN, []), /positives/i);
+  });
 
   it('keeps tile coordinates deterministic and row-major', () => {
     const viewBox = { x: 13, y: 29, width: 1800, height: 1600 };
