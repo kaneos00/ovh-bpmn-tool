@@ -54,13 +54,17 @@ class TestSvgNode {
       }
       return result;
     }
-    if (selector !== 'g.djs-element.djs-shape') return [];
+    if (!selector.includes('djs-element')) return [];
+    const wantsShape = selector.includes('djs-shape');
+    const wantsLabel = selector.includes('djs-label');
     const result = [];
     for (const match of this.rawInner.matchAll(/<g\b([^>]*)>([\s\S]*?)<\/g>/gi)) {
       const attributes = {};
       for (const item of match[1].matchAll(/([\w:-]+)="([^"]*)"/g)) attributes[item[1]] = item[2];
-      if ((attributes.class ?? '').split(/\s+/).includes('djs-element')
-        && (attributes.class ?? '').split(/\s+/).includes('djs-shape')) {
+      const classes = (attributes.class ?? '').split(/\s+/);
+      const isElement = classes.includes('djs-element');
+      if (isElement && ((wantsShape && classes.includes('djs-shape'))
+        || (wantsLabel && classes.includes('djs-label')))) {
         result.push(new TestSvgNode('g', attributes, match[2]));
       }
     }
