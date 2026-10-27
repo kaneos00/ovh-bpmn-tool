@@ -158,8 +158,9 @@ describe('paginated BPMN SVG regression contracts', () => {
     assert.ok(tiles.every(tile => {
       const overlapX = tile.x < 1219.93 && tile.x + tile.width > 1119.93;
       const overlapY = tile.y < 762.4 && tile.y + tile.height > 682.4;
-      return (!overlapX || (tile.x <= 1119.93 && tile.x + tile.width >= 1219.93))
-        && (!overlapY || (tile.y <= 682.4 && tile.y + tile.height >= 762.4));
+      return !(overlapX && overlapY)
+        || (tile.x <= 1119.93 && tile.x + tile.width >= 1219.93
+          && tile.y <= 682.4 && tile.y + tile.height >= 762.4);
     }), 'no page may contain only a clipped fragment of this matrix-transformed task');
   });
 
