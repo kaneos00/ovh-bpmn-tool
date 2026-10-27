@@ -266,7 +266,7 @@ export function extractShapeBounds(sourceSvg: SVGSVGElement): SvgShapeBounds[] {
     // this also works with BPMN extensions that prepend decorative rects.
     const rects = typeof visual.querySelectorAll === 'function'
       ? Array.from(visual.querySelectorAll('rect'))
-      : [visual.querySelector('rect')].filter((rect): rect is Element => Boolean(rect));
+      : [visual.querySelector('rect')].filter((rect): rect is SVGRectElement => Boolean(rect));
     const candidates = rects.map(rect => ({
       rect,
       x: Number(rect.getAttribute('x') ?? 0),
