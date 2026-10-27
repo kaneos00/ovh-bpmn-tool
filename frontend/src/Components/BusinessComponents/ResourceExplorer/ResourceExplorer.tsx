@@ -20,6 +20,12 @@ type ResourceExplorerProps = {
   getResourceLink: (id: string) => string;
 };
 
+/**
+ * @deprecated Legacy table explorer. The active navigation is FolderTree
+ * in BpmnLayout and ContentViewer; /reference/tree has its own SVG tree.
+ * Do not extend or use this component for new features. Keep only for
+ * compatibility until its remaining references/tests are audited and it is removed.
+ */
 export const ResourceExplorer = ({
   parentId,
   getActionLink,
