@@ -238,13 +238,23 @@ test('deployed frontend exposes a build identifier with a source-derived fallbac
   assert.ok(compose.includes('VITE_BUILD_BRANCH: ${VITE_BUILD_BRANCH:-${SOURCE_BRANCH:-unknown}}'));
 });
 
-test('viewer file tree exposes context actions directly on right click', async () => {
+test('viewer context menu is styled, avoids duplicate favorites action and gates modeler editing by role', async () => {
   const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
   const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+  const menuStart = tree.indexOf('<Menu\\n      open={Boolean(contextMenu)}');
+  const menu = tree.slice(menuStart);
 
   assert.ok(tree.includes('onContextMenu={event =>'));
   assert.ok(tree.includes('setContextMenu({ nodeId, anchorEl: event.currentTarget as HTMLElement })'));
-  assert.ok(tree.includes('Modifier'));
+  assert.ok(tree.includes("borderRadius: '12px'"));
+  assert.ok(tree.includes('boxShadow:'));
+  assert.ok(tree.includes('background.level1'));
+  assert.ok(!menu.includes('Ajouter aux favoris'));
+  assert.ok(!menu.includes('Retirer des favoris'));
+  assert.ok(tree.includes("sessionRole === 'admin' || sessionRole === 'modeler'"));
+  assert.ok(tree.includes('isBpmn && canModifyBpmn'));
+  assert.ok(tree.includes('navigate(`/${resourceId}/modeler`)'));
+  assert.ok(tree.includes('Modifier dans le modeleur'));
   assert.ok(tree.includes('Partager'));
   assert.ok(tree.includes('Supprimer'));
   assert.ok(viewer.includes('KHI Flows'));
