@@ -414,7 +414,7 @@ describe('paginated BPMN SVG regression contracts', () => {
           assert.ok(!(overlapsX && overlapsY)
             || (x <= task.x && x + width >= task.x + task.width
               && y <= task.y && y + height >= task.y + task.height),
-          'a page that intersects the task must contain the entire task');
+          `a page must contain the whole task: orientation=${orientation}, viewport=[${x},${y},${width},${height}], task=[${task.x},${task.y},${task.width},${task.height}]`);
           const nestedWidth = Number(nested.match(/\bwidth="([^"]+)"/)?.[1]);
           const nestedHeight = Number(nested.match(/\bheight="([^"]+)"/)?.[1]);
           assert.ok(Math.abs(nestedWidth - width * 25.4 / 96) < 0.001,
