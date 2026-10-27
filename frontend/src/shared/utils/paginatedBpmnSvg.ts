@@ -244,8 +244,7 @@ export function extractShapeBounds(sourceSvg: SVGSVGElement): SvgShapeBounds[] {
       try {
         const box = graphicsVisual.getBBox();
         if ([box.x, box.y, box.width, box.height].every(Number.isFinite)
-          && box.width > 0 && box.height > 0
-          && Math.max(box.width, box.height) <= 180) {
+          && box.width > 0 && box.height > 0) {
           localBounds = { x: box.x, y: box.y, width: box.width, height: box.height };
         }
       } catch {
@@ -266,8 +265,7 @@ export function extractShapeBounds(sourceSvg: SVGSVGElement): SvgShapeBounds[] {
         height: Number(rect.getAttribute('height')),
       })).filter(candidate =>
         [candidate.x, candidate.y, candidate.width, candidate.height].every(Number.isFinite)
-        && candidate.width > 0 && candidate.height > 0
-        && Math.max(candidate.width, candidate.height) <= 180,
+        && candidate.width > 0 && candidate.height > 0,
       ).sort((left, right) => right.width * right.height - left.width * left.height);
       localBounds = candidates[0];
     }
@@ -275,7 +273,7 @@ export function extractShapeBounds(sourceSvg: SVGSVGElement): SvgShapeBounds[] {
     if (!localBounds) continue;
     const { x, y, width, height } = localBounds;
     if (![x, y, width, height, a, b, c, d, e, f].every(Number.isFinite)
-      || width <= 0 || height <= 0 || Math.max(width, height) > 180) continue;
+      || width <= 0 || height <= 0) continue;
     const corners = [
       [x, y], [x + width, y], [x, y + height], [x + width, y + height],
     ].map(([px, py]) => ({ x: a * px + c * py + e, y: b * px + d * py + f }));
