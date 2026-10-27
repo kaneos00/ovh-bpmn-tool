@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useSnackbar } from '../../../shared/hooks/useSnackbar';
 import {
@@ -23,7 +23,7 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
 
   const { showAlert } = useSnackbar();
 
-  const attachModeler = () => {
+  const attachModeler = useCallback(() => {
     if (!diagramContainerRef.current || !diagramPropertiesRef.current) {
       showAlert({
         message: 'Diagram or Properties ref are undefined',
@@ -45,7 +45,7 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
     }
 
     propertiesPanel.attachTo(diagramPropertiesRef.current);
-  };
+  }, [bpmnModelerInstance, getModelerProviders, propertiesPanel, showAlert]);
 
   useEffect(() => {
     let active = true;
@@ -74,7 +74,7 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
     return () => {
       active = false;
     };
-  }, [bpmnModelerInstance, content]);
+  }, [bpmnModelerInstance, content, attachModeler, showAlert]);
 
   useEffect(() => {
     const onLintingCompleted = ({ issues }: { issues: BpmnLintIssues }) => {
