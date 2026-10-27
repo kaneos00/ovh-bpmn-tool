@@ -254,7 +254,7 @@ function extractShapeBounds(sourceSvg: SVGSVGElement): SvgShapeBounds[] {
   return bounds;
 }
 
-function buildShapeAwareTiles(
+export function buildShapeAwareTiles(
   layout: SvgPageLayout,
   viewBox: { x: number; y: number; width: number; height: number },
   shapes: SvgShapeBounds[],
