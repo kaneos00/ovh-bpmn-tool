@@ -161,7 +161,7 @@ function extractParticipantLabels(sourceSvg: SVGSVGElement): string[] {
     const value = label?.textContent?.replace(/\s+/g, ' ').trim();
     if (value) labels.add(value);
   }
-  return [...labels];
+  return Array.from(labels);
 }
 
 function createText(
