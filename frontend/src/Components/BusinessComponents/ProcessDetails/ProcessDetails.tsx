@@ -35,6 +35,7 @@ import { DropZone } from '../../../Components/GenericComponents/DropZone/DropZon
 
 import './ProcessDetails.scss';
 import '../../../raci.css';
+import { DataInventory } from './DataInventory';
 
 type ProcessDetailsProps = {
   resourceId: string;
@@ -399,6 +400,7 @@ export const ProcessDetails = ({
           <Tab value={1}>Description</Tab>
           <Tab value={2}>Historique</Tab>
           <Tab value={3}>Matrice RACI</Tab>
+          <Tab value={4}>Inventaire des données</Tab>
         </TabList>
 
         <TabPanel value={0} className="processViewerTabPanel processViewerProcessTab">
@@ -1001,6 +1003,21 @@ export const ProcessDetails = ({
             <Typography level="body-xs" textColor="neutral" sx={{ p: 1 }}>
               Lecture seule : aucune modification du RACI n'est possible depuis cette vue.
             </Typography>
+          </Sheet>
+        </TabPanel>
+
+        <TabPanel value={4} className="processViewerTabPanel">
+          <Sheet className="processViewerInfo" variant="outlined" sx={{ height: '100%', overflow: 'auto' }}>
+            <DataInventory
+              xmlContent={xmlContent}
+              canEdit={canEditDescription}
+              onSave={async updatedXml => {
+                if (!publishedContent) throw new Error('Aucune version publiée à mettre à jour.');
+                await saveContent(resourceId, publishedContent.id, { content: updatedXml });
+                await queryClient.invalidateQueries(xmlContentQuery.queryKey);
+                showAlert({ message: 'Inventaire des données enregistré.', severity: 'success' });
+              }}
+            />
           </Sheet>
         </TabPanel>
       </Tabs>
