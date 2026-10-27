@@ -123,7 +123,7 @@ function parseViewBox(svg: SVGSVGElement): {
   const rawViewBox = svg.getAttribute('viewBox');
   if (rawViewBox) {
     const values = rawViewBox.trim().split(/[\s,]+/).map(Number);
-    if (values.length === 4 && values.every(Number.isFinite)) {
+    if (values.length === 4 && values.every(Number.isFinite) && values[2] > 0 && values[3] > 0) {
       return { x: values[0], y: values[1], width: values[2], height: values[3] };
     }
   }
@@ -155,143 +155,13 @@ function createText(
   return element;
 }
 
-type ShapeBounds = { x: number; y: number; width: number; height: number };
-
-function collectShapeBounds(
-  sourceSvg: SVGSVGElement,
-  viewBox: { x: number; y: number; width: number; height: number },
-): ShapeBounds[] {
-  const host = document.createElement('div');
-  host.style.position = 'fixed';
-  host.style.left = '-100000px';
-  host.style.top = '0';
-  host.style.visibility = 'hidden';
-  host.style.overflow = 'visible';
-
-  const measurableSvg = sourceSvg.cloneNode(true) as SVGSVGElement;
-  measurableSvg.setAttribute('width', `${viewBox.width}px`);
-  measurableSvg.setAttribute('height', `${viewBox.height}px`);
-  measurableSvg.setAttribute(
-    'viewBox',
-    `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`,
-  );
-  host.appendChild(measurableSvg);
-  document.body.appendChild(host);
-
-  try {
-    return Array.from(measurableSvg.querySelectorAll<SVGGElement>('g.djs-shape'))
-      .flatMap(group => {
-        try {
-          const bounds = group.getBBox();
-          const matrix = group.getCTM();
-          if (!matrix || bounds.width <= 0 || bounds.height <= 0) return [];
-
-          const points = [
-            [bounds.x, bounds.y],
-            [bounds.x + bounds.width, bounds.y],
-            [bounds.x, bounds.y + bounds.height],
-            [bounds.x + bounds.width, bounds.y + bounds.height],
-          ].map(([x, y]) => ({
-            x: matrix.a * x + matrix.c * y + matrix.e,
-            y: matrix.b * x + matrix.d * y + matrix.f,
-          }));
-          const left = Math.min(...points.map(point => point.x));
-          const right = Math.max(...points.map(point => point.x));
-          const top = Math.min(...points.map(point => point.y));
-          const bottom = Math.max(...points.map(point => point.y));
-
-          // Pools and lanes span the diagram; treating them as indivisible
-          // would make pagination impossible. Keep activity/event/gateway shapes.
-          if (
-            right - left > viewBox.width * 0.45 ||
-            bottom - top > viewBox.height * 0.45
-          ) {
-            return [];
-          }
-          return [{ x: left, y: top, width: right - left, height: bottom - top }];
-        } catch {
-          return [];
-        }
-      });
-  } finally {
-    host.remove();
-  }
-}
-
-function chooseSafeBoundaries(
-  origin: number,
-  length: number,
-  tileSize: number,
-  count: number,
-  bounds: ShapeBounds[],
-  axis: 'x' | 'y',
-): number[] {
-  const boundaries = [origin];
-  const padding = 8;
-  for (let index = 1; index < count; index += 1) {
-    const nominal = origin + index * tileSize;
-    const searchRadius = tileSize * 0.2;
-    const minAllowed = nominal - searchRadius;
-    const maxAllowed = nominal + searchRadius;
-    const candidates = [nominal];
-
-    bounds.forEach(bound => {
-      const start = axis === 'x' ? bound.x : bound.y;
-      const end = start + (axis === 'x' ? bound.width : bound.height);
-      candidates.push(start - padding, end + padding);
-    });
-
-    const safeCandidates = candidates
-      .filter(candidate => candidate >= minAllowed && candidate <= maxAllowed)
-      .filter(candidate =>
-        bounds.every(bound => {
-          const start = axis === 'x' ? bound.x : bound.y;
-          const end = start + (axis === 'x' ? bound.width : bound.height);
-          return end <= candidate - padding || start >= candidate + padding;
-        }),
-      );
-
-    const chosen = safeCandidates.length
-      ? safeCandidates.reduce((best, candidate) =>
-          Math.abs(candidate - nominal) < Math.abs(best - nominal) ? candidate : best,
-        )
-      : nominal;
-    boundaries.push(chosen);
-  }
-  boundaries.push(origin + length);
-  return boundaries;
-}
-
-function buildPageTiles(
-  viewBox: { x: number; y: number; width: number; height: number },
-  layout: SvgPageLayout,
-  sourceSvg: SVGSVGElement,
-): SvgPageTile[] {
-  const bounds = collectShapeBounds(sourceSvg, viewBox);
-  const xBoundaries = chooseSafeBoundaries(
-    viewBox.x,
-    viewBox.width,
-    layout.tileWidth,
-    layout.columns,
-    bounds,
-    'x',
-  );
-  const yBoundaries = chooseSafeBoundaries(
-    viewBox.y,
-    viewBox.height,
-    layout.tileHeight,
-    layout.rows,
-    bounds,
-    'y',
-  );
-
-  return layout.pages.map(tile => ({
-    ...tile,
-    x: xBoundaries[tile.column],
-    y: yBoundaries[tile.row],
-    width: xBoundaries[tile.column + 1] - xBoundaries[tile.column],
-    height: yBoundaries[tile.row + 1] - yBoundaries[tile.row],
-  }));
+/**
+ * Keep every source viewport identical so all pages share the same print scale.
+ * Edge pages intentionally retain the unused area instead of stretching their
+ * smaller remaining source region to fill the printable A4 area.
+ */
+export function buildPageTiles(layout: SvgPageLayout): SvgPageTile[] {
+  return layout.pages.map(tile => ({ ...tile }));
 }
 
 /**
@@ -329,7 +199,7 @@ export function paginateBpmnSvg(
 
   const viewBox = parseViewBox(sourceSvg);
   const layout = calculateSvgPageLayout(viewBox, options.orientation);
-  const pageTiles = buildPageTiles(viewBox, layout, sourceSvg);
+  const pageTiles = buildPageTiles(layout);
   const serializer = new XMLSerializer();
   const title = options.title?.trim() || 'Export BPMN';
   const fontOptions = {
@@ -381,6 +251,7 @@ export function paginateBpmnSvg(
     nestedSvg.setAttribute('viewBox', `${tile.x} ${tile.y} ${tile.width} ${tile.height}`);
     nestedSvg.setAttribute('preserveAspectRatio', 'xMinYMin meet');
     nestedSvg.setAttribute('font-family', options.fontFamily);
+    nestedSvg.setAttribute('overflow', 'hidden');
     nestedSvg.removeAttribute('style');
     pageSvg.appendChild(pageDocument.importNode(nestedSvg, true));
 
