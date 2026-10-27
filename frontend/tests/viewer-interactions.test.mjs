@@ -104,8 +104,8 @@ test('explorer exposes tree, recent and favorites views with explicit expand/col
   assert.match(tree, /\['tree', 'Arborescence'\]/);
   assert.match(tree, /\['recent', 'Récents'\]/);
   assert.match(tree, /\['favorites', 'Favoris'\]/);
-  assert.match(tree, /onExpandItem=\{item => setExpandedNodes/);
-  assert.match(tree, /onCollapseItem=\{item => setExpandedNodes/);
+  assert.match(tree, /onExpandItem=\{item => \{[\s\S]*?if \(isSearching\) setSearchCollapsedNodes/);
+  assert.match(tree, /onCollapseItem=\{item => \{[\s\S]*?if \(isSearching\) setSearchCollapsedNodes/);
 });
 
 
