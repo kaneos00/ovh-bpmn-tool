@@ -233,7 +233,22 @@ test('deployed frontend exposes a build identifier with a source-derived fallbac
   assert.ok(dockerfile.includes('ARG VITE_BUILD_ID=unknown'));
   assert.ok(dockerfile.includes('SOURCE_HASH='));
   assert.ok(dockerfile.includes('VITE_BUILD_ID="src-$SOURCE_HASH"'));
-  assert.ok(compose.includes('VITE_BUILD_ID: ${VITE_BUILD_ID:-unknown}'));
+  assert.ok(compose.includes('VITE_BUILD_ID: ${VITE_BUILD_ID:-${SOURCE_COMMIT:-unknown}}'));
+  assert.ok(compose.includes('VITE_BUILD_COMMIT: ${VITE_BUILD_COMMIT:-${SOURCE_COMMIT:-unknown}}'));
+  assert.ok(compose.includes('VITE_BUILD_BRANCH: ${VITE_BUILD_BRANCH:-${SOURCE_BRANCH:-unknown}}'));
+});
+
+test('viewer file tree exposes context actions directly on right click', async () => {
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+  const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+
+  assert.ok(tree.includes('onContextMenu={event =>'));
+  assert.ok(tree.includes('setContextMenu({ nodeId, anchorEl: event.currentTarget as HTMLElement })'));
+  assert.ok(tree.includes('Modifier'));
+  assert.ok(tree.includes('Partager'));
+  assert.ok(tree.includes('Supprimer'));
+  assert.ok(viewer.includes('KHI Flows'));
+  assert.ok(viewer.includes('Version de build'));
 });
 
 test('viewer gets a fresh BPMN instance when the selected process or published version changes', async () => {
