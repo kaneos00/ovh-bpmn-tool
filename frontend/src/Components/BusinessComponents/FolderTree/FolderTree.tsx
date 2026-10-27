@@ -18,6 +18,8 @@ import {
   AccessTime,
   Delete,
   DescriptionOutlined,
+  CreateNewFolder,
+  AddCircleOutline,
   Edit,
   OpenInNew,
   Share,
@@ -399,6 +401,8 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
         const node = nodeById.get(contextMenu.nodeId)!;
         const resourceId = node.targetId ?? node.id;
         const isBpmn = node.type === 'process' || node.type === 'linked-process';
+        const isFolder = node.type === 'folder';
+        const isAdmin = sessionRole === 'admin';
         const menuItemSx = {
           gap: 1.25,
           px: 1.25,
@@ -428,23 +432,46 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                 Modifier dans le modeleur
               </MenuItem>
             )}
-            <Divider sx={{ my: 0.5, mx: 0.75 }} />
+            {isFolder && isAdmin && (
+              <>
+                <Divider sx={{ my: 0.5, mx: 0.75 }} />
+                <MenuItem sx={menuItemSx} onClick={() => {
+                  setContextMenu(null);
+                  navigate(`/${resourceId}/add?type=folder`);
+                }}>
+                  <CreateNewFolder fontSize="small" />
+                  Créer un répertoire
+                </MenuItem>
+                <MenuItem sx={menuItemSx} onClick={() => {
+                  setContextMenu(null);
+                  navigate(`/${resourceId}/add?type=process`);
+                }}>
+                  <AddCircleOutline fontSize="small" />
+                  Créer un processus
+                </MenuItem>
+              </>
+            )}
             {node.type !== 'folder' && (
-              <MenuItem sx={menuItemSx} onClick={() => {
+              <>
+                <Divider sx={{ my: 0.5, mx: 0.75 }} />
+                <MenuItem sx={menuItemSx} onClick={() => {
+                  setContextMenu(null);
+                  navigate(`/${resourceId}/share`);
+                }}>
+                  <Share fontSize="small" />
+                  Partager
+                </MenuItem>
+              </>
+            )}
+            {isAdmin && (
+              <MenuItem sx={{ ...menuItemSx, color: 'danger.600', '& > svg': { color: 'danger.600', fontSize: 18 }, '&:hover': { bgcolor: 'danger.softBg' } }} onClick={() => {
                 setContextMenu(null);
-                navigate(`/${resourceId}/share`);
+                navigate(`/${resourceId}/delete`);
               }}>
-                <Share fontSize="small" />
-                Partager
+                <Delete fontSize="small" />
+                Supprimer
               </MenuItem>
             )}
-            <MenuItem sx={{ ...menuItemSx, color: 'danger.600', '& > svg': { color: 'danger.600', fontSize: 18 }, '&:hover': { bgcolor: 'danger.softBg' } }} onClick={() => {
-              setContextMenu(null);
-              navigate(`/${resourceId}/delete`);
-            }}>
-              <Delete fontSize="small" />
-              Supprimer
-            </MenuItem>
           </>
         );
       })()}
