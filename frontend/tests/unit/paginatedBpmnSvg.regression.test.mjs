@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 
 import {
+  buildPageTiles,
   calculateSvgPageLayout,
   paginateBpmnSvg,
 } from '../../.test-dist/shared/utils/paginatedBpmnSvg.js';
@@ -82,4 +86,46 @@ describe('paginated BPMN SVG regression contracts', () => {
       /500 pages/,
     );
   });
+  it('keeps a constant source window and print scale on edge tiles', () => {
+    const viewBox = { x: -25, y: 17, width: 2400, height: 1700 };
+    const layout = calculateSvgPageLayout(viewBox, 'portrait');
+    const tiles = buildPageTiles(layout);
+
+    assert.equal(tiles.length, layout.columns * layout.rows);
+    for (const tile of tiles) {
+      assert.equal(tile.width, layout.tileWidth);
+      assert.equal(tile.height, layout.tileHeight);
+      assert.equal(tile.x, viewBox.x + tile.column * layout.tileWidth);
+      assert.equal(tile.y, viewBox.y + tile.row * layout.tileHeight);
+    }
+    assert.ok(tiles.some(tile => tile.x + tile.width > viewBox.x + viewBox.width),
+      'the last column must keep a full-size viewport rather than scale down');
+    assert.ok(tiles.some(tile => tile.y + tile.height > viewBox.y + viewBox.height),
+      'the last row must keep a full-size viewport rather than scale down');
+  });
+
+  it('derives multi-page portrait and landscape layouts from the BPMN witness process', () => {
+    const here = dirname(fileURLToPath(import.meta.url));
+    const bpmn = readFileSync(resolve(here, '../fixtures/pagination-witness.bpmn'), 'utf8');
+    const bounds = [...bpmn.matchAll(/<dc:Bounds\b[^>]*\bx="([\d.-]+)"[^>]*\by="([\d.-]+)"[^>]*\bwidth="([\d.-]+)"[^>]*\bheight="([\d.-]+)"[^>]*\/>/g)]
+      .map(match => ({ x: Number(match[1]), y: Number(match[2]), width: Number(match[3]), height: Number(match[4]) }));
+
+    assert.ok(bounds.length >= 5, 'witness process should contain BPMN diagram shapes');
+    assert.match(bpmn, /<bpmn:process\b/);
+    assert.match(bpmn, /<bpmn:sequenceFlow\b/);
+
+    const minX = Math.min(...bounds.map(bound => bound.x));
+    const minY = Math.min(...bounds.map(bound => bound.y));
+    const maxX = Math.max(...bounds.map(bound => bound.x + bound.width));
+    const maxY = Math.max(...bounds.map(bound => bound.y + bound.height));
+    const viewBox = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+
+    for (const orientation of orientations) {
+      const layout = calculateSvgPageLayout(viewBox, orientation);
+      assert.ok(layout.pages.length > 1, `witness process should paginate in ${orientation}`);
+      assert.equal(layout.pages.length, layout.columns * layout.rows);
+      assert.ok(layout.pages.every(page => page.width === layout.tileWidth && page.height === layout.tileHeight));
+    }
+  });
+
 });
