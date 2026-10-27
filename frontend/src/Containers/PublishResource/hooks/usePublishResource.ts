@@ -25,6 +25,7 @@ import { useModelerInstance } from '../../../shared/hooks/useModelerInstance';
 export const usePublishResource = () => {
   const [base64Png, setBase64Png] = useState('');
   const viewerRef = useRef<HTMLDivElement>(null);
+  const previewGenerationRef = useRef(0);
 
   const { resourceId } = useParams() as PublishResourceParams;
   const loaderData = useLoaderData() as PublishResourceLoaderData;
@@ -62,14 +63,40 @@ export const usePublishResource = () => {
   });
 
   useEffect(() => {
-    if (viewerRef.current && draftXmlContent) {
-      viewer.importXML(draftXmlContent).then(async () => {
-        viewer.attachTo(viewerRef.current as HTMLDivElement);
-        const processSvg = await viewer.saveSVG();
-        const pngData = await generatePngFromSvg(processSvg.svg);
-        setBase64Png(pngData || '');
-      });
+    const generation = ++previewGenerationRef.current;
+    setBase64Png('');
+
+    if (!viewerRef.current || !draftXmlContent) {
+      return () => {
+        if (previewGenerationRef.current === generation) previewGenerationRef.current += 1;
+      };
     }
+
+    const generatePreview = async () => {
+      try {
+        await viewer.importXML(draftXmlContent);
+        if (generation !== previewGenerationRef.current || !viewerRef.current) return;
+
+        viewer.attachTo(viewerRef.current);
+        const processSvg = await viewer.saveSVG();
+        if (generation !== previewGenerationRef.current) return;
+
+        const pngData = await generatePngFromSvg(processSvg.svg);
+        if (generation === previewGenerationRef.current) {
+          setBase64Png(pngData || '');
+        }
+      } catch {
+        if (generation === previewGenerationRef.current) {
+          setBase64Png('');
+        }
+      }
+    };
+
+    void generatePreview();
+
+    return () => {
+      if (previewGenerationRef.current === generation) previewGenerationRef.current += 1;
+    };
   }, [viewer, draftXmlContent]);
 
   /**
