@@ -70,13 +70,13 @@ function installSvgDomTestShim() {
   globalThis.document = new TestDocument();
   globalThis.DOMParser = class {
     parseFromString(markup) {
-      const open = markup.match(/<svg\\b([^>]*)>/i);
+      const open = markup.match(/<svg\b([^>]*)>/i);
       if (!open) return { documentElement: new TestSvgNode('html'), querySelector: () => null };
       const attributes = {};
-      for (const match of open[1].matchAll(/([\\w:-]+)="([^"]*)"/g)) {
+      for (const match of open[1].matchAll(/([\w:-]+)="([^"]*)"/g)) {
         attributes[match[1]] = match[2];
       }
-      const inner = markup.slice(open.index + open[0].length).replace(/<\\/svg>\\s*$/i, '');
+      const inner = markup.slice(open.index + open[0].length).replace(/<\/svg>\s*$/i, '');
       return {
         documentElement: new TestSvgNode('svg', attributes, inner),
         querySelector: () => null,
@@ -216,7 +216,7 @@ describe('paginated BPMN SVG regression contracts', () => {
   it('generates paginated SVG output from the witness process in both orientations', () => {
     const here = dirname(fileURLToPath(import.meta.url));
     const bpmn = readFileSync(resolve(here, '../fixtures/pagination-witness.bpmn'), 'utf8');
-    const bounds = [...bpmn.matchAll(/<dc:Bounds\\b[^>]*\\bx="([\\d.-]+)"[^>]*\\by="([\\d.-]+)"[^>]*\\bwidth="([\\d.-]+)"[^>]*\\bheight="([\\d.-]+)"[^>]*\\/>/g)]
+    const bounds = [...bpmn.matchAll(/<dc:Bounds\b[^>]*\bx="([\d.-]+)"[^>]*\by="([\d.-]+)"[^>]*\bwidth="([\d.-]+)"[^>]*\bheight="([\d.-]+)"[^>]*\/>/g)]
       .map(match => ({ x: Number(match[1]), y: Number(match[2]), width: Number(match[3]), height: Number(match[4]) }));
     const minX = Math.min(...bounds.map(bound => bound.x));
     const minY = Math.min(...bounds.map(bound => bound.y));
@@ -241,12 +241,12 @@ describe('paginated BPMN SVG regression contracts', () => {
           assert.match(page, new RegExp(`width="${expected.pageWidthMm}mm"`));
           assert.match(page, new RegExp(`height="${expected.pageHeightMm}mm"`));
           assert.match(page, new RegExp(`aria-label="Pagination witness — page ${index + 1} sur ${pages.length}"`));
-          const svgTags = [...page.matchAll(/<svg\\b([^>]*)>/g)];
+          const svgTags = [...page.matchAll(/<svg\b([^>]*)>/g)];
           assert.equal(svgTags.length, 2, 'each output must contain one A4 root and one source viewport');
           const nested = svgTags[1][1];
           assert.match(nested, /preserveAspectRatio="xMinYMin meet"/);
           assert.match(nested, /overflow="hidden"/);
-          const nestedViewBox = nested.match(/viewBox="([^"]+)"/)?.[1].split(/\\s+/).map(Number);
+          const nestedViewBox = nested.match(/viewBox="([^"]+)"/)?.[1].split(/\s+/).map(Number);
           assert.equal(nestedViewBox?.[2], expected.tileWidth);
           assert.equal(nestedViewBox?.[3], expected.tileHeight);
         });
