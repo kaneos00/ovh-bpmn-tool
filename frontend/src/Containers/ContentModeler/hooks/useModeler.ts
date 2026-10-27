@@ -17,7 +17,7 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
   const { getModelerProviders } = useBpmnToolOptions();
 
   const providersRegisteredRef = useRef(false);
-  
+
   const propertiesPanel: PropertiesPanel =
     bpmnModelerInstance.get('propertiesPanel');
 
@@ -36,49 +36,63 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
 
     if (!providersRegisteredRef.current) {
       const providers = getModelerProviders();
-    
+
       providers.forEach(({ priority, instance: ProviderInstance }) => {
         propertiesPanel.registerProvider(priority, new ProviderInstance());
       });
-    
+
       providersRegisteredRef.current = true;
-    }    
+    }
 
     propertiesPanel.attachTo(diagramPropertiesRef.current);
   };
 
   useEffect(() => {
-    if (diagramContainerRef.current && diagramPropertiesRef.current) {
-      if (!content) {
-        bpmnModelerInstance
-          .createDiagram()
-          .then(() => attachModeler())
-          .catch(() =>
-            showAlert({
-              message: 'Failed to render file',
-              severity: 'danger',
-            }),
-          );
-      } else {
-        bpmnModelerInstance
-          .importXML(content)
-          .then(() => attachModeler())
-          .catch(() =>
-            showAlert({
-              message: 'Failed to import file',
-              severity: 'danger',
-            }),
-          );
-      }
+    let active = true;
 
-      bpmnModelerInstance.on(
-        'linting.completed',
-        ({ issues }: { issues: BpmnLintIssues }) => {
-          setHasLintError(checkForLinterIssues(issues));
-        },
-      );
+    if (diagramContainerRef.current && diagramPropertiesRef.current) {
+      const importPromise = content
+        ? bpmnModelerInstance.importXML(content)
+        : bpmnModelerInstance.createDiagram();
+
+      importPromise
+        .then(() => {
+          if (active) {
+            attachModeler();
+          }
+        })
+        .catch(() => {
+          if (active) {
+            showAlert({
+              message: content ? 'Failed to import file' : 'Failed to render file',
+              severity: 'danger',
+            });
+          }
+        });
     }
-  }, [bpmnModelerInstance, diagramContainerRef, diagramPropertiesRef, content]);
+
+    return () => {
+      active = false;
+    };
+  }, [bpmnModelerInstance, content]);
+
+  useEffect(() => {
+    const onLintingCompleted = ({ issues }: { issues: BpmnLintIssues }) => {
+      setHasLintError(checkForLinterIssues(issues));
+    };
+
+    bpmnModelerInstance.on('linting.completed', onLintingCompleted);
+
+    return () => {
+      bpmnModelerInstance.off('linting.completed', onLintingCompleted);
+    };
+  }, [bpmnModelerInstance]);
+
+  useEffect(() => {
+    return () => {
+      bpmnModelerInstance.destroy();
+    };
+  }, [bpmnModelerInstance]);
 
   return {
     diagramContainerRef,
