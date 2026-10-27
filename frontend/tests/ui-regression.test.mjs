@@ -299,3 +299,22 @@ test('viewer element details editing is permission-gated and saves title, descri
   assert.match(details, /sx=\{\{ ml: 1, mt: 0\.25, flex: '0 0 auto' \}\}/);
   assert.match(styles, /\.processTaskPanelEditActions\s*\{[^}]*border-top:/s);
 });
+
+
+test('viewer context-menu deletion passes the target resource and opens the existing confirmation flow', async () => {
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+  const routes = await read('src/routes.tsx');
+  const loader = await read('src/Containers/DeleteResource/DeleteResource.loader.ts');
+  const action = await read('src/Containers/DeleteResource/DeleteResource.action.ts');
+  const component = await read('src/Containers/DeleteResource/DeleteResource.container.tsx');
+  const hook = await read('src/Containers/DeleteResource/hooks/useDeleteResource.ts');
+
+  assert.ok(tree.includes('navigate(`/${resourceId}/delete?targetResourceId=${encodeURIComponent(resourceId)}`)'));
+  assert.ok(routes.includes("path: '/:resourceId/delete'"));
+  assert.ok(loader.includes("url.searchParams.get('targetResourceId')"));
+  assert.ok(loader.includes('if (!targetResourceId)'));
+  assert.ok(component.includes('<ConfirmModal'));
+  assert.ok(component.includes('onConfirm={callbacks.onModalConfirm}'));
+  assert.ok(hook.includes("submit("));
+  assert.ok(action.includes('await deleteResource(targetResourceId as string)'));
+});
