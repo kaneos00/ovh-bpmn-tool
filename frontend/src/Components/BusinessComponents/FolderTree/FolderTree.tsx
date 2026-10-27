@@ -15,8 +15,11 @@ import {
 } from '@mui/joy';
 import {
   AccessTime,
+  Delete,
   DescriptionOutlined,
+  Edit,
   OpenInNew,
+  Share,
   FolderOutlined,
   ChevronRight,
   ExpandMore,
@@ -195,6 +198,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
   };
 
   return (
+    <>
     <List
       sx={{
         '--ListItem-radius': '8px',
@@ -357,5 +361,73 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
         </Box>
       )}
     </List>
+    <Menu
+      open={Boolean(contextMenu)}
+      anchorEl={contextMenu?.anchorEl ?? null}
+      onClose={() => setContextMenu(null)}
+      placement="right-start"
+    >
+      {contextMenu && nodeById.get(contextMenu.nodeId) && (
+        <>
+          <MenuItem
+            onClick={() => {
+              const node = nodeById.get(contextMenu.nodeId);
+              setContextMenu(null);
+              if (node) onNodeClick(node.targetId ?? node.id);
+            }}
+          >
+            <OpenInNew fontSize="small" />
+            Ouvrir
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              const nodeId = contextMenu.nodeId;
+              setFavorites(current => current.includes(nodeId)
+                ? current.filter(id => id !== nodeId)
+                : [nodeId, ...current]);
+              setContextMenu(null);
+            }}
+          >
+            {favorites.includes(contextMenu.nodeId) ? <StarBorder fontSize="small" /> : <Star fontSize="small" />}
+            {favorites.includes(contextMenu.nodeId) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+          </MenuItem>
+          {nodeById.get(contextMenu.nodeId)?.type !== 'folder' && (
+            <>
+              <MenuItem
+                onClick={() => {
+                  const node = nodeById.get(contextMenu.nodeId);
+                  setContextMenu(null);
+                  if (node) navigate(`/${node.targetId ?? node.id}/edit`);
+                }}
+              >
+                <Edit fontSize="small" />
+                Modifier
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  const node = nodeById.get(contextMenu.nodeId);
+                  setContextMenu(null);
+                  if (node) navigate(`/${node.targetId ?? node.id}/share`);
+                }}
+              >
+                <Share fontSize="small" />
+                Partager
+              </MenuItem>
+            </>
+          )}
+          <MenuItem
+            onClick={() => {
+              const node = nodeById.get(contextMenu.nodeId);
+              setContextMenu(null);
+              if (node) navigate(`/${node.targetId ?? node.id}/delete`);
+            }}
+          >
+            <Delete fontSize="small" />
+            Supprimer
+          </MenuItem>
+        </>
+      )}
+    </Menu>
+    </>
   );
 };
