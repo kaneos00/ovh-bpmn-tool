@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ContentCopy, Delete, Edit, MoreVert, Share } from '@mui/icons-material';
 import {
@@ -38,19 +38,18 @@ type ResourceActionsProps = {
   resource: Resource;
   getActionLink: (id: string, action: ResourceAction) => string;
   openContextMenu?: boolean;
-  onContextMenuOpened?: () => void;
+  onContextMenuClosed?: () => void;
 };
 
 export const ResourceActions = ({
   resource,
   getActionLink,
   openContextMenu = false,
-  onContextMenuOpened,
+  onContextMenuClosed,
 }: ResourceActionsProps) => {
   const [cloneDialogOpen, setCloneDialogOpen] = useState(false);
   const [cloneName, setCloneName] = useState(`${resource.name} (copie)`);
   const [cloneError, setCloneError] = useState<string | null>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
   const { showAlert } = useSnackbar();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -61,19 +60,12 @@ export const ResourceActions = ({
   );
   const canManage = ['editor', 'modeler', 'admin'].includes((session?.role ?? '').toLowerCase());
 
-  useEffect(() => {
-    if (!openContextMenu || !canManage) return;
-    setMenuOpen(true);
-    onContextMenuOpened?.();
-  }, [openContextMenu, canManage, onContextMenuOpened]);
-
   const cloneProcess = useMutation(
     () => apiClient.post(`/resources/${resource.id}/clone`, { name: cloneName.trim() }),
     {
       onSuccess: async (clonedResource: Resource) => {
         setCloneError(null);
         setCloneDialogOpen(false);
-        setMenuOpen(false);
         await queryClient.invalidateQueries(['resources']);
         navigate(`/${clonedResource.id}/modeler`);
       },
@@ -126,17 +118,15 @@ export const ResourceActions = ({
   return (
     <Stack spacing={1} direction="row" justifyContent="flex-end">
       <Dropdown
-        open={menuOpen}
-        onOpenChange={(_, open) => setMenuOpen(open)}
+        open={openContextMenu}
+        onOpenChange={(_, open) => {
+          if (!open) onContextMenuClosed?.();
+        }}
       >
         <MenuButton
           slots={{ root: IconButton }}
           slotProps={{
             root: { variant: 'outlined', color: 'neutral', size: 'sm' },
-          }}
-          onContextMenu={event => {
-            event.preventDefault();
-            setMenuOpen(true);
           }}
         >
           <MoreVert />
@@ -145,7 +135,6 @@ export const ResourceActions = ({
           <MenuItem
             component={Link}
             to={getActionLink(resource.id, ResourceAction.Edit)}
-            onClick={() => setMenuOpen(false)}
             title={`${resource.name}: edit the resource`}
           >
             <ListItemDecorator>
@@ -156,8 +145,7 @@ export const ResourceActions = ({
           {resource.type === ResourceType.Process && (
             <MenuItem
               onClick={() => {
-                setMenuOpen(false);
-                setCloneName(`${resource.name} (copie)`);
+                        setCloneName(`${resource.name} (copie)`);
                 setCloneError(null);
                 setCloneDialogOpen(true);
               }}
@@ -173,8 +161,7 @@ export const ResourceActions = ({
             <MenuItem
               component={Link}
               to={getActionLink(resource.id, ResourceAction.Share)}
-              onClick={() => setMenuOpen(false)}
-              title={`${resource.name}: share the resource`}
+                title={`${resource.name}: share the resource`}
             >
               <ListItemDecorator>
                 <Share fontSize="small" />
@@ -185,7 +172,6 @@ export const ResourceActions = ({
           <MenuItem
             component={Link}
             to={getActionLink(resource.id, ResourceAction.Delete)}
-            onClick={() => setMenuOpen(false)}
             title={`${resource.name}: delete the resource`}
           >
             <ListItemDecorator>
