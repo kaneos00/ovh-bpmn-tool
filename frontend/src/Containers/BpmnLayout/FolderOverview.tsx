@@ -72,7 +72,7 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
         sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
       >
         <Box>
-          <Typography level="title-lg">Contenu du répertoire</Typography>
+          <Typography level="title-lg">{resource.name}</Typography>
           <Typography level="body-sm" color="neutral" sx={{ whiteSpace: 'pre-wrap' }}>
             {resource.description?.trim() || 'Aucun descriptif renseigné pour ce répertoire.'}
           </Typography>
