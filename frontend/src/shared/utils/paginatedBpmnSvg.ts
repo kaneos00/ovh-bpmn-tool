@@ -259,7 +259,7 @@ export function extractShapeBounds(sourceSvg: SVGSVGElement): SvgShapeBounds[] {
         continue;
       }
     }
-    const visual = shape.querySelector('.djs-visual');
+    const visual = shape.querySelector('.djs-visual') ?? shape;
     if (!visual) continue;
     // Do not let a transparent hit-area or the outline determine the task size.
     // Query inside djs-visual only and prefer the largest ordinary rectangle;
