@@ -21,7 +21,7 @@ type FolderOverviewProps = {
 
 export const FolderOverview = ({ resourceId }: FolderOverviewProps) => {
   const navigate = useNavigate();
-  const resources = useQuery(resourcesQuery());
+  const resources = useQuery<Resource[]>(resourcesQuery());
 
   const children = useMemo(() => {
     return (resources.data ?? [])
