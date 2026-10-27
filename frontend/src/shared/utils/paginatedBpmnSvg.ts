@@ -287,13 +287,28 @@ export function buildShapeAwareTiles(
   if (count > MAX_EXPORT_PAGES) {
     throw new Error(`Le diagramme nécessite plus de ${MAX_EXPORT_PAGES} pages A4. Réduisez sa taille ou exportez-le par sections.`);
   }
+  const axisSegments = (origins: number[], start: number, extent: number, tileSize: number) =>
+    origins.map((origin, index) => {
+      const nextOrigin = origins[index + 1];
+      const naturalEnd = Math.min(start + extent, origin + tileSize);
+      // When the next page starts at a task boundary before the nominal page
+      // edge, stop this page there too. Otherwise the task would still appear
+      // clipped on the preceding page despite being complete on the next one.
+      const end = nextOrigin !== undefined && nextOrigin < naturalEnd - 0.5
+        ? nextOrigin
+        : naturalEnd;
+      return { origin, size: end - origin };
+    });
+  const xSegments = axisSegments(xs, viewBox.x, viewBox.width, layout.tileWidth);
+  const ySegments = axisSegments(ys, viewBox.y, viewBox.height, layout.tileHeight);
   const tiles: SvgPageTile[] = [];
-  for (let row = 0; row < ys.length; row += 1) {
-    for (let column = 0; column < xs.length; column += 1) {
+  for (let row = 0; row < ySegments.length; row += 1) {
+    for (let column = 0; column < xSegments.length; column += 1) {
       tiles.push({
-        page: tiles.length + 1, column, row, x: xs[column], y: ys[row],
-        width: layout.tileWidth, height: layout.tileHeight,
-        columns: xs.length, rows: ys.length,
+        page: tiles.length + 1, column, row,
+        x: xSegments[column].origin, y: ySegments[row].origin,
+        width: xSegments[column].size, height: ySegments[row].size,
+        columns: xSegments.length, rows: ySegments.length,
       });
     }
   }
@@ -398,8 +413,11 @@ export function paginateBpmnSvg(
     const nestedSvg = sourceSvg.cloneNode(true) as SVGSVGElement;
     nestedSvg.setAttribute('x', String(layout.contentXmm));
     nestedSvg.setAttribute('y', String(layout.contentYmm));
-    nestedSvg.setAttribute('width', String(layout.contentWidthMm));
-    nestedSvg.setAttribute('height', String(layout.contentHeightMm));
+    // Keep the same SVG-units-to-mm scale even when a cut is moved to a task
+    // edge. The shorter viewport occupies less of the printable area instead
+    // of being stretched back to full width/height.
+    nestedSvg.setAttribute('width', String(tile.width * MM_PER_INCH / SVG_UNITS_PER_INCH));
+    nestedSvg.setAttribute('height', String(tile.height * MM_PER_INCH / SVG_UNITS_PER_INCH));
     nestedSvg.setAttribute('viewBox', `${tile.x} ${tile.y} ${tile.width} ${tile.height}`);
     nestedSvg.setAttribute('preserveAspectRatio', 'xMinYMin meet');
     nestedSvg.setAttribute('font-family', options.fontFamily);
@@ -411,10 +429,10 @@ export function paginateBpmnSvg(
     const markers: string[] = [];
     if (tile.column > 0) markers.push('← Reprise du segment précédent');
     if (tile.column < tile.columns - 1) markers.push('Suite du segment →');
-    if (tile.column > 0 && tile.x < viewBox.x + tile.column * layout.tileWidth - 0.5) markers.push('Zone de raccord recouverte');
+    if (tile.column < tile.columns - 1 && tile.width < layout.tileWidth - 0.5) markers.push('Limite ajustée avant une forme');
     if (tile.row > 0) markers.push('↑ Reprise de la page précédente');
     if (tile.row < tile.rows - 1) markers.push('Suite page suivante ↓');
-    if (tile.row > 0 && tile.y < viewBox.y + tile.row * layout.tileHeight - 0.5) markers.push('Zone de raccord recouverte');
+    if (tile.row < tile.rows - 1 && tile.height < layout.tileHeight - 0.5) markers.push('Limite ajustée avant une forme');
 
     if (markers.length) {
       pageSvg.appendChild(
