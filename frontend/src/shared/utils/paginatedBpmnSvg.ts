@@ -205,7 +205,7 @@ export function buildAxisTileOrigins(
 export function extractShapeBounds(sourceSvg: SVGSVGElement): SvgShapeBounds[] {
   if (typeof sourceSvg.querySelectorAll !== 'function') return [];
   const bounds: SvgShapeBounds[] = [];
-  for (const shape of Array.from(sourceSvg.querySelectorAll('g.djs-element.djs-shape'))) {
+  for (const shape of Array.from(sourceSvg.querySelectorAll('g.djs-element.djs-shape, g.djs-element.djs-label'))) {
     const transform = shape.getAttribute('transform') ?? '';
     // Real bpmn-js SVGs normally position shapes with matrix(1, 0, 0, 1, x, y),
     // not translate(x, y). Support both forms and compute the transformed
