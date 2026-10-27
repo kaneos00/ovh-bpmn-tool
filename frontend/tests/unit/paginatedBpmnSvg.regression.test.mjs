@@ -204,8 +204,10 @@ describe('paginated BPMN SVG regression contracts', () => {
       && tile.y <= task.y && tile.y + tile.height >= task.y + task.height),
     'the complete task must be visible on at least one page');
     const firstColumn = tiles.find(tile => tile.column === 0);
-    assert.equal(firstColumn.x + firstColumn.width, task.x,
-      'the preceding page ends at the task start, so it cannot display a clipped fragment');
+    assert.ok(firstColumn.x + firstColumn.width < task.x,
+      'the preceding page ends before the task so it cannot display a clipped fragment');
+    assert.ok(firstColumn.x + firstColumn.width >= task.x - 5,
+      'the cut keeps only a small safety gutter before the task');
   });
 
   it('does not add overlaps when page boundaries already fall in whitespace', () => {
