@@ -159,10 +159,14 @@ describe('paginated BPMN SVG regression contracts', () => {
         return ({ x: '0', y: '0', width: '100', height: '80' })[name] ?? null;
       },
     };
-    const visual = { querySelector: selector => selector === 'rect' ? rect : null };
+    const visual = {
+      querySelector: selector => selector === 'rect' ? rect : null,
+      querySelectorAll: selector => selector === 'rect' ? [rect] : [],
+    };
     const shape = {
       getAttribute: name => name === 'transform' ? 'matrix(1, 0, 0, 1, 1119.93, 682.4)' : null,
-      querySelector: selector => selector === '.djs-visual rect' ? rect : null,
+      querySelector: selector => selector === '.djs-visual' ? visual
+        : selector === '.djs-visual rect' ? rect : null,
     };
     // The real SVG element supports querySelectorAll; the previous implementation
     // only understood translate(...) and silently ignored bpmn-js matrix(...).
