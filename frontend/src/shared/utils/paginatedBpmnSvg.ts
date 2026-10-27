@@ -299,7 +299,7 @@ export function buildShapeAwareTiles(
   if (count > MAX_EXPORT_PAGES) {
     throw new Error(`Le diagramme nécessite plus de ${MAX_EXPORT_PAGES} pages A4. Réduisez sa taille ou exportez-le par sections.`);
   }
-  const axisSegments = (origins: number[], start: number, extent: number, tileSize: number) =>
+  const axisSegments = (origins: number[], tileSize: number) =>
     origins.map((origin, index) => {
       const nextOrigin = origins[index + 1];
       const naturalEnd = origin + tileSize;
@@ -311,8 +311,8 @@ export function buildShapeAwareTiles(
         : naturalEnd;
       return { origin, size: end - origin };
     });
-  const xSegments = axisSegments(xs, viewBox.x, viewBox.width, layout.tileWidth);
-  const ySegments = axisSegments(ys, viewBox.y, viewBox.height, layout.tileHeight);
+  const xSegments = axisSegments(xs, layout.tileWidth);
+  const ySegments = axisSegments(ys, layout.tileHeight);
   const tiles: SvgPageTile[] = [];
   for (let row = 0; row < ySegments.length; row += 1) {
     for (let column = 0; column < xSegments.length; column += 1) {
