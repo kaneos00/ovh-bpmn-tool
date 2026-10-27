@@ -466,7 +466,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
             {isAdmin && (
               <MenuItem sx={{ ...menuItemSx, color: 'danger.600', '& > svg': { color: 'danger.600', fontSize: 18 }, '&:hover': { bgcolor: 'danger.softBg' } }} onClick={() => {
                 setContextMenu(null);
-                navigate(`/${resourceId}/delete`);
+                navigate(`/${resourceId}/delete?targetResourceId=${encodeURIComponent(resourceId)}`);
               }}>
                 <Delete fontSize="small" />
                 Supprimer
