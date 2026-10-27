@@ -332,17 +332,22 @@ describe('paginated BPMN SVG regression contracts', () => {
     // This is the transform syntax emitted by real bpmn-js SVGs. The task crosses
     // both nominal first-page boundaries, which must be moved before the task.
     const viewBox = { x: 0, y: 0, width: 2500, height: 1600 };
-    const task = { x: 1000, y: 600, width: 100, height: 80 };
-    const sourceSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2500 1600">
-      <g class="djs-element djs-shape" transform="matrix(1, 0, 0, 1, ${task.x}, ${task.y})">
-        <rect x="0" y="0" width="${task.width}" height="${task.height}"/>
-      </g>
-    </svg>`;
     const restore = installSvgDomTestShim();
 
     try {
       for (const orientation of orientations) {
         const layout = calculateSvgPageLayout(viewBox, orientation);
+        const task = {
+          x: layout.tileWidth - 40,
+          y: layout.tileHeight - 30,
+          width: 100,
+          height: 80,
+        };
+        const sourceSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2500 1600">
+          <g class="djs-element djs-shape" transform="matrix(1, 0, 0, 1, ${task.x}, ${task.y})">
+            <rect x="0" y="0" width="${task.width}" height="${task.height}"/>
+          </g>
+        </svg>`;
         const pages = paginateBpmnSvg(sourceSvg, {
           orientation,
           fontFamily: 'Arial, sans-serif',
