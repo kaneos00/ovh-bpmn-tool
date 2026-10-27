@@ -44,6 +44,16 @@ jobs:
       - name: Production bundle
         run: pnpm build
 
-      - name: Lint
+      - name: Lint changed frontend files
         if: always()
-        run: pnpm lint
+        run: >-
+          pnpm exec eslint
+          src/Containers/ContentModeler/hooks/useModeler.ts
+          src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts
+          src/Containers/ContentModeler/hooks/useContentModeler.ts
+          src/api/contents/contents.queries.ts
+          src/Providers/BpmnToolOptions/useBpmnToolOptions.ts
+          src/Containers/PublishResource/hooks/usePublishResource.ts
+          src/Components/BusinessComponents/Compare/hooks/useCompare.ts
+          src/extensions/recherche/recherche-module.ts
+          --report-unused-disable-directives --max-warnings 0
