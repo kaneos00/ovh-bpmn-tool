@@ -241,7 +241,7 @@ test('deployed frontend exposes a build identifier with a source-derived fallbac
 test('viewer context menu is styled, avoids duplicate favorites action and gates modeler editing by role', async () => {
   const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
   const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
-  const menuStart = tree.indexOf('<Menu\\n      open={Boolean(contextMenu)}');
+  const menuStart = tree.indexOf('<Menu\n      open={Boolean(contextMenu)}');
   const menu = tree.slice(menuStart);
 
   assert.ok(tree.includes('onContextMenu={event =>'));
