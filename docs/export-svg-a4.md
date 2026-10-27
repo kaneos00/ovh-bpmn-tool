@@ -12,6 +12,8 @@ Le moteur est dans `frontend/src/shared/utils/paginatedBpmnSvg.ts`.
 
 - `orientation` détermine les dimensions A4 et le nombre de tuiles ;
 - `fontFamily` et `fontSizeMm` règlent la typographie des en-têtes, numéros de page et repères ;
+- les dimensions du `viewBox`, l’orientation et les options typographiques sont validées avant génération ;
+- un plafond de 500 pages par export évite les allocations démesurées et les centaines de téléchargements accidentels ; au-delà, le diagramme doit être exporté par sections ;
 - le SVG du modeleur est découpé par viewBox en pages, sans modifier le XML BPMN source ;
 - le moteur cherche à déplacer les limites de page vers un espace libre proche, afin d'éviter autant que possible de couper une activité, un événement ou une passerelle ;
 - les pools et les lanes très larges ne bloquent pas la pagination ;
