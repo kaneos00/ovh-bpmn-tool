@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueries } from 'react-query';
-import { Box, Button, Card, Chip, Divider, Stack, Table, Typography } from '@mui/joy';
+import { Box, Button, Card, Chip, Stack, Table, Typography } from '@mui/joy';
 
 import { contentsQuery } from '../../api/contents/contents.queries';
 import { ContentStatusEnum, type Content } from '../../Types';
