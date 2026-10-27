@@ -39,6 +39,18 @@ const formatDate = (value?: string | null) => {
   });
 };
 
+const getVersionLabel = (loading: boolean | undefined, version?: number | null) => {
+  if (loading) return '…';
+  if (version) return `V${version}`;
+  return 'Aucune';
+};
+
+const getPublishedByLabel = (loading: boolean | undefined, content?: Content) => {
+  if (loading) return '…';
+  if (!content) return '—';
+  return content.updatedBy || content.createdBy || '—';
+};
+
 const getLatestPublished = (contents: Content[] | undefined) =>
   (contents ?? [])
     .filter((content) => content.status === ContentStatusEnum.Published || content.status === ContentStatusEnum.Obsolete)
@@ -103,9 +115,9 @@ export const ProjectProcessOverview = ({ processes }: ProjectProcessOverviewProp
                     {row.error && <Typography level="body-xs" color="danger">Métadonnées indisponibles</Typography>}
                   </td>
                   <td>{usageLabel[row.usage]}</td>
-                  <td>{row.loading ? '…' : row.published?.version ? `V${row.published.version}` : 'Aucune'}</td>
+                  <td>{getVersionLabel(row.loading, row.published?.version)}</td>
                   <td>{row.loading ? '…' : formatDate(row.published?.updatedAt ?? row.published?.createdAt)}</td>
-                  <td>{row.loading ? '…' : row.published ? (row.published.updatedBy || row.published.createdBy || '—') : '—'}</td>
+                  <td>{getPublishedByLabel(row.loading, row.published)}</td>
                 </tr>
               ))}
             </tbody>
