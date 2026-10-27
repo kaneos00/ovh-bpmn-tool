@@ -202,6 +202,16 @@ describe('paginated BPMN SVG regression contracts', () => {
       [{ x: 482, y: 282, width: 36, height: 36 }],
       'non-rectangular BPMN shapes must also be protected when SVG getBBox is available',
     );
+    const wideVisual = { getBBox: () => ({ x: 0, y: 0, width: 220, height: 80 }) };
+    const wideShape = {
+      getAttribute: name => name === 'transform' ? 'matrix(1, 0, 0, 1, 300, 100)' : null,
+      querySelector: selector => selector === '.djs-visual' ? wideVisual : null,
+    };
+    assert.deepEqual(
+      extractShapeBounds({ querySelectorAll: () => [wideShape] }),
+      [{ x: 300, y: 100, width: 220, height: 80 }],
+      'custom tasks wider than 180 SVG units must not be silently ignored',
+    );
 
     const viewBox = { x: 155, y: 75, width: 2200, height: 1600 };
     const layout = calculateSvgPageLayout(viewBox, 'landscape');
