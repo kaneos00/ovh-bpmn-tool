@@ -326,7 +326,7 @@ test('selecting a folder renders its contents instead of an empty folder placeho
   assert.ok(layout.includes("import { FolderOverview } from './FolderOverview'"));
   assert.ok(layout.includes('<FolderOverview resource={resource} />'));
   assert.ok(folderOverview.includes('useQuery<Resource[]>(resourcesQuery())'));
-  assert.ok(folderOverview.includes(".filter(resource => (resource.parentId ?? 'root') === resourceId)"));
+  assert.ok(folderOverview.includes(".filter(childResource => (childResource.parentId ?? 'root') === resourceId)"));
   assert.ok(folderOverview.includes('navigate(`/${resource.id}`)'));
   assert.ok(folderOverview.includes('Répertoire vide'));
   assert.ok(folderOverview.includes('{resource.name}'));
