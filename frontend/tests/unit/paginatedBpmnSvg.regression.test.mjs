@@ -9,6 +9,7 @@ import {
   buildPageTiles,
   buildShapeAwareTiles,
   calculateSvgPageLayout,
+  extractShapeBounds,
   paginateBpmnSvg,
 } from '../../.test-dist/shared/utils/paginatedBpmnSvg.js';
 
@@ -130,6 +131,31 @@ describe('paginated BPMN SVG regression contracts', () => {
     });
   }
 
+
+  it('extracts real bpmn-js matrix-transformed task bounds and moves both page cuts', () => {
+    const rect = {
+      getAttribute(name) {
+        return ({ x: '0', y: '0', width: '100', height: '80' })[name] ?? null;
+      },
+    };
+    const visual = { querySelector: selector => selector === 'rect' ? rect : null };
+    const shape = {
+      getAttribute: name => name === 'transform' ? 'matrix(1, 0, 0, 1, 1119.93, 682.4)' : null,
+      querySelector: selector => selector === '.djs-visual rect' ? rect : null,
+    };
+    // The real SVG element supports querySelectorAll; the previous implementation
+    // only understood translate(...) and silently ignored bpmn-js matrix(...).
+    const extracted = extractShapeBounds({ querySelectorAll: () => [shape] });
+    assert.deepEqual(extracted, [{ x: 1119.93, y: 682.4, width: 100, height: 80 }]);
+
+    const viewBox = { x: 155, y: 75, width: 2200, height: 1600 };
+    const layout = calculateSvgPageLayout(viewBox, 'landscape');
+    const tiles = buildShapeAwareTiles(layout, viewBox, extracted);
+    assert.ok(tiles.some(tile =>
+      tile.x <= 1119.93 && tile.x + tile.width >= 1219.93
+      && tile.y <= 682.4 && tile.y + tile.height >= 762.4),
+    'one page must contain the complete task even when both nominal cuts cross it');
+  });
 
   it('moves a page boundary across a BPMN task by overlapping full-size viewports', () => {
     const origins = buildAxisTileOrigins(0, 2500, 1000, [
