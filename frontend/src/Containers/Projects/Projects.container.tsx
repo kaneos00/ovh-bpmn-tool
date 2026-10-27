@@ -10,6 +10,8 @@ import {
   FormControl,
   FormLabel,
   Input,
+  IconButton,
+  Textarea,
   Option,
   Select,
   Sheet,
@@ -22,11 +24,13 @@ import {
 } from '@mui/joy';
 import { apiClient } from '../../queryClient';
 import { resourcesQuery } from '../../api/resources/resources.queries';
+import { EditRounded, SaveRounded, CloseRounded } from '@mui/icons-material';
 import { Resource } from '../../Types';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import { ProjectRaciPanel } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciPanel';
 import { ProjectRaciManager } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciManager';
 import { ProjectProcessHierarchy } from './ProjectProcessHierarchy';
+import { ProjectProcessOverview } from './ProjectProcessOverview';
 import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
 
 type Project = {
@@ -87,6 +91,8 @@ export const Component = () => {
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [editingProjectDescription, setEditingProjectDescription] = useState(false);
+  const [projectDescriptionDraft, setProjectDescriptionDraft] = useState('');
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
   const [usage, setUsage] = useState<'common' | 'project-specific'>('common');
   const [memberUserId, setMemberUserId] = useState('');
@@ -107,12 +113,15 @@ export const Component = () => {
   const workspaceQuery = useQuery<WorkspaceSummary>(
     ['my-workspace'],
     () => apiClient.get('/projects/me/workspace'),
-    { enabled: !projectId },
+    { enabled: true },
   );
   const workspaceProjects = useMemo(
     () => new Map((workspaceQuery.data?.projects ?? []).map((item) => [item.id, item])),
     [workspaceQuery.data],
   );
+  const currentProjectMembership = workspaceQuery.data?.projects.find((item) => item.id === projectId);
+  const canEditProjectDescription = currentProjectMembership?.role === 'admin';
+
   const projectQuery = useQuery<Project>(
     projectKey(projectId ?? ''),
     () => apiClient.get(`/projects/${projectId}`),
@@ -144,6 +153,23 @@ export const Component = () => {
         setError(null);
         await queryClient.invalidateQueries(projectsKey);
         navigate(`/projects/${project.id}`);
+      },
+      onError: (mutationError: Error) => setError(mutationError.message),
+    },
+  );
+
+  const updateProjectDescription = useMutation(
+    () => {
+      if (!projectId) throw new Error('Aucun projet sélectionné.');
+      return apiClient.put(`/projects/${projectId}`, { description: projectDescriptionDraft.trim() });
+    },
+    {
+      onSuccess: async () => {
+        setEditingProjectDescription(false);
+        setError(null);
+        await queryClient.invalidateQueries(projectKey(projectId ?? ''));
+        await queryClient.invalidateQueries(projectsKey);
+        await queryClient.invalidateQueries(['my-workspace']);
       },
       onError: (mutationError: Error) => setError(mutationError.message),
     },
@@ -331,7 +357,64 @@ export const Component = () => {
         {project && (
           <>
             <Typography level="h2">{project.name}</Typography>
-            {project.description && <Typography level="body-md">{project.description}</Typography>}
+            <Card variant="outlined" sx={{ gap: 1.25 }}>
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography level="title-lg">Description du projet</Typography>
+                {canEditProjectDescription && !editingProjectDescription && (
+                  <IconButton
+                    size="sm"
+                    variant="plain"
+                    color="neutral"
+                    aria-label="Modifier la description du projet"
+                    title="Modifier la description"
+                    onClick={() => {
+                      setProjectDescriptionDraft(project.description ?? '');
+                      setEditingProjectDescription(true);
+                    }}
+                  >
+                    <EditRounded />
+                  </IconButton>
+                )}
+              </Stack>
+              {editingProjectDescription ? (
+                <Stack spacing={1}>
+                  <Textarea
+                    minRows={3}
+                    value={projectDescriptionDraft}
+                    onChange={(event) => setProjectDescriptionDraft(event.target.value)}
+                    placeholder="Décrivez les objectifs et le périmètre du projet"
+                    aria-label="Description du projet"
+                  />
+                  <Stack direction="row" spacing={1}>
+                    <Button
+                      size="sm"
+                      startDecorator={<SaveRounded />}
+                      loading={updateProjectDescription.isLoading}
+                      onClick={() => updateProjectDescription.mutate()}
+                    >
+                      Enregistrer
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outlined"
+                      color="neutral"
+                      startDecorator={<CloseRounded />}
+                      disabled={updateProjectDescription.isLoading}
+                      onClick={() => {
+                        setProjectDescriptionDraft(project.description ?? '');
+                        setEditingProjectDescription(false);
+                      }}
+                    >
+                      Annuler
+                    </Button>
+                  </Stack>
+                </Stack>
+              ) : (
+                <Typography level="body-md" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {project.description?.trim() || 'Aucune description renseignée.'}
+                </Typography>
+              )}
+            </Card>
             <Typography level="body-sm">
               Les processus communs sont référencés, pas copiés. Les retirer du projet ne supprime pas le processus du catalogue.
             </Typography>
@@ -443,7 +526,16 @@ export const Component = () => {
             </Stack>
             <Typography level="body-sm">Les processus communs sont partagés entre projets ; les variantes permettent une adaptation indépendante ; les processus spécifiques restent propres à ce projet.</Typography>
           </Card>
-          <Typography level="title-lg">Processus du projet</Typography>
+          <ProjectProcessOverview
+            processes={(linkedProcessesQuery.data ?? [])
+              .filter((link) => Boolean(link.resource))
+              .map((link) => ({
+                resourceId: link.resourceId,
+                name: link.resource?.name ?? link.resourceId,
+                usage: link.usage,
+              }))}
+          />
+          <Typography level="title-lg">Gestion des associations de processus</Typography>
           {linkedProcessesQuery.isLoading && <Typography>Chargement des processus…</Typography>}
           {linkedProcessesQuery.isError && <Alert color="danger">Impossible de charger les processus liés au projet.</Alert>}
           {(linkedProcessesQuery.data ?? []).length === 0 && !linkedProcessesQuery.isLoading && (
