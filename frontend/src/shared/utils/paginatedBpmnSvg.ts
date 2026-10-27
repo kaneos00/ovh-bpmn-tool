@@ -144,6 +144,8 @@ function parseViewBox(svg: SVGSVGElement): {
  * losing the context of the process.
  */
 function extractParticipantLabels(sourceSvg: SVGSVGElement): string[] {
+  // Lightweight DOM shims used by unit tests may not implement selectors.
+  if (typeof sourceSvg.querySelectorAll !== 'function') return [];
   const labels = new Set<string>();
   for (const shape of Array.from(sourceSvg.querySelectorAll('g.djs-element.djs-shape'))) {
     const visual = shape.querySelector('.djs-visual');
