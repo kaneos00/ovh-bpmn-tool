@@ -136,7 +136,7 @@ export const Component = () => {
                         onMouseDown={startFolderExplorerResize}
                       />
                       <Sheet className="processViewerDiagram folderViewerEmptyState" variant="outlined">
-                        <FolderOverview resourceId={resourceId} />
+                        <FolderOverview resource={resource} />
                       </Sheet>
                     </Box>
                   </Box>
