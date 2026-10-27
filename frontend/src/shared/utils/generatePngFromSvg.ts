@@ -23,21 +23,26 @@ export const generatePngFromSvg = async (svg: string) => {
       },
     );
 
-    const context = canvas.getContext('2d') as RenderingContext2D;
+    try {
+      const context = canvas.getContext('2d') as RenderingContext2D;
+      const canvg = Canvg.fromString(context, finalSVG);
+      await canvg.render();
 
-    const canvg = Canvg.fromString(context, finalSVG);
-    await canvg.render();
+      // make the background white for every format
+      context.globalCompositeOperation = 'destination-over';
+      context.fillStyle = 'white';
+      context.fillRect(0, 0, canvas.width, canvas.height);
 
-    // make the background white for every format
-    context.globalCompositeOperation = 'destination-over';
-    context.fillStyle = 'white';
+      dataURL = canvas.toDataURL('image/png');
 
-    context.fillRect(0, 0, canvas.width, canvas.height);
-
-    dataURL = canvas.toDataURL('image/png');
-
-    if (DATA_URL_REGEX.test(dataURL)) {
-      return dataURL;
+      if (DATA_URL_REGEX.test(dataURL)) {
+        return dataURL;
+      }
+    } finally {
+      // Release the canvas backing store promptly; the returned data URL is
+      // independent of the temporary canvas.
+      canvas.width = 0;
+      canvas.height = 0;
     }
   }
 
