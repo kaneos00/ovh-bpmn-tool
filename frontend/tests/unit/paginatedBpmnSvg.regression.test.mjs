@@ -191,6 +191,18 @@ describe('paginated BPMN SVG regression contracts', () => {
     const extracted = extractShapeBounds({ querySelectorAll: () => [shape] });
     assert.deepEqual(extracted, [{ x: 1119.93, y: 682.4, width: 100, height: 80 }]);
 
+    // Events and gateways may use circles or paths rather than rectangles.
+    const bboxOnlyVisual = { getBBox: () => ({ x: -18, y: -18, width: 36, height: 36 }) };
+    const bboxOnlyShape = {
+      getAttribute: name => name === 'transform' ? 'matrix(1, 0, 0, 1, 500, 300)' : null,
+      querySelector: selector => selector === '.djs-visual' ? bboxOnlyVisual : null,
+    };
+    assert.deepEqual(
+      extractShapeBounds({ querySelectorAll: () => [bboxOnlyShape] }),
+      [{ x: 482, y: 282, width: 36, height: 36 }],
+      'non-rectangular BPMN shapes must also be protected when SVG getBBox is available',
+    );
+
     const viewBox = { x: 155, y: 75, width: 2200, height: 1600 };
     const layout = calculateSvgPageLayout(viewBox, 'landscape');
     const tiles = buildShapeAwareTiles(layout, viewBox, extracted);
@@ -417,6 +429,8 @@ describe('paginated BPMN SVG regression contracts', () => {
           assert.match(page, new RegExp(`width="${layout.pageWidthMm}mm"`));
           assert.match(page, new RegExp(`height="${layout.pageHeightMm}mm"`));
           assert.match(page, new RegExp(`aria-label="Matrix pagination witness — page ${index + 1} sur ${pages.length}"`));
+          assert.ok(page.includes(`Page ${index + 1}/${pages.length}`),
+            'the visible page counter must use the actual shape-aware page count');
           const svgTags = [...page.matchAll(/<svg\b([^>]*)>/g)];
           assert.equal(svgTags.length, 2, 'each output must contain one A4 root and one source viewport');
           const nested = svgTags[1][1];
