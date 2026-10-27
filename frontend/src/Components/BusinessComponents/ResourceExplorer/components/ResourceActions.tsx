@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ContentCopy, Delete, Edit, MoreVert, Share } from '@mui/icons-material';
 import {
@@ -20,7 +20,7 @@ import {
   ModalDialog,
   Stack,
 } from '@mui/joy';
-import { useMutation, useQueryClient } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { apiClient } from '../../../../queryClient';
 import { HttpError } from '../../../../shared/api/httpError';
 import { useSnackbar } from '../../../../shared/hooks/useSnackbar';
@@ -32,27 +32,48 @@ import {
 
 import type { Resource } from '../../../../Types';
 
+type Session = { role?: string };
+
 type ResourceActionsProps = {
   resource: Resource;
   getActionLink: (id: string, action: ResourceAction) => string;
+  openContextMenu?: boolean;
+  onContextMenuOpened?: () => void;
 };
 
 export const ResourceActions = ({
   resource,
   getActionLink,
+  openContextMenu = false,
+  onContextMenuOpened,
 }: ResourceActionsProps) => {
   const [cloneDialogOpen, setCloneDialogOpen] = useState(false);
   const [cloneName, setCloneName] = useState(`${resource.name} (copie)`);
   const [cloneError, setCloneError] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const { showAlert } = useSnackbar();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { data: session } = useQuery<Session>(
+    ['auth-session'],
+    () => apiClient.get('/auth/session'),
+    { retry: false },
+  );
+  const canManage = ['editor', 'modeler', 'admin'].includes((session?.role ?? '').toLowerCase());
+
+  useEffect(() => {
+    if (!openContextMenu || !canManage) return;
+    setMenuOpen(true);
+    onContextMenuOpened?.();
+  }, [openContextMenu, canManage, onContextMenuOpened]);
+
   const cloneProcess = useMutation(
     () => apiClient.post(`/resources/${resource.id}/clone`, { name: cloneName.trim() }),
     {
       onSuccess: async (clonedResource: Resource) => {
         setCloneError(null);
         setCloneDialogOpen(false);
+        setMenuOpen(false);
         await queryClient.invalidateQueries(['resources']);
         navigate(`/${clonedResource.id}/modeler`);
       },
@@ -100,13 +121,22 @@ export const ResourceActions = ({
     },
   );
 
+  if (!canManage) return null;
+
   return (
     <Stack spacing={1} direction="row" justifyContent="flex-end">
-      <Dropdown>
+      <Dropdown
+        open={menuOpen}
+        onOpenChange={(_, open) => setMenuOpen(open)}
+      >
         <MenuButton
           slots={{ root: IconButton }}
           slotProps={{
             root: { variant: 'outlined', color: 'neutral', size: 'sm' },
+          }}
+          onContextMenu={event => {
+            event.preventDefault();
+            setMenuOpen(true);
           }}
         >
           <MoreVert />
@@ -115,16 +145,18 @@ export const ResourceActions = ({
           <MenuItem
             component={Link}
             to={getActionLink(resource.id, ResourceAction.Edit)}
+            onClick={() => setMenuOpen(false)}
             title={`${resource.name}: edit the resource`}
           >
             <ListItemDecorator>
               <Edit fontSize="small" />
             </ListItemDecorator>
-            Edit
+            Modifier
           </MenuItem>
           {resource.type === ResourceType.Process && (
             <MenuItem
               onClick={() => {
+                setMenuOpen(false);
                 setCloneName(`${resource.name} (copie)`);
                 setCloneError(null);
                 setCloneDialogOpen(true);
@@ -134,30 +166,32 @@ export const ResourceActions = ({
               <ListItemDecorator>
                 <ContentCopy fontSize="small" />
               </ListItemDecorator>
-              Cloner le processus
+              Dupliquer
             </MenuItem>
           )}
           {resource.type === ResourceType.Process && (
             <MenuItem
               component={Link}
               to={getActionLink(resource.id, ResourceAction.Share)}
+              onClick={() => setMenuOpen(false)}
               title={`${resource.name}: share the resource`}
             >
               <ListItemDecorator>
                 <Share fontSize="small" />
               </ListItemDecorator>
-              Share
+              Partager
             </MenuItem>
           )}
           <MenuItem
             component={Link}
             to={getActionLink(resource.id, ResourceAction.Delete)}
+            onClick={() => setMenuOpen(false)}
             title={`${resource.name}: delete the resource`}
           >
             <ListItemDecorator>
               <Delete fontSize="small" />
             </ListItemDecorator>
-            Delete
+            Supprimer
           </MenuItem>
         </Menu>
       </Dropdown>
@@ -172,8 +206,8 @@ export const ResourceActions = ({
             <FormLabel>Nom de la copie</FormLabel>
             <Input
               value={cloneName}
-              onChange={(event) => setCloneName(event.target.value)}
-              onKeyDown={(event) => {
+              onChange={event => setCloneName(event.target.value)}
+              onKeyDown={event => {
                 if (event.key === 'Enter' && cloneName.trim() && !cloneProcess.isLoading) {
                   cloneProcess.mutate();
                 }
