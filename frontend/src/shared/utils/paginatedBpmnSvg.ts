@@ -314,33 +314,36 @@ export function buildShapeAwareTiles(
   // from the original nominal boundary.
   const safeOrigins = (start: number, extent: number, tileSize: number,
     ranges: Array<{ start: number; end: number }>): number[] => {
-    let origins = buildAxisTileOrigins(start, extent, tileSize, ranges);
-    for (let pass = 0; pass < MAX_EXPORT_PAGES; pass += 1) {
-      let changed = false;
-      for (let index = 1; index < origins.length; index += 1) {
-        const previous = origins[index - 1];
-        const boundary = origins[index];
+    const end = start + extent;
+    const origins = [start];
+    while (origins[origins.length - 1] + tileSize < end) {
+      const current = origins[origins.length - 1];
+      const nominal = current + tileSize;
+      let candidate = nominal;
+
+      // First move the nominal cut to the start of a shape it crosses.
+      // Then repeat the check at the *new* coordinate: that coordinate may
+      // itself fall inside another task (the exact failure in Parking test 4).
+      for (let pass = 0; pass < ranges.length + 1; pass += 1) {
         const crossing = ranges
-          .filter(range => range.start > previous + 0.5 && range.start < boundary
-            && range.end > boundary && range.end - range.start <= tileSize)
+          .filter(range => range.start > current + 0.5
+            && range.start < candidate - 0.5
+            && range.end > candidate
+            && range.end - range.start <= tileSize)
           .sort((a, b) => a.start - b.start)[0];
-        if (crossing) {
-          origins[index] = crossing.start;
-          changed = true;
-        }
+        if (!crossing) break;
+        candidate = crossing.start;
       }
-      if (!changed) return origins;
-      // Recalculate downstream page starts from each safe boundary so the
-      // diagram remains covered without creating zero-width or oversized tiles.
-      const repaired: number[] = [start];
-      for (let index = 1; index < origins.length; index += 1) {
-        const previous = repaired[index - 1];
-        const proposed = origins[index];
-        repaired.push(proposed > previous ? proposed : previous + tileSize);
+
+      if (!(candidate > current + 0.5)) {
+        throw new Error('Impossible de sécuriser toutes les coupures du diagramme.');
       }
-      origins = repaired;
+      origins.push(candidate);
+      if (origins.length > MAX_EXPORT_PAGES) {
+        throw new Error(`Le diagramme nécessite plus de ${MAX_EXPORT_PAGES} pages A4. Réduisez sa taille ou exportez-le par sections.`);
+      }
     }
-    throw new Error('Impossible de sécuriser toutes les coupures du diagramme.');
+    return origins;
   };
   const xs = safeOrigins(viewBox.x, viewBox.width, layout.tileWidth, xRanges);
   const ys = safeOrigins(viewBox.y, viewBox.height, layout.tileHeight, yRanges);
