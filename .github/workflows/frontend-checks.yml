@@ -38,8 +38,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Type-check and build
+      - name: Type-check
+        run: pnpm exec tsc --noEmit
+
+      - name: Production bundle
         run: pnpm build
 
       - name: Lint
+        if: always()
         run: pnpm lint
