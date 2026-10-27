@@ -229,27 +229,47 @@ export function buildAxisTileOrigins(
   return origins;
 }
 
-function extractShapeBounds(sourceSvg: SVGSVGElement): SvgShapeBounds[] {
+export function extractShapeBounds(sourceSvg: SVGSVGElement): SvgShapeBounds[] {
   if (typeof sourceSvg.querySelectorAll !== 'function') return [];
   const bounds: SvgShapeBounds[] = [];
   for (const shape of Array.from(sourceSvg.querySelectorAll('g.djs-element.djs-shape'))) {
     const transform = shape.getAttribute('transform') ?? '';
-    // bpmn-js positions shapes with translate(x, y). Ignore unsupported
-    // transforms rather than guessing at geometry and shifting page cuts.
-    const translation = transform.match(/^\s*translate\(\s*(-?[\d.]+)(?:[ ,]+(-?[\d.]+))?\s*\)\s*$/);
-    if (transform && !translation) continue;
+    // Real bpmn-js SVGs normally position shapes with matrix(1, 0, 0, 1, x, y),
+    // not translate(x, y). Support both forms and compute the transformed
+    // axis-aligned bounds so the pagination planner sees the actual coordinates.
+    let a = 1, b = 0, c = 0, d = 1, e = 0, f = 0;
+    if (transform) {
+      const translation = transform.match(/^\s*translate\(\s*(-?[\d.eE+-]+)(?:[ ,]+(-?[\d.eE+-]+))?\s*\)\s*$/);
+      const matrix = transform.match(/^\s*matrix\(\s*([^)]*)\s*\)\s*$/);
+      if (translation) {
+        e = Number(translation[1]);
+        f = Number(translation[2] ?? 0);
+      } else if (matrix) {
+        const values = matrix[1].split(/[ ,]+/).map(Number);
+        if (values.length !== 6 || !values.every(Number.isFinite)) continue;
+        [a, b, c, d, e, f] = values;
+      } else {
+        // Do not guess when an SVG shape uses an unsupported transform.
+        continue;
+      }
+    }
     const rect = shape.querySelector('.djs-visual rect');
     if (!rect) continue;
     const x = Number(rect.getAttribute('x') ?? 0);
     const y = Number(rect.getAttribute('y') ?? 0);
     const width = Number(rect.getAttribute('width'));
     const height = Number(rect.getAttribute('height'));
-    const tx = translation ? Number(translation[1]) : 0;
-    const ty = translation ? Number(translation[2] ?? 0) : 0;
-    if (![x, y, width, height, tx, ty].every(Number.isFinite) || width <= 0 || height <= 0) continue;
-    // Ignore pools/lanes: their large boundaries are intended to span pages.
+    if (![x, y, width, height, a, b, c, d, e, f].every(Number.isFinite) || width <= 0 || height <= 0) continue;
+    // Pools/lanes are intentionally large and may span multiple pages.
     if (Math.max(width, height) > 180) continue;
-    bounds.push({ x: tx + x, y: ty + y, width, height });
+    const corners = [
+      [x, y], [x + width, y], [x, y + height], [x + width, y + height],
+    ].map(([px, py]) => ({ x: a * px + c * py + e, y: b * px + d * py + f }));
+    const minX = Math.min(...corners.map(point => point.x));
+    const maxX = Math.max(...corners.map(point => point.x));
+    const minY = Math.min(...corners.map(point => point.y));
+    const maxY = Math.max(...corners.map(point => point.y));
+    bounds.push({ x: minX, y: minY, width: maxX - minX, height: maxY - minY });
   }
   return bounds;
 }
