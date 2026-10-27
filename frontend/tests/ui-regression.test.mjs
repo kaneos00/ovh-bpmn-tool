@@ -99,18 +99,17 @@ test('called-process tree resolution is unambiguous, deduplicated and cycle-safe
   assert.ok(tree.includes('linked-process:'));
 });
 
-test('explorer folder-label selection opens one level without collapsing other branches', async () => {
+test('explorer folder-label selection opens the folder page while the chevron controls expansion', async () => {
   const explorer = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
 
   assert.ok(explorer.includes('const handleTreeSelection = (items: (string | number)[]) =>'));
-  assert.ok(explorer.includes("if (node.type === 'folder')"));
-  assert.ok(explorer.includes('current.includes(node.id) ? current : [...current, node.id]'));
   assert.ok(explorer.includes('onNodeClick(node.targetId ?? selected)'));
-  assert.ok(explorer.includes('return;'), 'folder clicks must expand in place without navigating away');
+  assert.ok(explorer.includes('Selecting a folder opens its page; the dedicated chevron controls expansion.'));
+  assert.doesNotMatch(explorer, /if \\(node\\.type === 'folder'\\)[\\s\\S]*?return;/);
 
   const treeHook = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
   assert.ok(treeHook.includes('resource.type === ResourceType.Folder'));
-  assert.match(treeHook, /resource\.type === ResourceType\.Folder\s*\?\s*resource\.id/);
+  assert.match(treeHook, /resource\\.type === ResourceType\\.Folder\\s*\\?\\s*resource\\.id/);
   assert.ok(treeHook.includes('getFolderHierarchy(hierarchyResourceId).map(({ id }) => id)'));
 });
 
