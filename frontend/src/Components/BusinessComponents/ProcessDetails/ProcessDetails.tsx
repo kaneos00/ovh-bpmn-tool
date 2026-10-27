@@ -34,6 +34,7 @@ import { ConditionalRender } from '../../../Components/GenericComponents/Conditi
 import { DropZone } from '../../../Components/GenericComponents/DropZone/DropZone';
 
 import './ProcessDetails.scss';
+import '../../../raci.css';
 
 type ProcessDetailsProps = {
   resourceId: string;
@@ -660,7 +661,7 @@ export const ProcessDetails = ({
             {raciMatrix.activities.length ? (
               <Box sx={{ overflowX: 'auto', maxWidth: '100%' }}>
                 <table
-                  className="processRaciTable"
+                  className="raci-table processRaciTable"
                   aria-label="Matrice RACI en lecture seule"
                   style={{
                     width: '100%',
@@ -706,7 +707,7 @@ export const ProcessDetails = ({
                               }}
                             >
                               <strong>
-                                {cell.codes.length ? cell.codes.join('/') : '—'}
+                                {cell.codes.length ? cell.codes.map(code => <span key={code} className={`raci-code-badge raci-code-${code}`}>{code}</span>) : '—'}
                               </strong>
                             </td>
                           ))}
