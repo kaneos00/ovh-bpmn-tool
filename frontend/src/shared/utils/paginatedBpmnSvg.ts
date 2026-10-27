@@ -195,10 +195,9 @@ export function buildPageTiles(layout: SvgPageLayout): SvgPageTile[] {
 export type SvgShapeBounds = { x: number; y: number; width: number; height: number };
 
 /**
- * Choose full-size viewport origins that overlap when a nominal page boundary
- * would cross a protected BPMN shape. Overlap preserves the print scale and
- * guarantees that a shape no wider/taller than one viewport is fully visible
- * on at least one page. A small number of shapes may therefore be repeated.
+ * Choose page origins that snap a nominal boundary to the start of a protected
+ * BPMN shape. buildShapeAwareTiles shortens the preceding viewport to that
+ * same coordinate, so no page contains a clipped fragment of the shape.
  */
 export function buildAxisTileOrigins(
   start: number,
