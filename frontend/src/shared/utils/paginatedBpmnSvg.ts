@@ -137,6 +137,31 @@ function parseViewBox(svg: SVGSVGElement): {
   throw new Error('Le SVG BPMN ne contient pas de viewBox ni de dimensions exploitables.');
 }
 
+/**
+ * Extract visible labels embedded in large BPMN participant/lane shapes.
+ * On continuation columns the original labels are outside the clipped source
+ * viewport, so repeat their names in the page header rather than silently
+ * losing the context of the process.
+ */
+function extractParticipantLabels(sourceSvg: SVGSVGElement): string[] {
+  const labels = new Set<string>();
+  for (const shape of Array.from(sourceSvg.querySelectorAll('g.djs-element.djs-shape'))) {
+    const visual = shape.querySelector('.djs-visual');
+    const boundary = visual?.querySelector('rect[rx="0"]');
+    if (!visual || !boundary) continue;
+
+    const width = Number(boundary.getAttribute('width'));
+    const height = Number(boundary.getAttribute('height'));
+    // Pools/lanes are substantially larger than ordinary BPMN activities.
+    if (!Number.isFinite(width) || !Number.isFinite(height) || Math.max(width, height) < 180) continue;
+
+    const label = visual.querySelector('text');
+    const value = label?.textContent?.replace(/\\s+/g, ' ').trim();
+    if (value) labels.add(value);
+  }
+  return [...labels];
+}
+
 function createText(
   document: XMLDocument,
   text: string,
@@ -206,6 +231,7 @@ export function paginateBpmnSvg(
     fontFamily: options.fontFamily,
     fontSizeMm: options.fontSizeMm,
   };
+  const participantLabels = extractParticipantLabels(sourceSvg);
 
   return pageTiles.map(tile => {
     const pageDocument = document.implementation.createDocument(SVG_NS, 'svg', null);
@@ -242,6 +268,21 @@ export function paginateBpmnSvg(
     pageLabel.setAttribute('fill', '#52616b');
     pageLabel.textContent = `Page ${tile.page}/${layout.pages.length}`;
     pageSvg.appendChild(pageLabel);
+
+    // A clipped continuation column no longer contains the original pool/lane
+    // labels at the left edge. Repeat the names as a compact, printable context
+    // line above the diagram; this does not modify BPMN semantics or geometry.
+    if (tile.column > 0 && participantLabels.length > 0) {
+      const continuation = createText(
+        pageDocument,
+        `Participants / lanes : ${participantLabels.join(' · ')}`,
+        layout.contentXmm,
+        layout.contentYmm - options.fontSizeMm * 0.65,
+        { ...fontOptions, fontSizeMm: Math.min(options.fontSizeMm, 2.5) },
+      );
+      continuation.setAttribute('fill', '#52616b');
+      pageSvg.appendChild(continuation);
+    }
 
     const nestedSvg = sourceSvg.cloneNode(true) as SVGSVGElement;
     nestedSvg.setAttribute('x', String(layout.contentXmm));
