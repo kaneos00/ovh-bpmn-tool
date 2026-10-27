@@ -231,6 +231,40 @@ describe('paginated BPMN SVG regression contracts', () => {
       'the cut keeps only a small safety gutter before the task');
   });
 
+  it('protects the real Parking task at x=700..800 from the portrait cut at x=787', () => {
+    const rect = {
+      getAttribute(name) {
+        return ({ x: '0', y: '0', width: '100', height: '80' })[name] ?? null;
+      },
+    };
+    const visual = {
+      querySelector: selector => selector === 'rect' ? rect : null,
+      querySelectorAll: selector => selector === 'rect' ? [rect] : [],
+    };
+    const shape = {
+      getAttribute: name => name === 'transform' ? 'matrix(1, 0, 0, 1, 700, 256)' : null,
+      querySelector: selector => selector === '.djs-visual' ? visual : null,
+    };
+    const extracted = extractShapeBounds({ querySelectorAll: () => [shape] });
+    assert.deepEqual(extracted, [{ x: 700, y: 256, width: 100, height: 80 }]);
+
+    // Test 4 showed the first portrait viewport ending at x=787, through this
+    // task. The safe planner must move that cut before x=700 (including gutter).
+    const viewBox = { x: 155, y: 75, width: 1350, height: 956 };
+    const layout = calculateSvgPageLayout(viewBox, 'portrait');
+    const tiles = buildShapeAwareTiles(layout, viewBox, extracted);
+    const first = tiles.find(tile => tile.row === 0 && tile.column === 0);
+    assert.ok(first, 'first tile should exist');
+    assert.ok(first.x + first.width <= 696 + 0.01,
+      `first cut must be before the task gutter, got ${first.x + first.width}`);
+    assert.ok(tiles.some(tile => tile.x <= 700 && tile.x + tile.width >= 800),
+      'one page must contain the entire task');
+    assert.ok(tiles.every(tile => {
+      const overlaps = tile.x < 800 && tile.x + tile.width > 700;
+      return !overlaps || (tile.x <= 700 && tile.x + tile.width >= 800);
+    }), 'no tile may show only a clipped horizontal fragment of the task');
+  });
+
   it('does not add overlaps when page boundaries already fall in whitespace', () => {
     assert.deepEqual(
       buildAxisTileOrigins(0, 2500, 1000, [{ start: 1200, end: 1300 }]),
