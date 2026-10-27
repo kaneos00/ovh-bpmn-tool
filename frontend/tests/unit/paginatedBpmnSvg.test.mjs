@@ -45,10 +45,32 @@ describe('calculateSvgPageLayout', () => {
     assert.equal(layout.pages[layout.columns].column, 0);
   });
 
-  it('rejects invalid SVG dimensions', () => {
+  it('rejects invalid SVG dimensions, including non-finite values', () => {
     assert.throws(
       () => calculateSvgPageLayout({ x: 0, y: 0, width: 0, height: 20 }, 'portrait'),
       /positives/,
+    );
+    assert.throws(
+      () => calculateSvgPageLayout({ x: 0, y: 0, width: Number.NaN, height: 20 }, 'portrait'),
+      /positives/,
+    );
+    assert.throws(
+      () => calculateSvgPageLayout({ x: 0, y: 0, width: 20, height: Number.POSITIVE_INFINITY }, 'portrait'),
+      /positives/,
+    );
+  });
+
+  it('rejects an unsupported orientation instead of silently using landscape', () => {
+    assert.throws(
+      () => calculateSvgPageLayout({ x: 0, y: 0, width: 500, height: 500 }, 'square'),
+      /orientation/i,
+    );
+  });
+
+  it('rejects extremely large diagrams before allocating a huge page array', () => {
+    assert.throws(
+      () => calculateSvgPageLayout({ x: 0, y: 0, width: 1_000_000, height: 1_000_000 }, 'portrait'),
+      /500 pages/,
     );
   });
 });
