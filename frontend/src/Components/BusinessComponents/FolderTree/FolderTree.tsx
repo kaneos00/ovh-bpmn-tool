@@ -88,6 +88,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
   }, []);
   const [view, setView] = useState<ExplorerView>(readView);
   const [search, setSearch] = useState('');
+  const [searchCollapsedNodes, setSearchCollapsedNodes] = useState<string[]>([]);
   const [favorites, setFavorites] = useState<string[]>(readIds(FAVORITES_KEY));
   const [recent, setRecent] = useState<string[]>(readIds(RECENT_KEY));
 
@@ -154,6 +155,29 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
       nodes.flatMap(node => node.children?.length ? [node.id, ...collect(node.children)] : []);
     return collect(filteredTree);
   }, [filteredTree]);
+  const isSearching = Boolean(search.trim());
+  const effectiveExpandedNodes = useMemo(
+    () => isSearching
+      ? searchExpandedNodes.filter(nodeId => !searchCollapsedNodes.includes(nodeId))
+      : expandedNodes,
+    [isSearching, searchExpandedNodes, searchCollapsedNodes, expandedNodes],
+  );
+
+  useEffect(() => {
+    setSearchCollapsedNodes([]);
+  }, [search]);
+
+  const toggleNodeExpansion = (nodeId: string) => {
+    if (isSearching) {
+      setSearchCollapsedNodes(current => current.includes(nodeId)
+        ? current.filter(id => id !== nodeId)
+        : [...current, nodeId]);
+      return;
+    }
+    setExpandedNodes(current => current.includes(nodeId)
+      ? current.filter(id => id !== nodeId)
+      : [...current, nodeId]);
+  };
 
   const visibleNodes = useMemo(() => {
     const ids = view === 'favorites' ? favorites : recent;
@@ -268,12 +292,20 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
               viewState={{
                 'repository-tree': {
                   focusedItem: selectedTreeNodeId || 'root',
-                  expandedItems: search.trim() ? searchExpandedNodes : expandedNodes,
+                  expandedItems: effectiveExpandedNodes,
                   selectedItems: selectedTreeNodeId ? [selectedTreeNodeId] : [],
                 },
               }}
-              onExpandItem={item => setExpandedNodes(current => current.includes(String(item.index)) ? current : [...current, String(item.index)])}
-              onCollapseItem={item => setExpandedNodes(current => current.filter(id => id !== String(item.index)))}
+              onExpandItem={item => {
+                const nodeId = String(item.index);
+                if (isSearching) setSearchCollapsedNodes(current => current.filter(id => id !== nodeId));
+                else setExpandedNodes(current => current.includes(nodeId) ? current : [...current, nodeId]);
+              }}
+              onCollapseItem={item => {
+                const nodeId = String(item.index);
+                if (isSearching) setSearchCollapsedNodes(current => current.includes(nodeId) ? current : [...current, nodeId]);
+                else setExpandedNodes(current => current.filter(id => id !== nodeId));
+              }}
               onSelectItems={handleTreeSelection}
               renderItemArrow={() => null}
               renderItemTitle={({ item, title }) => {
@@ -297,18 +329,16 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                         size="sm"
                         variant="plain"
                         color="neutral"
-                        title={expandedNodes.includes(nodeId) ? 'Replier les éléments' : 'Développer les éléments'}
-                        aria-label={expandedNodes.includes(nodeId) ? `Replier ${node?.name}` : `Développer ${node?.name}`}
+                        title={effectiveExpandedNodes.includes(nodeId) ? 'Replier les éléments' : 'Développer les éléments'}
+                        aria-label={effectiveExpandedNodes.includes(nodeId) ? `Replier ${node?.name}` : `Développer ${node?.name}`}
                         onClick={event => {
                           event.preventDefault();
                           event.stopPropagation();
-                          setExpandedNodes(current => current.includes(nodeId)
-                            ? current.filter(id => id !== nodeId)
-                            : [...current, nodeId]);
+                          toggleNodeExpansion(nodeId);
                         }}
                         sx={{ minWidth: 24, minHeight: 24, p: 0.25, flexShrink: 0 }}
                       >
-                        {expandedNodes.includes(nodeId) ? <ExpandMore fontSize="small" /> : <ChevronRight fontSize="small" />}
+                        {effectiveExpandedNodes.includes(nodeId) ? <ExpandMore fontSize="small" /> : <ChevronRight fontSize="small" />}
                       </IconButton>
                     )}
                     {node && nodeId !== 'root' && (
