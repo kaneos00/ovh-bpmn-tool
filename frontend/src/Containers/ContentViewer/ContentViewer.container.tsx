@@ -203,7 +203,57 @@ export const Component = () => {
 
       <Box className="processViewerDiagram viewerDiagram">
         <Box className="viewerBreadcrumb">
-          <Breadcrumbs breadcrumbItems={getBreadCrumbs()} />
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+            spacing={1}
+            useFlexGap
+            flexWrap="wrap"
+          >
+            <Stack direction="row" alignItems="center" spacing={0.75} sx={{ minWidth: 0 }}>
+              <Box
+                component="img"
+                src="/bpmn-tool-logo.svg"
+                alt=""
+                sx={{ width: 22, height: 22, objectFit: 'contain', flexShrink: 0 }}
+              />
+              <Typography level="title-sm" sx={{ fontWeight: 800, whiteSpace: 'nowrap' }}>
+                KHI Flows
+              </Typography>
+              <Box
+                component="span"
+                title={`Version de build : ${import.meta.env.VITE_BUILD_ID || 'non identifiée'} · Commit : ${import.meta.env.VITE_BUILD_COMMIT || 'non injecté par Coolify'} · Branche : ${import.meta.env.VITE_BUILD_BRANCH || 'non injectée par Coolify'} · CI : ${import.meta.env.VITE_BUILD_RUN_NUMBER || 'non injecté par Coolify'}`}
+                aria-label={`Version de build ${(import.meta.env.VITE_BUILD_ID || import.meta.env.VITE_BUILD_COMMIT || 'local').slice(0, 12)}`}
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  px: 0.75,
+                  py: 0.2,
+                  borderRadius: '6px',
+                  border: '1px solid',
+                  borderColor: import.meta.env.VITE_BUILD_COMMIT && import.meta.env.VITE_BUILD_COMMIT !== 'unknown' ? '#5f8ee8' : '#d99a42',
+                  bgcolor: import.meta.env.VITE_BUILD_COMMIT && import.meta.env.VITE_BUILD_COMMIT !== 'unknown' ? '#203f72' : '#60451e',
+                  color: '#fff',
+                  fontSize: 10,
+                  fontWeight: 800,
+                  lineHeight: 1.5,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {import.meta.env.VITE_BUILD_RUN_NUMBER && import.meta.env.VITE_BUILD_RUN_NUMBER !== 'unknown'
+                  ? `CI #${import.meta.env.VITE_BUILD_RUN_NUMBER}`
+                  : 'BUILD'}
+                {' · '}
+                {(
+                  import.meta.env.VITE_BUILD_COMMIT && import.meta.env.VITE_BUILD_COMMIT !== 'unknown'
+                    ? import.meta.env.VITE_BUILD_COMMIT
+                    : import.meta.env.VITE_BUILD_ID || 'local'
+                ).slice(0, 12)}
+              </Box>
+            </Stack>
+            <Breadcrumbs breadcrumbItems={getBreadCrumbs()} />
+          </Stack>
         </Box>
         <ProcessViewer
           resourceId={resourceId}
