@@ -298,15 +298,21 @@ jobs:
       - frontend
       - backend
       - coolify-demo
-    # Deploy only after a push has passed every CI job. Never deploy pull requests.
-    if: github.event_name == 'push'
+    # Keep CI independent from Coolify credentials. Opt in to deployment only after
+    # COOLIFY_WEBHOOK_URL and COOLIFY_TOKEN are configured and verified.
+    if: github.event_name == 'push' && vars.COOLIFY_DEPLOY_ENABLED == 'true'
     steps:
       - name: Trigger Coolify deployment
         env:
           COOLIFY_WEBHOOK_URL: ${{ secrets.COOLIFY_WEBHOOK_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
         run: |
           if [ -z "$COOLIFY_WEBHOOK_URL" ]; then
             echo "::error::GitHub Actions secret COOLIFY_WEBHOOK_URL is not configured."
             exit 1
           fi
-          curl --fail --silent --show-error --request GET "$COOLIFY_WEBHOOK_URL"
+          if [ -z "$COOLIFY_TOKEN" ]; then
+            echo "::error::GitHub Actions secret COOLIFY_TOKEN is not configured."
+            exit 1
+          fi
+          curl --fail --silent --show-error --request GET --header "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_WEBHOOK_URL"

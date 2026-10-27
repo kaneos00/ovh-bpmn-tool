@@ -13,6 +13,7 @@ import { ActionResponse } from '../../../shared/types/ActionResponse';
 import { ContentStatusEnum, type Content } from '../../../Types';
 import { useResource } from '../../../shared/hooks/useResource';
 import Modeler from 'camunda-bpmn-js/lib/base/Modeler';
+import { paginateBpmnSvg } from '../../../shared/utils/paginatedBpmnSvg';
 import { HttpError } from '../../../shared/api/httpError';
 
 export const useContentModeler = (bpmnModelerInstance: Modeler) => {
@@ -102,46 +103,71 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
    * File export action
    */
   const triggerDownload = useCallback(
-    (content: string, exportType: 'svg' | 'bpmn'): void => {
+    (content: string, exportType: 'svg' | 'bpmn', suffix = ''): void => {
       if (resource && draftContent) {
         const hiddenElement = document.createElement('a');
-        const fileContent = new Blob([content], { type: 'text/xml' });
-        const fileName = `${resource.name}_v${draftContent.version}`;
+        const mimeType = exportType === 'svg' ? 'image/svg+xml' : 'text/xml';
+        const fileContent = new Blob([content], { type: mimeType });
+        const fileName = `${resource.name}_v${draftContent.version}${suffix}`;
+        const objectUrl = window.URL.createObjectURL(fileContent);
         hiddenElement.setAttribute('download', `${fileName}.${exportType}`);
-        hiddenElement.setAttribute(
-          'href',
-          window.URL.createObjectURL(fileContent),
-        );
+        hiddenElement.setAttribute('href', objectUrl);
         hiddenElement.style.display = 'none';
         document.body.appendChild(hiddenElement);
         hiddenElement.click();
         document.body.removeChild(hiddenElement);
+        window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000);
       }
     },
     [draftContent, resource],
   );
 
   const onFileExport = useCallback(
-    async (exportType: 'svg' | 'bpmn') => {
-      let file;
+    async (exportType: 'svg' | 'bpmn' | 'svg-a4-portrait' | 'svg-a4-landscape') => {
       try {
-        if (exportType === 'svg') {
-          file = await bpmnModelerInstance.saveSVG();
-          triggerDownload(file.svg, 'svg');
-        } else {
-          file = await bpmnModelerInstance.saveXML({ format: true });
-          if (file.xml) {
-            triggerDownload(file.xml, exportType);
-          }
+        if (exportType === 'bpmn') {
+          const file = await bpmnModelerInstance.saveXML({ format: true });
+          if (file.xml) triggerDownload(file.xml, 'bpmn');
+          return;
         }
-      } catch {
+
+        const file = await bpmnModelerInstance.saveSVG();
+        if (exportType === 'svg') {
+          triggerDownload(file.svg, 'svg');
+          return;
+        }
+
+        const orientation =
+          exportType === 'svg-a4-portrait' ? 'portrait' : 'landscape';
+        const pages = paginateBpmnSvg(file.svg, {
+          orientation,
+          fontFamily: 'Public Sans, Arial, sans-serif',
+          fontSizeMm: 3.5,
+          title: resource?.name ?? 'Export BPMN',
+        });
+
+        pages.forEach((page, index) => {
+          triggerDownload(
+            page,
+            'svg',
+            `_A4_${orientation}_p${String(index + 1).padStart(2, '0')}`,
+          );
+        });
         showAlert({
-          message: `Fail to export as ${exportType}.`,
+          message: `Export A4 généré : ${pages.length} page(s) SVG. Si le navigateur bloque les téléchargements multiples, autorisez-les pour ce site.`,
+          severity: 'success',
+        });
+      } catch (error) {
+        showAlert({
+          message:
+            error instanceof Error
+              ? `Échec de l'export ${exportType} : ${error.message}`
+              : `Échec de l'export ${exportType}.`,
           severity: 'danger',
         });
       }
     },
-    [draftContent, resource, bpmnModelerInstance, triggerDownload, showAlert],
+    [bpmnModelerInstance, resource, triggerDownload, showAlert],
   );
 
   const saveDiagram = useCallback(
