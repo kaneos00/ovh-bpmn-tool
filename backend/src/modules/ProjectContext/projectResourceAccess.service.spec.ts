@@ -125,6 +125,48 @@ describe('ProjectResourceAccessService', () => {
     ).resolves.toBeUndefined();
   });
 
+  it('denies a viewer from cloning a project-specific process', async () => {
+    projectProcesses.find.mockResolvedValue([
+      {
+        projectId: 'project-1',
+        resourceId: 'resource-1',
+        usage: ProjectProcessUsage.ProjectSpecific,
+      },
+    ]);
+    projectMembers.find.mockResolvedValue([
+      {
+        projectId: 'project-1',
+        userId: 'alice',
+        role: ProjectMemberRole.Viewer,
+      },
+    ]);
+
+    await expect(
+      service.assertCanCloneResource('resource-1', headers),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('allows a modeler to clone a project-specific process', async () => {
+    projectProcesses.find.mockResolvedValue([
+      {
+        projectId: 'project-1',
+        resourceId: 'resource-1',
+        usage: ProjectProcessUsage.ProjectSpecific,
+      },
+    ]);
+    projectMembers.find.mockResolvedValue([
+      {
+        projectId: 'project-1',
+        userId: 'alice',
+        role: ProjectMemberRole.Modeler,
+      },
+    ]);
+
+    await expect(
+      service.assertCanCloneResource('resource-1', headers),
+    ).resolves.toBeUndefined();
+  });
+
   it('denies reading a process linked only to another project', async () => {
     projectProcesses.find.mockResolvedValue([
       {
