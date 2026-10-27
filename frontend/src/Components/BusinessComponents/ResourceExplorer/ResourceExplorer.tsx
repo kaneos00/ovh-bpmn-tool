@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Link, Sheet, Skeleton, Table } from '@mui/joy';
 import { ArrowDownward, ArrowUpward } from '@mui/icons-material';
 import { type Cell, flexRender } from '@tanstack/react-table';
@@ -26,6 +26,7 @@ export const ResourceExplorer = ({
   getResourceLink,
 }: ResourceExplorerProps) => {
   const { table, columns, isLoading } = useResourceExplorer(parentId);
+  const [contextMenuResourceId, setContextMenuResourceId] = useState<string | null>(null);
 
   const getCellContent = (cell: Cell<Resource, unknown>) => {
     switch (cell.column.id) {
@@ -34,24 +35,24 @@ export const ResourceExplorer = ({
           <ResourceActions
             resource={cell.row.original}
             getActionLink={getActionLink}
+            openContextMenu={contextMenuResourceId === cell.row.original.id}
+            onContextMenuOpened={() => setContextMenuResourceId(null)}
           />
         );
       case 'name':
         return (
-          <>
-            <Link
-              className="resource-name-link ellipsis"
-              underline="none"
-              component={RouterLink}
-              to={getResourceLink(cell.row.original.id)}
-              title={cell.row.original.name}
-            >
-              <span>{getResourceIcon(cell.row.original.type)}</span>
-              <span className="resource-name">
-                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-              </span>
-            </Link>
-          </>
+          <Link
+            className="resource-name-link ellipsis"
+            underline="none"
+            component={RouterLink}
+            to={getResourceLink(cell.row.original.id)}
+            title={cell.row.original.name}
+          >
+            <span>{getResourceIcon(cell.row.original.type)}</span>
+            <span className="resource-name">
+              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            </span>
+          </Link>
         );
       default:
         return flexRender(cell.column.columnDef.cell, cell.getContext());
@@ -82,88 +83,83 @@ export const ResourceExplorer = ({
             }}
           >
             <Table
-            stickyHeader
-            hoverRow
-            sx={{
-              '--TableCell-headBackground': theme =>
-                theme.vars.palette.background.level1,
-              '--Table-headerUnderlineThickness': '1px',
-              '--TableRow-hoverBackground': theme =>
-                theme.vars.palette.background.level1,
-            }}
-            className="fileExplorer"
-          >
-            <thead>
-              {table.getHeaderGroups().map(headerGroup => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map(header => (
-                    <th key={header.id}>
-                      {header.isPlaceholder ? null : (
-                        <>
-                          <ConditionalRender
-                            condition={header.column.getCanSort()}
-                          >
-                            <Link
-                              underline="none"
-                              onClick={header.column.getToggleSortingHandler()}
-                              endDecorator={
-                                <>
-                                  {(header.column.getIsSorted() as string) ===
-                                    'asc' && <ArrowUpward />}
-                                  {(header.column.getIsSorted() as string) ===
-                                    'desc' && <ArrowDownward />}
-                                </>
-                              }
-                            >
-                              {flexRender(
-                                header.column.columnDef.header,
-                                header.getContext(),
-                              )}
-                            </Link>
-                          </ConditionalRender>
-                          <ConditionalRender
-                            condition={!header.column.getCanSort()}
-                          >
-                            {flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )}
-                          </ConditionalRender>
-                        </>
-                      )}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            {!table.getRowModel().rows.length && (
-              <tbody>
-                <tr>
-                  <td colSpan={columns.length}>
-                    <em>This folder is empty</em>
-                  </td>
-                </tr>
-              </tbody>
-            )}
-            <tbody>
-              {table.getRowModel().rows.map(row => (
-                <tr key={row.id}>
-                  {row.getVisibleCells().map(cell => (
-                    <td
-                      key={cell.id}
-                      className={
-                        (cell.column.columnDef.meta as Record<string, unknown>)
-                          ?.ellipsis
-                          ? 'ellipsis'
-                          : ''
-                      }
-                    >
-                      {getCellContent(cell)}
+              stickyHeader
+              hoverRow
+              sx={{
+                '--TableCell-headBackground': theme =>
+                  theme.vars.palette.background.level1,
+                '--Table-headerUnderlineThickness': '1px',
+                '--TableRow-hoverBackground': theme =>
+                  theme.vars.palette.background.level1,
+              }}
+              className="fileExplorer"
+            >
+              <thead>
+                {table.getHeaderGroups().map(headerGroup => (
+                  <tr key={headerGroup.id}>
+                    {headerGroup.headers.map(header => (
+                      <th key={header.id}>
+                        {header.isPlaceholder ? null : (
+                          <>
+                            <ConditionalRender condition={header.column.getCanSort()}>
+                              <Link
+                                underline="none"
+                                onClick={header.column.getToggleSortingHandler()}
+                                endDecorator={
+                                  <>
+                                    {(header.column.getIsSorted() as string) === 'asc' && <ArrowUpward />}
+                                    {(header.column.getIsSorted() as string) === 'desc' && <ArrowDownward />}
+                                  </>
+                                }
+                              >
+                                {flexRender(header.column.columnDef.header, header.getContext())}
+                              </Link>
+                            </ConditionalRender>
+                            <ConditionalRender condition={!header.column.getCanSort()}>
+                              {flexRender(header.column.columnDef.header, header.getContext())}
+                            </ConditionalRender>
+                          </>
+                        )}
+                      </th>
+                    ))}
+                  </tr>
+                ))}
+              </thead>
+              {!table.getRowModel().rows.length && (
+                <tbody>
+                  <tr>
+                    <td colSpan={columns.length}>
+                      <em>This folder is empty</em>
                     </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
+                  </tr>
+                </tbody>
+              )}
+              <tbody>
+                {table.getRowModel().rows.map(row => (
+                  <tr
+                    key={row.id}
+                    onContextMenu={event => {
+                      // The explorer's actual rows are the context-menu targets.
+                      // Suppress the native browser menu; ResourceActions opens the app menu.
+                      event.preventDefault();
+                      setContextMenuResourceId(row.original.id);
+                    }}
+                  >
+                    {row.getVisibleCells().map(cell => (
+                      <td
+                        key={cell.id}
+                        className={
+                          (cell.column.columnDef.meta as Record<string, unknown>)?.ellipsis
+                            ? 'ellipsis'
+                            : ''
+                        }
+                      >
+                        {getCellContent(cell)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
             </Table>
           </Sheet>
         )}
