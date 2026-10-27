@@ -204,14 +204,8 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
     const node = nodeById.get(selected);
     if (!node) return;
 
-    // Folder labels expand in place. The dedicated chevron is the only control
-    // that collapses a branch; opening one folder never resets sibling branches.
-    if (node.type === 'folder') {
-      if (node.children?.length) {
-        setExpandedNodes(current => current.includes(node.id) ? current : [...current, node.id]);
-      }
-      return;
-    }
+    // Selecting a folder opens its page; the dedicated chevron controls expansion.
+    // This keeps folder navigation separate from expanding/collapsing tree branches.
     onNodeClick(node.targetId ?? selected);
   };
 
