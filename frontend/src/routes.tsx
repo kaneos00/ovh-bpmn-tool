@@ -78,7 +78,7 @@ export const routes = [
       },
       {
         path: '/projects/:projectId/viewer',
-        lazy: () => import('./Containers/ProjectViewer'),
+        lazy: () => import('./Containers/ContentViewer'),
       },
       {
         path: '/projects/:projectId',
