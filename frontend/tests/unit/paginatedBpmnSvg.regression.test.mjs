@@ -384,7 +384,7 @@ describe('paginated BPMN SVG regression contracts', () => {
         };
         const sourceSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2500 1600">
           <g class="djs-element djs-shape" transform="matrix(1, 0, 0, 1, ${task.x}, ${task.y})">
-            <rect x="0" y="0" width="${task.width}" height="${task.height}"/>
+            <g class="djs-visual"><rect x="0" y="0" width="${task.width}" height="${task.height}"/></g>
           </g>
         </svg>`;
         const pages = paginateBpmnSvg(sourceSvg, {
