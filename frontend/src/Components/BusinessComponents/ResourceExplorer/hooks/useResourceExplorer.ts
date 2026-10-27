@@ -17,6 +17,10 @@ import { ResourceType } from '../../../../shared/types/BpmnResource';
 
 import type { Resource } from '../../../../Types';
 
+/**
+ * @deprecated Hook for the legacy ResourceExplorer table only. Do not use for
+ * new features; the active navigation uses FolderTree / ReferenceTree.
+ */
 export const useResourceExplorer = (parentId: string) => {
   const [sorting, setSorting] = useState<SortingState>([
     {
