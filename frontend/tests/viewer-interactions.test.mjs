@@ -205,6 +205,21 @@ test('folder labels navigate to their page, chevrons expand branches and recent 
   assert.ok(hook.includes('const treeAncestors = selectedPath'));
 });
 
+
+test('explorer search chevrons collapse and reopen branches using the visible expansion state', async () => {
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+
+  assert.ok(tree.includes('const [searchCollapsedNodes, setSearchCollapsedNodes] = useState<string[]>([])'));
+  assert.ok(tree.includes('const effectiveExpandedNodes = useMemo('));
+  assert.ok(tree.includes('searchExpandedNodes.filter(nodeId => !searchCollapsedNodes.includes(nodeId))'));
+  assert.ok(tree.includes('expandedItems: effectiveExpandedNodes'));
+  assert.ok(tree.includes('title={effectiveExpandedNodes.includes(nodeId)'));
+  assert.ok(tree.includes('aria-label={effectiveExpandedNodes.includes(nodeId)'));
+  assert.ok(tree.includes('const toggleNodeExpansion = (nodeId: string) =>'));
+  assert.ok(tree.includes('setSearchCollapsedNodes(current => current.includes(nodeId)'));
+  assert.ok(tree.includes('setSearchCollapsedNodes([])'));
+});
+
 test('global annotation search labels text annotations as Description and carries the BPMN element ID', async () => {
   const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
 
