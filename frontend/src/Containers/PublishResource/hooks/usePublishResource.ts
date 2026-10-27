@@ -38,7 +38,7 @@ export const usePublishResource = () => {
   const { data: contents } = useQuery(contentsQuery(resourceId));
 
   const { getViewerInstance } = useModelerInstance();
-  const viewer = getViewerInstance();
+  const viewer = useMemo(() => getViewerInstance(), []);
 
   const draftContent = useMemo(() => {
     if (!contents) {
@@ -56,15 +56,44 @@ export const usePublishResource = () => {
   });
 
   useEffect(() => {
+    let active = true;
+
     if (viewerRef.current && draftXmlContent) {
-      viewer.importXML(draftXmlContent).then(async () => {
-        viewer.attachTo(viewerRef.current as HTMLDivElement);
-        const processSvg = await viewer.saveSVG();
-        const pngData = await generatePngFromSvg(processSvg.svg);
-        setBase64Png(pngData || '');
-      });
+      viewer
+        .importXML(draftXmlContent)
+        .then(async () => {
+          if (!active || !viewerRef.current) {
+            return;
+          }
+
+          viewer.attachTo(viewerRef.current);
+          const processSvg = await viewer.saveSVG();
+          const pngData = await generatePngFromSvg(processSvg.svg);
+
+          if (active) {
+            setBase64Png(pngData || '');
+          }
+        })
+        .catch(() => {
+          if (active) {
+            showAlert({
+              message: 'Failed to generate publication preview.',
+              severity: 'danger',
+            });
+          }
+        });
     }
-  }, [viewer, viewerRef, draftXmlContent]);
+
+    return () => {
+      active = false;
+    };
+  }, [viewer, draftXmlContent, showAlert]);
+
+  useEffect(() => {
+    return () => {
+      viewer.destroy();
+    };
+  }, [viewer]);
 
   /**
    * Callbacks
@@ -97,7 +126,10 @@ export const usePublishResource = () => {
         bytes[i] = ascii;
       }
       const blob = new Blob([bytes], { type: 'image/png' });
-      window.open(URL.createObjectURL(blob), '_blank');
+      const objectUrl = URL.createObjectURL(blob);
+      window.open(objectUrl, '_blank');
+      // Allow the new tab to load the image before releasing the temporary URL.
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
     }
   }, [base64Png]);
 
