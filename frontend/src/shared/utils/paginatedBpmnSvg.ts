@@ -158,7 +158,7 @@ function extractParticipantLabels(sourceSvg: SVGSVGElement): string[] {
     if (!Number.isFinite(width) || !Number.isFinite(height) || Math.max(width, height) < 180) continue;
 
     const label = visual.querySelector('text');
-    const value = label?.textContent?.replace(/\\s+/g, ' ').trim();
+    const value = label?.textContent?.replace(/\s+/g, ' ').trim();
     if (value) labels.add(value);
   }
   return [...labels];
