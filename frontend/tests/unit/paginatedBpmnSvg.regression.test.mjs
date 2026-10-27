@@ -155,9 +155,15 @@ describe('paginated BPMN SVG regression contracts', () => {
       tile.x <= 1119.93 && tile.x + tile.width >= 1219.93
       && tile.y <= 682.4 && tile.y + tile.height >= 762.4),
     'one page must contain the complete task even when both nominal cuts cross it');
+    assert.ok(tiles.every(tile => {
+      const overlapX = tile.x < 1219.93 && tile.x + tile.width > 1119.93;
+      const overlapY = tile.y < 762.4 && tile.y + tile.height > 682.4;
+      return (!overlapX || (tile.x <= 1119.93 && tile.x + tile.width >= 1219.93))
+        && (!overlapY || (tile.y <= 682.4 && tile.y + tile.height >= 762.4));
+    }), 'no page may contain only a clipped fragment of this matrix-transformed task');
   });
 
-  it('moves a page boundary across a BPMN task by overlapping full-size viewports', () => {
+  it('moves a page boundary to a task start so the preceding viewport ends before it', () => {
     const origins = buildAxisTileOrigins(0, 2500, 1000, [
       { start: 950, end: 1050 },
     ]);
@@ -167,9 +173,9 @@ describe('paginated BPMN SVG regression contracts', () => {
     assert.ok(origins.some(origin => origin <= 950 && origin + 1000 >= 1050),
       'at least one full-size page viewport must contain the complete task');
     assert.ok(origins[1] < origins[0] + 1000,
-      'the adjacent pages must overlap instead of leaving a gap');
-    assert.equal(origins[1] + 1000 - origins[0], 1950,
-      'viewport size remains constant, preserving print scale');
+      'the next page starts at the task boundary before the nominal page edge');
+    assert.equal(origins[1], 950,
+      'the next viewport starts exactly at the task start; the preceding viewport must stop there');
   });
 
 
@@ -181,14 +187,24 @@ describe('paginated BPMN SVG regression contracts', () => {
 
     assert.ok(tiles.length >= layout.pages.length,
       'shape-aware pagination may add pages but must not remove coverage');
-    assert.ok(tiles.every(tile => tile.width === layout.tileWidth && tile.height === layout.tileHeight),
-      'all pages must retain the same source viewport and print scale');
+    assert.ok(tiles.every(tile => tile.width > 0 && tile.width <= layout.tileWidth
+      && tile.height > 0 && tile.height <= layout.tileHeight),
+    'task-aware viewports may be shorter, but never larger than the printable source window');
+    assert.ok(tiles.every(tile => {
+      const overlapsTaskX = tile.x < task.x + task.width && tile.x + tile.width > task.x;
+      return !overlapsTaskX || (tile.x <= task.x && tile.x + tile.width >= task.x + task.width);
+    }), 'no page may show only part of a task horizontally');
+    assert.ok(tiles.every(tile => {
+      const overlapsTaskY = tile.y < task.y + task.height && tile.y + tile.height > task.y;
+      return !overlapsTaskY || (tile.y <= task.y && tile.y + tile.height >= task.y + task.height);
+    }), 'no page may show only part of a task vertically');
     assert.ok(tiles.some(tile =>
       tile.x <= task.x && tile.x + tile.width >= task.x + task.width
       && tile.y <= task.y && tile.y + tile.height >= task.y + task.height),
     'the complete task must be visible on at least one page');
-    assert.ok(tiles.some(tile => tile.column > 0 && tile.x < tile.column * layout.tileWidth),
-      'the page boundary is shifted by overlap rather than cutting the task on every page');
+    const firstColumn = tiles.find(tile => tile.column === 0);
+    assert.equal(firstColumn.x + firstColumn.width, task.x,
+      'the preceding page ends at the task start, so it cannot display a clipped fragment');
   });
 
   it('does not add overlaps when page boundaries already fall in whitespace', () => {
