@@ -252,7 +252,8 @@ describe('paginated BPMN SVG regression contracts', () => {
     // task. The safe planner must move that cut before x=700 (including gutter).
     const viewBox = { x: 155, y: 75, width: 1350, height: 956 };
     const layout = calculateSvgPageLayout(viewBox, 'portrait');
-    const tiles = buildShapeAwareTiles(layout, viewBox, extracted);
+    const competingShape = { x: 791, y: 180, width: 100, height: 80 };
+    const tiles = buildShapeAwareTiles(layout, viewBox, [...extracted, competingShape]);
     const first = tiles.find(tile => tile.row === 0 && tile.column === 0);
     assert.ok(first, 'first tile should exist');
     assert.ok(first.x + first.width <= 696 + 0.01,
