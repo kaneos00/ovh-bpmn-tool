@@ -17,7 +17,7 @@ import {
   Textarea,
   Typography,
 } from '@mui/joy';
-import { ArrowBack, ArrowForward, Compare, FileCopy, ChevronLeft, ChevronRight, FolderOutlined, EditOutlined, CenterFocusStrong } from '@mui/icons-material';
+import { ArrowBack, ArrowForward, Compare, FileCopy, ChevronLeft, ChevronRight, FolderOutlined, EditOutlined, CenterFocusStrong, AccountTreeOutlined } from '@mui/icons-material';
 import { useQuery, useQueryClient } from 'react-query';
 
 import { useProcessDetails } from './hooks/useProcessDetails';
@@ -536,15 +536,30 @@ export const ProcessDetails = ({
                       Published by {publishedContent.updatedBy}
                     </Typography>
                   </Stack>
-                  <IconButton
-                    title="Copy link"
-                    variant="plain"
-                    color="neutral"
-                    size="sm"
-                    onClick={() => onContentViewerLinkCopy(publishedContent.id)}
-                  >
-                    <FileCopy />
-                  </IconButton>
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    <IconButton
+                      title="Copy link"
+                      aria-label="Copier le lien du processus"
+                      variant="plain"
+                      color="neutral"
+                      size="sm"
+                      onClick={() => onContentViewerLinkCopy(publishedContent.id)}
+                    >
+                      <FileCopy />
+                    </IconButton>
+                    {canManageVersions && (
+                      <IconButton
+                        title="Ouvrir dans le modeleur"
+                        aria-label="Ouvrir dans le modeleur"
+                        variant="plain"
+                        color="neutral"
+                        size="sm"
+                        onClick={() => navigate(`/${resourceId}/modeler?contentId=${encodeURIComponent(publishedContent.id)}`)}
+                      >
+                        <AccountTreeOutlined />
+                      </IconButton>
+                    )}
+                  </Stack>
                 </Stack>
                 <Divider />
                 <Box className="processViewerCanvas">
