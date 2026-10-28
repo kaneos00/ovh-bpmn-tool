@@ -334,11 +334,9 @@ const ProcessContentViewer = () => {
         <Tabs value={infoTab} onChange={(_, value) => setInfoTab(value as 0 | 1)} className="viewerTabs">
           <TabList sticky="top" variant="plain">
             <Tab value={0}>Historique des versions</Tab>
-            <Tab value={1}>
-              <Stack direction="row" spacing={0.75} alignItems="center">
-                <GroupsOutlined fontSize="small" />
-                <span>RACI ({raciMatrix.activities.length})</span>
-              </Stack>
+            <Tab value={1} sx={{ flexDirection: 'row', gap: 0.75, alignItems: 'center' }}>
+              <GroupsOutlined fontSize="small" />
+              <span>RACI ({raciMatrix.activities.length})</span>
             </Tab>
           </TabList>
 
@@ -358,6 +356,7 @@ const ProcessContentViewer = () => {
                     Modifiée le {formatDateTime(content.updatedAt)} par{' '}
                     {content.updatedBy}
                   </Typography>
+
                 </Sheet>
               ))}
             </Stack>

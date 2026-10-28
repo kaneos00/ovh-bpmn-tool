@@ -389,3 +389,42 @@ test('RACI activity links select the BPMN element and return to the process tab'
   const css = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
   assert.ok(css.includes('.djs-element.task-selected:not(.djs-label) .djs-visual > :not(text):not(tspan)'));
 });
+
+
+test('modeler exposes undo/redo controls and guards unsaved navigation', async () => {
+  const hook = await read('src/Containers/ContentModeler/hooks/useModeler.ts');
+  const actionBar = await read('src/Containers/ContentModeler/components/ModelerActionBar.tsx');
+  const container = await read('src/Containers/ContentModeler/ContentModeler.container.tsx');
+
+  assert.ok(hook.includes("get('commandStack')"));
+  assert.ok(hook.includes("get('commandStack') as any)?.undo?.()"));
+  assert.ok(hook.includes("get('commandStack') as any)?.redo?.()"));
+  assert.ok(hook.includes('savedStackIndexRef'));
+  assert.ok(actionBar.includes('Annuler la dernière modification'));
+  assert.ok(actionBar.includes('Rétablir la dernière modification'));
+  assert.ok(container.includes('useBlocker(({ nextLocation }) => isDirty && nextLocation.pathname === `/${resourceId}`)'));
+  assert.ok(container.includes('beforeunload'));
+  assert.ok(container.includes('Continuer l’édition'));
+  assert.ok(container.includes('Abandonner les modifications'));
+  assert.ok(container.includes('Enregistrer sans publier'));
+  assert.ok(container.includes('Enregistrer et publier'));
+});
+
+test('modeler action is an icon beside the process link and RACI icon stays inline', async () => {
+  const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const hook = await read('src/Containers/ContentModeler/hooks/useContentModeler.ts');
+
+  const versionList = await read('src/Components/BusinessComponents/ProcessContentList/ProcessContentList.tsx');
+  assert.ok(!details.includes('title="Ouvrir dans le modeleur"'));
+  assert.ok(!details.includes('AccountTreeOutlined'));
+  assert.ok(details.includes('onContentViewerLinkCopy(publishedContent.id)'));
+  assert.ok(versionList.includes("label: 'Ouvrir dans le modeleur'"));
+  assert.ok(versionList.includes('<AccountTreeOutlined fontSize="small" />'));
+  assert.ok(versionList.includes('contentId=${encodeURIComponent(content.id)}'));
+  assert.ok(!viewer.includes('Ouvrir dans le modeleur'));
+  assert.ok(viewer.includes('flexDirection: \'row\''));
+  assert.ok(viewer.includes('<GroupsOutlined fontSize="small" />'));
+  assert.ok(hook.includes("searchParams.get('contentId')"));
+  assert.ok(hook.includes('contents?.find(content => content.id === requestedContentId)'));
+});

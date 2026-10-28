@@ -1,7 +1,8 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Checkbox, Stack, Table } from '@mui/joy';
 import { flexRender } from '@tanstack/react-table';
-import { Delete, FileCopy, Publish } from '@mui/icons-material';
+import { AccountTreeOutlined, Delete, FileCopy, Publish } from '@mui/icons-material';
 
 import { useProcessContentList } from './hooks/useProcessContentList';
 
@@ -10,6 +11,7 @@ import type { Cell } from '@tanstack/react-table';
 import { ActionsMenu } from './components/ActionsMenu';
 
 type ProcessContentListProps = {
+  resourceId: string;
   contents: Content[];
   onContentPublish: (contentId: string) => void;
   onContentErase: (contentId: string) => void;
@@ -19,6 +21,7 @@ type ProcessContentListProps = {
 };
 
 export const ProcessContentList = ({
+  resourceId,
   contents,
   onContentPublish,
   onContentErase,
@@ -26,6 +29,7 @@ export const ProcessContentList = ({
   onContentChecked,
   canManageVersions = false,
 }: ProcessContentListProps) => {
+  const navigate = useNavigate();
   const {
     table,
     hasDraft,
@@ -37,8 +41,16 @@ export const ProcessContentList = ({
   const getContentActions = (content: Content) => {
     if (!canManageVersions) return [];
 
+    const openInModelerAction = {
+      id: `open_modeler_${content.id}`,
+      label: 'Ouvrir dans le modeleur',
+      icon: <AccountTreeOutlined fontSize="small" />,
+      onClick: () => navigate(`/${resourceId}/modeler?contentId=${encodeURIComponent(content.id)}`),
+    };
+
     if (content.status === ContentStatusEnum.Draft) {
       return [
+        openInModelerAction,
         {
           id: `publish_${content.id}`,
           label: 'Publish',
@@ -55,6 +67,7 @@ export const ProcessContentList = ({
     }
 
     return [
+      openInModelerAction,
       ...(content.status === ContentStatusEnum.Obsolete
         ? [
             {

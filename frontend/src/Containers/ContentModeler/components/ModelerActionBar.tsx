@@ -18,6 +18,8 @@ import {
   Done,
   Save,
   Compare,
+  Undo,
+  Redo,
 } from '@mui/icons-material';
 
 import { ActionBar } from '../../../Components/GenericComponents/ActionBar/ActionBar';
@@ -26,6 +28,10 @@ import { UserAccountMenu } from '../../../Components/GenericComponents/UserAccou
 type ModelerActionBarProps = {
   resourceId: string;
   hasLintError: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
   onFileUpload: (files: FileList) => void;
   onFileExport: (exportType: 'svg' | 'bpmn' | 'svg-a4-portrait' | 'svg-a4-landscape') => void;
   onDiagramSave: () => void;
@@ -38,7 +44,10 @@ type ModelerActionBarProps = {
 
 export const ModelerActionBar = ({
   resourceId,
-  // hasLintError,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
   onFileUpload,
   onFileExport,
   onDiagramSave,
@@ -127,6 +136,8 @@ export const ModelerActionBar = ({
             </MenuItem>
           </Menu>
         </Dropdown>
+        <Button variant="outlined" color="neutral" onClick={onUndo} disabled={!canUndo} title="Annuler (Ctrl+Z)" aria-label="Annuler la dernière modification"><Undo fontSize="small" /></Button>
+        <Button variant="outlined" color="neutral" onClick={onRedo} disabled={!canRedo} title="Rétablir (Ctrl+Maj+Z)" aria-label="Rétablir la dernière modification"><Redo fontSize="small" /></Button>
         <Button variant="outlined" color="neutral" onClick={onRaciOpen}>
           RACI
         </Button>

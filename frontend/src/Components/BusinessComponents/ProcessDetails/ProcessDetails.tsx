@@ -538,6 +538,7 @@ export const ProcessDetails = ({
                   </Stack>
                   <IconButton
                     title="Copy link"
+                    aria-label="Copier le lien du processus"
                     variant="plain"
                     color="neutral"
                     size="sm"
@@ -621,6 +622,7 @@ export const ProcessDetails = ({
                       </IconButton>
                     </Stack>
                     <ProcessContentList
+                      resourceId={resourceId}
                       contents={contents}
                       onContentChecked={onContentChecked}
                       onContentPublish={onContentPublish}
