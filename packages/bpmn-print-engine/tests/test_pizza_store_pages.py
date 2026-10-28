@@ -22,7 +22,7 @@ class PizzaStorePageTests(unittest.TestCase):
     def setUpClass(cls):
         subprocess.run([sys.executable, str(SCRIPT)], check=True)
 
-    def test_generates_exactly_four_well_formed_pages(self):
+    def test_generates_exactly_two_well_formed_pages(self):
         pages = sorted(GENERATED.glob("pizza-store-page-*.bpmn"))
         self.assertEqual(len(pages), 2)
         ET.parse(SOURCE)
