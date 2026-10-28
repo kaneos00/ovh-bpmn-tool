@@ -1,4 +1,4 @@
-"""Tests for the four A4-portrait Pizza-Store review pages."""
+"""Tests for the two A4-portrait Pizza-Store review pages."""
 from pathlib import Path
 import subprocess
 import sys
@@ -24,7 +24,7 @@ class PizzaStorePageTests(unittest.TestCase):
 
     def test_generates_exactly_four_well_formed_pages(self):
         pages = sorted(GENERATED.glob("pizza-store-page-*.bpmn"))
-        self.assertEqual(len(pages), 4)
+        self.assertEqual(len(pages), 2)
         ET.parse(SOURCE)
         for page in pages:
             with self.subTest(page=page.name):
@@ -64,6 +64,41 @@ class PizzaStorePageTests(unittest.TestCase):
                     self.assertGreaterEqual(y, -0.01)
                     self.assertLessEqual(x + width, 595.01)
                     self.assertLessEqual(y + height, 842.01)
+
+    def test_lane_geometry_is_consistent_between_pages(self):
+        pages = sorted(GENERATED.glob("pizza-store-page-*.bpmn"))
+        lane_geometry = []
+        for page in pages:
+            root = ET.parse(page).getroot()
+            lanes = {}
+            for shape in root.findall(".//bpmndi:BPMNShape", NS):
+                element_id = shape.get("bpmnElement")
+                element = next((e for e in root.iter() if e.get("id") == element_id), None)
+                if element is None or element.tag != "{" + NS["bpmn"] + "}lane":
+                    continue
+                bounds = shape.find("dc:Bounds", NS)
+                lanes[element.get("name")] = (
+                    round(float(bounds.get("x")), 3),
+                    round(float(bounds.get("width")), 3),
+                    round(float(bounds.get("y")), 3),
+                    round(float(bounds.get("height")), 3),
+                )
+            lane_geometry.append(lanes)
+        self.assertEqual(set(lane_geometry[0]), set(lane_geometry[1]))
+        for name in lane_geometry[0]:
+            with self.subTest(lane=name):
+                self.assertEqual(lane_geometry[0][name][1:], lane_geometry[1][name][1:])
+                self.assertAlmostEqual(lane_geometry[0][name][1], lane_geometry[1][name][1], places=2)
+
+    def test_edges_are_clipped_to_each_page_without_dropping_crossing_flows(self):
+        pages = sorted(GENERATED.glob("pizza-store-page-*.bpmn"))
+        edge_ids = []
+        for page in pages:
+            root = ET.parse(page).getroot()
+            edge_ids.append({e.get("bpmnElement") for e in root.findall(".//bpmndi:BPMNEdge", NS)})
+        self.assertTrue(edge_ids[0])
+        self.assertTrue(edge_ids[1])
+        self.assertTrue(edge_ids[0] & edge_ids[1], "cross-page flow should be represented on both page views")
 
     def test_every_page_contains_both_participants_and_lanes(self):
         for page in sorted(GENERATED.glob("pizza-store-page-*.bpmn")):
