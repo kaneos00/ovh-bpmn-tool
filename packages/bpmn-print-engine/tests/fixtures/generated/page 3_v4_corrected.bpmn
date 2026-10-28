@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn2:definitions xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="empty-definitions" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn2:collaboration id="Collaboration_id-cbbcf8b8-34bf-4eee-9a24-d3a2fdc230f8">
+    <bpmn2:participant id="id-b4f2b221-f282-4363-88c6-9d058e0b1824" name="Pizza customer" processRef="Process_id-b4f2b221-f282-4363-88c6-9d058e0b1824" />
+    <bpmn2:participant id="id-faefcc69-77a6-4248-9872-f9c33fce5055" name="Pizza vendor" processRef="Process_id-faefcc69-77a6-4248-9872-f9c33fce5055" />
+    <bpmn2:messageFlow id="id-c2fa4a37-2b8b-4e24-8d04-5b557aa7e96d" name="pizza order" sourceRef="id-9beace69-e74d-4696-8aff-3072e4447ca8" targetRef="id-82f345c2-dc3a-4956-93fd-9d663bbb9341" />
+    <bpmn2:messageFlow id="id-bfb3f44f-cbb8-4b76-b337-249156559d8e" name="" sourceRef="id-4d1bc201-9ac8-486b-8b12-5a5d442b1afc" targetRef="id-1766613b-52d0-4d37-9a9b-2df94cd341c7" />
+    <bpmn2:messageFlow id="id-e129b166-c042-479a-ba0c-3770a12c301a" name="" sourceRef="id-d97f268d-d744-43ae-a03b-aaafab9c699e" targetRef="id-4d1bc201-9ac8-486b-8b12-5a5d442b1afc" />
+    <bpmn2:messageFlow id="id-0848149b-66d7-4d98-a7ce-43be9bad1dac" name="money" sourceRef="id-0197ac77-5fef-42cc-a4a4-5947d2df8d09" targetRef="id-d12aa91b-aeaa-4122-834b-a8b7f4333cbf" />
+    <bpmn2:messageFlow id="id-87407cbe-d9af-42d2-96a7-cbbf5070010b" name="receipt" sourceRef="id-d12aa91b-aeaa-4122-834b-a8b7f4333cbf" targetRef="id-0197ac77-5fef-42cc-a4a4-5947d2df8d09" />
+  </bpmn2:collaboration>
+  <bpmn2:process id="Process_id-b4f2b221-f282-4363-88c6-9d058e0b1824" name="Pizza customer" isExecutable="false">
+    <bpmn2:startEvent id="id-b851067f-7b6d-44a4-974b-24e2aa8ef1c0" name="Hungry for pizza">
+      <bpmn2:outgoing>id-ef82c6af-a239-45bb-9e4b-fc2c8fa8299f</bpmn2:outgoing>
+    </bpmn2:startEvent>
+    <bpmn2:task id="id-303e96ab-970e-4454-ab71-9e6f053197b0" name="Select a pizza">
+      <bpmn2:incoming>id-ef82c6af-a239-45bb-9e4b-fc2c8fa8299f</bpmn2:incoming>
+      <bpmn2:outgoing>id-70fcb38f-03bf-49d3-90a1-e09b1fd79133</bpmn2:outgoing>
+    </bpmn2:task>
+    <bpmn2:task id="id-9beace69-e74d-4696-8aff-3072e4447ca8" name="Order a pizza">
+      <bpmn2:incoming>id-70fcb38f-03bf-49d3-90a1-e09b1fd79133</bpmn2:incoming>
+      <bpmn2:outgoing>id-324c2202-75b8-4bc6-8859-37dc8573d57b</bpmn2:outgoing>
+    </bpmn2:task>
+    <bpmn2:eventBasedGateway id="id-47ca6bc5-0ab5-4403-afd4-ccd31976defe" name="">
+      <bpmn2:incoming>id-324c2202-75b8-4bc6-8859-37dc8573d57b</bpmn2:incoming>
+      <bpmn2:incoming>id-8815c7a7-4933-4831-b2d8-528e25192231</bpmn2:incoming>
+      <bpmn2:outgoing>id-d6905eed-2870-422a-af05-456c0bb91908</bpmn2:outgoing>
+      <bpmn2:outgoing>id-853169ff-dcc2-45d7-bdcb-6604f54b8d12</bpmn2:outgoing>
+    </bpmn2:eventBasedGateway>
+    <bpmn2:intermediateCatchEvent id="id-ae419819-4312-445c-b377-c908ad7c5a49" name="60 minutes">
+      <bpmn2:incoming>id-d6905eed-2870-422a-af05-456c0bb91908</bpmn2:incoming>
+      <bpmn2:outgoing>id-6d3f0265-2690-4fb3-aa8a-b05c0651cf79</bpmn2:outgoing>
+      <bpmn2:timerEventDefinition id="id-18bf477d-bb54-45eb-b055-908940b67c11" />
+    </bpmn2:intermediateCatchEvent>
+    <bpmn2:task id="id-4d1bc201-9ac8-486b-8b12-5a5d442b1afc" name="Ask for the pizza">
+      <bpmn2:incoming>id-6d3f0265-2690-4fb3-aa8a-b05c0651cf79</bpmn2:incoming>
+      <bpmn2:outgoing>id-8815c7a7-4933-4831-b2d8-528e25192231</bpmn2:outgoing>
+    </bpmn2:task>
+    <bpmn2:task id="id-0197ac77-5fef-42cc-a4a4-5947d2df8d09" name="Pay the pizza">
+      <bpmn2:incoming>id-47a92446-7ab4-4ea9-a78e-324f8a65c02f</bpmn2:incoming>
+      <bpmn2:outgoing>id-0239523d-15a5-45e7-8bb2-edca3673ad22</bpmn2:outgoing>
+    </bpmn2:task>
+    <bpmn2:task id="id-342b63f5-53be-48de-b703-73e7db85ef35" name="Eat the pizza">
+      <bpmn2:incoming>id-0239523d-15a5-45e7-8bb2-edca3673ad22</bpmn2:incoming>
+      <bpmn2:outgoing>id-42917593-9bce-48c2-87c4-f2dacc54f8e4</bpmn2:outgoing>
+    </bpmn2:task>
+    <bpmn2:endEvent id="id-b6eb8e6c-d230-44b0-8020-a1c2a7e82c66" name="Hunger satisfied">
+      <bpmn2:incoming>id-42917593-9bce-48c2-87c4-f2dacc54f8e4</bpmn2:incoming>
+    </bpmn2:endEvent>
+    <bpmn2:dataStoreReference id="id-ee1f1e11-b138-4f5f-95ac-f28937782fb4" name="Database" />
+    <bpmn2:sequenceFlow id="id-ef82c6af-a239-45bb-9e4b-fc2c8fa8299f" name="" sourceRef="id-b851067f-7b6d-44a4-974b-24e2aa8ef1c0" targetRef="id-303e96ab-970e-4454-ab71-9e6f053197b0" />
+    <bpmn2:sequenceFlow id="id-70fcb38f-03bf-49d3-90a1-e09b1fd79133" name="" sourceRef="id-303e96ab-970e-4454-ab71-9e6f053197b0" targetRef="id-9beace69-e74d-4696-8aff-3072e4447ca8" />
+    <bpmn2:sequenceFlow id="id-324c2202-75b8-4bc6-8859-37dc8573d57b" name="" sourceRef="id-9beace69-e74d-4696-8aff-3072e4447ca8" targetRef="id-47ca6bc5-0ab5-4403-afd4-ccd31976defe" />
+    <bpmn2:sequenceFlow id="id-d6905eed-2870-422a-af05-456c0bb91908" name="" sourceRef="id-47ca6bc5-0ab5-4403-afd4-ccd31976defe" targetRef="id-ae419819-4312-445c-b377-c908ad7c5a49" />
+    <bpmn2:sequenceFlow id="id-6d3f0265-2690-4fb3-aa8a-b05c0651cf79" name="" sourceRef="id-ae419819-4312-445c-b377-c908ad7c5a49" targetRef="id-4d1bc201-9ac8-486b-8b12-5a5d442b1afc" />
+    <bpmn2:sequenceFlow id="id-8815c7a7-4933-4831-b2d8-528e25192231" name="" sourceRef="id-4d1bc201-9ac8-486b-8b12-5a5d442b1afc" targetRef="id-47ca6bc5-0ab5-4403-afd4-ccd31976defe" />
+    <bpmn2:sequenceFlow id="id-853169ff-dcc2-45d7-bdcb-6604f54b8d12" name="" sourceRef="id-47ca6bc5-0ab5-4403-afd4-ccd31976defe" targetRef="id-b3e8f1ed-3869-4176-bde1-05bc1db10e5d" />
+    <bpmn2:sequenceFlow id="id-47a92446-7ab4-4ea9-a78e-324f8a65c02f" name="" sourceRef="id-b3e8f1ed-3869-4176-bde1-05bc1db10e5d" targetRef="id-0197ac77-5fef-42cc-a4a4-5947d2df8d09" />
+    <bpmn2:sequenceFlow id="id-0239523d-15a5-45e7-8bb2-edca3673ad22" name="" sourceRef="id-0197ac77-5fef-42cc-a4a4-5947d2df8d09" targetRef="id-342b63f5-53be-48de-b703-73e7db85ef35" />
+    <bpmn2:sequenceFlow id="id-42917593-9bce-48c2-87c4-f2dacc54f8e4" name="" sourceRef="id-342b63f5-53be-48de-b703-73e7db85ef35" targetRef="id-b6eb8e6c-d230-44b0-8020-a1c2a7e82c66" />
+    <bpmn2:intermediateThrowEvent id="id-b3e8f1ed-3869-4176-bde1-05bc1db10e5d" name="pizza received">
+      <bpmn2:incoming>id-853169ff-dcc2-45d7-bdcb-6604f54b8d12</bpmn2:incoming>
+      <bpmn2:outgoing>id-47a92446-7ab4-4ea9-a78e-324f8a65c02f</bpmn2:outgoing>
+      <bpmn2:messageEventDefinition id="id-2328f01e-be5f-4711-8fa3-21a8393fa309" />
+    </bpmn2:intermediateThrowEvent>
+  </bpmn2:process>
+  <bpmn2:process id="Process_id-faefcc69-77a6-4248-9872-f9c33fce5055" name="Pizza vendor" isExecutable="false">
+    <bpmn2:laneSet id="id-faefcc69-77a6-4248-9872-f9c33fce5055_laneset">
+      <bpmn2:lane id="id-bc8cc27e-5c90-4c18-8afd-dc13df9581c0" name="Delivery boy">
+        <bpmn2:flowNodeRef>id-d12aa91b-aeaa-4122-834b-a8b7f4333cbf</bpmn2:flowNodeRef>
+        <bpmn2:flowNodeRef>id-eb2d3d69-ee58-4e0e-97f0-c1a193b49cf0</bpmn2:flowNodeRef>
+        <bpmn2:flowNodeRef>id-cdca9070-9378-4907-8151-9d97b49b155f</bpmn2:flowNodeRef>
+      </bpmn2:lane>
+      <bpmn2:lane id="id-1e3c32ca-a639-472a-8347-2ea10a2a6f5e" name="pizza chef">
+        <bpmn2:flowNodeRef>id-b2bb4769-2584-4639-8373-f6cb839b5317</bpmn2:flowNodeRef>
+      </bpmn2:lane>
+      <bpmn2:lane id="id-9874db61-4bcb-4c85-b5dc-3a5a55e184ea" name="clerk">
+        <bpmn2:flowNodeRef>id-82f345c2-dc3a-4956-93fd-9d663bbb9341</bpmn2:flowNodeRef>
+        <bpmn2:flowNodeRef>id-6ad309ef-7f6c-412d-9e94-c14e6c278dd7</bpmn2:flowNodeRef>
+        <bpmn2:flowNodeRef>id-1766613b-52d0-4d37-9a9b-2df94cd341c7</bpmn2:flowNodeRef>
+        <bpmn2:flowNodeRef>id-d97f268d-d744-43ae-a03b-aaafab9c699e</bpmn2:flowNodeRef>
+      </bpmn2:lane>
+    </bpmn2:laneSet>
+    <bpmn2:startEvent id="id-82f345c2-dc3a-4956-93fd-9d663bbb9341" name="Order received">
+      <bpmn2:outgoing>id-fbfd797f-daf0-47bf-9abb-295e01dd8a1f</bpmn2:outgoing>
+      <bpmn2:messageEventDefinition id="id-7958366c-dd65-46fe-9edf-47ed310a7ad0" />
+    </bpmn2:startEvent>
+    <bpmn2:parallelGateway id="id-6ad309ef-7f6c-412d-9e94-c14e6c278dd7" name="">
+      <bpmn2:incoming>id-fbfd797f-daf0-47bf-9abb-295e01dd8a1f</bpmn2:incoming>
+      <bpmn2:outgoing>id-5358e3f9-87e5-45f3-9f41-afdc44ca7727</bpmn2:outgoing>
+      <bpmn2:outgoing>id-6689cf21-72d5-4722-9865-386bbb3ae274</bpmn2:outgoing>
+    </bpmn2:parallelGateway>
+    <bpmn2:intermediateCatchEvent id="id-1766613b-52d0-4d37-9a9b-2df94cd341c7" name="Where is my pizza?">
+      <bpmn2:incoming>id-5358e3f9-87e5-45f3-9f41-afdc44ca7727</bpmn2:incoming>
+      <bpmn2:incoming>id-97c0645f-e728-4b38-8906-6943cb74b481</bpmn2:incoming>
+      <bpmn2:outgoing>id-05267917-a788-4936-80ba-5eec7978d225</bpmn2:outgoing>
+      <bpmn2:messageEventDefinition id="id-599e7d69-13f1-401b-8ba0-5edc2bd864c8" />
+    </bpmn2:intermediateCatchEvent>
+    <bpmn2:task id="id-d97f268d-d744-43ae-a03b-aaafab9c699e" name="Calm customer">
+      <bpmn2:incoming>id-05267917-a788-4936-80ba-5eec7978d225</bpmn2:incoming>
+      <bpmn2:outgoing>id-97c0645f-e728-4b38-8906-6943cb74b481</bpmn2:outgoing>
+    </bpmn2:task>
+    <bpmn2:task id="id-b2bb4769-2584-4639-8373-f6cb839b5317" name="Bake the pizza">
+      <bpmn2:incoming>id-6689cf21-72d5-4722-9865-386bbb3ae274</bpmn2:incoming>
+      <bpmn2:outgoing>id-67c90744-05d5-4eed-abd3-e506ace97b84</bpmn2:outgoing>
+    </bpmn2:task>
+    <bpmn2:task id="id-d12aa91b-aeaa-4122-834b-a8b7f4333cbf" name="Receive payment">
+      <bpmn2:incoming>id-30803168-6d75-46c4-878b-fce11e7e2e57</bpmn2:incoming>
+      <bpmn2:outgoing>id-31f84cea-b315-4bff-ba9b-7e2d9bf1d483</bpmn2:outgoing>
+    </bpmn2:task>
+    <bpmn2:endEvent id="id-eb2d3d69-ee58-4e0e-97f0-c1a193b49cf0" name="End">
+      <bpmn2:documentation>&lt;p class="m-0 mb-[8px] relative last:mb-0"&gt;&lt;br&gt;&lt;/p&gt;</bpmn2:documentation>
+      <bpmn2:incoming>id-31f84cea-b315-4bff-ba9b-7e2d9bf1d483</bpmn2:incoming>
+      <bpmn2:terminateEventDefinition id="id-3ed242fb-8bab-4dc1-8b2c-1e5f18eae008" />
+    </bpmn2:endEvent>
+    <bpmn2:sequenceFlow id="id-fbfd797f-daf0-47bf-9abb-295e01dd8a1f" name="" sourceRef="id-82f345c2-dc3a-4956-93fd-9d663bbb9341" targetRef="id-6ad309ef-7f6c-412d-9e94-c14e6c278dd7" />
+    <bpmn2:sequenceFlow id="id-5358e3f9-87e5-45f3-9f41-afdc44ca7727" name="" sourceRef="id-6ad309ef-7f6c-412d-9e94-c14e6c278dd7" targetRef="id-1766613b-52d0-4d37-9a9b-2df94cd341c7" />
+    <bpmn2:sequenceFlow id="id-05267917-a788-4936-80ba-5eec7978d225" name="" sourceRef="id-1766613b-52d0-4d37-9a9b-2df94cd341c7" targetRef="id-d97f268d-d744-43ae-a03b-aaafab9c699e" />
+    <bpmn2:sequenceFlow id="id-97c0645f-e728-4b38-8906-6943cb74b481" name="" sourceRef="id-d97f268d-d744-43ae-a03b-aaafab9c699e" targetRef="id-1766613b-52d0-4d37-9a9b-2df94cd341c7" />
+    <bpmn2:sequenceFlow id="id-6689cf21-72d5-4722-9865-386bbb3ae274" name="" sourceRef="id-6ad309ef-7f6c-412d-9e94-c14e6c278dd7" targetRef="id-b2bb4769-2584-4639-8373-f6cb839b5317" />
+    <bpmn2:sequenceFlow id="id-67c90744-05d5-4eed-abd3-e506ace97b84" name="" sourceRef="id-b2bb4769-2584-4639-8373-f6cb839b5317" targetRef="id-cdca9070-9378-4907-8151-9d97b49b155f" />
+    <bpmn2:sequenceFlow id="id-30803168-6d75-46c4-878b-fce11e7e2e57" name="" sourceRef="id-cdca9070-9378-4907-8151-9d97b49b155f" targetRef="id-d12aa91b-aeaa-4122-834b-a8b7f4333cbf" />
+    <bpmn2:sequenceFlow id="id-31f84cea-b315-4bff-ba9b-7e2d9bf1d483" name="" sourceRef="id-d12aa91b-aeaa-4122-834b-a8b7f4333cbf" targetRef="id-eb2d3d69-ee58-4e0e-97f0-c1a193b49cf0" />
+    <bpmn2:task id="id-cdca9070-9378-4907-8151-9d97b49b155f" name="Deliver the pizza">
+      <bpmn2:incoming>id-67c90744-05d5-4eed-abd3-e506ace97b84</bpmn2:incoming>
+      <bpmn2:outgoing>id-30803168-6d75-46c4-878b-fce11e7e2e57</bpmn2:outgoing>
+    </bpmn2:task>
+  </bpmn2:process>
+  <bpmndi:BPMNDiagram id="id-cbbcf8b8-34bf-4eee-9a24-d3a2fdc230f8di">
+    <bpmndi:BPMNPlane id="id-cbbcf8b8-34bf-4eee-9a24-d3a2fdc230f8_plane" bpmnElement="Collaboration_id-cbbcf8b8-34bf-4eee-9a24-d3a2fdc230f8">
+      <bpmndi:BPMNShape id="id-b4f2b221-f282-4363-88c6-9d058e0b1824_shape" bpmnElement="id-b4f2b221-f282-4363-88c6-9d058e0b1824" isHorizontal="true">
+        <dc:Bounds x="158" y="40" width="179" height="262" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="id-b3e8f1ed-3869-4176-bde1-05bc1db10e5d_shape" bpmnElement="id-b3e8f1ed-3869-4176-bde1-05bc1db10e5d">
+        <dc:Bounds x="244" y="104" width="32" height="32" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="227" y="166" width="71" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="id-faefcc69-77a6-4248-9872-f9c33fce5055_shape" bpmnElement="id-faefcc69-77a6-4248-9872-f9c33fce5055" isHorizontal="true">
+        <dc:Bounds x="158" y="400" width="179" height="402" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="id-9874db61-4bcb-4c85-b5dc-3a5a55e184ea_shape" bpmnElement="id-9874db61-4bcb-4c85-b5dc-3a5a55e184ea" isHorizontal="true">
+        <dc:Bounds x="158" y="400" width="179" height="127" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="id-1e3c32ca-a639-472a-8347-2ea10a2a6f5e_shape" bpmnElement="id-1e3c32ca-a639-472a-8347-2ea10a2a6f5e" isHorizontal="true">
+        <dc:Bounds x="158" y="527" width="179" height="130" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="id-bc8cc27e-5c90-4c18-8afd-dc13df9581c0_shape" bpmnElement="id-bc8cc27e-5c90-4c18-8afd-dc13df9581c0" isHorizontal="true">
+        <dc:Bounds x="158" y="657" width="179" height="145" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="id-cdca9070-9378-4907-8151-9d97b49b155f_shape" bpmnElement="id-cdca9070-9378-4907-8151-9d97b49b155f">
+        <dc:Bounds x="215" y="694" width="90" height="72" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn2:definitions>
