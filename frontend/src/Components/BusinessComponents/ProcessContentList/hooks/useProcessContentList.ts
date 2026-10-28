@@ -1,4 +1,5 @@
 import { useMemo, useState, ChangeEvent, useEffect } from 'react';
+import { Chip } from '@mui/joy';
 import {
   createColumnHelper,
   getCoreRowModel,
@@ -25,7 +26,12 @@ export const useProcessContentList = (contents: Content[]) => {
     }),
     columnHelper.accessor('status', {
       header: 'Status',
-      cell: info => info.getValue(),
+      cell: info => {
+        const status = info.getValue();
+        const color = status === ContentStatusEnum.Published ? 'success' : status === ContentStatusEnum.Draft ? 'warning' : 'neutral';
+        const label = status === ContentStatusEnum.Published ? 'Publiée' : status === ContentStatusEnum.Draft ? 'Brouillon' : 'Obsolète';
+        return <Chip size="sm" variant="soft" color={color}>{label}</Chip>;
+      },
     }),
     columnHelper.accessor('createdBy', {
       header: 'Author',
