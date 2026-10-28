@@ -358,3 +358,23 @@ test('viewer keeps the explorer and task details in side panels while tabs live 
   assert.ok(details.includes('className="raci-table"'));
   assert.ok(details.includes('raci-code-badge raci-code-'));
 });
+
+
+test('Viewer version status badges have distinct colors and version actions are permission-gated', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const list = await read('src/Components/BusinessComponents/ProcessContentList/ProcessContentList.tsx');
+  const tableHook = await read('src/Components/BusinessComponents/ProcessContentList/hooks/useProcessContentList.ts');
+  assert.ok(details.includes("content.status === ContentStatusEnum.Published ? 'success' : content.status === ContentStatusEnum.Draft ? 'warning' : 'neutral'"));
+  assert.ok(details.includes('canManageVersions={canManageVersions}'));
+  assert.ok(list.includes('canManageVersions = false'));
+  assert.ok(list.includes('...(!canManageVersions'));
+  assert.ok(tableHook.includes("status === ContentStatusEnum.Published ? 'success' : status === ContentStatusEnum.Draft ? 'warning' : 'neutral'"));
+});
+
+test('RACI activity links select the BPMN element and return to the process tab', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  assert.ok(details.includes('setActiveViewerTab(0)'));
+  assert.ok(details.includes('onElementSelect?.(activity.elementId)'));
+  assert.ok(details.includes('Voir dans le BPMN'));
+  assert.ok(details.includes('<Tabs value={activeViewerTab}'));
+});
