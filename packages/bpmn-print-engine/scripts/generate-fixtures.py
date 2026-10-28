@@ -27,6 +27,8 @@ PAGE_TOP = 40.0
 LANE_HEIGHT = 180.0
 PAGE_GAP = 50.0
 SHAPE_TAG = f"{{{NS['bpmndi']}}}BPMNShape"
+EDGE_TAG = f"{{{NS['bpmndi']}}}BPMNEdge"
+WAYPOINT_TAG = f"{{{NS['di']}}}waypoint"
 BOUNDS_TAG = f"{{{NS['dc']}}}Bounds"
 FLOW_TAG = f"{{{NS['bpmn']}}}sequenceFlow"
 LANE_TAG = f"{{{NS['bpmn']}}}lane"
@@ -155,6 +157,7 @@ for page_index in range(page_count):
     content_right = PAGE_LEFT + PAGE_WIDTH - (130 if page_index < page_count - 1 else 10)
     source_span = max(1.0, max_source_x - min_source_x)
     x_scale = min(1.0, max(0.1, (content_right - content_left) / source_span))
+    output_bounds = {}
     for node_id in selected:
         source_entry = shape_by_id.get(node_id)
         if source_entry:
@@ -171,6 +174,18 @@ for page_index in range(page_count):
             width_out, height = 100, 80
         shape = ET.SubElement(out_plane, SHAPE_TAG, {"id": f"{node_id}_di", "bpmnElement": node_id})
         ET.SubElement(shape, BOUNDS_TAG, {"x": str(round(x_out, 2)), "y": str(y), "width": str(round(width_out, 2)), "height": str(height)})
+        output_bounds[node_id] = (x_out, y, width_out, height)
+    # Add simple DI waypoints so generated pages are immediately reviewable.
+    # Production edge routing is deliberately out of scope for this fixture helper.
+    for flow in page_process.findall("bpmn:sequenceFlow", NS):
+        source_id, target_id = flow.get("sourceRef"), flow.get("targetRef")
+        if source_id not in output_bounds or target_id not in output_bounds:
+            continue
+        sx, sy, sw, sh = output_bounds[source_id]
+        tx, ty, tw, th = output_bounds[target_id]
+        edge = ET.SubElement(out_plane, EDGE_TAG, {"id": f"{flow.get('id')}_di", "bpmnElement": flow.get("id")})
+        ET.SubElement(edge, WAYPOINT_TAG, {"x": str(round(sx + sw, 2)), "y": str(round(sy + sh / 2, 2))})
+        ET.SubElement(edge, WAYPOINT_TAG, {"x": str(round(tx, 2)), "y": str(round(ty + th / 2, 2))})
     ET.indent(definitions, space="  ")
     output_path = OUTPUT / f"pizza-page-{page_index + 1:02d}.bpmn"
     ET.ElementTree(definitions).write(output_path, encoding="utf-8", xml_declaration=True)
