@@ -130,6 +130,7 @@ export const ProcessDetails = ({
   const queryClient = useQueryClient();
   const { showAlert } = useSnackbar();
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
+  const [activeViewerTab, setActiveViewerTab] = useState(0);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState('');
   const [titleDraft, setTitleDraft] = useState('');
@@ -137,6 +138,7 @@ export const ProcessDetails = ({
   const [raciDraft, setRaciDraft] = useState<Record<string, RaciCode[]>>({});
   const [isSavingDescription, setIsSavingDescription] = useState(false);
   const canEditDescription = !readOnlyShell && (sessionRole === 'admin' || sessionRole === 'modeler');
+  const canManageVersions = !readOnlyShell && (sessionRole === 'admin' || sessionRole === 'modeler');
 
   useEffect(() => {
     let mounted = true;
@@ -484,7 +486,7 @@ export const ProcessDetails = ({
             />
           )}
 
-      <Tabs defaultValue={0} className="processViewerTabs">
+      <Tabs value={activeViewerTab} onChange={(_, value) => setActiveViewerTab(Number(value))} className="processViewerTabs">
         <TabList sticky="top">
           <Tab value={0}>Vue du processus</Tab>
           <Tab value={1}>Historique des versions</Tab>
@@ -564,8 +566,8 @@ export const ProcessDetails = ({
                     <Sheet key={content.id} variant="soft" sx={{ p: 1.5, borderRadius: 'sm' }}>
                       <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
                         <Typography level="title-sm">Version v{content.version ?? 'N/A'}</Typography>
-                        <Chip size="sm" variant="soft">
-                          {content.status === ContentStatusEnum.Published ? 'Publiée' : 'Brouillon'}
+                        <Chip size="sm" variant="soft" color={content.status === ContentStatusEnum.Published ? 'success' : content.status === ContentStatusEnum.Draft ? 'warning' : 'neutral'}>
+                          {content.status === ContentStatusEnum.Published ? 'Publiée' : content.status === ContentStatusEnum.Draft ? 'Brouillon' : 'Obsolète'}
                         </Chip>
                       </Stack>
                       <Typography level="body-sm" textColor="neutral">
@@ -600,6 +602,7 @@ export const ProcessDetails = ({
                       onContentPublish={onContentPublish}
                       onContentErase={onContentErase}
                       onContentClone={onContentClone}
+                      canManageVersions={canManageVersions}
                     />
                   </ConditionalRender>
                   <ConditionalRender condition={Boolean(!contents.length)}>
@@ -636,7 +639,14 @@ export const ProcessDetails = ({
                   <tbody>
                     {raciMatrix.activities.map(activity => (
                       <tr key={activity.elementId}>
-                        <th className="raci-activity">{activity.activity}</th>
+                        <th className="raci-activity">
+                          <Stack spacing={0.5} alignItems="flex-start">
+                            <Typography level="body-sm">{activity.activity}</Typography>
+                            <Button size="sm" variant="plain" color="primary" onClick={() => { setActiveViewerTab(0); onElementSelect?.(activity.elementId); }} disabled={!onElementSelect || !activity.elementId}>
+                              Voir dans le BPMN
+                            </Button>
+                          </Stack>
+                        </th>
                         {activity.cells.map(cell => (
                           <td
                             key={cell.role}
