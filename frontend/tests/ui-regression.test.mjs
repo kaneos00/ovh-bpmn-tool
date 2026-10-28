@@ -299,22 +299,24 @@ test('viewer element details editing is permission-gated and saves title, descri
 });
 
 
-test('viewer context-menu deletion passes the target resource and opens the existing confirmation flow', async () => {
+test('V3 explorer does not expose resource-management actions or deletion routes', async () => {
   const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
   const routes = await read('src/routes.tsx');
-  const loader = await read('src/Containers/DeleteResource/DeleteResource.loader.ts');
-  const action = await read('src/Containers/DeleteResource/DeleteResource.action.ts');
-  const component = await read('src/Containers/DeleteResource/DeleteResource.container.tsx');
-  const hook = await read('src/Containers/DeleteResource/hooks/useDeleteResource.ts');
+  const processActions = await read('src/Containers/BpmnLayout/components/BusinessProcessActions.tsx');
+  const folderActions = await read('src/Containers/BpmnLayout/components/FolderActions.tsx');
 
-  assert.ok(tree.includes('navigate(`/${resourceId}/delete?targetResourceId=${encodeURIComponent(resourceId)}`)'));
-  assert.ok(routes.includes("path: '/:resourceId/delete'"));
-  assert.ok(loader.includes("url.searchParams.get('targetResourceId')"));
-  assert.ok(loader.includes('if (!targetResourceId)'));
-  assert.ok(component.includes('<ConfirmModal'));
-  assert.ok(component.includes('onConfirm={callbacks.onModalConfirm}'));
-  assert.ok(hook.includes("submit("));
-  assert.ok(action.includes('await deleteResource(targetResourceId as string)'));
+  assert.ok(tree.includes('Ouvrir'));
+  assert.ok(tree.includes('Modifier dans le modeleur'));
+  assert.ok(!tree.includes('Supprimer'));
+  assert.ok(!tree.includes('/share'));
+  assert.ok(!tree.includes('/add?type=folder'));
+  assert.ok(!tree.includes('/add?type=process'));
+  assert.ok(!routes.includes("path: '/:resourceId/delete'"));
+  assert.ok(!routes.includes("path: '/:resourceId/share'"));
+  assert.ok(processActions.includes('Ouvrir le modeleur BPMN'));
+  assert.ok(!processActions.includes('Comments'));
+  assert.ok(!processActions.includes('Edit Business Process'));
+  assert.ok(folderActions.includes('return null'));
 });
 
 
