@@ -19,9 +19,8 @@ async function requireSession({ request }: { request: Request }) {
 
 /**
  * V3 initial shell: authentication, process/folder viewer and BPMN modeler.
- * Application management, organization administration, project management,
- * comparisons and resource CRUD routes are intentionally not exposed here.
- * Their backend APIs and implementation remain untouched for later phases.
+ * Keep the simplified V3 shell while restoring the V2.3 explorer actions and
+ * the project/folder home pages needed by the viewer workflow.
  */
 export const routes = [
   {
@@ -32,8 +31,18 @@ export const routes = [
         loader: () => redirect('/root'),
       },
       {
+        path: '/projects/:projectId/viewer',
+        lazy: () => import('./Containers/ContentViewer'),
+      },
+      {
         path: '/:resourceId',
         lazy: () => import('./Containers/BpmnLayout'),
+        children: [
+          { path: '/:resourceId/add', lazy: () => import('./Containers/AddResource') },
+          { path: '/:resourceId/edit', lazy: () => import('./Containers/EditResource') },
+          { path: '/:resourceId/share', lazy: () => import('./Containers/ShareResource') },
+          { path: '/:resourceId/delete', lazy: () => import('./Containers/DeleteResource') },
+        ],
       },
       {
         path: '/:resourceId/modeler',
