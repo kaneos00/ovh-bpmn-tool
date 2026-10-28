@@ -51,6 +51,10 @@ export const routes = [
             path: '/:resourceId/delete',
             lazy: () => import('./Containers/DeleteResource'),
           },
+          {
+            path: '/:resourceId/publish',
+            lazy: () => import('./Containers/PublishResource'),
+          },
         ],
       },
       {
