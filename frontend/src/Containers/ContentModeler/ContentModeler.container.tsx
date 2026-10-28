@@ -79,10 +79,10 @@ export const Component = () => {
   }, [actionData, markSaved, blocker, navigate, resourceId]);
 
   useEffect(() => {
-    if (!isDirty) return;
+    if (!isDirty) return undefined;
     const warnBeforeUnload = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
     window.addEventListener('beforeunload', warnBeforeUnload);
-    return () => window.removeEventListener('beforeunload', warnBeforeUnload);
+    return () => { window.removeEventListener('beforeunload', warnBeforeUnload); };
   }, [isDirty]);
 
   return (
