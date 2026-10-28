@@ -146,6 +146,15 @@ for page_index in range(page_count):
     for lane, y in lane_ids:
         shape = ET.SubElement(out_plane, SHAPE_TAG, {"id": f"{lane.get('id')}_di", "bpmnElement": lane.get("id"), "isHorizontal": "true"})
         ET.SubElement(shape, BOUNDS_TAG, {"x": str(PAGE_LEFT), "y": str(y), "width": str(PAGE_WIDTH), "height": str(LANE_HEIGHT)})
+    # Reserve horizontal room for continuation markers, then scale the source
+    # shapes uniformly on X so the preview does not overlap the markers.
+    source_entries = [shape_by_id[nid][1] for nid in selected if nid in shape_by_id]
+    min_source_x = min((float(b.get("x", "0")) for b in source_entries), default=PAGE_LEFT)
+    max_source_x = max((float(b.get("x", "0")) + float(b.get("width", "0")) for b in source_entries), default=PAGE_LEFT + 1)
+    content_left = PAGE_LEFT + (130 if page_index > 0 else 10)
+    content_right = PAGE_LEFT + PAGE_WIDTH - (130 if page_index < page_count - 1 else 10)
+    source_span = max(1.0, max_source_x - min_source_x)
+    x_scale = min(1.0, max(0.1, (content_right - content_left) / source_span))
     for node_id in selected:
         source_entry = shape_by_id.get(node_id)
         if source_entry:
@@ -154,14 +163,14 @@ for page_index in range(page_count):
             width = float(original_bounds.get("width", "100"))
             y = float(original_bounds.get("y", "80"))
             height = float(original_bounds.get("height", "80"))
-            page_left = PAGE_LEFT + page_index * PAGE_WIDTH
-            x_out = PAGE_LEFT + max(10, x - page_left)
+            x_out = content_left + (x - min_source_x) * x_scale
+            width_out = width * x_scale
         else:
-            x_out = PAGE_LEFT + 10 if node_id.startswith("Continuation_From") else PAGE_LEFT + PAGE_WIDTH - 140
-            y = 100 if page_index == 0 else 280
-            width, height = 120, 80
+            x_out = PAGE_LEFT + 10 if node_id.startswith("Continuation_From") else PAGE_LEFT + PAGE_WIDTH - 130
+            y = 100 if node_id.startswith("Continuation_To") else 280
+            width_out, height = 120, 80
         shape = ET.SubElement(out_plane, SHAPE_TAG, {"id": f"{node_id}_di", "bpmnElement": node_id})
-        ET.SubElement(shape, BOUNDS_TAG, {"x": str(x_out), "y": str(y), "width": str(width), "height": str(height)})
+        ET.SubElement(shape, BOUNDS_TAG, {"x": str(round(x_out, 2)), "y": str(y), "width": str(round(width_out, 2)), "height": str(height)})
     ET.indent(definitions, space="  ")
     output_path = OUTPUT / f"pizza-page-{page_index + 1:02d}.bpmn"
     ET.ElementTree(definitions).write(output_path, encoding="utf-8", xml_declaration=True)
