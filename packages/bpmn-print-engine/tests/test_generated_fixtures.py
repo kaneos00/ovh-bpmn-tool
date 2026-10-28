@@ -58,7 +58,9 @@ class GeneratedFixtureTests(unittest.TestCase):
                 with self.subTest(file=path.name, lane_ref=ref.text):
                     self.assertIn(ref.text, ids)
             flows = {flow.get("id") for flow in process.findall("bpmn:sequenceFlow", BPMN)}
-            for edge in root.findall(".//bpmndi:BPMNEdge", DI):
+            edges = root.findall(".//bpmndi:BPMNEdge", DI)
+            self.assertEqual({edge.get("bpmnElement") for edge in edges}, flows)
+            for edge in edges:
                 with self.subTest(file=path.name, edge=edge.get("id")):
                     self.assertIn(edge.get("bpmnElement"), flows)
 
