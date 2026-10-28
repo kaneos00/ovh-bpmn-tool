@@ -42,8 +42,8 @@ type WorkspaceProjectSummary = {
 };
 type WorkspaceSummary = { userId: string; projects: WorkspaceProjectSummary[] };
 
-export const FolderOverview = ({ resource }: { resource: Resource }) => {
-  const projectId = resource.id;
+export const FolderOverview = ({ resource, projectId: projectIdProp }: { resource?: Resource; projectId?: string }) => {
+  const projectId = projectIdProp ?? resource?.id ?? '';
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [editingDescription, setEditingDescription] = useState(false);
