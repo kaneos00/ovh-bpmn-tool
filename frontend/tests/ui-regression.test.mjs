@@ -402,7 +402,7 @@ test('modeler exposes undo/redo controls and guards unsaved navigation', async (
   assert.ok(hook.includes('savedStackIndexRef'));
   assert.ok(actionBar.includes('Annuler la dernière modification'));
   assert.ok(actionBar.includes('Rétablir la dernière modification'));
-  assert.ok(container.includes('useBlocker(isDirty)'));
+  assert.ok(container.includes('useBlocker(({ nextLocation }) => isDirty && nextLocation.pathname === `/${resourceId}`)'));
   assert.ok(container.includes('beforeunload'));
   assert.ok(container.includes('Continuer l’édition'));
   assert.ok(container.includes('Abandonner les modifications'));
@@ -415,11 +415,13 @@ test('modeler action is an icon beside the process link and RACI icon stays inli
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const hook = await read('src/Containers/ContentModeler/hooks/useContentModeler.ts');
 
-  assert.ok(details.includes('title="Ouvrir dans le modeleur"'));
-  assert.ok(details.includes('aria-label="Ouvrir dans le modeleur"'));
-  assert.ok(details.includes('contentId=${encodeURIComponent(publishedContent.id)}'));
-  assert.ok(details.includes('<AccountTreeOutlined />'));
+  const versionList = await read('src/Components/BusinessComponents/ProcessContentList/ProcessContentList.tsx');
+  assert.ok(!details.includes('title="Ouvrir dans le modeleur"'));
+  assert.ok(!details.includes('AccountTreeOutlined'));
   assert.ok(details.includes('onContentViewerLinkCopy(publishedContent.id)'));
+  assert.ok(versionList.includes("label: 'Ouvrir dans le modeleur'"));
+  assert.ok(versionList.includes('<AccountTreeOutlined fontSize="small" />'));
+  assert.ok(versionList.includes('contentId=${encodeURIComponent(content.id)}'));
   assert.ok(!viewer.includes('Ouvrir dans le modeleur'));
   assert.ok(viewer.includes('flexDirection: \'row\''));
   assert.ok(viewer.includes('<GroupsOutlined fontSize="small" />'));
