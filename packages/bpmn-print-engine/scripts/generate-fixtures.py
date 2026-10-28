@@ -96,8 +96,6 @@ for page_index in range(page_count):
         nodes[marker_id] = marker
     for node_id in selected:
         node = nodes[node_id]
-        if node_id not in page_process.attrib and node.getparent if False else False:
-            pass
         # Re-create the node to avoid moving it out of the source tree.
         clone = ET.fromstring(ET.tostring(node, encoding="unicode"))
         page_process.append(clone)
@@ -118,11 +116,30 @@ for page_index in range(page_count):
             # Boundary markers follow the nearest source lane where possible.
             target_lane = lane_ids[0][0] if page_index == 0 else lane_ids[1][0]
         ET.SubElement(target_lane, REF_TAG).text = node_id
-    # Preserve sequence flows only when both endpoints are on this page.
+    # Preserve internal sequence flows and reconnect cross-page flows to the
+    # synthetic print-only continuation tasks. These markers keep each page
+    # inspectable without claiming the page BPMN is the canonical process.
     for flow in process.findall("bpmn:sequenceFlow", NS):
         source_id, target_id = flow.get("sourceRef"), flow.get("targetRef")
-        if page_for.get(source_id) == page_index and page_for.get(target_id) == page_index:
+        source_page, target_page = page_for.get(source_id), page_for.get(target_id)
+        if source_page == page_index and target_page == page_index:
             page_process.append(ET.fromstring(ET.tostring(flow, encoding="unicode")))
+        elif source_page == page_index and target_page is not None and target_page > page_index:
+            marker_id = f"Continuation_To_P{page_index + 2}"
+            if marker_id in selected:
+                ET.SubElement(page_process, FLOW_TAG, {
+                    "id": f"Flow_Continuation_Out_P{page_index + 1}_{flow.get('id')}",
+                    "sourceRef": source_id,
+                    "targetRef": marker_id,
+                })
+        elif target_page == page_index and source_page is not None and source_page < page_index:
+            marker_id = f"Continuation_From_P{page_index}"
+            if marker_id in selected:
+                ET.SubElement(page_process, FLOW_TAG, {
+                    "id": f"Flow_Continuation_In_P{page_index}_{flow.get('id')}",
+                    "sourceRef": marker_id,
+                    "targetRef": target_id,
+                })
     # Add a minimal DI plane with all lanes and selected node shapes.
     diagram = ET.SubElement(definitions, f"{{{NS['bpmndi']}}}BPMNDiagram", {"id": f"Diagram_Page_{page_index + 1}"})
     out_plane = ET.SubElement(diagram, f"{{{NS['bpmndi']}}}BPMNPlane", {"id": f"Plane_Page_{page_index + 1}", "bpmnElement": page_process.get("id")})
