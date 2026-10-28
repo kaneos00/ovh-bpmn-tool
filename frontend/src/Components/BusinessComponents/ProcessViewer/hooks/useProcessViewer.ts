@@ -115,17 +115,32 @@ export const useProcessViewer = (
     if (!importedRef.current) return;
 
     const canvas = viewer.get('canvas') as any;
+    const elementRegistry = viewer.get('elementRegistry') as any;
+    const selection = viewer.get('selection') as any;
     const previousId = highlightedIdRef.current;
-    if (previousId) canvas.removeMarker(previousId, 'task-selected');
+    if (previousId) {
+      canvas.removeMarker(previousId, 'task-selected');
+      const previousElement = elementRegistry.get(previousId);
+      if (previousElement) selection?.deselect?.([previousElement]);
+    }
     highlightedIdRef.current = null;
 
     const targetId = selectedIdRef.current;
-    if (!targetId) return;
+    if (!targetId) {
+      selection?.select?.([]);
+      return;
+    }
 
-    const element = (viewer.get('elementRegistry') as any).get(targetId);
-    if (!element) return;
+    const element = elementRegistry.get(targetId);
+    if (!element) {
+      selection?.select?.([]);
+      return;
+    }
 
     canvas.addMarker(targetId, 'task-selected');
+    // Also use diagram-js selection so navigation from the RACI is visible
+    // as an actual selection, not only as an application marker.
+    selection?.select?.([element]);
     highlightedIdRef.current = targetId;
   };
 
