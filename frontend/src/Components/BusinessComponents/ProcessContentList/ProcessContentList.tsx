@@ -15,6 +15,7 @@ type ProcessContentListProps = {
   onContentErase: (contentId: string) => void;
   onContentClone: (contentId: string) => void;
   onContentChecked: (contentIds: string[]) => void;
+  canManageVersions?: boolean;
 };
 
 export const ProcessContentList = ({
@@ -23,6 +24,7 @@ export const ProcessContentList = ({
   onContentErase,
   onContentClone,
   onContentChecked,
+  canManageVersions = false,
 }: ProcessContentListProps) => {
   const {
     table,
@@ -34,7 +36,9 @@ export const ProcessContentList = ({
 
   const getContentActions = (content: Content) => {
     return [
-      ...(content.status !== ContentStatusEnum.Draft
+      ...(!canManageVersions
+        ? []
+        : content.status !== ContentStatusEnum.Draft
         ? [
             {
               id: `clone_${content.id}`,
