@@ -1,0 +1,13 @@
+{
+  "name": "@khi-flows/bpmn-print-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Independent, format-neutral BPMN print planning and rendering engine",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  }
+}
