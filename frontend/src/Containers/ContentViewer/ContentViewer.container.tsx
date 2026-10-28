@@ -95,7 +95,6 @@ const ProcessContentViewer = () => {
   const associatedProject = workspace?.projects.find(project =>
     project.processes.some(process => process.resourceId === resourceId),
   );
-  const canOpenModeler = associatedProject?.role === 'admin' || associatedProject?.role === 'modeler';
 
   const { data: contents = [] } = useQuery(contentsQuery(resourceId));
   const { data: xmlContent } = useQuery(
