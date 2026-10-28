@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useSnackbar } from '../../../shared/hooks/useSnackbar';
 import {
@@ -175,14 +175,14 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
     };
   }, [bpmnModelerInstance, content, getModelerProviders, propertiesPanel, showAlert]);
 
-  const undo = () => (bpmnModelerInstance.get('commandStack') as any)?.undo?.();
-  const redo = () => (bpmnModelerInstance.get('commandStack') as any)?.redo?.();
-  const markSaved = () => {
+  const undo = useCallback(() => (bpmnModelerInstance.get('commandStack') as any)?.undo?.(), [bpmnModelerInstance]);
+  const redo = useCallback(() => (bpmnModelerInstance.get('commandStack') as any)?.redo?.(), [bpmnModelerInstance]);
+  const markSaved = useCallback(() => {
     const commandStack = bpmnModelerInstance.get('commandStack') as any;
     savedStackIndexRef.current = Number(commandStack?._stackIdx ?? 0);
     setIsDirty(false);
     setCanUndo(Boolean(commandStack?.canUndo?.()));
     setCanRedo(Boolean(commandStack?.canRedo?.()));
-  };
+  }, [bpmnModelerInstance]);
   return { diagramContainerRef, diagramPropertiesRef, hasLintError, isDirty, canUndo, canRedo, undo, redo, markSaved };
 };
