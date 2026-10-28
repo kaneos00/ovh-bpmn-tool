@@ -166,9 +166,9 @@ for page_index in range(page_count):
             x_out = content_left + (x - min_source_x) * x_scale
             width_out = width * x_scale
         else:
-            x_out = PAGE_LEFT + 10 if node_id.startswith("Continuation_From") else PAGE_LEFT + PAGE_WIDTH - 130
+            x_out = PAGE_LEFT + 10 if node_id.startswith("Continuation_From") else PAGE_LEFT + PAGE_WIDTH - 110
             y = 100 if node_id.startswith("Continuation_To") else 280
-            width_out, height = 120, 80
+            width_out, height = 100, 80
         shape = ET.SubElement(out_plane, SHAPE_TAG, {"id": f"{node_id}_di", "bpmnElement": node_id})
         ET.SubElement(shape, BOUNDS_TAG, {"x": str(round(x_out, 2)), "y": str(y), "width": str(round(width_out, 2)), "height": str(height)})
     ET.indent(definitions, space="  ")
