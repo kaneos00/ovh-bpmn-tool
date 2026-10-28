@@ -37,6 +37,7 @@ import { DropZone } from '../../../Components/GenericComponents/DropZone/DropZon
 import { ContentStatusEnum } from '../../../Types';
 
 import '../../../raci.css';
+import { DataInventory } from './DataInventory';
 import './ProcessDetails.scss';
 
 type ProcessDetailsProps = {
@@ -547,6 +548,7 @@ export const ProcessDetails = ({
           <Tab value={1}>Description</Tab>
           <Tab value={2}>Historique des versions</Tab>
           <Tab value={3}>RACI</Tab>
+          <Tab value={4}>Inventaire des données</Tab>
         </TabList>
 
 
@@ -813,6 +815,21 @@ export const ProcessDetails = ({
               <span>⚪ Manquant</span>
               <span>Lecture seule dans le Viewer</span>
             </Box>
+          </Sheet>
+        </TabPanel>
+
+        <TabPanel value={4} className="processViewerTabPanel">
+          <Sheet className="processViewerInfo" variant="outlined" sx={{ height: '100%', overflow: 'auto' }}>
+            <DataInventory
+              xmlContent={xmlContent}
+              canEdit={canEditDescription}
+              onSave={async updatedXml => {
+                if (!publishedContent) throw new Error('Aucune version publiée à mettre à jour.');
+                await saveContent(resourceId, publishedContent.id, { content: updatedXml });
+                await queryClient.invalidateQueries(xmlContentQuery.queryKey);
+                showAlert({ message: 'Inventaire des données enregistré.', severity: 'success' });
+              }}
+            />
           </Sheet>
         </TabPanel>
       </Tabs>
