@@ -236,7 +236,7 @@ test('deployed frontend exposes a build identifier with a source-derived fallbac
   assert.ok(compose.includes('VITE_BUILD_BRANCH: ${VITE_BUILD_BRANCH:-${SOURCE_BRANCH:-unknown}}'));
 });
 
-test('viewer context menu is styled, avoids duplicate favorites action and gates modeler editing by role', async () => {
+test('V3 viewer context menu keeps navigation and modeler access without management actions', async () => {
   const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
   const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
   const menuStart = tree.indexOf('<Menu\n      open={Boolean(contextMenu)}');
@@ -253,15 +253,13 @@ test('viewer context menu is styled, avoids duplicate favorites action and gates
   assert.ok(tree.includes('isBpmn && canModifyBpmn'));
   assert.ok(tree.includes('navigate(`/${resourceId}/modeler`)'));
   assert.ok(tree.includes('Modifier dans le modeleur'));
-  assert.ok(tree.includes('Partager'));
-  assert.ok(tree.includes("const isAdmin = sessionRole === 'admin'"));
-  assert.ok(tree.includes('isFolder && isAdmin'));
-  assert.ok(tree.includes('navigate(`/${resourceId}/add?type=folder`)'));
-  assert.ok(tree.includes('Créer un répertoire'));
-  assert.ok(tree.includes('navigate(`/${resourceId}/add?type=process`)'));
-  assert.ok(tree.includes('Créer un processus'));
-  assert.ok(tree.includes('{isAdmin && ('));
-  assert.ok(tree.includes('Supprimer'));
+  assert.ok(!tree.includes('Partager'));
+  assert.ok(!tree.includes("const isAdmin = sessionRole === 'admin'"));
+  assert.ok(!tree.includes('navigate(`/${resourceId}/add?type=folder`)'));
+  assert.ok(!tree.includes('Créer un répertoire'));
+  assert.ok(!tree.includes('navigate(`/${resourceId}/add?type=process`)'));
+  assert.ok(!tree.includes('Créer un processus'));
+  assert.ok(!tree.includes('Supprimer'));
   assert.ok(viewer.includes('KHI Flows'));
   assert.ok(viewer.includes('Version de build'));
 });
@@ -316,7 +314,7 @@ test('V3 explorer does not expose resource-management actions or deletion routes
   assert.ok(processActions.includes('Ouvrir le modeleur BPMN'));
   assert.ok(!processActions.includes('Comments'));
   assert.ok(!processActions.includes('Edit Business Process'));
-  assert.ok(folderActions.includes('return null'));
+  assert.ok(folderActions.includes('=> null'));
 });
 
 
