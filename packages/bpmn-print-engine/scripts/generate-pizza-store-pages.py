@@ -32,7 +32,7 @@ PAGE_COUNT = 2
 # The split is placed between the vendor's "Ask for the pizza" task (x=680)
 # and the "pizza received" event (x=869.5), leaving both shapes whole.
 # Pools/lanes are clipped to each window and therefore have matching widths.
-X_BOUNDS = (40.0, 706.5, 1373.0)
+X_BOUNDS = (40.0, 660.0, 1373.0)
 Y_MIN, Y_MAX = 120.0, 970.0
 PAGE_W, PAGE_H = 595.0, 842.0
 MARGIN = 40.0
@@ -96,13 +96,16 @@ def main():
     for stale in OUTPUT.glob("pizza-store-page-*.bpmn"):
         stale.unlink()
 
+    # Use one common scale on both pages. The narrower first window may leave
+    # some whitespace at the right, but shapes and text keep the same scale.
+    max_window_width = max(right - left for left, right in zip(X_BOUNDS, X_BOUNDS[1:]))
+    scale = min(CONTENT_W / max_window_width, CONTENT_H / (Y_MAX - Y_MIN))
+    offset_x = MARGIN
+    offset_y = MARGIN + (CONTENT_H - (Y_MAX - Y_MIN) * scale) / 2
+
     for page_index in range(PAGE_COUNT):
         left, right = X_BOUNDS[page_index:page_index + 2]
         width, height = right - left, Y_MAX - Y_MIN
-        scale = min(CONTENT_W / width, CONTENT_H / height)
-        rendered_w, rendered_h = width * scale, height * scale
-        offset_x = MARGIN + (CONTENT_W - rendered_w) / 2
-        offset_y = MARGIN + (CONTENT_H - rendered_h) / 2
 
         root = deepcopy(source_root)
         plane = root.find(".//bpmndi:BPMNPlane", NS)
@@ -126,8 +129,11 @@ def main():
                     if x1 <= x0:
                         plane.remove(child)
                         continue
-                    bounds.set("x", f"{offset_x + (x0 - left) * scale:.3f}")
-                    bounds.set("width", f"{(x1 - x0) * scale:.3f}")
+                    # Each page shows the same full-width pool/lane frame.
+                    # Content is clipped by the page window, while lane widths
+                    # remain identical on every page as requested.
+                    bounds.set("x", f"{offset_x:.3f}")
+                    bounds.set("width", f"{CONTENT_W:.3f}")
                 else:
                     center = x + w / 2
                     if not (left <= center < right or
