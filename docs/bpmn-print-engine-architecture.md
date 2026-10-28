@@ -117,7 +117,27 @@ Les sous-dossiers seront ajoutés au rythme de l'implémentation. Le squelette a
 - Versionner le contrat public et documenter les changements incompatibles.
 - Ne pas déplacer prématurément le code historique en masse : comparer son comportement et ses tests avant d'extraire ou remplacer une fonction.
 
-## 6. Tests et validation séquentielle
+## 6. Fixtures consultables et validation automatisée
+
+- BPMN source de démonstration : [pizza-process.bpmn](../packages/bpmn-print-engine/tests/fixtures/pizza-process.bpmn).
+- Pages BPMN générées et consultables :
+  - [Page 1](../packages/bpmn-print-engine/tests/fixtures/generated/pizza-page-01.bpmn)
+  - [Page 2](../packages/bpmn-print-engine/tests/fixtures/generated/pizza-page-02.bpmn)
+  - [Page 3](../packages/bpmn-print-engine/tests/fixtures/generated/pizza-page-03.bpmn)
+- Générateur de fixtures : [generate-fixtures.py](../packages/bpmn-print-engine/scripts/generate-fixtures.py).
+- Tests structurels : [test_generated_fixtures.py](../packages/bpmn-print-engine/tests/test_generated_fixtures.py).
+- Workflow CI dédié : [bpmn-print-engine-fixtures.yml](../.github/workflows/bpmn-print-engine-fixtures.yml).
+
+Depuis la racine du dépôt, régénérer et vérifier les exemples avec :
+
+```bash
+python3 packages/bpmn-print-engine/scripts/generate-fixtures.py
+python3 -m unittest discover -s packages/bpmn-print-engine/tests -p 'test_*.py' -v
+```
+
+Le générateur est volontairement un outil de fixture de test, et non le partitionneur de production. Les fichiers de sortie sont des vues de revue visuelle : les marqueurs « Suite page N » rendent les coupures visibles, et le BPMN source reste intact. Les pages ne doivent pas être utilisées comme processus métier autonomes.
+
+## 7. Tests et validation séquentielle
 
 1. **Planification** : tests purs pour A4 portrait/paysage, diagramme court, large, haut, marges, limites, valeurs invalides, ordre des pages.
 2. **Partitionnement** : tests de conservation des identifiants, éléments non tronqués, lanes, flux entrants/sortants, raccordements et éléments impossibles à partitionner.
@@ -127,7 +147,7 @@ Les sous-dossiers seront ajoutés au rythme de l'implémentation. Le squelette a
 
 Chaque étape doit pouvoir être validée et livrée indépendamment. Les tests d'intégration vérifient l'enchaînement, mais ne remplacent pas les tests unitaires des modules.
 
-## 7. Stratégie de branche et de migration
+## 8. Stratégie de branche et de migration
 
 - Base de conception : `v2.3`, commit de base confirmé par la PR #98 : `eb6995d3dc64c7e9a9c801dc80d921e5c1a96387`.
 - Branche isolée : `feat/bpmn-print-engine-architecture`.
@@ -136,7 +156,7 @@ Chaque étape doit pouvoir être validée et livrée indépendamment. Les tests 
 - L'adaptateur est le seul endroit qui connaît les API de KHI Flows.
 - Pour V2.4/V2.5+, vérifier le contrat public et lancer les tests du package avant les tests d'intégration. Un changement d'UI ne doit pas imposer de modifier le cœur du moteur.
 
-## 8. Hors périmètre du socle initial
+## 9. Hors périmètre du socle initial
 
 - Re-layout automatique des tâches pour remplir chaque page.
 - Réécriture du BPMN source.
@@ -144,7 +164,7 @@ Chaque étape doit pouvoir être validée et livrée indépendamment. Les tests 
 - Aperçu UI et modifications du menu d'export.
 - Garantie de conversion PNG/PDF sans dépendance d'environnement avant sélection des bibliothèques.
 
-## 9. Ordre de réalisation
+## 10. Ordre de réalisation
 
 1. #100 — contrat et socle.
 2. #101 — calcul du plan de pages.
