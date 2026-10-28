@@ -144,16 +144,18 @@ def main():
                 source_element = next((e for e in source_root.iter()
                                        if e.get("id") == element_id), None)
                 kind = local(source_element.tag) if source_element is not None else ""
-                if kind in {"participant", "lane"}:
-                    x0, x1 = max(x, left), min(x + w, right)
-                    if x1 <= x0:
-                        plane.remove(child)
-                        continue
-                    # Each page shows the same full-width pool/lane frame.
-                    # Content is clipped by the page window, while lane widths
-                    # remain identical on every page as requested.
+                if kind == "participant":
+                    # Each page is a view of the same pool. Keep the participant
+                    # frame full-width, independent of the horizontal source slice.
                     bounds.set("x", f"{offset_x:.3f}")
                     bounds.set("width", f"{CONTENT_W:.3f}")
+                elif kind == "lane":
+                    # A lane is nested inside its participant, not a fourth lane
+                    # on top of the pool. Preserve the source 30-unit lane-header
+                    # inset on every page and keep the right edge aligned to pool.
+                    participant_inset = 30.0 * scale
+                    bounds.set("x", f"{offset_x + participant_inset:.3f}")
+                    bounds.set("width", f"{CONTENT_W - participant_inset:.3f}")
                 else:
                     center = x + w / 2
                     if not (left <= center < right or
