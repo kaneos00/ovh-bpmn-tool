@@ -24,6 +24,7 @@ export const Component = () => {
   const navigate = useNavigate();
   const pendingSaveExitRef = useRef(false);
   const pendingPublishExitRef = useRef(false);
+  const handledActionDataRef = useRef<typeof actionData>(undefined);
   const { resource } = useResource(routeResourceId);
   const [raciView, setRaciView] = useState<'matrix' | 'actors' | null>(null);
 
@@ -57,7 +58,13 @@ export const Component = () => {
   const blocker = useBlocker(isDirty);
 
   useEffect(() => {
-    if (!actionData || actionData.error) return;
+    if (!actionData || handledActionDataRef.current === actionData) return;
+    handledActionDataRef.current = actionData;
+    if (actionData.error) {
+      pendingSaveExitRef.current = false;
+      pendingPublishExitRef.current = false;
+      return;
+    }
     if (actionData.formAction === 'saveContent' || actionData.formAction === 'saveContentBeforePublish') {
       markSaved();
       if (pendingSaveExitRef.current && blocker.state === 'blocked') {
@@ -115,12 +122,12 @@ export const Component = () => {
         onCancelClick={() => setIsShortcurtModalOpen(false)}
       />
       <Outlet />
-      <Modal open={blocker.state === 'blocked'} onClose={() => blocker.reset()}>
+      <Modal open={blocker.state === 'blocked'} onClose={() => { pendingSaveExitRef.current = false; pendingPublishExitRef.current = false; blocker.reset(); }}>
         <ModalDialog>
           <DialogTitle>Modifications non enregistrées</DialogTitle>
           <DialogContent>Le diagramme a été modifié depuis le dernier enregistrement. Que souhaitez-vous faire avant de quitter le modeleur ?</DialogContent>
           <DialogActions>
-            <Button variant="plain" color="neutral" onClick={() => blocker.reset()}>Continuer l’édition</Button>
+            <Button variant="plain" color="neutral" onClick={() => { pendingSaveExitRef.current = false; pendingPublishExitRef.current = false; blocker.reset(); }}>Continuer l’édition</Button>
             <Button variant="outlined" color="danger" onClick={() => { markSaved(); blocker.proceed(); }}>Abandonner les modifications</Button>
             <Button variant="outlined" color="neutral" onClick={() => { pendingSaveExitRef.current = true; onDiagramSave(); }}>Enregistrer sans publier</Button>
             <Button variant="solid" color="success" onClick={() => { pendingPublishExitRef.current = true; onDiagramPublish(); }}>Enregistrer et publier</Button>
