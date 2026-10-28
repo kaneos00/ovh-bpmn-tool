@@ -8,8 +8,6 @@ import { ProcessDetails } from '../../Components/BusinessComponents/ProcessDetai
 import { useBpmnLayout } from './hooks/useBpmnLayout';
 import { useBpmnLayoutBreadcrumbs } from './hooks/useBpmnLayoutBreadcrumbs';
 import { Header } from '../../Components/GenericComponents/Header/Header';
-import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
-import { ImpersonationBanner } from '../../Components/GenericComponents/ImpersonationBanner/ImpersonationBanner';
 import { FolderTree } from '../../Components/BusinessComponents/FolderTree';
 import { FolderOverview } from './FolderOverview';
 import {
@@ -96,8 +94,6 @@ export const Component = () => {
           <Await resolve={resource}>
             {resource && (
               <>
-                <ImpersonationBanner />
-                <WorkspaceNavigation />
                 <Header
                   title={resource.name}
                   description={resource.description}
@@ -105,7 +101,6 @@ export const Component = () => {
                   actions={
                     <Stack direction="row" spacing={1} alignItems="center">
                       {actions}
-
                     </Stack>
                   }
                 />
