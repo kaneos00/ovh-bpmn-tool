@@ -18,6 +18,7 @@ import {
   Close,
   FolderOutlined,
   GroupsOutlined,
+  AccountTreeOutlined,
   Menu as MenuIcon,
 } from '@mui/icons-material';
 import { useQuery } from 'react-query';
@@ -334,11 +335,8 @@ const ProcessContentViewer = () => {
         <Tabs value={infoTab} onChange={(_, value) => setInfoTab(value as 0 | 1)} className="viewerTabs">
           <TabList sticky="top" variant="plain">
             <Tab value={0}>Historique des versions</Tab>
-            <Tab value={1}>
-              <Stack direction="row" spacing={0.75} alignItems="center">
-                <GroupsOutlined fontSize="small" />
-                <span>RACI ({raciMatrix.activities.length})</span>
-              </Stack>
+            <Tab value={1} startDecorator={<GroupsOutlined fontSize="small" />} sx={{ flexDirection: 'row', gap: 0.75, alignItems: 'center' }}>
+              RACI ({raciMatrix.activities.length})
             </Tab>
           </TabList>
 
@@ -358,6 +356,9 @@ const ProcessContentViewer = () => {
                     Modifiée le {formatDateTime(content.updatedAt)} par{' '}
                     {content.updatedBy}
                   </Typography>
+                  <Button size="sm" variant="outlined" color="neutral" startDecorator={<AccountTreeOutlined fontSize="small" />} onClick={() => navigate(`/${resourceId}/modeler?contentId=${encodeURIComponent(content.id)}`)}>
+                    Ouvrir dans le modeleur
+                  </Button>
                 </Sheet>
               ))}
             </Stack>
