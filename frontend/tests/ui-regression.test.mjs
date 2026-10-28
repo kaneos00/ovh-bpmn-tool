@@ -428,3 +428,16 @@ test('modeler action is an icon beside the process link and RACI icon stays inli
   assert.ok(hook.includes("searchParams.get('contentId')"));
   assert.ok(hook.includes('contents?.find(content => content.id === requestedContentId)'));
 });
+
+
+test('V3 process details exposes a central editable description tab only to authorized roles', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.match(details, /<Tab value=\{1\}>Description<\/Tab>/);
+  assert.match(details, /<TabPanel value=\{1\} className="processViewerTabPanel">[\s\S]*?Description du processus[\s\S]*?processDescriptionDraft/s);
+  assert.match(details, /const canEditDescription = sessionRole === 'admin' \|\| sessionRole === 'modeler';/);
+  assert.match(details, /await updateResource\(resourceId,\s*\{[\s\S]*?description: processDescriptionDraft/s);
+  assert.match(details, /queryClient\.invalidateQueries\(getResourceQuery\(resourceId\)\.queryKey\)/);
+  assert.match(details, /<Tab value=\{2\}>Historique des versions<\/Tab>/);
+  assert.match(details, /<Tab value=\{3\}>RACI<\/Tab>/);
+});
