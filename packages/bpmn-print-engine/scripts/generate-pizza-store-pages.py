@@ -47,6 +47,26 @@ def attr_float(element, name):
     return float(element.get(name, "0"))
 
 
+def transform_label(di_child, left, right, scale, offset_x, offset_y):
+    """Move a BPMN label with the same page transform as its owning DI item."""
+    label = di_child.find("bpmndi:BPMNLabel", NS)
+    if label is None:
+        return
+    bounds = label.find("dc:Bounds", NS)
+    if bounds is None:
+        return
+    x, y = attr_float(bounds, "x"), attr_float(bounds, "y")
+    w, h = attr_float(bounds, "width"), attr_float(bounds, "height")
+    center = x + w / 2
+    if center < left or center > right:
+        di_child.remove(label)
+        return
+    bounds.set("x", f"{offset_x + (x - left) * scale:.3f}")
+    bounds.set("y", f"{offset_y + (y - Y_MIN) * scale:.3f}")
+    bounds.set("width", f"{w * scale:.3f}")
+    bounds.set("height", f"{h * scale:.3f}")
+
+
 def clip_polyline(points, left, right):
     """Clip an orthogonal/non-orthogonal polyline to a vertical page window."""
     if len(points) < 2:
@@ -144,6 +164,7 @@ def main():
                     bounds.set("width", f"{w * scale:.3f}")
                 bounds.set("y", f"{offset_y + (y - Y_MIN) * scale:.3f}")
                 bounds.set("height", f"{h * scale:.3f}")
+                transform_label(child, left, right, scale, offset_x, offset_y)
             elif tag == "BPMNEdge":
                 points = []
                 for waypoint in child.findall("di:waypoint", NS):
@@ -159,6 +180,7 @@ def main():
                         "x": f"{offset_x + (x - left) * scale:.3f}",
                         "y": f"{offset_y + (y - Y_MIN) * scale:.3f}",
                     })
+                transform_label(child, left, right, scale, offset_x, offset_y)
             else:
                 plane.remove(child)
 
