@@ -10,20 +10,19 @@ async function requireSession({ request }: { request: Request }) {
       credentials: 'same-origin',
       headers: { accept: 'application/json' },
     });
-    if (response.ok) {
-      const session = await response.json().catch(() => null) as { role?: string } | null;
-      const isOrganizationPath = requestedUrl.pathname.startsWith('/organization');
-      const isProjectsPath = requestedUrl.pathname.startsWith('/projects') || requestedUrl.pathname === '/workspace';
-      if (isOrganizationPath && session?.role !== 'admin') throw redirect('/root');
-      if (isProjectsPath && session?.role === 'viewer') throw redirect('/root');
-      return null;
-    }
+    if (response.ok) return null;
   } catch {
-    // An unavailable session endpoint must fail closed, not expose app routes.
+    // Fail closed when the session endpoint is unavailable.
   }
   throw redirect(`/login?next=${encodeURIComponent(requestedPath)}`);
 }
 
+/**
+ * V3 initial shell: authentication, process/folder viewer and BPMN modeler.
+ * Application management, organization administration, project management,
+ * comparisons and resource CRUD routes are intentionally not exposed here.
+ * Their backend APIs and implementation remain untouched for later phases.
+ */
 export const routes = [
   {
     loader: requireSession,
@@ -33,108 +32,16 @@ export const routes = [
         loader: () => redirect('/root'),
       },
       {
-        path: '/organization',
-        loader: () => redirect('/organization/overview'),
-      },
-      {
-        path: '/organization/overview',
-        lazy: () => import('./Containers/OrganizationAdmin'),
-      },
-      {
-        path: '/organization/governance',
-        lazy: () => import('./Containers/OrganizationAdmin'),
-      },
-      {
-        path: '/organization/settings',
-        lazy: () => import('./Containers/OrganizationAdmin'),
-      },
-      {
-        path: '/organization/users',
-        lazy: () => import('./Containers/OrganizationAdmin'),
-      },
-      {
-        path: '/organization/accounts',
-        lazy: () => import('./Containers/UserAccounts'),
-      },
-      {
-        path: '/organization/projects',
-        lazy: () => import('./Containers/OrganizationAdmin'),
-      },
-      {
-        path: '/organization/processes',
-        lazy: () => import('./Containers/OrganizationAdmin'),
-      },
-      {
-        path: '/workspace',
-        lazy: () => import('./Containers/MyWorkspace'),
-      },
-      {
-        path: '/reference/tree',
-        lazy: () => import('./Containers/ReferenceTree'),
-      },
-      {
-        path: '/projects',
-        lazy: () => import('./Containers/Projects'),
-      },
-      {
-        path: '/projects/:projectId/viewer',
-        lazy: () => import('./Containers/ContentViewer'),
-      },
-      {
-        path: '/projects/:projectId',
-        lazy: () => import('./Containers/Projects'),
-      },
-      {
-        path: '/compare-resources/:leftResourceId/:leftContentId/:rightResourceId/:rightContentId',
-        lazy: () => import('./Containers/ContentCompare'),
-      },
-      {
         path: '/:resourceId',
         lazy: () => import('./Containers/BpmnLayout'),
-        children: [
-          {
-            path: '/:resourceId/add',
-            lazy: () => import('./Containers/AddResource'),
-          },
-          {
-            path: '/:resourceId/edit',
-            lazy: () => import('./Containers/EditResource'),
-          },
-          {
-            path: '/:resourceId/share',
-            lazy: () => import('./Containers/ShareResource'),
-          },
-          {
-            path: '/:resourceId/delete',
-            lazy: () => import('./Containers/DeleteResource'),
-          },
-          {
-            path: '/:resourceId/comments',
-            lazy: () => import('./Containers/Comments'),
-          },
-          {
-            path: '/:resourceId/publish',
-            lazy: () => import('./Containers/PublishResource'),
-          },
-        ],
       },
       {
         path: '/:resourceId/modeler',
         lazy: () => import('./Containers/ContentModeler'),
-        children: [
-          {
-            path: '/:resourceId/modeler/publish',
-            lazy: () => import('./Containers/PublishResource'),
-          },
-        ],
       },
       {
         path: '/:resourceId/viewer/:contentId',
         lazy: () => import('./Containers/ContentViewer'),
-      },
-      {
-        path: '/:resourceId/compare/:leftContentId/:rightContentId',
-        lazy: () => import('./Containers/ContentCompare'),
       },
     ],
   },

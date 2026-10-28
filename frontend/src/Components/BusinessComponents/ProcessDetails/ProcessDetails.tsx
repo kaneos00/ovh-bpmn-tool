@@ -32,6 +32,7 @@ import {
 import { analyzeRaciMatrix, type RaciCode } from '../../../extensions/raci-engine';
 import { ConditionalRender } from '../../../Components/GenericComponents/ConditionalRender/ConditionalRender';
 import { DropZone } from '../../../Components/GenericComponents/DropZone/DropZone';
+import { ContentStatusEnum } from '../../../Types';
 
 import './ProcessDetails.scss';
 
@@ -45,6 +46,7 @@ type ProcessDetailsProps = {
   onCompareClick: (leftContentId: string, rightContentId: string) => void;
   selectedElementId?: string | null;
   onElementSelect?: (elementId: string) => void;
+  readOnlyShell?: boolean;
 };
 
 const getElementTypeDescription = (type: string): string => {
@@ -102,6 +104,7 @@ export const ProcessDetails = ({
   onCompareClick,
   selectedElementId,
   onElementSelect,
+  readOnlyShell = false,
 }: ProcessDetailsProps) => {
   const {
     contents,
@@ -132,7 +135,7 @@ export const ProcessDetails = ({
   const [urlDraft, setUrlDraft] = useState('');
   const [raciDraft, setRaciDraft] = useState<Record<string, RaciCode[]>>({});
   const [isSavingDescription, setIsSavingDescription] = useState(false);
-  const canEditDescription = sessionRole === 'admin' || sessionRole === 'modeler';
+  const canEditDescription = !readOnlyShell && (sessionRole === 'admin' || sessionRole === 'modeler');
 
   useEffect(() => {
     let mounted = true;
@@ -526,9 +529,11 @@ export const ProcessDetails = ({
             ) : (
               <Stack spacing={2} padding={2}>
                 <Typography level="title-md">No published version</Typography>
-                <ConditionalRender condition={Boolean(!contents.length)}>
-                  <DropZone onFileUploaded={onFilesUploaded} />
-                </ConditionalRender>
+                {!readOnlyShell && (
+                  <ConditionalRender condition={Boolean(!contents.length)}>
+                    <DropZone onFileUploaded={onFilesUploaded} />
+                  </ConditionalRender>
+                )}
               </Stack>
             )}
           </Sheet>
@@ -788,40 +793,62 @@ export const ProcessDetails = ({
               <Typography level="title-lg">Historique des versions</Typography>
               {publishedContent && (
                 <Typography level="body-sm">
-                  Last published version: v{publishedContent.version ?? 'N/A'} —{' '}
+                  Dernière version publiée : v{publishedContent.version ?? 'N/A'} —{' '}
                   {publishedContent.updatedBy}
                 </Typography>
               )}
             </Stack>
             <Divider />
             <Stack spacing={1} padding={1}>
-              <ConditionalRender condition={Boolean(draftContent) || Boolean(publishedContent)}>
-                <Stack direction="row" justifyContent="flex-end">
-                  <IconButton
-                    title="Compare"
-                    variant="plain"
-                    color="neutral"
-                    size="sm"
-                    disabled={isCompareDisabled}
-                    onClick={() =>
-                      onCompareClick(contentIdsToCompare[0], contentIdsToCompare[1])
-                    }
-                  >
-                    <Compare />
-                  </IconButton>
-                </Stack>
-                <ProcessContentList
-                  contents={contents}
-                  onContentChecked={onContentChecked}
-                  onContentPublish={onContentPublish}
-                  onContentErase={onContentErase}
-                  onContentClone={onContentClone}
-                />
-              </ConditionalRender>
-
-              <ConditionalRender condition={Boolean(!contents.length)}>
-                <DropZone onFileUploaded={onFilesUploaded} />
-              </ConditionalRender>
+              {readOnlyShell ? (
+                <>
+                  {contents.map(content => (
+                    <Sheet key={content.id} variant="soft" sx={{ p: 1.5, borderRadius: 'sm' }}>
+                      <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                        <Typography level="title-sm">Version v{content.version ?? 'N/A'}</Typography>
+                        <Chip size="sm" variant="soft">
+                          {content.status === ContentStatusEnum.Published ? 'Publiée' : 'Brouillon'}
+                        </Chip>
+                      </Stack>
+                      <Typography level="body-sm" textColor="neutral">
+                        {content.updatedBy ? `Modifiée par : ${content.updatedBy}` : 'Auteur non renseigné'}
+                      </Typography>
+                    </Sheet>
+                  ))}
+                  {!contents.length && (
+                    <Typography level="body-sm" textColor="neutral">Aucune version disponible.</Typography>
+                  )}
+                </>
+              ) : (
+                <>
+                  <ConditionalRender condition={Boolean(draftContent) || Boolean(publishedContent)}>
+                    <Stack direction="row" justifyContent="flex-end">
+                      <IconButton
+                        title="Comparer les versions"
+                        variant="plain"
+                        color="neutral"
+                        size="sm"
+                        disabled={isCompareDisabled}
+                        onClick={() =>
+                          onCompareClick(contentIdsToCompare[0], contentIdsToCompare[1])
+                        }
+                      >
+                        <Compare />
+                      </IconButton>
+                    </Stack>
+                    <ProcessContentList
+                      contents={contents}
+                      onContentChecked={onContentChecked}
+                      onContentPublish={onContentPublish}
+                      onContentErase={onContentErase}
+                      onContentClone={onContentClone}
+                    />
+                  </ConditionalRender>
+                  <ConditionalRender condition={Boolean(!contents.length)}>
+                    <DropZone onFileUploaded={onFilesUploaded} />
+                  </ConditionalRender>
+                </>
+              )}
             </Stack>
           </Sheet>
         </TabPanel>

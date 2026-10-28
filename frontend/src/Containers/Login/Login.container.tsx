@@ -20,6 +20,34 @@ import {
 // that a successful IdP login grants application roles; the backend maps trusted claims.
 const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
 
+function getSafeV3Destination(requestedPath: string | null): string {
+  if (!requestedPath) return '/root';
+
+  let destination: URL;
+  try {
+    destination = new URL(requestedPath, window.location.origin);
+  } catch {
+    return '/root';
+  }
+
+  // Never follow external, protocol-relative, login-loop, or legacy destinations.
+  if (
+    destination.origin !== window.location.origin ||
+    destination.pathname.startsWith('/login')
+  ) {
+    return '/root';
+  }
+
+  const path = destination.pathname;
+  const validV3Path =
+    path === '/root' ||
+    /^\/[^/]+$/.test(path) ||
+    /^\/[^/]+\/modeler$/.test(path) ||
+    /^\/[^/]+\/viewer\/[^/]+$/.test(path);
+
+  return validV3Path ? `${path}${destination.search}${destination.hash}` : '/root';
+}
+
 export const Component = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -48,14 +76,7 @@ export const Component = () => {
         );
         return;
       }
-      const requestedPath = searchParams.get('next') || '/root';
-      const safePath =
-        requestedPath.startsWith('/') &&
-        !requestedPath.startsWith('//') &&
-        !requestedPath.startsWith('/login')
-          ? requestedPath
-          : '/root';
-      navigate(safePath, { replace: true });
+      navigate(getSafeV3Destination(searchParams.get('next')), { replace: true });
     } catch {
       setError('Le service de connexion est momentanément indisponible.');
     } finally {
