@@ -8,7 +8,8 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "fixtures:generate": "python3 scripts/generate-fixtures.py"
   },
   "devDependencies": {
     "typescript": "^5.5.4"
