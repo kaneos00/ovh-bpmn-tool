@@ -1,0 +1,31 @@
+name: BPMN print engine fixtures
+
+on:
+  pull_request:
+    branches:
+      - v2.3
+    paths:
+      - "packages/bpmn-print-engine/**"
+      - ".github/workflows/bpmn-print-engine-fixtures.yml"
+  push:
+    branches:
+      - feat/bpmn-print-engine-architecture
+    paths:
+      - "packages/bpmn-print-engine/**"
+      - ".github/workflows/bpmn-print-engine-fixtures.yml"
+  workflow_dispatch:
+
+jobs:
+  generate-and-validate-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Generate per-page BPMN review fixtures
+        run: python3 packages/bpmn-print-engine/scripts/generate-fixtures.py
+      - name: Validate generated BPMN fixtures
+        run: python3 -m unittest discover -s packages/bpmn-print-engine/tests -p 'test_*.py' -v

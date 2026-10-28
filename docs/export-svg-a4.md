@@ -25,6 +25,10 @@ Les repères de continuation sont des annotations éditoriales dans les SVG expo
 
 Les tests unitaires couvrent le calcul du nombre de pages en portrait/paysage, les diagrammes courts, larges et multi-pages, ainsi que le rejet de dimensions invalides. Les workflows GitHub Actions couvrent aussi lint, build frontend, tests backend, régressions frontend et images de déploiement Coolify.
 
+## Évolution de l'architecture
+
+La V1 décrite ci-dessus découpe le SVG déjà rendu. La nouvelle architecture cible sépare planification, partitionnement logique BPMN et rendu des formats. Voir [l'architecture du moteur indépendant](./bpmn-print-engine-architecture.md) et les tickets liés dans [#76](https://github.com/kaneos00/ovh-bpmn-tool/issues/76). Le moteur indépendant est en cours de cadrage sur la branche `feat/bpmn-print-engine-architecture` ; ce document décrit encore la V1 existante et ne signifie pas que les nouvelles fonctions sont implémentées.
+
 ## Limites connues de la V1
 
 - Le découpage est géométrique ; il n'effectue pas encore de re-layout du processus pour réorganiser les activités entre les pages.

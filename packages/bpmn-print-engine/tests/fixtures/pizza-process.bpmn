@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_PizzaPrintTest" targetNamespace="https://example.org/khi-flows/pizza-print-test">
+  <bpmn:process id="Process_Pizza" name="Préparer et livrer une pizza" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_Pizza">
+      <bpmn:lane id="Lane_Kitchen" name="Cuisine">
+        <bpmn:flowNodeRef>StartEvent_Order</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_Prepare</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_Bake</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_Pack</bpmn:flowNodeRef><bpmn:flowNodeRef>EndEvent_Kitchen</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Delivery" name="Livraison">
+        <bpmn:flowNodeRef>Task_Assign</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_Deliver</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_Confirm</bpmn:flowNodeRef><bpmn:flowNodeRef>EndEvent_Order</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="StartEvent_Order" name="Commande reçue"/>
+    <bpmn:task id="Task_Prepare" name="Préparer la pâte et les ingrédients"/>
+    <bpmn:task id="Task_Bake" name="Cuire la pizza"/>
+    <bpmn:task id="Task_Pack" name="Emballer la commande"/>
+    <bpmn:task id="Task_Assign" name="Affecter un livreur"/>
+    <bpmn:task id="Task_Deliver" name="Livrer la commande"/>
+    <bpmn:task id="Task_Confirm" name="Confirmer la livraison"/>
+    <bpmn:endEvent id="EndEvent_Kitchen" name="Commande prête"/>
+    <bpmn:endEvent id="EndEvent_Order" name="Commande terminée"/>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_Order" targetRef="Task_Prepare"/>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_Prepare" targetRef="Task_Bake"/>
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_Bake" targetRef="Task_Pack"/>
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_Pack" targetRef="Task_Assign"/>
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_Assign" targetRef="Task_Deliver"/>
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_Deliver" targetRef="Task_Confirm"/>
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_Confirm" targetRef="EndEvent_Order"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_Pizza"><bpmndi:BPMNPlane id="Plane_Pizza" bpmnElement="Process_Pizza">
+    <bpmndi:BPMNShape id="Lane_Kitchen_di" bpmnElement="Lane_Kitchen" isHorizontal="true"><dc:Bounds x="40" y="40" width="1760" height="180"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Lane_Delivery_di" bpmnElement="Lane_Delivery" isHorizontal="true"><dc:Bounds x="40" y="220" width="1760" height="180"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="StartEvent_Order_di" bpmnElement="StartEvent_Order"><dc:Bounds x="70" y="112" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Prepare_di" bpmnElement="Task_Prepare"><dc:Bounds x="150" y="90" width="150" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Bake_di" bpmnElement="Task_Bake"><dc:Bounds x="380" y="90" width="130" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Pack_di" bpmnElement="Task_Pack"><dc:Bounds x="600" y="90" width="130" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Assign_di" bpmnElement="Task_Assign"><dc:Bounds x="830" y="270" width="150" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Deliver_di" bpmnElement="Task_Deliver"><dc:Bounds x="1080" y="270" width="140" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Task_Confirm_di" bpmnElement="Task_Confirm"><dc:Bounds x="1320" y="270" width="150" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="EndEvent_Order_di" bpmnElement="EndEvent_Order"><dc:Bounds x="1600" y="292" width="36" height="36"/></bpmndi:BPMNShape>
+  </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</bpmn:definitions>
