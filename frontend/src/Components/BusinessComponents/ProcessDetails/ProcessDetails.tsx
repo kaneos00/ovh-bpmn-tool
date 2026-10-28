@@ -34,6 +34,7 @@ import { ConditionalRender } from '../../../Components/GenericComponents/Conditi
 import { DropZone } from '../../../Components/GenericComponents/DropZone/DropZone';
 import { ContentStatusEnum } from '../../../Types';
 
+import '../../../raci.css';
 import './ProcessDetails.scss';
 
 type ProcessDetailsProps = {
@@ -611,111 +612,68 @@ export const ProcessDetails = ({
         </TabPanel>
 
         <TabPanel value={2} className="processViewerTabPanel">
-          <Sheet className="processViewerInfo" variant="outlined">
-            <Stack spacing={1.5} className="processViewerInfoHeader">
-              <Typography level="title-lg">
-                Matrice RACI · {raciMatrix.activities.length} activités
-              </Typography>
-            </Stack>
-            <Divider />
-
-            {raciMatrix.activities.length ? (
-              <Box sx={{ overflowX: 'auto', maxWidth: '100%' }}>
-                <table
-                  className="processRaciTable"
-                  aria-label="Matrice RACI en lecture seule"
-                  style={{
-                    width: '100%',
-                    borderCollapse: 'collapse',
-                    fontSize: 12,
-                  }}
-                >
+          <Sheet className="processViewerInfo processViewerRaci" variant="outlined">
+            <Box className="raci-header">
+              <Box>
+                <Typography level="title-lg">Matrice RACI</Typography>
+                <Box className="raci-legend" sx={{ mt: 1, flexWrap: 'wrap' }}>
+                  <span><b className="raci-code-badge raci-code-R">R</b> Responsable</span>
+                  <span><b className="raci-code-badge raci-code-A">A</b> Acteur</span>
+                  <span><b className="raci-code-badge raci-code-C">C</b> Consulté</span>
+                  <span><b className="raci-code-badge raci-code-I">I</b> Informé</span>
+                </Box>
+              </Box>
+            </Box>
+            <Box className="raci-table-wrapper processViewerRaciTableWrapper">
+              {raciMatrix.activities.length ? (
+                <table className="raci-table" aria-label="Matrice RACI en lecture seule">
                   <thead>
                     <tr>
-                      <th style={{ textAlign: 'left', padding: 8 }}>Activité</th>
-                      {raciMatrix.roles.map(role => (
-                        <th key={role} style={{ padding: 8, minWidth: 100 }}>
-                          {role}
-                        </th>
-                      ))}
+                      <th>Activité</th>
+                      {raciMatrix.roles.map(role => <th key={role}>{role}</th>)}
                     </tr>
                   </thead>
                   <tbody>
-                    {raciMatrix.activities.map(activity => {
-
-                      return (
-                        <tr key={activity.elementId}>
-                          <th
-                            style={{
-                              textAlign: 'left',
-                              padding: 8,
-                              verticalAlign: 'top',
-                              borderTop: '1px solid #ddd',
-                            }}
+                    {raciMatrix.activities.map(activity => (
+                      <tr key={activity.elementId}>
+                        <th className="raci-activity">{activity.activity}</th>
+                        {activity.cells.map(cell => (
+                          <td
+                            key={cell.role}
+                            className={cell.status === 'explicit' ? 'raci-status-explicit' : cell.status === 'inferred' ? 'raci-status-inferred' : 'raci-status-missing'}
+                            title={cell.status === 'explicit' ? 'Explicite' : cell.status === 'inferred' ? 'Inféré' : 'Manquant'}
                           >
-                            {activity.activity}
-                          </th>
-                          {activity.cells.map(cell => (
-                            <td
-                              key={cell.role}
-                              title={cell.codes.length ? cell.codes.join('/') : 'aucun rôle'}
-                              style={{
-                                padding: 8,
-                                textAlign: 'center',
-                                verticalAlign: 'top',
-                                borderTop: '1px solid #ddd',
-                                opacity: cell.codes.length ? 1 : 0.55,
-                              }}
-                            >
-                              <strong>
-                                {cell.codes.length ? cell.codes.join('/') : '—'}
-                              </strong>
-                            </td>
-                          ))}
-                        </tr>
-                      );
-                    })}
+                            <Box className="raci-cell-code">
+                              {cell.codes.length ? cell.codes.map(code => (
+                                <span key={code} className={`raci-code-badge raci-code-${code}`} title={code}>{code}</span>
+                              )) : '—'}
+                            </Box>
+                            <Box className="raci-cell-status">
+                              {cell.status === 'explicit' ? 'Explicite' : cell.status === 'inferred' ? 'Inféré' : 'Manquant'}
+                            </Box>
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
-              </Box>
-            ) : (
-              <Typography level="body-sm" textColor="neutral">
-                {publishedContent
-                  ? 'Aucune activité BPMN détectée dans ce contenu.'
-                  : 'Aucune version publiée.'}
-              </Typography>
-            )}
-
-            <Stack
-              direction="row"
-              spacing={1}
-              flexWrap="wrap"
-              useFlexGap
-              sx={{ p: 1 }}
-            >
-              <Typography level="body-xs">
-                {raciMatrix.roles.length} acteur(s)
-              </Typography>
-              <Typography
-                level="body-xs"
-                color={raciAnalysis.issues.length ? 'danger' : 'success'}
-              >
-                {raciAnalysis.issues.length} anomalie(s)
-              </Typography>
-            </Stack>
-
-            {raciAnalysis.unusedActors.length > 0 && (
-              <Sheet variant="soft" color="warning" sx={{ p: 1 }}>
-                <Typography level="title-sm">Acteurs non utilisés</Typography>
-                <Typography level="body-xs">
-                  {raciAnalysis.unusedActors.join(', ')}
+              ) : (
+                <Typography level="body-sm" textColor="neutral" sx={{ p: 2 }}>
+                  {publishedContent
+                    ? 'Aucune activité BPMN détectée dans ce contenu.'
+                    : 'Aucune version publiée.'}
                 </Typography>
-              </Sheet>
-            )}
-
-            <Typography level="body-xs" textColor="neutral" sx={{ p: 1 }}>
-              Lecture seule : aucune modification du RACI n'est possible depuis cette vue.
-            </Typography>
+              )}
+            </Box>
+            <Box className="raci-footer processViewerRaciFooter">
+              <span>{raciMatrix.activities.length} activité(s)</span>
+              <span>{raciMatrix.roles.length} acteur(s)</span>
+              <span>{raciAnalysis.issues.length} anomalie(s)</span>
+              <span>🟢 Explicite</span>
+              <span>🟠 Inféré</span>
+              <span>⚪ Manquant</span>
+              <span>Lecture seule dans le Viewer</span>
+            </Box>
           </Sheet>
         </TabPanel>
       </Tabs>
