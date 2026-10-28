@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { Navigate, Outlet, useParams } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { Navigate, Outlet, useBlocker, useNavigate, useParams } from 'react-router-dom';
 
 import { ModelerActionBar } from './components/ModelerActionBar';
+import { Button, Modal, ModalDialog, DialogTitle, DialogContent, DialogActions } from '@mui/joy';
 import { ModelerShortcuts } from '../../Components/BusinessComponents/ModelerShortcuts/ModelerShortcuts';
 import { useContentModeler } from './hooks/useContentModeler';
 import { useModeler } from './hooks/useModeler';
@@ -20,6 +21,9 @@ export const Component = () => {
   const bpmnModelerInstance = getModelerInstance();
   const { getRechercheProvider } = useBpmnToolOptions();
   const { resourceId: routeResourceId } = useParams() as ContentModelerRouteParams;
+  const navigate = useNavigate();
+  const pendingSaveExitRef = useRef(false);
+  const pendingPublishExitRef = useRef(false);
   const { resource } = useResource(routeResourceId);
   const [raciView, setRaciView] = useState<'matrix' | 'actors' | null>(null);
 
@@ -49,8 +53,30 @@ export const Component = () => {
     actionData,
   } = useContentModeler(bpmnModelerInstance);
 
-  const { diagramContainerRef, diagramPropertiesRef, hasLintError } =
-    useModeler(bpmnModelerInstance, draftXmlContent);
+  const { diagramContainerRef, diagramPropertiesRef, hasLintError, isDirty, canUndo, canRedo, undo, redo, markSaved } = useModeler(bpmnModelerInstance, draftXmlContent);
+  const blocker = useBlocker(isDirty);
+
+  useEffect(() => {
+    if (!actionData || actionData.error) return;
+    if (actionData.formAction === 'saveContent' || actionData.formAction === 'saveContentBeforePublish') {
+      markSaved();
+      if (pendingSaveExitRef.current && blocker.state === 'blocked') {
+        pendingSaveExitRef.current = false;
+        blocker.proceed();
+      } else if (pendingPublishExitRef.current) {
+        pendingPublishExitRef.current = false;
+        if (blocker.state === 'blocked') blocker.reset();
+        navigate(`/${resourceId}/publish`);
+      }
+    }
+  }, [actionData, markSaved, blocker, navigate, resourceId]);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
+    window.addEventListener('beforeunload', warnBeforeUnload);
+    return () => window.removeEventListener('beforeunload', warnBeforeUnload);
+  }, [isDirty]);
 
   return (
     <>
@@ -61,6 +87,10 @@ export const Component = () => {
       <ModelerActionBar
         resourceId={resourceId}
         hasLintError={hasLintError}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={undo}
+        onRedo={redo}
         onFileUpload={onFileUpload}
         onFileExport={onFileExport}
         onDiagramSave={onDiagramSave}
@@ -85,6 +115,18 @@ export const Component = () => {
         onCancelClick={() => setIsShortcurtModalOpen(false)}
       />
       <Outlet />
+      <Modal open={blocker.state === 'blocked'} onClose={() => blocker.reset()}>
+        <ModalDialog>
+          <DialogTitle>Modifications non enregistrées</DialogTitle>
+          <DialogContent>Le diagramme a été modifié depuis le dernier enregistrement. Que souhaitez-vous faire avant de quitter le modeleur ?</DialogContent>
+          <DialogActions>
+            <Button variant="plain" color="neutral" onClick={() => blocker.reset()}>Continuer l’édition</Button>
+            <Button variant="outlined" color="danger" onClick={() => { markSaved(); blocker.proceed(); }}>Abandonner les modifications</Button>
+            <Button variant="outlined" color="neutral" onClick={() => { pendingSaveExitRef.current = true; onDiagramSave(); }}>Enregistrer sans publier</Button>
+            <Button variant="solid" color="success" onClick={() => { pendingPublishExitRef.current = true; onDiagramPublish(); }}>Enregistrer et publier</Button>
+          </DialogActions>
+        </ModalDialog>
+      </Modal>
     </>
   );
 };
