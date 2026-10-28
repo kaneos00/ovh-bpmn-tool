@@ -801,21 +801,24 @@ export const ProcessDetails = ({
             <Divider />
             <Stack spacing={1} padding={1}>
               {readOnlyShell ? (
-                contents.length ? contents.map(content => (
-                  <Sheet key={content.id} variant="soft" sx={{ p: 1.5, borderRadius: 'sm' }}>
-                    <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
-                      <Typography level="title-sm">Version v{content.version ?? 'N/A'}</Typography>
-                      <Chip size="sm" variant="soft">
-                        {content.status === ContentStatusEnum.Published ? 'Publiée' : 'Brouillon'}
-                      </Chip>
-                    </Stack>
-                    <Typography level="body-sm" textColor="neutral">
-                      {content.updatedBy ? `Modifiée par : ${content.updatedBy}` : 'Auteur non renseigné'}
-                    </Typography>
-                  </Sheet>
-                )) : (
-                  <Typography level="body-sm" textColor="neutral">Aucune version disponible.</Typography>
-                )
+                <>
+                  {contents.map(content => (
+                    <Sheet key={content.id} variant="soft" sx={{ p: 1.5, borderRadius: 'sm' }}>
+                      <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                        <Typography level="title-sm">Version v{content.version ?? 'N/A'}</Typography>
+                        <Chip size="sm" variant="soft">
+                          {content.status === ContentStatusEnum.Published ? 'Publiée' : 'Brouillon'}
+                        </Chip>
+                      </Stack>
+                      <Typography level="body-sm" textColor="neutral">
+                        {content.updatedBy ? `Modifiée par : ${content.updatedBy}` : 'Auteur non renseigné'}
+                      </Typography>
+                    </Sheet>
+                  ))}
+                  {!contents.length && (
+                    <Typography level="body-sm" textColor="neutral">Aucune version disponible.</Typography>
+                  )}
+                </>
               ) : (
                 <>
                   <ConditionalRender condition={Boolean(draftContent) || Boolean(publishedContent)}>
