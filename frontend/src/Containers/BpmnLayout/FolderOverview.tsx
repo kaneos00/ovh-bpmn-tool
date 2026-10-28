@@ -26,7 +26,7 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
 
   const children = useMemo(() => {
     return (resources.data ?? [])
-      .filter(resource => (resource.parentId ?? 'root') === resourceId)
+      .filter(childResource => (childResource.parentId ?? 'root') === resourceId)
       .sort((left, right) => {
         if (left.type !== right.type) {
           return left.type === ResourceType.Folder ? -1 : 1;
@@ -105,14 +105,14 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
         </Box>
       ) : (
         <Stack spacing={0.75}>
-          {children.map((resource: Resource) => {
-            const isFolder = resource.type === ResourceType.Folder;
+          {children.map((childResource: Resource) => {
+            const isFolder = childResource.type === ResourceType.Folder;
             return (
               <Button
-                key={resource.id}
+                key={childResource.id}
                 variant="outlined"
                 color="neutral"
-                onClick={() => navigate(`/${resource.id}`)}
+                onClick={() => navigate(`/${childResource.id}`)}
                 startDecorator={isFolder
                   ? <FolderOutlined />
                   : <DescriptionOutlined />}
