@@ -3,7 +3,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Button,
-  Divider,
   IconButton,
   Input,
   List,
@@ -421,7 +420,6 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
         const node = nodeById.get(contextMenu.nodeId)!;
         const resourceId = node.targetId ?? node.id;
         const isBpmn = node.type === 'process' || node.type === 'linked-process';
-        const isFolder = node.type === 'folder';
         const menuItemSx = {
           gap: 1.25,
           px: 1.25,
