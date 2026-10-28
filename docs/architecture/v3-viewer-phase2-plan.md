@@ -100,14 +100,18 @@ Cette vérification porte sur le code réellement présent dans `release/v3-free
 
 ### Premier incrément de code Phase 2
 
-Sur `refactor/v3-viewer-phase2`, un onglet central **Description** a été ajouté à `ProcessDetails`. Il lit la description de la ressource, autorise la modification uniquement aux rôles `admin` et `modeler`, enregistre via l'API frontend existante `updateResource` et invalide les caches de ressource. Les onglets Historique et RACI ont été décalés d'un index ; le diagramme reste à l'index 0.
+Sur `refactor/v3-viewer-phase2`, deux incréments sont maintenant présents dans `ProcessDetails` :
 
-Un test de régression statique a été ajouté pour vérifier la présence de l'onglet, le garde de rôle, l'appel API et les index des onglets. Ce test doit encore être exécuté par CI : sa présence ne vaut pas validation de l'implémentation.
+- **Description** : lecture et édition de la description de la ressource, édition réservée aux rôles `admin` et `modeler`, enregistrement via l'API frontend existante `updateResource`, invalidation des caches et gestion d'erreur.
+- **Inventaire des données** : composant `DataInventory` intégré aux onglets centraux. Il préremplit l'inventaire depuis les objets/références BPMN, conserve les métadonnées dans les `extensionElements` du XML BPMN et utilise le `saveContent` existant pour enregistrer le XML de la version publiée. L'édition suit le même garde de rôles `admin`/`modeler`.
+
+Les onglets Diagramme, Description, Historique, RACI et Inventaire utilisent respectivement les valeurs 0 à 4. Des tests de régression statiques couvrent la présence des deux onglets, les garde-fous de rôle, l'appel API et les champs de l'inventaire. Ils doivent encore être exécutés par CI et complétés par une validation navigateur ; leur présence ne vaut pas validation fonctionnelle. Le composant Inventaire est porté séparément depuis la PR #99, sans reprendre sa branche empilée ni les autres changements de cette PR.
 
 ### Prochain incrément
 
 1. Exécuter CI et corriger tout échec.
 2. Définir la coque commune et migrer la route de contenu vers un seul explorateur, sans perdre le `contentId`, `elementId` ni le paramètre `raci=1`.
-3. Ajouter des tests de parcours pour dossier → processus → Viewer et liens directs.
-4. Intégrer l'inventaire uniquement après identification des contrats de données exacts du ticket #73.
-5. Ne pas fermer #109 tant que la matrice des routes/rôles et les cas limites n'ont pas été validés.
+3. Valider en navigateur le nouvel onglet Description et l'Inventaire (édition, annulation, sauvegarde, rechargement et rôles viewer/modeler/admin) ; vérifier explicitement la compatibilité du XML sauvegardé.
+4. Ajouter des tests de parcours pour dossier → processus → Viewer et liens directs.
+5. Vérifier la compatibilité des métadonnées d'inventaire et documenter leur format XML ; ne pas prétendre à une intégration avec des bases/fichiers externes tant qu'aucune connexion n'existe.
+6. Ne pas fermer #109 tant que la matrice des routes/rôles et les cas limites n'ont pas été validés.
