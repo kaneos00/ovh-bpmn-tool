@@ -148,6 +148,7 @@ export const Component = () => {
                     onCompareClick={callbacks.processDetails.onCompareClick}
                     selectedElementId={selectedElementId}
                     onElementSelect={setSelectedElementId}
+                    readOnlyShell
                   />
                 )}
                 <Outlet />
