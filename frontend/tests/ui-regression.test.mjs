@@ -397,8 +397,8 @@ test('modeler exposes undo/redo controls and guards unsaved navigation', async (
   const container = await read('src/Containers/ContentModeler/ContentModeler.container.tsx');
 
   assert.ok(hook.includes("get('commandStack')"));
-  assert.ok(hook.includes('commandStack?.undo?.()'));
-  assert.ok(hook.includes('commandStack?.redo?.()'));
+  assert.ok(hook.includes("get('commandStack') as any)?.undo?.()"));
+  assert.ok(hook.includes("get('commandStack') as any)?.redo?.()"));
   assert.ok(hook.includes('savedStackIndexRef'));
   assert.ok(actionBar.includes('Annuler la dernière modification'));
   assert.ok(actionBar.includes('Rétablir la dernière modification'));
