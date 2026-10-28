@@ -90,6 +90,27 @@ class PizzaStorePageTests(unittest.TestCase):
                 self.assertEqual(lane_geometry[0][name][1:], lane_geometry[1][name][1:])
                 self.assertAlmostEqual(lane_geometry[0][name][1], lane_geometry[1][name][1], places=2)
 
+    def test_lanes_keep_their_header_inset_inside_the_participant_pool(self):
+        for page in sorted(GENERATED.glob("pizza-store-page-*.bpmn")):
+            root = ET.parse(page).getroot()
+            shapes = root.findall(".//bpmndi:BPMNShape", NS)
+            by_element = {shape.get("bpmnElement"): shape for shape in shapes}
+            participant_ids = {
+                e.get("id") for e in root.findall(".//bpmn:participant", NS)
+            }
+            lane_ids = {e.get("id") for e in root.findall(".//bpmn:lane", NS)}
+            participant = by_element[next(iter(participant_ids))]
+            pool_bounds = participant.find("dc:Bounds", NS)
+            pool_x = float(pool_bounds.get("x"))
+            pool_right = pool_x + float(pool_bounds.get("width"))
+            for lane_id in lane_ids:
+                bounds = by_element[lane_id].find("dc:Bounds", NS)
+                lane_x = float(bounds.get("x"))
+                lane_right = lane_x + float(bounds.get("width"))
+                with self.subTest(page=page.name, lane=lane_id):
+                    self.assertGreater(lane_x, pool_x, "lane header must not overlap pool label")
+                    self.assertAlmostEqual(lane_right, pool_right, places=2)
+
     def test_edges_are_clipped_to_each_page_without_dropping_crossing_flows(self):
         pages = sorted(GENERATED.glob("pizza-store-page-*.bpmn"))
         edge_ids = []
