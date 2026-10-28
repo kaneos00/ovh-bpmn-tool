@@ -368,13 +368,22 @@ test('Viewer version status badges have distinct colors and version actions are 
   assert.ok(details.includes('canManageVersions={canManageVersions}'));
   assert.ok(list.includes('canManageVersions = false'));
   assert.ok(list.includes('if (!canManageVersions) return []'));
+  assert.match(list, /content\.status === ContentStatusEnum\.Draft[\s\S]*?label: 'Publish'[\s\S]*?label: 'Erase'/);
+  assert.match(list, /content\.status === ContentStatusEnum\.Obsolete[\s\S]*?label: 'Erase'/);
   assert.match(tableHook, /let color: 'success' \| 'warning' \| 'neutral' = 'neutral'[\s\S]*?status === ContentStatusEnum\.Published[\s\S]*?color = 'success'[\s\S]*?status === ContentStatusEnum\.Draft[\s\S]*?color = 'warning'/);
+  assert.ok(details.includes("const canManageVersions = sessionRole === 'admin' || sessionRole === 'modeler'"));
+  assert.ok(details.includes('readOnlyShell && !canManageVersions'));
 });
 
 test('RACI activity links select the BPMN element and return to the process tab', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   assert.ok(details.includes('setActiveViewerTab(0)'));
   assert.ok(details.includes('onElementSelect?.(activity.elementId)'));
-  assert.ok(details.includes('Voir dans le BPMN'));
+  assert.ok(details.includes('CenterFocusStrong'));
+  assert.ok(details.includes('aria-label="Voir l’activité dans le BPMN"'));
   assert.ok(details.includes('<Tabs value={activeViewerTab}'));
+  const viewer = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+  assert.ok(viewer.includes("selection?.select?.([element])"));
+  const css = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
+  assert.ok(css.includes('.djs-element.task-selected .djs-visual > *'));
 });
