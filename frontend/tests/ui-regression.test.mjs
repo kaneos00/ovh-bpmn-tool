@@ -318,7 +318,7 @@ test('viewer context-menu deletion passes the target resource and opens the exis
 });
 
 
-test('project overview is rendered through FolderOverview from both folder and project routes', async () => {
+test('FolderOverview keeps folder navigation separate from explicit project routes', async () => {
   const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
   const folderOverview = await read('src/Containers/BpmnLayout/FolderOverview.tsx');
   const contentViewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
@@ -326,8 +326,12 @@ test('project overview is rendered through FolderOverview from both folder and p
 
   assert.ok(layout.includes("import { FolderOverview } from './FolderOverview'"));
   assert.ok(layout.includes('<FolderOverview resource={resource} />'));
-  assert.ok(folderOverview.includes('projectId: projectIdProp'));
+  assert.ok(folderOverview.includes('const projectId = projectIdProp ?? \'\''));
+  assert.ok(folderOverview.includes('{ enabled: Boolean(projectIdProp) }'));
   assert.ok(folderOverview.includes("apiClient.get(`/projects/${projectId}`)"));
+  assert.ok(folderOverview.includes('if (resource && !projectIdProp)'));
+  assert.ok(folderOverview.includes('folderChildren.map((child)'));
+  assert.ok(folderOverview.includes('Impossible de charger le contenu de ce répertoire.'));
   assert.ok(folderOverview.includes('Description du projet'));
   assert.ok(folderOverview.includes('<ProjectProcessOverview processes={processes} />'));
   assert.ok(contentViewer.includes("import { FolderOverview as ProjectHomeComponent } from '../BpmnLayout/FolderOverview'"));
