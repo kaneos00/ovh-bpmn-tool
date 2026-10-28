@@ -364,11 +364,11 @@ test('Viewer version status badges have distinct colors and version actions are 
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const list = await read('src/Components/BusinessComponents/ProcessContentList/ProcessContentList.tsx');
   const tableHook = await read('src/Components/BusinessComponents/ProcessContentList/hooks/useProcessContentList.ts');
-  assert.ok(details.includes("content.status === ContentStatusEnum.Published ? 'success' : content.status === ContentStatusEnum.Draft ? 'warning' : 'neutral'"));
+  assert.match(details, /const getContentStatusColor = \(status: ContentStatusEnum\) => \{[\s\S]*?status === ContentStatusEnum\.Published\) return 'success'[\s\S]*?status === ContentStatusEnum\.Draft\) return 'warning'[\s\S]*?return 'neutral'/);
   assert.ok(details.includes('canManageVersions={canManageVersions}'));
   assert.ok(list.includes('canManageVersions = false'));
   assert.ok(list.includes('...(!canManageVersions'));
-  assert.ok(tableHook.includes("status === ContentStatusEnum.Published ? 'success' : status === ContentStatusEnum.Draft ? 'warning' : 'neutral'"));
+  assert.match(tableHook, /let color: 'success' \| 'warning' \| 'neutral' = 'neutral'[\s\S]*?status === ContentStatusEnum\.Published[\s\S]*?color = 'success'[\s\S]*?status === ContentStatusEnum\.Draft[\s\S]*?color = 'warning'/);
 });
 
 test('RACI activity links select the BPMN element and return to the process tab', async () => {
