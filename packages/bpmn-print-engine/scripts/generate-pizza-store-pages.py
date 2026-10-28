@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate four A4-portrait visual BPMN pages from the real Pizza-Store model.
+"""Generate two A4-portrait visual BPMN pages from the real Pizza-Store model.
 
 The BPMN semantic model is kept intact on each page. Only BPMN-DI is sliced,
 so these files are print/review views, not independent executable processes.
@@ -27,10 +27,12 @@ BPMN = "{" + NS["bpmn"] + "}"
 BPMNDI = "{" + NS["bpmndi"] + "}"
 DC = "{" + NS["dc"] + "}"
 DI = "{" + NS["di"] + "}"
-PAGE_COUNT = 4
-# Boundaries deliberately fall between shapes in the reference model.
-# Four horizontal windows produce four A4 portrait print views.
-X_BOUNDS = (40.0, 475.0, 790.0, 990.0, 1373.0)
+PAGE_COUNT = 2
+# Two balanced horizontal windows for the proposed two-page A4 portrait split.
+# The split is placed between the vendor's "Ask for the pizza" task (x=680)
+# and the "pizza received" event (x=869.5), leaving both shapes whole.
+# Pools/lanes are clipped to each window and therefore have matching widths.
+X_BOUNDS = (40.0, 706.5, 1373.0)
 Y_MIN, Y_MAX = 120.0, 970.0
 PAGE_W, PAGE_H = 595.0, 842.0
 MARGIN = 40.0
