@@ -86,12 +86,12 @@ for page_index in range(page_count):
     # annotations represented as tasks so they remain visible in BPMN editors.
     if page_index > 0:
         marker_id = f"Continuation_From_P{page_index}"
-        marker = ET.SubElement(page_process, f"{{{NS['bpmn']}}}task", {"id": marker_id, "name": f"Suite de la page {page_index}"})
+        marker = ET.Element(f"{{{NS['bpmn']}}}task", {"id": marker_id, "name": f"Suite de la page {page_index}"})
         selected.insert(0, marker_id)
         nodes[marker_id] = marker
     if page_index < page_count - 1:
         marker_id = f"Continuation_To_P{page_index + 2}"
-        marker = ET.SubElement(page_process, f"{{{NS['bpmn']}}}task", {"id": marker_id, "name": f"Suite page {page_index + 2}"})
+        marker = ET.Element(f"{{{NS['bpmn']}}}task", {"id": marker_id, "name": f"Suite page {page_index + 2}"})
         selected.append(marker_id)
         nodes[marker_id] = marker
     for node_id in selected:
