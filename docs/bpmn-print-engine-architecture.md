@@ -119,7 +119,9 @@ Les sous-dossiers seront ajoutés au rythme de l'implémentation. Le squelette a
 
 ## 6. Fixtures consultables et validation automatisée
 
-- BPMN source de démonstration : [pizza-process.bpmn](../packages/bpmn-print-engine/tests/fixtures/pizza-process.bpmn).
+- Référence fonctionnelle principale : [Pizza-Store.bpmn](../examples/organisation-demo/Pizza-Store.bpmn), copiée sans modification dans [tests/fixtures/Pizza-Store.bpmn](../packages/bpmn-print-engine/tests/fixtures/Pizza-Store.bpmn). Elle doit guider les cas d'intégration à deux participants, trois lanes, flux de séquence et flux de messages.
+- Fixture unitaire simple : [pizza-process.bpmn](../packages/bpmn-print-engine/tests/fixtures/pizza-process.bpmn), conservée pour les tests structurels courts.
+- Quatre vues de revue A4 portrait générées depuis Pizza-Store : `pizza-store-page-01.bpmn` à `pizza-store-page-04.bpmn`, produites par [generate-pizza-store-pages.py](../packages/bpmn-print-engine/scripts/generate-pizza-store-pages.py). Elles conservent le modèle sémantique et découpent la représentation BPMN-DI ; ce sont des vues de revue, pas quatre processus autonomes.
 - Pages BPMN générées et consultables :
   - [Page 1](../packages/bpmn-print-engine/tests/fixtures/generated/pizza-page-01.bpmn)
   - [Page 2](../packages/bpmn-print-engine/tests/fixtures/generated/pizza-page-02.bpmn)
