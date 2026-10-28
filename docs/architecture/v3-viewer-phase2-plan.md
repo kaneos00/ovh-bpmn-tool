@@ -85,3 +85,29 @@ La matrice est un contrat de travail. Les composants et services cités sont ceu
 - Phase 2 (#110) : branche isolée créée à partir du gel V3. La mise en œuvre doit être incrémentale et CI-gated.
 - CI et navigateur : à exécuter sur les commits de cette branche ; aucune réussite n'est présumée par ce document.
 - Déploiement : non effectué.
+
+
+## 8. Audit vérifié sur la référence V3 gelée
+
+Cette vérification porte sur le code réellement présent dans `release/v3-freeze-2026-10-28`, et non uniquement sur l'inventaire V2.3 de #109.
+
+- `frontend/src/routes.tsx` expose le login, `/` redirigé vers `/root`, `/:resourceId`, les routes d'actions ressource encore déclarées, `/:resourceId/modeler` et `/:resourceId/viewer/:contentId`. Le commentaire du routeur indique explicitement que les routes projet, comparaison, administration et certains CRUD ne sont pas exposés dans ce shell V3.
+- `BpmnLayout.container.tsx` affiche un explorateur pour les dossiers et délègue l'affichage des processus à `ProcessDetails`.
+- `ProcessDetails.tsx` embarque déjà son propre explorateur, ses onglets Diagramme / Historique des versions / RACI et le panneau droit de fiche de l'élément.
+- `ContentViewer.container.tsx` possède séparément un autre explorateur, un diagramme et un panneau d'informations avec RACI. La route Viewer de contenu n'est donc pas encore unifiée dans le shell de `BpmnLayout`.
+- Aucun composant d'inventaire n'a été trouvé sous `frontend/src` dans l'arbre de la référence gelée ; le ticket #73 / évolution 38 reste à intégrer ou à retrouver dans une autre branche validée avant de pouvoir annoncer cette vue comme disponible.
+- Le chargement de l'arbre dans `useFolderTree` lance les requêtes de contenus pour les processus puis les requêtes XML des contenus publiés. C'est un point mesurable, pas encore une optimisation réalisée.
+
+### Premier incrément de code Phase 2
+
+Sur `refactor/v3-viewer-phase2`, un onglet central **Description** a été ajouté à `ProcessDetails`. Il lit la description de la ressource, autorise la modification uniquement aux rôles `admin` et `modeler`, enregistre via l'API frontend existante `updateResource` et invalide les caches de ressource. Les onglets Historique et RACI ont été décalés d'un index ; le diagramme reste à l'index 0.
+
+Un test de régression statique a été ajouté pour vérifier la présence de l'onglet, le garde de rôle, l'appel API et les index des onglets. Ce test doit encore être exécuté par CI : sa présence ne vaut pas validation de l'implémentation.
+
+### Prochain incrément
+
+1. Exécuter CI et corriger tout échec.
+2. Définir la coque commune et migrer la route de contenu vers un seul explorateur, sans perdre le `contentId`, `elementId` ni le paramètre `raci=1`.
+3. Ajouter des tests de parcours pour dossier → processus → Viewer et liens directs.
+4. Intégrer l'inventaire uniquement après identification des contrats de données exacts du ticket #73.
+5. Ne pas fermer #109 tant que la matrice des routes/rôles et les cas limites n'ont pas été validés.
