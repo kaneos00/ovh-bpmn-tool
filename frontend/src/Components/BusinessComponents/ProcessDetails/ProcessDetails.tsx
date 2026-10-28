@@ -161,7 +161,7 @@ export const ProcessDetails = ({
   const [urlDraft, setUrlDraft] = useState('');
   const [raciDraft, setRaciDraft] = useState<Record<string, RaciCode[]>>({});
   const [isSavingDescription, setIsSavingDescription] = useState(false);
-  const canEditDescription = !readOnlyShell && (sessionRole === 'admin' || sessionRole === 'modeler');
+  const canEditDescription = sessionRole === 'admin' || sessionRole === 'modeler';
   const canManageVersions = sessionRole === 'admin' || sessionRole === 'modeler';
 
   useEffect(() => {
