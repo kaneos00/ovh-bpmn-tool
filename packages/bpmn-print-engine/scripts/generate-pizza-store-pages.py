@@ -30,7 +30,7 @@ DI = "{" + NS["di"] + "}"
 PAGE_COUNT = 4
 # Boundaries deliberately fall between shapes in the reference model.
 # Four horizontal windows produce four A4 portrait print views.
-X_BOUNDS = (40.0, 440.0, 665.0, 990.0, 1373.0)
+X_BOUNDS = (40.0, 475.0, 790.0, 990.0, 1373.0)
 Y_MIN, Y_MAX = 120.0, 970.0
 PAGE_W, PAGE_H = 595.0, 842.0
 MARGIN = 40.0
