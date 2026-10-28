@@ -1,19 +1,37 @@
 # Tests du moteur d'impression BPMN
 
-## Préparer / régénérer les fichiers consultables
+## Référence Pizza-Store
 
-Depuis la racine du dépôt :
+Le fichier de référence est une copie exacte de
+[\`examples/organisation-demo/Pizza-Store.bpmn\`](../../../../examples/organisation-demo/Pizza-Store.bpmn)
+dans \`tests/fixtures/Pizza-Store.bpmn\`. Il contient deux participants BPMN,
+trois lanes, des flux de séquence et des flux de messages entre participants.
 
-```bash
+Générer les quatre vues A4 portrait depuis la racine du dépôt :
+
+\`\`\`bash
+python3 packages/bpmn-print-engine/scripts/generate-pizza-store-pages.py
+\`\`\`
+
+Sorties :
+- \`tests/fixtures/generated/pizza-store-page-01.bpmn\`
+- \`tests/fixtures/generated/pizza-store-page-02.bpmn\`
+- \`tests/fixtures/generated/pizza-store-page-03.bpmn\`
+- \`tests/fixtures/generated/pizza-store-page-04.bpmn\`
+
+Ces fichiers conservent le modèle BPMN sémantique complet et découpent uniquement
+les informations BPMN-DI visibles sur chaque page. Ils servent à examiner la
+répartition graphique et les dimensions A4 portrait ; ils ne sont pas quatre
+processus métier indépendants. Le générateur est une fixture de référence et
+ne doit pas être confondu avec l'implémentation de production du moteur.
+
+## Génération et validation
+
+\`\`\`bash
 python3 packages/bpmn-print-engine/scripts/generate-fixtures.py
-```
-
-Les pages générées sont écrites dans `tests/fixtures/generated/`. Ouvre `pizza-page-01.bpmn`, `pizza-page-02.bpmn` et `pizza-page-03.bpmn` dans KHI Flows ou un éditeur BPMN pour commenter la répartition, les lanes et les marqueurs de continuité.
-
-## Validation automatisée des fixtures
-
-```bash
+python3 packages/bpmn-print-engine/scripts/generate-pizza-store-pages.py
 python3 -m unittest discover -s packages/bpmn-print-engine/tests -p 'test_*.py' -v
-```
+\`\`\`
 
-Les tests vérifient la syntaxe XML, le maintien des deux lanes, les marqueurs de continuité, les références des flux et les références BPMN DI. Ils ne prouvent pas encore la correction de l'algorithme de partitionnement de production : celle-ci reste dans le ticket [#102](https://github.com/kaneos00/ovh-bpmn-tool/issues/102).
+La CI publie les quatre fichiers générés sous l'artefact
+\`pizza-store-a4-portrait-pages\`.
