@@ -351,4 +351,10 @@ test('viewer keeps the explorer and task details in side panels while tabs live 
   assert.ok(tabs < processTab && processTab < historyTab && historyTab < raciTab, 'all three tabs should be grouped in the central panel');
   assert.ok(tabsClose > raciTab && taskPanel > tabsClose, 'task details must remain in the right-side panel outside the tabs');
   assert.ok(details.slice(processTab, historyTab).includes('className="processViewerDiagram"'), 'process diagram belongs to the process tab');
+  const styles = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.scss');
+  assert.match(styles, /\.processViewerTabs\s*\{[^}]*flex:\s*1 1 0;[^}]*width:\s*0;/s);
+  assert.match(styles, /\.processViewerDiagram\s*\{[^}]*width:\s*100%;/s);
+  assert.ok(details.includes("import '../../../raci.css'"), 'Viewer should reuse the Modeler RACI design system');
+  assert.ok(details.includes('className="raci-table"'));
+  assert.ok(details.includes('raci-code-badge raci-code-'));
 });
