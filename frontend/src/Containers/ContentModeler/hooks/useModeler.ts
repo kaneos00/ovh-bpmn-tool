@@ -13,6 +13,9 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
   const diagramContainerRef = useRef<HTMLDivElement>(null);
   const diagramPropertiesRef = useRef<HTMLDivElement>(null);
   const [hasLintError, setHasLintError] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
 
   const { getModelerProviders } = useBpmnToolOptions();
 
@@ -20,6 +23,8 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
   const importGenerationRef = useRef(0);
   const importQueueRef = useRef<Promise<void>>(Promise.resolve());
   const removeSelectionListenerRef = useRef<(() => void) | null>(null);
+  const removeCommandStackListenerRef = useRef<(() => void) | null>(null);
+  const savedStackIndexRef = useRef(0);
 
   const propertiesPanel: PropertiesPanel =
     bpmnModelerInstance.get('propertiesPanel');
@@ -36,6 +41,19 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
     }
 
     bpmnModelerInstance.attachTo(diagramContainerRef.current);
+
+    const commandStack = bpmnModelerInstance.get('commandStack') as any;
+    const eventBus = bpmnModelerInstance.get('eventBus') as any;
+    const syncCommandStackState = () => {
+      setCanUndo(Boolean(commandStack?.canUndo?.()));
+      setCanRedo(Boolean(commandStack?.canRedo?.()));
+      setIsDirty(Number(commandStack?._stackIdx ?? 0) !== savedStackIndexRef.current);
+    };
+    removeCommandStackListenerRef.current?.();
+    savedStackIndexRef.current = Number(commandStack?._stackIdx ?? 0);
+    eventBus.on('commandStack.changed', syncCommandStackState);
+    syncCommandStackState();
+    removeCommandStackListenerRef.current = () => eventBus.off('commandStack.changed', syncCommandStackState);
 
     // Apply semantic color markers to the imported BPMN elements in the editor.
     const canvas = bpmnModelerInstance.get('canvas') as any;
@@ -133,6 +151,7 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
         }
 
         if (generation !== importGenerationRef.current) return;
+        setIsDirty(false);
         attachModeler();
       })
       .catch(() => {
@@ -151,12 +170,19 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
       bpmnModelerInstance.off('linting.completed', onLintingCompleted);
       removeSelectionListenerRef.current?.();
       removeSelectionListenerRef.current = null;
+      removeCommandStackListenerRef.current?.();
+      removeCommandStackListenerRef.current = null;
     };
   }, [bpmnModelerInstance, content, getModelerProviders, propertiesPanel, showAlert]);
 
-  return {
-    diagramContainerRef,
-    diagramPropertiesRef,
-    hasLintError,
+  const undo = () => (bpmnModelerInstance.get('commandStack') as any)?.undo?.();
+  const redo = () => (bpmnModelerInstance.get('commandStack') as any)?.redo?.();
+  const markSaved = () => {
+    const commandStack = bpmnModelerInstance.get('commandStack') as any;
+    savedStackIndexRef.current = Number(commandStack?._stackIdx ?? 0);
+    setIsDirty(false);
+    setCanUndo(Boolean(commandStack?.canUndo?.()));
+    setCanRedo(Boolean(commandStack?.canRedo?.()));
   };
+  return { diagramContainerRef, diagramPropertiesRef, hasLintError, isDirty, canUndo, canRedo, undo, redo, markSaved };
 };
