@@ -25,6 +25,8 @@ import { ProcessContentList } from '../ProcessContentList/ProcessContentList';
 import { ProcessViewer } from '../ProcessViewer';
 import { FolderTree } from '../FolderTree';
 import { getXmlContentQuery, saveContent } from '../../../api/contents/contents.queries';
+import { updateResource, getResourceQuery } from '../../../api/resources/resources.queries';
+import { useResource } from '../../../shared/hooks/useResource';
 import { useSnackbar } from '../../../shared/hooks/useSnackbar';
 import {
   deriveRaciMatrixFromXml,
@@ -152,6 +154,7 @@ export const ProcessDetails = ({
     { enabled: Boolean(publishedContent) },
   );
   const queryClient = useQueryClient();
+  const { resource: processResource } = useResource(resourceId);
   const { showAlert } = useSnackbar();
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
   const [activeViewerTab, setActiveViewerTab] = useState(0);
@@ -161,6 +164,9 @@ export const ProcessDetails = ({
   const [urlDraft, setUrlDraft] = useState('');
   const [raciDraft, setRaciDraft] = useState<Record<string, RaciCode[]>>({});
   const [isSavingDescription, setIsSavingDescription] = useState(false);
+  const [isEditingProcessDescription, setIsEditingProcessDescription] = useState(false);
+  const [processDescriptionDraft, setProcessDescriptionDraft] = useState('');
+  const [isSavingProcessDescription, setIsSavingProcessDescription] = useState(false);
   const canEditDescription = sessionRole === 'admin' || sessionRole === 'modeler';
   const canManageVersions = sessionRole === 'admin' || sessionRole === 'modeler';
 
@@ -411,6 +417,31 @@ export const ProcessDetails = ({
     }
   };
 
+  const saveProcessDescription = async () => {
+    if (!processResource) return;
+    setIsSavingProcessDescription(true);
+    try {
+      await updateResource(resourceId, {
+        name: processResource.name,
+        description: processDescriptionDraft,
+        parentId: processResource.parentId,
+      });
+      await queryClient.invalidateQueries(getResourceQuery(resourceId).queryKey);
+      await queryClient.invalidateQueries(['resources']);
+      setIsEditingProcessDescription(false);
+      showAlert({ message: 'Description du processus enregistrée.', severity: 'success' });
+    } catch (error) {
+      const reason = error as { response?: { data?: { message?: string | string[] } }; message?: string };
+      const serverMessage = reason.response?.data?.message;
+      showAlert({
+        message: Array.isArray(serverMessage) ? serverMessage.join(', ') : serverMessage || reason.message || 'Impossible d’enregistrer la description du processus.',
+        severity: 'danger',
+      });
+    } finally {
+      setIsSavingProcessDescription(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <Stack gap={2}>
@@ -513,8 +544,9 @@ export const ProcessDetails = ({
       <Tabs value={activeViewerTab} onChange={(_, value) => setActiveViewerTab(Number(value))} className="processViewerTabs">
         <TabList sticky="top">
           <Tab value={0}>Vue du processus</Tab>
-          <Tab value={1}>Historique des versions</Tab>
-          <Tab value={2}>RACI</Tab>
+          <Tab value={1}>Description</Tab>
+          <Tab value={2}>Historique des versions</Tab>
+          <Tab value={3}>RACI</Tab>
         </TabList>
 
 
@@ -573,6 +605,69 @@ export const ProcessDetails = ({
 
         </TabPanel>
         <TabPanel value={1} className="processViewerTabPanel">
+          <Sheet className="processViewerInfo" variant="outlined">
+            <Stack spacing={2} sx={{ p: 2 }}>
+              <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+                <Typography level="title-lg">Description du processus</Typography>
+                {canEditDescription && !isEditingProcessDescription && (
+                  <Button
+                    size="sm"
+                    variant="outlined"
+                    color="neutral"
+                    disabled={!processResource}
+                    onClick={() => {
+                      setProcessDescriptionDraft(processResource?.description ?? '');
+                      setIsEditingProcessDescription(true);
+                    }}
+                  >
+                    Modifier
+                  </Button>
+                )}
+              </Stack>
+              {isEditingProcessDescription ? (
+                <>
+                  <Textarea
+                    value={processDescriptionDraft}
+                    onChange={event => setProcessDescriptionDraft(event.target.value)}
+                    minRows={6}
+                    maxRows={18}
+                    aria-label="Description du processus"
+                    placeholder="Décrire l’objectif, le périmètre et les règles principales du processus…"
+                    disabled={isSavingProcessDescription}
+                  />
+                  <Stack direction="row" spacing={1} justifyContent="flex-end">
+                    <Button
+                      size="sm"
+                      variant="outlined"
+                      color="neutral"
+                      disabled={isSavingProcessDescription}
+                      onClick={() => {
+                        setProcessDescriptionDraft(processResource?.description ?? '');
+                        setIsEditingProcessDescription(false);
+                      }}
+                    >
+                      Annuler
+                    </Button>
+                    <Button
+                      size="sm"
+                      loading={isSavingProcessDescription}
+                      disabled={isSavingProcessDescription || !processResource}
+                      onClick={() => void saveProcessDescription()}
+                    >
+                      Enregistrer
+                    </Button>
+                  </Stack>
+                </>
+              ) : (
+                <Typography level="body-md" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {processResource?.description?.trim() || 'Aucune description renseignée pour ce processus.'}
+                </Typography>
+              )}
+            </Stack>
+          </Sheet>
+        </TabPanel>
+
+        <TabPanel value={2} className="processViewerTabPanel">
           <Sheet className="processViewerInfo" variant="outlined">
             <Stack spacing={1.5} className="processViewerInfoHeader">
               <Typography level="title-lg">Historique des versions</Typography>
@@ -640,7 +735,7 @@ export const ProcessDetails = ({
           </Sheet>
         </TabPanel>
 
-        <TabPanel value={2} className="processViewerTabPanel">
+        <TabPanel value={3} className="processViewerTabPanel">
           <Sheet className="processViewerInfo processViewerRaci" variant="outlined">
             <Box className="raci-header">
               <Box>
