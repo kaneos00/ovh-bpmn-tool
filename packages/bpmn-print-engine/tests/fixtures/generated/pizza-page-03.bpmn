@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_Pizza_Print_Page_3" targetNamespace="https://example.org/khi-flows/pizza-print-test/generated">
+  <bpmn:process id="Process_Pizza_Print_Page_3" name="Préparer et livrer une pizza — page 3/3" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_Page_3"><bpmn:lane id="Lane_Kitchen_P3" name="Cuisine"/><bpmn:lane id="Lane_Delivery_P3" name="Livraison"><bpmn:flowNodeRef>Continuation_From_P2</bpmn:flowNodeRef><bpmn:flowNodeRef>EndEvent_Order</bpmn:flowNodeRef></bpmn:lane></bpmn:laneSet>
+    <bpmn:task id="Continuation_From_P2" name="Suite de la page 2"/><bpmn:endEvent id="EndEvent_Order" name="Commande terminée"/><bpmn:sequenceFlow id="Flow_Continuation_In_P2_Flow_7" sourceRef="Continuation_From_P2" targetRef="EndEvent_Order"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_Page_3"><bpmndi:BPMNPlane id="Plane_Page_3" bpmnElement="Process_Pizza_Print_Page_3">
+    <bpmndi:BPMNShape id="Lane_Kitchen_P3_di" bpmnElement="Lane_Kitchen_P3" isHorizontal="true"><dc:Bounds x="40" y="40" width="760" height="180"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Lane_Delivery_P3_di" bpmnElement="Lane_Delivery_P3" isHorizontal="true"><dc:Bounds x="40" y="220" width="760" height="180"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Continuation_From_P2_di" bpmnElement="Continuation_From_P2"><dc:Bounds x="50" y="270" width="120" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="EndEvent_Order_di" bpmnElement="EndEvent_Order"><dc:Bounds x="170" y="292" width="36" height="36"/></bpmndi:BPMNShape><bpmndi:BPMNEdge id="Flow_Continuation_In_P2_Flow_7_di" bpmnElement="Flow_Continuation_In_P2_Flow_7"><di:waypoint x="170" y="310"/><di:waypoint x="170" y="310"/></bpmndi:BPMNEdge>
+  </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</bpmn:definitions>
