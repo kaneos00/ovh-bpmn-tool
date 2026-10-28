@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Box, Button, Card, Chip, Divider, Input, Stack, Textarea, Typography } from '@mui/joy';
-import { DatabaseOutlined, InsertDriveFileOutlined } from '@mui/icons-material';
+import { DatasetOutlined, InsertDriveFileOutlined } from '@mui/icons-material';
 
 export type InventorySource = {
   id: string;
@@ -65,7 +65,7 @@ export const DataInventory = ({ xmlContent, canEdit, onSave }: Props) => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  React.useEffect(() => setSources(original), [original]);
+  useEffect(() => setSources(original), [original]);
 
   const update = (id: string, field: keyof InventorySource, value: string) => {
     setSources(current => current.map(source => source.id === id ? { ...source, [field]: value } : source));
@@ -116,7 +116,7 @@ export const DataInventory = ({ xmlContent, canEdit, onSave }: Props) => {
         {!sources.length && <Card variant="outlined"><Typography level="body-sm" color="neutral">Aucune source d’information n’a été répertoriée. Ajoutez un fichier ou une base pour compléter l’inventaire.</Typography></Card>}
         {sources.map((source, index) => <Card key={source.id} variant="outlined" sx={{ gap: 1.5 }}>
           <Stack direction="row" alignItems="center" spacing={1}>
-            {source.kind === 'database' ? <DatabaseOutlined /> : <InsertDriveFileOutlined />}
+            {source.kind === 'database' ? <DatasetOutlined /> : <InsertDriveFileOutlined />}
             <Typography level="title-md">{source.name || `Source ${index + 1}`}</Typography>
             <Chip size="sm" variant="soft">{source.kind === 'database' ? 'Base de données' : 'Fichier'}</Chip>
             <Box sx={{ flex: 1 }} />
