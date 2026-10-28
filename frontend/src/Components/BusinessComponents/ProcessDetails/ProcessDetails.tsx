@@ -17,7 +17,7 @@ import {
   Textarea,
   Typography,
 } from '@mui/joy';
-import { ArrowBack, ArrowForward, Compare, FileCopy, ChevronLeft, ChevronRight, FolderOutlined, EditOutlined } from '@mui/icons-material';
+import { ArrowBack, ArrowForward, Compare, FileCopy, ChevronLeft, ChevronRight, FolderOutlined, EditOutlined, CenterFocusStrong } from '@mui/icons-material';
 import { useQuery, useQueryClient } from 'react-query';
 
 import { useProcessDetails } from './hooks/useProcessDetails';
@@ -162,7 +162,7 @@ export const ProcessDetails = ({
   const [raciDraft, setRaciDraft] = useState<Record<string, RaciCode[]>>({});
   const [isSavingDescription, setIsSavingDescription] = useState(false);
   const canEditDescription = !readOnlyShell && (sessionRole === 'admin' || sessionRole === 'modeler');
-  const canManageVersions = !readOnlyShell && (sessionRole === 'admin' || sessionRole === 'modeler');
+  const canManageVersions = sessionRole === 'admin' || sessionRole === 'modeler';
 
   useEffect(() => {
     let mounted = true;
@@ -584,7 +584,7 @@ export const ProcessDetails = ({
             </Stack>
             <Divider />
             <Stack spacing={1} padding={1}>
-              {readOnlyShell ? (
+              {readOnlyShell && !canManageVersions ? (
                 <>
                   {contents.map(content => (
                     <Sheet key={content.id} variant="soft" sx={{ p: 1.5, borderRadius: 'sm' }}>
@@ -666,9 +666,17 @@ export const ProcessDetails = ({
                         <th className="raci-activity">
                           <Stack spacing={0.5} alignItems="flex-start">
                             <Typography level="body-sm">{activity.activity}</Typography>
-                            <Button size="sm" variant="plain" color="primary" onClick={() => { setActiveViewerTab(0); onElementSelect?.(activity.elementId); }} disabled={!onElementSelect || !activity.elementId}>
-                              Voir dans le BPMN
-                            </Button>
+                            <IconButton
+                              size="sm"
+                              variant="plain"
+                              color="primary"
+                              title="Voir l’activité dans le BPMN"
+                              aria-label="Voir l’activité dans le BPMN"
+                              onClick={() => { setActiveViewerTab(0); onElementSelect?.(activity.elementId); }}
+                              disabled={!onElementSelect || !activity.elementId}
+                            >
+                              <CenterFocusStrong />
+                            </IconButton>
                           </Stack>
                         </th>
                         {activity.cells.map(cell => (
