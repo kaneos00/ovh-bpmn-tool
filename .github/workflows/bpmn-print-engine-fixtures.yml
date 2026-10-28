@@ -10,6 +10,7 @@ on:
   push:
     branches:
       - feat/bpmn-print-engine-architecture
+      - feat/bpmn-print-engine-pizza-store-reference
     paths:
       - "packages/bpmn-print-engine/**"
       - ".github/workflows/bpmn-print-engine-fixtures.yml"
