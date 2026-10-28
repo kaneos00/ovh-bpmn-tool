@@ -410,12 +410,17 @@ test('modeler exposes undo/redo controls and guards unsaved navigation', async (
   assert.ok(container.includes('Enregistrer et publier'));
 });
 
-test('version history opens the selected BPMN content in the modeler and RACI icon stays inline', async () => {
+test('modeler action is an icon beside the process link and RACI icon stays inline', async () => {
   const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const hook = await read('src/Containers/ContentModeler/hooks/useContentModeler.ts');
 
-  assert.ok(viewer.includes('Ouvrir dans le modeleur'));
-  assert.ok(viewer.includes('contentId=${encodeURIComponent(content.id)}'));
+  assert.ok(details.includes('title="Ouvrir dans le modeleur"'));
+  assert.ok(details.includes('aria-label="Ouvrir dans le modeleur"'));
+  assert.ok(details.includes('contentId=${encodeURIComponent(publishedContent.id)}'));
+  assert.ok(details.includes('<AccountTreeOutlined />'));
+  assert.ok(details.includes('onContentViewerLinkCopy(publishedContent.id)'));
+  assert.ok(!viewer.includes('Ouvrir dans le modeleur'));
   assert.ok(viewer.includes('flexDirection: \'row\''));
   assert.ok(viewer.includes('<GroupsOutlined fontSize="small" />'));
   assert.ok(hook.includes("searchParams.get('contentId')"));
