@@ -43,7 +43,7 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
     bpmnModelerInstance.attachTo(diagramContainerRef.current);
 
     const commandStack = bpmnModelerInstance.get('commandStack') as any;
-    const eventBus = bpmnModelerInstance.get('eventBus') as any;
+    const commandEventBus = bpmnModelerInstance.get('eventBus') as any;
     const syncCommandStackState = () => {
       setCanUndo(Boolean(commandStack?.canUndo?.()));
       setCanRedo(Boolean(commandStack?.canRedo?.()));
@@ -51,9 +51,9 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
     };
     removeCommandStackListenerRef.current?.();
     savedStackIndexRef.current = Number(commandStack?._stackIdx ?? 0);
-    eventBus.on('commandStack.changed', syncCommandStackState);
+    commandEventBus.on('commandStack.changed', syncCommandStackState);
     syncCommandStackState();
-    removeCommandStackListenerRef.current = () => eventBus.off('commandStack.changed', syncCommandStackState);
+    removeCommandStackListenerRef.current = () => commandEventBus.off('commandStack.changed', syncCommandStackState);
 
     // Apply semantic color markers to the imported BPMN elements in the editor.
     const canvas = bpmnModelerInstance.get('canvas') as any;
