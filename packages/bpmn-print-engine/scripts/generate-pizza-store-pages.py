@@ -129,7 +129,7 @@ def main():
                 else:
                     center = x + w / 2
                     if not (left <= center < right or
-                            (page_index == PAGE_COUNT - 1 and center <= right)):
+                            (page_index == PAGE_COUNT - 1 and left <= center <= right)):
                         plane.remove(child)
                         continue
                     bounds.set("x", f"{offset_x + (x - left) * scale:.3f}")
