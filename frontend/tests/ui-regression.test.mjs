@@ -236,7 +236,7 @@ test('deployed frontend exposes a build identifier with a source-derived fallbac
   assert.ok(compose.includes('VITE_BUILD_BRANCH: ${VITE_BUILD_BRANCH:-${SOURCE_BRANCH:-unknown}}'));
 });
 
-test('V3 viewer context menu keeps navigation and modeler access without management actions', async () => {
+test('viewer context menu restores V2.3 management actions with role gating', async () => {
   const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
   const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
   const menuStart = tree.indexOf('<Menu\n      open={Boolean(contextMenu)}');
@@ -253,13 +253,13 @@ test('V3 viewer context menu keeps navigation and modeler access without managem
   assert.ok(tree.includes('isBpmn && canModifyBpmn'));
   assert.ok(tree.includes('navigate(`/${resourceId}/modeler`)'));
   assert.ok(tree.includes('Modifier dans le modeleur'));
-  assert.ok(!tree.includes('Partager'));
-  assert.ok(!tree.includes("const isAdmin = sessionRole === 'admin'"));
-  assert.ok(!tree.includes('navigate(`/${resourceId}/add?type=folder`)'));
-  assert.ok(!tree.includes('Créer un répertoire'));
-  assert.ok(!tree.includes('navigate(`/${resourceId}/add?type=process`)'));
-  assert.ok(!tree.includes('Créer un processus'));
-  assert.ok(!tree.includes('Supprimer'));
+  assert.ok(tree.includes('Partager'));
+  assert.ok(tree.includes("const isAdmin = sessionRole === 'admin'"));
+  assert.ok(tree.includes('navigate(`/${resourceId}/add?type=folder`)'));
+  assert.ok(tree.includes('Créer un répertoire'));
+  assert.ok(tree.includes('navigate(`/${resourceId}/add?type=process`)'));
+  assert.ok(tree.includes('Créer un processus'));
+  assert.ok(tree.includes('Supprimer'));
   assert.ok(viewer.includes('KHI Flows'));
   assert.ok(viewer.includes('Version de build'));
 });
@@ -297,7 +297,7 @@ test('viewer element details editing is permission-gated and saves title, descri
 });
 
 
-test('V3 explorer does not expose resource-management actions or deletion routes', async () => {
+test('explorer restores V2.3 resource-management actions and routes', async () => {
   const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
   const routes = await read('src/routes.tsx');
   const processActions = await read('src/Containers/BpmnLayout/components/BusinessProcessActions.tsx');
@@ -305,16 +305,17 @@ test('V3 explorer does not expose resource-management actions or deletion routes
 
   assert.ok(tree.includes('Ouvrir'));
   assert.ok(tree.includes('Modifier dans le modeleur'));
-  assert.ok(!tree.includes('Supprimer'));
-  assert.ok(!tree.includes('/share'));
-  assert.ok(!tree.includes('/add?type=folder'));
-  assert.ok(!tree.includes('/add?type=process'));
-  assert.ok(!routes.includes("path: '/:resourceId/delete'"));
-  assert.ok(!routes.includes("path: '/:resourceId/share'"));
-  assert.ok(processActions.includes('Ouvrir le modeleur BPMN'));
-  assert.ok(!processActions.includes('Comments'));
-  assert.ok(!processActions.includes('Edit Business Process'));
-  assert.ok(folderActions.includes('=> null'));
+  assert.ok(tree.includes('Supprimer'));
+  assert.ok(tree.includes('/share'));
+  assert.ok(tree.includes('/add?type=folder'));
+  assert.ok(tree.includes('/add?type=process'));
+  assert.ok(routes.includes("path: '/:resourceId/delete'"));
+  assert.ok(routes.includes("path: '/:resourceId/share'"));
+  assert.ok(processActions.includes('Model Business Process'));
+  assert.ok(processActions.includes('Comments'));
+  assert.ok(processActions.includes('Edit Business Process'));
+  assert.ok(folderActions.includes('Add a new folder'));
+  assert.ok(folderActions.includes('Add a new business process'));
 });
 
 
