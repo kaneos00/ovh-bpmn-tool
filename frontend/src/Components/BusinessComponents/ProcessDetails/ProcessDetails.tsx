@@ -50,6 +50,30 @@ type ProcessDetailsProps = {
   readOnlyShell?: boolean;
 };
 
+const getContentStatusColor = (status: ContentStatusEnum) => {
+  if (status === ContentStatusEnum.Published) return 'success' as const;
+  if (status === ContentStatusEnum.Draft) return 'warning' as const;
+  return 'neutral' as const;
+};
+
+const getContentStatusLabel = (status: ContentStatusEnum) => {
+  if (status === ContentStatusEnum.Published) return 'Publiée';
+  if (status === ContentStatusEnum.Draft) return 'Brouillon';
+  return 'Obsolète';
+};
+
+const getRaciCellStatusClass = (status: string) => {
+  if (status === 'explicit') return 'raci-status-explicit';
+  if (status === 'inferred') return 'raci-status-inferred';
+  return 'raci-status-missing';
+};
+
+const getRaciCellStatusLabel = (status: string) => {
+  if (status === 'explicit') return 'Explicite';
+  if (status === 'inferred') return 'Inféré';
+  return 'Manquant';
+};
+
 const getElementTypeDescription = (type: string): string => {
   const descriptions: Record<string, string> = {
     task: 'Tâche générique : représente une activité à réaliser dans le processus.',
@@ -566,8 +590,8 @@ export const ProcessDetails = ({
                     <Sheet key={content.id} variant="soft" sx={{ p: 1.5, borderRadius: 'sm' }}>
                       <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
                         <Typography level="title-sm">Version v{content.version ?? 'N/A'}</Typography>
-                        <Chip size="sm" variant="soft" color={content.status === ContentStatusEnum.Published ? 'success' : content.status === ContentStatusEnum.Draft ? 'warning' : 'neutral'}>
-                          {content.status === ContentStatusEnum.Published ? 'Publiée' : content.status === ContentStatusEnum.Draft ? 'Brouillon' : 'Obsolète'}
+                        <Chip size="sm" variant="soft" color={getContentStatusColor(content.status)}>
+                          {getContentStatusLabel(content.status)}
                         </Chip>
                       </Stack>
                       <Typography level="body-sm" textColor="neutral">
@@ -650,8 +674,8 @@ export const ProcessDetails = ({
                         {activity.cells.map(cell => (
                           <td
                             key={cell.role}
-                            className={cell.status === 'explicit' ? 'raci-status-explicit' : cell.status === 'inferred' ? 'raci-status-inferred' : 'raci-status-missing'}
-                            title={cell.status === 'explicit' ? 'Explicite' : cell.status === 'inferred' ? 'Inféré' : 'Manquant'}
+                            className={getRaciCellStatusClass(cell.status)}
+                            title={getRaciCellStatusLabel(cell.status)}
                           >
                             <Box className="raci-cell-code">
                               {cell.codes.length ? cell.codes.map(code => (
@@ -659,7 +683,7 @@ export const ProcessDetails = ({
                               )) : '—'}
                             </Box>
                             <Box className="raci-cell-status">
-                              {cell.status === 'explicit' ? 'Explicite' : cell.status === 'inferred' ? 'Inféré' : 'Manquant'}
+                              {getRaciCellStatusLabel(cell.status)}
                             </Box>
                           </td>
                         ))}
