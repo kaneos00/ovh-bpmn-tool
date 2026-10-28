@@ -128,7 +128,7 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
               >
                 <Box sx={{ minWidth: 0, flex: 1 }}>
                   <Typography level="title-sm" noWrap>
-                    {resource.name}
+                    {childResource.name}
                   </Typography>
                   <Typography level="body-xs" color="neutral">
                     {isFolder ? 'Répertoire' : 'Processus'}
