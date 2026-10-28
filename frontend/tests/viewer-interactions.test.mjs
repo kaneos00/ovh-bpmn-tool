@@ -48,7 +48,7 @@ test('viewer selection recognizes collapsed SubProcesses through their BPMN busi
 test('selection marker is removed before the next selection is applied', async () => {
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
 
-  assert.match(hook, /if \(previousId\) canvas\.removeMarker\(previousId, 'task-selected'\)/);
+  assert.match(hook, /if \(previousId\) \{\s*canvas\.removeMarker\(previousId, 'task-selected'\);/);
   assert.match(hook, /canvas\.addMarker\(targetId, 'task-selected'\)/);
   assert.match(hook, /useEffect\(\(\) => \{\s*applySelectionRef\.current\(\);\s*\}, \[selectedElementId\]\)/);
 });
