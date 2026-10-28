@@ -18,7 +18,6 @@ import {
   Close,
   FolderOutlined,
   GroupsOutlined,
-  AccountTreeOutlined,
   Menu as MenuIcon,
 } from '@mui/icons-material';
 import { useQuery } from 'react-query';
@@ -358,11 +357,7 @@ const ProcessContentViewer = () => {
                     Modifiée le {formatDateTime(content.updatedAt)} par{' '}
                     {content.updatedBy}
                   </Typography>
-                  {canOpenModeler && (
-                    <Button size="sm" variant="outlined" color="neutral" startDecorator={<AccountTreeOutlined fontSize="small" />} onClick={() => navigate(`/${resourceId}/modeler?contentId=${encodeURIComponent(content.id)}`)}>
-                      Ouvrir dans le modeleur
-                    </Button>
-                  )}
+
                 </Sheet>
               ))}
             </Stack>
