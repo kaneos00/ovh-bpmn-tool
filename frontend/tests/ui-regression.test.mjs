@@ -312,6 +312,7 @@ test('V3 explorer exposes administrator management actions and their routes', as
   assert.ok(routes.includes("path: '/:resourceId/delete'"));
   assert.ok(routes.includes("path: '/:resourceId/share'"));
   assert.ok(routes.includes("path: '/:resourceId/add'"));
+  assert.ok(routes.includes("path: '/:resourceId/publish'"));
   assert.ok(processActions.includes('Ouvrir le modeleur BPMN'));
   assert.ok(!processActions.includes('Comments'));
   assert.ok(!processActions.includes('Edit Business Process'));
