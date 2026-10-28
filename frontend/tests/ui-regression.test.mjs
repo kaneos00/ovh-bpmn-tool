@@ -367,7 +367,7 @@ test('Viewer version status badges have distinct colors and version actions are 
   assert.match(details, /const getContentStatusColor = \(status: ContentStatusEnum\) => \{[\s\S]*?status === ContentStatusEnum\.Published\) return 'success'[\s\S]*?status === ContentStatusEnum\.Draft\) return 'warning'[\s\S]*?return 'neutral'/);
   assert.ok(details.includes('canManageVersions={canManageVersions}'));
   assert.ok(list.includes('canManageVersions = false'));
-  assert.ok(list.includes('...(!canManageVersions'));
+  assert.ok(list.includes('if (!canManageVersions) return []'));
   assert.match(tableHook, /let color: 'success' \| 'warning' \| 'neutral' = 'neutral'[\s\S]*?status === ContentStatusEnum\.Published[\s\S]*?color = 'success'[\s\S]*?status === ContentStatusEnum\.Draft[\s\S]*?color = 'warning'/);
 });
 
