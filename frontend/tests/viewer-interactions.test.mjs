@@ -48,7 +48,7 @@ test('viewer selection recognizes collapsed SubProcesses through their BPMN busi
 test('selection marker is removed before the next selection is applied', async () => {
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
 
-  assert.match(hook, /if \(previousId\) canvas\.removeMarker\(previousId, 'task-selected'\)/);
+  assert.match(hook, /if \(previousId\) \{\s*canvas\.removeMarker\(previousId, 'task-selected'\);/);
   assert.match(hook, /canvas\.addMarker\(targetId, 'task-selected'\)/);
   assert.match(hook, /useEffect\(\(\) => \{\s*applySelectionRef\.current\(\);\s*\}, \[selectedElementId\]\)/);
 });
@@ -228,4 +228,28 @@ test('global annotation search labels text annotations as Description and carrie
   assert.match(navigation, /const elementId = isTextAnnotation \? element\.getAttribute\('id'\) \|\| undefined : undefined/);
   assert.match(navigation, /resourceId: process\.id,[\s\S]*?elementId,/);
   assert.match(navigation, /if \(result\.elementId\) params\.set\('elementId', result\.elementId\)/);
+});
+
+test('authorized roles can edit the central element sheet in the Viewer shell', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  assert.ok(details.includes("const canEditDescription = sessionRole === 'admin' || sessionRole === 'modeler';"));
+  assert.ok(details.includes('canEditDescription && !isEditingDescription'));
+});
+
+test('selection outline excludes BPMN label and text elements', async () => {
+  const css = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
+  assert.ok(css.includes('.djs-element.task-selected:not(.djs-label)'));
+  assert.ok(css.includes('.djs-element.selected:not(.djs-label)'));
+  assert.ok(css.includes(':not(text):not(tspan)'));
+});
+
+test('administrator explorer context menu restores folder and resource actions', async () => {
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+  assert.ok(tree.includes("const isAdmin = sessionRole === 'admin';"));
+  assert.ok(tree.includes('Créer un répertoire'));
+  assert.ok(tree.includes('type=folder'));
+  assert.ok(tree.includes('Créer un processus'));
+  assert.ok(tree.includes('type=process'));
+  assert.ok(tree.includes('Partager'));
+  assert.ok(tree.includes('Supprimer'));
 });

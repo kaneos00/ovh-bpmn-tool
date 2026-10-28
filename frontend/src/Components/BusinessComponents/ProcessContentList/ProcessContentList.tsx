@@ -15,6 +15,7 @@ type ProcessContentListProps = {
   onContentErase: (contentId: string) => void;
   onContentClone: (contentId: string) => void;
   onContentChecked: (contentIds: string[]) => void;
+  canManageVersions?: boolean;
 };
 
 export const ProcessContentList = ({
@@ -23,6 +24,7 @@ export const ProcessContentList = ({
   onContentErase,
   onContentClone,
   onContentChecked,
+  canManageVersions = false,
 }: ProcessContentListProps) => {
   const {
     table,
@@ -33,38 +35,43 @@ export const ProcessContentList = ({
   } = useProcessContentList(contents);
 
   const getContentActions = (content: Content) => {
+    if (!canManageVersions) return [];
+
+    if (content.status === ContentStatusEnum.Draft) {
+      return [
+        {
+          id: `publish_${content.id}`,
+          label: 'Publish',
+          icon: <Publish fontSize="small" />,
+          onClick: () => onContentPublish(content.id),
+        },
+        {
+          id: `erase_${content.id}`,
+          label: 'Erase',
+          icon: <Delete fontSize="small" />,
+          onClick: () => onContentErase(content.id),
+        },
+      ];
+    }
+
     return [
-      ...(content.status !== ContentStatusEnum.Draft
+      ...(content.status === ContentStatusEnum.Obsolete
         ? [
-            {
-              id: `clone_${content.id}`,
-              label: 'Clone',
-              icon: <FileCopy fontSize="small" />,
-              onClick: () => {
-                onContentClone(content.id);
-              },
-              disabled: hasDraft,
-            },
-          ]
-        : [
-            {
-              id: `publish_${content.id}`,
-              label: 'Publish',
-              icon: <Publish fontSize="small" />,
-              onClick: () => {
-                onContentPublish(content.id);
-              },
-              // disabled: hasDraftLintError,
-            },
             {
               id: `erase_${content.id}`,
               label: 'Erase',
               icon: <Delete fontSize="small" />,
-              onClick: () => {
-                onContentErase(content.id);
-              },
+              onClick: () => onContentErase(content.id),
             },
-          ]),
+          ]
+        : []),
+      {
+        id: `clone_${content.id}`,
+        label: 'Clone',
+        icon: <FileCopy fontSize="small" />,
+        onClick: () => onContentClone(content.id),
+        disabled: hasDraft,
+      },
     ];
   };
 

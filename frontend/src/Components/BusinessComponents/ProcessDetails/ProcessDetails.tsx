@@ -17,7 +17,7 @@ import {
   Textarea,
   Typography,
 } from '@mui/joy';
-import { ArrowBack, ArrowForward, Compare, FileCopy, ChevronLeft, ChevronRight, FolderOutlined, EditOutlined } from '@mui/icons-material';
+import { ArrowBack, ArrowForward, Compare, FileCopy, ChevronLeft, ChevronRight, FolderOutlined, EditOutlined, CenterFocusStrong } from '@mui/icons-material';
 import { useQuery, useQueryClient } from 'react-query';
 
 import { useProcessDetails } from './hooks/useProcessDetails';
@@ -34,6 +34,7 @@ import { ConditionalRender } from '../../../Components/GenericComponents/Conditi
 import { DropZone } from '../../../Components/GenericComponents/DropZone/DropZone';
 import { ContentStatusEnum } from '../../../Types';
 
+import '../../../raci.css';
 import './ProcessDetails.scss';
 
 type ProcessDetailsProps = {
@@ -47,6 +48,30 @@ type ProcessDetailsProps = {
   selectedElementId?: string | null;
   onElementSelect?: (elementId: string) => void;
   readOnlyShell?: boolean;
+};
+
+const getContentStatusColor = (status: ContentStatusEnum) => {
+  if (status === ContentStatusEnum.Published) return 'success' as const;
+  if (status === ContentStatusEnum.Draft) return 'warning' as const;
+  return 'neutral' as const;
+};
+
+const getContentStatusLabel = (status: ContentStatusEnum) => {
+  if (status === ContentStatusEnum.Published) return 'Publiée';
+  if (status === ContentStatusEnum.Draft) return 'Brouillon';
+  return 'Obsolète';
+};
+
+const getRaciCellStatusClass = (status: string) => {
+  if (status === 'explicit') return 'raci-status-explicit';
+  if (status === 'inferred') return 'raci-status-inferred';
+  return 'raci-status-missing';
+};
+
+const getRaciCellStatusLabel = (status: string) => {
+  if (status === 'explicit') return 'Explicite';
+  if (status === 'inferred') return 'Inféré';
+  return 'Manquant';
 };
 
 const getElementTypeDescription = (type: string): string => {
@@ -129,13 +154,15 @@ export const ProcessDetails = ({
   const queryClient = useQueryClient();
   const { showAlert } = useSnackbar();
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
+  const [activeViewerTab, setActiveViewerTab] = useState(0);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState('');
   const [titleDraft, setTitleDraft] = useState('');
   const [urlDraft, setUrlDraft] = useState('');
   const [raciDraft, setRaciDraft] = useState<Record<string, RaciCode[]>>({});
   const [isSavingDescription, setIsSavingDescription] = useState(false);
-  const canEditDescription = !readOnlyShell && (sessionRole === 'admin' || sessionRole === 'modeler');
+  const canEditDescription = sessionRole === 'admin' || sessionRole === 'modeler';
+  const canManageVersions = sessionRole === 'admin' || sessionRole === 'modeler';
 
   useEffect(() => {
     let mounted = true;
@@ -394,16 +421,10 @@ export const ProcessDetails = ({
   }
 
   return (
-    <Box className="processViewerLayout">
-      <Tabs defaultValue={0} className="processViewerTabs">
-        <TabList sticky="top">
-          <Tab value={0}>Vue du processus</Tab>
-          <Tab value={1}>Historique des versions</Tab>
-          <Tab value={2}>RACI</Tab>
-        </TabList>
-
-        <TabPanel value={0} className="processViewerTabPanel processViewerProcessTab">
-          <Box className="processViewerWorkspace" style={{ "--explorer-width": `${explorerWidth}px`, "--task-panel-width": `${taskPanelWidth}px` } as React.CSSProperties}>
+    <Box
+      className="processViewerLayout processViewerWorkspace"
+      style={{ "--explorer-width": `${explorerWidth}px`, "--task-panel-width": `${taskPanelWidth}px` } as React.CSSProperties}
+    >
           <Sheet
             className={`processExplorerPanel ${explorerCollapsed ? 'collapsed' : ''}`}
             variant="outlined"
@@ -488,6 +509,16 @@ export const ProcessDetails = ({
               onMouseDown={event => startPanelResize('explorer', event)}
             />
           )}
+
+      <Tabs value={activeViewerTab} onChange={(_, value) => setActiveViewerTab(Number(value))} className="processViewerTabs">
+        <TabList sticky="top">
+          <Tab value={0}>Vue du processus</Tab>
+          <Tab value={1}>Historique des versions</Tab>
+          <Tab value={2}>RACI</Tab>
+        </TabList>
+
+
+        <TabPanel value={0} className="processViewerTabPanel processViewerProcessTab">
           <Sheet className="processViewerDiagram" variant="outlined">
             {publishedContent ? (
               <>
@@ -538,6 +569,156 @@ export const ProcessDetails = ({
             )}
           </Sheet>
 
+
+        </TabPanel>
+        <TabPanel value={1} className="processViewerTabPanel">
+          <Sheet className="processViewerInfo" variant="outlined">
+            <Stack spacing={1.5} className="processViewerInfoHeader">
+              <Typography level="title-lg">Historique des versions</Typography>
+              {publishedContent && (
+                <Typography level="body-sm">
+                  Dernière version publiée : v{publishedContent.version ?? 'N/A'} —{' '}
+                  {publishedContent.updatedBy}
+                </Typography>
+              )}
+            </Stack>
+            <Divider />
+            <Stack spacing={1} padding={1}>
+              {readOnlyShell && !canManageVersions ? (
+                <>
+                  {contents.map(content => (
+                    <Sheet key={content.id} variant="soft" sx={{ p: 1.5, borderRadius: 'sm' }}>
+                      <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                        <Typography level="title-sm">Version v{content.version ?? 'N/A'}</Typography>
+                        <Chip size="sm" variant="soft" color={getContentStatusColor(content.status)}>
+                          {getContentStatusLabel(content.status)}
+                        </Chip>
+                      </Stack>
+                      <Typography level="body-sm" textColor="neutral">
+                        {content.updatedBy ? `Modifiée par : ${content.updatedBy}` : 'Auteur non renseigné'}
+                      </Typography>
+                    </Sheet>
+                  ))}
+                  {!contents.length && (
+                    <Typography level="body-sm" textColor="neutral">Aucune version disponible.</Typography>
+                  )}
+                </>
+              ) : (
+                <>
+                  <ConditionalRender condition={Boolean(draftContent) || Boolean(publishedContent)}>
+                    <Stack direction="row" justifyContent="flex-end">
+                      <IconButton
+                        title="Comparer les versions"
+                        variant="plain"
+                        color="neutral"
+                        size="sm"
+                        disabled={isCompareDisabled}
+                        onClick={() =>
+                          onCompareClick(contentIdsToCompare[0], contentIdsToCompare[1])
+                        }
+                      >
+                        <Compare />
+                      </IconButton>
+                    </Stack>
+                    <ProcessContentList
+                      contents={contents}
+                      onContentChecked={onContentChecked}
+                      onContentPublish={onContentPublish}
+                      onContentErase={onContentErase}
+                      onContentClone={onContentClone}
+                      canManageVersions={canManageVersions}
+                    />
+                  </ConditionalRender>
+                  <ConditionalRender condition={Boolean(!contents.length)}>
+                    <DropZone onFileUploaded={onFilesUploaded} />
+                  </ConditionalRender>
+                </>
+              )}
+            </Stack>
+          </Sheet>
+        </TabPanel>
+
+        <TabPanel value={2} className="processViewerTabPanel">
+          <Sheet className="processViewerInfo processViewerRaci" variant="outlined">
+            <Box className="raci-header">
+              <Box>
+                <Typography level="title-lg">Matrice RACI</Typography>
+                <Box className="raci-legend" sx={{ mt: 1, flexWrap: 'wrap' }}>
+                  <span><b className="raci-code-badge raci-code-R">R</b> Responsable</span>
+                  <span><b className="raci-code-badge raci-code-A">A</b> Acteur</span>
+                  <span><b className="raci-code-badge raci-code-C">C</b> Consulté</span>
+                  <span><b className="raci-code-badge raci-code-I">I</b> Informé</span>
+                </Box>
+              </Box>
+            </Box>
+            <Box className="raci-table-wrapper processViewerRaciTableWrapper">
+              {raciMatrix.activities.length ? (
+                <table className="raci-table" aria-label="Matrice RACI en lecture seule">
+                  <thead>
+                    <tr>
+                      <th>Activité</th>
+                      {raciMatrix.roles.map(role => <th key={role}>{role}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {raciMatrix.activities.map(activity => (
+                      <tr key={activity.elementId}>
+                        <th className="raci-activity">
+                          <Stack spacing={0.5} alignItems="flex-start">
+                            <Typography level="body-sm">{activity.activity}</Typography>
+                            <IconButton
+                              size="sm"
+                              variant="plain"
+                              color="primary"
+                              title="Voir l’activité dans le BPMN"
+                              aria-label="Voir l’activité dans le BPMN"
+                              onClick={() => { setActiveViewerTab(0); onElementSelect?.(activity.elementId); }}
+                              disabled={!onElementSelect || !activity.elementId}
+                            >
+                              <CenterFocusStrong />
+                            </IconButton>
+                          </Stack>
+                        </th>
+                        {activity.cells.map(cell => (
+                          <td
+                            key={cell.role}
+                            className={getRaciCellStatusClass(cell.status)}
+                            title={getRaciCellStatusLabel(cell.status)}
+                          >
+                            <Box className="raci-cell-code">
+                              {cell.codes.length ? cell.codes.map(code => (
+                                <span key={code} className={`raci-code-badge raci-code-${code}`} title={code}>{code}</span>
+                              )) : '—'}
+                            </Box>
+                            <Box className="raci-cell-status">
+                              {getRaciCellStatusLabel(cell.status)}
+                            </Box>
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <Typography level="body-sm" textColor="neutral" sx={{ p: 2 }}>
+                  {publishedContent
+                    ? 'Aucune activité BPMN détectée dans ce contenu.'
+                    : 'Aucune version publiée.'}
+                </Typography>
+              )}
+            </Box>
+            <Box className="raci-footer processViewerRaciFooter">
+              <span>{raciMatrix.activities.length} activité(s)</span>
+              <span>{raciMatrix.roles.length} acteur(s)</span>
+              <span>{raciAnalysis.issues.length} anomalie(s)</span>
+              <span>🟢 Explicite</span>
+              <span>🟠 Inféré</span>
+              <span>⚪ Manquant</span>
+              <span>Lecture seule dans le Viewer</span>
+            </Box>
+          </Sheet>
+        </TabPanel>
+      </Tabs>
           {publishedContent && !taskPanelCollapsed && (
             <Box
               className="processViewerResizeHandle"
@@ -784,184 +965,7 @@ export const ProcessDetails = ({
               )}
             </Sheet>
           )}
-          </Box>
-        </TabPanel>
 
-        <TabPanel value={1} className="processViewerTabPanel">
-          <Sheet className="processViewerInfo" variant="outlined">
-            <Stack spacing={1.5} className="processViewerInfoHeader">
-              <Typography level="title-lg">Historique des versions</Typography>
-              {publishedContent && (
-                <Typography level="body-sm">
-                  Dernière version publiée : v{publishedContent.version ?? 'N/A'} —{' '}
-                  {publishedContent.updatedBy}
-                </Typography>
-              )}
-            </Stack>
-            <Divider />
-            <Stack spacing={1} padding={1}>
-              {readOnlyShell ? (
-                <>
-                  {contents.map(content => (
-                    <Sheet key={content.id} variant="soft" sx={{ p: 1.5, borderRadius: 'sm' }}>
-                      <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
-                        <Typography level="title-sm">Version v{content.version ?? 'N/A'}</Typography>
-                        <Chip size="sm" variant="soft">
-                          {content.status === ContentStatusEnum.Published ? 'Publiée' : 'Brouillon'}
-                        </Chip>
-                      </Stack>
-                      <Typography level="body-sm" textColor="neutral">
-                        {content.updatedBy ? `Modifiée par : ${content.updatedBy}` : 'Auteur non renseigné'}
-                      </Typography>
-                    </Sheet>
-                  ))}
-                  {!contents.length && (
-                    <Typography level="body-sm" textColor="neutral">Aucune version disponible.</Typography>
-                  )}
-                </>
-              ) : (
-                <>
-                  <ConditionalRender condition={Boolean(draftContent) || Boolean(publishedContent)}>
-                    <Stack direction="row" justifyContent="flex-end">
-                      <IconButton
-                        title="Comparer les versions"
-                        variant="plain"
-                        color="neutral"
-                        size="sm"
-                        disabled={isCompareDisabled}
-                        onClick={() =>
-                          onCompareClick(contentIdsToCompare[0], contentIdsToCompare[1])
-                        }
-                      >
-                        <Compare />
-                      </IconButton>
-                    </Stack>
-                    <ProcessContentList
-                      contents={contents}
-                      onContentChecked={onContentChecked}
-                      onContentPublish={onContentPublish}
-                      onContentErase={onContentErase}
-                      onContentClone={onContentClone}
-                    />
-                  </ConditionalRender>
-                  <ConditionalRender condition={Boolean(!contents.length)}>
-                    <DropZone onFileUploaded={onFilesUploaded} />
-                  </ConditionalRender>
-                </>
-              )}
-            </Stack>
-          </Sheet>
-        </TabPanel>
-
-        <TabPanel value={2} className="processViewerTabPanel">
-          <Sheet className="processViewerInfo" variant="outlined">
-            <Stack spacing={1.5} className="processViewerInfoHeader">
-              <Typography level="title-lg">
-                Matrice RACI · {raciMatrix.activities.length} activités
-              </Typography>
-            </Stack>
-            <Divider />
-
-            {raciMatrix.activities.length ? (
-              <Box sx={{ overflowX: 'auto', maxWidth: '100%' }}>
-                <table
-                  className="processRaciTable"
-                  aria-label="Matrice RACI en lecture seule"
-                  style={{
-                    width: '100%',
-                    borderCollapse: 'collapse',
-                    fontSize: 12,
-                  }}
-                >
-                  <thead>
-                    <tr>
-                      <th style={{ textAlign: 'left', padding: 8 }}>Activité</th>
-                      {raciMatrix.roles.map(role => (
-                        <th key={role} style={{ padding: 8, minWidth: 100 }}>
-                          {role}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {raciMatrix.activities.map(activity => {
-
-                      return (
-                        <tr key={activity.elementId}>
-                          <th
-                            style={{
-                              textAlign: 'left',
-                              padding: 8,
-                              verticalAlign: 'top',
-                              borderTop: '1px solid #ddd',
-                            }}
-                          >
-                            {activity.activity}
-                          </th>
-                          {activity.cells.map(cell => (
-                            <td
-                              key={cell.role}
-                              title={cell.codes.length ? cell.codes.join('/') : 'aucun rôle'}
-                              style={{
-                                padding: 8,
-                                textAlign: 'center',
-                                verticalAlign: 'top',
-                                borderTop: '1px solid #ddd',
-                                opacity: cell.codes.length ? 1 : 0.55,
-                              }}
-                            >
-                              <strong>
-                                {cell.codes.length ? cell.codes.join('/') : '—'}
-                              </strong>
-                            </td>
-                          ))}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </Box>
-            ) : (
-              <Typography level="body-sm" textColor="neutral">
-                {publishedContent
-                  ? 'Aucune activité BPMN détectée dans ce contenu.'
-                  : 'Aucune version publiée.'}
-              </Typography>
-            )}
-
-            <Stack
-              direction="row"
-              spacing={1}
-              flexWrap="wrap"
-              useFlexGap
-              sx={{ p: 1 }}
-            >
-              <Typography level="body-xs">
-                {raciMatrix.roles.length} acteur(s)
-              </Typography>
-              <Typography
-                level="body-xs"
-                color={raciAnalysis.issues.length ? 'danger' : 'success'}
-              >
-                {raciAnalysis.issues.length} anomalie(s)
-              </Typography>
-            </Stack>
-
-            {raciAnalysis.unusedActors.length > 0 && (
-              <Sheet variant="soft" color="warning" sx={{ p: 1 }}>
-                <Typography level="title-sm">Acteurs non utilisés</Typography>
-                <Typography level="body-xs">
-                  {raciAnalysis.unusedActors.join(', ')}
-                </Typography>
-              </Sheet>
-            )}
-
-            <Typography level="body-xs" textColor="neutral" sx={{ p: 1 }}>
-              Lecture seule : aucune modification du RACI n'est possible depuis cette vue.
-            </Typography>
-          </Sheet>
-        </TabPanel>
-      </Tabs>
     </Box>
   );
 };

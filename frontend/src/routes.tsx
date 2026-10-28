@@ -34,6 +34,28 @@ export const routes = [
       {
         path: '/:resourceId',
         lazy: () => import('./Containers/BpmnLayout'),
+        children: [
+          {
+            path: '/:resourceId/add',
+            lazy: () => import('./Containers/AddResource'),
+          },
+          {
+            path: '/:resourceId/edit',
+            lazy: () => import('./Containers/EditResource'),
+          },
+          {
+            path: '/:resourceId/share',
+            lazy: () => import('./Containers/ShareResource'),
+          },
+          {
+            path: '/:resourceId/delete',
+            lazy: () => import('./Containers/DeleteResource'),
+          },
+          {
+            path: '/:resourceId/publish',
+            lazy: () => import('./Containers/PublishResource'),
+          },
+        ],
       },
       {
         path: '/:resourceId/modeler',
