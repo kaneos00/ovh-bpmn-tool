@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useActionData, useNavigate, useParams, useSubmit } from 'react-router-dom';
+import { useActionData, useNavigate, useParams, useSearchParams, useSubmit } from 'react-router-dom';
 import { useQuery } from 'react-query';
 
 import type { ContentModelerRouteParams } from '..';
@@ -18,6 +18,8 @@ import { HttpError } from '../../../shared/api/httpError';
 
 export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   const { resourceId } = useParams() as ContentModelerRouteParams;
+  const [searchParams] = useSearchParams();
+  const requestedContentId = searchParams.get('contentId');
   const actionData = useActionData() as Content & ActionResponse;
   const navigate = useNavigate();
 
@@ -65,9 +67,14 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     })[0];
   }, [sourceContents]);
 
+  const selectedContent = useMemo(
+    () => contents?.find(content => content.id === requestedContentId) ?? draftContent,
+    [contents, requestedContentId, draftContent],
+  );
+
   const { data: draftXmlContent } = useQuery({
-    ...getXmlContentQuery(resourceId, draftContent?.id as string),
-    enabled: !!draftContent?.id,
+    ...getXmlContentQuery(resourceId, selectedContent?.id as string),
+    enabled: !!selectedContent?.id,
   });
 
   const onCompareWithSource = useCallback(() => {
@@ -275,6 +282,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   return {
     resourceId,
     draftXmlContent: draftXmlContent ?? '',
+    selectedContent,
     isShortcurtModalOpen,
     actionData,
     setIsShortcurtModalOpen,
