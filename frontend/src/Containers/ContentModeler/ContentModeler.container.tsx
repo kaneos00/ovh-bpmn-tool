@@ -55,7 +55,7 @@ export const Component = () => {
   } = useContentModeler(bpmnModelerInstance);
 
   const { diagramContainerRef, diagramPropertiesRef, hasLintError, isDirty, canUndo, canRedo, undo, redo, markSaved } = useModeler(bpmnModelerInstance, draftXmlContent);
-  const blocker = useBlocker(isDirty);
+  const blocker = useBlocker(({ nextLocation }) => isDirty && nextLocation.pathname === `/${resourceId}`);
 
   useEffect(() => {
     if (!actionData || handledActionDataRef.current === actionData) return;
