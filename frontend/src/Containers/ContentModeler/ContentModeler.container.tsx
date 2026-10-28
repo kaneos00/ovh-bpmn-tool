@@ -69,10 +69,10 @@ export const Component = () => {
       markSaved();
       if (pendingSaveExitRef.current && blocker.state === 'blocked') {
         pendingSaveExitRef.current = false;
-        blocker.proceed();
+        blocker.proceed?.();
       } else if (pendingPublishExitRef.current) {
         pendingPublishExitRef.current = false;
-        if (blocker.state === 'blocked') blocker.reset();
+        if (blocker.state === 'blocked') blocker.reset?.();
         navigate(`/${resourceId}/publish`);
       }
     }
