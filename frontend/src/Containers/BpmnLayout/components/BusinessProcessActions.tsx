@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight } from '@mui/icons-material';
+import { ChevronRight, CommentRounded, Edit } from '@mui/icons-material';
 
 import { ActionButton } from '../../../Components/GenericComponents/ActionButton/ActionButton';
 
@@ -7,14 +7,29 @@ type BusinessProcessActionsProps = {
   onModelerBtnClick: () => void;
 };
 
-/** V3 keeps the Modeler entry point and hides resource-management actions. */
 export const BusinessProcessActions = ({
   onModelerBtnClick,
-}: BusinessProcessActionsProps) => (
-  <ActionButton
-    onClick={onModelerBtnClick}
-    content="Modeleur"
-    label="Ouvrir le modeleur BPMN"
-    rightIcon={<ChevronRight fontSize="small" />}
-  />
-);
+}: BusinessProcessActionsProps) => {
+  return (
+    <>
+      <ActionButton
+        to="./comments"
+        content="Comments"
+        label="Manage comments of Business Process"
+        leftIcon={<CommentRounded fontSize="small" />}
+      />
+      <ActionButton
+        to="./edit"
+        content="Edit"
+        label="Edit Business Process"
+        leftIcon={<Edit fontSize="small" />}
+      />
+      <ActionButton
+        onClick={onModelerBtnClick}
+        content="Modeler"
+        label="Model Business Process"
+        rightIcon={<ChevronRight fontSize="small" />}
+      />
+    </>
+  );
+};
