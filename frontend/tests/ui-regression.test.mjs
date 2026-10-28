@@ -316,3 +316,21 @@ test('viewer context-menu deletion passes the target resource and opens the exis
   assert.ok(hook.includes("submit("));
   assert.ok(action.includes('await deleteResource(targetResourceId as string)'));
 });
+
+
+test('selecting a folder renders its contents instead of an empty folder placeholder', async () => {
+  const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
+  const folderOverview = await read('src/Containers/BpmnLayout/FolderOverview.tsx');
+  const processDetails = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.ok(layout.includes("import { FolderOverview } from './FolderOverview'"));
+  assert.ok(layout.includes('<FolderOverview resource={resource} />'));
+  assert.ok(folderOverview.includes('useQuery<Resource[]>(resourcesQuery())'));
+  assert.ok(folderOverview.includes(".filter(childResource => (childResource.parentId ?? 'root') === resourceId)"));
+  assert.ok(folderOverview.includes('navigate(`/${childResource.id}`)'));
+  assert.ok(folderOverview.includes('{childResource.name}'));
+  assert.ok(folderOverview.includes('Répertoire vide'));
+  assert.ok(folderOverview.includes('{resource.name}'), 'folder heading should display the selected folder name');
+  assert.ok(folderOverview.includes('Aucun descriptif renseigné pour ce répertoire.'));
+  assert.ok(processDetails.includes('useProcessDetails(resourceId'));
+});

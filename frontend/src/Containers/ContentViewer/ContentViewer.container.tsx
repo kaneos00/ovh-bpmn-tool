@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Box,
+  Button,
   Divider,
   IconButton,
   Sheet,
@@ -27,11 +28,13 @@ import { ProcessViewer } from '../../Components/BusinessComponents/ProcessViewer
 import { Breadcrumbs } from '../../Components/GenericComponents/Breadcrumbs/Breadcrumbs';
 import { useBpmnLayoutBreadcrumbs } from '../BpmnLayout/hooks/useBpmnLayoutBreadcrumbs';
 import { useContentViewer } from './hooks/useContentViewer';
+import { Component as ProjectHomeComponent } from '../ProjectViewer/ProjectViewer.container';
 import {
   contentsQuery,
   getXmlContentQuery,
 } from '../../api/contents/contents.queries';
 import { ContentStatusEnum, type Content } from '../../Types';
+import { apiClient } from '../../queryClient';
 import { formatDateTime } from '../../shared/helpers/date';
 import { deriveRaciMatrixFromXml } from '../../extensions/raci-viewer';
 import {
@@ -41,6 +44,13 @@ import {
 import type { RaciCode } from '../../extensions/raci-engine';
 
 import './ContentViewerContainer.scss';
+
+type WorkspaceProjectSummary = {
+  id: string;
+  role: 'viewer' | 'modeler' | 'admin';
+  processes: { resourceId: string }[];
+};
+type WorkspaceSummary = { projects: WorkspaceProjectSummary[] };
 
 const RACICODES: RaciCode[] = ['R', 'A', 'C', 'I'];
 const STATUS_LABELS = {
@@ -55,7 +65,7 @@ const statusMarker = {
   missing: '—',
 } as const;
 
-export const Component = () => {
+const ProcessContentViewer = () => {
   const { resourceId, contentId } = useContentViewer();
   const navigate = useNavigate();
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
@@ -77,6 +87,14 @@ export const Component = () => {
       setInfoPanelOpen(true);
     }
   }, [resourceId, contentId, searchParams]);
+
+  const { data: workspace } = useQuery<WorkspaceSummary>(
+    ['my-workspace'],
+    () => apiClient.get('/projects/me/workspace'),
+  );
+  const associatedProject = workspace?.projects.find(project =>
+    project.processes.some(process => process.resourceId === resourceId),
+  );
 
   const { data: contents = [] } = useQuery(contentsQuery(resourceId));
   const { data: xmlContent } = useQuery(
@@ -252,7 +270,19 @@ export const Component = () => {
                 ).slice(0, 12)}
               </Box>
             </Stack>
-            <Breadcrumbs breadcrumbItems={getBreadCrumbs()} />
+            <Stack direction="row" alignItems="center" spacing={1} useFlexGap flexWrap="wrap">
+              <Breadcrumbs breadcrumbItems={getBreadCrumbs()} />
+              {associatedProject && (
+                <Button
+                  size="sm"
+                  variant="soft"
+                  color="neutral"
+                  onClick={() => navigate(`/projects/${associatedProject.id}/viewer`)}
+                >
+                  Accueil du projet
+                </Button>
+              )}
+            </Stack>
           </Stack>
         </Box>
         <ProcessViewer
@@ -562,6 +592,22 @@ export const Component = () => {
       </Sheet>
     </Box>
   );
+};
+
+ProcessContentViewer.displayName = 'ProcessContentViewer';
+
+export const Component = () => {
+  const { projectId, resourceId, contentId } = useParams<{
+    projectId?: string;
+    resourceId?: string;
+    contentId?: string;
+  }>();
+
+  if (projectId && !resourceId && !contentId) {
+    return <ProjectHomeComponent />;
+  }
+
+  return <ProcessContentViewer />;
 };
 
 Component.displayName = 'ContentViewerContainer';
