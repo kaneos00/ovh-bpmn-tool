@@ -96,6 +96,7 @@ const ProcessContentViewer = () => {
   const associatedProject = workspace?.projects.find(project =>
     project.processes.some(process => process.resourceId === resourceId),
   );
+  const canOpenModeler = associatedProject?.role === 'admin' || associatedProject?.role === 'modeler';
 
   const { data: contents = [] } = useQuery(contentsQuery(resourceId));
   const { data: xmlContent } = useQuery(
@@ -357,9 +358,11 @@ const ProcessContentViewer = () => {
                     Modifiée le {formatDateTime(content.updatedAt)} par{' '}
                     {content.updatedBy}
                   </Typography>
-                  <Button size="sm" variant="outlined" color="neutral" startDecorator={<AccountTreeOutlined fontSize="small" />} onClick={() => navigate(`/${resourceId}/modeler?contentId=${encodeURIComponent(content.id)}`)}>
-                    Ouvrir dans le modeleur
-                  </Button>
+                  {canOpenModeler && (
+                    <Button size="sm" variant="outlined" color="neutral" startDecorator={<AccountTreeOutlined fontSize="small" />} onClick={() => navigate(`/${resourceId}/modeler?contentId=${encodeURIComponent(content.id)}`)}>
+                      Ouvrir dans le modeleur
+                    </Button>
+                  )}
                 </Sheet>
               ))}
             </Stack>
