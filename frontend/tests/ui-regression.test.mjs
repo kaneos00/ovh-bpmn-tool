@@ -334,3 +334,21 @@ test('selecting a folder renders its contents instead of an empty folder placeho
   assert.ok(folderOverview.includes('Aucun descriptif renseigné pour ce répertoire.'));
   assert.ok(processDetails.includes('useProcessDetails(resourceId'));
 });
+
+test('viewer keeps the explorer and task details in side panels while tabs live in the central panel', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const layoutStart = details.indexOf('className="processViewerLayout processViewerWorkspace"');
+  const explorer = details.indexOf('className={`processExplorerPanel');
+  const tabs = details.indexOf('className="processViewerTabs"');
+  const processTab = details.indexOf('value={0} className="processViewerTabPanel processViewerProcessTab"');
+  const historyTab = details.indexOf('value={1} className="processViewerTabPanel"');
+  const raciTab = details.indexOf('value={2} className="processViewerTabPanel"');
+  const tabsClose = details.indexOf('</Tabs>', raciTab);
+  const taskPanel = details.indexOf('className={`processTaskPanel', tabsClose);
+
+  assert.ok(layoutStart >= 0, 'viewer workspace should own the three-column layout');
+  assert.ok(explorer > layoutStart && explorer < tabs, 'explorer must remain to the left of central tabs');
+  assert.ok(tabs < processTab && processTab < historyTab && historyTab < raciTab, 'all three tabs should be grouped in the central panel');
+  assert.ok(tabsClose > raciTab && taskPanel > tabsClose, 'task details must remain in the right-side panel outside the tabs');
+  assert.ok(details.slice(processTab, historyTab).includes('className="processViewerDiagram"'), 'process diagram belongs to the process tab');
+});
