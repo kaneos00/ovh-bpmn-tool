@@ -441,3 +441,19 @@ test('V3 process details exposes a central editable description tab only to auth
   assert.match(details, /<Tab value=\{2\}>Historique des versions<\/Tab>/);
   assert.match(details, /<Tab value=\{3\}>RACI<\/Tab>/);
 });
+
+
+test('V3 central viewer exposes the data inventory and saves it through the existing BPMN content API', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
+
+  assert.match(details, /<Tab value=\{4\}>Inventaire des données<\/Tab>/);
+  assert.match(details, /<TabPanel value=\{4\} className="processViewerTabPanel">[\s\S]*?<DataInventory/s);
+  assert.match(details, /await saveContent\(resourceId, publishedContent\.id, \{ content: updatedXml \}\)/);
+  assert.match(details, /canEdit=\{canEditDescription\}/);
+  assert.match(inventory, /getElementsByTagNameNS\(NS, 'source'\)/);
+  assert.match(inventory, /dataObjectReference.*dataStoreReference/s);
+  assert.match(inventory, /Gestion des accès/);
+  assert.match(inventory, /Personnes autorisées/);
+  assert.match(inventory, /Modalités de restriction/);
+});
