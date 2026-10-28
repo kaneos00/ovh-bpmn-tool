@@ -27,5 +27,13 @@ jobs:
           python-version: "3.12"
       - name: Generate per-page BPMN review fixtures
         run: python3 packages/bpmn-print-engine/scripts/generate-fixtures.py
-      - name: Validate generated BPMN fixtures
+      - name: Generate four A4 portrait pages from Pizza-Store
+        run: python3 packages/bpmn-print-engine/scripts/generate-pizza-store-pages.py
+      - name: Validate generated BPMN fixtures and Pizza-Store pages
         run: python3 -m unittest discover -s packages/bpmn-print-engine/tests -p 'test_*.py' -v
+      - name: Upload generated BPMN page fixtures
+        uses: actions/upload-artifact@v4
+        with:
+          name: pizza-store-a4-portrait-pages
+          path: packages/bpmn-print-engine/tests/fixtures/generated/pizza-store-page-*.bpmn
+          if-no-files-found: error
