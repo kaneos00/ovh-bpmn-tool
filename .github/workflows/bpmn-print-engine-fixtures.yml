@@ -1,5 +1,8 @@
 name: BPMN print engine fixtures
 
+permissions:
+  contents: write
+
 on:
   pull_request:
     branches:
@@ -32,6 +35,16 @@ jobs:
         run: python3 packages/bpmn-print-engine/scripts/generate-pizza-store-pages.py
       - name: Validate generated BPMN fixtures and Pizza-Store pages
         run: python3 -m unittest discover -s packages/bpmn-print-engine/tests -p 'test_*.py' -v
+      - name: Publish generated two-page BPMN files to the branch
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/bpmn-print-engine/tests/fixtures/generated/pizza-store-page-*.bpmn
+          if ! git diff --cached --quiet; then
+            git commit -m "test(bpmn-print-engine): publish generated portrait pages"
+            git push
+          fi
       - name: Upload generated BPMN page fixtures
         uses: actions/upload-artifact@v4
         with:
