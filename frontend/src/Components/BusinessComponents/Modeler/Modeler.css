@@ -136,14 +136,10 @@
   display: none !important;
 }
 
-/* Selected activities are highlighted consistently from the tree, diagram, and RACI. */
-.djs-element.task-selected .djs-visual > * {
-  stroke: #1976d2 !important;
-  stroke-width: 4px !important;
-  filter: drop-shadow(0 0 2px rgba(25, 118, 210, 0.35));
-}
-
-.djs-element.selected .djs-visual > * {
+/* Highlight the BPMN shape only. Labels are separate diagram-js elements and must
+   keep their normal text rendering when a task is selected from the RACI or tree. */
+.djs-element.task-selected:not(.djs-label) .djs-visual > :not(text):not(tspan),
+.djs-element.selected:not(.djs-label) .djs-visual > :not(text):not(tspan) {
   stroke: #1976d2 !important;
   stroke-width: 4px !important;
   filter: drop-shadow(0 0 2px rgba(25, 118, 210, 0.35));
