@@ -318,19 +318,24 @@ test('viewer context-menu deletion passes the target resource and opens the exis
 });
 
 
-test('selecting a folder renders its contents instead of an empty folder placeholder', async () => {
+test('FolderOverview keeps folder navigation separate from explicit project routes', async () => {
   const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
   const folderOverview = await read('src/Containers/BpmnLayout/FolderOverview.tsx');
-  const processDetails = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const contentViewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+  const processOverview = await read('src/Containers/BpmnLayout/ProjectProcessOverview.tsx');
 
   assert.ok(layout.includes("import { FolderOverview } from './FolderOverview'"));
   assert.ok(layout.includes('<FolderOverview resource={resource} />'));
-  assert.ok(folderOverview.includes('useQuery<Resource[]>(resourcesQuery())'));
-  assert.ok(folderOverview.includes(".filter(childResource => (childResource.parentId ?? 'root') === resourceId)"));
-  assert.ok(folderOverview.includes('navigate(`/${childResource.id}`)'));
-  assert.ok(folderOverview.includes('{childResource.name}'));
-  assert.ok(folderOverview.includes('Répertoire vide'));
-  assert.ok(folderOverview.includes('{resource.name}'), 'folder heading should display the selected folder name');
-  assert.ok(folderOverview.includes('Aucun descriptif renseigné pour ce répertoire.'));
-  assert.ok(processDetails.includes('useProcessDetails(resourceId'));
+  assert.ok(folderOverview.includes('const projectId = projectIdProp ?? \'\''));
+  assert.ok(folderOverview.includes('{ enabled: Boolean(projectIdProp) }'));
+  assert.ok(folderOverview.includes("apiClient.get(`/projects/${projectId}`)"));
+  assert.ok(folderOverview.includes('if (resource && !projectIdProp)'));
+  assert.ok(folderOverview.includes('folderChildren.map((child)'));
+  assert.ok(folderOverview.includes('Impossible de charger le contenu de ce répertoire.'));
+  assert.ok(folderOverview.includes('Description du projet'));
+  assert.ok(folderOverview.includes('<ProjectProcessOverview processes={processes} />'));
+  assert.ok(contentViewer.includes("import { FolderOverview as ProjectHomeComponent } from '../BpmnLayout/FolderOverview'"));
+  assert.ok(contentViewer.includes('<ProjectHomeComponent projectId={projectId} />'));
+  assert.ok(processOverview.includes('Processus du projet'));
+  assert.ok(processOverview.includes('Dernières modifications'));
 });
