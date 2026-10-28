@@ -28,7 +28,7 @@ import { ProcessViewer } from '../../Components/BusinessComponents/ProcessViewer
 import { Breadcrumbs } from '../../Components/GenericComponents/Breadcrumbs/Breadcrumbs';
 import { useBpmnLayoutBreadcrumbs } from '../BpmnLayout/hooks/useBpmnLayoutBreadcrumbs';
 import { useContentViewer } from './hooks/useContentViewer';
-import { Component as ProjectHomeComponent } from '../ProjectViewer/ProjectViewer.container';
+import { FolderOverview as ProjectHomeComponent } from '../BpmnLayout/FolderOverview';
 import {
   contentsQuery,
   getXmlContentQuery,
@@ -604,7 +604,7 @@ export const Component = () => {
   }>();
 
   if (projectId && !resourceId && !contentId) {
-    return <ProjectHomeComponent />;
+    return <ProjectHomeComponent projectId={projectId} />;
   }
 
   return <ProcessContentViewer />;
