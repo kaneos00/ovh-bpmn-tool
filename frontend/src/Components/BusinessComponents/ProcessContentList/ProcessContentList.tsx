@@ -35,40 +35,33 @@ export const ProcessContentList = ({
   } = useProcessContentList(contents);
 
   const getContentActions = (content: Content) => {
+    if (!canManageVersions) return [];
+
+    if (content.status !== ContentStatusEnum.Draft) {
+      return [
+        {
+          id: `clone_${content.id}`,
+          label: 'Clone',
+          icon: <FileCopy fontSize="small" />,
+          onClick: () => onContentClone(content.id),
+          disabled: hasDraft,
+        },
+      ];
+    }
+
     return [
-      ...(!canManageVersions
-        ? []
-        : content.status !== ContentStatusEnum.Draft
-        ? [
-            {
-              id: `clone_${content.id}`,
-              label: 'Clone',
-              icon: <FileCopy fontSize="small" />,
-              onClick: () => {
-                onContentClone(content.id);
-              },
-              disabled: hasDraft,
-            },
-          ]
-        : [
-            {
-              id: `publish_${content.id}`,
-              label: 'Publish',
-              icon: <Publish fontSize="small" />,
-              onClick: () => {
-                onContentPublish(content.id);
-              },
-              // disabled: hasDraftLintError,
-            },
-            {
-              id: `erase_${content.id}`,
-              label: 'Erase',
-              icon: <Delete fontSize="small" />,
-              onClick: () => {
-                onContentErase(content.id);
-              },
-            },
-          ]),
+      {
+        id: `publish_${content.id}`,
+        label: 'Publish',
+        icon: <Publish fontSize="small" />,
+        onClick: () => onContentPublish(content.id),
+      },
+      {
+        id: `erase_${content.id}`,
+        label: 'Erase',
+        icon: <Delete fontSize="small" />,
+        onClick: () => onContentErase(content.id),
+      },
     ];
   };
 
