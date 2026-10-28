@@ -10,7 +10,9 @@
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "fixtures:generate": "python3 scripts/generate-fixtures.py",
-    "test:fixtures": "python3 -m unittest discover -s tests -p 'test_*.py' -v"
+    "test:fixtures": "python3 -m unittest discover -s tests -p 'test_*.py' -v",
+    "pizza:pages:generate": "python3 scripts/generate-pizza-store-pages.py",
+    "test:pizza:pages": "python3 -m unittest discover -s tests -p 'test_pizza_store_pages.py' -v"
   },
   "devDependencies": {
     "typescript": "^5.5.4"
