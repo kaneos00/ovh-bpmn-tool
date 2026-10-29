@@ -56,6 +56,14 @@ describe("BPMN XML adapter", () => {
     const result = await verifyBpmnXml(noLaneShape);
     assert.ok(result.warnings.some(message => message.includes("no BPMN-DI bounds")));
   });
+  it("assigns an unreferenced shape to its containing lane when unambiguous", async () => {
+    const withData = fixture
+      .replace('<bpmn:task id="Task_C" name="Gamma"/>', '<bpmn:task id="Task_C" name="Gamma"/><bpmn:dataObject id="DataObject_1"/><bpmn:dataObjectReference id="DataRef" dataObjectRef="DataObject_1" name="Input data"/>')
+      .replace('<bpmndi:BPMNShape id="Task_C_di" bpmnElement="Task_C"><dc:Bounds x="80" y="120" width="100" height="80"/></bpmndi:BPMNShape>', '<bpmndi:BPMNShape id="Task_C_di" bpmnElement="Task_C"><dc:Bounds x="80" y="120" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="DataRef_di" bpmnElement="DataRef"><dc:Bounds x="450" y="20" width="36" height="50"/></bpmndi:BPMNShape>');
+    const result = await prettifyBpmnXml(withData, { alignElements: false, equalizeLaneCrossAxisSize: false });
+    assert.equal(result.layout.diagram.elements.find(element => element.id === "DataRef")?.laneId, "Lane_A");
+  });
+
   it("parses and serializes a real repository BPMN fixture", async () => {
     const fixturePath = new URL("../../../frontend/tests/fixtures/Parking%20(copie)_v9.bpmn", import.meta.url);
     const realXml = await readFile(fileURLToPath(fixturePath), "utf8");
