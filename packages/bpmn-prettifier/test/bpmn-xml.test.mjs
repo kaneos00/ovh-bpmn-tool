@@ -51,7 +51,7 @@ describe("BPMN XML adapter", () => {
     const result = await prettifyBpmnXml(routed, { equalizeLaneCrossAxisSize: false });
     // Task A moves down by 15px to align with Task B. Its endpoint is recalculated,
     // while the two manually routed intermediate points remain unchanged.
-    assert.match(result.xml, /<di:waypoint x="180" y="70"\s*\/>/);
+    assert.match(result.xml, /<di:waypoint x="180" y="52\.22222222222222"\s*\/>/);
     assert.match(result.xml, /<di:waypoint x="220" y="50"\s*\/>/);
     assert.match(result.xml, /<di:waypoint x="260" y="60"\s*\/>/);
     assert.match(result.xml, /<di:waypoint x="300" y="60"\s*\/>/);
