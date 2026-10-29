@@ -30,6 +30,23 @@ const edgeWaypointCount = (definitions) => (definitions.diagrams ?? [])
   .filter(e => e.$type === "bpmndi:BPMNEdge")
   .reduce((total, edge) => total + (edge.waypoint?.length ?? 0), 0);
 
+const shapeByElementId = (definitions, id) => (definitions.diagrams ?? [])
+  .flatMap(d => d.plane?.planeElement ?? [])
+  .find(e => e.$type === "bpmndi:BPMNShape" && e.bpmnElement?.id === id);
+
+const assertOrthogonalEdges = (definitions) => {
+  const edges = (definitions.diagrams ?? []).flatMap(d => d.plane?.planeElement ?? [])
+    .filter(e => e.$type === "bpmndi:BPMNEdge");
+  for (const edge of edges) {
+    for (let index = 1; index < (edge.waypoint ?? []).length; index++) {
+      const a = edge.waypoint[index - 1];
+      const b = edge.waypoint[index];
+      assert.ok(Math.abs(a.x - b.x) < 0.001 || Math.abs(a.y - b.y) < 0.001,
+        `edge ${edge.bpmnElement?.id ?? edge.id} should use right-angle segments`);
+    }
+  }
+};
+
 const semanticSignature = (xml) => ({
   ids: [...xml.matchAll(/<(?:bpmn2?|bpmn):([\w]+)\b([^>]*)>/g)]
     .map(m => ({ type: m[1], id: m[2].match(/\bid="([^"]+)"/)?.[1] }))
@@ -62,6 +79,11 @@ describe("Pizza Store real-world BPMN orientation conversion", () => {
     assert.ok(verticalParticipants.every(shape => shape.isHorizontal === false),
       "participant orientation flags must match vertical bounds");
     assert.ok(edgeWaypointCount(output) > 0, "sequence and message-flow waypoints must be preserved");
+    assertOrthogonalEdges(output);
+    const startShape = shapeByElementId(output, "id-b851067f-7b6d-44a4-974b-24e2aa8ef1c0");
+    const endShape = shapeByElementId(output, "id-b6eb8e6c-d230-44b0-8020-a1c2a7e82c66");
+    assert.ok(startShape.bounds.y < endShape.bounds.y,
+      "vertical conversion must place the process start above its end event");
     for (const lane of outputLanes) {
       assert.ok(lane.width < lane.height, `lane ${lane.id} should be vertical, got ${lane.width}x${lane.height}`);
     }
@@ -83,6 +105,7 @@ describe("Pizza Store real-world BPMN orientation conversion", () => {
     assert.ok(horizontalParticipants.every(shape => shape.isHorizontal === true),
       "participant orientation flags must match horizontal bounds");
     assert.ok(edgeWaypointCount(output) > 0, "round-trip must preserve edge waypoints");
+    assertOrthogonalEdges(output);
     for (const lane of outputLanes) {
       assert.ok(lane.width > lane.height, `lane ${lane.id} should be horizontal, got ${lane.width}x${lane.height}`);
     }
