@@ -25,8 +25,11 @@ import { ProcessContentList } from '../ProcessContentList/ProcessContentList';
 import { ProcessViewer } from '../ProcessViewer';
 import { ViewerExplorerPanel } from '../ViewerExplorerPanel/ViewerExplorerPanel';
 import { getXmlContentQuery, saveContent } from '../../../api/contents/contents.queries';
-import { resourceSharesQuery } from '../../../api/resources/resources.queries';
-import { updateResource, getResourceQuery } from '../../../api/resources/resources.queries';
+import {
+  resourceSharesQuery,
+  updateResource,
+  getResourceQuery,
+} from '../../../api/resources/resources.queries';
 import { useResource } from '../../../shared/hooks/useResource';
 import { useSnackbar } from '../../../shared/hooks/useSnackbar';
 import {
