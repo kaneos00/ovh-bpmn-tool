@@ -505,6 +505,14 @@ test('ContentViewer renders the URL-selected version rather than silently switch
 });
 
 
+test('ProcessDetails distinguishes an unavailable requested version from a process without published versions', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.ok(details.includes('La version demandée est indisponible ou ne peut pas être consultée.'));
+  assert.ok(details.includes("'No published version'"));
+  assert.match(details, /selectedContentId\s*\?\s*'La version demandée est indisponible ou ne peut pas être consultée\.'\s*:\s*'No published version'/);
+});
+
 test('ProcessDetails never falls back to latest published content for an explicit missing or historical contentId', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
 
