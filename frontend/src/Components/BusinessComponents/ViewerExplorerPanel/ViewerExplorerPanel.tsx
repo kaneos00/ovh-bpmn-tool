@@ -31,9 +31,8 @@ export const ViewerExplorerPanel = ({
     : `processExplorerPanel ${collapsed ? 'collapsed' : ''}`;
   const headerClass = isContentViewer ? 'viewerFolderHeader' : 'processExplorerPanelHeader';
   const contentClass = isContentViewer ? 'viewerFolderTree' : 'processExplorerPanelContent';
-  const toggleIcon = collapsed
-    ? (isContentViewer ? <MenuIcon /> : <ChevronRight />)
-    : <ChevronLeft />;
+  let toggleIcon = <ChevronLeft />;
+  if (collapsed) toggleIcon = isContentViewer ? <MenuIcon /> : <ChevronRight />;
 
   return (
     <Sheet className={panelClass} variant="outlined">
