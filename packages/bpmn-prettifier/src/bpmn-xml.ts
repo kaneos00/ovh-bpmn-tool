@@ -101,7 +101,15 @@ function boundaryPoint(bounds: { x: number; y: number; width: number; height: nu
   const dy = toward.y - cy;
   if (Math.abs(dx) < 0.0001 && Math.abs(dy) < 0.0001) return { x: cx, y: cy };
 
-  if (/Event$|Gateway$/.test(shapeType)) {
+  if (/Gateway$/.test(shapeType)) {
+    // BPMN gateways are diamonds, not ellipses; snap connections to the
+    // diamond perimeter so arrows visibly meet the gateway boundary.
+    const denominator = Math.abs(dx) / (bounds.width / 2) + Math.abs(dy) / (bounds.height / 2);
+    const scale = denominator > 0 ? 1 / denominator : 0;
+    return { x: cx + dx * scale, y: cy + dy * scale };
+  }
+
+  if (/Event$/.test(shapeType)) {
     const rx = bounds.width / 2;
     const ry = bounds.height / 2;
     const denominator = Math.sqrt((dx * dx) / (rx * rx) + (dy * dy) / (ry * ry));
@@ -136,6 +144,40 @@ function updateEdgeEndpoints(definitions: AnyRecord, shapes: Map<string, AnyReco
       const targetToward = di.waypoint.length > 2 ? beforeLast : { x: sourceShape.bounds.x + sourceShape.bounds.width / 2, y: sourceShape.bounds.y + sourceShape.bounds.height / 2 };
       Object.assign(first, boundaryPoint(sourceShape.bounds, sourceToward, sourceShape.bpmnElement?.$type));
       Object.assign(last, boundaryPoint(targetShape.bounds, targetToward, targetShape.bpmnElement?.$type));
+    }
+  }
+}
+
+/**
+ * Ensure each BPMN-DI edge is an orthogonal polyline. Existing routing points are
+ * retained; a right-angle bend is inserted only when a segment is diagonal.
+ */
+function orthogonalizeEdgeWaypoints(definitions: AnyRecord, moddle: BpmnModdle): void {
+  const createPoint = (moddle as unknown as {
+    create: (type: string, attrs: AnyRecord) => AnyRecord
+  }).create.bind(moddle);
+  const epsilon = 0.001;
+  for (const diagram of definitions.diagrams ?? []) {
+    for (const di of diagram.plane?.planeElement ?? []) {
+      if (di.$type !== "bpmndi:BPMNEdge" || !Array.isArray(di.waypoint) || di.waypoint.length < 2) continue;
+      const points: Array<{ x: number; y: number }> = [];
+      const push = (point: { x: number; y: number }) => {
+        const previous = points[points.length - 1];
+        if (!previous || Math.abs(previous.x - point.x) > epsilon || Math.abs(previous.y - point.y) > epsilon) {
+          points.push(createPoint("dc:Point", { x: point.x, y: point.y }) as { x: number; y: number });
+        }
+      };
+      push(di.waypoint[0]);
+      for (let index = 1; index < di.waypoint.length; index++) {
+        const previous = points[points.length - 1]!;
+        const next = di.waypoint[index]!;
+        if (Math.abs(previous.x - next.x) > epsilon && Math.abs(previous.y - next.y) > epsilon) {
+          // Horizontal first, then vertical: the route remains predictable and legible.
+          push({ x: next.x, y: previous.y });
+        }
+        push(next);
+      }
+      di.waypoint = points;
     }
   }
 }
@@ -178,6 +220,7 @@ export async function prettifyBpmnXml(xml: string, options: LayoutRuleOptions = 
     Object.assign(participantShape.bounds, { x: minX, y: minY, width: maxX - minX, height: maxY - minY });
   }
   updateEdgeEndpoints(definitions, shapes, warnings);
+  orthogonalizeEdgeWaypoints(definitions, moddle);
   const serialized = await moddle.toXML(definitions, { format: true });
   return {
     xml: serialized.xml,

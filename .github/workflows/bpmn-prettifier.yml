@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/bpmn-prettifier-engine
+      - feat/bpmn-prettifier-v2-orientation-conversion
     paths:
       - "packages/bpmn-prettifier/**"
       - ".github/workflows/bpmn-prettifier.yml"
@@ -32,3 +33,11 @@ jobs:
         run: npm install
       - name: Build and test independent engine
         run: npm test
+      - name: Generate Pizza Store conversion samples
+        run: node test/generate-pizza-store-samples.mjs
+      - name: Upload converted BPMN samples
+        uses: actions/upload-artifact@v4
+        with:
+          name: pizza-store-orientation-samples
+          path: packages/bpmn-prettifier/test-results/*.bpmn
+          if-no-files-found: error
