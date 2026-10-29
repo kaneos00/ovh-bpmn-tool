@@ -287,13 +287,15 @@ export class ContentController {
   }
 
   @Post('/:contentId/clone')
-  @UseAcl([UserGroup.RW])
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
   async cloneContent(
     @Param() params: CloneContentCommandParams,
     @Headers() headers: Record<string, string>,
   ) {
     const { resourceId, contentId } = params;
-    await this.projectResourceAccess.assertCanEditResource(resourceId, headers);
+    await this.projectResourceAccess.assertCanEditResource(resourceId, headers, {
+      allowCommonForOrganizationAdmin: true,
+    });
 
     const commandResult = await this.cloneContentCommandHandler.execute(
       resourceId,
