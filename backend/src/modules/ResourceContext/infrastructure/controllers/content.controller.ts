@@ -173,9 +173,11 @@ export class ContentController {
     @Body() body: CreateContentBody,
     @Headers() headers: Record<string, string>,
   ) {
-    await this.projectResourceAccess.assertCanEditResource(resourceId, headers, {
-      allowCommonForOrganizationAdmin: true,
-    });
+    await this.projectResourceAccess.assertCanEditResource(
+      resourceId,
+      headers,
+      { allowCommonForOrganizationAdmin: true },
+    );
     const commandResult = await this.createContentCommandHandler.execute({
       ...body,
       resourceId,
@@ -203,9 +205,11 @@ export class ContentController {
     @Headers() headers: Record<string, string>,
   ) {
     const { resourceId, contentId } = params;
-    await this.projectResourceAccess.assertCanEditResource(resourceId, headers, {
-      allowCommonForOrganizationAdmin: true,
-    });
+    await this.projectResourceAccess.assertCanEditResource(
+      resourceId,
+      headers,
+      { allowCommonForOrganizationAdmin: true },
+    );
 
     const commandResult = await this.updateContentCommandHandler.execute(
       resourceId,
@@ -260,9 +264,11 @@ export class ContentController {
     @Headers() headers: Record<string, string>,
   ) {
     const { resourceId, contentId } = params;
-    await this.projectResourceAccess.assertCanEditResource(resourceId, headers, {
-      allowCommonForOrganizationAdmin: true,
-    });
+    await this.projectResourceAccess.assertCanEditResource(
+      resourceId,
+      headers,
+      { allowCommonForOrganizationAdmin: true },
+    );
 
     const commandResult = await this.publishContentCommandHandler.execute(
       resourceId,
@@ -293,9 +299,11 @@ export class ContentController {
     @Headers() headers: Record<string, string>,
   ) {
     const { resourceId, contentId } = params;
-    await this.projectResourceAccess.assertCanEditResource(resourceId, headers, {
-      allowCommonForOrganizationAdmin: true,
-    });
+    await this.projectResourceAccess.assertCanEditResource(
+      resourceId,
+      headers,
+      { allowCommonForOrganizationAdmin: true },
+    );
 
     const commandResult = await this.cloneContentCommandHandler.execute(
       resourceId,
