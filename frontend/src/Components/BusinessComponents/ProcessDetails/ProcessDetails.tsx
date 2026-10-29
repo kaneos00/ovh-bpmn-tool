@@ -151,7 +151,7 @@ export const ProcessDetails = ({
     content => content.id === selectedContentId && content.status !== ContentStatusEnum.Draft,
   ) ?? publishedContent;
   const isHistoricalView = Boolean(
-    viewerContent && publishedContent && viewerContent.id !== publishedContent.id,
+    selectedContentId && viewerContent && viewerContent.id !== publishedContent?.id,
   );
   const xmlContentQuery = getXmlContentQuery(
     resourceId,
