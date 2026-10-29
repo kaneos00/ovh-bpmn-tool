@@ -66,7 +66,9 @@ describe('ThemePreferenceController', () => {
   });
 
   it('stores the selected theme for the authenticated account', async () => {
-    db.query.mockResolvedValueOnce([{ id: 'user-1' }]).mockResolvedValueOnce([]);
+    db.query
+      .mockResolvedValueOnce([{ id: 'user-1' }])
+      .mockResolvedValueOnce([]);
 
     const result = await controller.savePreferences(
       { headers: { cookie: sessionCookie() } } as never,
