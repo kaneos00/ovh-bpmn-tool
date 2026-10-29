@@ -785,7 +785,7 @@ export const ProcessDetails = ({
               onMouseDown={event => startPanelResize('task', event)}
             />
           )}
-          {publishedContent && (
+          {viewerContent && (
             <Sheet
               className={`processTaskPanel ${taskPanelCollapsed ? 'collapsed' : ''}`}
               variant="outlined"
