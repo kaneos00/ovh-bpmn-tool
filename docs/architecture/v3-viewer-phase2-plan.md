@@ -83,7 +83,7 @@ La matrice est un contrat de travail. Les composants et services cités sont ceu
 
 - Phase 1 (#109) : inventaire initial documenté ; la matrice ci-dessus est maintenant formalisée. Les rôles/actions fins restent à caractériser par tests pendant la migration ; ne pas déclarer la phase validée uniquement sur la présence du document.
 - Phase 2 (#110) : branche isolée créée à partir du gel V3. La mise en œuvre doit être incrémentale et CI-gated.
-- CI : les workflows `Validate` et `Frontend regression tests` ont réussi sur `de98241e49b7d8339dd9384f32e8939e0c6993b5`. Le commit qui ajoute le test de version directe doit encore repasser ces workflows. Tests navigateur réels : non exécutés.
+- CI : les workflows `Validate` et `Frontend regression tests` ont réussi sur `e1bd6e555fbd5466fbc61be908f2815984bfd6b7`. Les commits de mutualisation de l'explorateur sont en cours de validation CI. Tests navigateur réels : non exécutés.
 - Déploiement : non effectué.
 
 
@@ -121,11 +121,15 @@ Les workflows `Validate` et `Frontend regression tests` ont réussi sur le commi
 
 Le job `deploy-coolify` est désormais limité aux événements `push` sur `main` et reste conditionné à la variable de dépôt `COOLIFY_DEPLOY_ENABLED=true`. Les pushes de la branche de travail Phase 2 et les événements de pull request exécutent les contrôles CI sans déclencher de déploiement. La dernière tentative antérieure sur cette branche a échoué sur l'appel webhook avec HTTP 405 ; aucun déploiement réussi n'est établi par ce résultat. Le mécanisme webhook doit être vérifié séparément avant de réactiver un déploiement depuis `main`.
 
-### Prochain incrément
+### Mutualisation du panneau explorateur — incrément suivant
 
-1. Exécuter CI sur le dernier commit et corriger tout échec.
-2. Définir la coque commune et migrer la route de contenu vers un seul explorateur, sans perdre le `contentId`, `elementId` ni le paramètre `raci=1`.
-3. Valider en navigateur le nouvel onglet Description et l'Inventaire (édition, annulation, sauvegarde, rechargement et rôles viewer/modeler/admin) ; vérifier explicitement la compatibilité du XML sauvegardé.
+Un composant partagé `ViewerExplorerPanel` a maintenant été extrait et utilisé par `ProcessDetails` et `ContentViewer`. Il centralise le balisage et le comportement commun de l'en-tête, du pliage, de l'arbre `FolderTree` et, dans `ProcessDetails`, des commandes Retour/Suivant. Les deux contextes conservent leurs classes de présentation spécifiques pour limiter le risque de régression visuelle. Un test statique vérifie les deux intégrations et le maintien des callbacks de navigation.
+
+Cette extraction ne signifie pas encore que le Viewer de contenu a été migré dans la coque `BpmnLayout` : les routes, les états de sélection et les panneaux de détail restent distincts. La mutualisation est un pas préparatoire, pas la clôture de la Phase 2.
+
+1. Vérifier la CI du commit courant et corriger tout échec, notamment les tests de contrat structurel qui ont dû être réalignés sur le composant partagé.
+2. Définir une source d'état commune et intégrer progressivement la route de contenu à la coque cible sans perdre `contentId`, `elementId`, `raci=1`, les versions historiques, les permissions ou le panneau droit.
+3. Valider en navigateur le nouvel onglet Description et l'Inventaire (édition, suppression, sauvegarde, rechargement et rôles viewer/modeler/admin) ; vérifier explicitement la compatibilité du XML sauvegardé.
 4. Ajouter des tests de parcours pour dossier → processus → Viewer et liens directs.
-5. Vérifier la compatibilité des métadonnées d'inventaire et documenter leur format XML ; ne pas prétendre à une intégration avec des bases/fichiers externes tant qu'aucune connexion n'existe.
+5. Documenter le format XML des métadonnées d'inventaire ; ne pas prétendre à une intégration avec des bases/fichiers externes tant qu'aucune connexion n'existe.
 6. Ne pas fermer #109 tant que la matrice des routes/rôles et les cas limites n'ont pas été validés.
