@@ -19,6 +19,8 @@ export interface LayoutElement {
   kind: string;
   bounds: Bounds;
   laneId?: string;
+  /** BPMN boundary event attachment; the event should follow its host activity. */
+  attachedToId?: string;
   layoutLocked?: boolean;
 }
 
