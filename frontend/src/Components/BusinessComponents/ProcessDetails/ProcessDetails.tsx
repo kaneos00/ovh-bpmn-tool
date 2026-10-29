@@ -52,6 +52,7 @@ type ProcessDetailsProps = {
   onElementSelect?: (elementId: string) => void;
   selectedContentId?: string | null;
   readOnlyShell?: boolean;
+  requestedRaciView?: boolean;
 };
 
 const getContentStatusColor = (status: ContentStatusEnum) => {
@@ -135,6 +136,7 @@ export const ProcessDetails = ({
   onElementSelect,
   selectedContentId,
   readOnlyShell = false,
+  requestedRaciView = false,
 }: ProcessDetailsProps) => {
   const {
     contents,
@@ -171,6 +173,12 @@ export const ProcessDetails = ({
   const { showAlert } = useSnackbar();
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
   const [activeViewerTab, setActiveViewerTab] = useState(0);
+
+  // Deep links may request the RACI workspace tab. Keep the route authoritative
+  // when navigating to another process or version, without controlling manual tab changes.
+  useEffect(() => {
+    setActiveViewerTab(requestedRaciView ? 3 : 0);
+  }, [resourceId, selectedContentId, requestedRaciView]);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState('');
   const [titleDraft, setTitleDraft] = useState('');
