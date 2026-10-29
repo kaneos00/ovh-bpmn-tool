@@ -72,14 +72,14 @@ describe("BPMN XML adapter", () => {
 
     // Geometry may change, but semantic BPMN IDs and sequence-flow endpoints must not.
     const semanticSignature = (xml) => {
-      const ids = [...xml.matchAll(/<bpmn:([\\w]+)\\b[^>]*\\bid="([^"]+)"/g)]
+      const ids = [...xml.matchAll(/<bpmn:([\w]+)\b[^>]*\bid="([^"]+)"/g)]
         .map(match => `${match[1]}:${match[2]}`).sort();
-      const flows = [...xml.matchAll(/<bpmn:sequenceFlow\\b([^>]*)>/g)]
+      const flows = [...xml.matchAll(/<bpmn:sequenceFlow\b([^>]*)>/g)]
         .map(match => {
           const attrs = match[1];
-          const id = attrs.match(/\\bid="([^"]+)"/)?.[1] ?? "";
-          const source = attrs.match(/\\bsourceRef="([^"]+)"/)?.[1] ?? "";
-          const target = attrs.match(/\\btargetRef="([^"]+)"/)?.[1] ?? "";
+          const id = attrs.match(/\bid="([^"]+)"/)?.[1] ?? "";
+          const source = attrs.match(/\bsourceRef="([^"]+)"/)?.[1] ?? "";
+          const target = attrs.match(/\btargetRef="([^"]+)"/)?.[1] ?? "";
           return `${id}:${source}->${target}`;
         }).sort();
       return { ids, flows };
