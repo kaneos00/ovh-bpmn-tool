@@ -145,14 +145,19 @@ export class ProjectController {
     if (!projectIds.length) return { shared: false, projects: [] };
 
     const userId = this.getUserId(headers);
-    const groupsHeader = this.configService.getOrThrow<string>('userGroupsHeader');
-    const groups = headers[groupsHeader] ?? headers[groupsHeader.toLowerCase()] ?? '';
-    const isOrganizationAdmin = groups.split(',').some((group) =>
-      group.trim().startsWith('bpmn-tool-admin-'),
+    const groupsHeader = this.configService.getOrThrow<string>(
+      'userGroupsHeader',
     );
-    const canSeeProjectNames = isOrganizationAdmin || groups.split(',').some((group) =>
-      group.trim().startsWith('bpmn-tool-readwrite-'),
-    );
+    const groups =
+      headers[groupsHeader] ?? headers[groupsHeader.toLowerCase()] ?? '';
+    const isOrganizationAdmin = groups
+      .split(',')
+      .some((group) => group.trim().startsWith('bpmn-tool-admin-'));
+    const canSeeProjectNames =
+      isOrganizationAdmin ||
+      groups
+        .split(',')
+        .some((group) => group.trim().startsWith('bpmn-tool-readwrite-'));
     const memberships = await this.projectMembers.find({
       where: projectIds.map((projectId) => ({ projectId, userId })),
     });
@@ -848,11 +853,14 @@ export class ProjectController {
     projectId: string,
     headers: RequestHeaders,
   ) {
-    const groupsHeader = this.configService.getOrThrow<string>('userGroupsHeader');
-    const groups = headers[groupsHeader] ?? headers[groupsHeader.toLowerCase()] ?? '';
-    const isOrganizationAdmin = groups.split(',').some((group) =>
-      group.trim().startsWith('bpmn-tool-admin-'),
+    const groupsHeader = this.configService.getOrThrow<string>(
+      'userGroupsHeader',
     );
+    const groups =
+      headers[groupsHeader] ?? headers[groupsHeader.toLowerCase()] ?? '';
+    const isOrganizationAdmin = groups
+      .split(',')
+      .some((group) => group.trim().startsWith('bpmn-tool-admin-'));
     if (isOrganizationAdmin) {
       await this.assertProjectExists(projectId);
       return;
