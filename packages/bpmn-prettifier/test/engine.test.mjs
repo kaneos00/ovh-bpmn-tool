@@ -5,7 +5,7 @@ import { prettifyDiagram, verifyDiagram } from "../dist/index.js";
 const sample = () => ({
   lanes: [
     { id: "lane-a", participantId: "pool-1", orientation: "horizontal", bounds: { x: 0, y: 0, width: 600, height: 100 } },
-    { id: "lane-b", participantId: "pool-1", orientation: "horizontal", bounds: { x: 0, y: 100, width: 600, height: 140 } }
+    { id: "lane-b", participantId: "pool-1", orientation: "horizontal", bounds: { x: 0, y: 300, width: 600, height: 140 } }
   ],
   elements: [
     { id: "task-a", kind: "task", laneId: "lane-a", bounds: { x: 50, y: 20, width: 100, height: 40 } },
@@ -52,4 +52,12 @@ test("is idempotent for the covered alignment rule", () => {
   const first = prettifyDiagram(sample());
   const second = prettifyDiagram(first.diagram);
   assert.deepEqual(second.diagram, first.diagram);
+});
+
+test("does not equalize a lane by creating an overlap with its sibling", () => {
+  const input = sample();
+  input.lanes[1].bounds.y = 100;
+  const result = prettifyDiagram(input, { alignElements: false });
+  assert.equal(result.diagram.lanes[0].bounds.height, 100);
+  assert.ok(result.diagnostics.some(d => d.code === "LANE_SIZE_WOULD_OVERLAP"));
 });
