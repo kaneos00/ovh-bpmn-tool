@@ -144,7 +144,7 @@ function updateEdgeEndpoints(definitions: AnyRecord, shapes: Map<string, AnyReco
  * Ensure each BPMN-DI edge is an orthogonal polyline. Existing routing points are
  * retained; a right-angle bend is inserted only when a segment is diagonal.
  */
-function orthogonalizeEdgeWaypoints(definitions: AnyRecord): void {
+function orthogonalizeEdgeWaypoints(definitions: AnyRecord, moddle: BpmnModdle): void {
   const epsilon = 0.001;
   for (const diagram of definitions.diagrams ?? []) {
     for (const di of diagram.plane?.planeElement ?? []) {
@@ -153,7 +153,7 @@ function orthogonalizeEdgeWaypoints(definitions: AnyRecord): void {
       const push = (point: { x: number; y: number }) => {
         const previous = points[points.length - 1];
         if (!previous || Math.abs(previous.x - point.x) > epsilon || Math.abs(previous.y - point.y) > epsilon) {
-          points.push({ x: point.x, y: point.y });
+          points.push(moddle.create("dc:Point", { x: point.x, y: point.y }) as { x: number; y: number });
         }
       };
       push(di.waypoint[0]);
@@ -209,7 +209,7 @@ export async function prettifyBpmnXml(xml: string, options: LayoutRuleOptions = 
     Object.assign(participantShape.bounds, { x: minX, y: minY, width: maxX - minX, height: maxY - minY });
   }
   updateEdgeEndpoints(definitions, shapes, warnings);
-  orthogonalizeEdgeWaypoints(definitions);
+  orthogonalizeEdgeWaypoints(definitions, moddle);
   const serialized = await moddle.toXML(definitions, { format: true });
   return {
     xml: serialized.xml,
