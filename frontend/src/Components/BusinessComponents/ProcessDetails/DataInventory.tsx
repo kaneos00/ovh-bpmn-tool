@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Button, Chip, Divider, IconButton, Input, Stack, Table, Textarea, Typography } from '@mui/joy';
+import { Box, Button, Chip, IconButton, Input, Stack, Table, Textarea, Typography } from '@mui/joy';
 import { DatasetOutlined, EditOutlined, InsertDriveFileOutlined } from '@mui/icons-material';
 
 export type InventorySource = {

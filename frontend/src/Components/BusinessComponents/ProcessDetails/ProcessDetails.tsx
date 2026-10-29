@@ -65,7 +65,7 @@ type ProcessDetailsProps = {
 const PROCESS_METADATA_NS = 'https://ovh-bpmn-tool.local/schema/process-metadata';
 const PROCESS_TYPES = [
   { value: 'management', label: 'Management', color: 'primary' as const },
-  { value: 'projet', label: 'Projet', color: 'info' as const },
+  { value: 'projet', label: 'Projet', color: 'primary' as const },
   { value: 'operationnel', label: 'Opérationnel', color: 'success' as const },
   { value: 'support', label: 'Support', color: 'neutral' as const },
   { value: 'pilotage', label: 'Pilotage', color: 'warning' as const },
