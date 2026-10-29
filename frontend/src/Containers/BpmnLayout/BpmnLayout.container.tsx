@@ -27,6 +27,7 @@ export const Component = () => {
   const { resourceId } = useParams() as BpmnLayoutRouteParams;
   const [searchParams] = useSearchParams();
   const requestedElementId = searchParams.get('elementId');
+  const requestedContentId = searchParams.get('contentId');
   const navigate = useNavigate();
   const [folderExplorerWidth, setFolderExplorerWidth] = useState(() => {
     const saved = Number(window.localStorage.getItem('bpmn-viewer-explorer-width'));
@@ -150,6 +151,7 @@ export const Component = () => {
                     onCompareClick={callbacks.processDetails.onCompareClick}
                     selectedElementId={selectedElementId}
                     onElementSelect={setSelectedElementId}
+                    selectedContentId={requestedContentId}
                     readOnlyShell
                   />
                 )}
