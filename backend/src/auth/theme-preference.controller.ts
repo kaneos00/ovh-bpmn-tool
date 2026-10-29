@@ -41,7 +41,6 @@ export class ThemePreferenceController {
     if (body?.theme !== 'light' && body?.theme !== 'dark') {
       throw new BadRequestException('Préférence de thème invalide.');
     }
-    await this.ensureTable();
     await this.db.query(
       'INSERT INTO app_user_preferences (user_id, theme, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (user_id) DO UPDATE SET theme = EXCLUDED.theme, updated_at = NOW()',
       [userId, body.theme],
