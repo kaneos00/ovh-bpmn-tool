@@ -298,9 +298,10 @@ jobs:
       - frontend
       - backend
       - coolify-demo
-    # Keep CI independent from Coolify credentials. Opt in to deployment only after
-    # COOLIFY_WEBHOOK_URL and COOLIFY_TOKEN are configured and verified.
-    if: github.event_name == 'push' && vars.COOLIFY_DEPLOY_ENABLED == 'true'
+    # Keep CI independent from Coolify credentials. Never deploy feature/PR branches;
+    # only an opted-in push to main may trigger the Coolify test instance deployment.
+    # Verify COOLIFY_WEBHOOK_URL and COOLIFY_TOKEN before enabling the repository variable.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.COOLIFY_DEPLOY_ENABLED == 'true'
     steps:
       - name: Trigger Coolify deployment
         env:
