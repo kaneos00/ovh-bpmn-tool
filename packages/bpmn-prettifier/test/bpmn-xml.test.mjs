@@ -15,7 +15,7 @@ const fixture = `<?xml version="1.0" encoding="UTF-8"?>
    <bpmn:lane id="Lane_A" name="A"><bpmn:flowNodeRef>Task_A</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_B</bpmn:flowNodeRef></bpmn:lane>
    <bpmn:lane id="Lane_B" name="B"><bpmn:flowNodeRef>Task_C</bpmn:flowNodeRef></bpmn:lane>
   </bpmn:laneSet>
-  <bpmn:task id="Task_A" name="Alpha"/><bpmn:task id="Task_B" name="Beta"/><bpmn:task id="Task_C" name="Gamma"/>
+  <bpmn:task id="Task_A" name="Alpha"/><bpmn:task id="Task_B" name="Beta"/><bpmn:task id="Task_C" name="Gamma"/><bpmn:sequenceFlow id="Flow_AB" sourceRef="Task_A" targetRef="Task_B"/>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_1"><bpmndi:BPMNPlane id="Plane_1" bpmnElement="Process_1">
   <bpmndi:BPMNShape id="Lane_A_di" bpmnElement="Lane_A"><dc:Bounds x="0" y="0" width="600" height="100"/></bpmndi:BPMNShape>
@@ -23,6 +23,7 @@ const fixture = `<?xml version="1.0" encoding="UTF-8"?>
   <bpmndi:BPMNShape id="Task_A_di" bpmnElement="Task_A"><dc:Bounds x="80" y="10" width="100" height="80"/></bpmndi:BPMNShape>
   <bpmndi:BPMNShape id="Task_B_di" bpmnElement="Task_B"><dc:Bounds x="300" y="20" width="100" height="80"/></bpmndi:BPMNShape>
   <bpmndi:BPMNShape id="Task_C_di" bpmnElement="Task_C"><dc:Bounds x="80" y="120" width="100" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNEdge id="Flow_AB_di" bpmnElement="Flow_AB"><di:waypoint x="180" y="50"/><di:waypoint x="300" y="60"/></bpmndi:BPMNEdge>
  </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
 </bpmn:definitions>`;
 
@@ -32,7 +33,11 @@ describe("BPMN XML adapter", () => {
     assert.ok(result.layout.appliedRules.includes("LANE_ELEMENTS_ALIGN_CENTER_Y"));
     assert.ok(result.xml.includes('id="Task_A"'));
     assert.ok(result.xml.includes('name="Alpha"'));
-    assert.ok(result.xml.includes('bpmn:sequenceFlow') === false);
+    assert.ok(result.xml.includes('id="Flow_AB"'));
+    assert.ok(result.xml.includes('sourceRef="Task_A"'));
+    assert.ok(result.xml.includes('targetRef="Task_B"'));
+    assert.ok(result.xml.includes('x="180" y="55"'));
+    assert.ok(result.xml.includes('x="300" y="55"'));
     const verification = await verifyBpmnXml(result.xml);
     assert.equal(verification.valid, true);
     assert.equal(verification.diagnostics.length, 0);
