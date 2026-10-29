@@ -6,29 +6,33 @@ Le moteur est développé en TypeScript dans une branche dédiée, en parallèle
 
 La pagination A4 (#76) est un chantier distinct. Elle ne doit pas embarquer les règles de prettyfication.
 
-## Contrat initial
+## API et adaptateur XML
 
-Entrée : représentation géométrique normalisée du diagramme (lanes, participants, éléments, coordonnées et dimensions).
+- L’API géométrique accepte une représentation normalisée (lanes, participants, éléments, coordonnées et dimensions).
+- `prettifyBpmnXml(xml, options)` lit le BPMN XML avec `bpmn-moddle`, applique les règles au BPMN-DI existant puis sérialise un nouveau document.
+- `verifyBpmnXml(xml)` retourne les diagnostics géométriques et les avertissements de parsing.
+- Le traitement ne modifie pas la chaîne XML fournie par l’appelant et n’écrit aucun fichier.
 
-Sortie : nouvelle représentation sans mutation de l’entrée, liste des règles appliquées et diagnostics structurés.
+L’adaptateur ne crée pas les formes DI manquantes. Il recale les extrémités des BPMNEdge existants sur les limites des formes déplacées, tout en conservant les waypoints intermédiaires. Ce recalage est volontairement minimal : les routes complexes devront être validées sur un corpus plus large.
 
-La couche BPMN-DI (lecture/écriture XML) sera un adaptateur séparé, après audit des bibliothèques et des conventions réellement utilisées dans le dépôt.
-
-## Règles de la première tranche
+## Règles actuelles
 
 - Lane horizontal : alignement vertical des centres des éléments.
 - Lane vertical : alignement horizontal des centres des éléments.
 - Homogénéisation de la dimension transversale des lanes d’un même participant et d’une même orientation (hauteur pour les lanes horizontaux, largeur pour les verticaux).
-- Refus d’une correction qui introduirait un chevauchement ou dépasserait une limite de déplacement configurée.
+- Refus d’un alignement qui introduirait un chevauchement entre éléments ou dépasserait la limite de déplacement configurée.
+- Refus d’un redimensionnement de lane qui chevaucherait une lane sœur ; le déplacement/réagencement des lanes sœurs et du participant n’est pas encore implémenté.
 - Diagnostic des identifiants dupliqués, références de lane manquantes, dimensions invalides, éléments hors lane et chevauchements.
 
-## Garde-fous
+## Garde-fous et limites connues
 
-- Préserver les identifiants et la sémantique BPMN.
+- Préserver les identifiants, références et la sémantique BPMN.
 - Ne jamais écrire dans le document source pendant le calcul.
 - Ne pas appliquer le résultat au Modeleur sans action explicite.
-- Ajouter des fixtures réelles avant de brancher l’adaptateur BPMN-DI.
-- Ne pas considérer cette première tranche comme prête pour intégration utilisateur : elle établit le socle géométrique et le contrat.
+- L’orientation est actuellement inférée à partir du rapport largeur/hauteur des bounds de lane ; cette heuristique doit être testée sur des diagrammes inhabituels.
+- La vérification initiale est géométrique. Elle ne remplace pas un validateur complet de conformité BPMN.
+- Les tests incluent une fixture construite pour les cas ciblés et un test de parsing/réécriture sur un BPMN réel du dépôt.
+- Ce socle n’est pas prêt pour une intégration utilisateur tant que les contraintes géométriques et les connexions ne sont pas suffisamment validées.
 
 ## Phases
 
@@ -36,7 +40,7 @@ La couche BPMN-DI (lecture/écriture XML) sera un adaptateur séparé, après au
 2. Contrat et module TypeScript autonome.
 3. Premières règles géométriques.
 4. Vérificateur et tests CI.
-5. Adaptateur et intégration réversible dans le Modeleur.
+5. Intégration réversible dans le Modeleur.
 6. Extension des règles, mesures et stabilisation.
 
 Les phases 2 à 4 avancent indépendamment de la refonte du site. L’intégration UI attendra un point de raccord stable.
