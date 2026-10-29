@@ -265,11 +265,20 @@ test('V3 viewer context menu exposes role-appropriate resource management action
   assert.ok(viewer.includes('Version de build'));
 });
 
-test('viewer gets a fresh BPMN instance when the selected process or published version changes', async () => {
+test('viewer gets a fresh BPMN instance for the selected published version', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
 
-  assert.ok(details.includes('key={`${resourceId}:${publishedContent.id}`}'));
-  assert.match(details, /key=\{\`\$\{resourceId\}:\$\{publishedContent\.id\}\`\}[\s\S]*?resourceId=\{resourceId\}[\s\S]*?contentId=\{publishedContent\.id\}/);
+  assert.ok(details.includes('key={`${resourceId}:${viewerContent.id}`}'));
+  assert.match(details, /key=\{\`\$\{resourceId\}:\$\{viewerContent\.id\}\`\}[\s\S]*?resourceId=\{resourceId\}[\s\S]*?contentId=\{viewerContent\.id\}/);
+  assert.ok(details.includes('selectedContentId?: string | null'));
+  assert.ok(details.includes('content.id === selectedContentId && content.status === ContentStatusEnum.Published'));
+  assert.ok(details.includes('const isHistoricalView = Boolean('));
+  assert.ok(details.includes('!isHistoricalView && (sessionRole === \'admin\' || sessionRole === \'modeler\')'));
+  assert.ok(details.includes('Afficher cette version'));
+  assert.ok(details.includes('contentId=${encodeURIComponent(content.id)}') || details.includes('contentId=${encodeURIComponent(content.id)}'));
+  assert.ok(layout.includes("searchParams.get('contentId')"));
+  assert.ok(layout.includes('selectedContentId={requestedContentId}'));
 });
 
 test('viewer element details editing is permission-gated and saves title, description, RACI and URL', async () => {
