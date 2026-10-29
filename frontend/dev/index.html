@@ -6,6 +6,16 @@
     <link rel="apple-touch-icon" href="/touchicon-180.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>KHI Flows — Projets, processus et responsabilités</title>
+    <script>
+      try {
+        const savedMode = localStorage.getItem('khi-flows-color-scheme');
+        if (savedMode === 'light' || savedMode === 'dark') {
+          document.documentElement.setAttribute('data-joy-color-scheme', savedMode);
+        }
+      } catch {
+        // Storage may be unavailable; the application falls back to light mode.
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
