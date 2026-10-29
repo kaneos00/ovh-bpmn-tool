@@ -63,6 +63,30 @@ describe("BPMN XML adapter", () => {
     assert.match(result.xml, /id="Participant_1_di"[\s\S]*?x="0" y="0" width="600" height="280"/);
   });
 
+  it("preserves semantic IDs and flow references when prettifying the real fixture", async () => {
+    const fixturePath = new URL("../../../frontend/tests/fixtures/Parking%20(copie)_v9.bpmn", import.meta.url);
+    const realXml = await readFile(fileURLToPath(fixturePath), "utf8");
+    const result = await prettifyBpmnXml(realXml);
+    const reparsed = await verifyBpmnXml(result.xml);
+    assert.equal(reparsed.valid, true);
+
+    // Geometry may change, but semantic BPMN IDs and sequence-flow endpoints must not.
+    const semanticSignature = (xml) => {
+      const ids = [...xml.matchAll(/<bpmn:([\\w]+)\\b[^>]*\\bid="([^"]+)"/g)]
+        .map(match => `${match[1]}:${match[2]}`).sort();
+      const flows = [...xml.matchAll(/<bpmn:sequenceFlow\\b([^>]*)\\/?>(?:[\\s\\S]*?<\\/bpmn:sequenceFlow>)?/g)]
+        .map(match => {
+          const attrs = match[1];
+          const id = attrs.match(/\\bid="([^"]+)"/)?.[1] ?? "";
+          const source = attrs.match(/\\bsourceRef="([^"]+)"/)?.[1] ?? "";
+          const target = attrs.match(/\\btargetRef="([^"]+)"/)?.[1] ?? "";
+          return `${id}:${source}->${target}`;
+        }).sort();
+      return { ids, flows };
+    };
+    assert.deepEqual(semanticSignature(result.xml), semanticSignature(realXml));
+  });
+
   it("reports missing lane DI bounds without crashing", async () => {
     const noLaneShape = fixture.replace(/<bpmndi:BPMNShape id="Lane_A_di"[\s\S]*?<\/bpmndi:BPMNShape>/, "");
     const result = await verifyBpmnXml(noLaneShape);
