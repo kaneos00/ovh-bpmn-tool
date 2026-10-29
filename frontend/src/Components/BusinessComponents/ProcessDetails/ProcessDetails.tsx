@@ -50,6 +50,7 @@ type ProcessDetailsProps = {
   onCompareClick: (leftContentId: string, rightContentId: string) => void;
   selectedElementId?: string | null;
   onElementSelect?: (elementId: string) => void;
+  selectedContentId?: string | null;
   readOnlyShell?: boolean;
 };
 
@@ -132,6 +133,7 @@ export const ProcessDetails = ({
   onCompareClick,
   selectedElementId,
   onElementSelect,
+  selectedContentId,
   readOnlyShell = false,
 }: ProcessDetailsProps) => {
   const {
@@ -145,14 +147,20 @@ export const ProcessDetails = ({
     onContentChecked,
   } = useProcessDetails(resourceId, { onContentUpload });
 
+  const viewerContent = contents.find(
+    content => content.id === selectedContentId && content.status === ContentStatusEnum.Published,
+  ) ?? publishedContent;
+  const isHistoricalView = Boolean(
+    viewerContent && publishedContent && viewerContent.id !== publishedContent.id,
+  );
   const xmlContentQuery = getXmlContentQuery(
     resourceId,
-    publishedContent?.id ?? '',
+    viewerContent?.id ?? '',
   );
   const { data: xmlContent } = useQuery(
     xmlContentQuery.queryKey,
     xmlContentQuery.queryFn,
-    { enabled: Boolean(publishedContent) },
+    { enabled: Boolean(viewerContent) },
   );
   const queryClient = useQueryClient();
   const { resource: processResource } = useResource(resourceId);
@@ -168,8 +176,8 @@ export const ProcessDetails = ({
   const [isEditingProcessDescription, setIsEditingProcessDescription] = useState(false);
   const [processDescriptionDraft, setProcessDescriptionDraft] = useState('');
   const [isSavingProcessDescription, setIsSavingProcessDescription] = useState(false);
-  const canEditDescription = sessionRole === 'admin' || sessionRole === 'modeler';
-  const canManageVersions = sessionRole === 'admin' || sessionRole === 'modeler';
+  const canEditDescription = !isHistoricalView && (sessionRole === 'admin' || sessionRole === 'modeler');
+  const canManageVersions = !isHistoricalView && (sessionRole === 'admin' || sessionRole === 'modeler');
 
   useEffect(() => {
     let mounted = true;
@@ -402,7 +410,7 @@ export const ProcessDetails = ({
       }
 
       const updatedXml = new XMLSerializer().serializeToString(xmlDocument);
-      await saveContent(resourceId, publishedContent.id, { content: updatedXml });
+      await saveContent(resourceId, viewerContent?.id ?? publishedContent.id, { content: updatedXml });
       await queryClient.invalidateQueries(xmlContentQuery.queryKey);
       setIsEditingDescription(false);
       showAlert({ message: 'Fiche de l’élément enregistrée.', severity: 'success' });
@@ -489,7 +497,7 @@ export const ProcessDetails = ({
 
         <TabPanel value={0} className="processViewerTabPanel processViewerProcessTab">
           <Sheet className="processViewerDiagram" variant="outlined">
-            {publishedContent ? (
+            {viewerContent ? (
               <>
                 <Stack
                   direction="row"
@@ -499,10 +507,10 @@ export const ProcessDetails = ({
                 >
                   <Stack spacing={0.25}>
                     <Typography level="title-md">
-                      Published version v{publishedContent.version ?? 'N/A'}
+                      Published version v{viewerContent.version ?? 'N/A'}
                     </Typography>
                     <Typography level="body-xs" textColor="neutral">
-                      Published by {publishedContent.updatedBy}
+                      Published by {viewerContent.updatedBy}
                     </Typography>
                   </Stack>
                   <IconButton
@@ -511,7 +519,7 @@ export const ProcessDetails = ({
                     variant="plain"
                     color="neutral"
                     size="sm"
-                    onClick={() => onContentViewerLinkCopy(publishedContent.id)}
+                    onClick={() => onContentViewerLinkCopy(viewerContent.id)}
                   >
                     <FileCopy />
                   </IconButton>
@@ -519,9 +527,9 @@ export const ProcessDetails = ({
                 <Divider />
                 <Box className="processViewerCanvas">
                   <ProcessViewer
-                    key={`${resourceId}:${publishedContent.id}`}
+                    key={`${resourceId}:${viewerContent.id}`}
                     resourceId={resourceId}
-                    contentId={publishedContent.id}
+                    contentId={viewerContent.id}
                     selectedElementId={selectedElementId}
                     onElementSelect={onElementSelect}
                   />
@@ -608,7 +616,7 @@ export const ProcessDetails = ({
           <Sheet className="processViewerInfo" variant="outlined">
             <Stack spacing={1.5} className="processViewerInfoHeader">
               <Typography level="title-lg">Historique des versions</Typography>
-              {publishedContent && (
+              {viewerContent && (
                 <Typography level="body-sm">
                   Dernière version publiée : v{publishedContent.version ?? 'N/A'} —{' '}
                   {publishedContent.updatedBy}
@@ -735,7 +743,7 @@ export const ProcessDetails = ({
                 </table>
               ) : (
                 <Typography level="body-sm" textColor="neutral" sx={{ p: 2 }}>
-                  {publishedContent
+                  {viewerContent
                     ? 'Aucune activité BPMN détectée dans ce contenu.'
                     : 'Aucune version publiée.'}
                 </Typography>
@@ -759,8 +767,8 @@ export const ProcessDetails = ({
               xmlContent={xmlContent}
               canEdit={canEditDescription}
               onSave={async updatedXml => {
-                if (!publishedContent) throw new Error('Aucune version publiée à mettre à jour.');
-                await saveContent(resourceId, publishedContent.id, { content: updatedXml });
+                if (!viewerContent) throw new Error('Aucune version publiée à mettre à jour.');
+                await saveContent(resourceId, viewerContent.id, { content: updatedXml });
                 await queryClient.invalidateQueries(xmlContentQuery.queryKey);
                 showAlert({ message: 'Inventaire des données enregistré.', severity: 'success' });
               }}
@@ -768,7 +776,7 @@ export const ProcessDetails = ({
           </Sheet>
         </TabPanel>
       </Tabs>
-          {publishedContent && !taskPanelCollapsed && (
+          {viewerContent && !taskPanelCollapsed && (
             <Box
               className="processViewerResizeHandle"
               role="separator"
