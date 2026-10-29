@@ -107,6 +107,16 @@ Sur `refactor/v3-viewer-phase2`, deux incréments sont maintenant présents dans
 
 Les onglets Diagramme, Description, Historique, RACI et Inventaire utilisent respectivement les valeurs 0 à 4. Des tests de régression statiques couvrent la présence des deux onglets, les garde-fous de rôle, l'appel API et les champs de l'inventaire. Ils doivent encore être exécutés par CI et complétés par une validation navigateur ; leur présence ne vaut pas validation fonctionnelle. Le composant Inventaire est porté séparément depuis la PR #99, sans reprendre sa branche empilée ni les autres changements de cette PR.
 
+### Correctif de synchronisation des liens directs
+
+Dans `ContentViewer.container.tsx`, l'état local de sélection et du panneau RACI est maintenant resynchronisé à partir des paramètres de route :
+- `elementId` restaure la sélection demandée ;
+- `raci=1` ouvre le panneau sur l'onglet RACI ;
+- l'absence de `raci=1` réinitialise l'état du panneau lors d'un changement de route ou de contenu, au lieu de conserver un état obsolète.
+Un test de régression statique couvre ce contrat. Le test de structure du Viewer a également été réaligné sur les cinq onglets centraux (Diagramme, Description, Historique, RACI, Inventaire), afin qu'il ne confonde pas les valeurs d'onglets après l'ajout de Description et d'Inventaire.
+
+Ces tests restent en attente de leur résultat CI sur le commit courant ; ce changement n'a pas été validé dans un navigateur.
+
 ### Prochain incrément
 
 1. Exécuter CI et corriger tout échec.
