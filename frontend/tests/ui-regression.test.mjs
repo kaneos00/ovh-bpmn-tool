@@ -496,7 +496,7 @@ test('ContentViewer restores element selection and RACI panel from route query p
   assert.ok(selectionState.includes('setSelectedElementId(requestedElementId)'));
   assert.ok(viewer.includes('setInfoTab(raciRequested ? 1 : 0)'));
   assert.ok(viewer.includes('setInfoPanelOpen(raciRequested)'));
-  assert.match(viewer, /\[resourceId, contentId, requestedElementId, raciRequested\]/);
+  assert.match(viewer, /\[resourceId, contentId, raciRequested\]/);
 });
 
 
