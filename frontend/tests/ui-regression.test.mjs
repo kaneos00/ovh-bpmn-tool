@@ -60,13 +60,14 @@ test('cross-process annotation search uses the Viewer selection query parameter'
   const module = await read('src/extensions/recherche/recherche-module.ts');
   const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
   const routeState = await read('src/shared/hooks/useViewerRouteState.ts');
+  const selectionState = await read('src/shared/hooks/useViewerSelectionState.ts');
 
   assert.ok(provider.includes('`/${resource.id}?elementId=${encodeURIComponent(id)}`'));
   assert.ok(module.includes("target.searchParams.set('elementId', result.id)"));
   assert.ok(layout.includes('useViewerRouteState'));
   assert.ok(routeState.includes("searchParams.get('elementId')"));
   assert.ok(layout.includes('useViewerSelectionState('));
-  assert.ok(routeState.includes('setSelectedElementId(requestedElementId)'));
+  assert.ok(selectionState.includes('setSelectedElementId(requestedElementId)'));
 });
 
 test('description search indexes text annotations and selects a live matching BPMN element', async () => {
