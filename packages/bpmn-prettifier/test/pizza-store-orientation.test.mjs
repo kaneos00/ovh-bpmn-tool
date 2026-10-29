@@ -22,6 +22,14 @@ const laneShapes = (definitions) => {
   return shapes.map(shape => ({ id: shape.bpmnElement.id, ...shape.bounds }));
 };
 
+const participantShapes = (definitions) => (definitions.diagrams ?? []).flatMap(d => d.plane?.planeElement ?? [])
+  .filter(e => e.$type === "bpmndi:BPMNShape" && e.bpmnElement?.$type === "bpmn:Participant");
+
+const edgeWaypointCount = (definitions) => (definitions.diagrams ?? [])
+  .flatMap(d => d.plane?.planeElement ?? [])
+  .filter(e => e.$type === "bpmndi:BPMNEdge")
+  .reduce((total, edge) => total + (edge.waypoint?.length ?? 0), 0);
+
 const semanticSignature = (xml) => ({
   ids: [...xml.matchAll(/<(?:bpmn2?|bpmn):([\w]+)\b([^>]*)>/g)]
     .map(m => ({ type: m[1], id: m[2].match(/\bid="([^"]+)"/)?.[1] }))
@@ -49,6 +57,11 @@ describe("Pizza Store real-world BPMN orientation conversion", () => {
     const output = await parse(result.xml);
     const outputLanes = laneShapes(output);
     assert.equal(outputLanes.length, 3, "all three lanes must remain present");
+    const verticalParticipants = participantShapes(output);
+    assert.equal(verticalParticipants.length, 2, "both participants must remain present");
+    assert.ok(verticalParticipants.every(shape => shape.isHorizontal === false),
+      "participant orientation flags must match vertical bounds");
+    assert.ok(edgeWaypointCount(output) > 0, "sequence and message-flow waypoints must be preserved");
     for (const lane of outputLanes) {
       assert.ok(lane.width < lane.height, `lane ${lane.id} should be vertical, got ${lane.width}x${lane.height}`);
     }
@@ -65,6 +78,11 @@ describe("Pizza Store real-world BPMN orientation conversion", () => {
     const output = await parse(result.xml);
     const outputLanes = laneShapes(output);
     assert.equal(outputLanes.length, 3);
+    const horizontalParticipants = participantShapes(output);
+    assert.equal(horizontalParticipants.length, 2);
+    assert.ok(horizontalParticipants.every(shape => shape.isHorizontal === true),
+      "participant orientation flags must match horizontal bounds");
+    assert.ok(edgeWaypointCount(output) > 0, "round-trip must preserve edge waypoints");
     for (const lane of outputLanes) {
       assert.ok(lane.width > lane.height, `lane ${lane.id} should be horizontal, got ${lane.width}x${lane.height}`);
     }
