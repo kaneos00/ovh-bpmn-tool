@@ -73,7 +73,7 @@ test('shared explorer delegates node selection to the selected-resource navigati
   const shared = await read('src/Components/BusinessComponents/ViewerExplorerPanel/ViewerExplorerPanel.tsx');
 
   assert.ok(details.includes('onNodeClick={id => navigate(`/${id}`)}'));
-  assert.match(shared, /<FolderTree selectedId=\{selectedId\} onNodeClick=\{onNodeClick\} \/>/);
+  assert.ok(shared.includes('<FolderTree selectedId={selectedId} onNodeClick={onNodeClick} />'));
 });
 
 test('linked Call Activity opens its target only on double-click and handles missing targets', async () => {
