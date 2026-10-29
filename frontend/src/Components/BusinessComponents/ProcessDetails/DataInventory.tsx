@@ -37,6 +37,7 @@ const readSources = (xml?: string): InventorySource[] => {
   if (!xml) return [];
   const doc = new DOMParser().parseFromString(xml, 'application/xml');
   if (doc.querySelector('parsererror')) return [];
+  const hasInventoryManifest = doc.getElementsByTagNameNS(NS, 'manifest').length > 0;
   const saved = Array.from(doc.getElementsByTagNameNS(NS, 'source')).map(node => ({
     id: node.getAttribute('id') || emptySource().id,
     kind: node.getAttribute('kind') === 'database' ? 'database' as const : 'file' as const,
@@ -48,7 +49,9 @@ const readSources = (xml?: string): InventorySource[] => {
     authorizedPeople: node.getAttribute('authorizedPeople') || '',
     restrictions: node.getAttribute('restrictions') || '',
   }));
-  if (saved.length) return saved;
+  // The manifest distinguishes an intentionally empty inventory from an older
+  // BPMN file that has no inventory metadata yet and should be prefilled.
+  if (hasInventoryManifest || saved.length) return saved;
   return Array.from(doc.getElementsByTagName('*'))
     .filter(node => ['dataObjectReference', 'dataStoreReference'].includes(node.localName))
     .map(node => ({
@@ -84,8 +87,11 @@ export const DataInventory = ({ xmlContent, canEdit, onSave }: Props) => {
         extension = doc.createElementNS(definitions.namespaceURI, definitions.prefix ? `${definitions.prefix}:extensionElements` : 'extensionElements');
         definitions.insertBefore(extension, definitions.firstChild);
       }
-      Array.from(extension.children).filter(node => node.namespaceURI === NS && node.localName === 'source').forEach(node => node.remove());
+      Array.from(extension.children).filter(node => node.namespaceURI === NS && ['source', 'manifest'].includes(node.localName)).forEach(node => node.remove());
       if (!definitions.lookupNamespaceURI('inventory')) definitions.setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:inventory', NS);
+      // Persist an explicit marker even for an empty list, otherwise removed
+      // entries would reappear from BPMN dataObjectReference/dataStoreReference.
+      extension.appendChild(doc.createElementNS(NS, 'inventory:manifest'));
       sources.forEach(source => {
         const node = doc.createElementNS(NS, 'inventory:source');
         (Object.keys(source) as (keyof InventorySource)[]).forEach(key => node.setAttribute(key, String(source[key])));
