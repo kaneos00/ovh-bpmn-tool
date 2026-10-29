@@ -159,6 +159,23 @@ export async function prettifyBpmnXml(xml: string, options: LayoutRuleOptions = 
     const shape = shapes.get(lane.id);
     if (shape?.bounds) Object.assign(shape.bounds, lane.bounds);
   }
+  // Participant bounds must continue to enclose the top-level lanes after reflow.
+  const topLevelByParticipant = new Map<string, LayoutLane[]>();
+  for (const lane of result.diagram.lanes) {
+    if (lane.parentLaneId) continue;
+    const group = topLevelByParticipant.get(lane.participantId) ?? [];
+    group.push(lane);
+    topLevelByParticipant.set(lane.participantId, group);
+  }
+  for (const [participantId, participantLanes] of topLevelByParticipant) {
+    const participantShape = shapes.get(participantId);
+    if (!participantShape?.bounds || participantLanes.length === 0) continue;
+    const minX = Math.min(...participantLanes.map(lane => lane.bounds.x));
+    const minY = Math.min(...participantLanes.map(lane => lane.bounds.y));
+    const maxX = Math.max(...participantLanes.map(lane => lane.bounds.x + lane.bounds.width));
+    const maxY = Math.max(...participantLanes.map(lane => lane.bounds.y + lane.bounds.height));
+    Object.assign(participantShape.bounds, { x: minX, y: minY, width: maxX - minX, height: maxY - minY });
+  }
   updateEdgeEndpoints(definitions, shapes, warnings);
   const serialized = await moddle.toXML(definitions, { format: true });
   return {
