@@ -74,7 +74,7 @@ describe("BPMN XML adapter", () => {
     const semanticSignature = (xml) => {
       const ids = [...xml.matchAll(/<bpmn:([\\w]+)\\b[^>]*\\bid="([^"]+)"/g)]
         .map(match => `${match[1]}:${match[2]}`).sort();
-      const flows = [...xml.matchAll(/<bpmn:sequenceFlow\\b([^>]*)\\/?>(?:[\\s\\S]*?<\\/bpmn:sequenceFlow>)?/g)]
+      const flows = [...xml.matchAll(/<bpmn:sequenceFlow\\b([^>]*)>/g)]
         .map(match => {
           const attrs = match[1];
           const id = attrs.match(/\\bid="([^"]+)"/)?.[1] ?? "";
