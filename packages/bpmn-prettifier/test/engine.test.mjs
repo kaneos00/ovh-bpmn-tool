@@ -39,6 +39,22 @@ test("aligns elements horizontally in vertical lanes", () => {
   assert.equal(result.diagram.elements[0].bounds.x + 20, result.diagram.elements[1].bounds.x + 20);
 });
 
+test("reflows sibling vertical lanes along the horizontal axis", () => {
+  const input = {
+    lanes: [
+      { id: "lane-left", participantId: "pool-v", orientation: "vertical", bounds: { x: 0, y: 0, width: 100, height: 500 } },
+      { id: "lane-right", participantId: "pool-v", orientation: "vertical", bounds: { x: 100, y: 0, width: 140, height: 500 } }
+    ],
+    elements: [
+      { id: "task-right", kind: "task", laneId: "lane-right", bounds: { x: 120, y: 40, width: 40, height: 60 } }
+    ]
+  };
+  const result = prettifyDiagram(input, { alignElements: false });
+  assert.equal(result.diagram.lanes[0].bounds.width, 140);
+  assert.equal(result.diagram.lanes[1].bounds.x, 140);
+  assert.equal(result.diagram.elements[0].bounds.x, 160);
+});
+
 test("reports duplicate IDs and missing lanes", () => {
   const result = verifyDiagram({
     lanes: [{ id: "same", participantId: "p", orientation: "horizontal", bounds: { x: 0, y: 0, width: 100, height: 100 } }],
