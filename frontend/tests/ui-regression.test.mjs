@@ -337,25 +337,27 @@ test('selecting a folder renders its contents instead of an empty folder placeho
   assert.ok(processDetails.includes('useProcessDetails(resourceId'));
 });
 
-test('viewer keeps the explorer and task details in side panels while tabs live in the central panel', async () => {
+test('viewer keeps the explorer and task details in side panels while all central tabs stay grouped', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const layoutStart = details.indexOf('className="processViewerLayout processViewerWorkspace"');
   const explorer = details.indexOf('className={`processExplorerPanel');
   const tabs = details.indexOf('className="processViewerTabs"');
   const processTab = details.indexOf('value={0} className="processViewerTabPanel processViewerProcessTab"');
-  const historyTab = details.indexOf('value={1} className="processViewerTabPanel"');
-  const raciTab = details.indexOf('value={2} className="processViewerTabPanel"');
-  const tabsClose = details.indexOf('</Tabs>', raciTab);
+  const descriptionTab = details.indexOf('value={1} className="processViewerTabPanel"');
+  const historyTab = details.indexOf('value={2} className="processViewerTabPanel"');
+  const raciTab = details.indexOf('value={3} className="processViewerTabPanel"');
+  const inventoryTab = details.indexOf('value={4} className="processViewerTabPanel"');
+  const tabsClose = details.indexOf('</Tabs>', inventoryTab);
   const taskPanel = details.indexOf('className={`processTaskPanel', tabsClose);
 
   assert.ok(layoutStart >= 0, 'viewer workspace should own the three-column layout');
   assert.ok(explorer > layoutStart && explorer < tabs, 'explorer must remain to the left of central tabs');
-  assert.ok(tabs < processTab && processTab < historyTab && historyTab < raciTab, 'all three tabs should be grouped in the central panel');
-  assert.ok(tabsClose > raciTab && taskPanel > tabsClose, 'task details must remain in the right-side panel outside the tabs');
-  assert.ok(details.slice(processTab, historyTab).includes('className="processViewerDiagram"'), 'process diagram belongs to the process tab');
+  assert.ok(tabs < processTab && processTab < descriptionTab && descriptionTab < historyTab && historyTab < raciTab && raciTab < inventoryTab, 'diagram, description, history, RACI and inventory must be ordered in the central panel');
+  assert.ok(tabsClose > inventoryTab && taskPanel > tabsClose, 'task details must remain in the right-side panel outside the tabs');
+  assert.ok(details.slice(processTab, descriptionTab).includes('className="processViewerDiagram"'), 'process diagram belongs to the process tab');
   const styles = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.scss');
-  assert.match(styles, /\.processViewerTabs\s*\{[^}]*flex:\s*1 1 0;[^}]*width:\s*0;/s);
-  assert.match(styles, /\.processViewerDiagram\s*\{[^}]*width:\s*100%;/s);
+  assert.match(styles, /\.processViewerTabs\s*\{[^}]*flex:\\s*1 1 0;[^}]*width:\\s*0;/s);
+  assert.match(styles, /\.processViewerDiagram\s*\{[^}]*width:\\s*100%;/s);
   assert.ok(details.includes("import '../../../raci.css'"), 'Viewer should reuse the Modeler RACI design system');
   assert.ok(details.includes('className="raci-table"'));
   assert.ok(details.includes('raci-code-badge raci-code-'));
