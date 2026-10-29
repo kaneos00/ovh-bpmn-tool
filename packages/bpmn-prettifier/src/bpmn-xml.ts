@@ -141,6 +141,37 @@ function updateEdgeEndpoints(definitions: AnyRecord, shapes: Map<string, AnyReco
 }
 
 /**
+ * Ensure each BPMN-DI edge is an orthogonal polyline. Existing routing points are
+ * retained; a right-angle bend is inserted only when a segment is diagonal.
+ */
+function orthogonalizeEdgeWaypoints(definitions: AnyRecord): void {
+  const epsilon = 0.001;
+  for (const diagram of definitions.diagrams ?? []) {
+    for (const di of diagram.plane?.planeElement ?? []) {
+      if (di.$type !== "bpmndi:BPMNEdge" || !Array.isArray(di.waypoint) || di.waypoint.length < 2) continue;
+      const points: Array<{ x: number; y: number }> = [];
+      const push = (point: { x: number; y: number }) => {
+        const previous = points[points.length - 1];
+        if (!previous || Math.abs(previous.x - point.x) > epsilon || Math.abs(previous.y - point.y) > epsilon) {
+          points.push({ x: point.x, y: point.y });
+        }
+      };
+      push(di.waypoint[0]);
+      for (let index = 1; index < di.waypoint.length; index++) {
+        const previous = points[points.length - 1]!;
+        const next = di.waypoint[index]!;
+        if (Math.abs(previous.x - next.x) > epsilon && Math.abs(previous.y - next.y) > epsilon) {
+          // Horizontal first, then vertical: the route remains predictable and legible.
+          push({ x: next.x, y: previous.y });
+        }
+        push(next);
+      }
+      di.waypoint = points;
+    }
+  }
+}
+
+/**
  * Pretty-print BPMN-DI geometry while preserving the BPMN semantic model.
  * This adapter edits existing BPMNShape Bounds and recalculates BPMNEdge endpoints
  * against moved shapes while preserving intermediate waypoints. It does not create
@@ -178,6 +209,7 @@ export async function prettifyBpmnXml(xml: string, options: LayoutRuleOptions = 
     Object.assign(participantShape.bounds, { x: minX, y: minY, width: maxX - minX, height: maxY - minY });
   }
   updateEdgeEndpoints(definitions, shapes, warnings);
+  orthogonalizeEdgeWaypoints(definitions);
   const serialized = await moddle.toXML(definitions, { format: true });
   return {
     xml: serialized.xml,
