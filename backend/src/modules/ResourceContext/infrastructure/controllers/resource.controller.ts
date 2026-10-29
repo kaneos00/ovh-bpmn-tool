@@ -131,7 +131,7 @@ export class ResourceController {
   }
 
   @Put('/:resourceId')
-  @UseAcl([UserGroup.RW])
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
   async updateResource(
     @Param() params: Pick<UpdateResourceCommand, 'resourceId'>,
     @Body() updateResourceCommand: UpdateResourceBody,
@@ -140,6 +140,7 @@ export class ResourceController {
     await this.projectResourceAccess.assertCanEditResource(
       params.resourceId,
       headers,
+      { allowCommonForOrganizationAdmin: true },
     );
     const updateResult = await this.updateResourceCommandHandler.execute({
       ...updateResourceCommand,
