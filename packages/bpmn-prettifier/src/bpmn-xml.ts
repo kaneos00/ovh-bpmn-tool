@@ -142,8 +142,9 @@ function updateEdgeEndpoints(definitions: AnyRecord, shapes: Map<string, AnyReco
 
 /**
  * Pretty-print BPMN-DI geometry while preserving the BPMN semantic model.
- * This first adapter intentionally edits only existing BPMNShape Bounds. It
- * does not reroute BPMNEdge waypoints, create missing DI shapes, or change XML semantics.
+ * This adapter edits existing BPMNShape Bounds and recalculates BPMNEdge endpoints
+ * against moved shapes while preserving intermediate waypoints. It does not create
+ * missing DI shapes or change BPMN XML semantics.
  */
 export async function prettifyBpmnXml(xml: string, options: LayoutRuleOptions = {}): Promise<BpmnXmlPrettyficationResult> {
   const moddle = new BpmnModdle();
