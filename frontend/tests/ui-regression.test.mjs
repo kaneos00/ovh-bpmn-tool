@@ -489,3 +489,20 @@ test('ContentViewer renders the URL-selected version rather than silently switch
   assert.ok(contentHook.includes("const { resourceId, contentId } = useParams"));
   assert.ok(!viewer.includes('getXmlContentQuery(resourceId, lastPublishedContent.id)'));
 });
+
+
+test('V3 process and content viewers share the same explorer panel without losing route-specific state', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+  const shared = await read('src/Components/BusinessComponents/ViewerExplorerPanel/ViewerExplorerPanel.tsx');
+
+  assert.ok(details.includes("import { ViewerExplorerPanel } from '../ViewerExplorerPanel/ViewerExplorerPanel'"));
+  assert.ok(viewer.includes("import { ViewerExplorerPanel } from '../../Components/BusinessComponents/ViewerExplorerPanel/ViewerExplorerPanel'"));
+  assert.ok(details.includes('variant="process-details"'));
+  assert.ok(details.includes('showHistory'));
+  assert.ok(viewer.includes('variant="content-viewer"'));
+  assert.ok(viewer.includes('collapsed={!folderOpen}'));
+  assert.ok(shared.includes('<FolderTree selectedId={selectedId} onNodeClick={onNodeClick} />'));
+  assert.ok(shared.includes('onBack'));
+  assert.ok(shared.includes('onForward'));
+});
