@@ -147,11 +147,15 @@ export const ProcessDetails = ({
     onContentChecked,
   } = useProcessDetails(resourceId, { onContentUpload });
 
-  const viewerContent = contents.find(
-    content => content.id === selectedContentId && content.status !== ContentStatusEnum.Draft,
-  ) ?? publishedContent;
+  // An explicit contentId is authoritative: never silently show the latest
+  // published version when a requested historical version is missing or invalid.
+  const viewerContent = selectedContentId
+    ? contents.find(
+        content => content.id === selectedContentId && content.status !== ContentStatusEnum.Draft,
+      )
+    : publishedContent;
   const isHistoricalView = Boolean(
-    selectedContentId && viewerContent && viewerContent.id !== publishedContent?.id,
+    selectedContentId && (!viewerContent || viewerContent.id !== publishedContent?.id),
   );
   const xmlContentQuery = getXmlContentQuery(
     resourceId,
