@@ -140,8 +140,9 @@ jobs:
           docker run --rm --network bpmn-v2-ci \
             --env PGPASSWORD="$DATABASE_PASSWORD" \
             --env DATABASE_USER="$DATABASE_USER" --env DATABASE_NAME="$DATABASE_NAME" \
-            bpmn-v2-demo-migrations:ci sh -ec 'until pg_isready -h database -U "$DATABASE_USER" -d "$DATABASE_NAME"; do sleep 1; done; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261014_v2_1_process_provenance.sql'
+            bpmn-v2-demo-migrations:ci sh -ec 'until pg_isready -h database -U "$DATABASE_USER" -d "$DATABASE_NAME"; do sleep 1; done; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261014_v2_1_process_provenance.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261029_v3_user_theme_preference.sql'
           test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.columns WHERE table_name='resources' AND column_name='sourceResourceId'")" = "1"
+          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.tables WHERE table_name='app_user_preferences'")" = "1"
 
           docker run --detach --name bpmn-v2-demo-backend-ci --network bpmn-v2-ci --network-alias backend \
             --env NODE_ENV=production --env NODE_PORT=3000 \
