@@ -47,3 +47,11 @@ test('authenticated users synchronize theme preference while guests retain local
   assert.ok(main.includes('userChangedRef.current'));
   assert.ok(main.includes('MUI still stores the local preference if server sync is unavailable'));
 });
+
+test('saved local theme is applied before the frontend module starts', async () => {
+  const html = await read('dev/index.html');
+
+  assert.ok(html.includes("localStorage.getItem('khi-flows-color-scheme')"));
+  assert.ok(html.includes("document.documentElement.setAttribute('data-joy-color-scheme', savedMode)"));
+  assert.ok(html.indexOf('</script>') < html.indexOf('<script type="module" src="./main.tsx"></script>'));
+});
