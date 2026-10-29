@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 import { prettifyBpmnXml, verifyBpmnXml } from "../dist/bpmn-xml.js";
 
@@ -48,5 +50,13 @@ describe("BPMN XML adapter", () => {
     const noLaneShape = fixture.replace(/<bpmndi:BPMNShape id="Lane_A_di"[\s\S]*?<\/bpmndi:BPMNShape>/, "");
     const result = await verifyBpmnXml(noLaneShape);
     assert.ok(result.warnings.some(message => message.includes("no BPMN-DI bounds")));
+  });
+  it("parses and serializes a real repository BPMN fixture", async () => {
+    const fixturePath = new URL("../../../frontend/tests/fixtures/Parking%20(copie)_v9.bpmn", import.meta.url);
+    const realXml = await readFile(fileURLToPath(fixturePath), "utf8");
+    const result = await prettifyBpmnXml(realXml, { alignElements: false, equalizeLaneCrossAxisSize: false });
+    const reparsed = await verifyBpmnXml(result.xml);
+    assert.ok(result.xml.includes("<bpmn:definitions") || result.xml.includes("<bpmn:Definitions"));
+    assert.equal(reparsed.valid, true);
   });
 });
