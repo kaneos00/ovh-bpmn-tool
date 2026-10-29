@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Button, Card, Chip, Divider, Input, Stack, Textarea, Typography } from '@mui/joy';
-import { DatasetOutlined, InsertDriveFileOutlined } from '@mui/icons-material';
+import { Box, Button, Chip, Divider, IconButton, Input, Stack, Table, Textarea, Typography } from '@mui/joy';
+import { DatasetOutlined, EditOutlined, InsertDriveFileOutlined } from '@mui/icons-material';
 
 export type InventorySource = {
   id: string;
@@ -66,6 +66,7 @@ export const DataInventory = ({ xmlContent, canEdit, onSave }: Props) => {
   const original = useMemo(() => readSources(xmlContent), [xmlContent]);
   const [sources, setSources] = useState<InventorySource[]>(original);
   const [saving, setSaving] = useState(false);
+  const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => setSources(original), [original]);
@@ -119,33 +120,35 @@ export const DataInventory = ({ xmlContent, canEdit, onSave }: Props) => {
           </Stack>}
         </Stack>
         {error && <Typography level="body-sm" color="danger">{error}</Typography>}
-        {!sources.length && <Card variant="outlined"><Typography level="body-sm" color="neutral">Aucune source d’information n’a été répertoriée. Ajoutez un fichier ou une base pour compléter l’inventaire.</Typography></Card>}
-        {sources.map((source, index) => <Card key={source.id} variant="outlined" sx={{ gap: 1.5 }}>
-          <Stack direction="row" alignItems="center" spacing={1}>
-            {source.kind === 'database' ? <DatasetOutlined /> : <InsertDriveFileOutlined />}
-            <Typography level="title-md">{source.name || `Source ${index + 1}`}</Typography>
-            <Chip size="sm" variant="soft">{source.kind === 'database' ? 'Base de données' : 'Fichier'}</Chip>
-            <Box sx={{ flex: 1 }} />
-            {canEdit && <Button size="sm" variant="plain" color="danger" onClick={() => setSources(current => current.filter(item => item.id !== source.id))}>Retirer</Button>}
-          </Stack>
-          <Divider />
-          <Stack spacing={1.25}>
-            {canEdit && <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-              <Input value={source.name} onChange={e => update(source.id, 'name', e.target.value)} placeholder="Nom de la source" aria-label="Nom de la source" sx={{ flex: 1 }} />
-              <select aria-label="Type de source" value={source.kind} onChange={e => update(source.id, 'kind', e.target.value)} style={{ minWidth: 150 }}>
-                <option value="file">Fichier</option><option value="database">Base de données</option>
-              </select>
-            </Stack>}
-            {canEdit ? <Textarea minRows={2} value={source.description} onChange={e => update(source.id, 'description', e.target.value)} placeholder="Description et usage de la source" aria-label="Description de la source" /> : <Typography level="body-sm">{source.description || 'Description non renseignée.'}</Typography>}
-            <Input value={source.location} onChange={e => update(source.id, 'location', e.target.value)} placeholder="Emplacement / chemin / serveur" aria-label="Emplacement de la source" readOnly={!canEdit} />
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={1}>
-              <Input value={source.access} onChange={e => update(source.id, 'access', e.target.value)} placeholder="Gestion des accès" aria-label="Gestion des accès" readOnly={!canEdit} sx={{ flex: 1 }} />
-              <Input value={source.retention} onChange={e => update(source.id, 'retention', e.target.value)} placeholder="Durée de rétention" aria-label="Durée de rétention" readOnly={!canEdit} sx={{ flex: 1 }} />
-            </Stack>
-            <Input value={source.authorizedPeople} onChange={e => update(source.id, 'authorizedPeople', e.target.value)} placeholder="Personnes / rôles autorisés" aria-label="Personnes autorisées" readOnly={!canEdit} />
-            <Textarea minRows={2} value={source.restrictions} onChange={e => update(source.id, 'restrictions', e.target.value)} placeholder="Modalités de restriction (masquage, chiffrement, limitation…)" aria-label="Modalités de restriction" readOnly={!canEdit} />
-          </Stack>
-        </Card>)}
+        {!sources.length ? <Typography level="body-sm" color="neutral">Aucune source d’information n’a été répertoriée. Ajoutez un fichier ou une base pour compléter l’inventaire.</Typography> : (
+          <Box sx={{ overflow: 'auto', maxWidth: '100%' }}>
+            <Table size="sm" stickyHeader hoverRow sx={{ minWidth: 1050, '& th': { whiteSpace: 'nowrap' }, '& td': { verticalAlign: 'top' } }}>
+              <thead><tr><th>Source</th><th>Description</th><th>Emplacement</th><th>Accès</th><th>Rétention</th><th>Personnes autorisées</th><th>Restrictions</th><th style={{ width: 84 }}>Actions</th></tr></thead>
+              <tbody>{sources.map((source, index) => {
+                const editing = canEdit && editingSourceId === source.id;
+                const field = (key: keyof InventorySource, placeholder: string) => editing
+                  ? <Input size="sm" value={String(source[key])} onChange={e => update(source.id, key, e.target.value)} placeholder={placeholder} aria-label={placeholder} />
+                  : <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', minWidth: 90 }}>{String(source[key] || '—')}</Typography>;
+                const area = (key: 'description' | 'restrictions', placeholder: string) => editing
+                  ? <Textarea size="sm" minRows={2} value={source[key]} onChange={e => update(source.id, key, e.target.value)} placeholder={placeholder} aria-label={placeholder} />
+                  : <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', minWidth: 130 }}>{source[key] || '—'}</Typography>;
+                return <tr key={source.id}>
+                  <td><Stack direction="row" spacing={0.75} alignItems="center" sx={{ minWidth: 180 }}>
+                    {source.kind === 'database' ? <DatasetOutlined fontSize="small" /> : <InsertDriveFileOutlined fontSize="small" />}
+                    {editing ? <Input size="sm" value={source.name} onChange={e => update(source.id, 'name', e.target.value)} placeholder="Nom de la source" aria-label="Nom de la source" /> : <Typography level="body-sm">{source.name || `Source ${index + 1}`}</Typography>}
+                  </Stack>
+                  {editing && <select aria-label="Type de source" value={source.kind} onChange={e => update(source.id, 'kind', e.target.value)} style={{ marginTop: 6, maxWidth: '100%' }}><option value="file">Fichier</option><option value="database">Base de données</option></select>}
+                  {!editing && <Box sx={{ mt: 0.5 }}><Chip size="sm" variant="soft">{source.kind === 'database' ? 'Base de données' : 'Fichier'}</Chip></Box>}</td>
+                  <td>{area('description', 'Description et usage')}</td><td>{field('location', 'Chemin / serveur')}</td><td>{field('access', 'Gestion des accès')}</td><td>{field('retention', 'Durée')}</td><td>{field('authorizedPeople', 'Personnes / rôles')}</td><td>{area('restrictions', 'Restrictions et prévention')}</td>
+                  <td>{canEdit && <Stack direction="row" spacing={0.25}>
+                    <IconButton size="sm" variant="plain" title={editing ? 'Terminer la modification' : 'Modifier la source'} aria-label={editing ? 'Terminer la modification' : 'Modifier la source'} onClick={() => setEditingSourceId(editing ? null : source.id)}><EditOutlined /></IconButton>
+                    <Button size="sm" variant="plain" color="danger" onClick={() => { setSources(current => current.filter(item => item.id !== source.id)); if (editing) setEditingSourceId(null); }}>×</Button>
+                  </Stack>}</td>
+                </tr>;
+              })}</tbody>
+            </Table>
+          </Box>
+        )}
       </Stack>
     </Box>
   );

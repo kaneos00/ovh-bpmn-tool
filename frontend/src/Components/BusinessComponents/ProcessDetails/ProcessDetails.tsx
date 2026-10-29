@@ -10,6 +10,9 @@ import {
   Sheet,
   Skeleton,
   Stack,
+  Table,
+  Select,
+  Option,
   Tab,
   TabList,
   TabPanel,
@@ -58,6 +61,17 @@ type ProcessDetailsProps = {
   readOnlyShell?: boolean;
   requestedRaciView?: boolean;
 };
+
+const PROCESS_METADATA_NS = 'https://ovh-bpmn-tool.local/schema/process-metadata';
+const PROCESS_TYPES = [
+  { value: 'management', label: 'Management', color: 'primary' as const },
+  { value: 'projet', label: 'Projet', color: 'info' as const },
+  { value: 'operationnel', label: 'Opérationnel', color: 'success' as const },
+  { value: 'support', label: 'Support', color: 'neutral' as const },
+  { value: 'pilotage', label: 'Pilotage', color: 'warning' as const },
+  { value: 'surveillance', label: 'Surveillance', color: 'danger' as const },
+  { value: 'risques-prevention', label: 'Risques / prévention', color: 'warning' as const },
+];
 
 const getContentStatusColor = (status: ContentStatusEnum) => {
   if (status === ContentStatusEnum.Published) return 'success' as const;
@@ -194,9 +208,18 @@ export const ProcessDetails = ({
   const [processDescriptionDraft, setProcessDescriptionDraft] = useState('');
   const [isSavingProcessDescription, setIsSavingProcessDescription] = useState(false);
   const [changeCommentDrafts, setChangeCommentDrafts] = useState<Record<string, string>>({});
+  const [editingChangeCommentId, setEditingChangeCommentId] = useState<string | null>(null);
   const [savingChangeCommentId, setSavingChangeCommentId] = useState<string | null>(null);
+  const [processMetadata, setProcessMetadata] = useState({ processType: '', pilot: '', surveillance: '', riskPrevention: '' });
   const canEditDescription = !isHistoricalView && (sessionRole === 'admin' || sessionRole === 'modeler');
   const canManageVersions = !isHistoricalView && (sessionRole === 'admin' || sessionRole === 'modeler');
+
+  useEffect(() => {
+    if (!xmlContent) { setProcessMetadata({ processType: '', pilot: '', surveillance: '', riskPrevention: '' }); return; }
+    const doc = new DOMParser().parseFromString(xmlContent, 'application/xml');
+    const node = Array.from(doc.getElementsByTagNameNS(PROCESS_METADATA_NS, 'processMetadata'))[0];
+    setProcessMetadata({ processType: node?.getAttribute('processType') || '', pilot: node?.getAttribute('pilot') || '', surveillance: node?.getAttribute('surveillance') || '', riskPrevention: node?.getAttribute('riskPrevention') || '' });
+  }, [xmlContent]);
 
   useEffect(() => {
     let mounted = true;
@@ -469,6 +492,23 @@ export const ProcessDetails = ({
         description: processDescriptionDraft,
         parentId: processResource.parentId,
       });
+      if (xmlContent && viewerContent) {
+        const doc = new DOMParser().parseFromString(xmlContent, 'application/xml');
+        if (doc.querySelector('parsererror')) throw new Error('Le contenu BPMN ne peut pas être analysé.');
+        const definitions = doc.documentElement;
+        let extension = Array.from(definitions.children).find(node => node.localName === 'extensionElements');
+        if (!extension) {
+          extension = doc.createElementNS(definitions.namespaceURI, definitions.prefix ? `${definitions.prefix}:extensionElements` : 'extensionElements');
+          definitions.insertBefore(extension, definitions.firstChild);
+        }
+        Array.from(extension.children).filter(node => node.namespaceURI === PROCESS_METADATA_NS && node.localName === 'processMetadata').forEach(node => node.remove());
+        if (!definitions.lookupNamespaceURI('khiMeta')) definitions.setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:khiMeta', PROCESS_METADATA_NS);
+        const metadataNode = doc.createElementNS(PROCESS_METADATA_NS, 'khiMeta:processMetadata');
+        Object.entries(processMetadata).forEach(([key, value]) => metadataNode.setAttribute(key, value.trim()));
+        extension.appendChild(metadataNode);
+        await saveContent(resourceId, viewerContent.id, { content: new XMLSerializer().serializeToString(doc) });
+        await queryClient.invalidateQueries(xmlContentQuery.queryKey);
+      }
       await queryClient.invalidateQueries(getResourceQuery(resourceId).queryKey);
       await queryClient.invalidateQueries(['resources']);
       setIsEditingProcessDescription(false);
@@ -635,15 +675,24 @@ export const ProcessDetails = ({
               )}
               {isEditingProcessDescription ? (
                 <>
-                  <Textarea
-                    value={processDescriptionDraft}
-                    onChange={event => setProcessDescriptionDraft(event.target.value)}
-                    minRows={6}
-                    maxRows={18}
-                    aria-label="Description du processus"
-                    placeholder="Décrire l’objectif, le périmètre et les règles principales du processus…"
-                    disabled={isSavingProcessDescription}
-                  />
+                  <Stack spacing={1}>
+                    <Typography level="title-sm">Type de processus</Typography>
+                    <Select value={processMetadata.processType || null} placeholder="Choisir un type" onChange={(_, value) => setProcessMetadata(current => ({ ...current, processType: value ?? '' }))} disabled={isSavingProcessDescription}>
+                      {PROCESS_TYPES.map(type => <Option key={type.value} value={type.value}><Chip size="sm" variant="soft" color={type.color}>{type.label}</Chip></Option>)}
+                    </Select>
+                  </Stack>
+                  <Input value={processMetadata.pilot} onChange={event => setProcessMetadata(current => ({ ...current, pilot: event.target.value }))} placeholder="Pilote du processus" aria-label="Pilote du processus" disabled={isSavingProcessDescription} />
+                  <Stack spacing={0.5}>
+                    <Typography level="title-sm">Surveillance</Typography>
+                    <Textarea value={processMetadata.surveillance} onChange={event => setProcessMetadata(current => ({ ...current, surveillance: event.target.value }))} minRows={2} placeholder="Indicateurs, fréquence et modalités de surveillance…" aria-label="Surveillance du processus" disabled={isSavingProcessDescription} />
+                  </Stack>
+                  <Stack spacing={0.5}>
+                    <Typography level="title-sm">Risques / prévention</Typography>
+                    <Textarea value={processMetadata.riskPrevention} onChange={event => setProcessMetadata(current => ({ ...current, riskPrevention: event.target.value }))} minRows={2} placeholder="Risques identifiés et mesures de prévention…" aria-label="Risques et prévention" disabled={isSavingProcessDescription} />
+                  </Stack>
+                  <Divider />
+                  <Typography level="title-sm">Description générale</Typography>
+                  <Textarea value={processDescriptionDraft} onChange={event => setProcessDescriptionDraft(event.target.value)} minRows={6} maxRows={18} aria-label="Description du processus" placeholder="Décrire l’objectif, le périmètre et les règles principales du processus…" disabled={isSavingProcessDescription} />
                   <Stack direction="row" spacing={1} justifyContent="flex-end">
                     <Button
                       size="sm"
@@ -668,9 +717,17 @@ export const ProcessDetails = ({
                   </Stack>
                 </>
               ) : (
-                <Typography level="body-md" sx={{ whiteSpace: 'pre-wrap' }}>
-                  {processResource?.description?.trim() || 'Aucune description renseignée pour ce processus.'}
-                </Typography>
+                <Stack spacing={1.5}>
+                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                    <Typography level="title-sm">Type :</Typography>
+                    {(() => { const type = PROCESS_TYPES.find(item => item.value === processMetadata.processType); return type ? <Chip size="md" variant="soft" color={type.color}>{type.label}</Chip> : <Typography level="body-sm" textColor="neutral">Non renseigné</Typography>; })()}
+                  </Stack>
+                  <Stack direction="row" spacing={1} alignItems="baseline"><Typography level="title-sm">Pilote :</Typography><Typography level="body-sm">{processMetadata.pilot || 'Non renseigné'}</Typography></Stack>
+                  <Box><Typography level="title-sm">Surveillance</Typography><Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>{processMetadata.surveillance || 'Non renseignée'}</Typography></Box>
+                  <Box><Typography level="title-sm">Risques / prévention</Typography><Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>{processMetadata.riskPrevention || 'Non renseignés'}</Typography></Box>
+                  <Divider />
+                  <Box><Typography level="title-sm">Description générale</Typography><Typography level="body-md" sx={{ whiteSpace: 'pre-wrap' }}>{processResource?.description?.trim() || 'Aucune description renseignée pour ce processus.'}</Typography></Box>
+                </Stack>
               )}
             </Stack>
           </Sheet>
@@ -752,45 +809,24 @@ export const ProcessDetails = ({
                 </>
               )}
               {contents.length > 0 && (
-                <>
-                  <Divider sx={{ my: 1 }} />
-                  <Typography level="title-md">Commentaires des modifications</Typography>
-                  <Typography level="body-sm" textColor="neutral">
-                    Un commentaire est associé à chaque version et conservé dans son historique.
-                  </Typography>
-                  {contents.map(content => (
-                    <Sheet key={content.id} variant="soft" sx={{ p: 1.5, borderRadius: 'sm' }}>
-                      <Stack spacing={1}>
-                        <Typography level="title-sm">Version v{content.version ?? 'N/A'}</Typography>
-                        {canManageVersions ? (
-                          <>
-                            <Textarea
-                              minRows={2}
-                              maxRows={5}
-                              value={changeCommentDrafts[content.id] ?? content.changeComment ?? ''}
-                              placeholder="Ex. : Normalisation du schéma ou changement d’orientation en mode vertical"
-                              onChange={event => setChangeCommentDrafts(previous => ({ ...previous, [content.id]: event.target.value }))}
-                            />
-                            <Stack direction="row" justifyContent="flex-end">
-                              <Button
-                                size="sm"
-                                loading={savingChangeCommentId === content.id}
-                                disabled={savingChangeCommentId !== null}
-                                onClick={() => void saveChangeComment(content.id)}
-                              >
-                                Enregistrer le commentaire
-                              </Button>
-                            </Stack>
-                          </>
-                        ) : (
-                          <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>
-                            {content.changeComment?.trim() || 'Aucun commentaire renseigné.'}
-                          </Typography>
-                        )}
-                      </Stack>
-                    </Sheet>
-                  ))}
-                </>
+                <Box sx={{ mt: 1 }}>
+                  <Typography level="title-md" sx={{ mb: 0.5 }}>Commentaires des modifications</Typography>
+                  <Typography level="body-sm" textColor="neutral" sx={{ mb: 1 }}>Modifiables directement dans le tableau par les utilisateurs autorisés.</Typography>
+                  <Table size="sm" stickyHeader hoverRow>
+                    <thead><tr><th style={{ width: 100 }}>Version</th><th>Commentaire de modification</th><th style={{ width: 76, textAlign: 'center' }}>Action</th></tr></thead>
+                    <tbody>{contents.map(content => {
+                      const editing = editingChangeCommentId === content.id;
+                      return <tr key={content.id}>
+                        <td>v{content.version ?? 'N/A'}</td>
+                        <td>{editing && canManageVersions ? <Textarea minRows={1} maxRows={4} value={changeCommentDrafts[content.id] ?? content.changeComment ?? ''} placeholder="Ex. : Normalisation du schéma" onChange={event => setChangeCommentDrafts(previous => ({ ...previous, [content.id]: event.target.value }))} /> : <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>{content.changeComment?.trim() || '—'}</Typography>}</td>
+                        <td>{canManageVersions && (editing ? <Stack direction="row" spacing={0.5} justifyContent="center">
+                          <IconButton size="sm" title="Enregistrer le commentaire" aria-label="Enregistrer le commentaire" disabled={savingChangeCommentId !== null} onClick={() => void saveChangeComment(content.id).then(() => setEditingChangeCommentId(null))}><EditOutlined /></IconButton>
+                          <IconButton size="sm" title="Annuler" aria-label="Annuler" variant="plain" onClick={() => { setChangeCommentDrafts(previous => ({ ...previous, [content.id]: content.changeComment ?? '' })); setEditingChangeCommentId(null); }}>×</IconButton>
+                        </Stack> : <IconButton size="sm" title="Modifier le commentaire" aria-label="Modifier le commentaire" variant="plain" onClick={() => setEditingChangeCommentId(content.id)}><EditOutlined /></IconButton>)}</td>
+                      </tr>;
+                    })}</tbody>
+                  </Table>
+                </Box>
               )}
             </Stack>
           </Sheet>
@@ -822,17 +858,9 @@ export const ProcessDetails = ({
                     {raciMatrix.activities.map(activity => (
                       <tr key={activity.elementId}>
                         <th className="raci-activity">
-                          <Stack spacing={0.5} alignItems="flex-start">
-                            <Typography level="body-sm">{activity.activity}</Typography>
-                            <IconButton
-                              size="sm"
-                              variant="plain"
-                              color="primary"
-                              title="Voir l’activité dans le BPMN"
-                              aria-label="Voir l’activité dans le BPMN"
-                              onClick={() => { setActiveViewerTab(0); onElementSelect?.(activity.elementId); }}
-                              disabled={!onElementSelect || !activity.elementId}
-                            >
+                          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ minWidth: 0 }}>
+                            <Typography level="body-sm" sx={{ flex: 1, minWidth: 0 }}>{activity.activity}</Typography>
+                            <IconButton size="sm" variant="plain" color="primary" title="Voir l’activité dans le BPMN" aria-label="Voir l’activité dans le BPMN" onClick={() => { setActiveViewerTab(0); onElementSelect?.(activity.elementId); }} disabled={!onElementSelect || !activity.elementId} sx={{ flex: '0 0 auto' }}>
                               <CenterFocusStrong />
                             </IconButton>
                           </Stack>
