@@ -75,12 +75,12 @@ function detectOrientation(planeElements: AnyRecord[]): LaneOrientation {
 }
 
 /**
- * Converts the BPMN-DI layout by rotating shape centers and edge waypoints by
- * 90 degrees. BPMN semantic objects and references are never modified. Lane
- * and participant rectangles swap width/height; task/event/gateway shapes keep
- * their own dimensions so BPMN activities remain legible.
+ * Converts the BPMN-DI layout by transposing shape centers and edge waypoints.
+ * The top-to-bottom order of a process is preserved when converting horizontal
+ * lanes to vertical lanes. Lane and participant rectangles swap width/height;
+ * task/event/gateway shapes keep their own dimensions so activities stay legible.
  */
-function rotateDiGeometry(planeElements: AnyRecord[], source: LaneOrientation): void {
+function rotateDiGeometry(planeElements: AnyRecord[]): void {
   const geometry = collectDiGeometry(planeElements);
   const allX = [
     ...geometry.bounds.flatMap(b => [b.x, b.x + b.width]),
@@ -98,9 +98,12 @@ function rotateDiGeometry(planeElements: AnyRecord[], source: LaneOrientation): 
   const minY = Math.min(...allY);
   const maxY = Math.max(...allY);
 
-  const rotatePoint = (point: Point): Point => source === "horizontal"
-    ? { x: minX + (point.y - minY), y: minY + (maxX - point.x) }
-    : { x: minX + (maxY - point.y), y: minY + (point.x - minX) };
+  // A transpose (rather than a 90° rotation with a reflection) keeps the
+  // original left-to-right process order as top-to-bottom in vertical mode.
+  const transposePoint = (point: Point): Point => ({
+    x: minX + (point.y - minY),
+    y: minY + (point.x - minX)
+  });
 
   const seen = new Set<object>();
   const visit = (value: any): void => {
@@ -114,7 +117,7 @@ function rotateDiGeometry(planeElements: AnyRecord[], source: LaneOrientation): 
     if (isBounds(value.bounds)) {
       const bounds = value.bounds as Bounds;
       const oldCenter = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
-      const nextCenter = rotatePoint(oldCenter);
+      const nextCenter = transposePoint(oldCenter);
       const isLaneOrParticipant = value.$type === "bpmndi:BPMNShape" &&
         (value.bpmnElement?.$type === "bpmn:Lane" || value.bpmnElement?.$type === "bpmn:Participant");
       const width = isLaneOrParticipant ? bounds.height : bounds.width;
@@ -122,14 +125,14 @@ function rotateDiGeometry(planeElements: AnyRecord[], source: LaneOrientation): 
       Object.assign(bounds, { x: nextCenter.x - width / 2, y: nextCenter.y - height / 2, width, height });
       if (isLaneOrParticipant) {
         // BPMN-DI uses this flag alongside the bounds to indicate lane/pool orientation.
-        value.isHorizontal = source === "vertical";
+        value.isHorizontal = false;
       }
     }
 
     if (Array.isArray(value.waypoint)) {
       for (const point of value.waypoint) {
         if (!isPoint(point)) continue;
-        Object.assign(point, rotatePoint(point));
+        Object.assign(point, transposePoint(point));
       }
     }
 
@@ -161,7 +164,7 @@ export async function convertBpmnLaneOrientation(
 
   let sourceXml = xml;
   if (sourceOrientation !== targetOrientation) {
-    rotateDiGeometry(planeElements, sourceOrientation);
+    rotateDiGeometry(planeElements);
     const serialized = await moddle.toXML(definitions, { format: true });
     sourceXml = serialized.xml;
   }
