@@ -74,6 +74,23 @@ test("reflows sibling lanes and moves their contents when equalizing lane height
   assert.ok(!result.diagnostics.some(d => d.code === "ELEMENT_OUTSIDE_LANE"));
 });
 
+test("moves nested lanes and their contents when a parent lane is reflowed", () => {
+  const input = {
+    lanes: [
+      { id: "lane-a", participantId: "pool", orientation: "horizontal", bounds: { x: 0, y: 0, width: 500, height: 100 } },
+      { id: "lane-b", participantId: "pool", orientation: "horizontal", bounds: { x: 0, y: 100, width: 500, height: 140 } },
+      { id: "lane-b-child", participantId: "pool", parentLaneId: "lane-b", orientation: "horizontal", bounds: { x: 0, y: 100, width: 500, height: 140 } }
+    ],
+    elements: [
+      { id: "task-child", kind: "task", laneId: "lane-b-child", bounds: { x: 20, y: 120, width: 80, height: 40 } }
+    ]
+  };
+  const result = prettifyDiagram(input, { alignElements: false });
+  assert.equal(result.diagram.lanes.find(lane => lane.id === "lane-b").bounds.y, 140);
+  assert.equal(result.diagram.lanes.find(lane => lane.id === "lane-b-child").bounds.y, 140);
+  assert.equal(result.diagram.elements[0].bounds.y, 160);
+});
+
 test("does not reflow sibling lanes beyond maxDisplacement", () => {
   const input = sample();
   input.lanes[1].bounds.y = 100;
