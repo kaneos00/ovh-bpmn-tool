@@ -138,7 +138,11 @@ export class ProjectResourceAccessService {
     }
   }
 
-  async assertCanEditResource(resourceId: string, headers: RequestHeaders) {
+  async assertCanEditResource(
+    resourceId: string,
+    headers: RequestHeaders,
+    options: { allowCommonForOrganizationAdmin?: boolean } = {},
+  ) {
     const userId = this.getUserId(headers);
     const links = await this.projectProcesses.find({ where: { resourceId } });
 
@@ -146,6 +150,12 @@ export class ProjectResourceAccessService {
     if (!links.length) return;
 
     if (links.some((link) => link.usage === ProjectProcessUsage.Common)) {
+      if (
+        options.allowCommonForOrganizationAdmin &&
+        this.isOrganizationAdmin(headers)
+      ) {
+        return;
+      }
       throw new ForbiddenException(
         'Common processes are read-only through resource endpoints',
       );
@@ -230,6 +240,16 @@ export class ProjectResourceAccessService {
       await this.assertCanEditResource(id, headers);
       await this.assertCanDeleteResource(id);
     }
+  }
+
+  private isOrganizationAdmin(headers: RequestHeaders): boolean {
+    const configuredHeader =
+      this.configService.getOrThrow<string>('userGroupsHeader');
+    const groups =
+      headers[configuredHeader] ?? headers[configuredHeader.toLowerCase()] ?? '';
+    return groups.split(',').some((group) =>
+      group.trim().startsWith('bpmn-tool-admin-'),
+    );
   }
 
   private getUserId(headers: RequestHeaders): string {
