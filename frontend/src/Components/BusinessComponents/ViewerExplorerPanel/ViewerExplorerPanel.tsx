@@ -31,6 +31,9 @@ export const ViewerExplorerPanel = ({
     : `processExplorerPanel ${collapsed ? 'collapsed' : ''}`;
   const headerClass = isContentViewer ? 'viewerFolderHeader' : 'processExplorerPanelHeader';
   const contentClass = isContentViewer ? 'viewerFolderTree' : 'processExplorerPanelContent';
+  const toggleIcon = collapsed
+    ? (isContentViewer ? <MenuIcon /> : <ChevronRight />)
+    : <ChevronLeft />;
 
   return (
     <Sheet className={panelClass} variant="outlined">
@@ -67,9 +70,7 @@ export const ViewerExplorerPanel = ({
           aria-label={collapsed ? 'Développer le panneau de navigation' : 'Replier le panneau de navigation'}
           title={collapsed ? 'Développer la navigation' : 'Réduire la navigation'}
         >
-          {collapsed
-            ? (isContentViewer ? <MenuIcon /> : <ChevronRight />)
-            : <ChevronLeft />}
+          {toggleIcon}
         </IconButton>
       </Stack>
       {!collapsed && (
