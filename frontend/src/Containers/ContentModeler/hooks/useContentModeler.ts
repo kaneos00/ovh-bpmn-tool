@@ -200,7 +200,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     }
 
     try {
-      saveDiagram('saveContent', draftContent);
+      await saveDiagram('saveContent', draftContent);
     } catch {
       showAlert({
         message: 'An error occur during saving content.',
@@ -215,7 +215,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     }
 
     try {
-      saveDiagram('saveContentBeforePublish', draftContent);
+      await saveDiagram('saveContentBeforePublish', draftContent);
     } catch {
       showAlert({
         message: 'An error occur during saving content.',
