@@ -87,7 +87,7 @@ function readLayout(definitions: AnyRecord): { layout: LayoutDiagram; shapes: Ma
       );
       if (candidates.length > 0) laneId = candidates[0]!.id;
     }
-    elements.push({ id, kind: type, bounds: normalizedBounds, laneId });
+    elements.push({ id, kind: type, bounds: normalizedBounds, laneId, attachedToId: idOf(semantic?.attachedToRef), layoutLocked: Boolean(semantic?.attachedToRef) });
   }
 
   if (lanes.length === 0) warnings.push("No lane with BPMN-DI bounds found; lane-based rules will not run.");
