@@ -39,17 +39,14 @@ describe('ThemePreferenceController', () => {
     expect(db.query).not.toHaveBeenCalled();
   });
 
-  it(
-    'rejects a malformed or tampered session before accessing the database',
-    async () => {
-      await expect(
-        controller.getPreferences({
-          headers: { cookie: 'bpmn_session=not-a-valid-token' },
-        } as never),
-      ).rejects.toBeInstanceOf(UnauthorizedException);
-      expect(db.query).not.toHaveBeenCalled();
-    },
-  );
+  it('rejects a malformed or tampered session before accessing the database', async () => {
+    await expect(
+      controller.getPreferences({
+        headers: { cookie: 'bpmn_session=not-a-valid-token' },
+      } as never),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(db.query).not.toHaveBeenCalled();
+  });
 
   it('reads the stored preference for the authenticated account', async () => {
     db.query
