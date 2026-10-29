@@ -80,13 +80,16 @@ const ProcessContentViewer = () => {
     null,
   );
 
+  const requestedElementId = searchParams.get('elementId');
+  const raciRequested = searchParams.get('raci') === '1';
+
   useEffect(() => {
-    setSelectedActivityId(searchParams.get('elementId'));
-    if (searchParams.get('raci') === '1') {
-      setInfoTab(1);
-      setInfoPanelOpen(true);
-    }
-  }, [resourceId, contentId, searchParams]);
+    setSelectedActivityId(requestedElementId);
+    // Route state is authoritative when switching process/version or opening
+    // a shared link. Reset stale RACI panel state when raci=1 is absent.
+    setInfoTab(raciRequested ? 1 : 0);
+    setInfoPanelOpen(raciRequested);
+  }, [resourceId, contentId, requestedElementId, raciRequested]);
 
   const { data: workspace } = useQuery<WorkspaceSummary>(
     ['my-workspace'],
