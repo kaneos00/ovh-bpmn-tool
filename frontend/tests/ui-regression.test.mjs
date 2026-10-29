@@ -129,7 +129,7 @@ test('explorer delegates Call Activity and collapsed SubProcess links to the tes
   assert.ok(navigation.includes("return expandedState === false || expandedState === 'false'"));
 });
 
-test('viewer mounts a single FolderTree explorer instead of the legacy ResourceExplorer', async () => {
+test('viewer uses the shared explorer panel instead of the legacy ResourceExplorer', async () => {
   const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const routes = await read('src/routes.tsx');
@@ -137,8 +137,8 @@ test('viewer mounts a single FolderTree explorer instead of the legacy ResourceE
   assert.ok(layout.includes("import { FolderTree } from '../../Components/BusinessComponents/FolderTree'"));
   assert.ok(layout.includes('<FolderTree'));
   assert.ok(!layout.includes('ResourceExplorer'));
-  assert.ok(details.includes("import { FolderTree } from '../FolderTree'"));
-  assert.ok(details.includes('<FolderTree'));
+  assert.ok(details.includes("import { ViewerExplorerPanel } from '../ViewerExplorerPanel/ViewerExplorerPanel'"));
+  assert.ok(details.includes('<ViewerExplorerPanel'));
   assert.ok(!details.includes('ResourceExplorer'));
   assert.ok(routes.includes("lazy: () => import('./Containers/BpmnLayout')"));
 });
@@ -341,7 +341,7 @@ test('selecting a folder renders its contents instead of an empty folder placeho
 test('viewer keeps the explorer and task details in side panels while all central tabs stay grouped', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const layoutStart = details.indexOf('className="processViewerLayout processViewerWorkspace"');
-  const explorer = details.indexOf('className={`processExplorerPanel');
+  const explorer = details.indexOf('<ViewerExplorerPanel');
   const tabs = details.indexOf('className="processViewerTabs"');
   const processTab = details.indexOf('value={0} className="processViewerTabPanel processViewerProcessTab"');
   const descriptionTab = details.indexOf('value={1} className="processViewerTabPanel"');
