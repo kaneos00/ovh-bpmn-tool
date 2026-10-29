@@ -129,44 +129,44 @@ export function MainContainer(props: MainContainerProps) {
   return (
     <ThemeProvider theme={{ [MATERIAL_THEME_ID]: materialTheme }}>
       <CssVarsProvider defaultMode="light" modeStorageKey="khi-flows-color-scheme">
-      <SnackbarProvider>
-        <QueryClientProvider client={queryClient}>
-          <BpmnToolOptionsProvider options={props.options}>
-            <>
-              <RouterProvider router={router} />
-              <ThemeModeToggle />
-              <Box
-                component="div"
-                aria-label={`Identifiant de version déployée ${shortBuildId}`}
-                title={buildDetails}
-                sx={{
-                  position: 'fixed',
-                  right: 8,
-                  bottom: 4,
-                  zIndex: 2000,
-                  pointerEvents: 'none',
-                  opacity: 0.75,
-                }}
-              >
-                <Typography
-                  level="body-xs"
+        <SnackbarProvider>
+          <QueryClientProvider client={queryClient}>
+            <BpmnToolOptionsProvider options={props.options}>
+              <>
+                <RouterProvider router={router} />
+                <ThemeModeToggle />
+                <Box
+                  component="div"
+                  aria-label={`Identifiant de version déployée ${shortBuildId}`}
+                  title={buildDetails}
                   sx={{
-                    px: 0.5,
-                    py: 0.25,
-                    borderRadius: '3px',
-                    bgcolor: 'background.surface',
-                    color: 'text.tertiary',
-                    fontSize: '10px',
-                    lineHeight: 1.2,
+                    position: 'fixed',
+                    right: 8,
+                    bottom: 4,
+                    zIndex: 2000,
+                    pointerEvents: 'none',
+                    opacity: 0.75,
                   }}
                 >
-                  Build {shortBuildId}
-                </Typography>
-              </Box>
-            </>
-          </BpmnToolOptionsProvider>
-        </QueryClientProvider>
-      </SnackbarProvider>
+                  <Typography
+                    level="body-xs"
+                    sx={{
+                      px: 0.5,
+                      py: 0.25,
+                      borderRadius: '3px',
+                      bgcolor: 'background.surface',
+                      color: 'text.tertiary',
+                      fontSize: '10px',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    Build {shortBuildId}
+                  </Typography>
+                </Box>
+              </>
+            </BpmnToolOptionsProvider>
+          </QueryClientProvider>
+        </SnackbarProvider>
       </CssVarsProvider>
     </ThemeProvider>
   );
