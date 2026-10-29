@@ -234,7 +234,7 @@ test('global annotation search labels text annotations as Description and carrie
 
 test('authorized roles can edit the central element sheet in the Viewer shell', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
-  assert.ok(details.includes("const canEditDescription = sessionRole === 'admin' || sessionRole === 'modeler';"));
+  assert.ok(details.includes("const canEditDescription = !isHistoricalView && (sessionRole === 'admin' || sessionRole === 'modeler')"));
   assert.ok(details.includes('canEditDescription && !isEditingDescription'));
 });
 
