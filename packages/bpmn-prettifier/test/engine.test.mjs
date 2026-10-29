@@ -54,12 +54,33 @@ test("is idempotent for the covered alignment rule", () => {
   assert.deepEqual(second.diagram, first.diagram);
 });
 
-test("does not equalize a lane by creating an overlap with its sibling", () => {
+test("reflows sibling lanes and moves their contents when equalizing lane heights", () => {
+  const input = {
+    lanes: [
+      { id: "lane-a", participantId: "pool", orientation: "horizontal", bounds: { x: 0, y: 0, width: 500, height: 100 } },
+      { id: "lane-b", participantId: "pool", orientation: "horizontal", bounds: { x: 0, y: 100, width: 500, height: 140 } }
+    ],
+    elements: [
+      { id: "task-a", kind: "task", laneId: "lane-a", bounds: { x: 20, y: 20, width: 80, height: 40 } },
+      { id: "task-b", kind: "task", laneId: "lane-b", bounds: { x: 20, y: 120, width: 80, height: 40 } }
+    ]
+  };
+  const result = prettifyDiagram(input, { alignElements: false });
+  assert.equal(result.diagram.lanes[0].bounds.height, 140);
+  assert.equal(result.diagram.lanes[1].bounds.y, 140);
+  assert.equal(result.diagram.lanes[1].bounds.height, 140);
+  assert.equal(result.diagram.elements.find(e => e.id === "task-b").bounds.y, 160);
+  assert.ok(result.appliedRules.includes("LANE_SIBLINGS_REFLOWED"));
+  assert.ok(!result.diagnostics.some(d => d.code === "ELEMENT_OUTSIDE_LANE"));
+});
+
+test("does not reflow sibling lanes beyond maxDisplacement", () => {
   const input = sample();
   input.lanes[1].bounds.y = 100;
-  const result = prettifyDiagram(input, { alignElements: false });
+  const result = prettifyDiagram(input, { alignElements: false, maxDisplacement: 10 });
   assert.equal(result.diagram.lanes[0].bounds.height, 100);
-  assert.ok(result.diagnostics.some(d => d.code === "LANE_SIZE_WOULD_OVERLAP"));
+  assert.equal(result.diagram.lanes[1].bounds.y, 100);
+  assert.ok(result.diagnostics.some(d => d.code === "LAYOUT_MAX_DISPLACEMENT"));
 });
 
 test("moves a boundary event with its host activity during lane alignment", () => {
