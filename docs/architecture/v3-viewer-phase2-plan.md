@@ -117,6 +117,10 @@ Un test de régression statique couvre ce contrat. Le test de structure du Viewe
 
 Ces tests restent en attente de leur résultat CI sur le commit courant ; ce changement n'a pas été validé dans un navigateur.
 
+### Garde de déploiement pendant la Phase 2
+
+Le job `deploy-coolify` est désormais limité aux événements `push` sur `main` et reste conditionné à la variable de dépôt `COOLIFY_DEPLOY_ENABLED=true`. Les pushes de la branche de travail Phase 2 et les événements de pull request exécutent les contrôles CI sans déclencher de déploiement. La dernière tentative antérieure sur cette branche a échoué sur l'appel webhook avec HTTP 405 ; aucun déploiement réussi n'est établi par ce résultat. Le mécanisme webhook doit être vérifié séparément avant de réactiver un déploiement depuis `main`.
+
 ### Prochain incrément
 
 1. Exécuter CI et corriger tout échec.
