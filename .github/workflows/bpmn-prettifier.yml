@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/bpmn-prettifier-engine
+      - feat/bpmn-prettifier-v2-orientation-conversion
     paths:
       - "packages/bpmn-prettifier/**"
       - ".github/workflows/bpmn-prettifier.yml"
