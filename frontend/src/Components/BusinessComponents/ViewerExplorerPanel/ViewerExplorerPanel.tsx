@@ -43,7 +43,11 @@ export const ViewerExplorerPanel = ({
         role={isContentViewer ? undefined : 'button'}
         tabIndex={isContentViewer ? undefined : 0}
         onKeyDown={isContentViewer ? undefined : event => {
-          if (event.key === 'Enter' || event.key === ' ') onToggle();
+          if (event.target !== event.currentTarget) return;
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onToggle();
+          }
         }}
       >
         {!collapsed && (
