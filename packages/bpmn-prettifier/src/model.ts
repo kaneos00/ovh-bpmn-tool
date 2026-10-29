@@ -10,6 +10,8 @@ export interface Bounds {
 export interface LayoutLane {
   id: string;
   participantId: string;
+  /** Parent lane for nested BPMN lane sets; undefined for participant-level lanes. */
+  parentLaneId?: string;
   orientation: LaneOrientation;
   bounds: Bounds;
 }
