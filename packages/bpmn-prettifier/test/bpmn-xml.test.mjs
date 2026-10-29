@@ -58,9 +58,9 @@ describe("BPMN XML adapter", () => {
     const result = await prettifyBpmnXml(withParticipant, { alignElements: false });
     const reparsed = await verifyBpmnXml(result.xml);
     assert.equal(reparsed.valid, true);
-    assert.match(result.xml, /id="Lane_A_di"[\\s\\S]*?x="0" y="0" width="600" height="140"/);
-    assert.match(result.xml, /id="Lane_B_di"[\\s\\S]*?x="0" y="140" width="600" height="140"/);
-    assert.match(result.xml, /id="Participant_1_di"[\\s\\S]*?x="0" y="0" width="600" height="280"/);
+    assert.match(result.xml, /id="Lane_A_di"[\s\S]*?x="0" y="0" width="600" height="140"/);
+    assert.match(result.xml, /id="Lane_B_di"[\s\S]*?x="0" y="140" width="600" height="140"/);
+    assert.match(result.xml, /id="Participant_1_di"[\s\S]*?x="0" y="0" width="600" height="280"/);
   });
 
   it("reports missing lane DI bounds without crashing", async () => {
