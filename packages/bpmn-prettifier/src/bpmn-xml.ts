@@ -50,17 +50,17 @@ function readLayout(definitions: AnyRecord): { layout: LayoutDiagram; shapes: Ma
   for (const process of processes) {
     const participant = participants.find((candidate: AnyRecord) => candidate.processRef?.id === process.id);
     const participantId = idOf(participant) ?? process.id;
-    const visitLane = (lane: AnyRecord) => {
+    const visitLane = (lane: AnyRecord, parentLaneId?: string) => {
       const shape = shapes.get(lane.id);
       if (shape?.bounds) {
         const bounds = shape.bounds;
         const orientation = bounds.width >= bounds.height ? "horizontal" : "vertical";
-        lanes.push({ id: lane.id, participantId, orientation, bounds: { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height } });
+        lanes.push({ id: lane.id, participantId, parentLaneId, orientation, bounds: { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height } });
         for (const node of semanticLaneNodes(lane)) laneIdByNode.set(node.id, lane.id);
       } else {
         warnings.push(`Lane « ${lane.name ?? lane.id} » has no BPMN-DI bounds and was skipped.`);
       }
-      for (const child of lane.childLaneSet?.lanes ?? []) visitLane(child);
+      for (const child of lane.childLaneSet?.lanes ?? []) visitLane(child, lane.id);
     };
     for (const laneSet of process.laneSets ?? []) {
       for (const lane of laneSet.lanes ?? []) visitLane(lane);
