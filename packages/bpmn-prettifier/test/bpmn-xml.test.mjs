@@ -1,0 +1,125 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import { describe, it } from "node:test";
+import { prettifyBpmnXml, verifyBpmnXml } from "../dist/bpmn-xml.js";
+
+const fixture = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+ xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+ xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+ xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+ id="Definitions_1" targetNamespace="https://example.test/bpmn">
+ <bpmn:process id="Process_1" isExecutable="false">
+  <bpmn:laneSet id="LaneSet_1">
+   <bpmn:lane id="Lane_A" name="A"><bpmn:flowNodeRef>Task_A</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_B</bpmn:flowNodeRef></bpmn:lane>
+   <bpmn:lane id="Lane_B" name="B"><bpmn:flowNodeRef>Task_C</bpmn:flowNodeRef></bpmn:lane>
+  </bpmn:laneSet>
+  <bpmn:task id="Task_A" name="Alpha"/><bpmn:task id="Task_B" name="Beta"/><bpmn:task id="Task_C" name="Gamma"/><bpmn:sequenceFlow id="Flow_AB" sourceRef="Task_A" targetRef="Task_B"/>
+ </bpmn:process>
+ <bpmndi:BPMNDiagram id="Diagram_1"><bpmndi:BPMNPlane id="Plane_1" bpmnElement="Process_1">
+  <bpmndi:BPMNShape id="Lane_A_di" bpmnElement="Lane_A"><dc:Bounds x="0" y="0" width="600" height="100"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="Lane_B_di" bpmnElement="Lane_B"><dc:Bounds x="0" y="100" width="600" height="140"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="Task_A_di" bpmnElement="Task_A"><dc:Bounds x="80" y="10" width="100" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="Task_B_di" bpmnElement="Task_B"><dc:Bounds x="300" y="20" width="100" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="Task_C_di" bpmnElement="Task_C"><dc:Bounds x="80" y="120" width="100" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNEdge id="Flow_AB_di" bpmnElement="Flow_AB"><di:waypoint x="180" y="50"/><di:waypoint x="300" y="60"/></bpmndi:BPMNEdge>
+ </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</bpmn:definitions>`;
+
+describe("BPMN XML adapter", () => {
+  it("aligns existing BPMN shapes and keeps semantic elements intact", async () => {
+    const result = await prettifyBpmnXml(fixture);
+    assert.ok(result.layout.appliedRules.includes("LANE_ELEMENTS_ALIGN_CENTER_Y"));
+    assert.ok(result.xml.includes('id="Task_A"'));
+    assert.ok(result.xml.includes('name="Alpha"'));
+    assert.ok(result.xml.includes('id="Flow_AB"'));
+    assert.ok(result.xml.includes('sourceRef="Task_A"'));
+    assert.ok(result.xml.includes('targetRef="Task_B"'));
+    assert.ok(result.xml.includes('x="180" y="55"'));
+    assert.ok(result.xml.includes('x="300" y="55"'));
+    const verification = await verifyBpmnXml(result.xml);
+    assert.equal(verification.valid, true);
+    assert.equal(verification.diagnostics.length, 0);
+  });
+
+  it("recalculates edge endpoints after alignment while preserving intermediate waypoints", async () => {
+    const routed = fixture.replace(
+      '<di:waypoint x="180" y="50"/><di:waypoint x="300" y="60"/>',
+      '<di:waypoint x="180" y="50"/><di:waypoint x="220" y="50"/><di:waypoint x="260" y="60"/><di:waypoint x="300" y="60"/>'
+    );
+    const result = await prettifyBpmnXml(routed, { equalizeLaneCrossAxisSize: false });
+    // Task A moves down by 15px to align with Task B. Its endpoint is recalculated,
+    // while the two manually routed intermediate points remain unchanged.
+    assert.match(result.xml, /<di:waypoint x="180" y="52\.22222222222222"\s*\/>/);
+    assert.match(result.xml, /<di:waypoint x="220" y="50"\s*\/>/);
+    assert.match(result.xml, /<di:waypoint x="260" y="60"\s*\/>/);
+    assert.match(result.xml, /<di:waypoint x="300" y="57\.77777777777778"\s*\/>/);
+  });
+
+  it("does not mutate the input string and returns parseable XML", async () => {
+    const before = fixture;
+    const result = await prettifyBpmnXml(fixture, { equalizeLaneCrossAxisSize: false });
+    assert.equal(fixture, before);
+    assert.ok(result.xml.includes("<bpmn:definitions"));
+    assert.ok(result.xml.includes('id="Lane_B"'));
+  });
+
+  it("reflows adjacent lanes and expands the participant bounds", async () => {
+    const withParticipant = fixture
+      .replace('<bpmn:process id="Process_1" isExecutable="false">', '<bpmn:collaboration id="Collaboration_1"><bpmn:participant id="Participant_1" processRef="Process_1"/></bpmn:collaboration><bpmn:process id="Process_1" isExecutable="false">')
+      .replace('<bpmndi:BPMNShape id="Lane_A_di"', '<bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1"><dc:Bounds x="0" y="0" width="600" height="240"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Lane_A_di"');
+    const result = await prettifyBpmnXml(withParticipant, { alignElements: false });
+    const reparsed = await verifyBpmnXml(result.xml);
+    assert.equal(reparsed.valid, true);
+    assert.match(result.xml, /id="Lane_A_di"[\s\S]*?x="0" y="0" width="600" height="140"/);
+    assert.match(result.xml, /id="Lane_B_di"[\s\S]*?x="0" y="140" width="600" height="140"/);
+    assert.match(result.xml, /id="Participant_1_di"[\s\S]*?x="0" y="0" width="600" height="280"/);
+  });
+
+  it("preserves semantic IDs and flow references when prettifying the real fixture", async () => {
+    const fixturePath = new URL("../../../frontend/tests/fixtures/Parking%20(copie)_v9.bpmn", import.meta.url);
+    const realXml = await readFile(fileURLToPath(fixturePath), "utf8");
+    const result = await prettifyBpmnXml(realXml);
+    const reparsed = await verifyBpmnXml(result.xml);
+    assert.equal(reparsed.valid, true);
+
+    // Geometry may change, but semantic BPMN IDs and sequence-flow endpoints must not.
+    const semanticSignature = (xml) => {
+      const ids = [...xml.matchAll(/<bpmn:([\w]+)\b[^>]*\bid="([^"]+)"/g)]
+        .map(match => `${match[1]}:${match[2]}`).sort();
+      const flows = [...xml.matchAll(/<bpmn:sequenceFlow\b([^>]*)>/g)]
+        .map(match => {
+          const attrs = match[1];
+          const id = attrs.match(/\bid="([^"]+)"/)?.[1] ?? "";
+          const source = attrs.match(/\bsourceRef="([^"]+)"/)?.[1] ?? "";
+          const target = attrs.match(/\btargetRef="([^"]+)"/)?.[1] ?? "";
+          return `${id}:${source}->${target}`;
+        }).sort();
+      return { ids, flows };
+    };
+    assert.deepEqual(semanticSignature(result.xml), semanticSignature(realXml));
+  });
+
+  it("reports missing lane DI bounds without crashing", async () => {
+    const noLaneShape = fixture.replace(/<bpmndi:BPMNShape id="Lane_A_di"[\s\S]*?<\/bpmndi:BPMNShape>/, "");
+    const result = await verifyBpmnXml(noLaneShape);
+    assert.ok(result.warnings.some(message => message.includes("no BPMN-DI bounds")));
+  });
+  it("assigns an unreferenced shape to its containing lane when unambiguous", async () => {
+    const withData = fixture
+      .replace('<bpmn:task id="Task_C" name="Gamma"/>', '<bpmn:task id="Task_C" name="Gamma"/><bpmn:dataObject id="DataObject_1"/><bpmn:dataObjectReference id="DataRef" dataObjectRef="DataObject_1" name="Input data"/>')
+      .replace('<bpmndi:BPMNShape id="Task_C_di" bpmnElement="Task_C"><dc:Bounds x="80" y="120" width="100" height="80"/></bpmndi:BPMNShape>', '<bpmndi:BPMNShape id="Task_C_di" bpmnElement="Task_C"><dc:Bounds x="80" y="120" width="100" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="DataRef_di" bpmnElement="DataRef"><dc:Bounds x="450" y="20" width="36" height="50"/></bpmndi:BPMNShape>');
+    const result = await prettifyBpmnXml(withData, { alignElements: false, equalizeLaneCrossAxisSize: false });
+    assert.equal(result.layout.diagram.elements.find(element => element.id === "DataRef")?.laneId, "Lane_A");
+  });
+
+  it("parses and serializes a real repository BPMN fixture", async () => {
+    const fixturePath = new URL("../../../frontend/tests/fixtures/Parking%20(copie)_v9.bpmn", import.meta.url);
+    const realXml = await readFile(fileURLToPath(fixturePath), "utf8");
+    const result = await prettifyBpmnXml(realXml, { alignElements: false, equalizeLaneCrossAxisSize: false });
+    const reparsed = await verifyBpmnXml(result.xml);
+    assert.match(result.xml, /definitions/i);
+    assert.equal(reparsed.valid, true);
+  });
+});

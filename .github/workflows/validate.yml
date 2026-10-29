@@ -300,7 +300,7 @@ jobs:
       - coolify-demo
     # Keep CI independent from Coolify credentials. Opt in to deployment only after
     # COOLIFY_WEBHOOK_URL and COOLIFY_TOKEN are configured and verified.
-    if: github.event_name == 'push' && vars.COOLIFY_DEPLOY_ENABLED == 'true'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/v2.3' && vars.COOLIFY_DEPLOY_ENABLED == 'true'
     steps:
       - name: Trigger Coolify deployment
         env:
