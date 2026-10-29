@@ -145,6 +145,9 @@ function updateEdgeEndpoints(definitions: AnyRecord, shapes: Map<string, AnyReco
  * retained; a right-angle bend is inserted only when a segment is diagonal.
  */
 function orthogonalizeEdgeWaypoints(definitions: AnyRecord, moddle: BpmnModdle): void {
+  const createPoint = (moddle as unknown as {
+    create: (type: string, attrs: AnyRecord) => AnyRecord
+  }).create.bind(moddle);
   const epsilon = 0.001;
   for (const diagram of definitions.diagrams ?? []) {
     for (const di of diagram.plane?.planeElement ?? []) {
@@ -153,7 +156,7 @@ function orthogonalizeEdgeWaypoints(definitions: AnyRecord, moddle: BpmnModdle):
       const push = (point: { x: number; y: number }) => {
         const previous = points[points.length - 1];
         if (!previous || Math.abs(previous.x - point.x) > epsilon || Math.abs(previous.y - point.y) > epsilon) {
-          points.push(moddle.create("dc:Point", { x: point.x, y: point.y }) as { x: number; y: number });
+          points.push(createPoint("dc:Point", { x: point.x, y: point.y }) as { x: number; y: number });
         }
       };
       push(di.waypoint[0]);
