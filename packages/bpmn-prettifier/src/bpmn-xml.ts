@@ -84,6 +84,52 @@ function readLayout(definitions: AnyRecord): { layout: LayoutDiagram; shapes: Ma
   return { layout: { lanes, elements }, shapes, warnings };
 }
 
+function boundaryPoint(bounds: { x: number; y: number; width: number; height: number }, toward: { x: number; y: number }, shapeType = ""): { x: number; y: number } {
+  const cx = bounds.x + bounds.width / 2;
+  const cy = bounds.y + bounds.height / 2;
+  const dx = toward.x - cx;
+  const dy = toward.y - cy;
+  if (Math.abs(dx) < 0.0001 && Math.abs(dy) < 0.0001) return { x: cx, y: cy };
+
+  if (/Event$|Gateway$/.test(shapeType)) {
+    const rx = bounds.width / 2;
+    const ry = bounds.height / 2;
+    const denominator = Math.sqrt((dx * dx) / (rx * rx) + (dy * dy) / (ry * ry));
+    const scale = denominator > 0 ? 1 / denominator : 0;
+    return { x: cx + dx * scale, y: cy + dy * scale };
+  }
+
+  const tx = Math.abs(dx) > 0.0001 ? (bounds.width / 2) / Math.abs(dx) : Infinity;
+  const ty = Math.abs(dy) > 0.0001 ? (bounds.height / 2) / Math.abs(dy) : Infinity;
+  const scale = Math.min(tx, ty);
+  return { x: cx + dx * scale, y: cy + dy * scale };
+}
+
+function updateEdgeEndpoints(definitions: AnyRecord, shapes: Map<string, AnyRecord>, warnings: string[]): void {
+  for (const diagram of definitions.diagrams ?? []) {
+    for (const di of diagram.plane?.planeElement ?? []) {
+      if (di.$type !== "bpmndi:BPMNEdge" || !Array.isArray(di.waypoint) || di.waypoint.length < 2) continue;
+      const semantic = di.bpmnElement;
+      const sourceId = idOf(semantic?.sourceRef);
+      const targetId = idOf(semantic?.targetRef);
+      const sourceShape = sourceId ? shapes.get(sourceId) : undefined;
+      const targetShape = targetId ? shapes.get(targetId) : undefined;
+      if (!sourceShape?.bounds || !targetShape?.bounds) {
+        if (sourceId || targetId) warnings.push(`Edge « ${semantic?.id ?? di.id ?? "unknown"} » has no DI bounds for one endpoint; its waypoints were left unchanged.`);
+        continue;
+      }
+      const first = di.waypoint[0];
+      const second = di.waypoint[1];
+      const last = di.waypoint[di.waypoint.length - 1];
+      const beforeLast = di.waypoint[di.waypoint.length - 2];
+      const sourceToward = di.waypoint.length > 2 ? second : { x: targetShape.bounds.x + targetShape.bounds.width / 2, y: targetShape.bounds.y + targetShape.bounds.height / 2 };
+      const targetToward = di.waypoint.length > 2 ? beforeLast : { x: sourceShape.bounds.x + sourceShape.bounds.width / 2, y: sourceShape.bounds.y + sourceShape.bounds.height / 2 };
+      Object.assign(first, boundaryPoint(sourceShape.bounds, sourceToward, sourceShape.bpmnElement?.$type));
+      Object.assign(last, boundaryPoint(targetShape.bounds, targetToward, targetShape.bpmnElement?.$type));
+    }
+  }
+}
+
 /**
  * Pretty-print BPMN-DI geometry while preserving the BPMN semantic model.
  * This first adapter intentionally edits only existing BPMNShape Bounds. It
@@ -103,6 +149,7 @@ export async function prettifyBpmnXml(xml: string, options: LayoutRuleOptions = 
     const shape = shapes.get(lane.id);
     if (shape?.bounds) Object.assign(shape.bounds, lane.bounds);
   }
+  updateEdgeEndpoints(definitions, shapes, warnings);
   const serialized = await moddle.toXML(definitions, { format: true });
   return {
     xml: serialized.xml,
