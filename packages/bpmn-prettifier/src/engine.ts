@@ -45,6 +45,20 @@ export function prettifyDiagram(input: LayoutDiagram, options: LayoutRuleOptions
           diagnostics.push({ code: "LAYOUT_MAX_DISPLACEMENT", severity: "warning", message: "Lane size adjustment exceeds maxDisplacement.", elementIds: [], laneId: lane.id });
           continue;
         }
+        const proposedBounds = { ...lane.bounds, ...(horizontal ? { height: target } : { width: target }) };
+        const wouldOverlapLane = lanes.some(other =>
+          other.id !== lane.id && intersects(proposedBounds, other.bounds)
+        );
+        if (wouldOverlapLane) {
+          diagnostics.push({
+            code: "LANE_SIZE_WOULD_OVERLAP",
+            severity: "warning",
+            message: "Lane size adjustment skipped because it would overlap another lane. Reflow of sibling lanes is not implemented yet.",
+            elementIds: [],
+            laneId: lane.id
+          });
+          continue;
+        }
         if (horizontal) lane.bounds.height = target;
         else lane.bounds.width = target;
         appliedRules.push("LANE_CROSS_AXIS_SIZE_EQUALIZED");
