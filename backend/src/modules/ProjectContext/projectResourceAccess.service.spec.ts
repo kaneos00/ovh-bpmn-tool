@@ -5,7 +5,9 @@ import { ProjectResourceAccessService } from './projectResourceAccess.service';
 
 describe('ProjectResourceAccessService', () => {
   const configService = {
-    getOrThrow: jest.fn((key: string) => key === 'userGroupsHeader' ? 'x-user-groups' : 'x-user'),
+    getOrThrow: jest.fn((key: string) =>
+      key === 'userGroupsHeader' ? 'x-user-groups' : 'x-user',
+    ),
   };
   const projectProcesses = {
     find: jest.fn(),
@@ -114,10 +116,14 @@ describe('ProjectResourceAccessService', () => {
     ]);
 
     await expect(
-      service.assertCanEditResource('resource-1', {
-        ...headers,
-        'x-user-groups': 'bpmn-tool-admin-global',
-      }, { allowCommonForOrganizationAdmin: true }),
+      service.assertCanEditResource(
+        'resource-1',
+        {
+          ...headers,
+          'x-user-groups': 'bpmn-tool-admin-global',
+        },
+        { allowCommonForOrganizationAdmin: true },
+      ),
     ).resolves.toBeUndefined();
   });
 
@@ -131,10 +137,14 @@ describe('ProjectResourceAccessService', () => {
     ]);
 
     await expect(
-      service.assertCanEditResource('resource-1', {
-        ...headers,
-        'x-user-groups': 'bpmn-tool-readwrite-global',
-      }, { allowCommonForOrganizationAdmin: true }),
+      service.assertCanEditResource(
+        'resource-1',
+        {
+          ...headers,
+          'x-user-groups': 'bpmn-tool-readwrite-global',
+        },
+        { allowCommonForOrganizationAdmin: true },
+      ),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
