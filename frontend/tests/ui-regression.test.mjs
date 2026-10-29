@@ -134,8 +134,12 @@ test('viewer uses the shared explorer panel instead of the legacy ResourceExplor
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const routes = await read('src/routes.tsx');
 
-  assert.ok(layout.includes("import { FolderTree } from '../../Components/BusinessComponents/FolderTree'"));
-  assert.ok(layout.includes('<FolderTree'));
+  assert.ok(layout.includes("import { ViewerExplorerPanel } from '../../Components/BusinessComponents/ViewerExplorerPanel/ViewerExplorerPanel'"));
+  assert.ok(layout.includes('<ViewerExplorerPanel'));
+  assert.ok(layout.includes('variant="process-details"'));
+  assert.ok(layout.includes('showHistory'));
+  assert.ok(layout.includes('folderExplorerCollapsed'));
+  assert.ok(!layout.includes('<FolderTree'));
   assert.ok(!layout.includes('ResourceExplorer'));
   assert.ok(details.includes("import { ViewerExplorerPanel } from '../ViewerExplorerPanel/ViewerExplorerPanel'"));
   assert.ok(details.includes('<ViewerExplorerPanel'));
