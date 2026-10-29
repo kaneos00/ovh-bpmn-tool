@@ -505,6 +505,15 @@ test('ContentViewer renders the URL-selected version rather than silently switch
 });
 
 
+test('ProcessDetails never falls back to latest published content for an explicit missing or historical contentId', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.match(details, /const viewerContent = selectedContentId\s*\?\s*contents\.find\(/);
+  assert.match(details, /:\s*publishedContent;/);
+  assert.match(details, /selectedContentId && \(!viewerContent \|\| viewerContent\.id !== publishedContent\?\.id\)/);
+  assert.ok(!details.includes(') ?? publishedContent;'));
+});
+
 test('V3 process and content viewers share the same explorer panel without losing route-specific state', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
