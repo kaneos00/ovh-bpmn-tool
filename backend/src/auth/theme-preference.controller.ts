@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Put,
@@ -41,7 +42,7 @@ export class ThemePreferenceController {
   ) {
     const userId = await this.getAuthenticatedUserId(request);
     if (body?.theme !== 'light' && body?.theme !== 'dark') {
-      throw new UnauthorizedException('Préférence de thème invalide.');
+      throw new BadRequestException('Préférence de thème invalide.');
     }
     await this.ensureTable();
     await this.db.query(
