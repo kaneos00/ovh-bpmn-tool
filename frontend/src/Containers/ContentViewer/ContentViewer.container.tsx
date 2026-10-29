@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -25,6 +25,7 @@ import { ProcessViewer } from '../../Components/BusinessComponents/ProcessViewer
 import { Breadcrumbs } from '../../Components/GenericComponents/Breadcrumbs/Breadcrumbs';
 import { useBpmnLayoutBreadcrumbs } from '../BpmnLayout/hooks/useBpmnLayoutBreadcrumbs';
 import { useContentViewer } from './hooks/useContentViewer';
+import { useViewerRouteState } from '../../shared/hooks/useViewerRouteState';
 import { Component as ProjectHomeComponent } from '../ProjectViewer/ProjectViewer.container';
 import {
   contentsQuery,
@@ -66,7 +67,7 @@ const ProcessContentViewer = () => {
   const { resourceId, contentId } = useContentViewer();
   const navigate = useNavigate();
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
-  const [searchParams] = useSearchParams();
+  const { requestedElementId, requestedRaciView } = useViewerRouteState();
   const [folderOpen, setFolderOpen] = useState(true);
   const [infoTab, setInfoTab] = useState<0 | 1>(0);
   const [infoPanelOpen, setInfoPanelOpen] = useState(false);
@@ -77,8 +78,7 @@ const ProcessContentViewer = () => {
     null,
   );
 
-  const requestedElementId = searchParams.get('elementId');
-  const raciRequested = searchParams.get('raci') === '1';
+  const raciRequested = requestedRaciView;
 
   useEffect(() => {
     setSelectedActivityId(requestedElementId);
