@@ -457,3 +457,15 @@ test('V3 central viewer exposes the data inventory and saves it through the exis
   assert.match(inventory, /Personnes autorisées/);
   assert.match(inventory, /Modalités de restriction/);
 });
+
+test('ContentViewer restores element selection and RACI panel from route query parameters', async () => {
+  const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+
+  assert.ok(viewer.includes("const requestedElementId = searchParams.get('elementId')"));
+  assert.ok(viewer.includes("const raciRequested = searchParams.get('raci') === '1'"));
+  assert.ok(viewer.includes('setSelectedActivityId(requestedElementId)'));
+  assert.ok(viewer.includes('setInfoTab(raciRequested ? 1 : 0)'));
+  assert.ok(viewer.includes('setInfoPanelOpen(raciRequested)'));
+  assert.match(viewer, /\[resourceId, contentId, requestedElementId, raciRequested\]/);
+});
+
