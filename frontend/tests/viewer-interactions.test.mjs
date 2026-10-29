@@ -255,3 +255,15 @@ test('administrator explorer context menu restores folder and resource actions',
   assert.ok(tree.includes('Partager'));
   assert.ok(tree.includes('Supprimer'));
 });
+
+
+test('shared process workspace restores the RACI tab from a direct link and resets on route changes', async () => {
+  const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.ok(layout.includes("searchParams.get('raci') === '1'"));
+  assert.ok(layout.includes('requestedRaciView={requestedRaciView}'));
+  assert.match(details, /requestedRaciView\?: boolean/);
+  assert.match(details, /setActiveViewerTab\(requestedRaciView \? 3 : 0\);[\s\S]*?\[resourceId, selectedContentId, requestedRaciView\]/);
+  assert.ok(details.includes('<Tab value={3}>RACI</Tab>'));
+});
