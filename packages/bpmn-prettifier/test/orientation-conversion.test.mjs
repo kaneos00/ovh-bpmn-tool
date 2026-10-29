@@ -36,6 +36,20 @@ const shapeBounds = (xml, semanticId) => {
   return attrs;
 };
 
+const assertOrthogonalEdges = (xml) => {
+  const edges = [...xml.matchAll(/<bpmndi:BPMNEdge\b[^>]*>([\s\S]*?)<\/bpmndi:BPMNEdge>/g)];
+  for (const edge of edges) {
+    const points = [...edge[1].matchAll(/<di:waypoint\b[^>]*x="([^"]+)"[^>]*y="([^"]+)"[^>]*\/>/g)]
+      .map(match => ({ x: Number(match[1]), y: Number(match[2]) }));
+    for (let index = 1; index < points.length; index++) {
+      const a = points[index - 1];
+      const b = points[index];
+      assert.ok(Math.abs(a.x - b.x) < 0.001 || Math.abs(a.y - b.y) < 0.001,
+        "every BPMN-DI edge segment should be horizontal or vertical");
+    }
+  }
+};
+
 const semanticSignature = (xml) => ({
   ids: [...xml.matchAll(/<bpmn:([\w]+)\b[^>]*\bid="([^"]+)"/g)].map(m => `${m[1]}:${m[2]}`).sort(),
   flows: [...xml.matchAll(/<bpmn:sequenceFlow\b([^>]*)>/g)].map(m => {
@@ -55,7 +69,7 @@ describe("BPMN lane orientation conversion V2", () => {
       assert.ok(bounds.width < bounds.height, `${laneId} should be vertical`);
     }
     assert.deepEqual(semanticSignature(result.xml), semanticSignature(horizontalFixture));
-    assert.ok((result.xml.match(/<di:waypoint\b/g) ?? []).length >= 3, "diagonal source routes should gain an orthogonal bend");
+    assertOrthogonalEdges(result.xml);
     assert.equal((await verifyBpmnXml(result.xml)).valid, true);
   });
 
@@ -69,6 +83,7 @@ describe("BPMN lane orientation conversion V2", () => {
       assert.ok(bounds.width > bounds.height, `${laneId} should be horizontal`);
     }
     assert.deepEqual(semanticSignature(result.xml), semanticSignature(horizontalFixture));
+    assertOrthogonalEdges(result.xml);
     assert.equal((await verifyBpmnXml(result.xml)).valid, true);
   });
 
