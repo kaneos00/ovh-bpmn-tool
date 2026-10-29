@@ -80,7 +80,7 @@ function detectOrientation(planeElements: AnyRecord[]): LaneOrientation {
  * lanes to vertical lanes. Lane and participant rectangles swap width/height;
  * task/event/gateway shapes keep their own dimensions so activities stay legible.
  */
-function rotateDiGeometry(planeElements: AnyRecord[]): void {
+function rotateDiGeometry(planeElements: AnyRecord[], targetOrientation: LaneOrientation): void {
   const geometry = collectDiGeometry(planeElements);
   const allX = [
     ...geometry.bounds.flatMap(b => [b.x, b.x + b.width]),
@@ -94,9 +94,7 @@ function rotateDiGeometry(planeElements: AnyRecord[]): void {
     throw new Error("Cannot convert lane orientation: the BPMN diagram has no usable DI geometry.");
   }
   const minX = Math.min(...allX);
-  const maxX = Math.max(...allX);
   const minY = Math.min(...allY);
-  const maxY = Math.max(...allY);
 
   // A transpose (rather than a 90° rotation with a reflection) keeps the
   // original left-to-right process order as top-to-bottom in vertical mode.
@@ -125,7 +123,7 @@ function rotateDiGeometry(planeElements: AnyRecord[]): void {
       Object.assign(bounds, { x: nextCenter.x - width / 2, y: nextCenter.y - height / 2, width, height });
       if (isLaneOrParticipant) {
         // BPMN-DI uses this flag alongside the bounds to indicate lane/pool orientation.
-        value.isHorizontal = false;
+        value.isHorizontal = targetOrientation === "horizontal";
       }
     }
 
@@ -164,7 +162,7 @@ export async function convertBpmnLaneOrientation(
 
   let sourceXml = xml;
   if (sourceOrientation !== targetOrientation) {
-    rotateDiGeometry(planeElements);
+    rotateDiGeometry(planeElements, targetOrientation);
     const serialized = await moddle.toXML(definitions, { format: true });
     sourceXml = serialized.xml;
   }
