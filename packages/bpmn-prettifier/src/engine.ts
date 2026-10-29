@@ -66,6 +66,44 @@ export function prettifyDiagram(input: LayoutDiagram, options: LayoutRuleOptions
       }
     };
 
+    // Keep nested lane sets fitted to a resized parent when their direct
+    // children form a contiguous partition of the parent's cross-axis bounds.
+    // Uneven/incomplete child layouts are left untouched rather than guessed.
+    const resizeNestedLanes = (parent: LayoutLane, newSize: number, seen = new Set<string>()): void => {
+      if (seen.has(parent.id)) return;
+      seen.add(parent.id);
+      const horizontal = parent.orientation === "horizontal";
+      const start = (lane: LayoutLane) => horizontal ? lane.bounds.y : lane.bounds.x;
+      const size = (lane: LayoutLane) => horizontal ? lane.bounds.height : lane.bounds.width;
+      const children = (childrenByParent.get(parent.id) ?? [])
+        .filter(child => child.orientation === parent.orientation)
+        .sort((a, b) => start(a) - start(b));
+      if (children.length === 0 || size(parent) <= EPSILON) return;
+      const parentStart = start(parent);
+      const parentEnd = parentStart + size(parent);
+      const contiguous = Math.abs(start(children[0]!) - parentStart) < EPSILON &&
+        Math.abs(start(children[children.length - 1]!) + size(children[children.length - 1]!) - parentEnd) < EPSILON &&
+        children.every((child, index) => index === 0 ||
+          Math.abs(start(child) - (start(children[index - 1]!) + size(children[index - 1]!))) < EPSILON);
+      if (!contiguous) return;
+
+      const childSize = newSize / children.length;
+      let cursor = parentStart;
+      for (const child of children) {
+        const delta = cursor - start(child);
+        if (Math.abs(delta) >= EPSILON) shiftLaneSubtree(child, delta, horizontal);
+        if (horizontal) {
+          child.bounds.y = cursor;
+          child.bounds.height = childSize;
+        } else {
+          child.bounds.x = cursor;
+          child.bounds.width = childSize;
+        }
+        resizeNestedLanes(child, childSize, seen);
+        cursor += childSize;
+      }
+    };
+
     for (const lanes of groups.values()) {
       if (lanes.length < 2) continue;
       const horizontal = lanes[0]!.orientation === "horizontal";
@@ -99,6 +137,7 @@ export function prettifyDiagram(input: LayoutDiagram, options: LayoutRuleOptions
           else lane.bounds.x += shift;
         }
         if (Math.abs(sizeDelta) >= EPSILON) {
+          resizeNestedLanes(lane, target);
           if (horizontal) lane.bounds.height = target;
           else lane.bounds.width = target;
         }
