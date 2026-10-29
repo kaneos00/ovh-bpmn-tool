@@ -43,6 +43,20 @@ describe("BPMN XML adapter", () => {
     assert.equal(verification.diagnostics.length, 0);
   });
 
+  it("recalculates edge endpoints after alignment while preserving intermediate waypoints", async () => {
+    const routed = fixture.replace(
+      '<di:waypoint x="180" y="50"/><di:waypoint x="300" y="60"/>',
+      '<di:waypoint x="180" y="50"/><di:waypoint x="220" y="50"/><di:waypoint x="260" y="60"/><di:waypoint x="300" y="60"/>'
+    );
+    const result = await prettifyBpmnXml(routed, { equalizeLaneCrossAxisSize: false });
+    // Task A moves down by 15px to align with Task B. Its endpoint is recalculated,
+    // while the two manually routed intermediate points remain unchanged.
+    assert.match(result.xml, /<di:waypoint x="180" y="70"\s*\/>/);
+    assert.match(result.xml, /<di:waypoint x="220" y="50"\s*\/>/);
+    assert.match(result.xml, /<di:waypoint x="260" y="60"\s*\/>/);
+    assert.match(result.xml, /<di:waypoint x="300" y="60"\s*\/>/);
+  });
+
   it("does not mutate the input string and returns parseable XML", async () => {
     const before = fixture;
     const result = await prettifyBpmnXml(fixture, { equalizeLaneCrossAxisSize: false });
