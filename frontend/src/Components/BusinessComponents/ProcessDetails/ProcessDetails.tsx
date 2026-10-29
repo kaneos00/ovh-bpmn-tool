@@ -541,7 +541,11 @@ export const ProcessDetails = ({
               </>
             ) : (
               <Stack spacing={2} padding={2}>
-                <Typography level="title-md">No published version</Typography>
+                <Typography level="title-md">
+                  {selectedContentId
+                    ? 'La version demandée est indisponible ou ne peut pas être consultée.'
+                    : 'No published version'}
+                </Typography>
                 {!readOnlyShell && (
                   <ConditionalRender condition={Boolean(!contents.length)}>
                     <DropZone onFileUploaded={onFilesUploaded} />
