@@ -29,7 +29,8 @@ Date de l’audit : 2026-10-29. Audit de lecture uniquement ; aucune modificatio
 ## Limites à résoudre avant intégration UI
 
 - Le réagencement des lanes sœurs et du participant n’est pas implémenté : une égalisation qui chevaucherait une lane sœur est refusée et diagnostiquée.
-- Les extrémités des edges sont recalées géométriquement ; les routes complexes, associations, flux diagonaux, labels et événements attachés doivent être couverts par des fixtures ciblées.
+- Les extrémités des edges sont recalées géométriquement ; les routes complexes, associations, flux diagonaux et labels doivent être couverts par des fixtures ciblées.
+- Les événements attachés sont maintenant identifiés depuis `attachedToRef`, exclus comme cibles d’alignement indépendantes et déplacés avec leur activité hôte ; le chevauchement avec leur activité est traité comme intentionnel.
 - L’orientation du lane est estimée depuis son rapport largeur/hauteur. Ce choix doit être validé sur les diagrammes verticaux et atypiques.
 - L’affectation à un lane s’appuie d’abord sur `flowNodeRef`, puis sur une inclusion géométrique non ambiguë pour des formes comme les références de données.
 - Le test d’une fixture réelle vérifie le round-trip XML ; la validation visuelle et la comparaison du rendu avant/après restent à faire.
