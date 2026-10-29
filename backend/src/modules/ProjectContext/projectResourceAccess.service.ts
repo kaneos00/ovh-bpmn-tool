@@ -246,10 +246,12 @@ export class ProjectResourceAccessService {
     const configuredHeader =
       this.configService.getOrThrow<string>('userGroupsHeader');
     const groups =
-      headers[configuredHeader] ?? headers[configuredHeader.toLowerCase()] ?? '';
-    return groups.split(',').some((group) =>
-      group.trim().startsWith('bpmn-tool-admin-'),
-    );
+      headers[configuredHeader] ??
+      headers[configuredHeader.toLowerCase()] ??
+      '';
+    return groups
+      .split(',')
+      .some((group) => group.trim().startsWith('bpmn-tool-admin-'));
   }
 
   private getUserId(headers: RequestHeaders): string {
