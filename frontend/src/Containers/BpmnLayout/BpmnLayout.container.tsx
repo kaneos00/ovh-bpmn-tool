@@ -20,6 +20,7 @@ import { isFolder, isRoot } from '../../shared/helpers/resource';
 import type { BpmnLayoutRouteParams } from '.';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import { useViewerRouteState } from '../../shared/hooks/useViewerRouteState';
+import { useViewerSelectionState } from '../../shared/hooks/useViewerSelectionState';
 
 import './BpmnLayoutContainer.scss';
 
@@ -58,10 +59,11 @@ export const Component = () => {
     folderResizeCleanupRef.current = cleanup;
   };
 
-  const [selectedElementId, setSelectedElementId] = useState<string | null>(requestedElementId);
-  useEffect(() => {
-    setSelectedElementId(requestedElementId);
-  }, [resourceId, requestedElementId]);
+  const { selectedElementId, setSelectedElementId } = useViewerSelectionState(
+    resourceId,
+    requestedContentId,
+    requestedElementId,
+  );
 
   const { resource, contents, callbacks } = useBpmnLayout();
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
