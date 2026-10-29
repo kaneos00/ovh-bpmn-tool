@@ -27,6 +27,7 @@ export const Component = () => {
   const [searchParams] = useSearchParams();
   const requestedElementId = searchParams.get('elementId');
   const requestedContentId = searchParams.get('contentId');
+  const requestedRaciView = searchParams.get('raci') === '1';
   const navigate = useNavigate();
   const [folderExplorerWidth, setFolderExplorerWidth] = useState(() => {
     const saved = Number(window.localStorage.getItem('bpmn-viewer-explorer-width'));
@@ -148,6 +149,7 @@ export const Component = () => {
                     selectedElementId={selectedElementId}
                     onElementSelect={setSelectedElementId}
                     selectedContentId={requestedContentId}
+                    requestedRaciView={requestedRaciView}
                     readOnlyShell
                   />
                 )}
