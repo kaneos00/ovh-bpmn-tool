@@ -259,6 +259,7 @@ test('administrator explorer context menu restores folder and resource actions',
 
 test('Viewer entry points share URL state for BPMN selection, content versions and RACI deep links', async () => {
   const routeState = await read('src/shared/hooks/useViewerRouteState.ts');
+  const selectionState = await read('src/shared/hooks/useViewerSelectionState.ts');
   const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
   const legacyViewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
@@ -266,9 +267,14 @@ test('Viewer entry points share URL state for BPMN selection, content versions a
   assert.ok(routeState.includes("searchParams.get('elementId')"));
   assert.ok(routeState.includes("searchParams.get('contentId')"));
   assert.ok(routeState.includes("searchParams.get('raci') === '1'"));
+  assert.ok(selectionState.includes('useEffect(() =>'));
+  assert.ok(selectionState.includes('setSelectedElementId(requestedElementId)'));
+  assert.ok(selectionState.includes('[resourceId, contentId, requestedElementId]'));
   assert.ok(layout.includes('useViewerRouteState()'));
+  assert.ok(layout.includes('useViewerSelectionState('));
   assert.ok(layout.includes('requestedRaciView={requestedRaciView}'));
   assert.ok(legacyViewer.includes('useViewerRouteState()'));
+  assert.ok(legacyViewer.includes('useViewerSelectionState('));
   assert.doesNotMatch(layout, /useSearchParams|searchParams\.get\(/);
   assert.doesNotMatch(legacyViewer, /useSearchParams|searchParams\.get\(/);
   assert.match(details, /requestedRaciView\?: boolean/);
