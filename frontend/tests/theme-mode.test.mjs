@@ -36,3 +36,14 @@ test('dark theme changes are scoped to the active Joy color scheme', async () =>
   assert.doesNotMatch(css, /(^|\n)body\s*\{[^}]*background:\s*#111923/s,
     'dark background must not leak into the default light theme');
 });
+
+test('authenticated users synchronize theme preference while guests retain local fallback', async () => {
+  const main = await read('src/MainContainer.tsx');
+
+  assert.match(main, /fetch\(\`\$\{apiBase\}\/auth\/preferences\`/);
+  assert.match(main, /method: 'PUT'/);
+  assert.match(main, /credentials: 'same-origin'/);
+  assert.match(main, /JSON\.stringify\(\{ theme: nextMode \}\)/);
+  assert.match(main, /userChangedRef\.current/);
+  assert.match(main, /MUI still stores the local preference if server sync is unavailable/);
+});
