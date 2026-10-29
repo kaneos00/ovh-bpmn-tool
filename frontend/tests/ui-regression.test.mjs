@@ -299,7 +299,7 @@ test('viewer element details editing is permission-gated and saves title, descri
   assert.match(details, /attribute: 'informed'/);
   assert.match(details, /<Button[\s\S]*?onClick=\{cancelDescriptionEdit\}[\s\S]*?Annuler/);
   assert.match(details, /<Button[\s\S]*?onClick=\{saveDescriptionEdit\}[\s\S]*?Enregistrer/);
-  assert.match(details, /await saveContent\(resourceId, publishedContent\.id, \{ content: updatedXml \}\)/);
+  assert.match(details, /await saveContent\(resourceId, viewerContent\?\.id \?\? publishedContent\.id, \{ content: updatedXml \}\)/);
   assert.match(details, /new XMLSerializer\(\)\.serializeToString\(xmlDocument\)/);
   assert.match(details, /await queryClient\.invalidateQueries\(xmlContentQuery\.queryKey\)/);
   assert.match(details, /sx=\{\{ ml: 1, mt: 0\.25, flex: '0 0 auto' \}\}/);
@@ -385,7 +385,7 @@ test('Viewer version status badges have distinct colors and version actions are 
   assert.match(list, /content\.status === ContentStatusEnum\.Draft[\s\S]*?label: 'Publish'[\s\S]*?label: 'Erase'/);
   assert.match(list, /content\.status === ContentStatusEnum\.Obsolete[\s\S]*?label: 'Erase'/);
   assert.match(tableHook, /let color: 'success' \| 'warning' \| 'neutral' = 'neutral'[\s\S]*?status === ContentStatusEnum\.Published[\s\S]*?color = 'success'[\s\S]*?status === ContentStatusEnum\.Draft[\s\S]*?color = 'warning'/);
-  assert.ok(details.includes("const canManageVersions = sessionRole === 'admin' || sessionRole === 'modeler'"));
+  assert.ok(details.includes("const canManageVersions = !isHistoricalView && (sessionRole === 'admin' || sessionRole === 'modeler')"));
   assert.ok(details.includes('readOnlyShell && !canManageVersions'));
 });
 
@@ -430,7 +430,7 @@ test('modeler action is an icon beside the process link and RACI icon stays inli
   const versionList = await read('src/Components/BusinessComponents/ProcessContentList/ProcessContentList.tsx');
   assert.ok(!details.includes('title="Ouvrir dans le modeleur"'));
   assert.ok(!details.includes('AccountTreeOutlined'));
-  assert.ok(details.includes('onContentViewerLinkCopy(publishedContent.id)'));
+  assert.ok(details.includes('onContentViewerLinkCopy(viewerContent.id)'));
   assert.ok(versionList.includes("label: 'Ouvrir dans le modeleur'"));
   assert.ok(versionList.includes('<AccountTreeOutlined fontSize="small" />'));
   assert.ok(versionList.includes('contentId=${encodeURIComponent(content.id)}'));
@@ -447,7 +447,7 @@ test('V3 process details exposes a central editable description tab only to auth
 
   assert.match(details, /<Tab value=\{1\}>Description<\/Tab>/);
   assert.match(details, /<TabPanel value=\{1\} className="processViewerTabPanel">[\s\S]*?Description du processus[\s\S]*?processDescriptionDraft/s);
-  assert.match(details, /const canEditDescription = sessionRole === 'admin' \|\| sessionRole === 'modeler';/);
+  assert.match(details, /const canEditDescription = !isHistoricalView && \(sessionRole === 'admin' \|\| sessionRole === 'modeler'\);/);
   assert.match(details, /await updateResource\(resourceId,\s*\{[\s\S]*?description: processDescriptionDraft/s);
   assert.match(details, /queryClient\.invalidateQueries\(getResourceQuery\(resourceId\)\.queryKey\)/);
   assert.match(details, /<Tab value=\{2\}>Historique des versions<\/Tab>/);
@@ -461,7 +461,7 @@ test('V3 central viewer exposes the data inventory and saves it through the exis
 
   assert.match(details, /<Tab value=\{4\}>Inventaire des données<\/Tab>/);
   assert.match(details, /<TabPanel value=\{4\} className="processViewerTabPanel">[\s\S]*?<DataInventory/s);
-  assert.match(details, /await saveContent\(resourceId, publishedContent\.id, \{ content: updatedXml \}\)/);
+  assert.match(details, /await saveContent\(resourceId, viewerContent\.id, \{ content: updatedXml \}\)/);
   assert.match(details, /canEdit=\{canEditDescription\}/);
   assert.match(inventory, /getElementsByTagNameNS\(NS, 'source'\)/);
   assert.match(inventory, /getElementsByTagNameNS\(NS, 'manifest'\)/);
