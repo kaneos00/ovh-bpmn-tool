@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   Box,
@@ -33,6 +33,8 @@ const router = createBrowserRouter(routes as RouteObject[], {
   basename: import.meta.env.VITE_APP_BASE_PATH as string,
 });
 
+const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\\/+$/, '');
+
 const buildCommit = import.meta.env.VITE_BUILD_COMMIT || 'unknown';
 const buildRunNumber = import.meta.env.VITE_BUILD_RUN_NUMBER || 'unknown';
 const buildBranch = import.meta.env.VITE_BUILD_BRANCH || 'unknown';
@@ -62,6 +64,42 @@ type MainContainerProps = {
 function ThemeModeToggle() {
   const { mode, setMode } = useColorScheme();
   const isDark = mode === 'dark';
+  const userChangedRef = useRef(false);
+
+  useEffect(() => {
+    let active = true;
+    fetch(`${apiBase}/auth/preferences`, { credentials: 'same-origin' })
+      .then(response => response.ok ? response.json() : null)
+      .then(preferences => {
+        if (
+          active &&
+          !userChangedRef.current &&
+          (preferences?.theme === 'light' || preferences?.theme === 'dark')
+        ) {
+          setMode(preferences.theme);
+        }
+      })
+      .catch(() => {
+        // Guests and deployments without the preference endpoint keep local mode.
+      });
+    return () => {
+      active = false;
+    };
+  }, [setMode]);
+
+  const toggleMode = () => {
+    const nextMode = isDark ? 'light' : 'dark';
+    userChangedRef.current = true;
+    setMode(nextMode);
+    fetch(`${apiBase}/auth/preferences`, {
+      method: 'PUT',
+      credentials: 'same-origin',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ theme: nextMode }),
+    }).catch(() => {
+      // MUI still stores the local preference if server sync is unavailable.
+    });
+  };
 
   return (
     <Tooltip title={isDark ? 'Activer le thème clair' : 'Activer le thème sombre'}>
@@ -71,7 +109,7 @@ function ThemeModeToggle() {
         variant="soft"
         color="neutral"
         aria-label={isDark ? 'Activer le thème clair' : 'Activer le thème sombre'}
-        onClick={() => setMode(isDark ? 'light' : 'dark')}
+        onClick={toggleMode}
       >
         {isDark ? <LightModeOutlined /> : <DarkModeOutlined />}
       </IconButton>
