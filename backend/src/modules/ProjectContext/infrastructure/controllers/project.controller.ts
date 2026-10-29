@@ -852,9 +852,8 @@ export class ProjectController {
     projectId: string,
     headers: RequestHeaders,
   ) {
-    const groupsHeader = this.configService.getOrThrow<string>(
-      'userGroupsHeader',
-    );
+    const groupsHeader =
+      this.configService.getOrThrow<string>('userGroupsHeader');
     const groups =
       headers[groupsHeader] ?? headers[groupsHeader.toLowerCase()] ?? '';
     const isOrganizationAdmin = groups
