@@ -17,8 +17,6 @@ type SessionPayload = { sub: string; exp: number };
 
 @Controller('auth/preferences')
 export class ThemePreferenceController {
-  private tableReady?: Promise<void>;
-
   constructor(
     private readonly config: ConfigService,
     private readonly db: DataSource,
@@ -27,7 +25,6 @@ export class ThemePreferenceController {
   @Get()
   async getPreferences(@Req() request: Request) {
     const userId = await this.getAuthenticatedUserId(request);
-    await this.ensureTable();
     const rows: Array<{ theme: ThemeMode }> = await this.db.query(
       'SELECT theme FROM app_user_preferences WHERE user_id = $1',
       [userId],
@@ -50,21 +47,6 @@ export class ThemePreferenceController {
       [userId, body.theme],
     );
     return { theme: body.theme };
-  }
-
-  private async ensureTable(): Promise<void> {
-    if (!this.tableReady) {
-      this.tableReady = this.db
-        .query(
-          "CREATE TABLE IF NOT EXISTS app_user_preferences (user_id TEXT PRIMARY KEY, theme TEXT NOT NULL CHECK (theme IN ('light', 'dark')), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())",
-        )
-        .then(() => undefined)
-        .catch((error) => {
-          this.tableReady = undefined;
-          throw error;
-        });
-    }
-    await this.tableReady;
   }
 
   private async getAuthenticatedUserId(request: Request): Promise<string> {
