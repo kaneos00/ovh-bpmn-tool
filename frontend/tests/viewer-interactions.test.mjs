@@ -257,12 +257,20 @@ test('administrator explorer context menu restores folder and resource actions',
 });
 
 
-test('shared process workspace restores the RACI tab from a direct link and resets on route changes', async () => {
+test('Viewer entry points share URL state for BPMN selection, content versions and RACI deep links', async () => {
+  const routeState = await read('src/shared/hooks/useViewerRouteState.ts');
   const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
+  const legacyViewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
 
-  assert.ok(layout.includes("searchParams.get('raci') === '1'"));
+  assert.ok(routeState.includes("searchParams.get('elementId')"));
+  assert.ok(routeState.includes("searchParams.get('contentId')"));
+  assert.ok(routeState.includes("searchParams.get('raci') === '1'"));
+  assert.ok(layout.includes('useViewerRouteState()'));
   assert.ok(layout.includes('requestedRaciView={requestedRaciView}'));
+  assert.ok(legacyViewer.includes('useViewerRouteState()'));
+  assert.doesNotMatch(layout, /useSearchParams|searchParams\.get\(/);
+  assert.doesNotMatch(legacyViewer, /useSearchParams|searchParams\.get\(/);
   assert.match(details, /requestedRaciView\?: boolean/);
   assert.match(details, /setActiveViewerTab\(requestedRaciView \? 3 : 0\);[\s\S]*?\[resourceId, selectedContentId, requestedRaciView\]/);
   assert.ok(details.includes('<Tab value={3}>RACI</Tab>'));
