@@ -145,7 +145,8 @@ export class ProjectController {
     if (!projectIds.length) return { shared: false, projects: [] };
 
     const userId = this.getUserId(headers);
-    const groupsHeader = this.configService.getOrThrow<string>('userGroupsHeader');
+    const groupsHeader =
+      this.configService.getOrThrow<string>('userGroupsHeader');
     const groups =
       headers[groupsHeader] ?? headers[groupsHeader.toLowerCase()] ?? '';
     const isOrganizationAdmin = groups
