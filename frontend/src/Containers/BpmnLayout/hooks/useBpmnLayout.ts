@@ -63,9 +63,9 @@ export const useBpmnLayout = () => {
    * Manage click on modeler button
    */
   const onModelerBtnClick = useCallback(async () => {
-    const lastVersionContent = (contents || []).find(
-      ({ version }: Content) => version === contents?.length,
-    );
+    const lastVersionContent = [...(contents ?? [])].sort(
+      (left, right) => (right.version ?? 0) - (left.version ?? 0),
+    )[0];
     let actionPayload: {
       action: string;
       contentId?: string;
