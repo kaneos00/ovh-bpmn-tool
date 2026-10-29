@@ -9,6 +9,11 @@ import {
 import { useColorScheme } from '@mui/joy/styles';
 import DarkModeOutlined from '@mui/icons-material/DarkModeOutlined';
 import LightModeOutlined from '@mui/icons-material/LightModeOutlined';
+import {
+  createTheme,
+  ThemeProvider,
+  THEME_ID as MATERIAL_THEME_ID,
+} from '@mui/material/styles';
 
 import { SnackbarProvider } from './Providers/Snackbar/Snackbar.provider';
 import { QueryClientProvider } from 'react-query';
@@ -33,6 +38,10 @@ const router = createBrowserRouter(routes as RouteObject[], {
 });
 
 const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
+
+// Joy UI and Material UI share MUI System's theme context. Scope the Material
+// theme explicitly so Material components keep fields such as theme.transitions.
+const materialTheme = createTheme();
 
 const buildCommit = import.meta.env.VITE_BUILD_COMMIT || 'unknown';
 const buildRunNumber = import.meta.env.VITE_BUILD_RUN_NUMBER || 'unknown';
@@ -118,7 +127,8 @@ function ThemeModeToggle() {
 
 export function MainContainer(props: MainContainerProps) {
   return (
-    <CssVarsProvider defaultMode="light" modeStorageKey="khi-flows-color-scheme">
+    <ThemeProvider theme={{ [MATERIAL_THEME_ID]: materialTheme }}>
+      <CssVarsProvider defaultMode="light" modeStorageKey="khi-flows-color-scheme">
       <SnackbarProvider>
         <QueryClientProvider client={queryClient}>
           <BpmnToolOptionsProvider options={props.options}>
@@ -157,6 +167,7 @@ export function MainContainer(props: MainContainerProps) {
           </BpmnToolOptionsProvider>
         </QueryClientProvider>
       </SnackbarProvider>
-    </CssVarsProvider>
+      </CssVarsProvider>
+    </ThemeProvider>
   );
 }
