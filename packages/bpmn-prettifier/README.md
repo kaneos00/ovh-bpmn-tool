@@ -19,9 +19,9 @@ L’adaptateur ne crée pas les formes DI manquantes. Il recale les extrémités
 
 - Lane horizontal : alignement vertical des centres des éléments.
 - Lane vertical : alignement horizontal des centres des éléments.
-- Homogénéisation de la dimension transversale des lanes d’un même participant et d’une même orientation (hauteur pour les lanes horizontaux, largeur pour les verticaux).
+- Homogénéisation de la dimension transversale des lanes sœurs d’un même participant et d’une même orientation (hauteur pour les lanes horizontaux, largeur pour les verticaux). Le moteur conserve les écarts existants, réagence les lanes suivantes et déplace leur contenu ainsi que les sous-lanes associées.
 - Refus d’un alignement qui introduirait un chevauchement entre éléments ou dépasserait la limite de déplacement configurée.
-- Refus d’un redimensionnement de lane qui chevaucherait une lane sœur ; le déplacement/réagencement des lanes sœurs et du participant n’est pas encore implémenté.
+- Limitation du redimensionnement/réagencement par `maxDisplacement`. Après le réagencement, les bounds DI du participant sont recalculés pour englober les lanes de premier niveau.
 - Diagnostic des identifiants dupliqués, références de lane manquantes, dimensions invalides, éléments hors lane et chevauchements.
 
 ## Garde-fous et limites connues
@@ -30,6 +30,7 @@ L’adaptateur ne crée pas les formes DI manquantes. Il recale les extrémités
 - Ne jamais écrire dans le document source pendant le calcul.
 - Ne pas appliquer le résultat au Modeleur sans action explicite.
 - L’orientation est actuellement inférée à partir du rapport largeur/hauteur des bounds de lane ; cette heuristique doit être testée sur des diagrammes inhabituels.
+- Les diagrammes avec lanes imbriquées sont représentés explicitement, mais les cas où le redimensionnement d’une lane parent impose une redistribution spécifique des sous-lanes nécessitent encore des fixtures ciblées.
 - La vérification initiale est géométrique. Elle ne remplace pas un validateur complet de conformité BPMN.
 - Les tests incluent une fixture construite pour les cas ciblés et un test de parsing/réécriture sur un BPMN réel du dépôt.
 - Ce socle n’est pas prêt pour une intégration utilisateur tant que les contraintes géométriques et les connexions ne sont pas suffisamment validées.
