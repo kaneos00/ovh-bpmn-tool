@@ -14,15 +14,12 @@ import {
   Typography,
 } from '@mui/joy';
 import {
-  ChevronLeft,
   Close,
-  FolderOutlined,
   GroupsOutlined,
-  Menu as MenuIcon,
 } from '@mui/icons-material';
 import { useQuery } from 'react-query';
 
-import { FolderTree } from '../../Components/BusinessComponents/FolderTree';
+import { ViewerExplorerPanel } from '../../Components/BusinessComponents/ViewerExplorerPanel/ViewerExplorerPanel';
 import { UserAccountMenu } from '../../Components/GenericComponents/UserAccountMenu/UserAccountMenu';
 import { ProcessViewer } from '../../Components/BusinessComponents/ProcessViewer';
 import { Breadcrumbs } from '../../Components/GenericComponents/Breadcrumbs/Breadcrumbs';
@@ -182,45 +179,13 @@ const ProcessContentViewer = () => {
 
   return (
     <Box className={`processViewerWorkspace viewerLayout ${folderOpen ? 'sidebar-open' : 'sidebar-collapsed'} ${infoPanelOpen ? 'info-open' : ''}`}>
-      <Sheet
-        className={`processTaskPanel viewerFolderPanel ${folderOpen ? 'open' : 'collapsed'}`}
-        variant="outlined"
-      >
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-          className="viewerFolderHeader"
-        >
-          {folderOpen && (
-            <Stack direction="row" spacing={1} alignItems="center">
-              <FolderOutlined fontSize="small" />
-              <Typography level="title-md">Explorateur</Typography>
-            </Stack>
-          )}
-          <IconButton
-            size="sm"
-            variant="plain"
-            onClick={() => setFolderOpen(value => !value)}
-            title={folderOpen ? 'Réduire la navigation' : 'Ouvrir la navigation'}
-            aria-label={folderOpen ? 'Réduire la navigation' : 'Ouvrir la navigation'}
-          >
-            {folderOpen ? <ChevronLeft /> : <MenuIcon />}
-          </IconButton>
-        </Stack>
-
-        {folderOpen && (
-          <>
-            <Divider />
-            <Box className="viewerFolderTree">
-              <FolderTree
-                selectedId={resourceId}
-                onNodeClick={id => navigate(`/${id}`)}
-              />
-            </Box>
-          </>
-        )}
-      </Sheet>
+      <ViewerExplorerPanel
+        variant="content-viewer"
+        selectedId={resourceId}
+        onNodeClick={id => navigate(`/${id}`)}
+        collapsed={!folderOpen}
+        onToggle={() => setFolderOpen(value => !value)}
+      />
 
       <Box className="processViewerDiagram viewerDiagram">
         <Box className="viewerBreadcrumb">
