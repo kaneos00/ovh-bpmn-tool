@@ -108,7 +108,6 @@ body {
   }
 }
 
-
 /* Design tokens from maquette_bpmn_tool_navigation.html, shared by every route. */
 #root {
   color: var(--bpmn-ink);
@@ -163,8 +162,98 @@ body {
   outline-color: #91b7ff;
 }
 
+.theme-mode-toggle {
+  position: fixed;
+  right: 12px;
+  bottom: 30px;
+  z-index: 2000;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 12%);
+}
+
 @media (max-width: 760px) {
   .workspace-navigation {
     border-radius: 8px;
   }
+
+  .theme-mode-toggle {
+    right: 10px;
+    bottom: 34px;
+  }
+}
+
+/* Dark mode tokens for the shared application shell and common MUI surfaces. */
+[data-joy-color-scheme='dark'] {
+  color-scheme: dark;
+  --bpmn-navy: #dce8f8;
+  --bpmn-blue: #7da8ff;
+  --bpmn-blue-pale: #1d2c45;
+  --bpmn-ink: #e6edf7;
+  --bpmn-muted: #a4b2c5;
+  --bpmn-line: #34445a;
+  --bpmn-soft: #202c3c;
+  --bpmn-page: #111923;
+  --bpmn-green: #69d4a6;
+}
+
+[data-joy-color-scheme='dark'] body {
+  color: var(--bpmn-ink);
+  background: var(--bpmn-page);
+}
+
+[data-joy-color-scheme='dark'] #root {
+  color: var(--bpmn-ink);
+}
+
+[data-joy-color-scheme='dark'] .MuiCard-root,
+[data-joy-color-scheme='dark'] .MuiPaper-root,
+[data-joy-color-scheme='dark'] .MuiSheet-root,
+[data-joy-color-scheme='dark'] .MuiPopover-paper,
+[data-joy-color-scheme='dark'] .MuiMenu-paper {
+  color: var(--bpmn-ink);
+  background-color: #1b2635;
+  border-color: var(--bpmn-line);
+}
+
+[data-joy-color-scheme='dark'] .MuiTable-root thead th {
+  color: var(--bpmn-muted);
+  background: #202c3c;
+}
+
+[data-joy-color-scheme='dark'] .MuiTable-root tbody tr:hover {
+  background: #263448;
+}
+
+[data-joy-color-scheme='dark'] .MuiInput-root,
+[data-joy-color-scheme='dark'] .MuiSelect-root,
+[data-joy-color-scheme='dark'] .MuiTextarea-root {
+  color: var(--bpmn-ink);
+  background-color: #172231;
+  border-color: var(--bpmn-line);
+}
+
+[data-joy-color-scheme='dark'] input,
+[data-joy-color-scheme='dark'] textarea,
+[data-joy-color-scheme='dark'] select {
+  color: var(--bpmn-ink);
+}
+
+[data-joy-color-scheme='dark'] .MuiTabList-root {
+  background: #202c3c;
+}
+
+[data-joy-color-scheme='dark'] .MuiTab-root {
+  color: var(--bpmn-muted);
+}
+
+[data-joy-color-scheme='dark'] .MuiTab-root[aria-selected='true'] {
+  color: #dce8ff;
+  background: #2a3a50;
+}
+
+[data-joy-color-scheme='dark'] .MuiDivider-root {
+  border-color: var(--bpmn-line);
+}
+
+[data-joy-color-scheme='dark'] .MuiAlert-root {
+  color: var(--bpmn-ink);
 }
