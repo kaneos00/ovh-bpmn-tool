@@ -23,14 +23,14 @@ const laneShapes = (definitions) => {
 };
 
 const semanticSignature = (xml) => ({
-  ids: [...xml.matchAll(/<(?:bpmn2?|bpmn):([\\w]+)\\b([^>]*)>/g)]
-    .map(m => ({ type: m[1], id: m[2].match(/\\bid="([^"]+)"/)?.[1] }))
+  ids: [...xml.matchAll(/<(?:bpmn2?|bpmn):([\w]+)\b([^>]*)>/g)]
+    .map(m => ({ type: m[1], id: m[2].match(/\bid="([^"]+)"/)?.[1] }))
     .filter(x => x.id && !["BPMNShape", "BPMNEdge"].includes(x.type))
     .map(x => `${x.type}:${x.id}`).sort(),
-  flows: [...xml.matchAll(/<(?:bpmn2?|bpmn):sequenceFlow\\b([^>]*)\\/?\s*>/g)]
+  flows: [...xml.matchAll(/<(?:bpmn2?|bpmn):sequenceFlow\b([^>]*)\/?\s*>/g)]
     .map(m => {
       const a = m[1];
-      return `${a.match(/\\bid="([^"]+)"/)?.[1]}:${a.match(/\\bsourceRef="([^"]+)"/)?.[1]}->${a.match(/\\btargetRef="([^"]+)"/)?.[1]}`;
+      return `${a.match(/\bid="([^"]+)"/)?.[1]}:${a.match(/\bsourceRef="([^"]+)"/)?.[1]}->${a.match(/\btargetRef="([^"]+)"/)?.[1]}`;
     }).sort()
 });
 
