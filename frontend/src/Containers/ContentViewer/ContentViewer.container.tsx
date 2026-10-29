@@ -26,6 +26,7 @@ import { Breadcrumbs } from '../../Components/GenericComponents/Breadcrumbs/Brea
 import { useBpmnLayoutBreadcrumbs } from '../BpmnLayout/hooks/useBpmnLayoutBreadcrumbs';
 import { useContentViewer } from './hooks/useContentViewer';
 import { useViewerRouteState } from '../../shared/hooks/useViewerRouteState';
+import { useViewerSelectionState } from '../../shared/hooks/useViewerSelectionState';
 import { Component as ProjectHomeComponent } from '../ProjectViewer/ProjectViewer.container';
 import {
   contentsQuery,
@@ -74,19 +75,19 @@ const ProcessContentViewer = () => {
   const [actorFilter, setActorFilter] = useState('');
   const [codeFilter, setCodeFilter] = useState<RaciCode | ''>('');
   const [issuesOnly, setIssuesOnly] = useState(false);
-  const [selectedActivityId, setSelectedActivityId] = useState<string | null>(
-    null,
-  );
+  const {
+    selectedElementId: selectedActivityId,
+    setSelectedElementId: setSelectedActivityId,
+  } = useViewerSelectionState(resourceId, contentId, requestedElementId);
 
   const raciRequested = requestedRaciView;
 
   useEffect(() => {
-    setSelectedActivityId(requestedElementId);
     // Route state is authoritative when switching process/version or opening
     // a shared link. Reset stale RACI panel state when raci=1 is absent.
     setInfoTab(raciRequested ? 1 : 0);
     setInfoPanelOpen(raciRequested);
-  }, [resourceId, contentId, requestedElementId, raciRequested]);
+  }, [resourceId, contentId, raciRequested]);
 
   const { data: workspace } = useQuery<WorkspaceSummary>(
     ['my-workspace'],
