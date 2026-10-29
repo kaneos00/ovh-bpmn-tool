@@ -616,7 +616,7 @@ export const ProcessDetails = ({
           <Sheet className="processViewerInfo" variant="outlined">
             <Stack spacing={1.5} className="processViewerInfoHeader">
               <Typography level="title-lg">Historique des versions</Typography>
-              {viewerContent && (
+              {publishedContent && (
                 <Typography level="body-sm">
                   Dernière version publiée : v{publishedContent.version ?? 'N/A'} —{' '}
                   {publishedContent.updatedBy}
