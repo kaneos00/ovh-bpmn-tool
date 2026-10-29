@@ -11,6 +11,8 @@ type Props = {
   onToggle: () => void;
   variant: 'process-details' | 'content-viewer';
   showHistory?: boolean;
+  onBack?: () => void;
+  onForward?: () => void;
 };
 
 export const ViewerExplorerPanel = ({
@@ -20,6 +22,8 @@ export const ViewerExplorerPanel = ({
   onToggle,
   variant,
   showHistory = false,
+  onBack,
+  onForward,
 }: Props) => {
   const isContentViewer = variant === 'content-viewer';
   const panelClass = isContentViewer
@@ -79,7 +83,7 @@ export const ViewerExplorerPanel = ({
                 color="neutral"
                 title="Retour"
                 aria-label="Retour"
-                onClick={() => window.history.back()}
+                onClick={() => (onBack ?? (() => window.history.back()))()}
                 startDecorator={<ArrowBack />}
                 sx={{ flex: 1, minWidth: 0 }}
               >
@@ -92,7 +96,7 @@ export const ViewerExplorerPanel = ({
                 color="neutral"
                 title="Suivant"
                 aria-label="Suivant"
-                onClick={() => window.history.forward()}
+                onClick={() => (onForward ?? (() => window.history.forward()))()}
                 startDecorator={<ArrowForward />}
                 sx={{ flex: 1, minWidth: 0 }}
               >
