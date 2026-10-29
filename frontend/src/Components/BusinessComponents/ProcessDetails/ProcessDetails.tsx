@@ -25,6 +25,7 @@ import { ProcessContentList } from '../ProcessContentList/ProcessContentList';
 import { ProcessViewer } from '../ProcessViewer';
 import { ViewerExplorerPanel } from '../ViewerExplorerPanel/ViewerExplorerPanel';
 import { getXmlContentQuery, saveContent } from '../../../api/contents/contents.queries';
+import { resourceSharesQuery } from '../../../api/resources/resources.queries';
 import { updateResource, getResourceQuery } from '../../../api/resources/resources.queries';
 import { useResource } from '../../../shared/hooks/useResource';
 import { useSnackbar } from '../../../shared/hooks/useSnackbar';
@@ -170,6 +171,7 @@ export const ProcessDetails = ({
   );
   const queryClient = useQueryClient();
   const { resource: processResource } = useResource(resourceId);
+  const { data: resourceShares } = useQuery(resourceSharesQuery(resourceId));
   const { showAlert } = useSnackbar();
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
   const [activeViewerTab, setActiveViewerTab] = useState(0);
@@ -585,6 +587,35 @@ export const ProcessDetails = ({
                   </Button>
                 )}
               </Stack>
+              {resourceShares?.shared && (
+                <Stack spacing={0.75}>
+                  <Box>
+                    <Chip size="sm" color="primary" variant="soft">Partagé</Chip>
+                  </Box>
+                  {resourceShares.projects.length > 0 && (
+                    <Stack spacing={0.5}>
+                      <Typography level="body-sm" textColor="neutral">Projets associés :</Typography>
+                      <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                        {resourceShares.projects.map(project => project.canNavigate ? (
+                          <Button
+                            key={project.id}
+                            size="sm"
+                            variant="outlined"
+                            color="neutral"
+                            onClick={() => navigate(`/projects/${project.id}/viewer`)}
+                          >
+                            {project.name}
+                          </Button>
+                        ) : (
+                          <Typography key={project.id} level="body-sm" sx={{ alignSelf: 'center' }}>
+                            {project.name}
+                          </Typography>
+                        ))}
+                      </Stack>
+                    </Stack>
+                  )}
+                </Stack>
+              )}
               {isEditingProcessDescription ? (
                 <>
                   <Textarea
