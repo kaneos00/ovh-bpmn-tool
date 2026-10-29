@@ -83,7 +83,7 @@ La matrice est un contrat de travail. Les composants et services cités sont ceu
 
 - Phase 1 (#109) : inventaire initial documenté ; la matrice ci-dessus est maintenant formalisée. Les rôles/actions fins restent à caractériser par tests pendant la migration ; ne pas déclarer la phase validée uniquement sur la présence du document.
 - Phase 2 (#110) : branche isolée créée à partir du gel V3. La mise en œuvre doit être incrémentale et CI-gated.
-- CI et navigateur : à exécuter sur les commits de cette branche ; aucune réussite n'est présumée par ce document.
+- CI : les workflows `Validate` et `Frontend regression tests` ont réussi sur `de98241e49b7d8339dd9384f32e8939e0c6993b5`. Le commit qui ajoute le test de version directe doit encore repasser ces workflows. Tests navigateur réels : non exécutés.
 - Déploiement : non effectué.
 
 
@@ -115,7 +115,7 @@ Dans `ContentViewer.container.tsx`, l'état local de sélection et du panneau RA
 - l'absence de `raci=1` réinitialise l'état du panneau lors d'un changement de route ou de contenu, au lieu de conserver un état obsolète.
 Un test de régression statique couvre ce contrat. Le test de structure du Viewer a également été réaligné sur les cinq onglets centraux (Diagramme, Description, Historique, RACI, Inventaire), afin qu'il ne confonde pas les valeurs d'onglets après l'ajout de Description et d'Inventaire.
 
-Ces tests restent en attente de leur résultat CI sur le commit courant ; ce changement n'a pas été validé dans un navigateur.
+Les workflows `Validate` et `Frontend regression tests` ont réussi sur le commit `de98241e49b7d8339dd9384f32e8939e0c6993b5`. Un test statique supplémentaire protège maintenant l'usage du `contentId` demandé par l'URL, pour éviter qu'une future unification ne remplace silencieusement une version historique par la dernière version publiée. Ce nouveau test doit encore passer en CI. Aucun de ces tests ne vaut validation navigateur.
 
 ### Garde de déploiement pendant la Phase 2
 
@@ -123,7 +123,7 @@ Le job `deploy-coolify` est désormais limité aux événements `push` sur `main
 
 ### Prochain incrément
 
-1. Exécuter CI et corriger tout échec.
+1. Exécuter CI sur le dernier commit et corriger tout échec.
 2. Définir la coque commune et migrer la route de contenu vers un seul explorateur, sans perdre le `contentId`, `elementId` ni le paramètre `raci=1`.
 3. Valider en navigateur le nouvel onglet Description et l'Inventaire (édition, annulation, sauvegarde, rechargement et rôles viewer/modeler/admin) ; vérifier explicitement la compatibilité du XML sauvegardé.
 4. Ajouter des tests de parcours pour dossier → processus → Viewer et liens directs.
