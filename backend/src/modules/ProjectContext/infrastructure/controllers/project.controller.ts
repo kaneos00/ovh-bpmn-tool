@@ -457,7 +457,7 @@ export class ProjectController {
     @Param('projectId') projectId: string,
     @Headers() headers: RequestHeaders,
   ) {
-    await this.assertProjectRole(projectId, headers, ProjectMemberRole.Viewer);
+    await this.assertProjectReadRole(projectId, headers);
     const links = await this.projectProcesses.find({
       where: { projectId },
       order: { createdAt: 'ASC' },
