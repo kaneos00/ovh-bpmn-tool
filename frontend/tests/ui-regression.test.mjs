@@ -472,3 +472,17 @@ test('ContentViewer restores element selection and RACI panel from route query p
   assert.match(viewer, /\[resourceId, contentId, requestedElementId, raciRequested\]/);
 });
 
+
+test('ContentViewer renders the URL-selected version rather than silently switching to latest published', async () => {
+  const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+  const routes = await read('src/routes.tsx');
+  const contentHook = await read('src/Containers/ContentViewer/hooks/useContentViewer.ts');
+
+  assert.ok(viewer.includes('const { resourceId, contentId } = useContentViewer()'));
+  assert.ok(viewer.includes('getXmlContentQuery(resourceId, contentId)'));
+  assert.ok(viewer.includes('contentsQuery(resourceId)'));
+  assert.ok(viewer.includes('const lastPublishedContent = useMemo'));
+  assert.ok(routes.includes('/:resourceId/viewer/:contentId'));
+  assert.ok(contentHook.includes("const { resourceId, contentId } = useParams"));
+  assert.ok(!viewer.includes('getXmlContentQuery(resourceId, lastPublishedContent.id)'));
+});
