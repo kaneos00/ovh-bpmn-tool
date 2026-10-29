@@ -272,7 +272,7 @@ test('viewer gets a fresh BPMN instance for the selected published version', asy
   assert.ok(details.includes('key={`${resourceId}:${viewerContent.id}`}'));
   assert.match(details, /key=\{\`\$\{resourceId\}:\$\{viewerContent\.id\}\`\}[\s\S]*?resourceId=\{resourceId\}[\s\S]*?contentId=\{viewerContent\.id\}/);
   assert.ok(details.includes('selectedContentId?: string | null'));
-  assert.ok(details.includes('content.id === selectedContentId && content.status === ContentStatusEnum.Published'));
+  assert.ok(details.includes('content.id === selectedContentId && content.status !== ContentStatusEnum.Draft'));
   assert.ok(details.includes('const isHistoricalView = Boolean('));
   assert.ok(details.includes('!isHistoricalView && (sessionRole === \'admin\' || sessionRole === \'modeler\')'));
   assert.ok(details.includes('Afficher cette version'));
