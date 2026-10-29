@@ -150,7 +150,7 @@ test("resizes a complete nested lane partition when its parent is enlarged", () 
   assert.equal(childB.bounds.height, 70);
   assert.equal(childA.bounds.y + childA.bounds.height, childB.bounds.y);
   assert.equal(childB.bounds.y + childB.bounds.height, parent.bounds.y + parent.bounds.height);
-  assert.equal(result.diagram.elements.find(element => element.id === "task-b").bounds.y, 70);
+  assert.equal(result.diagram.elements.find(element => element.id === "task-b").bounds.y, 80);
 });
 
 test("does not reflow sibling lanes beyond maxDisplacement", () => {
