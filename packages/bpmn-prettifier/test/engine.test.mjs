@@ -76,4 +76,5 @@ test("moves a boundary event with its host activity during lane alignment", () =
   const boundary = result.diagram.elements.find(element => element.id === "boundary");
   assert.equal(host.bounds.y, 30);
   assert.equal(boundary.bounds.y, 45);
+  assert.ok(!result.diagnostics.some(d => d.code === "ELEMENT_OVERLAP" && d.elementIds.includes("host") && d.elementIds.includes("boundary")));
 });
