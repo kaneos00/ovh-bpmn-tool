@@ -58,6 +58,10 @@ export const routes = [
         ],
       },
       {
+        path: '/projects/:projectId/viewer',
+        lazy: () => import('./Containers/ProjectViewer'),
+      },
+      {
         path: '/:resourceId/modeler',
         lazy: () => import('./Containers/ContentModeler'),
       },
