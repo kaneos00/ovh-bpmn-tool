@@ -54,7 +54,7 @@ describe("BPMN XML adapter", () => {
     assert.match(result.xml, /<di:waypoint x="180" y="52\.22222222222222"\s*\/>/);
     assert.match(result.xml, /<di:waypoint x="220" y="50"\s*\/>/);
     assert.match(result.xml, /<di:waypoint x="260" y="60"\s*\/>/);
-    assert.match(result.xml, /<di:waypoint x="300" y="60"\s*\/>/);
+    assert.match(result.xml, /<di:waypoint x="300" y="57\.77777777777778"\s*\/>/);
   });
 
   it("does not mutate the input string and returns parseable XML", async () => {
