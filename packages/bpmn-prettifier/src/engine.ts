@@ -80,6 +80,18 @@ export function prettifyDiagram(input: LayoutDiagram, options: LayoutRuleOptions
         else next.x = target - next.width / 2;
         return { element, next, movement: horizontal ? Math.abs(next.y - element.bounds.y) : Math.abs(next.x - element.bounds.x) };
       });
+      // Boundary events are locked as independent layout targets, but must follow
+      // their host activity whenever that activity is moved by an alignment rule.
+      const attachedProposals = proposals.flatMap(host => diagram.elements
+        .filter(element => element.attachedToId === host.element.id)
+        .map(element => ({
+          element,
+          next: {
+            ...element.bounds,
+            x: element.bounds.x + host.next.x - host.element.bounds.x,
+            y: element.bounds.y + host.next.y - host.element.bounds.y
+          }
+        })));
       const tooFar = proposals.some(p => p.movement > maxDisplacement);
       const overlap = options.preventNewOverlaps !== false && proposals.some((p, i) =>
         proposals.some((q, j) => j > i && intersects(p.next, q.next)));
@@ -93,6 +105,7 @@ export function prettifyDiagram(input: LayoutDiagram, options: LayoutRuleOptions
         continue;
       }
       for (const p of proposals) p.element.bounds = p.next;
+      for (const p of attachedProposals) p.element.bounds = p.next;
       appliedRules.push(horizontal ? "LANE_ELEMENTS_ALIGN_CENTER_Y" : "LANE_ELEMENTS_ALIGN_CENTER_X");
     }
   }
