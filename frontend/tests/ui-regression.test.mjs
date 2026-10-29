@@ -65,7 +65,8 @@ test('cross-process annotation search uses the Viewer selection query parameter'
   assert.ok(module.includes("target.searchParams.set('elementId', result.id)"));
   assert.ok(layout.includes('useViewerRouteState'));
   assert.ok(routeState.includes("searchParams.get('elementId')"));
-  assert.ok(layout.includes('setSelectedElementId(requestedElementId)'));
+  assert.ok(layout.includes('useViewerSelectionState('));
+  assert.ok(routeState.includes('setSelectedElementId(requestedElementId)'));
 });
 
 test('description search indexes text annotations and selects a live matching BPMN element', async () => {
@@ -485,11 +486,13 @@ test('V3 central viewer exposes the data inventory and saves it through the exis
 test('ContentViewer restores element selection and RACI panel from route query parameters', async () => {
   const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
   const routeState = await read('src/shared/hooks/useViewerRouteState.ts');
+  const selectionState = await read('src/shared/hooks/useViewerSelectionState.ts');
 
   assert.ok(viewer.includes('useViewerRouteState'));
   assert.ok(routeState.includes("searchParams.get('elementId')"));
   assert.ok(routeState.includes("searchParams.get('raci') === '1'"));
-  assert.ok(viewer.includes('setSelectedActivityId(requestedElementId)'));
+  assert.ok(viewer.includes('useViewerSelectionState(resourceId, contentId, requestedElementId)'));
+  assert.ok(selectionState.includes('setSelectedElementId(requestedElementId)'));
   assert.ok(viewer.includes('setInfoTab(raciRequested ? 1 : 0)'));
   assert.ok(viewer.includes('setInfoPanelOpen(raciRequested)'));
   assert.match(viewer, /\[resourceId, contentId, requestedElementId, raciRequested\]/);
