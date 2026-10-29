@@ -96,6 +96,7 @@ export class CloneContentCommandHandler {
       content: content.state.content,
       status: ContentStatusEnum.Draft,
       createdBy: command.clonedBy,
+      changeComment: command.changeComment ?? null,
       version: Content.bumbVersion(
         lastPublishedContentResult.ok?.state.version,
       ),

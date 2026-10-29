@@ -7,6 +7,7 @@ import { Uuid } from '../../../../shared-kernel/utils/Uuid';
 export type ContentProps = {
   resourceId: string;
   content: string;
+  changeComment?: Nullable<string>;
   pngContent?: Nullable<Uint8Array>;
   status?: ContentStatusEnum;
   version?: number;
@@ -39,8 +40,13 @@ export class Content {
     return this.state;
   }
 
-  public updateContent(content: string, updatedBy: string) {
-    this.state.content = content;
+  public updateContent(
+    content: string | undefined,
+    updatedBy: string,
+    changeComment?: string | null,
+  ) {
+    if (content !== undefined) this.state.content = content;
+    if (changeComment !== undefined) this.state.changeComment = changeComment;
     this.state.updatedBy = updatedBy;
   }
 

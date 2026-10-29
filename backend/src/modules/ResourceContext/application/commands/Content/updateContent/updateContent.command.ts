@@ -4,6 +4,7 @@ export type UpdateContentCommandParams = {
 };
 
 export type UpdateContentCommand = {
-  content: string;
+  content?: string;
+  changeComment?: string | null;
   updatedBy: string;
 };

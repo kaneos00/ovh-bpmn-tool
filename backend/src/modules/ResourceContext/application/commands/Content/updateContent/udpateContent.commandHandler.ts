@@ -52,7 +52,11 @@ export class UpdateContentCommandHandler {
       );
     }
 
-    content.updateContent(command.content, command.updatedBy);
+    content.updateContent(
+      command.content,
+      command.updatedBy,
+      command.changeComment,
+    );
 
     const updateResult = await this.contentRepository.save(content);
 

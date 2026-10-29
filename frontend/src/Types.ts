@@ -30,6 +30,7 @@ export type Content = {
   id: string;
   resourceId: string;
   version: Nullable<number>;
+  changeComment?: string | null;
   createdBy: string;
   createdAt: string;
   updatedBy: string;

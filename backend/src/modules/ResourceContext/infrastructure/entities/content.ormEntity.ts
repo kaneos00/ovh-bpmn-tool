@@ -25,6 +25,9 @@ export class ContentTypeOrmEntity extends AbstractEntity {
   @Column({ type: 'text' })
   content: string;
 
+  @Column({ type: 'text', nullable: true })
+  changeComment: Nullable<string>;
+
   @Column({ nullable: true, type: 'bytea' })
   pngContent: Nullable<Uint8Array>;
 

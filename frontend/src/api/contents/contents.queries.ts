@@ -67,9 +67,22 @@ export const publishContent = (
   );
 };
 
-export const cloneContent = (resourceId: string, contentId: string) => {
-  return apiClient.post(
-    `/resources/${resourceId}/contents/${contentId}/clone`,
-    {},
+export const updateContentComment = (
+  resourceId: string,
+  contentId: string,
+  changeComment: string,
+) =>
+  apiClient.put(
+    `/resources/${resourceId}/contents/${contentId}`,
+    { changeComment },
   );
-};
+
+export const cloneContent = (
+  resourceId: string,
+  contentId: string,
+  changeComment?: string,
+) =>
+  apiClient.post(
+    `/resources/${resourceId}/contents/${contentId}/clone`,
+    { changeComment },
+  );

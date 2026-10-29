@@ -296,6 +296,7 @@ export class ContentController {
   @UseAcl([UserGroup.RW, UserGroup.Admin])
   async cloneContent(
     @Param() params: CloneContentCommandParams,
+    @Body() body: { changeComment?: string | null },
     @Headers() headers: Record<string, string>,
   ) {
     const { resourceId, contentId } = params;
@@ -310,6 +311,7 @@ export class ContentController {
       contentId,
       {
         clonedBy: headers[this.configService.getOrThrow('userHeader')],
+        changeComment: body?.changeComment,
       },
     );
 

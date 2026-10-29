@@ -24,7 +24,7 @@ import { useProcessDetails } from './hooks/useProcessDetails';
 import { ProcessContentList } from '../ProcessContentList/ProcessContentList';
 import { ProcessViewer } from '../ProcessViewer';
 import { ViewerExplorerPanel } from '../ViewerExplorerPanel/ViewerExplorerPanel';
-import { getXmlContentQuery, saveContent } from '../../../api/contents/contents.queries';
+import { contentsQuery, getXmlContentQuery, saveContent, updateContentComment } from '../../../api/contents/contents.queries';
 import {
   resourceSharesQuery,
   updateResource,
@@ -193,6 +193,8 @@ export const ProcessDetails = ({
   const [isEditingProcessDescription, setIsEditingProcessDescription] = useState(false);
   const [processDescriptionDraft, setProcessDescriptionDraft] = useState('');
   const [isSavingProcessDescription, setIsSavingProcessDescription] = useState(false);
+  const [changeCommentDrafts, setChangeCommentDrafts] = useState<Record<string, string>>({});
+  const [savingChangeCommentId, setSavingChangeCommentId] = useState<string | null>(null);
   const canEditDescription = !isHistoricalView && (sessionRole === 'admin' || sessionRole === 'modeler');
   const canManageVersions = !isHistoricalView && (sessionRole === 'admin' || sessionRole === 'modeler');
 
@@ -208,6 +210,21 @@ export const ProcessDetails = ({
       .catch(() => { if (mounted) setSessionRole(null); });
     return () => { mounted = false; };
   }, []);
+
+  const saveChangeComment = async (contentId: string) => {
+    const content = contents.find(item => item.id === contentId);
+    const changeComment = changeCommentDrafts[contentId] ?? content?.changeComment ?? '';
+    setSavingChangeCommentId(contentId);
+    try {
+      await updateContentComment(resourceId, contentId, changeComment);
+      await queryClient.invalidateQueries(contentsQuery(resourceId).queryKey);
+      showAlert({ message: 'Commentaire de modification enregistré.', severity: 'success' });
+    } catch {
+      showAlert({ message: 'Impossible d’enregistrer le commentaire de modification.', severity: 'danger' });
+    } finally {
+      setSavingChangeCommentId(null);
+    }
+  };
 
   const raciMatrix = useMemo(
     () =>
@@ -732,6 +749,47 @@ export const ProcessDetails = ({
                   <ConditionalRender condition={Boolean(!contents.length)}>
                     <DropZone onFileUploaded={onFilesUploaded} />
                   </ConditionalRender>
+                </>
+              )}
+              {contents.length > 0 && (
+                <>
+                  <Divider sx={{ my: 1 }} />
+                  <Typography level="title-md">Commentaires des modifications</Typography>
+                  <Typography level="body-sm" textColor="neutral">
+                    Un commentaire est associé à chaque version et conservé dans son historique.
+                  </Typography>
+                  {contents.map(content => (
+                    <Sheet key={content.id} variant="soft" sx={{ p: 1.5, borderRadius: 'sm' }}>
+                      <Stack spacing={1}>
+                        <Typography level="title-sm">Version v{content.version ?? 'N/A'}</Typography>
+                        {canManageVersions ? (
+                          <>
+                            <Textarea
+                              minRows={2}
+                              maxRows={5}
+                              value={changeCommentDrafts[content.id] ?? content.changeComment ?? ''}
+                              placeholder="Ex. : Normalisation du schéma ou changement d’orientation en mode vertical"
+                              onChange={event => setChangeCommentDrafts(previous => ({ ...previous, [content.id]: event.target.value }))}
+                            />
+                            <Stack direction="row" justifyContent="flex-end">
+                              <Button
+                                size="sm"
+                                loading={savingChangeCommentId === content.id}
+                                disabled={savingChangeCommentId !== null}
+                                onClick={() => void saveChangeComment(content.id)}
+                              >
+                                Enregistrer le commentaire
+                              </Button>
+                            </Stack>
+                          </>
+                        ) : (
+                          <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>
+                            {content.changeComment?.trim() || 'Aucun commentaire renseigné.'}
+                          </Typography>
+                        )}
+                      </Stack>
+                    </Sheet>
+                  ))}
                 </>
               )}
             </Stack>
