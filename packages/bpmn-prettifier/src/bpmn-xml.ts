@@ -72,12 +72,22 @@ function readLayout(definitions: AnyRecord): { layout: LayoutDiagram; shapes: Ma
     const type = semantic?.$type ?? "";
     if (!shape.bounds || type === "bpmn:Participant" || type === "bpmn:Lane") continue;
     const bounds = shape.bounds;
-    elements.push({
-      id,
-      kind: type,
-      bounds: { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height },
-      laneId: laneIdByNode.get(id)
-    });
+    const normalizedBounds = { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height };
+    let laneId = laneIdByNode.get(id);
+    // Some BPMN shapes (for example data references) are not represented in
+    // Lane.flowNodeRef. Fall back to unambiguous geometric containment.
+    if (!laneId) {
+      const candidates = lanes.filter(lane =>
+        normalizedBounds.x >= lane.bounds.x &&
+        normalizedBounds.y >= lane.bounds.y &&
+        normalizedBounds.x + normalizedBounds.width <= lane.bounds.x + lane.bounds.width &&
+        normalizedBounds.y + normalizedBounds.height <= lane.bounds.y + lane.bounds.height
+      ).sort((a, b) =>
+        (a.bounds.width * a.bounds.height) - (b.bounds.width * b.bounds.height)
+      );
+      if (candidates.length > 0) laneId = candidates[0]!.id;
+    }
+    elements.push({ id, kind: type, bounds: normalizedBounds, laneId });
   }
 
   if (lanes.length === 0) warnings.push("No lane with BPMN-DI bounds found; lane-based rules will not run.");
