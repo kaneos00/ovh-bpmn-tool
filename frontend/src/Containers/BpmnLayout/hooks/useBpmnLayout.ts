@@ -18,7 +18,7 @@ import { contentsQuery } from '../../../api/contents/contents.queries';
 
 import type { BpmnLayoutLoaderData, BpmnLayoutRouteParams } from '..';
 import type { ActionResponse } from '../../../shared/types/ActionResponse';
-import { ContentStatusEnum, type Content, type Resource } from '../../../Types';
+import { ContentStatusEnum, type Resource } from '../../../Types';
 import { useModelerInstance } from '../../../shared/hooks/useModelerInstance';
 
 export const useBpmnLayout = () => {
