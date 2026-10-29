@@ -17,13 +17,13 @@ import {
   Textarea,
   Typography,
 } from '@mui/joy';
-import { ArrowBack, ArrowForward, Compare, FileCopy, ChevronLeft, ChevronRight, FolderOutlined, EditOutlined, CenterFocusStrong } from '@mui/icons-material';
+import { Compare, FileCopy, ChevronLeft, ChevronRight, EditOutlined, CenterFocusStrong } from '@mui/icons-material';
 import { useQuery, useQueryClient } from 'react-query';
 
 import { useProcessDetails } from './hooks/useProcessDetails';
 import { ProcessContentList } from '../ProcessContentList/ProcessContentList';
 import { ProcessViewer } from '../ProcessViewer';
-import { FolderTree } from '../FolderTree';
+import { ViewerExplorerPanel } from '../ViewerExplorerPanel/ViewerExplorerPanel';
 import { getXmlContentQuery, saveContent } from '../../../api/contents/contents.queries';
 import { updateResource, getResourceQuery } from '../../../api/resources/resources.queries';
 import { useResource } from '../../../shared/hooks/useResource';
@@ -457,81 +457,16 @@ export const ProcessDetails = ({
       className="processViewerLayout processViewerWorkspace"
       style={{ "--explorer-width": `${explorerWidth}px`, "--task-panel-width": `${taskPanelWidth}px` } as React.CSSProperties}
     >
-          <Sheet
-            className={`processExplorerPanel ${explorerCollapsed ? 'collapsed' : ''}`}
-            variant="outlined"
-          >
-            <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent={explorerCollapsed ? 'center' : 'space-between'}
-              className="processExplorerPanelHeader"
-              onClick={() => setExplorerCollapsed(value => !value)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') setExplorerCollapsed(value => !value); }}
-            >
-              {!explorerCollapsed && (
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <FolderOutlined fontSize="small" />
-                  <Typography level="title-sm">Explorateur</Typography>
-                </Stack>
-              )}
-              <IconButton
-                size="sm"
-                variant="plain"
-                color="neutral"
-                onClick={event => { event.stopPropagation(); setExplorerCollapsed(value => !value); }}
-                aria-label={explorerCollapsed ? 'Développer le panneau de navigation' : 'Replier le panneau de navigation'}
-                title={explorerCollapsed ? 'Développer le panneau de navigation' : 'Replier le panneau de navigation'}
-              >
-                {explorerCollapsed ? <ChevronRight /> : <ChevronLeft />}
-              </IconButton>
-            </Stack>
-            {!explorerCollapsed && (
-              <Box className="processExplorerPanelContent">
-                <FolderTree
-                  selectedId={resourceId}
-                  onNodeClick={id => navigate(`/${id}`)}
-                />
-              </Box>
-            )}
-            {!explorerCollapsed && (
-              <Stack
-                direction="row"
-                spacing={0.75}
-                className="processExplorerHistory"
-                alignItems="stretch"
-              >
-                <Button
-                  size="sm"
-                  fullWidth
-                  variant="outlined"
-                  color="neutral"
-                  title="Retour (Ctrl+Z)"
-                  aria-label="Retour (Ctrl+Z)"
-                  onClick={() => navigate(-1)}
-                  startDecorator={<ArrowBack />}
-                  sx={{ flex: 1, minWidth: 0 }}
-                >
-                  Retour
-                </Button>
-                <Button
-                  size="sm"
-                  fullWidth
-                  variant="outlined"
-                  color="neutral"
-                  title="Suivant"
-                  aria-label="Suivant"
-                  onClick={() => navigate(1)}
-                  startDecorator={<ArrowForward />}
-                  sx={{ flex: 1, minWidth: 0 }}
-                >
-                  Suivant
-                </Button>
-              </Stack>
-            )}
-          </Sheet>
+          <ViewerExplorerPanel
+            variant="process-details"
+            selectedId={resourceId}
+            onNodeClick={id => navigate(`/${id}`)}
+            collapsed={explorerCollapsed}
+            onToggle={() => setExplorerCollapsed(value => !value)}
+            showHistory
+            onBack={() => navigate(-1)}
+            onForward={() => navigate(1)}
+          />
           {!explorerCollapsed && (
             <Box
               className="processViewerResizeHandle"
