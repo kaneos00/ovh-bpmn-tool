@@ -56,3 +56,12 @@ test('saved local theme is applied before the frontend module starts', async () 
   assert.ok(html.includes("document.documentElement.setAttribute('data-joy-color-scheme', savedMode)"));
   assert.ok(html.indexOf('</script>') < html.indexOf('<script type="module" src="./main.tsx"></script>'));
 });
+
+test('Material UI theme is scoped alongside Joy UI to preserve Material transitions', async () => {
+  const main = await read('src/MainContainer.tsx');
+
+  assert.ok(main.includes("THEME_ID as MATERIAL_THEME_ID"));
+  assert.ok(main.includes('createTheme()'));
+  assert.ok(main.includes('<ThemeProvider theme={{ [MATERIAL_THEME_ID]: materialTheme }}>'));
+  assert.ok(main.indexOf('<ThemeProvider theme={{ [MATERIAL_THEME_ID]: materialTheme }}>') < main.indexOf('<CssVarsProvider'));
+});
