@@ -55,7 +55,7 @@ describe("BPMN lane orientation conversion V2", () => {
       assert.ok(bounds.width < bounds.height, `${laneId} should be vertical`);
     }
     assert.deepEqual(semanticSignature(result.xml), semanticSignature(horizontalFixture));
-    assert.ok((result.xml.match(/<di:waypoint\\b/g) ?? []).length >= 3, "diagonal source routes should gain an orthogonal bend");
+    assert.ok((result.xml.match(/<di:waypoint\b/g) ?? []).length >= 3, "diagonal source routes should gain an orthogonal bend");
     assert.equal((await verifyBpmnXml(result.xml)).valid, true);
   });
 
