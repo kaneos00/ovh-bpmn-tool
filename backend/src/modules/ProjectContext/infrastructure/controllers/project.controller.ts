@@ -394,7 +394,7 @@ export class ProjectController {
     @Param('projectId') projectId: string,
     @Headers() headers: RequestHeaders,
   ) {
-    await this.assertProjectRole(projectId, headers, ProjectMemberRole.Viewer);
+    await this.assertProjectReadRole(projectId, headers);
     return this.assertProjectExists(projectId);
   }
 
@@ -842,6 +842,22 @@ export class ProjectController {
       throw new ForbiddenException('Authenticated user identity is missing');
     }
     return userId.trim();
+  }
+
+  private async assertProjectReadRole(
+    projectId: string,
+    headers: RequestHeaders,
+  ) {
+    const groupsHeader = this.configService.getOrThrow<string>('userGroupsHeader');
+    const groups = headers[groupsHeader] ?? headers[groupsHeader.toLowerCase()] ?? '';
+    const isOrganizationAdmin = groups.split(',').some((group) =>
+      group.trim().startsWith('bpmn-tool-admin-'),
+    );
+    if (isOrganizationAdmin) {
+      await this.assertProjectExists(projectId);
+      return;
+    }
+    await this.assertProjectRole(projectId, headers, ProjectMemberRole.Viewer);
   }
 
   private async assertProjectRole(
