@@ -520,9 +520,6 @@ export const ProcessDetails = ({
                   className="processViewerDiagramHeader"
                 >
                   <Stack spacing={0.25}>
-                    <Typography level="title-md">
-                      Published version v{viewerContent.version ?? 'N/A'}
-                    </Typography>
                     <Typography level="body-xs" textColor="neutral">
                         Published by {viewerContent.updatedBy} le {new Date(viewerContent.updatedAt).toLocaleDateString('fr-FR')}
                       </Typography>
