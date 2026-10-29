@@ -12,7 +12,8 @@ test('theme toggle is accessible and switches between light and dark modes', asy
 
   assert.ok(main.includes('function ThemeModeToggle()'));
   assert.ok(main.includes('useColorScheme()'));
-  assert.ok(main.includes("setMode(isDark ? 'light' : 'dark')"));
+  assert.ok(main.includes("const nextMode = isDark ? 'light' : 'dark'"));
+  assert.ok(main.includes('setMode(nextMode)'));
   assert.ok(main.includes("aria-label={isDark ? 'Activer le thème clair' : 'Activer le thème sombre'}"));
   assert.ok(main.includes('<CssVarsProvider defaultMode="light" modeStorageKey="khi-flows-color-scheme">'));
 });
