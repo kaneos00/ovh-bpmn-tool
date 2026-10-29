@@ -134,7 +134,8 @@ export function verifyDiagram(diagram: LayoutDiagram): VerificationResult {
     const a = diagram.elements[i]!;
     for (let j = i + 1; j < diagram.elements.length; j++) {
       const b = diagram.elements[j]!;
-      if (validBounds(a.bounds) && validBounds(b.bounds) && intersects(a.bounds, b.bounds)) diagnostics.push({
+      const intentionalAttachment = a.attachedToId === b.id || b.attachedToId === a.id;
+      if (!intentionalAttachment && validBounds(a.bounds) && validBounds(b.bounds) && intersects(a.bounds, b.bounds)) diagnostics.push({
         code: "ELEMENT_OVERLAP", severity: "warning", message: "Elements " + a.id + " and " + b.id + " overlap.", elementIds: [a.id, b.id]
       });
     }
