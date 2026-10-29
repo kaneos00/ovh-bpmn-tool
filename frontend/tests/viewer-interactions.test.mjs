@@ -68,10 +68,12 @@ test('detail panel starts collapsed and opens when an element is selected', asyn
   assert.match(details, /externalUrl:\s*Array\.from\(element\.attributes\)[\s\S]*?attribute\.localName === 'link'/);
 });
 
-test('explorer node selection navigates to the selected resource', async () => {
+test('shared explorer delegates node selection to the selected-resource navigation callback', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const shared = await read('src/Components/BusinessComponents/ViewerExplorerPanel/ViewerExplorerPanel.tsx');
 
-  assert.match(details, /<FolderTree[\s\S]*?selectedId=\{resourceId\}[\s\S]*?onNodeClick=\{id => navigate\(\`\/\$\{id\}\`\)\}/);
+  assert.ok(details.includes('onNodeClick={id => navigate(`/${id}`)}'));
+  assert.match(shared, /<FolderTree selectedId=\\{selectedId\\} onNodeClick=\\{onNodeClick\\} \/>/);
 });
 
 test('linked Call Activity opens its target only on double-click and handles missing targets', async () => {
