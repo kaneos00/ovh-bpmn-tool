@@ -148,7 +148,7 @@ export const ProcessDetails = ({
   } = useProcessDetails(resourceId, { onContentUpload });
 
   const viewerContent = contents.find(
-    content => content.id === selectedContentId && content.status === ContentStatusEnum.Published,
+    content => content.id === selectedContentId && content.status !== ContentStatusEnum.Draft,
   ) ?? publishedContent;
   const isHistoricalView = Boolean(
     viewerContent && publishedContent && viewerContent.id !== publishedContent.id,
@@ -638,7 +638,7 @@ export const ProcessDetails = ({
                       <Typography level="body-sm" textColor="neutral">
                         {content.updatedBy ? `Modifiée par : ${content.updatedBy}` : 'Auteur non renseigné'}
                       </Typography>
-                      {content.status === ContentStatusEnum.Published && (
+                      {content.status !== ContentStatusEnum.Draft && (
                         <Button
                           size="sm"
                           variant={viewerContent?.id === content.id ? 'soft' : 'outlined'}
