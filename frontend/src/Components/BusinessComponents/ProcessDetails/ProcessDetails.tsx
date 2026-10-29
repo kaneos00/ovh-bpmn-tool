@@ -638,6 +638,17 @@ export const ProcessDetails = ({
                       <Typography level="body-sm" textColor="neutral">
                         {content.updatedBy ? `Modifiée par : ${content.updatedBy}` : 'Auteur non renseigné'}
                       </Typography>
+                      {content.status === ContentStatusEnum.Published && (
+                        <Button
+                          size="sm"
+                          variant={viewerContent?.id === content.id ? 'soft' : 'outlined'}
+                          color="neutral"
+                          aria-label={`Afficher la version v${content.version ?? 'N/A'}`}
+                          onClick={() => navigate(`/${resourceId}?contentId=${encodeURIComponent(content.id)}`)}
+                        >
+                          {viewerContent?.id === content.id ? 'Version affichée' : 'Afficher cette version'}
+                        </Button>
+                      )}
                     </Sheet>
                   ))}
                   {!contents.length && (
