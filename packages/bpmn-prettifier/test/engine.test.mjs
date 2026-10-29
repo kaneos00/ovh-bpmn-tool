@@ -126,6 +126,33 @@ test("moves nested lanes and their contents when a parent lane is reflowed", () 
   assert.equal(result.diagram.elements[0].bounds.y, 160);
 });
 
+test("resizes a complete nested lane partition when its parent is enlarged", () => {
+  const input = {
+    lanes: [
+      { id: "parent-a", participantId: "pool", orientation: "horizontal", bounds: { x: 0, y: 0, width: 500, height: 100 } },
+      { id: "parent-b", participantId: "pool", orientation: "horizontal", bounds: { x: 0, y: 100, width: 500, height: 140 } },
+      { id: "child-a", participantId: "pool", parentLaneId: "parent-a", orientation: "horizontal", bounds: { x: 0, y: 0, width: 500, height: 50 } },
+      { id: "child-b", participantId: "pool", parentLaneId: "parent-a", orientation: "horizontal", bounds: { x: 0, y: 50, width: 500, height: 50 } }
+    ],
+    elements: [
+      { id: "task-a", kind: "task", laneId: "child-a", bounds: { x: 20, y: 5, width: 80, height: 30 } },
+      { id: "task-b", kind: "task", laneId: "child-b", bounds: { x: 20, y: 60, width: 80, height: 30 } }
+    ]
+  };
+  const result = prettifyDiagram(input, { alignElements: false });
+  const parent = result.diagram.lanes.find(lane => lane.id === "parent-a");
+  const childA = result.diagram.lanes.find(lane => lane.id === "child-a");
+  const childB = result.diagram.lanes.find(lane => lane.id === "child-b");
+  assert.equal(parent.bounds.height, 140);
+  assert.equal(childA.bounds.y, parent.bounds.y);
+  assert.equal(childA.bounds.height, 70);
+  assert.equal(childB.bounds.y, 70);
+  assert.equal(childB.bounds.height, 70);
+  assert.equal(childA.bounds.y + childA.bounds.height, childB.bounds.y);
+  assert.equal(childB.bounds.y + childB.bounds.height, parent.bounds.y + parent.bounds.height);
+  assert.equal(result.diagram.elements.find(element => element.id === "task-b").bounds.y, 70);
+});
+
 test("does not reflow sibling lanes beyond maxDisplacement", () => {
   const input = sample();
   input.lanes[1].bounds.y = 100;
