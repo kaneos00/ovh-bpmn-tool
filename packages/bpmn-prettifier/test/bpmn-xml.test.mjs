@@ -51,6 +51,18 @@ describe("BPMN XML adapter", () => {
     assert.ok(result.xml.includes('id="Lane_B"'));
   });
 
+  it("reflows adjacent lanes and expands the participant bounds", async () => {
+    const withParticipant = fixture
+      .replace('<bpmn:process id="Process_1" isExecutable="false">', '<bpmn:collaboration id="Collaboration_1"><bpmn:participant id="Participant_1" processRef="Process_1"/></bpmn:collaboration><bpmn:process id="Process_1" isExecutable="false">')
+      .replace('<bpmndi:BPMNShape id="Lane_A_di"', '<bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1"><dc:Bounds x="0" y="0" width="600" height="240"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="Lane_A_di"');
+    const result = await prettifyBpmnXml(withParticipant, { alignElements: false });
+    const reparsed = await verifyBpmnXml(result.xml);
+    assert.equal(reparsed.valid, true);
+    assert.match(result.xml, /id="Lane_A_di"[\\s\\S]*?x="0" y="0" width="600" height="140"/);
+    assert.match(result.xml, /id="Lane_B_di"[\\s\\S]*?x="0" y="140" width="600" height="140"/);
+    assert.match(result.xml, /id="Participant_1_di"[\\s\\S]*?x="0" y="0" width="600" height="280"/);
+  });
+
   it("reports missing lane DI bounds without crashing", async () => {
     const noLaneShape = fixture.replace(/<bpmndi:BPMNShape id="Lane_A_di"[\s\S]*?<\/bpmndi:BPMNShape>/, "");
     const result = await verifyBpmnXml(noLaneShape);
