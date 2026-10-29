@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Await, Outlet, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Box, Button, Sheet, Stack, Typography } from '@mui/joy';
-import { ArrowBack, ArrowForward, FolderOutlined } from '@mui/icons-material';
+import { Box, Sheet, Stack } from '@mui/joy';
 
 import { ProcessDetails } from '../../Components/BusinessComponents/ProcessDetails';
 
@@ -9,7 +8,7 @@ import { useBpmnLayout } from './hooks/useBpmnLayout';
 import { useBpmnLayoutBreadcrumbs } from './hooks/useBpmnLayoutBreadcrumbs';
 import { Header } from '../../Components/GenericComponents/Header/Header';
 import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
-import { FolderTree } from '../../Components/BusinessComponents/FolderTree';
+import { ViewerExplorerPanel } from '../../Components/BusinessComponents/ViewerExplorerPanel/ViewerExplorerPanel';
 import { FolderOverview } from './FolderOverview';
 import {
   BpmnContentLoading,
@@ -34,6 +33,7 @@ export const Component = () => {
     return Number.isFinite(saved) && saved >= 180 && saved <= 480 ? saved : 248;
   });
   const folderResizeCleanupRef = useRef<(() => void) | null>(null);
+  const [folderExplorerCollapsed, setFolderExplorerCollapsed] = useState(false);
 
   useEffect(() => {
     window.localStorage.setItem('bpmn-viewer-explorer-width', String(folderExplorerWidth));
@@ -110,29 +110,25 @@ export const Component = () => {
                 {isFolder(resource) ? (
                   <Box className="processViewerLayout" aria-label="Espace du dossier">
                     <Box className="processViewerWorkspace" style={{ "--explorer-width": `${folderExplorerWidth}px` } as React.CSSProperties}>
-                      <Sheet className="processExplorerPanel" variant="outlined">
-                        <Stack direction="row" alignItems="center" spacing={1} className="processExplorerPanelHeader">
-                          <FolderOutlined fontSize="small" />
-                          <Typography level="title-sm">Explorateur</Typography>
-                        </Stack>
-                        <Box className="processExplorerPanelContent">
-                          <FolderTree
-                            selectedId={resourceId}
-                            onNodeClick={callbacks.folderTree.onFolderTreeItemClick}
-                          />
-                        </Box>
-                        <Stack direction="row" spacing={0.75} className="processExplorerHistory" alignItems="stretch">
-                          <Button size="sm" fullWidth variant="outlined" color="neutral" title="Retour" aria-label="Retour" onClick={() => navigate(-1)} startDecorator={<ArrowBack />} sx={{ flex: 1, minWidth: 0 }}>Retour</Button>
-                          <Button size="sm" fullWidth variant="outlined" color="neutral" title="Suivant" aria-label="Suivant" onClick={() => navigate(1)} startDecorator={<ArrowForward />} sx={{ flex: 1, minWidth: 0 }}>Suivant</Button>
-                        </Stack>
-                      </Sheet>
-                      <Box
-                        className="processViewerResizeHandle"
-                        role="separator"
-                        aria-label="Redimensionner le panneau explorateur"
-                        title="Glisser pour régler la largeur de l’explorateur"
-                        onMouseDown={startFolderExplorerResize}
+                      <ViewerExplorerPanel
+                        variant="process-details"
+                        selectedId={resourceId}
+                        onNodeClick={callbacks.folderTree.onFolderTreeItemClick}
+                        collapsed={folderExplorerCollapsed}
+                        onToggle={() => setFolderExplorerCollapsed(value => !value)}
+                        showHistory
+                        onBack={() => navigate(-1)}
+                        onForward={() => navigate(1)}
                       />
+                      {!folderExplorerCollapsed && (
+                        <Box
+                          className="processViewerResizeHandle"
+                          role="separator"
+                          aria-label="Redimensionner le panneau explorateur"
+                          title="Glisser pour régler la largeur de l’explorateur"
+                          onMouseDown={startFolderExplorerResize}
+                        />
+                      )}
                       <Sheet className="processViewerDiagram folderViewerEmptyState" variant="outlined">
                         <FolderOverview resource={resource} />
                       </Sheet>
