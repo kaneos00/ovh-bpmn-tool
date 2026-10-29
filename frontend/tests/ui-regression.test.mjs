@@ -35,7 +35,7 @@ test('all five BPMN gateway types map to markers styled with the same violet str
   ];
 
   for (const [type, marker] of gateways) {
-    assert.match(viewer, new RegExp(`bpmn:${type}[^\\n]*\\n\\s*canvas\\.addMarker\\(element\\.id, 'bpmn-gateway-${marker}'\\)`));
+    assert.match(viewer, new RegExp(`bpmn:${type}[^\\n]*\\n\s*canvas\\.addMarker\\(element\\.id, 'bpmn-gateway-${marker}'\\)`));
     assert.ok(modelerCss.includes(`.djs-element.bpmn-gateway-${marker} .djs-visual > *`), `missing shared gateway style for ${type}`);
   }
 
@@ -356,8 +356,8 @@ test('viewer keeps the explorer and task details in side panels while all centra
   assert.ok(tabsClose > inventoryTab && taskPanel > tabsClose, 'task details must remain in the right-side panel outside the tabs');
   assert.ok(details.slice(processTab, descriptionTab).includes('className="processViewerDiagram"'), 'process diagram belongs to the process tab');
   const styles = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.scss');
-  assert.match(styles, /\.processViewerTabs\s*\{[^}]*flex:\\s*1 1 0;[^}]*width:\\s*0;/s);
-  assert.match(styles, /\.processViewerDiagram\s*\{[^}]*width:\\s*100%;/s);
+  assert.match(styles, /\.processViewerTabs\s*\{[^}]*flex:\s*1 1 0;[^}]*width:\s*0;/s);
+  assert.match(styles, /\.processViewerDiagram\s*\{[^}]*width:\s*100%;/s);
   assert.ok(details.includes("import '../../../raci.css'"), 'Viewer should reuse the Modeler RACI design system');
   assert.ok(details.includes('className="raci-table"'));
   assert.ok(details.includes('raci-code-badge raci-code-'));
