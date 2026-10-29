@@ -59,10 +59,12 @@ test('cross-process annotation search uses the Viewer selection query parameter'
   const provider = await read('src/extensions/recherche/recherche-repository-provider.ts');
   const module = await read('src/extensions/recherche/recherche-module.ts');
   const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
+  const routeState = await read('src/shared/hooks/useViewerRouteState.ts');
 
   assert.ok(provider.includes('`/${resource.id}?elementId=${encodeURIComponent(id)}`'));
   assert.ok(module.includes("target.searchParams.set('elementId', result.id)"));
-  assert.ok(layout.includes("searchParams.get('elementId')"));
+  assert.ok(layout.includes('useViewerRouteState'));
+  assert.ok(routeState.includes("searchParams.get('elementId')"));
   assert.ok(layout.includes('setSelectedElementId(requestedElementId)'));
 });
 
@@ -272,6 +274,7 @@ test('V3 viewer context menu exposes role-appropriate resource management action
 test('viewer gets a fresh BPMN instance for the selected published version', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
+  const routeState = await read('src/shared/hooks/useViewerRouteState.ts');
 
   assert.ok(details.includes('key={`${resourceId}:${viewerContent.id}`}'));
   assert.match(details, /key=\{\`\$\{resourceId\}:\$\{viewerContent\.id\}\`\}[\s\S]*?resourceId=\{resourceId\}[\s\S]*?contentId=\{viewerContent\.id\}/);
@@ -282,7 +285,8 @@ test('viewer gets a fresh BPMN instance for the selected published version', asy
   assert.ok(details.includes('!isHistoricalView && (sessionRole === \'admin\' || sessionRole === \'modeler\')'));
   assert.ok(details.includes('Afficher cette version'));
   assert.ok(details.includes('contentId=${encodeURIComponent(content.id)}') || details.includes('contentId=${encodeURIComponent(content.id)}'));
-  assert.ok(layout.includes("searchParams.get('contentId')"));
+  assert.ok(layout.includes('useViewerRouteState'));
+  assert.ok(routeState.includes("searchParams.get('contentId')"));
   assert.ok(layout.includes('selectedContentId={requestedContentId}'));
 });
 
@@ -480,9 +484,11 @@ test('V3 central viewer exposes the data inventory and saves it through the exis
 
 test('ContentViewer restores element selection and RACI panel from route query parameters', async () => {
   const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+  const routeState = await read('src/shared/hooks/useViewerRouteState.ts');
 
-  assert.ok(viewer.includes("const requestedElementId = searchParams.get('elementId')"));
-  assert.ok(viewer.includes("const raciRequested = searchParams.get('raci') === '1'"));
+  assert.ok(viewer.includes('useViewerRouteState'));
+  assert.ok(routeState.includes("searchParams.get('elementId')"));
+  assert.ok(routeState.includes("searchParams.get('raci') === '1'"));
   assert.ok(viewer.includes('setSelectedActivityId(requestedElementId)'));
   assert.ok(viewer.includes('setInfoTab(raciRequested ? 1 : 0)'));
   assert.ok(viewer.includes('setInfoPanelOpen(raciRequested)'));
