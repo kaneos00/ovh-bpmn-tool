@@ -30,38 +30,82 @@ export function prettifyDiagram(input: LayoutDiagram, options: LayoutRuleOptions
   if (options.equalizeLaneCrossAxisSize !== false) {
     const groups = new Map<string, LayoutLane[]>();
     for (const lane of diagram.lanes) {
-      const group = groups.get(lane.participantId) ?? [];
+      const key = `${lane.participantId}::${lane.parentLaneId ?? ""}::${lane.orientation}`;
+      const group = groups.get(key) ?? [];
       group.push(lane);
-      groups.set(lane.participantId, group);
+      groups.set(key, group);
     }
+
+    const childrenByParent = new Map<string, LayoutLane[]>();
+    for (const lane of diagram.lanes) {
+      if (!lane.parentLaneId) continue;
+      const children = childrenByParent.get(lane.parentLaneId) ?? [];
+      children.push(lane);
+      childrenByParent.set(lane.parentLaneId, children);
+    }
+
+    const shiftLaneSubtree = (root: LayoutLane, delta: number, horizontal: boolean) => {
+      if (Math.abs(delta) < EPSILON) return;
+      const pending = [root.id];
+      const subtree = new Set<string>();
+      while (pending.length) {
+        const parentId = pending.pop()!;
+        if (subtree.has(parentId)) continue;
+        subtree.add(parentId);
+        for (const child of childrenByParent.get(parentId) ?? []) pending.push(child.id);
+      }
+      for (const lane of diagram.lanes) {
+        if (!subtree.has(lane.id) || lane.id === root.id) continue;
+        if (horizontal) lane.bounds.y += delta;
+        else lane.bounds.x += delta;
+      }
+      for (const element of diagram.elements) {
+        if (!element.laneId || !subtree.has(element.laneId)) continue;
+        if (horizontal) element.bounds.y += delta;
+        else element.bounds.x += delta;
+      }
+    };
+
     for (const lanes of groups.values()) {
-      if (lanes.length < 2 || lanes.some(lane => lane.orientation !== lanes[0]!.orientation)) continue;
+      if (lanes.length < 2) continue;
       const horizontal = lanes[0]!.orientation === "horizontal";
-      const target = Math.max(...lanes.map(lane => horizontal ? lane.bounds.height : lane.bounds.width));
-      for (const lane of lanes) {
-        const current = horizontal ? lane.bounds.height : lane.bounds.width;
-        if (Math.abs(target - current) < EPSILON) continue;
-        if (target - current > maxDisplacement) {
-          diagnostics.push({ code: "LAYOUT_MAX_DISPLACEMENT", severity: "warning", message: "Lane size adjustment exceeds maxDisplacement.", elementIds: [], laneId: lane.id });
-          continue;
+      const axisStart = (lane: LayoutLane) => horizontal ? lane.bounds.y : lane.bounds.x;
+      const axisSize = (lane: LayoutLane) => horizontal ? lane.bounds.height : lane.bounds.width;
+      const ordered = [...lanes].sort((a, b) => axisStart(a) - axisStart(b));
+      const target = Math.max(...ordered.map(axisSize));
+      const proposed = ordered.map((lane, index) => {
+        const precedingDelta = ordered.slice(0, index).reduce((sum, previous) => sum + target - axisSize(previous), 0);
+        return { lane, shift: precedingDelta, sizeDelta: target - axisSize(lane) };
+      });
+      const exceedsLimit = proposed.some(item =>
+        Math.abs(item.shift) > maxDisplacement || Math.abs(item.sizeDelta) > maxDisplacement
+      );
+      if (exceedsLimit) {
+        diagnostics.push({
+          code: "LAYOUT_MAX_DISPLACEMENT",
+          severity: "warning",
+          message: "Lane equalization skipped because resizing or reflow would exceed maxDisplacement.",
+          elementIds: [],
+          laneId: ordered[0]!.id
+        });
+        continue;
+      }
+
+      for (const item of proposed) {
+        const { lane, shift, sizeDelta } = item;
+        if (Math.abs(shift) >= EPSILON) {
+          shiftLaneSubtree(lane, shift, horizontal);
+          if (horizontal) lane.bounds.y += shift;
+          else lane.bounds.x += shift;
         }
-        const proposedBounds = { ...lane.bounds, ...(horizontal ? { height: target } : { width: target }) };
-        const wouldOverlapLane = lanes.some(other =>
-          other.id !== lane.id && intersects(proposedBounds, other.bounds)
-        );
-        if (wouldOverlapLane) {
-          diagnostics.push({
-            code: "LANE_SIZE_WOULD_OVERLAP",
-            severity: "warning",
-            message: "Lane size adjustment skipped because it would overlap another lane. Reflow of sibling lanes is not implemented yet.",
-            elementIds: [],
-            laneId: lane.id
-          });
-          continue;
+        if (Math.abs(sizeDelta) >= EPSILON) {
+          if (horizontal) lane.bounds.height = target;
+          else lane.bounds.width = target;
         }
-        if (horizontal) lane.bounds.height = target;
-        else lane.bounds.width = target;
-        appliedRules.push("LANE_CROSS_AXIS_SIZE_EQUALIZED");
+        if (Math.abs(shift) >= EPSILON || Math.abs(sizeDelta) >= EPSILON) {
+          appliedRules.push("LANE_CROSS_AXIS_SIZE_EQUALIZED");
+          appliedRules.push("LANE_SIBLINGS_REFLOWED");
+        }
       }
     }
   }
