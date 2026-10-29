@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Await, Outlet, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Await, Outlet, useNavigate, useParams } from 'react-router-dom';
 import { Box, Sheet, Stack } from '@mui/joy';
 
 import { ProcessDetails } from '../../Components/BusinessComponents/ProcessDetails';
@@ -19,15 +19,13 @@ import { isFolder, isRoot } from '../../shared/helpers/resource';
 
 import type { BpmnLayoutRouteParams } from '.';
 import { ResourceType } from '../../shared/types/BpmnResource';
+import { useViewerRouteState } from '../../shared/hooks/useViewerRouteState';
 
 import './BpmnLayoutContainer.scss';
 
 export const Component = () => {
   const { resourceId } = useParams() as BpmnLayoutRouteParams;
-  const [searchParams] = useSearchParams();
-  const requestedElementId = searchParams.get('elementId');
-  const requestedContentId = searchParams.get('contentId');
-  const requestedRaciView = searchParams.get('raci') === '1';
+  const { requestedElementId, requestedContentId, requestedRaciView } = useViewerRouteState();
   const navigate = useNavigate();
   const [folderExplorerWidth, setFolderExplorerWidth] = useState(() => {
     const saved = Number(window.localStorage.getItem('bpmn-viewer-explorer-width'));
