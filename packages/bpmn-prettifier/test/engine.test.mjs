@@ -55,6 +55,25 @@ test("reflows sibling vertical lanes along the horizontal axis", () => {
   assert.equal(result.diagram.elements[0].bounds.x, 160);
 });
 
+test("reports missing parent lanes and cyclic lane hierarchies", () => {
+  const missingParent = verifyDiagram({
+    lanes: [{ id: "child", participantId: "pool", parentLaneId: "missing", orientation: "horizontal", bounds: { x: 0, y: 0, width: 100, height: 50 } }],
+    elements: []
+  });
+  assert.ok(missingParent.diagnostics.some(d => d.code === "PARENT_LANE_NOT_FOUND"));
+  assert.equal(missingParent.valid, false);
+
+  const cycle = verifyDiagram({
+    lanes: [
+      { id: "lane-a", participantId: "pool", parentLaneId: "lane-b", orientation: "horizontal", bounds: { x: 0, y: 0, width: 100, height: 50 } },
+      { id: "lane-b", participantId: "pool", parentLaneId: "lane-a", orientation: "horizontal", bounds: { x: 0, y: 50, width: 100, height: 50 } }
+    ],
+    elements: []
+  });
+  assert.ok(cycle.diagnostics.some(d => d.code === "LANE_HIERARCHY_CYCLE"));
+  assert.equal(cycle.valid, false);
+});
+
 test("reports duplicate IDs and missing lanes", () => {
   const result = verifyDiagram({
     lanes: [{ id: "same", participantId: "p", orientation: "horizontal", bounds: { x: 0, y: 0, width: 100, height: 100 } }],
