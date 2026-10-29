@@ -203,7 +203,9 @@ export class ContentController {
     @Headers() headers: Record<string, string>,
   ) {
     const { resourceId, contentId } = params;
-    await this.projectResourceAccess.assertCanEditResource(resourceId, headers);
+    await this.projectResourceAccess.assertCanEditResource(resourceId, headers, {
+      allowCommonForOrganizationAdmin: true,
+    });
 
     const commandResult = await this.updateContentCommandHandler.execute(
       resourceId,
@@ -258,7 +260,9 @@ export class ContentController {
     @Headers() headers: Record<string, string>,
   ) {
     const { resourceId, contentId } = params;
-    await this.projectResourceAccess.assertCanEditResource(resourceId, headers);
+    await this.projectResourceAccess.assertCanEditResource(resourceId, headers, {
+      allowCommonForOrganizationAdmin: true,
+    });
 
     const commandResult = await this.publishContentCommandHandler.execute(
       resourceId,
