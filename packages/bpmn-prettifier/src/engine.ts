@@ -161,10 +161,35 @@ export function prettifyDiagram(input: LayoutDiagram, options: LayoutRuleOptions
 export function verifyDiagram(diagram: LayoutDiagram): VerificationResult {
   const diagnostics: LayoutDiagnostic[] = [];
   const ids = new Set<string>();
+  const lanesById = new Map(diagram.lanes.map(lane => [lane.id, lane]));
   for (const lane of diagram.lanes) {
     if (ids.has(lane.id)) diagnostics.push({ code: "DUPLICATE_ID", severity: "error", message: "Duplicate ID: " + lane.id, elementIds: [], laneId: lane.id });
     ids.add(lane.id);
     if (!validBounds(lane.bounds)) diagnostics.push({ code: "INVALID_BOUNDS", severity: "error", message: "Invalid bounds for lane " + lane.id, elementIds: [], laneId: lane.id });
+    if (lane.parentLaneId && !lanesById.has(lane.parentLaneId)) {
+      diagnostics.push({ code: "PARENT_LANE_NOT_FOUND", severity: "error", message: "Parent lane " + lane.parentLaneId + " not found for lane " + lane.id, elementIds: [], laneId: lane.id });
+    }
+  }
+  // Reject cyclic lane hierarchies: subtree reflow must have a well-defined root.
+  const reportedCycles = new Set<string>();
+  for (const lane of diagram.lanes) {
+    const path = new Set<string>();
+    let current: LayoutLane | undefined = lane;
+    while (current?.parentLaneId && lanesById.has(current.parentLaneId)) {
+      if (path.has(current.id)) {
+        if (!reportedCycles.has(current.id)) {
+          diagnostics.push({ code: "LANE_HIERARCHY_CYCLE", severity: "error", message: "Cycle detected in lane hierarchy at " + current.id, elementIds: [], laneId: current.id });
+          reportedCycles.add(current.id);
+        }
+        break;
+      }
+      path.add(current.id);
+      current = lanesById.get(current.parentLaneId);
+    }
+    if (current && path.has(current.id) && !reportedCycles.has(current.id)) {
+      diagnostics.push({ code: "LANE_HIERARCHY_CYCLE", severity: "error", message: "Cycle detected in lane hierarchy at " + current.id, elementIds: [], laneId: current.id });
+      reportedCycles.add(current.id);
+    }
   }
   for (const element of diagram.elements) {
     if (ids.has(element.id)) diagnostics.push({ code: "DUPLICATE_ID", severity: "error", message: "Duplicate ID: " + element.id, elementIds: [element.id] });
