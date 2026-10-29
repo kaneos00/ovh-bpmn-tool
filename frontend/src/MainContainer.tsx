@@ -33,7 +33,7 @@ const router = createBrowserRouter(routes as RouteObject[], {
   basename: import.meta.env.VITE_APP_BASE_PATH as string,
 });
 
-const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\\/+$/, '');
+const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
 
 const buildCommit = import.meta.env.VITE_BUILD_COMMIT || 'unknown';
 const buildRunNumber = import.meta.env.VITE_BUILD_RUN_NUMBER || 'unknown';
