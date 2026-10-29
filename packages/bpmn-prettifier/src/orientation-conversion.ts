@@ -120,6 +120,10 @@ function rotateDiGeometry(planeElements: AnyRecord[], source: LaneOrientation): 
       const width = isLaneOrParticipant ? bounds.height : bounds.width;
       const height = isLaneOrParticipant ? bounds.width : bounds.height;
       Object.assign(bounds, { x: nextCenter.x - width / 2, y: nextCenter.y - height / 2, width, height });
+      if (isLaneOrParticipant) {
+        // BPMN-DI uses this flag alongside the bounds to indicate lane/pool orientation.
+        value.isHorizontal = source === "vertical";
+      }
     }
 
     if (Array.isArray(value.waypoint)) {
