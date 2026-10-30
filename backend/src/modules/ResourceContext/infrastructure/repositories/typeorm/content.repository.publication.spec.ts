@@ -82,7 +82,7 @@ describe('ContentTypeOrmRepository.publishAtomically', () => {
         resourceId: 'resource-1',
         status: expect.objectContaining({ _type: 'in' }),
       },
-      order: { version: 'DESC' },
+      order: { version: 'DESC NULLS LAST' },
       lock: { mode: 'pessimistic_write' },
     });
     expect(contents.findOne).toHaveBeenNthCalledWith(3, {
