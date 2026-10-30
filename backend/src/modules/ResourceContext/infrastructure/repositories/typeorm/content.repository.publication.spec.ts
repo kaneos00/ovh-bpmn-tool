@@ -126,7 +126,10 @@ describe('ContentTypeOrmRepository.publishAtomically', () => {
       status: ContentStatusEnum.Published,
       version: 1,
     } as ContentTypeOrmEntity;
-    contents.findOne.mockReset().mockResolvedValueOnce({ ...draft }).mockResolvedValueOnce(previousPublished);
+    contents.findOne
+      .mockReset()
+      .mockResolvedValueOnce({ ...draft })
+      .mockResolvedValueOnce(previousPublished);
     versionQueryBuilder.getOne.mockResolvedValue(previousPublished);
     contents.save.mockClear().mockImplementation(async (entity) => entity);
 
