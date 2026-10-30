@@ -56,7 +56,9 @@ describe('ContentTypeOrmRepository.publishAtomically', () => {
     jest.clearAllMocks();
     resources.findOne.mockResolvedValue({ ...resource });
     resources.save.mockImplementation(async (entity) => entity);
-    contents.findOne.mockResolvedValueOnce({ ...draft }).mockResolvedValueOnce(null);
+    contents.findOne
+      .mockResolvedValueOnce({ ...draft })
+      .mockResolvedValueOnce(null);
     versionQueryBuilder.getOne.mockResolvedValue(null);
     contents.save.mockImplementation(async (entity) => entity);
     repository = new ContentTypeOrmRepository(
@@ -84,7 +86,9 @@ describe('ContentTypeOrmRepository.publishAtomically', () => {
       lock: { mode: 'pessimistic_write' },
     });
     expect(contents.createQueryBuilder).toHaveBeenCalledWith('content');
-    expect(versionQueryBuilder.setLock).toHaveBeenCalledWith('pessimistic_write');
+    expect(versionQueryBuilder.setLock).toHaveBeenCalledWith(
+      'pessimistic_write',
+    );
     expect(versionQueryBuilder.where).toHaveBeenCalledWith(
       'content."resourceId" = :resourceId',
       { resourceId: 'resource-1' },
