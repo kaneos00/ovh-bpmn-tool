@@ -2,8 +2,8 @@ import { DataSource, Repository } from 'typeorm';
 import { ContentTypeOrmRepository } from './content.repository';
 import { ContentTypeOrmEntity } from '../../entities/content.ormEntity';
 import { ResourceTypeOrmEntity } from '../../entities/resource.ormEntity';
-import { ContentStatusEnum } from '../../../../modules/ResourceContext/shared/types/Content';
-import { ResourceTypeEnum } from '../../../../modules/ResourceContext/shared/types/Resource';
+import { ContentStatusEnum } from '../../../../../modules/ResourceContext/shared/types/Content';
+import { ResourceTypeEnum } from '../../../../../modules/ResourceContext/shared/types/Resource';
 
 describe('ContentTypeOrmRepository.publishAtomically', () => {
   const resource = {
