@@ -150,6 +150,40 @@ export class ContentTypeOrmRepository implements ContentRepository {
     }
   }
 
+  async updateEditableFields(params: {
+    resourceId: string;
+    contentId: string;
+    content?: string;
+    changeComment?: string | null;
+    updatedBy: string;
+  }): Promise<Result<Content, Error>> {
+    try {
+      const fields: Partial<ContentTypeOrmEntity> = {
+        updatedBy: params.updatedBy,
+      };
+      if (params.content !== undefined) fields.content = params.content;
+      if (params.changeComment !== undefined) {
+        fields.changeComment = params.changeComment;
+      }
+
+      // Update only editable columns. In particular, never write a potentially
+      // stale status/version/png snapshot over a concurrent publication.
+      const result = await this.contentRepository.update(
+        { id: params.contentId, resourceId: params.resourceId },
+        fields,
+      );
+      if (!result.affected) {
+        return fail(new Error('Content not found for the requested resource'));
+      }
+
+      return this.findOne(params.contentId);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Error while updating editable content fields: ${detail}`);
+      return fail(new Error('Error while updating content'));
+    }
+  }
+
   async delete(contentId: string): Promise<Result<boolean, Error>> {
     try {
       const deletedResource = await this.contentRepository.delete({
