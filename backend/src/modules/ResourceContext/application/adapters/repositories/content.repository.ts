@@ -9,6 +9,12 @@ export type ContentFilters = {
   status?: ContentStatusEnum;
 };
 
+export type ExplorerProcessLinks = {
+  resourceId: string;
+  processIds: string[];
+  targets: string[];
+};
+
 export interface ContentRepository {
   save(content: Content): Promise<Result<Content, Error>>;
   delete(contentId: string): Promise<Result<boolean, Error>>;
