@@ -162,23 +162,11 @@ body {
   outline-color: #91b7ff;
 }
 
-.theme-mode-toggle {
-  position: fixed;
-  right: 12px;
-  bottom: 30px;
-  z-index: 2000;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 12%);
-}
-
 @media (max-width: 760px) {
   .workspace-navigation {
     border-radius: 8px;
   }
 
-  .theme-mode-toggle {
-    right: 10px;
-    bottom: 34px;
-  }
 }
 
 /* Dark mode tokens for the shared application shell and common MUI surfaces. */
