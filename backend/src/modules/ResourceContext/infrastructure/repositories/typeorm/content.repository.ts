@@ -99,6 +99,59 @@ export class ContentTypeOrmRepository implements ContentRepository {
     }
   }
 
+  async findExplorerProcessLinks(
+    resourceIds: string[],
+  ): Promise<Result<import('../../../../../modules/ResourceContext/application/adapters/repositories/content.repository').ExplorerProcessLinks[], Error>> {
+    if (!resourceIds.length) return ok([]);
+
+    try {
+      // Only link identifiers are returned to the explorer; BPMN XML stays
+      // inside PostgreSQL and is not transferred to the browser.
+      const rows: Array<{
+        resourceId: string;
+        processIds: string[];
+        callTargets: string[];
+        collapsedTargets: string[];
+      }> = await this.contentRepository.query(
+        `WITH latest_published AS (
+           SELECT DISTINCT ON ("resourceId")
+             "resourceId", content
+           FROM contents
+           WHERE "resourceId" = ANY($1::uuid[])
+             AND status = $2
+           ORDER BY "resourceId", version DESC NULLS LAST, "createdAt" DESC
+         )
+         SELECT
+           "resourceId",
+           ARRAY(
+             SELECT regexp_replace(node::text, '^.*="([^"]*)".*$', '\\1')
+             FROM unnest(xpath('//*[local-name()="process"]/@id', content::xml)) AS node
+           ) AS "processIds",
+           ARRAY(
+             SELECT regexp_replace(node::text, '^.*="([^"]*)".*$', '\\1')
+             FROM unnest(xpath('//*[local-name()="callActivity"]/@calledElement', content::xml)) AS node
+           ) AS "callTargets",
+           ARRAY(
+             SELECT regexp_replace(node::text, '^.*="([^"]*)".*$', '\\1')
+             FROM unnest(xpath('//*[local-name()="subProcess" and @id = //*[local-name()="BPMNShape" and @isExpanded="false"]/@bpmnElement]/@id', content::xml)) AS node
+           ) AS "collapsedTargets"
+         FROM latest_published`,
+        [resourceIds, 'published'],
+      );
+
+      return ok(rows.map(row => ({
+        resourceId: row.resourceId,
+        processIds: row.processIds ?? [],
+        targets: [...(row.callTargets ?? []), ...(row.collapsedTargets ?? [])].filter(Boolean),
+      })));
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      const errorMsg = `Error while building explorer BPMN links: ${detail}`;
+      this.logger.error(errorMsg, error instanceof Error ? error.stack : detail);
+      return fail(new Error(errorMsg));
+    }
+  }
+
   async find(
     resourceId: string,
     filters?: ContentFilters,
