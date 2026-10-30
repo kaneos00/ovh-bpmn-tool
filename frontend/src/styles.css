@@ -423,3 +423,34 @@ body {
 [data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-title[aria-selected='true'] * {
   color: #ffffff !important;
 }
+
+
+/* react-complex-tree marks the active row with aria-pressed (not aria-selected).
+   Style the actual tree button and its descendants to avoid the default pale row. */
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button,
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button {
+  color: #e6edf7 !important;
+  background: transparent !important;
+}
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button[aria-pressed='true'],
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button[aria-current='true'],
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button[data-rct-selected='true'],
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button[aria-pressed='true'],
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button[aria-current='true'],
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button[data-rct-selected='true'] {
+  color: #ffffff !important;
+  background: #285b96 !important;
+  border-radius: 6px !important;
+  box-shadow: inset 3px 0 0 #8fc2ff !important;
+}
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button[aria-pressed='true'] *,
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button[aria-current='true'] *,
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button[aria-pressed='true'] *,
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button[aria-current='true'] * {
+  color: #ffffff !important;
+}
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button:hover,
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button:hover {
+  color: #ffffff !important;
+  background: #3b5069 !important;
+}
