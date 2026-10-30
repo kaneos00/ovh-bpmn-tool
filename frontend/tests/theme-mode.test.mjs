@@ -21,12 +21,15 @@ test('theme toggle is accessible and switches between light and dark modes', asy
 test('dark theme defines shared application surfaces and form controls', async () => {
   const css = await read('src/styles.css');
 
-  assert.ok(css.includes("--bpmn-page: #111923"));
+  assert.ok(css.includes("--bpmn-page: #202b3a"));
   assert.ok(css.includes("[data-joy-color-scheme='dark'] body"));
   assert.ok(css.includes("[data-joy-color-scheme='dark'] .MuiCard-root"));
   assert.ok(css.includes("[data-joy-color-scheme='dark'] .MuiTable-root thead th"));
   assert.ok(css.includes("[data-joy-color-scheme='dark'] input"));
   assert.ok(css.includes("[data-joy-color-scheme='dark'] .MuiDivider-root"));
+  assert.ok(css.includes("[data-joy-color-scheme='dark'] .login-page"));
+  assert.ok(css.includes("[data-joy-color-scheme='dark'] .theme-light-explorer"));
+  assert.ok(css.includes("#3a4b61"));
   assert.match(css, /\.theme-mode-toggle\s*\{[^}]*position:\s*fixed/);
 });
 
@@ -64,4 +67,22 @@ test('Material UI theme is scoped alongside Joy UI to preserve Material transiti
   assert.ok(main.includes('createTheme()'));
   assert.ok(main.includes('<ThemeProvider theme={{ [MATERIAL_THEME_ID]: materialTheme }}>'));
   assert.ok(main.indexOf('<ThemeProvider theme={{ [MATERIAL_THEME_ID]: materialTheme }}>') < main.indexOf('<CssVarsProvider'));
+});
+test('login and resource explorer retain light surfaces in dark mode', async () => {
+  const login = await read('src/Containers/Login/Login.container.tsx');
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+  const css = await read('src/styles.css');
+  assert.ok(login.includes('className="login-page"'));
+  assert.ok(login.includes('data-joy-color-scheme="light"'));
+  assert.ok(tree.includes('className="theme-light-explorer"'));
+  assert.ok(tree.includes('data-joy-color-scheme="light"'));
+  assert.ok(css.includes('.login-page .MuiCard-root'));
+  assert.ok(css.includes('.theme-light-explorer .MuiInput-root'));
+});
+
+test('dark theme gives RACI matrix a dark surface and outlined controls', async () => {
+  const css = await read('src/raci.css');
+  assert.ok(css.includes("[data-joy-color-scheme='dark'] .raci-table td"));
+  assert.ok(css.includes('border: 1px solid #ffffff'));
+  assert.ok(css.includes('background: #202d3e'));
 });
