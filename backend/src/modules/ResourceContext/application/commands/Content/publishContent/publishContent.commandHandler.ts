@@ -58,7 +58,9 @@ export class PublishContentCommandHandler {
     });
 
     if (publicationResult.fail) {
-      return fail(new CannotPublishContentError(contentId, publicationResult.fail));
+      return fail(
+        new CannotPublishContentError(contentId, publicationResult.fail),
+      );
     }
     return ok(publicationResult.ok);
   }
