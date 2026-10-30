@@ -17,6 +17,13 @@ export type ExplorerProcessLinks = {
 
 export interface ContentRepository {
   save(content: Content): Promise<Result<Content, Error>>;
+  publishAtomically(params: {
+    resourceId: string;
+    contentId: string;
+    updatedBy: string;
+    pngContent: string;
+    authToken: string;
+  }): Promise<Result<Content, Error>>;
   delete(contentId: string): Promise<Result<boolean, Error>>;
 
   findOne(contentId: string): Promise<Result<Content, Error>>;
