@@ -6,8 +6,9 @@ import { ExplorerLinksQueryHandler } from './explorerLinks/explorerLinks.queryHa
 export const getResourceQueries = () => [
   {
     provide: ExplorerLinksQueryHandler,
-    useFactory: (contentRepository: import('../../adapters/repositories/content.repository').ContentRepository) =>
-      new ExplorerLinksQueryHandler(contentRepository),
+    useFactory: (
+      contentRepository: import('../../adapters/repositories/content.repository').ContentRepository,
+    ) => new ExplorerLinksQueryHandler(contentRepository),
     inject: ['ContentRepository'],
   },
   {
