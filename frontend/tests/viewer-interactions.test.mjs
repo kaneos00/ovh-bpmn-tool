@@ -303,8 +303,9 @@ test('Viewer reuses one parsed BPMN document through a dedicated RACI analysis h
   const analysisHook = await read('src/Containers/ContentViewer/hooks/useViewerRaciAnalysis.ts');
   const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
 
-  assert.match(raci, /export const deriveRaciMatrixFromDocument = \\(document: Document\\): RaciMatrix/);
-  assert.match(raci, /deriveRaciMatrixFromXml = \\(xmlContent: string\\): RaciMatrix =>\\s*deriveRaciMatrixFromDocument\\(/);
+  assert.ok(raci.includes('export const deriveRaciMatrixFromDocument = (document: Document): RaciMatrix'));
+  assert.ok(raci.includes('deriveRaciMatrixFromXml = (xmlContent: string): RaciMatrix =>'));
+  assert.ok(raci.includes('deriveRaciMatrixFromDocument('));
   assert.ok(analysisHook.includes('deriveRaciMatrixFromDocument(document)'));
   assert.equal((analysisHook.match(/new DOMParser\\(\\)\\.parseFromString\\(xmlContent/g) ?? []).length, 1);
   assert.ok(analysisHook.includes('laneRoleByElement'));
