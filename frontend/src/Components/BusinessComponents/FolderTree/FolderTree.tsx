@@ -236,8 +236,6 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
   return (
     <>
     <List
-      className="theme-light-explorer"
-      data-joy-color-scheme="light"
       sx={{
         '--ListItem-radius': '8px',
         '--ListItem-minHeight': '32px',
