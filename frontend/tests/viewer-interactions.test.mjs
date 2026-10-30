@@ -297,3 +297,15 @@ test('Viewer creates a dedicated BpmnViewer without constructing a BpmnModeler',
   assert.ok(modelerFactory.includes('new BpmnModeler('));
   assert.doesNotMatch(modelerFactory, /BpmnViewer|NavigatedViewer|getViewerInstance/);
 });
+
+test('Viewer reuses one parsed BPMN document for RACI and lane-role analysis', async () => {
+  const raci = await read('src/extensions/raci-viewer.ts');
+  const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+
+  assert.match(raci, /export const deriveRaciMatrixFromDocument = \(document: Document\): RaciMatrix/);
+  assert.match(raci, /deriveRaciMatrixFromXml = \(xmlContent: string\): RaciMatrix =>\s*deriveRaciMatrixFromDocument\(/);
+  assert.ok(viewer.includes('deriveRaciMatrixFromDocument(document)'));
+  assert.equal((viewer.match(/new DOMParser\(\)\.parseFromString\(xmlContent/g) ?? []).length, 1);
+  assert.ok(viewer.includes('laneRoleByElement'));
+  assert.ok(viewer.includes('laneIdByRole'));
+});
