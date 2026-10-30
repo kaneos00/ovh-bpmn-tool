@@ -298,14 +298,16 @@ test('Viewer creates a dedicated BpmnViewer without constructing a BpmnModeler',
   assert.doesNotMatch(modelerFactory, /BpmnViewer|NavigatedViewer|getViewerInstance/);
 });
 
-test('Viewer reuses one parsed BPMN document for RACI and lane-role analysis', async () => {
+test('Viewer reuses one parsed BPMN document through a dedicated RACI analysis hook', async () => {
   const raci = await read('src/extensions/raci-viewer.ts');
+  const analysisHook = await read('src/Containers/ContentViewer/hooks/useViewerRaciAnalysis.ts');
   const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
 
-  assert.match(raci, /export const deriveRaciMatrixFromDocument = \(document: Document\): RaciMatrix/);
-  assert.match(raci, /deriveRaciMatrixFromXml = \(xmlContent: string\): RaciMatrix =>\s*deriveRaciMatrixFromDocument\(/);
-  assert.ok(viewer.includes('deriveRaciMatrixFromDocument(document)'));
-  assert.equal((viewer.match(/new DOMParser\(\)\.parseFromString\(xmlContent/g) ?? []).length, 1);
-  assert.ok(viewer.includes('laneRoleByElement'));
-  assert.ok(viewer.includes('laneIdByRole'));
+  assert.match(raci, /export const deriveRaciMatrixFromDocument = \\(document: Document\\): RaciMatrix/);
+  assert.match(raci, /deriveRaciMatrixFromXml = \\(xmlContent: string\\): RaciMatrix =>\\s*deriveRaciMatrixFromDocument\\(/);
+  assert.ok(analysisHook.includes('deriveRaciMatrixFromDocument(document)'));
+  assert.equal((analysisHook.match(/new DOMParser\\(\\)\\.parseFromString\\(xmlContent/g) ?? []).length, 1);
+  assert.ok(analysisHook.includes('laneRoleByElement'));
+  assert.ok(analysisHook.includes('laneIdByRole'));
+  assert.ok(viewer.includes('useViewerRaciAnalysis(xmlContent)'));
 });
