@@ -276,30 +276,39 @@
 }
 
 
-/* BPMN diagram colors in dark mode (viewer and modeler).
-   diagram-js renders SVG shapes with explicit fill/stroke attributes, so the
-   dark palette must target the SVG geometry rather than only the canvas. */
+/* Dark BPMN palette.
+   Preserve explicit fills from BPMN DI / the color picker. Only recolor the
+   renderer's default white fills and black strokes; never blanket-fill shapes. */
 [data-joy-color-scheme='dark'] .process-viewer-canvas,
 [data-joy-color-scheme='dark'] #diagramContainer {
   background: #202b3a;
 }
-[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-shape:not(.djs-label) .djs-visual > rect,
-[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-shape:not(.djs-label) .djs-visual > polygon,
-[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-shape:not(.djs-label) .djs-visual > circle,
-[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-shape:not(.djs-label) .djs-visual > ellipse,
-[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-shape:not(.djs-label) .djs-visual > path,
-[data-joy-color-scheme='dark'] #diagramContainer .djs-shape:not(.djs-label) .djs-visual > rect,
-[data-joy-color-scheme='dark'] #diagramContainer .djs-shape:not(.djs-label) .djs-visual > polygon,
-[data-joy-color-scheme='dark'] #diagramContainer .djs-shape:not(.djs-label) .djs-visual > circle,
-[data-joy-color-scheme='dark'] #diagramContainer .djs-shape:not(.djs-label) .djs-visual > ellipse,
-[data-joy-color-scheme='dark'] #diagramContainer .djs-shape:not(.djs-label) .djs-visual > path {
-  fill: #2b394b !important;
-  stroke: #c0ccda !important;
-  stroke-width: 1.6px !important;
+
+/* Default white BPMN geometry becomes a muted slate, while custom blue and
+   other user-defined colors remain intact. */
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-visual > [fill="white"],
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-visual > [fill="#fff"],
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-visual > [fill="#ffffff"],
+[data-joy-color-scheme='dark'] #diagramContainer .djs-visual > [fill="white"],
+[data-joy-color-scheme='dark'] #diagramContainer .djs-visual > [fill="#fff"],
+[data-joy-color-scheme='dark'] #diagramContainer .djs-visual > [fill="#ffffff"] {
+  fill: #35465b !important;
 }
+
+/* Improve default black outlines without overwriting explicitly colored
+   outlines supplied by BPMN styling. */
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-visual > [stroke="black"],
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-visual > [stroke="#000"],
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-visual > [stroke="#000000"],
+[data-joy-color-scheme='dark'] #diagramContainer .djs-visual > [stroke="black"],
+[data-joy-color-scheme='dark'] #diagramContainer .djs-visual > [stroke="#000"],
+[data-joy-color-scheme='dark'] #diagramContainer .djs-visual > [stroke="#000000"] {
+  stroke: #c0ccda !important;
+}
+
+/* Flow connectors and labels remain legible on the dark canvas. */
 [data-joy-color-scheme='dark'] .process-viewer-canvas .djs-connection .djs-visual > path,
 [data-joy-color-scheme='dark'] #diagramContainer .djs-connection .djs-visual > path {
-  fill: none !important;
   stroke: #c0ccda !important;
 }
 [data-joy-color-scheme='dark'] .process-viewer-canvas .djs-element text,
@@ -308,6 +317,8 @@
 [data-joy-color-scheme='dark'] #diagramContainer .djs-element tspan {
   fill: #f1f5fb !important;
 }
+
+/* Semantic BPMN colors tuned for dark backgrounds. */
 [data-joy-color-scheme='dark'] .process-viewer-canvas .djs-shape.bpmn-start-event .djs-visual > circle,
 [data-joy-color-scheme='dark'] #diagramContainer .djs-shape.bpmn-start-event .djs-visual > circle {
   stroke: #69d391 !important;
@@ -318,13 +329,13 @@
 }
 [data-joy-color-scheme='dark'] .process-viewer-canvas .djs-shape[class*='bpmn-gateway-'] .djs-visual > polygon,
 [data-joy-color-scheme='dark'] #diagramContainer .djs-shape[class*='bpmn-gateway-'] .djs-visual > polygon {
-  fill: #332b49 !important;
-  stroke: #b99aff !important;
+  fill: #3c3158 !important;
+  stroke: #c3a8ff !important;
 }
 [data-joy-color-scheme='dark'] .process-viewer-canvas .djs-shape.bpmn-gateway-parallel .djs-visual > path,
 [data-joy-color-scheme='dark'] #diagramContainer .djs-shape.bpmn-gateway-parallel .djs-visual > path {
-  fill: #b99aff !important;
-  stroke: #b99aff !important;
+  fill: #c3a8ff !important;
+  stroke: #c3a8ff !important;
 }
 [data-joy-color-scheme='dark'] .process-viewer-canvas .djs-shape.bpmn-data-store .djs-visual > path,
 [data-joy-color-scheme='dark'] .process-viewer-canvas .djs-shape.bpmn-data-object-reference .djs-visual > path,
