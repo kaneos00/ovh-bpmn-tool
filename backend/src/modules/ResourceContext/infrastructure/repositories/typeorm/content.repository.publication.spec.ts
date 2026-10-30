@@ -29,8 +29,16 @@ describe('ContentTypeOrmRepository.publishAtomically', () => {
     findOne: jest.fn(),
     save: jest.fn(),
   };
+  const versionQueryBuilder = {
+    setLock: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    getOne: jest.fn(),
+  };
   const contents = {
     findOne: jest.fn(),
+    createQueryBuilder: jest.fn(() => versionQueryBuilder),
     save: jest.fn(),
   };
   const manager = {
@@ -48,10 +56,8 @@ describe('ContentTypeOrmRepository.publishAtomically', () => {
     jest.clearAllMocks();
     resources.findOne.mockResolvedValue({ ...resource });
     resources.save.mockImplementation(async (entity) => entity);
-    contents.findOne
-      .mockResolvedValueOnce({ ...draft })
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null);
+    contents.findOne.mockResolvedValueOnce({ ...draft }).mockResolvedValueOnce(null);
+    versionQueryBuilder.getOne.mockResolvedValue(null);
     contents.save.mockImplementation(async (entity) => entity);
     repository = new ContentTypeOrmRepository(
       {} as Repository<ContentTypeOrmEntity>,
@@ -77,15 +83,25 @@ describe('ContentTypeOrmRepository.publishAtomically', () => {
       where: { id: 'content-2', resourceId: 'resource-1' },
       lock: { mode: 'pessimistic_write' },
     });
-    expect(contents.findOne).toHaveBeenNthCalledWith(2, {
-      where: {
-        resourceId: 'resource-1',
-        status: expect.objectContaining({ _type: 'in' }),
+    expect(contents.createQueryBuilder).toHaveBeenCalledWith('content');
+    expect(versionQueryBuilder.setLock).toHaveBeenCalledWith('pessimistic_write');
+    expect(versionQueryBuilder.where).toHaveBeenCalledWith(
+      'content."resourceId" = :resourceId',
+      { resourceId: 'resource-1' },
+    );
+    expect(versionQueryBuilder.andWhere).toHaveBeenCalledWith(
+      'content.status IN (:...statuses)',
+      {
+        statuses: [ContentStatusEnum.Published, ContentStatusEnum.Obsolete],
       },
-      order: { version: 'DESC NULLS LAST' },
-      lock: { mode: 'pessimistic_write' },
-    });
-    expect(contents.findOne).toHaveBeenNthCalledWith(3, {
+    );
+    expect(versionQueryBuilder.orderBy).toHaveBeenCalledWith(
+      'content.version',
+      'DESC',
+      'NULLS LAST',
+    );
+    expect(versionQueryBuilder.getOne).toHaveBeenCalledTimes(1);
+    expect(contents.findOne).toHaveBeenNthCalledWith(2, {
       where: { resourceId: 'resource-1', status: ContentStatusEnum.Published },
       order: { version: 'DESC' },
       lock: { mode: 'pessimistic_write' },
@@ -110,11 +126,8 @@ describe('ContentTypeOrmRepository.publishAtomically', () => {
       status: ContentStatusEnum.Published,
       version: 1,
     } as ContentTypeOrmEntity;
-    contents.findOne
-      .mockReset()
-      .mockResolvedValueOnce({ ...draft })
-      .mockResolvedValueOnce(previousPublished)
-      .mockResolvedValueOnce(previousPublished);
+    contents.findOne.mockReset().mockResolvedValueOnce({ ...draft }).mockResolvedValueOnce(previousPublished);
+    versionQueryBuilder.getOne.mockResolvedValue(previousPublished);
     contents.save.mockClear().mockImplementation(async (entity) => entity);
 
     const result = await repository.publishAtomically({
