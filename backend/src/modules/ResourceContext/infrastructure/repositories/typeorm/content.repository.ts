@@ -141,7 +141,7 @@ export class ContentTypeOrmRepository implements ContentRepository {
       );
 
       return ok(
-        rows.map(row => ({
+        rows.map((row) => ({
           resourceId: row.resourceId,
           processIds: row.processIds ?? [],
           targets: [
@@ -153,7 +153,10 @@ export class ContentTypeOrmRepository implements ContentRepository {
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       const errorMsg = `Error while building explorer BPMN links: ${detail}`;
-      this.logger.error(errorMsg, error instanceof Error ? error.stack : detail);
+      this.logger.error(
+        errorMsg,
+        error instanceof Error ? error.stack : detail,
+      );
       return fail(new Error(errorMsg));
     }
   }
