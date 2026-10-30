@@ -89,7 +89,10 @@ test('dark theme gives RACI matrix a dark surface and outlined controls', async 
 test('dark theme styles BPMN shapes, connectors, labels and text annotations', async () => {
   const css = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
   assert.ok(css.includes("[data-joy-color-scheme='dark'] .process-viewer-canvas"));
-  assert.ok(css.includes('.djs-shape:not(.djs-label) .djs-visual > rect'));
+  assert.ok(css.includes('[fill="white"]'), 'default white shapes should be adapted');
+  assert.ok(css.includes('fill: #35465b !important'));
+  assert.doesNotMatch(css, /\.djs-shape:not\(\.djs-label\).*fill:\s*#2b394b/s,
+    'a blanket fill must not overwrite BPMN custom colors');
   assert.ok(css.includes('.djs-connection .djs-visual > path'));
   assert.ok(css.includes('.djs-element text'));
   assert.ok(css.includes('.bpmn-text-annotation .djs-visual > path'));
