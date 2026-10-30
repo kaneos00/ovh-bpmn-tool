@@ -26,9 +26,9 @@ describe('ExplorerLinksQueryHandler', () => {
 
     await expect(handler.execute(['resource-a'])).resolves.toEqual(ok(links));
     expect(repository.findExplorerProcessLinks).toHaveBeenCalledTimes(1);
-    expect(repository.findExplorerProcessLinks).toHaveBeenCalledWith(
+    expect(repository.findExplorerProcessLinks).toHaveBeenCalledWith([
       'resource-a',
-    );
+    ]);
   });
 
   it('propagates repository failures without hiding the error', async () => {
