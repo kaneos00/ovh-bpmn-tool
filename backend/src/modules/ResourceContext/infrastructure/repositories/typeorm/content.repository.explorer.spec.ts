@@ -17,6 +17,7 @@ describe('ContentTypeOrmRepository.findExplorerProcessLinks', () => {
   it('does not query PostgreSQL when there are no process resources', async () => {
     await expect(repository.findExplorerProcessLinks([])).resolves.toEqual({
       ok: [],
+      fail: null,
     });
     expect(query).not.toHaveBeenCalled();
   });
@@ -65,6 +66,7 @@ describe('ContentTypeOrmRepository.findExplorerProcessLinks', () => {
           targets: [],
         },
       ],
+      fail: null,
     });
 
     expect(query).toHaveBeenCalledTimes(1);
