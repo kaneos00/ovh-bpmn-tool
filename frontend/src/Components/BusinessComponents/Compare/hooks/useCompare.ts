@@ -17,7 +17,7 @@ import { diff } from 'bpmn-js-differ';
 // import { ChangeHandler } from 'bpmn-js-diffing';
 
 import type { Nullable } from '../../../../shared/types/Nullable';
-import { useModelerInstance } from '../../../../shared/hooks/useModelerInstance';
+import { useBpmnViewerInstance } from '../../../../shared/hooks/useBpmnViewerInstance';
 import { useBpmnToolOptions } from '../../../../Providers/BpmnToolOptions/useBpmnToolOptions';
 
 type DiffSimple = {
@@ -51,7 +51,7 @@ export const useCompare = (leftContent: string, rightContent: string) => {
   const rightRef = useRef<HTMLDivElement>(null);
 
   const { getModelerDiffChangeHandler } = useBpmnToolOptions();
-  const { getViewerInstance } = useModelerInstance();
+  const { getViewerInstance } = useBpmnViewerInstance();
   const leftViewer = useMemo(
     () =>
       getViewerInstance({
@@ -177,7 +177,7 @@ export const useCompare = (leftContent: string, rightContent: string) => {
           setLeftSideLoaded(true);
         }
       })
-      .catch(e => {
+      .catch((e: unknown) => {
         if (!cancelled) {
           console.error('leftSide: ', e);
         }
