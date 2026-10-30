@@ -88,7 +88,7 @@ export const Component = () => {
   return (
     <>
       {actionData && actionData.formAction === 'saveContentBeforePublish' && (
-        <Navigate to="./publish" />
+        <Navigate to={`/${resourceId}/publish`} />
       )}
       <ImpersonationBanner />
       <ModelerActionBar
