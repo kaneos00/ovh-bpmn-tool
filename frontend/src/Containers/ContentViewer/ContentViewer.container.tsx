@@ -35,7 +35,7 @@ import {
 import { ContentStatusEnum, type Content } from '../../Types';
 import { apiClient } from '../../queryClient';
 import { formatDateTime } from '../../shared/helpers/date';
-import { deriveRaciMatrixFromXml } from '../../extensions/raci-viewer';
+import { deriveRaciMatrixFromDocument } from '../../extensions/raci-viewer';
 import {
   analyzeRaciMatrix,
   getRaciIssueLabel,
@@ -108,35 +108,37 @@ const ProcessContentViewer = () => {
       .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0];
   }, [contents]);
 
-  const raciMatrix = useMemo(
-    () =>
-      xmlContent
-        ? deriveRaciMatrixFromXml(xmlContent)
-        : { roles: [], activities: [] },
-    [xmlContent],
-  );
-
-  const { laneRoleByElement, laneIdByRole } = useMemo(() => {
+  const { raciMatrix, laneRoleByElement, laneIdByRole } = useMemo(() => {
+    const emptyMatrix = { roles: [], activities: [] };
     const roleByElement = new Map<string, string>();
     const idByRole = new Map<string, string>();
     if (!xmlContent || typeof DOMParser === 'undefined') {
-      return { laneRoleByElement: roleByElement, laneIdByRole: idByRole };
+      return {
+        raciMatrix: emptyMatrix,
+        laneRoleByElement: roleByElement,
+        laneIdByRole: idByRole,
+      };
     }
+
     const document = new DOMParser().parseFromString(xmlContent, 'application/xml');
-    Array.from(document.getElementsByTagNameNS('http://www.omg.org/spec/BPMN/20100524/MODEL', 'lane'))
-      .forEach(lane => {
-        const laneId = lane.getAttribute('id');
-        const role = lane.getAttribute('name')?.trim();
-        if (!laneId || !role) return;
-        roleByElement.set(laneId, role);
-        idByRole.set(role, laneId);
-        Array.from(lane.getElementsByTagNameNS('http://www.omg.org/spec/BPMN/20100524/MODEL', 'flowNodeRef'))
-          .forEach(reference => {
-            const elementId = reference.textContent?.trim();
-            if (elementId) roleByElement.set(elementId, role);
-          });
+    const bpmnNamespace = 'http://www.omg.org/spec/BPMN/20100524/MODEL';
+    Array.from(document.getElementsByTagNameNS(bpmnNamespace, 'lane')).forEach(lane => {
+      const laneId = lane.getAttribute('id');
+      const role = lane.getAttribute('name')?.trim();
+      if (!laneId || !role) return;
+      roleByElement.set(laneId, role);
+      idByRole.set(role, laneId);
+      Array.from(lane.getElementsByTagNameNS(bpmnNamespace, 'flowNodeRef')).forEach(reference => {
+        const elementId = reference.textContent?.trim();
+        if (elementId) roleByElement.set(elementId, role);
       });
-    return { laneRoleByElement: roleByElement, laneIdByRole: idByRole };
+    });
+
+    return {
+      raciMatrix: deriveRaciMatrixFromDocument(document),
+      laneRoleByElement: roleByElement,
+      laneIdByRole: idByRole,
+    };
   }, [xmlContent]);
 
   const selectedRole = selectedActivityId ? laneRoleByElement.get(selectedActivityId) ?? '' : '';
