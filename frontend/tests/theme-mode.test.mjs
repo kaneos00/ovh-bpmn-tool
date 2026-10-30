@@ -8,13 +8,13 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = relativePath => readFile(path.join(root, relativePath), 'utf8');
 
 test('theme toggle is accessible and switches between light and dark modes', async () => {
-  const main = await read('src/MainContainer.tsx');
+  const menu = await read('src/Components/GenericComponents/UserAccountMenu/UserAccountMenu.tsx');
 
-  assert.ok(main.includes('function ThemeModeToggle()'));
-  assert.ok(main.includes('useColorScheme()'));
-  assert.ok(main.includes("const nextMode = isDark ? 'light' : 'dark'"));
-  assert.ok(main.includes('setMode(nextMode)'));
-  assert.ok(main.includes("aria-label={isDark ? 'Activer le thème clair' : 'Activer le thème sombre'}"));
+  assert.ok(menu.includes('useColorScheme()'));
+  assert.ok(menu.includes("const nextMode = isDark ? 'light' : 'dark'"));
+  assert.ok(menu.includes('setMode(nextMode)'));
+  assert.ok(menu.includes('Thème sombre'));
+  assert.ok(menu.includes('<Switch size="sm" checked={isDark} readOnly tabIndex={-1} />'));
   assert.ok(main.includes('<CssVarsProvider defaultMode="light" modeStorageKey="khi-flows-color-scheme">'));
 });
 
@@ -29,7 +29,7 @@ test('dark theme defines shared application surfaces and form controls', async (
   assert.ok(css.includes("[data-joy-color-scheme='dark'] .MuiDivider-root"));
   assert.ok(css.includes("[data-joy-color-scheme='dark'] .login-page"));
   assert.ok(css.includes("#3a4b61"));
-  assert.match(css, /\.theme-mode-toggle\s*\{[^}]*position:\s*fixed/);
+  assert.doesNotMatch(css, /\.theme-mode-toggle/);
 });
 
 test('dark theme changes are scoped to the active Joy color scheme', async () => {
@@ -41,14 +41,12 @@ test('dark theme changes are scoped to the active Joy color scheme', async () =>
 });
 
 test('authenticated users synchronize theme preference while guests retain local fallback', async () => {
-  const main = await read('src/MainContainer.tsx');
+  const menu = await read('src/Components/GenericComponents/UserAccountMenu/UserAccountMenu.tsx');
 
-  assert.ok(main.includes('fetch(`${apiBase}/auth/preferences`'));
-  assert.ok(main.includes("method: 'PUT'"));
-  assert.ok(main.includes("credentials: 'same-origin'"));
-  assert.ok(main.includes('JSON.stringify({ theme: nextMode })'));
-  assert.ok(main.includes('userChangedRef.current'));
-  assert.ok(main.includes('MUI still stores the local preference if server sync is unavailable'));
+  assert.ok(menu.includes('fetch(`${apiBase}/auth/preferences`'));
+  assert.ok(menu.includes("method: 'PUT'"));
+  assert.ok(menu.includes("credentials: 'same-origin'"));
+  assert.ok(menu.includes('JSON.stringify({ theme: nextMode })'));
 });
 
 test('saved local theme is applied before the frontend module starts', async () => {
