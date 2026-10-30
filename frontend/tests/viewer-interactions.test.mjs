@@ -281,3 +281,19 @@ test('Viewer entry points share URL state for BPMN selection, content versions a
   assert.match(details, /setActiveViewerTab\(requestedRaciView \? 3 : 0\);[\s\S]*?\[resourceId, selectedContentId, requestedRaciView\]/);
   assert.ok(details.includes('<Tab value={3}>RACI</Tab>'));
 });
+
+
+test('Viewer creates a dedicated BpmnViewer without constructing a BpmnModeler', async () => {
+  const viewerFactory = await read('src/shared/hooks/useBpmnViewerInstance.ts');
+  const modelerFactory = await read('src/shared/hooks/useModelerInstance.ts');
+  const viewerHook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+
+  assert.ok(viewerHook.includes("import { useBpmnViewerInstance } from '../../../../shared/hooks/useBpmnViewerInstance'"));
+  assert.ok(viewerHook.includes('const { getViewerInstance } = useBpmnViewerInstance()'));
+  assert.ok(viewerFactory.includes("from 'camunda-bpmn-js/lib/camunda-platform/NavigatedViewer'"));
+  assert.ok(viewerFactory.includes('new BpmnViewer('));
+  assert.ok(viewerFactory.includes('VerticalInteractionHitFix'));
+  assert.doesNotMatch(viewerFactory, /BpmnModeler|camunda-platform\/Modeler/);
+  assert.ok(modelerFactory.includes('new BpmnModeler('));
+  assert.doesNotMatch(modelerFactory, /BpmnViewer|NavigatedViewer|getViewerInstance/);
+});
