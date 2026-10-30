@@ -52,13 +52,13 @@ export class UpdateContentCommandHandler {
       );
     }
 
-    content.updateContent(
-      command.content,
-      command.updatedBy,
-      command.changeComment,
-    );
-
-    const updateResult = await this.contentRepository.save(content);
+    const updateResult = await this.contentRepository.updateEditableFields({
+      resourceId,
+      contentId,
+      content: command.content,
+      updatedBy: command.updatedBy,
+      changeComment: command.changeComment,
+    });
 
     if (updateResult.fail) {
       return fail(new CannotSaveContentError(contentId, updateResult.fail));
