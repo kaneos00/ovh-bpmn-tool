@@ -50,6 +50,7 @@ describe('ContentTypeOrmRepository.publishAtomically', () => {
     resources.save.mockImplementation(async (entity) => entity);
     contents.findOne
       .mockResolvedValueOnce({ ...draft })
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null);
     contents.save.mockImplementation(async (entity) => entity);
     repository = new ContentTypeOrmRepository(
@@ -77,6 +78,14 @@ describe('ContentTypeOrmRepository.publishAtomically', () => {
       lock: { mode: 'pessimistic_write' },
     });
     expect(contents.findOne).toHaveBeenNthCalledWith(2, {
+      where: {
+        resourceId: 'resource-1',
+        status: expect.objectContaining({ _type: 'in' }),
+      },
+      order: { version: 'DESC' },
+      lock: { mode: 'pessimistic_write' },
+    });
+    expect(contents.findOne).toHaveBeenNthCalledWith(3, {
       where: { resourceId: 'resource-1', status: ContentStatusEnum.Published },
       order: { version: 'DESC' },
       lock: { mode: 'pessimistic_write' },
@@ -104,6 +113,7 @@ describe('ContentTypeOrmRepository.publishAtomically', () => {
     contents.findOne
       .mockReset()
       .mockResolvedValueOnce({ ...draft })
+      .mockResolvedValueOnce(previousPublished)
       .mockResolvedValueOnce(previousPublished);
     contents.save.mockClear().mockImplementation(async (entity) => entity);
 
