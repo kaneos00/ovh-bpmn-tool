@@ -352,13 +352,28 @@ body {
 [data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-title {
   color: #e6edf7;
 }
+/* Selected folder/process rows use a saturated blue that stays distinct
+   from the slate explorer surface without the glaring light-mode highlight. */
 [data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button[aria-selected='true'],
 [data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-title[aria-selected='true'],
 [data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button[aria-selected='true'],
 [data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-title[aria-selected='true'] {
-  color: #204fae;
-  background: #eaf1ff;
+  color: #ffffff !important;
+  background: #285b96 !important;
   border-radius: 6px;
+  box-shadow: inset 3px 0 0 #8fc2ff;
+}
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button:hover,
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-title:hover,
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button:hover,
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-title:hover {
+  color: #ffffff;
+  background: #3b5069;
+}
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button:focus-visible,
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button:focus-visible {
+  outline: 2px solid #8fc2ff;
+  outline-offset: 1px;
 }
 /* The sign-in page is intentionally light even when the user's app preference is dark. */
 [data-joy-color-scheme='dark'] .login-page {
