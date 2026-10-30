@@ -274,3 +274,67 @@
   line-height: 1;
   cursor: pointer;
 }
+
+
+/* BPMN diagram colors in dark mode (viewer and modeler).
+   diagram-js renders SVG shapes with explicit fill/stroke attributes, so the
+   dark palette must target the SVG geometry rather than only the canvas. */
+[data-joy-color-scheme='dark'] .process-viewer-canvas,
+[data-joy-color-scheme='dark'] #diagramContainer {
+  background: #202b3a;
+}
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-shape:not(.djs-label) .djs-visual > rect,
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-shape:not(.djs-label) .djs-visual > polygon,
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-shape:not(.djs-label) .djs-visual > circle,
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-shape:not(.djs-label) .djs-visual > ellipse,
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-shape:not(.djs-label) .djs-visual > path,
+[data-joy-color-scheme='dark'] #diagramContainer .djs-shape:not(.djs-label) .djs-visual > rect,
+[data-joy-color-scheme='dark'] #diagramContainer .djs-shape:not(.djs-label) .djs-visual > polygon,
+[data-joy-color-scheme='dark'] #diagramContainer .djs-shape:not(.djs-label) .djs-visual > circle,
+[data-joy-color-scheme='dark'] #diagramContainer .djs-shape:not(.djs-label) .djs-visual > ellipse,
+[data-joy-color-scheme='dark'] #diagramContainer .djs-shape:not(.djs-label) .djs-visual > path {
+  fill: #2b394b !important;
+  stroke: #c0ccda !important;
+  stroke-width: 1.6px !important;
+}
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-connection .djs-visual > path,
+[data-joy-color-scheme='dark'] #diagramContainer .djs-connection .djs-visual > path {
+  fill: none !important;
+  stroke: #c0ccda !important;
+}
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-element text,
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-element tspan,
+[data-joy-color-scheme='dark'] #diagramContainer .djs-element text,
+[data-joy-color-scheme='dark'] #diagramContainer .djs-element tspan {
+  fill: #f1f5fb !important;
+}
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-shape.bpmn-start-event .djs-visual > circle,
+[data-joy-color-scheme='dark'] #diagramContainer .djs-shape.bpmn-start-event .djs-visual > circle {
+  stroke: #69d391 !important;
+}
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-shape.bpmn-end-event .djs-visual > circle,
+[data-joy-color-scheme='dark'] #diagramContainer .djs-shape.bpmn-end-event .djs-visual > circle {
+  stroke: #ff8585 !important;
+}
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-shape[class*='bpmn-gateway-'] .djs-visual > polygon,
+[data-joy-color-scheme='dark'] #diagramContainer .djs-shape[class*='bpmn-gateway-'] .djs-visual > polygon {
+  fill: #332b49 !important;
+  stroke: #b99aff !important;
+}
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-shape.bpmn-gateway-parallel .djs-visual > path,
+[data-joy-color-scheme='dark'] #diagramContainer .djs-shape.bpmn-gateway-parallel .djs-visual > path {
+  fill: #b99aff !important;
+  stroke: #b99aff !important;
+}
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-shape.bpmn-data-store .djs-visual > path,
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-shape.bpmn-data-object-reference .djs-visual > path,
+[data-joy-color-scheme='dark'] #diagramContainer .djs-shape.bpmn-data-store .djs-visual > path,
+[data-joy-color-scheme='dark'] #diagramContainer .djs-shape.bpmn-data-object-reference .djs-visual > path {
+  fill: #51432e !important;
+  stroke: #f2bd65 !important;
+}
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-shape.bpmn-text-annotation .djs-visual > path,
+[data-joy-color-scheme='dark'] #diagramContainer .djs-shape.bpmn-text-annotation .djs-visual > path {
+  fill: none !important;
+  stroke: #c0ccda !important;
+}
