@@ -52,6 +52,7 @@ INSERT INTO contents ("resourceId", content, status, version, "createdAt") VALUE
 DO $test$
 DECLARE
   result record;
+  published_resource_count integer;
 BEGIN
   WITH latest_published AS (
     SELECT DISTINCT ON ("resourceId")
@@ -93,8 +94,18 @@ BEGIN
     RAISE EXCEPTION 'Unexpected collapsed SubProcess targets: %', result.collapsed_targets;
   END IF;
 
-  IF (SELECT count(*) FROM latest_published) <> 2 THEN
-    RAISE EXCEPTION 'Expected exactly two resources with published content';
+  SELECT count(DISTINCT "resourceId")
+  INTO published_resource_count
+  FROM contents
+  WHERE "resourceId" = ANY(ARRAY[
+    '00000000-0000-4000-8000-000000000001'::uuid,
+    '00000000-0000-4000-8000-000000000002'::uuid,
+    '00000000-0000-4000-8000-000000000003'::uuid
+  ])
+    AND status = 'published';
+
+  IF published_resource_count <> 2 THEN
+    RAISE EXCEPTION 'Expected exactly two resources with published content, got %', published_resource_count;
   END IF;
 
   RAISE NOTICE 'Explorer BPMN XPath integration checks passed';
