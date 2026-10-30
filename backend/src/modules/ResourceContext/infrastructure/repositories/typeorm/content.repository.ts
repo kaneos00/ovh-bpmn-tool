@@ -87,7 +87,7 @@ export class ContentTypeOrmRepository implements ContentRepository {
               ContentStatusEnum.Obsolete,
             ]),
           },
-          order: { version: 'DESC' },
+          order: { version: 'DESC NULLS LAST' },
           lock: { mode: 'pessimistic_write' },
         });
         contentEntity.version = Math.max(
