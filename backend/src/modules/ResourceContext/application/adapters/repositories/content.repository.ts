@@ -17,6 +17,13 @@ export type ExplorerProcessLinks = {
 
 export interface ContentRepository {
   save(content: Content): Promise<Result<Content, Error>>;
+  updateEditableFields(params: {
+    resourceId: string;
+    contentId: string;
+    content?: string;
+    changeComment?: string | null;
+    updatedBy: string;
+  }): Promise<Result<Content, Error>>;
   publishAtomically(params: {
     resourceId: string;
     contentId: string;
