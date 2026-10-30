@@ -11,6 +11,7 @@ export class ContentMapper {
         {
           resourceId: source.resourceId,
           content: source.content,
+          changeComment: source.changeComment,
           pngContent: source.pngContent,
           version: source.version || undefined,
           status: source.status,
@@ -30,6 +31,7 @@ export class ContentMapper {
     contentEntity.id = source.id.value;
     contentEntity.resourceId = source.state.resourceId;
     contentEntity.content = source.state.content;
+    contentEntity.changeComment = source.state.changeComment ?? null;
     contentEntity.createdBy = source.state.createdBy;
 
     if (source.state.pngContent !== undefined) {
@@ -60,6 +62,7 @@ export class ContentMapper {
     contentPresenter.id = source.id.value;
     contentPresenter.resourceId = source.state.resourceId;
     contentPresenter.createdBy = source.state.createdBy;
+    contentPresenter.changeComment = source.state.changeComment ?? null;
 
     if (source.state.status) {
       contentPresenter.status = source.state.status;

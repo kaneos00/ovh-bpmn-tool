@@ -5,4 +5,5 @@ export type CloneContentCommandParams = {
 
 export type CloneContentCommand = {
   clonedBy: string;
+  changeComment?: string | null;
 };

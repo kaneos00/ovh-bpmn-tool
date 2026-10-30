@@ -72,3 +72,21 @@ export const updateResource = async (
 export const deleteResource = async (resourceId: string) => {
   return apiClient.remove(`/resources/${resourceId}`);
 };
+
+
+export type ResourceShareProject = {
+  id: string;
+  name: string;
+  canNavigate: boolean;
+};
+
+export type ResourceShares = {
+  shared: boolean;
+  projects: ResourceShareProject[];
+};
+
+export const resourceSharesQuery = (resourceId: string) => ({
+  queryKey: ['resource-shares', resourceId],
+  queryFn: async (): Promise<ResourceShares> =>
+    apiClient.get(`/projects/processes/${resourceId}/shares`),
+});

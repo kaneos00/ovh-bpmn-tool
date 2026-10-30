@@ -35,7 +35,8 @@ test('all five BPMN gateway types map to markers styled with the same violet str
   ];
 
   for (const [type, marker] of gateways) {
-    assert.match(viewer, new RegExp(`bpmn:${type}[^\\n]*\\n\\s*canvas\\.addMarker\\(element\\.id, 'bpmn-gateway-${marker}'\\)`));
+    assert.ok(viewer.includes(`element?.type === 'bpmn:${type}'`), `missing Viewer branch for ${type}`);
+    assert.ok(viewer.includes(`canvas.addMarker(element.id, 'bpmn-gateway-${marker}')`), `missing Viewer marker for ${type}`);
     assert.ok(modelerCss.includes(`.djs-element.bpmn-gateway-${marker} .djs-visual > *`), `missing shared gateway style for ${type}`);
   }
 
@@ -58,11 +59,15 @@ test('cross-process annotation search uses the Viewer selection query parameter'
   const provider = await read('src/extensions/recherche/recherche-repository-provider.ts');
   const module = await read('src/extensions/recherche/recherche-module.ts');
   const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
+  const routeState = await read('src/shared/hooks/useViewerRouteState.ts');
+  const selectionState = await read('src/shared/hooks/useViewerSelectionState.ts');
 
   assert.ok(provider.includes('`/${resource.id}?elementId=${encodeURIComponent(id)}`'));
   assert.ok(module.includes("target.searchParams.set('elementId', result.id)"));
-  assert.ok(layout.includes("searchParams.get('elementId')"));
-  assert.ok(layout.includes('setSelectedElementId(requestedElementId)'));
+  assert.ok(layout.includes('useViewerRouteState'));
+  assert.ok(routeState.includes("searchParams.get('elementId')"));
+  assert.ok(layout.includes('useViewerSelectionState('));
+  assert.ok(selectionState.includes('setSelectedElementId(requestedElementId)'));
 });
 
 test('description search indexes text annotations and selects a live matching BPMN element', async () => {
@@ -128,16 +133,20 @@ test('explorer delegates Call Activity and collapsed SubProcess links to the tes
   assert.ok(navigation.includes("return expandedState === false || expandedState === 'false'"));
 });
 
-test('viewer mounts a single FolderTree explorer instead of the legacy ResourceExplorer', async () => {
+test('viewer uses the shared explorer panel instead of the legacy ResourceExplorer', async () => {
   const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const routes = await read('src/routes.tsx');
 
-  assert.ok(layout.includes("import { FolderTree } from '../../Components/BusinessComponents/FolderTree'"));
-  assert.ok(layout.includes('<FolderTree'));
+  assert.ok(layout.includes("import { ViewerExplorerPanel } from '../../Components/BusinessComponents/ViewerExplorerPanel/ViewerExplorerPanel'"));
+  assert.ok(layout.includes('<ViewerExplorerPanel'));
+  assert.ok(layout.includes('variant="process-details"'));
+  assert.ok(layout.includes('showHistory'));
+  assert.ok(layout.includes('folderExplorerCollapsed'));
+  assert.ok(!layout.includes('<FolderTree'));
   assert.ok(!layout.includes('ResourceExplorer'));
-  assert.ok(details.includes("import { FolderTree } from '../FolderTree'"));
-  assert.ok(details.includes('<FolderTree'));
+  assert.ok(details.includes("import { ViewerExplorerPanel } from '../ViewerExplorerPanel/ViewerExplorerPanel'"));
+  assert.ok(details.includes('<ViewerExplorerPanel'));
   assert.ok(!details.includes('ResourceExplorer'));
   assert.ok(routes.includes("lazy: () => import('./Containers/BpmnLayout')"));
 });
@@ -264,11 +273,23 @@ test('V3 viewer context menu exposes role-appropriate resource management action
   assert.ok(viewer.includes('Version de build'));
 });
 
-test('viewer gets a fresh BPMN instance when the selected process or published version changes', async () => {
+test('viewer gets a fresh BPMN instance for the selected published version', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
+  const routeState = await read('src/shared/hooks/useViewerRouteState.ts');
 
-  assert.ok(details.includes('key={`${resourceId}:${publishedContent.id}`}'));
-  assert.match(details, /key=\{\`\$\{resourceId\}:\$\{publishedContent\.id\}\`\}[\s\S]*?resourceId=\{resourceId\}[\s\S]*?contentId=\{publishedContent\.id\}/);
+  assert.ok(details.includes('key={`${resourceId}:${viewerContent.id}`}'));
+  assert.match(details, /key=\{\`\$\{resourceId\}:\$\{viewerContent\.id\}\`\}[\s\S]*?resourceId=\{resourceId\}[\s\S]*?contentId=\{viewerContent\.id\}/);
+  assert.ok(details.includes('selectedContentId?: string | null'));
+  assert.ok(details.includes('content.id === selectedContentId && content.status !== ContentStatusEnum.Draft'));
+  assert.ok(details.includes('const isHistoricalView = Boolean('));
+  assert.ok(details.includes('selectedContentId && (!viewerContent || viewerContent.id !== publishedContent?.id)'));
+  assert.ok(details.includes('!isHistoricalView && (sessionRole === \'admin\' || sessionRole === \'modeler\')'));
+  assert.ok(details.includes('Afficher cette version'));
+  assert.ok(details.includes('contentId=${encodeURIComponent(content.id)}') || details.includes('contentId=${encodeURIComponent(content.id)}'));
+  assert.ok(layout.includes('useViewerRouteState'));
+  assert.ok(routeState.includes("searchParams.get('contentId')"));
+  assert.ok(layout.includes('selectedContentId={requestedContentId}'));
 });
 
 test('viewer element details editing is permission-gated and saves title, description, RACI and URL', async () => {
@@ -289,7 +310,7 @@ test('viewer element details editing is permission-gated and saves title, descri
   assert.match(details, /attribute: 'informed'/);
   assert.match(details, /<Button[\s\S]*?onClick=\{cancelDescriptionEdit\}[\s\S]*?Annuler/);
   assert.match(details, /<Button[\s\S]*?onClick=\{saveDescriptionEdit\}[\s\S]*?Enregistrer/);
-  assert.match(details, /await saveContent\(resourceId, publishedContent\.id, \{ content: updatedXml \}\)/);
+  assert.match(details, /await saveContent\(resourceId, viewerContent\?\.id \?\? publishedContent\.id, \{ content: updatedXml \}\)/);
   assert.match(details, /new XMLSerializer\(\)\.serializeToString\(xmlDocument\)/);
   assert.match(details, /await queryClient\.invalidateQueries\(xmlContentQuery\.queryKey\)/);
   assert.match(details, /sx=\{\{ ml: 1, mt: 0\.25, flex: '0 0 auto' \}\}/);
@@ -337,22 +358,24 @@ test('selecting a folder renders its contents instead of an empty folder placeho
   assert.ok(processDetails.includes('useProcessDetails(resourceId'));
 });
 
-test('viewer keeps the explorer and task details in side panels while tabs live in the central panel', async () => {
+test('viewer keeps the explorer and task details in side panels while all central tabs stay grouped', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const layoutStart = details.indexOf('className="processViewerLayout processViewerWorkspace"');
-  const explorer = details.indexOf('className={`processExplorerPanel');
+  const explorer = details.indexOf('<ViewerExplorerPanel');
   const tabs = details.indexOf('className="processViewerTabs"');
   const processTab = details.indexOf('value={0} className="processViewerTabPanel processViewerProcessTab"');
-  const historyTab = details.indexOf('value={1} className="processViewerTabPanel"');
-  const raciTab = details.indexOf('value={2} className="processViewerTabPanel"');
-  const tabsClose = details.indexOf('</Tabs>', raciTab);
+  const descriptionTab = details.indexOf('value={1} className="processViewerTabPanel"');
+  const historyTab = details.indexOf('value={2} className="processViewerTabPanel"');
+  const raciTab = details.indexOf('value={3} className="processViewerTabPanel"');
+  const inventoryTab = details.indexOf('value={4} className="processViewerTabPanel"');
+  const tabsClose = details.indexOf('</Tabs>', inventoryTab);
   const taskPanel = details.indexOf('className={`processTaskPanel', tabsClose);
 
   assert.ok(layoutStart >= 0, 'viewer workspace should own the three-column layout');
   assert.ok(explorer > layoutStart && explorer < tabs, 'explorer must remain to the left of central tabs');
-  assert.ok(tabs < processTab && processTab < historyTab && historyTab < raciTab, 'all three tabs should be grouped in the central panel');
-  assert.ok(tabsClose > raciTab && taskPanel > tabsClose, 'task details must remain in the right-side panel outside the tabs');
-  assert.ok(details.slice(processTab, historyTab).includes('className="processViewerDiagram"'), 'process diagram belongs to the process tab');
+  assert.ok(tabs < processTab && processTab < descriptionTab && descriptionTab < historyTab && historyTab < raciTab && raciTab < inventoryTab, 'diagram, description, history, RACI and inventory must be ordered in the central panel');
+  assert.ok(tabsClose > inventoryTab && taskPanel > tabsClose, 'task details must remain in the right-side panel outside the tabs');
+  assert.ok(details.slice(processTab, descriptionTab).includes('className="processViewerDiagram"'), 'process diagram belongs to the process tab');
   const styles = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.scss');
   assert.match(styles, /\.processViewerTabs\s*\{[^}]*flex:\s*1 1 0;[^}]*width:\s*0;/s);
   assert.match(styles, /\.processViewerDiagram\s*\{[^}]*width:\s*100%;/s);
@@ -373,7 +396,7 @@ test('Viewer version status badges have distinct colors and version actions are 
   assert.match(list, /content\.status === ContentStatusEnum\.Draft[\s\S]*?label: 'Publish'[\s\S]*?label: 'Erase'/);
   assert.match(list, /content\.status === ContentStatusEnum\.Obsolete[\s\S]*?label: 'Erase'/);
   assert.match(tableHook, /let color: 'success' \| 'warning' \| 'neutral' = 'neutral'[\s\S]*?status === ContentStatusEnum\.Published[\s\S]*?color = 'success'[\s\S]*?status === ContentStatusEnum\.Draft[\s\S]*?color = 'warning'/);
-  assert.ok(details.includes("const canManageVersions = sessionRole === 'admin' || sessionRole === 'modeler'"));
+  assert.ok(details.includes("const canManageVersions = !isHistoricalView && (sessionRole === 'admin' || sessionRole === 'modeler')"));
   assert.ok(details.includes('readOnlyShell && !canManageVersions'));
 });
 
@@ -418,7 +441,7 @@ test('modeler action is an icon beside the process link and RACI icon stays inli
   const versionList = await read('src/Components/BusinessComponents/ProcessContentList/ProcessContentList.tsx');
   assert.ok(!details.includes('title="Ouvrir dans le modeleur"'));
   assert.ok(!details.includes('AccountTreeOutlined'));
-  assert.ok(details.includes('onContentViewerLinkCopy(publishedContent.id)'));
+  assert.ok(details.includes('onContentViewerLinkCopy(viewerContent.id)'));
   assert.ok(versionList.includes("label: 'Ouvrir dans le modeleur'"));
   assert.ok(versionList.includes('<AccountTreeOutlined fontSize="small" />'));
   assert.ok(versionList.includes('contentId=${encodeURIComponent(content.id)}'));
@@ -427,4 +450,100 @@ test('modeler action is an icon beside the process link and RACI icon stays inli
   assert.ok(viewer.includes('<GroupsOutlined fontSize="small" />'));
   assert.ok(hook.includes("searchParams.get('contentId')"));
   assert.ok(hook.includes('contents?.find(content => content.id === requestedContentId)'));
+});
+
+
+test('V3 process details exposes a central editable description tab only to authorized roles', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.match(details, /<Tab value=\{1\}>Description<\/Tab>/);
+  assert.match(details, /<TabPanel value=\{1\} className="processViewerTabPanel">[\s\S]*?Description du processus[\s\S]*?processDescriptionDraft/s);
+  assert.match(details, /const canEditDescription = !isHistoricalView && \(sessionRole === 'admin' \|\| sessionRole === 'modeler'\);/);
+  assert.match(details, /await updateResource\(resourceId,\s*\{[\s\S]*?description: processDescriptionDraft/s);
+  assert.match(details, /queryClient\.invalidateQueries\(getResourceQuery\(resourceId\)\.queryKey\)/);
+  assert.match(details, /<Tab value=\{2\}>Historique des versions<\/Tab>/);
+  assert.match(details, /<Tab value=\{3\}>RACI<\/Tab>/);
+});
+
+
+test('V3 central viewer exposes the data inventory and saves it through the existing BPMN content API', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
+
+  assert.match(details, /<Tab value=\{4\}>Inventaire des données<\/Tab>/);
+  assert.match(details, /<TabPanel value=\{4\} className="processViewerTabPanel">[\s\S]*?<DataInventory/s);
+  assert.match(details, /await saveContent\(resourceId, viewerContent\.id, \{ content: updatedXml \}\)/);
+  assert.match(details, /canEdit=\{canEditDescription\}/);
+  assert.match(inventory, /getElementsByTagNameNS\(NS, 'source'\)/);
+  assert.match(inventory, /getElementsByTagNameNS\(NS, 'manifest'\)/);
+  assert.match(inventory, /hasInventoryManifest \|\| saved\.length/);
+  assert.match(inventory, /inventory:manifest/);
+  assert.match(inventory, /dataObjectReference.*dataStoreReference/s);
+  assert.match(inventory, /Gestion des accès/);
+  assert.match(inventory, /Personnes autorisées/);
+  assert.match(inventory, /Modalités de restriction/);
+});
+
+test('ContentViewer restores element selection and RACI panel from route query parameters', async () => {
+  const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+  const routeState = await read('src/shared/hooks/useViewerRouteState.ts');
+  const selectionState = await read('src/shared/hooks/useViewerSelectionState.ts');
+
+  assert.ok(viewer.includes('useViewerRouteState'));
+  assert.ok(routeState.includes("searchParams.get('elementId')"));
+  assert.ok(routeState.includes("searchParams.get('raci') === '1'"));
+  assert.ok(viewer.includes('useViewerSelectionState(resourceId, contentId, requestedElementId)'));
+  assert.ok(selectionState.includes('setSelectedElementId(requestedElementId)'));
+  assert.ok(viewer.includes('setInfoTab(raciRequested ? 1 : 0)'));
+  assert.ok(viewer.includes('setInfoPanelOpen(raciRequested)'));
+  assert.match(viewer, /\[resourceId, contentId, raciRequested\]/);
+});
+
+
+test('ContentViewer renders the URL-selected version rather than silently switching to latest published', async () => {
+  const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+  const routes = await read('src/routes.tsx');
+  const contentHook = await read('src/Containers/ContentViewer/hooks/useContentViewer.ts');
+
+  assert.ok(viewer.includes('const { resourceId, contentId } = useContentViewer()'));
+  assert.ok(viewer.includes('getXmlContentQuery(resourceId, contentId)'));
+  assert.ok(viewer.includes('contentsQuery(resourceId)'));
+  assert.ok(viewer.includes('const lastPublishedContent = useMemo'));
+  assert.ok(routes.includes('/:resourceId/viewer/:contentId'));
+  assert.ok(contentHook.includes("const { resourceId, contentId } = useParams"));
+  assert.ok(!viewer.includes('getXmlContentQuery(resourceId, lastPublishedContent.id)'));
+});
+
+
+test('ProcessDetails distinguishes an unavailable requested version from a process without published versions', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.ok(details.includes('La version demandée est indisponible ou ne peut pas être consultée.'));
+  assert.ok(details.includes("'No published version'"));
+  assert.match(details, /selectedContentId\s*\?\s*'La version demandée est indisponible ou ne peut pas être consultée\.'\s*:\s*'No published version'/);
+});
+
+test('ProcessDetails never falls back to latest published content for an explicit missing or historical contentId', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.match(details, /const viewerContent = selectedContentId\s*\?\s*contents\.find\(/);
+  assert.match(details, /:\s*publishedContent;/);
+  assert.match(details, /selectedContentId && \(!viewerContent \|\| viewerContent\.id !== publishedContent\?\.id\)/);
+  assert.ok(!details.includes(') ?? publishedContent;'));
+});
+
+test('V3 process and content viewers share the same explorer panel without losing route-specific state', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+  const shared = await read('src/Components/BusinessComponents/ViewerExplorerPanel/ViewerExplorerPanel.tsx');
+
+  assert.ok(details.includes("import { ViewerExplorerPanel } from '../ViewerExplorerPanel/ViewerExplorerPanel'"));
+  assert.ok(viewer.includes("import { ViewerExplorerPanel } from '../../Components/BusinessComponents/ViewerExplorerPanel/ViewerExplorerPanel'"));
+  assert.ok(details.includes('variant="process-details"'));
+  assert.ok(details.includes('showHistory'));
+  assert.ok(viewer.includes('variant="content-viewer"'));
+  assert.ok(viewer.includes('collapsed={!folderOpen}'));
+  assert.ok(shared.includes('<FolderTree selectedId={selectedId} onNodeClick={onNodeClick} />'));
+  assert.ok(shared.includes('onBack'));
+  assert.ok(shared.includes('onForward'));
 });

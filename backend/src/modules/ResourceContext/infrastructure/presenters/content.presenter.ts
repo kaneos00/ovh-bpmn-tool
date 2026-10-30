@@ -5,6 +5,7 @@ export class ContentPresenter {
   id: string;
   resourceId: string;
   content: string;
+  changeComment: Nullable<string>;
   status: ContentStatusEnum;
   version: Nullable<number>;
   createdBy: string;

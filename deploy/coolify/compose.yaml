@@ -27,7 +27,7 @@ services:
       database:
         condition: service_healthy
     command: >-
-      sh -ec 'until pg_isready -h database -p 5432 -U "${DATABASE_USER:?Set DATABASE_USER in Coolify}" -d "${DATABASE_NAME:?Set DATABASE_NAME in Coolify}"; do sleep 2; done; psql -v ON_ERROR_STOP=1 -h database -p 5432 -U "${DATABASE_USER:?Set DATABASE_USER in Coolify}" -d "${DATABASE_NAME:?Set DATABASE_NAME in Coolify}" -f /opt/migrations/20261014_v2_1_process_provenance.sql'
+      sh -ec 'until pg_isready -h database -p 5432 -U "${DATABASE_USER:?Set DATABASE_USER in Coolify}" -d "${DATABASE_NAME:?Set DATABASE_NAME in Coolify}"; do sleep 2; done; psql -v ON_ERROR_STOP=1 -h database -p 5432 -U "${DATABASE_USER:?Set DATABASE_USER in Coolify}" -d "${DATABASE_NAME:?Set DATABASE_NAME in Coolify}" -f /opt/migrations/20261014_v2_1_process_provenance.sql; psql -v ON_ERROR_STOP=1 -h database -p 5432 -U "${DATABASE_USER:?Set DATABASE_USER in Coolify}" -d "${DATABASE_NAME:?Set DATABASE_NAME in Coolify}" -f /opt/migrations/20261029_v3_user_theme_preference.sql'
     restart: "no"
 
   backend:

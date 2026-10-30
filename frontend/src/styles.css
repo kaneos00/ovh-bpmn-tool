@@ -108,7 +108,6 @@ body {
   }
 }
 
-
 /* Design tokens from maquette_bpmn_tool_navigation.html, shared by every route. */
 #root {
   color: var(--bpmn-ink);
@@ -167,4 +166,279 @@ body {
   .workspace-navigation {
     border-radius: 8px;
   }
+
+}
+
+/* Dark mode tokens for the shared application shell and common MUI surfaces. */
+[data-joy-color-scheme='dark'] {
+  color-scheme: dark;
+  --bpmn-navy: #dce8f8;
+  --bpmn-blue: #7da8ff;
+  --bpmn-blue-pale: #1d2c45;
+  --bpmn-ink: #e6edf7;
+  --bpmn-muted: #a4b2c5;
+  --bpmn-line: #34445a;
+  --bpmn-soft: #202c3c;
+  --bpmn-page: #202b3a;
+  --bpmn-green: #69d4a6;
+}
+
+[data-joy-color-scheme='dark'] body {
+  color: var(--bpmn-ink);
+  background: var(--bpmn-page);
+}
+
+[data-joy-color-scheme='dark'] #root {
+  color: var(--bpmn-ink);
+}
+
+[data-joy-color-scheme='dark'] .MuiCard-root,
+[data-joy-color-scheme='dark'] .MuiPaper-root,
+[data-joy-color-scheme='dark'] .MuiSheet-root,
+[data-joy-color-scheme='dark'] .MuiPopover-paper,
+[data-joy-color-scheme='dark'] .MuiMenu-paper {
+  color: var(--bpmn-ink);
+  background-color: #1b2635;
+  border-color: var(--bpmn-line);
+}
+
+[data-joy-color-scheme='dark'] .MuiTable-root thead th {
+  color: var(--bpmn-muted);
+  background: #202c3c;
+}
+
+[data-joy-color-scheme='dark'] .MuiTable-root tbody tr:hover {
+  background: #263448;
+}
+
+[data-joy-color-scheme='dark'] .MuiInput-root,
+[data-joy-color-scheme='dark'] .MuiSelect-root,
+[data-joy-color-scheme='dark'] .MuiTextarea-root {
+  color: var(--bpmn-ink);
+  background-color: #172231;
+  border-color: var(--bpmn-line);
+}
+
+[data-joy-color-scheme='dark'] input,
+[data-joy-color-scheme='dark'] textarea,
+[data-joy-color-scheme='dark'] select {
+  color: var(--bpmn-ink);
+}
+
+[data-joy-color-scheme='dark'] .MuiTabList-root {
+  background: #202c3c;
+}
+
+[data-joy-color-scheme='dark'] .MuiTab-root {
+  color: var(--bpmn-muted);
+}
+
+[data-joy-color-scheme='dark'] .MuiTab-root[aria-selected='true'] {
+  color: #dce8ff;
+  background: #2a3a50;
+}
+
+[data-joy-color-scheme='dark'] .MuiDivider-root {
+  border-color: var(--bpmn-line);
+}
+
+[data-joy-color-scheme='dark'] .MuiAlert-root {
+  color: var(--bpmn-ink);
+}
+
+
+/* Refined dark palette: lighter surfaces and clearer separation between regions. */
+[data-joy-color-scheme='dark'] {
+  --bpmn-page: #202b3a;
+  --bpmn-soft: #2b394b;
+  --bpmn-line: #71839a;
+  --bpmn-muted: #c0ccda;
+}
+[data-joy-color-scheme='dark'] body {
+  background: #202b3a;
+}
+[data-joy-color-scheme='dark'] .MuiCard-root,
+[data-joy-color-scheme='dark'] .MuiPaper-root,
+[data-joy-color-scheme='dark'] .MuiSheet-root,
+[data-joy-color-scheme='dark'] .MuiPopover-paper,
+[data-joy-color-scheme='dark'] .MuiMenu-paper {
+  background-color: #2b394b;
+  border-color: #71839a;
+  box-shadow: 0 3px 12px rgb(0 0 0 / 22%);
+}
+/* The application banner/header must read as a separate, lighter dark surface. */
+[data-joy-color-scheme='dark'] .workspace-navigation,
+[data-joy-color-scheme='dark'] .viewerBreadcrumb,
+[data-joy-color-scheme='dark'] .viewerFolderHeader,
+[data-joy-color-scheme='dark'] .processExplorerPanelHeader {
+  background: #3a4b61 !important;
+  color: #f5f8fc;
+  border-color: #8293a8 !important;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 24%);
+}
+[data-joy-color-scheme='dark'] .MuiButton-root.MuiButton-variant-outlined,
+[data-joy-color-scheme='dark'] .MuiButton-root.MuiButton-variant-soft,
+[data-joy-color-scheme='dark'] .MuiIconButton-root {
+  color: #f2f6fc;
+  background-color: #263548;
+  border: 1px solid #d5deea;
+}
+[data-joy-color-scheme='dark'] .MuiButton-root.MuiButton-variant-outlined:hover,
+[data-joy-color-scheme='dark'] .MuiButton-root.MuiButton-variant-soft:hover,
+[data-joy-color-scheme='dark'] .MuiIconButton-root:hover {
+  background-color: #3b4e65;
+  border-color: #ffffff;
+}
+[data-joy-color-scheme='dark'] .MuiButton-root.MuiButton-variant-solid.MuiButton-color-primary {
+  color: #ffffff;
+  background: #356fc5;
+  border: 1px solid #b9d2f4;
+}
+[data-joy-color-scheme='dark'] .MuiTable-root tbody td,
+[data-joy-color-scheme='dark'] .MuiTable-root tbody th {
+  color: #eaf0f8;
+  border-color: #53657b;
+}
+
+/* In dark mode the explorer follows the application palette; only the active row is light. */
+[data-joy-color-scheme='dark'] .viewerFolderPanel,
+[data-joy-color-scheme='dark'] .processExplorerPanel,
+[data-joy-color-scheme='dark'] .viewerFolderTree,
+[data-joy-color-scheme='dark'] .processExplorerPanelContent {
+  color: #e6edf7;
+  background: #2b394b;
+}
+[data-joy-color-scheme='dark'] .viewerFolderPanel .MuiList-root,
+[data-joy-color-scheme='dark'] .processExplorerPanel .MuiList-root {
+  color: #e6edf7;
+  background: transparent;
+}
+[data-joy-color-scheme='dark'] .viewerFolderPanel .MuiInput-root,
+[data-joy-color-scheme='dark'] .processExplorerPanel .MuiInput-root {
+  color: #f2f6fc;
+  background: #202d3e;
+  border-color: #71839a;
+}
+[data-joy-color-scheme='dark'] .viewerFolderPanel .MuiInput-root input,
+[data-joy-color-scheme='dark'] .processExplorerPanel .MuiInput-root input {
+  color: #f2f6fc;
+}
+[data-joy-color-scheme='dark'] .viewerFolderPanel .MuiButton-root,
+[data-joy-color-scheme='dark'] .processExplorerPanel .MuiButton-root,
+[data-joy-color-scheme='dark'] .viewerFolderPanel .MuiIconButton-root,
+[data-joy-color-scheme='dark'] .processExplorerPanel .MuiIconButton-root {
+  color: #e6edf7;
+}
+[data-joy-color-scheme='dark'] .viewerFolderPanel .MuiButton-root.MuiButton-variant-solid,
+[data-joy-color-scheme='dark'] .processExplorerPanel .MuiButton-root.MuiButton-variant-solid {
+  color: #ffffff;
+  background: #356fc5;
+}
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button,
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-title,
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button,
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-title {
+  color: #e6edf7;
+}
+/* Selected folder/process rows use a saturated blue that stays distinct
+   from the slate explorer surface without the glaring light-mode highlight. */
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button[aria-selected='true'],
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-title[aria-selected='true'],
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button[aria-selected='true'],
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-title[aria-selected='true'] {
+  color: #ffffff !important;
+  background: #285b96 !important;
+  border-radius: 6px;
+  box-shadow: inset 3px 0 0 #8fc2ff;
+}
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button:hover,
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-title:hover,
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button:hover,
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-title:hover {
+  color: #ffffff;
+  background: #3b5069;
+}
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button:focus-visible,
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button:focus-visible {
+  outline: 2px solid #8fc2ff;
+  outline-offset: 1px;
+}
+/* The sign-in page is intentionally light even when the user's app preference is dark. */
+[data-joy-color-scheme='dark'] .login-page {
+  color-scheme: light;
+  color: #203047;
+  background: radial-gradient(circle at 15% 15%, rgba(40, 100, 215, 0.12), transparent 32%), linear-gradient(135deg, #f5f7fa 0%, #eef2f6 100%) !important;
+  --joy-palette-text-primary: #203047;
+  --joy-palette-text-secondary: #596574;
+  --joy-palette-background-surface: #ffffff;
+  --joy-palette-background-body: #eef2f6;
+  --joy-palette-background-level1: #f5f7fa;
+  --joy-palette-divider: #dce3ec;
+}
+[data-joy-color-scheme='dark'] .login-page .MuiCard-root {
+  color: #203047;
+  background: #ffffff;
+  border-color: rgba(21, 43, 69, 0.12);
+}
+[data-joy-color-scheme='dark'] .login-page .MuiInput-root {
+  color: #203047;
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+[data-joy-color-scheme='dark'] .login-page .MuiFormLabel-root,
+[data-joy-color-scheme='dark'] .login-page .MuiTypography-root {
+  color: #203047;
+}
+
+/* react-complex-tree may expose selected state on the item button, title,
+   list item, or data marker depending on its rendered structure. */
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button[aria-selected='true'],
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-title[aria-selected='true'],
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-li[aria-selected='true'],
+[data-joy-color-scheme='dark'] .viewerFolderPanel [data-rct-selected='true'],
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button[aria-selected='true'],
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-title[aria-selected='true'],
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-li[aria-selected='true'],
+[data-joy-color-scheme='dark'] .processExplorerPanel [data-rct-selected='true'] {
+  color: #ffffff !important;
+  background-color: #285b96 !important;
+  border-radius: 6px !important;
+  box-shadow: inset 3px 0 0 #8fc2ff !important;
+}
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button[aria-selected='true'] *,
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-title[aria-selected='true'] *,
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button[aria-selected='true'] *,
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-title[aria-selected='true'] * {
+  color: #ffffff !important;
+}
+
+
+/* react-complex-tree marks the active row with aria-pressed (not aria-selected).
+   Style the actual tree button and its descendants to avoid the default pale row. */
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button,
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button {
+  color: #e6edf7 !important;
+  background: transparent !important;
+}
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button[aria-pressed='true'],
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button[aria-current='true'],
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button[data-rct-selected='true'],
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button[aria-pressed='true'],
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button[aria-current='true'],
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button[data-rct-selected='true'] {
+  color: #ffffff !important;
+  background: #285b96 !important;
+  border-radius: 6px !important;
+  box-shadow: inset 3px 0 0 #8fc2ff !important;
+}
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button[aria-pressed='true'] *,
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button[aria-current='true'] *,
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button[aria-pressed='true'] *,
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button[aria-current='true'] * {
+  color: #ffffff !important;
+}
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button:hover,
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button:hover {
+  color: #ffffff !important;
+  background: #3b5069 !important;
 }

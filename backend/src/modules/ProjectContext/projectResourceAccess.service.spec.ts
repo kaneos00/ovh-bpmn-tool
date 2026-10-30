@@ -5,7 +5,9 @@ import { ProjectResourceAccessService } from './projectResourceAccess.service';
 
 describe('ProjectResourceAccessService', () => {
   const configService = {
-    getOrThrow: jest.fn().mockReturnValue('x-user'),
+    getOrThrow: jest.fn((key: string) =>
+      key === 'userGroupsHeader' ? 'x-user-groups' : 'x-user',
+    ),
   };
   const projectProcesses = {
     find: jest.fn(),
@@ -101,6 +103,48 @@ describe('ProjectResourceAccessService', () => {
 
     await expect(
       service.assertCanEditResource('resource-1', headers),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('allows an organization admin to edit a common process only when explicitly enabled', async () => {
+    projectProcesses.find.mockResolvedValue([
+      {
+        projectId: 'project-1',
+        resourceId: 'resource-1',
+        usage: ProjectProcessUsage.Common,
+      },
+    ]);
+
+    await expect(
+      service.assertCanEditResource(
+        'resource-1',
+        {
+          ...headers,
+          'x-user-groups': 'bpmn-tool-admin-global',
+        },
+        { allowCommonForOrganizationAdmin: true },
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  it('does not allow a modeler group to bypass the common-process guard', async () => {
+    projectProcesses.find.mockResolvedValue([
+      {
+        projectId: 'project-1',
+        resourceId: 'resource-1',
+        usage: ProjectProcessUsage.Common,
+      },
+    ]);
+
+    await expect(
+      service.assertCanEditResource(
+        'resource-1',
+        {
+          ...headers,
+          'x-user-groups': 'bpmn-tool-readwrite-global',
+        },
+        { allowCommonForOrganizationAdmin: true },
+      ),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 

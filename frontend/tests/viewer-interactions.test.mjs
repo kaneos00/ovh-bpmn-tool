@@ -68,10 +68,12 @@ test('detail panel starts collapsed and opens when an element is selected', asyn
   assert.match(details, /externalUrl:\s*Array\.from\(element\.attributes\)[\s\S]*?attribute\.localName === 'link'/);
 });
 
-test('explorer node selection navigates to the selected resource', async () => {
+test('shared explorer delegates node selection to the selected-resource navigation callback', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const shared = await read('src/Components/BusinessComponents/ViewerExplorerPanel/ViewerExplorerPanel.tsx');
 
-  assert.match(details, /<FolderTree[\s\S]*?selectedId=\{resourceId\}[\s\S]*?onNodeClick=\{id => navigate\(\`\/\$\{id\}\`\)\}/);
+  assert.ok(details.includes('onNodeClick={id => navigate(`/${id}`)}'));
+  assert.ok(shared.includes('<FolderTree selectedId={selectedId} onNodeClick={onNodeClick} />'));
 });
 
 test('linked Call Activity opens its target only on double-click and handles missing targets', async () => {
@@ -232,7 +234,7 @@ test('global annotation search labels text annotations as Description and carrie
 
 test('authorized roles can edit the central element sheet in the Viewer shell', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
-  assert.ok(details.includes("const canEditDescription = sessionRole === 'admin' || sessionRole === 'modeler';"));
+  assert.ok(details.includes("const canEditDescription = !isHistoricalView && (sessionRole === 'admin' || sessionRole === 'modeler')"));
   assert.ok(details.includes('canEditDescription && !isEditingDescription'));
 });
 
@@ -252,4 +254,30 @@ test('administrator explorer context menu restores folder and resource actions',
   assert.ok(tree.includes('type=process'));
   assert.ok(tree.includes('Partager'));
   assert.ok(tree.includes('Supprimer'));
+});
+
+
+test('Viewer entry points share URL state for BPMN selection, content versions and RACI deep links', async () => {
+  const routeState = await read('src/shared/hooks/useViewerRouteState.ts');
+  const selectionState = await read('src/shared/hooks/useViewerSelectionState.ts');
+  const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
+  const legacyViewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.ok(routeState.includes("searchParams.get('elementId')"));
+  assert.ok(routeState.includes("searchParams.get('contentId')"));
+  assert.ok(routeState.includes("searchParams.get('raci') === '1'"));
+  assert.ok(selectionState.includes('useEffect(() =>'));
+  assert.ok(selectionState.includes('setSelectedElementId(requestedElementId)'));
+  assert.ok(selectionState.includes('[resourceId, contentId, requestedElementId]'));
+  assert.ok(layout.includes('useViewerRouteState()'));
+  assert.ok(layout.includes('useViewerSelectionState('));
+  assert.ok(layout.includes('requestedRaciView={requestedRaciView}'));
+  assert.ok(legacyViewer.includes('useViewerRouteState()'));
+  assert.ok(legacyViewer.includes('useViewerSelectionState('));
+  assert.doesNotMatch(layout, /useSearchParams|searchParams\.get\(/);
+  assert.doesNotMatch(legacyViewer, /useSearchParams|searchParams\.get\(/);
+  assert.match(details, /requestedRaciView\?: boolean/);
+  assert.match(details, /setActiveViewerTab\(requestedRaciView \? 3 : 0\);[\s\S]*?\[resourceId, selectedContentId, requestedRaciView\]/);
+  assert.ok(details.includes('<Tab value={3}>RACI</Tab>'));
 });

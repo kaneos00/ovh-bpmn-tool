@@ -2,3 +2,69 @@
 .raci-actors{padding:14px 20px;border-bottom:1px solid #e1e5e9;background:#fafbfc}.raci-actors-header h3{margin:0 0 4px;font-size:15px}.raci-actors-header p{margin:0;color:#666;font-size:12px}.raci-actors-add{display:flex;gap:8px;margin-top:10px}.raci-actors-add input,.raci-actor input{border:1px solid #cfd5dc;border-radius:4px;padding:7px 9px;font:inherit}.raci-actors-add input{min-width:260px}.raci-actors button{border:1px solid #cfd5dc;border-radius:4px;background:white;padding:6px 10px;cursor:pointer}.raci-actors button:hover{background:#f0f2f5}.raci-actors-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.raci-actor{display:flex;align-items:center;gap:6px;border:1px solid #dfe3e8;border-radius:5px;background:white;padding:5px 7px}.raci-actor span{font-size:13px;font-weight:500}.raci-actor input{width:150px}.raci-actor button{font-size:11px;padding:4px 7px}
 /* Pastel RACI badges: distinct roles without heavy colored pills. */
 .raci-code-badge{display:inline-flex!important;align-items:center;justify-content:center;flex:0 0 22px;min-width:22px;height:22px;padding:0 6px;box-sizing:border-box;border:1px solid transparent;border-radius:5px;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:12px;font-weight:800;line-height:1;vertical-align:middle;margin:0 2px;opacity:1!important;visibility:visible!important}.raci-code-R{background:#e4efff;border-color:#bfd4f7;color:#28569a}.raci-code-A{background:#e2f4e8;border-color:#bde2c8;color:#276b43}.raci-code-C{background:#fff0d9;border-color:#f0d5a6;color:#895d1e}.raci-code-I{background:#eee8fb!important;border-color:#d5c8f0!important;color:#654c98!important}.raci-legend .raci-code-badge{margin-right:5px}.raci-cell-code{display:flex;align-items:center;justify-content:center;gap:3px;min-height:24px}
+
+
+/* Dark-mode RACI matrix: dark slate surface, crisp white borders and readable text. */
+[data-joy-color-scheme='dark'] .raci-overlay {
+  background: rgba(8, 14, 23, 0.72);
+  color: #edf3fb;
+}
+[data-joy-color-scheme='dark'] .raci-panel,
+[data-joy-color-scheme='dark'] .raci-editor {
+  color: #edf3fb;
+  background: #2b394b;
+  border: 1px solid #e0e7f0;
+}
+[data-joy-color-scheme='dark'] .raci-header,
+[data-joy-color-scheme='dark'] .raci-footer,
+[data-joy-color-scheme='dark'] .raci-actors {
+  color: #edf3fb;
+  background: #35475d;
+  border-color: #91a1b5;
+}
+[data-joy-color-scheme='dark'] .raci-table th,
+[data-joy-color-scheme='dark'] .raci-table td {
+  color: #edf3fb;
+  background: #29394d;
+  border: 1px solid #aab8c9;
+}
+[data-joy-color-scheme='dark'] .raci-table thead th {
+  background: #40546d;
+  color: #ffffff;
+}
+[data-joy-color-scheme='dark'] .raci-table .raci-activity {
+  background: #35475d;
+  color: #ffffff;
+}
+[data-joy-color-scheme='dark'] .raci-status-explicit { background: #244b43; }
+[data-joy-color-scheme='dark'] .raci-status-inferred { background: #59472d; }
+[data-joy-color-scheme='dark'] .raci-status-missing { background: #3b4655; color: #d0d9e5; }
+[data-joy-color-scheme='dark'] .raci-editor-context {
+  color: #edf3fb;
+  background: #40546d;
+}
+[data-joy-color-scheme='dark'] .raci-editor-help,
+[data-joy-color-scheme='dark'] .raci-actors-header p {
+  color: #d0d9e5;
+}
+[data-joy-color-scheme='dark'] .raci-actors-add input,
+[data-joy-color-scheme='dark'] .raci-actor input,
+[data-joy-color-scheme='dark'] .raci-editor input {
+  color: #f4f7fb;
+  background: #202d3e;
+  border: 1px solid #e0e7f0;
+}
+[data-joy-color-scheme='dark'] .raci-panel button,
+[data-joy-color-scheme='dark'] .raci-editor button,
+[data-joy-color-scheme='dark'] .raci-actors button {
+  color: #ffffff;
+  background: #202d3e;
+  border: 1px solid #ffffff;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+[data-joy-color-scheme='dark'] .raci-panel button:hover,
+[data-joy-color-scheme='dark'] .raci-editor button:hover,
+[data-joy-color-scheme='dark'] .raci-actors button:hover {
+  background: #40546d;
+}

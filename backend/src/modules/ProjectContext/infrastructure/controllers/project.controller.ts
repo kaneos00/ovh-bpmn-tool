@@ -125,6 +125,63 @@ export class ProjectController {
     };
   }
 
+  /**
+   * Sharing metadata for the process description page.
+   * The shared flag is available to every reader; project names are limited to
+   * read-write/admin profiles, and navigation is authorized per project.
+   */
+  @Get('processes/:resourceId/shares')
+  @UseAcl()
+  async getProcessShares(
+    @Param('resourceId') resourceId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    await this.projectResourceAccess.assertCanReadResource(resourceId, headers);
+    const links = await this.projectProcesses.find({
+      where: { resourceId },
+      order: { createdAt: 'ASC' },
+    });
+    const projectIds = [...new Set(links.map((link) => link.projectId))];
+    if (!projectIds.length) return { shared: false, projects: [] };
+
+    const userId = this.getUserId(headers);
+    const groupsHeader =
+      this.configService.getOrThrow<string>('userGroupsHeader');
+    const groups =
+      headers[groupsHeader] ?? headers[groupsHeader.toLowerCase()] ?? '';
+    const isOrganizationAdmin = groups
+      .split(',')
+      .some((group) => group.trim().startsWith('bpmn-tool-admin-'));
+    const canSeeProjectNames =
+      isOrganizationAdmin ||
+      groups
+        .split(',')
+        .some((group) => group.trim().startsWith('bpmn-tool-readwrite-'));
+    const memberships = await this.projectMembers.find({
+      where: projectIds.map((projectId) => ({ projectId, userId })),
+    });
+    const roleByProject = new Map(
+      memberships.map((membership) => [membership.projectId, membership.role]),
+    );
+    const projects = canSeeProjectNames
+      ? await this.projects.find({
+          where: { id: In(projectIds) },
+          order: { name: 'ASC' },
+        })
+      : [];
+
+    return {
+      shared: projectIds.length > 1,
+      projects: projects.map((project) => ({
+        id: project.id,
+        name: project.name,
+        canNavigate:
+          isOrganizationAdmin ||
+          roleByProject.get(project.id) === ProjectMemberRole.Admin,
+      })),
+    };
+  }
+
   @Post()
   @UseAcl([UserGroup.RW, UserGroup.Admin])
   async createProject(
@@ -341,7 +398,7 @@ export class ProjectController {
     @Param('projectId') projectId: string,
     @Headers() headers: RequestHeaders,
   ) {
-    await this.assertProjectRole(projectId, headers, ProjectMemberRole.Viewer);
+    await this.assertProjectReadRole(projectId, headers);
     return this.assertProjectExists(projectId);
   }
 
@@ -404,7 +461,7 @@ export class ProjectController {
     @Param('projectId') projectId: string,
     @Headers() headers: RequestHeaders,
   ) {
-    await this.assertProjectRole(projectId, headers, ProjectMemberRole.Viewer);
+    await this.assertProjectReadRole(projectId, headers);
     const links = await this.projectProcesses.find({
       where: { projectId },
       order: { createdAt: 'ASC' },
@@ -789,6 +846,24 @@ export class ProjectController {
       throw new ForbiddenException('Authenticated user identity is missing');
     }
     return userId.trim();
+  }
+
+  private async assertProjectReadRole(
+    projectId: string,
+    headers: RequestHeaders,
+  ) {
+    const groupsHeader =
+      this.configService.getOrThrow<string>('userGroupsHeader');
+    const groups =
+      headers[groupsHeader] ?? headers[groupsHeader.toLowerCase()] ?? '';
+    const isOrganizationAdmin = groups
+      .split(',')
+      .some((group) => group.trim().startsWith('bpmn-tool-admin-'));
+    if (isOrganizationAdmin) {
+      await this.assertProjectExists(projectId);
+      return;
+    }
+    await this.assertProjectRole(projectId, headers, ProjectMemberRole.Viewer);
   }
 
   private async assertProjectRole(

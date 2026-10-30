@@ -18,7 +18,7 @@ import { contentsQuery } from '../../../api/contents/contents.queries';
 
 import type { BpmnLayoutLoaderData, BpmnLayoutRouteParams } from '..';
 import type { ActionResponse } from '../../../shared/types/ActionResponse';
-import { ContentStatusEnum, type Content, type Resource } from '../../../Types';
+import { ContentStatusEnum, type Resource } from '../../../Types';
 import { useModelerInstance } from '../../../shared/hooks/useModelerInstance';
 
 export const useBpmnLayout = () => {
@@ -63,9 +63,9 @@ export const useBpmnLayout = () => {
    * Manage click on modeler button
    */
   const onModelerBtnClick = useCallback(async () => {
-    const lastVersionContent = (contents || []).find(
-      ({ version }: Content) => version === contents?.length,
-    );
+    const lastVersionContent = [...(contents ?? [])].sort(
+      (left, right) => (right.version ?? 0) - (left.version ?? 0),
+    )[0];
     let actionPayload: {
       action: string;
       contentId?: string;
