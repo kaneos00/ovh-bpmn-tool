@@ -86,6 +86,8 @@ export const Component = () => {
 
   return (
     <Sheet
+      className="login-page"
+      data-joy-color-scheme="light"
       sx={{
         minHeight: '100dvh',
         display: 'grid',
