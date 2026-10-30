@@ -16,6 +16,8 @@ export const useViewerRaciFilters = (
   raciMatrix: RaciMatrix,
   filters: ViewerRaciFilters,
 ) => {
+  const { actorFilter, codeFilter, issuesOnly } = filters;
+
   const raciAnalysis = useMemo(
     () => analyzeRaciMatrix(raciMatrix),
     [raciMatrix],
@@ -31,29 +33,29 @@ export const useViewerRaciFilters = (
       raciMatrix.activities.filter(activity => {
         const issue = issueByActivity.get(activity.elementId);
 
-        if (filters.issuesOnly && !issue) return false;
+        if (issuesOnly && !issue) return false;
 
-        if (filters.actorFilter) {
+        if (actorFilter) {
           const actorCell = activity.cells.find(
-            cell => cell.role === filters.actorFilter,
+            cell => cell.role === actorFilter,
           );
           if (!actorCell?.codes.length) return false;
           if (
-            filters.codeFilter &&
-            !actorCell.codes.includes(filters.codeFilter)
+            codeFilter &&
+            !actorCell.codes.includes(codeFilter)
           ) {
             return false;
           }
         } else if (
-          filters.codeFilter &&
-          !activity.cells.some(cell => cell.codes.includes(filters.codeFilter))
+          codeFilter &&
+          !activity.cells.some(cell => cell.codes.includes(codeFilter))
         ) {
           return false;
         }
 
         return true;
       }),
-    [raciMatrix.activities, issueByActivity, filters],
+    [raciMatrix.activities, issueByActivity, actorFilter, codeFilter, issuesOnly],
   );
 
   return { raciAnalysis, issueByActivity, filteredActivities };
