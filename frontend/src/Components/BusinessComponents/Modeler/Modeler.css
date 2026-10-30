@@ -348,3 +348,47 @@
   fill: none !important;
   stroke: #c0ccda !important;
 }
+
+
+/* Dark mode: bpmn-js renders several shapes with inline SVG styles. Cover
+   attribute and inline-style variants in both the editor and viewer canvases. */
+[data-joy-color-scheme='dark'] .modelerContainer .djs-shape .djs-visual > [fill="white"],
+[data-joy-color-scheme='dark'] .modelerContainer .djs-shape .djs-visual > [fill="#fff"],
+[data-joy-color-scheme='dark'] .modelerContainer .djs-shape .djs-visual > [fill="#ffffff"],
+[data-joy-color-scheme='dark'] .modelerContainer .djs-shape .djs-visual > [fill="rgb(255, 255, 255)"],
+[data-joy-color-scheme='dark'] .modelerContainer .djs-shape .djs-visual > [style*="fill: white"],
+[data-joy-color-scheme='dark'] .modelerContainer .djs-shape .djs-visual > [style*="fill: #fff"],
+[data-joy-color-scheme='dark'] .modelerContainer .djs-shape .djs-visual > [style*="fill: rgb(255, 255, 255)"],
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape .djs-visual > [fill="white"],
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape .djs-visual > [fill="#fff"],
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape .djs-visual > [fill="#ffffff"],
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape .djs-visual > [fill="rgb(255, 255, 255)"],
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape .djs-visual > [style*="fill: white"],
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape .djs-visual > [style*="fill: #fff"],
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape .djs-visual > [style*="fill: rgb(255, 255, 255)"] {
+  fill: #35465b !important;
+}
+
+/* The modeler also needs the same light outlines as the viewer. */
+[data-joy-color-scheme='dark'] .modelerContainer .djs-shape .djs-visual > [stroke="black"],
+[data-joy-color-scheme='dark'] .modelerContainer .djs-shape .djs-visual > [stroke="#000"],
+[data-joy-color-scheme='dark'] .modelerContainer .djs-shape .djs-visual > [stroke="#000000"],
+[data-joy-color-scheme='dark'] .modelerContainer .djs-shape .djs-visual > [stroke="rgb(0, 0, 0)"],
+[data-joy-color-scheme='dark'] .modelerContainer .djs-shape .djs-visual > [style*="stroke: black"],
+[data-joy-color-scheme='dark'] .modelerContainer .djs-shape .djs-visual > [style*="stroke: #000"],
+[data-joy-color-scheme='dark'] .modelerContainer .djs-shape .djs-visual > [style*="stroke: rgb(0, 0, 0)"],
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape .djs-visual > [stroke="black"],
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape .djs-visual > [stroke="#000"],
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape .djs-visual > [stroke="#000000"],
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape .djs-visual > [stroke="rgb(0, 0, 0)"],
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape .djs-visual > [style*="stroke: black"],
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape .djs-visual > [style*="stroke: #000"],
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape .djs-visual > [style*="stroke: rgb(0, 0, 0)"] {
+  stroke: #f1f5fb !important;
+}
+
+/* Keep semantic gateway/data/start/end colors above the generic outline rule. */
+[data-joy-color-scheme='dark'] .modelerContainer .djs-shape.bpmn-start-event .djs-visual > circle,
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape.bpmn-start-event .djs-visual > circle { stroke: #69d391 !important; }
+[data-joy-color-scheme='dark'] .modelerContainer .djs-shape.bpmn-end-event .djs-visual > circle,
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape.bpmn-end-event .djs-visual > circle { stroke: #ff8585 !important; }
