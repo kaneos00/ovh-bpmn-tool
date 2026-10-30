@@ -27,7 +27,7 @@ jobs:
         with:
           node-version: 24
       - name: Run deterministic viewer regression tests
-        run: node --test frontend/tests/ui-regression.test.mjs frontend/tests/viewer-interactions.test.mjs frontend/tests/theme-mode.test.mjs
+        run: node --test frontend/tests/ui-regression.test.mjs frontend/tests/viewer-interactions.test.mjs frontend/tests/theme-mode.test.mjs frontend/tests/explorer-optimization.test.mjs
 
   frontend-unit-tests:
     name: Frontend business unit tests
