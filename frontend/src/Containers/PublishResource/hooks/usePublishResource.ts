@@ -20,7 +20,7 @@ import { type PublishResourceLoaderData, type PublishResourceParams } from '..';
 import { type Content, ContentStatusEnum } from '../../../Types';
 import type { ActionResponse } from '../../../shared/types/ActionResponse';
 import { useSnackbar } from '../../../shared/hooks/useSnackbar';
-import { useModelerInstance } from '../../../shared/hooks/useModelerInstance';
+import { useBpmnViewerInstance } from '../../../shared/hooks/useBpmnViewerInstance';
 
 export const usePublishResource = () => {
   const [base64Png, setBase64Png] = useState('');
@@ -38,7 +38,7 @@ export const usePublishResource = () => {
   const { resource } = useResource(resourceId);
   const { data: contents } = useQuery(contentsQuery(resourceId));
 
-  const { getViewerInstance } = useModelerInstance();
+  const { getViewerInstance } = useBpmnViewerInstance();
   const viewer = useMemo(() => getViewerInstance(), [getViewerInstance]);
 
   useEffect(() => {
