@@ -104,8 +104,8 @@ export class ResourceController {
         headers,
       );
     const processIds = readableResources
-      .filter(resource => resource.type === ResourceTypeEnum.Process)
-      .map(resource => resource.id.value);
+      .filter((resource) => resource.type === ResourceTypeEnum.Process)
+      .map((resource) => resource.id.value);
     const linksResult =
       await this.explorerLinksQueryHandler.execute(processIds);
 
