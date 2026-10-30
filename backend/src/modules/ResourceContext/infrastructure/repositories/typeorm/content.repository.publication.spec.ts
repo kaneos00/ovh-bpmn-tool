@@ -94,6 +94,48 @@ describe('ContentTypeOrmRepository.publishAtomically', () => {
     expect(result.ok?.state.status).toBe(ContentStatusEnum.Published);
   });
 
+  it('marks the previous published version obsolete before publishing the draft', async () => {
+    const previousPublished = {
+      ...draft,
+      id: 'content-1',
+      status: ContentStatusEnum.Published,
+      version: 1,
+    } as ContentTypeOrmEntity;
+    contents.findOne
+      .mockReset()
+      .mockResolvedValueOnce({ ...draft })
+      .mockResolvedValueOnce(previousPublished);
+    contents.save.mockClear().mockImplementation(async (entity) => entity);
+
+    const result = await repository.publishAtomically({
+      resourceId: 'resource-1',
+      contentId: 'content-2',
+      updatedBy: 'publisher',
+      pngContent: 'data:image/png;base64,cG5n',
+      authToken: 'generated-token',
+    });
+
+    expect(result.fail).toBeNull();
+    expect(contents.save).toHaveBeenCalledTimes(2);
+    expect(contents.save).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        id: 'content-1',
+        status: ContentStatusEnum.Obsolete,
+        updatedBy: 'publisher',
+        pngContent: null,
+      }),
+    );
+    expect(contents.save).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        id: 'content-2',
+        status: ContentStatusEnum.Published,
+        updatedBy: 'publisher',
+      }),
+    );
+  });
+
   it('returns a failure and lets the transaction roll back when a write fails', async () => {
     resources.save.mockRejectedValueOnce(new Error('token write failed'));
 
