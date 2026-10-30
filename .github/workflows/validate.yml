@@ -148,6 +148,9 @@ jobs:
           docker exec -i bpmn-v2-demo-db-ci psql -v ON_ERROR_STOP=1 \
             -U "$DATABASE_USER" -d "$DATABASE_NAME" \
             < backend/tests/sql/explorer-links.integration.sql
+          docker exec -i bpmn-v2-demo-db-ci psql -v ON_ERROR_STOP=1 \\
+            -U "$DATABASE_USER" -d "$DATABASE_NAME" \\
+            < backend/tests/sql/content-publication-transaction.integration.sql
           test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.columns WHERE table_name='resources' AND column_name='sourceResourceId'")" = "1"
           test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.tables WHERE table_name='app_user_preferences'")" = "1"
 
