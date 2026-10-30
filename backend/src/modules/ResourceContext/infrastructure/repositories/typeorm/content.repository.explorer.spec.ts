@@ -4,7 +4,9 @@ import { ContentTypeOrmEntity } from '../../entities/content.ormEntity';
 
 describe('ContentTypeOrmRepository.findExplorerProcessLinks', () => {
   const query = jest.fn();
-  const ormRepository = { query } as unknown as Repository<ContentTypeOrmEntity>;
+  const ormRepository = {
+    query,
+  } as unknown as Repository<ContentTypeOrmEntity>;
   let repository: ContentTypeOrmRepository;
 
   beforeEach(() => {
@@ -22,7 +24,11 @@ describe('ContentTypeOrmRepository.findExplorerProcessLinks', () => {
   it('returns no link metadata for resources without published BPMN content', async () => {
     query.mockResolvedValue([]);
 
-    await expect(repository.findExplorerProcessLinks(['resource-without-published-content'])).resolves.toEqual({
+    await expect(
+      repository.findExplorerProcessLinks([
+        'resource-without-published-content',
+      ]),
+    ).resolves.toEqual({
       ok: [],
     });
     expect(query).toHaveBeenCalledTimes(1);
