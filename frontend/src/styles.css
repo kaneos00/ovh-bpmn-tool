@@ -191,7 +191,7 @@ body {
   --bpmn-muted: #a4b2c5;
   --bpmn-line: #34445a;
   --bpmn-soft: #202c3c;
-  --bpmn-page: #111923;
+  --bpmn-page: #202b3a;
   --bpmn-green: #69d4a6;
 }
 
@@ -256,4 +256,119 @@ body {
 
 [data-joy-color-scheme='dark'] .MuiAlert-root {
   color: var(--bpmn-ink);
+}
+
+
+/* Refined dark palette: lighter surfaces and clearer separation between regions. */
+[data-joy-color-scheme='dark'] {
+  --bpmn-page: #202b3a;
+  --bpmn-soft: #2b394b;
+  --bpmn-line: #71839a;
+  --bpmn-muted: #c0ccda;
+}
+[data-joy-color-scheme='dark'] body {
+  background: #202b3a;
+}
+[data-joy-color-scheme='dark'] .MuiCard-root,
+[data-joy-color-scheme='dark'] .MuiPaper-root,
+[data-joy-color-scheme='dark'] .MuiSheet-root,
+[data-joy-color-scheme='dark'] .MuiPopover-paper,
+[data-joy-color-scheme='dark'] .MuiMenu-paper {
+  background-color: #2b394b;
+  border-color: #71839a;
+  box-shadow: 0 3px 12px rgb(0 0 0 / 22%);
+}
+/* The application banner/header must read as a separate, lighter dark surface. */
+[data-joy-color-scheme='dark'] .workspace-navigation,
+[data-joy-color-scheme='dark'] .viewerBreadcrumb,
+[data-joy-color-scheme='dark'] .viewerFolderHeader,
+[data-joy-color-scheme='dark'] .processExplorerPanelHeader {
+  background: #3a4b61 !important;
+  color: #f5f8fc;
+  border-color: #8293a8 !important;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 24%);
+}
+[data-joy-color-scheme='dark'] .MuiButton-root.MuiButton-variant-outlined,
+[data-joy-color-scheme='dark'] .MuiButton-root.MuiButton-variant-soft,
+[data-joy-color-scheme='dark'] .MuiIconButton-root {
+  color: #f2f6fc;
+  background-color: #263548;
+  border: 1px solid #d5deea;
+}
+[data-joy-color-scheme='dark'] .MuiButton-root.MuiButton-variant-outlined:hover,
+[data-joy-color-scheme='dark'] .MuiButton-root.MuiButton-variant-soft:hover,
+[data-joy-color-scheme='dark'] .MuiIconButton-root:hover {
+  background-color: #3b4e65;
+  border-color: #ffffff;
+}
+[data-joy-color-scheme='dark'] .MuiButton-root.MuiButton-variant-solid.MuiButton-color-primary {
+  color: #ffffff;
+  background: #356fc5;
+  border: 1px solid #b9d2f4;
+}
+[data-joy-color-scheme='dark'] .MuiTable-root tbody td,
+[data-joy-color-scheme='dark'] .MuiTable-root tbody th {
+  color: #eaf0f8;
+  border-color: #53657b;
+}
+
+/* Keep the repository explorer readable and familiar in light mode. */
+[data-joy-color-scheme='dark'] .theme-light-explorer {
+  color-scheme: light;
+  color: #203047;
+  background: #ffffff;
+  --joy-palette-text-primary: #203047;
+  --joy-palette-text-secondary: #596a80;
+  --joy-palette-background-surface: #ffffff;
+  --joy-palette-background-body: #ffffff;
+  --joy-palette-background-level1: #f2f5f9;
+  --joy-palette-divider: #dce3ec;
+}
+[data-joy-color-scheme='dark'] .theme-light-explorer .MuiInput-root,
+[data-joy-color-scheme='dark'] .theme-light-explorer .MuiList-root {
+  color: #203047;
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+[data-joy-color-scheme='dark'] .theme-light-explorer .MuiButton-root {
+  color: #334155;
+}
+[data-joy-color-scheme='dark'] .theme-light-explorer .MuiButton-root.MuiButton-variant-solid {
+  color: #ffffff;
+  background: #2864d7;
+}
+[data-joy-color-scheme='dark'] .theme-light-explorer .rct-tree-item-button,
+[data-joy-color-scheme='dark'] .theme-light-explorer .rct-tree-item-title {
+  color: #334155;
+}
+[data-joy-color-scheme='dark'] .theme-light-explorer .rct-tree-item-button[aria-selected='true'] {
+  background: #eaf1ff;
+  color: #204fae;
+}
+
+/* The sign-in page is intentionally light even when the user's app preference is dark. */
+[data-joy-color-scheme='dark'] .login-page {
+  color-scheme: light;
+  color: #203047;
+  background: radial-gradient(circle at 15% 15%, rgba(40, 100, 215, 0.12), transparent 32%), linear-gradient(135deg, #f5f7fa 0%, #eef2f6 100%) !important;
+  --joy-palette-text-primary: #203047;
+  --joy-palette-text-secondary: #596574;
+  --joy-palette-background-surface: #ffffff;
+  --joy-palette-background-body: #eef2f6;
+  --joy-palette-background-level1: #f5f7fa;
+  --joy-palette-divider: #dce3ec;
+}
+[data-joy-color-scheme='dark'] .login-page .MuiCard-root {
+  color: #203047;
+  background: #ffffff;
+  border-color: rgba(21, 43, 69, 0.12);
+}
+[data-joy-color-scheme='dark'] .login-page .MuiInput-root {
+  color: #203047;
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+[data-joy-color-scheme='dark'] .login-page .MuiFormLabel-root,
+[data-joy-color-scheme='dark'] .login-page .MuiTypography-root {
+  color: #203047;
 }
