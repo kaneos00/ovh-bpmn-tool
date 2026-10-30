@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from 'react-query';
 
 import { getXmlContentQuery } from '../../../../api/contents/contents.queries';
-import { useModelerInstance } from '../../../../shared/hooks/useModelerInstance';
+import { useBpmnViewerInstance } from '../../../../shared/hooks/useBpmnViewerInstance';
 import { useCallActivityNavigation } from '../../../../shared/hooks/useCallActivityNavigation';
 
 const ZOOM_STEP = 1.2;
@@ -14,7 +14,7 @@ export const useProcessViewer = (
   selectedElementId?: string | null,
   onElementSelect?: (elementId: string) => void,
 ) => {
-  const { getViewerInstance } = useModelerInstance();
+  const { getViewerInstance } = useBpmnViewerInstance();
   const viewerRef = useRef<HTMLDivElement>(null);
   const selectedIdRef = useRef<string | null | undefined>(selectedElementId);
   const onElementSelectRef = useRef(onElementSelect);
