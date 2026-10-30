@@ -5,6 +5,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import {
   ContentFilters,
   ContentRepository,
+  ExplorerProcessLinks,
 } from '../../../../../modules/ResourceContext/application/adapters/repositories/content.repository';
 import { Content } from '../../../../../modules/ResourceContext/domain/Content/Content';
 import {
@@ -101,7 +102,7 @@ export class ContentTypeOrmRepository implements ContentRepository {
 
   async findExplorerProcessLinks(
     resourceIds: string[],
-  ): Promise<Result<import('../../../../../modules/ResourceContext/application/adapters/repositories/content.repository').ExplorerProcessLinks[], Error>> {
+  ): Promise<Result<ExplorerProcessLinks[], Error>> {
     if (!resourceIds.length) return ok([]);
 
     try {
@@ -139,11 +140,16 @@ export class ContentTypeOrmRepository implements ContentRepository {
         [resourceIds, 'published'],
       );
 
-      return ok(rows.map(row => ({
-        resourceId: row.resourceId,
-        processIds: row.processIds ?? [],
-        targets: [...(row.callTargets ?? []), ...(row.collapsedTargets ?? [])].filter(Boolean),
-      })));
+      return ok(
+        rows.map(row => ({
+          resourceId: row.resourceId,
+          processIds: row.processIds ?? [],
+          targets: [
+            ...(row.callTargets ?? []),
+            ...(row.collapsedTargets ?? []),
+          ].filter(Boolean),
+        })),
+      );
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       const errorMsg = `Error while building explorer BPMN links: ${detail}`;
