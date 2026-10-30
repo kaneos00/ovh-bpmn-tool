@@ -118,8 +118,7 @@ const getConfiguredProcessActors = (processes: Element[]): ConfiguredActors | un
   };
 };
 
-export const deriveRaciMatrixFromXml = (xmlContent: string): RaciMatrix => {
-  const document = new DOMParser().parseFromString(xmlContent, 'text/xml');
+export const deriveRaciMatrixFromDocument = (document: Document): RaciMatrix => {
   const activities = getActivities(document);
   const processes = getProcesses(document);
   const lanes = getLanes(document);
@@ -285,3 +284,9 @@ export const deriveRaciMatrixFromXml = (xmlContent: string): RaciMatrix => {
   };
 };
 
+
+
+export const deriveRaciMatrixFromXml = (xmlContent: string): RaciMatrix =>
+  deriveRaciMatrixFromDocument(
+    new DOMParser().parseFromString(xmlContent, 'text/xml'),
+  );
