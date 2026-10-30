@@ -432,3 +432,38 @@
 [data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape.bpmn-data-object-reference .djs-visual > path {
   stroke: #f2bd65 !important;
 }
+
+
+/* Dark mode: BPMN arrowheads are SVG markers stored in <defs>, not in the
+   connection path itself. Recolor marker geometry as well as the flow line. */
+[data-joy-color-scheme='dark'] .modelerContainer svg defs marker path,
+[data-joy-color-scheme='dark'] .modelerContainer svg defs marker polygon,
+[data-joy-color-scheme='dark'] .modelerContainer svg defs marker polyline,
+[data-joy-color-scheme='dark'] .processViewerDiagramContent svg defs marker path,
+[data-joy-color-scheme='dark'] .processViewerDiagramContent svg defs marker polygon,
+[data-joy-color-scheme='dark'] .processViewerDiagramContent svg defs marker polyline {
+  fill: #f1f5fb !important;
+  stroke: #f1f5fb !important;
+}
+
+/* Selected BPMN elements must keep the familiar blue selection outline.
+   This comes after the generic dark SVG outline rule so white strokes cannot
+   override the active selection. Keep labels and the element's fill intact. */
+[data-joy-color-scheme='dark'] .modelerContainer .djs-element.selected .djs-outline,
+[data-joy-color-scheme='dark'] .modelerContainer .djs-element.hover .djs-outline,
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-element.selected .djs-outline,
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-element.hover .djs-outline {
+  stroke: #1976d2 !important;
+  stroke-width: 3px !important;
+  fill: none !important;
+  filter: drop-shadow(0 0 2px rgba(25, 118, 210, 0.45));
+}
+
+/* Some selection paths are rendered inside the visual group rather than as
+   the separate djs-outline layer. Preserve blue for those as well. */
+[data-joy-color-scheme='dark'] .modelerContainer .djs-element.selected:not(.djs-label) .djs-visual > :not(text):not(tspan),
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-element.selected:not(.djs-label) .djs-visual > :not(text):not(tspan) {
+  stroke: #1976d2 !important;
+  stroke-width: 3px !important;
+  filter: drop-shadow(0 0 2px rgba(25, 118, 210, 0.45));
+}
