@@ -307,7 +307,7 @@ test('Viewer reuses one parsed BPMN document through a dedicated RACI analysis h
   assert.ok(raci.includes('deriveRaciMatrixFromXml = (xmlContent: string): RaciMatrix =>'));
   assert.ok(raci.includes('deriveRaciMatrixFromDocument('));
   assert.ok(analysisHook.includes('deriveRaciMatrixFromDocument(document)'));
-  assert.equal((analysisHook.match(/new DOMParser\\(\\)\\.parseFromString\\(xmlContent/g) ?? []).length, 1);
+  assert.equal((analysisHook.match(/new DOMParser\(\)\.parseFromString\(xmlContent/g) ?? []).length, 1);
   assert.ok(analysisHook.includes('laneRoleByElement'));
   assert.ok(analysisHook.includes('laneIdByRole'));
   assert.ok(viewer.includes('useViewerRaciAnalysis(xmlContent)'));
