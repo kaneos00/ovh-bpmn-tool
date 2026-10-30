@@ -126,15 +126,15 @@ export class ContentTypeOrmRepository implements ContentRepository {
            "resourceId",
            ARRAY(
              SELECT regexp_replace(node::text, '^.*="([^"]*)".*$', '\\1')
-             FROM unnest(xpath('//*[local-name()="process"]/@id', content::xml)) AS node
+             FROM unnest(xpath('//*[local-name()="process"]/@id', content::xml)) AS extracted(node)
            ) AS "processIds",
            ARRAY(
              SELECT regexp_replace(node::text, '^.*="([^"]*)".*$', '\\1')
-             FROM unnest(xpath('//*[local-name()="callActivity"]/@calledElement', content::xml)) AS node
+             FROM unnest(xpath('//*[local-name()="callActivity"]/@calledElement', content::xml)) AS extracted(node)
            ) AS "callTargets",
            ARRAY(
              SELECT regexp_replace(node::text, '^.*="([^"]*)".*$', '\\1')
-             FROM unnest(xpath('//*[local-name()="subProcess" and @id = //*[local-name()="BPMNShape" and @isExpanded="false"]/@bpmnElement]/@id', content::xml)) AS node
+             FROM unnest(xpath('//*[local-name()="subProcess" and @id = //*[local-name()="BPMNShape" and @isExpanded="false"]/@bpmnElement]/@id', content::xml)) AS extracted(node)
            ) AS "collapsedTargets"
          FROM latest_published`,
         [resourceIds, 'published'],
