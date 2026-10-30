@@ -19,7 +19,7 @@ test('explorer loads its resource snapshot and BPMN link metadata through one AP
 });
 
 test('explorer link API filters resources by read permissions before requesting process metadata', async () => {
-  const controller = await read('backend/src/modules/ResourceContext/infrastructure/controllers/resource.controller.ts');
+  const controller = await read('../backend/src/modules/ResourceContext/infrastructure/controllers/resource.controller.ts');
   const routeStart = controller.indexOf("@Get('/explorer/links')");
   const routeEnd = controller.indexOf("@Get('/:resourceId')", routeStart);
   assert.ok(routeStart >= 0 && routeEnd > routeStart, 'explorer endpoint must be registered before the resource ID route');
@@ -34,7 +34,7 @@ test('explorer link API filters resources by read permissions before requesting 
 });
 
 test('explorer endpoint is a single batched metadata request, not a per-process XML download', async () => {
-  const repository = await read('backend/src/modules/ResourceContext/infrastructure/repositories/typeorm/content.repository.ts');
+  const repository = await read('../backend/src/modules/ResourceContext/infrastructure/repositories/typeorm/content.repository.ts');
   const query = repository.slice(
     repository.indexOf('async findExplorerProcessLinks'),
     repository.indexOf('\n  async find(', repository.indexOf('async findExplorerProcessLinks')),
