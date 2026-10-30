@@ -1,4 +1,4 @@
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { ContentTypeOrmRepository } from './content.repository';
 import { ContentTypeOrmEntity } from '../../entities/content.ormEntity';
 import { ResourceTypeOrmEntity } from '../../entities/resource.ormEntity';
@@ -82,7 +82,10 @@ describe('ContentTypeOrmRepository.publishAtomically', () => {
       lock: { mode: 'pessimistic_write' },
     });
     expect(contents.save).toHaveBeenCalledWith(
-      expect.objectContaining({ status: ContentStatusEnum.Published, updatedBy: 'publisher' }),
+      expect.objectContaining({
+        status: ContentStatusEnum.Published,
+        updatedBy: 'publisher',
+      }),
     );
     expect(resources.save).toHaveBeenCalledWith(
       expect.objectContaining({ authToken: 'generated-token' }),
