@@ -1,4 +1,4 @@
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { Injectable, Logger, Optional } from '@nestjs/common';
 
@@ -75,6 +75,25 @@ export class ContentTypeOrmRepository implements ContentRepository {
         ) {
           throw new Error('Content is no longer a draft');
         }
+
+        // Drafts can be created concurrently and may initially receive the
+        // same next version. Recalculate the published sequence while holding
+        // the resource lock so each successful publication gets a new version.
+        const latestVersion = await contents.findOne({
+          where: {
+            resourceId: params.resourceId,
+            status: In([
+              ContentStatusEnum.Published,
+              ContentStatusEnum.Obsolete,
+            ]),
+          },
+          order: { version: 'DESC' },
+          lock: { mode: 'pessimistic_write' },
+        });
+        contentEntity.version = Math.max(
+          contentEntity.version ?? 1,
+          (latestVersion?.version ?? 0) + 1,
+        );
 
         const previousPublished = await contents.findOne({
           where: {
