@@ -24,7 +24,9 @@ export interface ContentRepository {
     resourceId: string;
     status: ContentStatusEnum;
   }): Promise<Result<Maybe<Content>, Error>>;
-  findExplorerProcessLinks(resourceIds: string[]): Promise<Result<ExplorerProcessLinks[], Error>>;
+  findExplorerProcessLinks(
+    resourceIds: string[],
+  ): Promise<Result<ExplorerProcessLinks[], Error>>;
   find(
     contentId: string,
     filters?: ContentFilters,
