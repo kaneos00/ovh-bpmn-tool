@@ -9,6 +9,7 @@ const read = relativePath => readFile(path.join(root, relativePath), 'utf8');
 
 test('theme toggle is accessible and switches between light and dark modes', async () => {
   const menu = await read('src/Components/GenericComponents/UserAccountMenu/UserAccountMenu.tsx');
+  const main = await read('src/MainContainer.tsx');
 
   assert.ok(menu.includes('useColorScheme()'));
   assert.ok(menu.includes("const nextMode = isDark ? 'light' : 'dark'"));
