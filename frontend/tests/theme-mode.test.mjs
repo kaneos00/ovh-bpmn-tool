@@ -103,6 +103,8 @@ test('dark theme supports SVG white fill variants and visible explorer selection
   const appCss = await read('src/styles.css');
   assert.ok(modelerCss.includes('[fill="rgb(255, 255, 255)"]'));
   assert.ok(modelerCss.includes('[style*="fill: white"]'));
+  assert.ok(modelerCss.includes('.modelerContainer .djs-shape .djs-visual'));
+  assert.ok(modelerCss.includes('[style*="stroke: rgb(0, 0, 0)"]'));
   assert.ok(appCss.includes('.rct-tree-item-li[aria-selected=\'true\']'));
   assert.ok(appCss.includes('[data-rct-selected=\'true\']'));
   assert.ok(appCss.includes('background-color: #285b96 !important'));
