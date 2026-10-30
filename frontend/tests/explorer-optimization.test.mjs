@@ -29,7 +29,7 @@ test('explorer link API filters resources by read permissions before requesting 
   const metadataQuery = route.indexOf('explorerLinksQueryHandler.execute');
   assert.ok(accessFilter >= 0, 'resource visibility must be checked');
   assert.ok(metadataQuery > accessFilter, 'BPMN link metadata must only be requested for readable resources');
-  assert.match(route, /filter\(resource => resource\.type === ResourceTypeEnum\.Process\)/);
+  assert.match(route, /filter\(\(resource\) => resource\.type === ResourceTypeEnum\.Process\)/);
   assert.match(route, /resources: readableResources\.map\(ResourceMapper\.toPresenter\)/);
 });
 
