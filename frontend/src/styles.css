@@ -312,40 +312,54 @@ body {
   border-color: #53657b;
 }
 
-/* Keep the repository explorer readable and familiar in light mode. */
-[data-joy-color-scheme='dark'] .theme-light-explorer {
-  color-scheme: light;
-  color: #203047;
-  background: #ffffff;
-  --joy-palette-text-primary: #203047;
-  --joy-palette-text-secondary: #596a80;
-  --joy-palette-background-surface: #ffffff;
-  --joy-palette-background-body: #ffffff;
-  --joy-palette-background-level1: #f2f5f9;
-  --joy-palette-divider: #dce3ec;
+/* In dark mode the explorer follows the application palette; only the active row is light. */
+[data-joy-color-scheme='dark'] .viewerFolderPanel,
+[data-joy-color-scheme='dark'] .processExplorerPanel,
+[data-joy-color-scheme='dark'] .viewerFolderTree,
+[data-joy-color-scheme='dark'] .processExplorerPanelContent {
+  color: #e6edf7;
+  background: #2b394b;
 }
-[data-joy-color-scheme='dark'] .theme-light-explorer .MuiInput-root,
-[data-joy-color-scheme='dark'] .theme-light-explorer .MuiList-root {
-  color: #203047;
-  background: #ffffff;
-  border-color: #cbd5e1;
+[data-joy-color-scheme='dark'] .viewerFolderPanel .MuiList-root,
+[data-joy-color-scheme='dark'] .processExplorerPanel .MuiList-root {
+  color: #e6edf7;
+  background: transparent;
 }
-[data-joy-color-scheme='dark'] .theme-light-explorer .MuiButton-root {
-  color: #334155;
+[data-joy-color-scheme='dark'] .viewerFolderPanel .MuiInput-root,
+[data-joy-color-scheme='dark'] .processExplorerPanel .MuiInput-root {
+  color: #f2f6fc;
+  background: #202d3e;
+  border-color: #71839a;
 }
-[data-joy-color-scheme='dark'] .theme-light-explorer .MuiButton-root.MuiButton-variant-solid {
+[data-joy-color-scheme='dark'] .viewerFolderPanel .MuiInput-root input,
+[data-joy-color-scheme='dark'] .processExplorerPanel .MuiInput-root input {
+  color: #f2f6fc;
+}
+[data-joy-color-scheme='dark'] .viewerFolderPanel .MuiButton-root,
+[data-joy-color-scheme='dark'] .processExplorerPanel .MuiButton-root,
+[data-joy-color-scheme='dark'] .viewerFolderPanel .MuiIconButton-root,
+[data-joy-color-scheme='dark'] .processExplorerPanel .MuiIconButton-root {
+  color: #e6edf7;
+}
+[data-joy-color-scheme='dark'] .viewerFolderPanel .MuiButton-root.MuiButton-variant-solid,
+[data-joy-color-scheme='dark'] .processExplorerPanel .MuiButton-root.MuiButton-variant-solid {
   color: #ffffff;
-  background: #2864d7;
+  background: #356fc5;
 }
-[data-joy-color-scheme='dark'] .theme-light-explorer .rct-tree-item-button,
-[data-joy-color-scheme='dark'] .theme-light-explorer .rct-tree-item-title {
-  color: #334155;
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button,
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-title,
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button,
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-title {
+  color: #e6edf7;
 }
-[data-joy-color-scheme='dark'] .theme-light-explorer .rct-tree-item-button[aria-selected='true'] {
-  background: #eaf1ff;
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button[aria-selected='true'],
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-title[aria-selected='true'],
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button[aria-selected='true'],
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-title[aria-selected='true'] {
   color: #204fae;
+  background: #eaf1ff;
+  border-radius: 6px;
 }
-
 /* The sign-in page is intentionally light even when the user's app preference is dark. */
 [data-joy-color-scheme='dark'] .login-page {
   color-scheme: light;
