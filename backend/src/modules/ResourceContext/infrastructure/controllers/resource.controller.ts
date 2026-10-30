@@ -36,6 +36,7 @@ import { GetResourceQuery } from '../../application/queries/Resource/getResource
 import { ResourceTypeEnum } from '../../../../modules/ResourceContext/shared/types/Resource';
 import { ContentStatusEnum } from '../../../../modules/ResourceContext/shared/types/Content';
 import { ListContentQueryHandler } from '../../application/queries/Content/listContent/listContent.queryHandler';
+import { ExplorerLinksQueryHandler } from '../../application/queries/Resource/explorerLinks/explorerLinks.queryHandler';
 import { GetXmlContentQueryHandler } from '../../application/queries/Content/getXmlContent/getXmlContent.queryHandler';
 import { CreateContentCommandHandler } from '../../application/commands/Content/createContent/createContent.commandHandler';
 import { ResourceNameExistError } from '../../../../modules/ResourceContext/application/commands/Resource/resource.error';
@@ -51,6 +52,7 @@ export class ResourceController {
     private readonly updateResourceCommandHandler: UpdateResourceCommandHandler,
     private readonly deleteResourceCommandHandler: DeleteResourceCommandHandler,
     private readonly listResourceCommandHandler: ListResourceQueryHandler,
+    private readonly explorerLinksQueryHandler: ExplorerLinksQueryHandler,
     private readonly getResourceQueryHandler: GetResourceQueryHandler,
     private readonly listContentQueryHandler: ListContentQueryHandler,
     private readonly getXmlContentQueryHandler: GetXmlContentQueryHandler,
@@ -83,6 +85,38 @@ export class ResourceController {
         headers,
       );
     return readableResources.map(ResourceMapper.toPresenter);
+  }
+
+  @Get('/explorer/links')
+  @UseAcl()
+  async getExplorerData(@Headers() headers: Record<string, string>) {
+    const resourcesResult = await this.listResourceCommandHandler.execute({
+      filters: {},
+    });
+
+    if (resourcesResult.fail) {
+      throw resourcesResult.fail;
+    }
+
+    const readableResources =
+      await this.projectResourceAccess.filterReadableResources(
+        resourcesResult.ok,
+        headers,
+      );
+    const processIds = readableResources
+      .filter(resource => resource.type === ResourceTypeEnum.Process)
+      .map(resource => resource.id.value);
+    const linksResult =
+      await this.explorerLinksQueryHandler.execute(processIds);
+
+    if (linksResult.fail) {
+      throw linksResult.fail;
+    }
+
+    return {
+      resources: readableResources.map(ResourceMapper.toPresenter),
+      links: linksResult.ok,
+    };
   }
 
   @Get('/:resourceId')
