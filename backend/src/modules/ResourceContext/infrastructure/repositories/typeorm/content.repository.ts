@@ -29,7 +29,8 @@ export class ContentTypeOrmRepository implements ContentRepository {
   constructor(
     @InjectRepository(ContentTypeOrmEntity)
     private readonly contentRepository: Repository<ContentTypeOrmEntity>,
-    @Optional() @InjectDataSource()
+    @Optional()
+    @InjectDataSource()
     private readonly dataSource?: DataSource,
   ) {}
 
@@ -41,7 +42,9 @@ export class ContentTypeOrmRepository implements ContentRepository {
     authToken: string;
   }): Promise<Result<Content, Error>> {
     if (!this.dataSource) {
-      return fail(new Error('Publication transaction requires a TypeORM data source'));
+      return fail(
+        new Error('Publication transaction requires a TypeORM data source'),
+      );
     }
 
     try {
@@ -65,12 +68,18 @@ export class ContentTypeOrmRepository implements ContentRepository {
           lock: { mode: 'pessimistic_write' },
         });
         if (!contentEntity) throw new Error('Draft content no longer exists');
-        if (contentEntity.status && contentEntity.status !== ContentStatusEnum.Draft) {
+        if (
+          contentEntity.status &&
+          contentEntity.status !== ContentStatusEnum.Draft
+        ) {
           throw new Error('Content is no longer a draft');
         }
 
         const previousPublished = await contents.findOne({
-          where: { resourceId: params.resourceId, status: ContentStatusEnum.Published },
+          where: {
+            resourceId: params.resourceId,
+            status: ContentStatusEnum.Published,
+          },
           order: { version: 'DESC' },
           lock: { mode: 'pessimistic_write' },
         });
@@ -85,7 +94,9 @@ export class ContentTypeOrmRepository implements ContentRepository {
         const contentResult = ContentMapper.fromPersistence(contentEntity);
         if (contentResult.fail) throw contentResult.fail;
         contentResult.ok.publish(params.updatedBy, params.pngContent);
-        const savedContent = await contents.save(ContentMapper.toPersistence(contentResult.ok));
+        const savedContent = await contents.save(
+          ContentMapper.toPersistence(contentResult.ok),
+        );
 
         if (!resource.authToken) {
           resource.authToken = params.authToken;
@@ -99,7 +110,10 @@ export class ContentTypeOrmRepository implements ContentRepository {
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       const errorMsg = `Atomic content publication failed: ${detail}`;
-      this.logger.error(errorMsg, error instanceof Error ? error.stack : detail);
+      this.logger.error(
+        errorMsg,
+        error instanceof Error ? error.stack : detail,
+      );
       return fail(new Error(errorMsg));
     }
   }
