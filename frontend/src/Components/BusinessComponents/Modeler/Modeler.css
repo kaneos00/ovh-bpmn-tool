@@ -392,3 +392,43 @@
 [data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape.bpmn-start-event .djs-visual > circle { stroke: #69d391 !important; }
 [data-joy-color-scheme='dark'] .modelerContainer .djs-shape.bpmn-end-event .djs-visual > circle,
 [data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape.bpmn-end-event .djs-visual > circle { stroke: #ff8585 !important; }
+
+
+/* Final dark-mode SVG outline override.
+   bpmn-js writes stroke values on SVG geometry (often inline or with values
+   not covered by the exact black-attribute selectors above). Target the
+   rendered geometry itself, not text nodes, so BPMN labels keep their color. */
+[data-joy-color-scheme='dark'] .modelerContainer .djs-shape .djs-visual > :not(text):not(tspan),
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape .djs-visual > :not(text):not(tspan) {
+  stroke: #f1f5fb !important;
+}
+
+/* Sequence flows and other BPMN connections are separate from shapes. */
+[data-joy-color-scheme='dark'] .modelerContainer .djs-connection .djs-visual > path,
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-connection .djs-visual > path {
+  stroke: #f1f5fb !important;
+}
+
+/* Reapply intentional semantic outline colors after the generic dark outline. */
+[data-joy-color-scheme='dark'] .modelerContainer .djs-shape.bpmn-start-event .djs-visual > circle,
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape.bpmn-start-event .djs-visual > circle {
+  stroke: #69d391 !important;
+}
+[data-joy-color-scheme='dark'] .modelerContainer .djs-shape.bpmn-end-event .djs-visual > circle,
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape.bpmn-end-event .djs-visual > circle {
+  stroke: #ff8585 !important;
+}
+[data-joy-color-scheme='dark'] .modelerContainer .djs-shape[class*='bpmn-gateway-'] .djs-visual > polygon,
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape[class*='bpmn-gateway-'] .djs-visual > polygon {
+  stroke: #c3a8ff !important;
+}
+[data-joy-color-scheme='dark'] .modelerContainer .djs-shape.bpmn-gateway-parallel .djs-visual > path,
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape.bpmn-gateway-parallel .djs-visual > path {
+  stroke: #c3a8ff !important;
+}
+[data-joy-color-scheme='dark'] .modelerContainer .djs-shape.bpmn-data-store .djs-visual > path,
+[data-joy-color-scheme='dark'] .modelerContainer .djs-shape.bpmn-data-object-reference .djs-visual > path,
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape.bpmn-data-store .djs-visual > path,
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape.bpmn-data-object-reference .djs-visual > path {
+  stroke: #f2bd65 !important;
+}
