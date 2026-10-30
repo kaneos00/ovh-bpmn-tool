@@ -1,2 +1,3 @@
 FROM postgres:16-alpine
 COPY backend/migrations/20261014_v2_1_process_provenance.sql /opt/migrations/20261014_v2_1_process_provenance.sql
+COPY backend/migrations/20261029_v3_user_theme_preference.sql /opt/migrations/20261029_v3_user_theme_preference.sql

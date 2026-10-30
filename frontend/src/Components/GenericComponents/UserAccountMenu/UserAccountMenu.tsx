@@ -8,8 +8,10 @@ import {
   MenuButton,
   MenuItem,
   Typography,
+  Switch,
 } from '@mui/joy';
-import { AdminPanelSettingsOutlined, LogoutOutlined, PersonOutline } from '@mui/icons-material';
+import { useColorScheme } from '@mui/joy/styles';
+import { AdminPanelSettingsOutlined, DarkModeOutlined, LightModeOutlined, LogoutOutlined, PersonOutline } from '@mui/icons-material';
 
 const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
 
@@ -25,6 +27,8 @@ export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const { mode, setMode } = useColorScheme();
+  const isDark = mode === 'dark';
 
   useEffect(() => {
     let mounted = true;
@@ -34,6 +38,34 @@ export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
       .catch(() => { if (mounted) setSession(null); });
     return () => { mounted = false; };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    fetch(`${apiBase}/auth/preferences`, { credentials: 'same-origin' })
+      .then(response => response.ok ? response.json() : null)
+      .then(preferences => {
+        if (active && (preferences?.theme === 'light' || preferences?.theme === 'dark')) {
+          setMode(preferences.theme);
+        }
+      })
+      .catch(() => {
+        // The locally stored preference remains available if server sync is unavailable.
+      });
+    return () => { active = false; };
+  }, [setMode]);
+
+  const toggleTheme = () => {
+    const nextMode = isDark ? 'light' : 'dark';
+    setMode(nextMode);
+    fetch(`${apiBase}/auth/preferences`, {
+      method: 'PUT',
+      credentials: 'same-origin',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ theme: nextMode }),
+    }).catch(() => {
+      // Joy UI persists the preference locally.
+    });
+  };
 
   const logout = async () => {
     if (busy) return;
@@ -102,6 +134,13 @@ export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
             <Typography level="title-sm">{username}</Typography>
             {session?.email && <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>{session.email}</Typography>}
           </Box>
+        </MenuItem>
+        <MenuItem onClick={toggleTheme} sx={{ justifyContent: 'space-between', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {isDark ? <DarkModeOutlined fontSize="small" /> : <LightModeOutlined fontSize="small" />}
+            <Typography level="body-sm">Thème sombre</Typography>
+          </Box>
+          <Switch size="sm" checked={isDark} readOnly tabIndex={-1} />
         </MenuItem>
         {session?.role === 'admin' && !session.impersonating && (
           <MenuItem onClick={() => navigate('/organization/accounts')}>
