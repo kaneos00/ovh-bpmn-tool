@@ -18,6 +18,7 @@ import { ContentMapper } from '../../mappers/content.mapper';
 import { ContentTypeOrmEntity } from '../../entities/content.ormEntity';
 import { ResourceTypeOrmEntity } from '../../entities/resource.ormEntity';
 import { ContentStatusEnum } from '../../../../../modules/ResourceContext/shared/types/Content';
+import { ResourceTypeEnum } from '../../../../../modules/ResourceContext/shared/types/Resource';
 
 import type { Maybe } from '../../../../../shared-kernel/utils/Maybe';
 import { SortCommand } from '../../../../../shared-kernel/utils/SortCommand';
@@ -59,7 +60,7 @@ export class ContentTypeOrmRepository implements ContentRepository {
           lock: { mode: 'pessimistic_write' },
         });
         if (!resource) throw new Error('Resource no longer exists');
-        if (resource.type === 'folder') {
+        if (resource.type === ResourceTypeEnum.Folder) {
           throw new Error('A folder cannot receive published content');
         }
 
