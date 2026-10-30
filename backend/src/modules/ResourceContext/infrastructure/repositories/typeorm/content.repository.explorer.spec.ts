@@ -19,6 +19,15 @@ describe('ContentTypeOrmRepository.findExplorerProcessLinks', () => {
     expect(query).not.toHaveBeenCalled();
   });
 
+  it('returns no link metadata for resources without published BPMN content', async () => {
+    query.mockResolvedValue([]);
+
+    await expect(repository.findExplorerProcessLinks(['resource-without-published-content'])).resolves.toEqual({
+      ok: [],
+    });
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
   it('extracts process IDs and combines Call Activity and collapsed SubProcess targets in one SQL query', async () => {
     query.mockResolvedValue([
       {
