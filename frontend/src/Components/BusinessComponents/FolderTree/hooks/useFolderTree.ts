@@ -1,9 +1,8 @@
 import { useMemo, useState, useEffect } from 'react';
-import { useQueries, useQuery } from 'react-query';
+import { useQuery } from 'react-query';
 
-import { resourcesQuery } from '../../../../api/resources/resources.queries';
-import { contentsQuery, getXmlContentQuery } from '../../../../api/contents/contents.queries';
-import { ContentStatusEnum, type Content, type Resource } from '../../../../Types';
+import { explorerQuery } from '../../../../api/resources/resources.queries';
+import { type Resource } from '../../../../Types';
 import { useFolders } from '../../../../shared/hooks/useFolders';
 import { useResource } from '../../../../shared/hooks/useResource';
 import { ResourceType } from '../../../../shared/types/BpmnResource';
@@ -23,13 +22,6 @@ const readExpandedNodes = (): string[] => {
   }
 };
 
-const getPublishedContent = (contents: Content[] | undefined) =>
-  (contents ?? [])
-    .filter(content => content.status === ContentStatusEnum.Published)
-    .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0];
-
-
-
 export const useFolderTree = (selectedResourceId: string) => {
   const [expandedNodes, setExpandedNodes] = useState<string[]>(readExpandedNodes);
   useEffect(() => {
@@ -42,28 +34,27 @@ export const useFolderTree = (selectedResourceId: string) => {
 
   const { getFolderHierarchy } = useFolders();
   const { resource } = useResource(selectedResourceId);
-  const { data: resources, isLoading } = useQuery<Resource[]>(resourcesQuery());
+  const { data: explorerData, isLoading } = useQuery(explorerQuery());
+  const resources = explorerData?.resources;
 
   const processResources = useMemo(
     () => (resources ?? []).filter(item => item.type === ResourceType.Process),
     [resources],
   );
-  const contentQueries = useQueries(processResources.map(process => contentsQuery(process.id)));
-  const publishedContents = processResources.map((_, index) =>
-    getPublishedContent(contentQueries[index]?.data as Content[] | undefined),
-  );
-  const xmlQueries = useQueries(processResources.map((process, index) => ({
-    ...getXmlContentQuery(process.id, publishedContents[index]?.id ?? ''),
-    enabled: Boolean(publishedContents[index]?.id),
-  })));
-
   const linkedChildrenByResource = useMemo(() => {
-    const processInfo = processResources.map((process, index) => {
-      const xml = (xmlQueries[index]?.data as string | undefined) ?? '';
-      return { resource: process, ...getProcessLinks(xml) };
+    const linksByResource = new Map(
+      (explorerData?.links ?? []).map(link => [link.resourceId, link]),
+    );
+    const processInfo = processResources.map(process => {
+      const links = linksByResource.get(process.id);
+      return {
+        resource: process,
+        processIds: links?.processIds ?? [],
+        targets: links?.targets ?? [],
+      };
     });
     return resolveLinkedChildren(processInfo);
-  }, [processResources, xmlQueries]);
+  }, [processResources, explorerData?.links]);
 
   const linkedTargetIds = useMemo(
     () => new Set(Array.from(linkedChildrenByResource.values()).flat().map(target => target.id)),
