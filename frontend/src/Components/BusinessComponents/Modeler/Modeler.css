@@ -277,36 +277,36 @@
 
 
 /* Dark BPMN palette.
-   Preserve explicit fills from BPMN DI / the color picker. Only recolor the
-   renderer's default white fills and black strokes; never blanket-fill shapes. */
+   Adapt the default white SVG fills while preserving explicit custom colors. */
 [data-joy-color-scheme='dark'] .process-viewer-canvas,
-[data-joy-color-scheme='dark'] #diagramContainer {
-  background: #202b3a;
-}
+[data-joy-color-scheme='dark'] #diagramContainer { background: #202b3a; }
 
-/* Default white BPMN geometry becomes a muted slate, while custom blue and
-   other user-defined colors remain intact. */
 [data-joy-color-scheme='dark'] .process-viewer-canvas .djs-visual > [fill="white"],
 [data-joy-color-scheme='dark'] .process-viewer-canvas .djs-visual > [fill="#fff"],
 [data-joy-color-scheme='dark'] .process-viewer-canvas .djs-visual > [fill="#ffffff"],
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-visual > [fill="rgb(255, 255, 255)"],
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-visual > [style*="fill: white"],
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-visual > [style*="fill: #fff"],
 [data-joy-color-scheme='dark'] #diagramContainer .djs-visual > [fill="white"],
 [data-joy-color-scheme='dark'] #diagramContainer .djs-visual > [fill="#fff"],
-[data-joy-color-scheme='dark'] #diagramContainer .djs-visual > [fill="#ffffff"] {
+[data-joy-color-scheme='dark'] #diagramContainer .djs-visual > [fill="#ffffff"],
+[data-joy-color-scheme='dark'] #diagramContainer .djs-visual > [fill="rgb(255, 255, 255)"],
+[data-joy-color-scheme='dark'] #diagramContainer .djs-visual > [style*="fill: white"],
+[data-joy-color-scheme='dark'] #diagramContainer .djs-visual > [style*="fill: #fff"] {
   fill: #35465b !important;
 }
 
-/* Improve default black outlines without overwriting explicitly colored
-   outlines supplied by BPMN styling. */
 [data-joy-color-scheme='dark'] .process-viewer-canvas .djs-visual > [stroke="black"],
 [data-joy-color-scheme='dark'] .process-viewer-canvas .djs-visual > [stroke="#000"],
 [data-joy-color-scheme='dark'] .process-viewer-canvas .djs-visual > [stroke="#000000"],
+[data-joy-color-scheme='dark'] .process-viewer-canvas .djs-visual > [stroke="rgb(0, 0, 0)"],
 [data-joy-color-scheme='dark'] #diagramContainer .djs-visual > [stroke="black"],
 [data-joy-color-scheme='dark'] #diagramContainer .djs-visual > [stroke="#000"],
-[data-joy-color-scheme='dark'] #diagramContainer .djs-visual > [stroke="#000000"] {
+[data-joy-color-scheme='dark'] #diagramContainer .djs-visual > [stroke="#000000"],
+[data-joy-color-scheme='dark'] #diagramContainer .djs-visual > [stroke="rgb(0, 0, 0)"] {
   stroke: #c0ccda !important;
 }
 
-/* Flow connectors and labels remain legible on the dark canvas. */
 [data-joy-color-scheme='dark'] .process-viewer-canvas .djs-connection .djs-visual > path,
 [data-joy-color-scheme='dark'] #diagramContainer .djs-connection .djs-visual > path {
   stroke: #c0ccda !important;
@@ -318,7 +318,6 @@
   fill: #f1f5fb !important;
 }
 
-/* Semantic BPMN colors tuned for dark backgrounds. */
 [data-joy-color-scheme='dark'] .process-viewer-canvas .djs-shape.bpmn-start-event .djs-visual > circle,
 [data-joy-color-scheme='dark'] #diagramContainer .djs-shape.bpmn-start-event .djs-visual > circle {
   stroke: #69d391 !important;
