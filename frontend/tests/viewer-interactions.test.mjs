@@ -312,3 +312,14 @@ test('Viewer reuses one parsed BPMN document through a dedicated RACI analysis h
   assert.ok(analysisHook.includes('laneIdByRole'));
   assert.ok(viewer.includes('useViewerRaciAnalysis(xmlContent)'));
 });
+
+test('Viewer delegates RACI issue analysis and filtering to a dedicated hook', async () => {
+  const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+  const filters = await read('src/Containers/ContentViewer/hooks/useViewerRaciFilters.ts');
+
+  assert.ok(viewer.includes('useViewerRaciFilters(raciMatrix'));
+  assert.ok(viewer.includes('filteredActivities'));
+  assert.ok(filters.includes('analyzeRaciMatrix(raciMatrix)'));
+  assert.ok(filters.includes('filters.issuesOnly') === false);
+  assert.ok(filters.includes('actorFilter, codeFilter, issuesOnly'));
+});
