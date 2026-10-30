@@ -122,7 +122,10 @@ test('explorer delegates Call Activity and collapsed SubProcess links to the tes
   const hook = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
   const processLinks = await read('src/Components/BusinessComponents/FolderTree/processLinks.ts');
 
-  assert.match(hook, /import \{ getProcessLinks, resolveLinkedChildren \} from '\.\.\/processLinks'/);
+  assert.match(hook, /import \{ resolveLinkedChildren \} from '\.\.\/processLinks'/);
+  assert.match(hook, /import \{ explorerQuery \} from '\.\.\/\.\.\/\.\.\/\.\.\/api\/resources\/resources\.queries'/);
+  assert.match(hook, /useQuery\(explorerQuery\(\)\)/);
+  assert.doesNotMatch(hook, /getProcessLinks|contentsQuery|getXmlContentQuery/);
   assert.match(hook, /return resolveLinkedChildren\(processInfo\)/);
   assert.ok(processLinks.includes("getElementsByTagNameNS(BPMN_MODEL_NS, 'callActivity')"));
   assert.ok(processLinks.includes("getElementsByTagNameNS('*', 'BPMNShape')"));
