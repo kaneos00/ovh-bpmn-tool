@@ -31,6 +31,7 @@ describe('ContentTypeOrmRepository.findExplorerProcessLinks', () => {
       ]),
     ).resolves.toEqual({
       ok: [],
+      fail: null,
     });
     expect(query).toHaveBeenCalledTimes(1);
   });
