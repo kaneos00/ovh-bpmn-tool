@@ -4,7 +4,18 @@ import { apiClient } from '../../queryClient';
 
 export const QUERY_KEY = 'resources';
 
-export type ExplorerProcessLinks = {\n  resourceId: string;\n  processIds: string[];\n  targets: string[];\n};\n\nexport type ExplorerData = {\n  resources: Resource[];\n  links: ExplorerProcessLinks[];\n};\n\ntype ResourceAttrs = {
+export type ExplorerProcessLinks = {
+  resourceId: string;
+  processIds: string[];
+  targets: string[];
+};
+
+export type ExplorerData = {
+  resources: Resource[];
+  links: ExplorerProcessLinks[];
+};
+
+type ResourceAttrs = {
   name: string;
   description?: string;
   parentId?: string;
@@ -40,7 +51,12 @@ export const resourcesQuery = (filters?: ResourceQueryFilters) => {
   };
 };
 
-export const explorerQuery = () => ({\n  queryKey: [QUERY_KEY, 'explorer'],\n  queryFn: async (): Promise<ExplorerData> => apiClient.get('/resources/explorer/links'),\n});\n\nexport const foldersQuery = () => ({
+export const explorerQuery = () => ({
+  queryKey: [QUERY_KEY, 'explorer'],
+  queryFn: async (): Promise<ExplorerData> => apiClient.get('/resources/explorer/links'),
+});
+
+export const foldersQuery = () => ({
   queryKey: [QUERY_KEY, `type_${ResourceType.Folder}`],
   queryFn: async (): Promise<Resource[]> =>
     apiClient.get(`/resources?filter.type=${ResourceType.Folder}`),
