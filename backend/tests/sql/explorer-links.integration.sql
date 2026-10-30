@@ -69,15 +69,15 @@ BEGIN
   SELECT
     "resourceId",
     ARRAY(
-      SELECT regexp_replace(node::text, '^.*="([^"]*)".*$', '\\1')
+      SELECT regexp_replace(node::text, '^.*="([^"]*)".*$', '\1')
       FROM unnest(xpath('//*[local-name()="process"]/@id', content::xml)) AS extracted(node)
     ) AS process_ids,
     ARRAY(
-      SELECT regexp_replace(node::text, '^.*="([^"]*)".*$', '\\1')
+      SELECT regexp_replace(node::text, '^.*="([^"]*)".*$', '\1')
       FROM unnest(xpath('//*[local-name()="callActivity"]/@calledElement', content::xml)) AS extracted(node)
     ) AS call_targets,
     ARRAY(
-      SELECT regexp_replace(node::text, '^.*="([^"]*)".*$', '\\1')
+      SELECT regexp_replace(node::text, '^.*="([^"]*)".*$', '\1')
       FROM unnest(xpath('//*[local-name()="subProcess" and @id = //*[local-name()="BPMNShape" and @isExpanded="false"]/@bpmnElement]/@id', content::xml)) AS extracted(node)
     ) AS collapsed_targets
   INTO result
