@@ -36,11 +36,9 @@ import { ContentStatusEnum, type Content } from '../../Types';
 import { apiClient } from '../../queryClient';
 import { formatDateTime } from '../../shared/helpers/date';
 import { useViewerRaciAnalysis } from './hooks/useViewerRaciAnalysis';
-import {
-  analyzeRaciMatrix,
-  getRaciIssueLabel,
-} from '../../extensions/raci-engine';
+import { getRaciIssueLabel } from '../../extensions/raci-engine';
 import type { RaciCode } from '../../extensions/raci-engine';
+import { useViewerRaciFilters } from './hooks/useViewerRaciFilters';
 
 import './ContentViewerContainer.scss';
 
@@ -113,42 +111,12 @@ const ProcessContentViewer = () => {
 
   const selectedRole = selectedActivityId ? laneRoleByElement.get(selectedActivityId) ?? '' : '';
 
-  const raciAnalysis = useMemo(
-    () => analyzeRaciMatrix(raciMatrix),
-    [raciMatrix],
-  );
-
-  const issueByActivity = useMemo(
-    () => new Map(raciAnalysis.issues.map(issue => [issue.activityId, issue])),
-    [raciAnalysis],
-  );
-
-  const filteredActivities = useMemo(() => {
-    return raciMatrix.activities.filter(activity => {
-      const issue = issueByActivity.get(activity.elementId);
-
-      if (issuesOnly && !issue) return false;
-
-      if (actorFilter) {
-        const actorCell = activity.cells.find(
-          cell => cell.role === actorFilter,
-        );
-        if (!actorCell?.codes.length) return false;
-        if (codeFilter && !actorCell.codes.includes(codeFilter)) return false;
-      } else if (codeFilter) {
-        if (!activity.cells.some(cell => cell.codes.includes(codeFilter)))
-          return false;
-      }
-
-      return true;
+  const { raciAnalysis, issueByActivity, filteredActivities } =
+    useViewerRaciFilters(raciMatrix, {
+      actorFilter,
+      codeFilter,
+      issuesOnly,
     });
-  }, [
-    raciMatrix.activities,
-    issueByActivity,
-    actorFilter,
-    codeFilter,
-    issuesOnly,
-  ]);
 
   return (
     <Box className={`processViewerWorkspace viewerLayout ${folderOpen ? 'sidebar-open' : 'sidebar-collapsed'} ${infoPanelOpen ? 'info-open' : ''}`}>
