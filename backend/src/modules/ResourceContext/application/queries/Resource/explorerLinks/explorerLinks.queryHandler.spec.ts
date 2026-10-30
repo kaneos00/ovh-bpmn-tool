@@ -16,13 +16,19 @@ describe('ExplorerLinksQueryHandler', () => {
 
   it('returns the process link metadata provided by the repository', async () => {
     const links = [
-      { resourceId: 'resource-a', processIds: ['Process_A'], targets: ['resource-b'] },
+      {
+        resourceId: 'resource-a',
+        processIds: ['Process_A'],
+        targets: ['resource-b'],
+      },
     ];
     repository.findExplorerProcessLinks.mockResolvedValue(ok(links));
 
     await expect(handler.execute(['resource-a'])).resolves.toEqual(ok(links));
     expect(repository.findExplorerProcessLinks).toHaveBeenCalledTimes(1);
-    expect(repository.findExplorerProcessLinks).toHaveBeenCalledWith(['resource-a']);
+    expect(repository.findExplorerProcessLinks).toHaveBeenCalledWith(
+      ['resource-a'],
+    );
   });
 
   it('propagates repository failures without hiding the error', async () => {
