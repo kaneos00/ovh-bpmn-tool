@@ -1,6 +1,6 @@
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Injectable, Logger } from '@nestjs/common';
+import { DataSource, Repository } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 
 import {
   ContentFilters,
@@ -16,6 +16,7 @@ import {
 } from '../../../../../shared-kernel/utils/Result';
 import { ContentMapper } from '../../mappers/content.mapper';
 import { ContentTypeOrmEntity } from '../../entities/content.ormEntity';
+import { ResourceTypeOrmEntity } from '../../entities/resource.ormEntity';
 import { ContentStatusEnum } from '../../../../../modules/ResourceContext/shared/types/Content';
 
 import type { Maybe } from '../../../../../shared-kernel/utils/Maybe';
@@ -28,7 +29,80 @@ export class ContentTypeOrmRepository implements ContentRepository {
   constructor(
     @InjectRepository(ContentTypeOrmEntity)
     private readonly contentRepository: Repository<ContentTypeOrmEntity>,
+    @Optional() @InjectDataSource()
+    private readonly dataSource?: DataSource,
   ) {}
+
+  async publishAtomically(params: {
+    resourceId: string;
+    contentId: string;
+    updatedBy: string;
+    pngContent: string;
+    authToken: string;
+  }): Promise<Result<Content, Error>> {
+    if (!this.dataSource) {
+      return fail(new Error('Publication transaction requires a TypeORM data source'));
+    }
+
+    try {
+      return await this.dataSource.transaction(async (manager) => {
+        const resources = manager.getRepository(ResourceTypeOrmEntity);
+        const contents = manager.getRepository(ContentTypeOrmEntity);
+
+        // Lock the resource first: concurrent publications for the same
+        // resource are serialized, including the lookup of the prior version.
+        const resource = await resources.findOne({
+          where: { id: params.resourceId },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!resource) throw new Error('Resource no longer exists');
+        if (resource.type === 'folder') {
+          throw new Error('A folder cannot receive published content');
+        }
+
+        const contentEntity = await contents.findOne({
+          where: { id: params.contentId, resourceId: params.resourceId },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!contentEntity) throw new Error('Draft content no longer exists');
+        if (contentEntity.status && contentEntity.status !== ContentStatusEnum.Draft) {
+          throw new Error('Content is no longer a draft');
+        }
+
+        const previousPublished = await contents.findOne({
+          where: { resourceId: params.resourceId, status: ContentStatusEnum.Published },
+          order: { version: 'DESC' },
+          lock: { mode: 'pessimistic_write' },
+        });
+
+        if (previousPublished && previousPublished.id !== contentEntity.id) {
+          const previous = ContentMapper.fromPersistence(previousPublished);
+          if (previous.fail) throw previous.fail;
+          previous.ok.makeObsolete(params.updatedBy);
+          await contents.save(ContentMapper.toPersistence(previous.ok));
+        }
+
+        const contentResult = ContentMapper.fromPersistence(contentEntity);
+        if (contentResult.fail) throw contentResult.fail;
+        contentResult.ok.publish(params.updatedBy, params.pngContent);
+        const savedContent = await contents.save(ContentMapper.toPersistence(contentResult.ok));
+
+        if (!resource.authToken) {
+          resource.authToken = params.authToken;
+          await resources.save(resource);
+        }
+
+        const mapped = ContentMapper.fromPersistence(savedContent);
+        if (mapped.fail) throw mapped.fail;
+        return ok(mapped.ok);
+      });
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      const errorMsg = `Atomic content publication failed: ${detail}`;
+      this.logger.error(errorMsg, error instanceof Error ? error.stack : detail);
+      return fail(new Error(errorMsg));
+    }
+  }
 
   async save(content: Content): Promise<Result<Content, Error>> {
     try {
