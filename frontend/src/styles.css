@@ -401,3 +401,25 @@ body {
 [data-joy-color-scheme='dark'] .login-page .MuiTypography-root {
   color: #203047;
 }
+
+/* react-complex-tree may expose selected state on the item button, title,
+   list item, or data marker depending on its rendered structure. */
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button[aria-selected='true'],
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-title[aria-selected='true'],
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-li[aria-selected='true'],
+[data-joy-color-scheme='dark'] .viewerFolderPanel [data-rct-selected='true'],
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button[aria-selected='true'],
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-title[aria-selected='true'],
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-li[aria-selected='true'],
+[data-joy-color-scheme='dark'] .processExplorerPanel [data-rct-selected='true'] {
+  color: #ffffff !important;
+  background-color: #285b96 !important;
+  border-radius: 6px !important;
+  box-shadow: inset 3px 0 0 #8fc2ff !important;
+}
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-button[aria-selected='true'] *,
+[data-joy-color-scheme='dark'] .viewerFolderPanel .rct-tree-item-title[aria-selected='true'] *,
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-button[aria-selected='true'] *,
+[data-joy-color-scheme='dark'] .processExplorerPanel .rct-tree-item-title[aria-selected='true'] * {
+  color: #ffffff !important;
+}
