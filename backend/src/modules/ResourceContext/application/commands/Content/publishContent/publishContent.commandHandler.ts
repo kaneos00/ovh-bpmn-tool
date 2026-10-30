@@ -8,7 +8,11 @@ import {
 import { ResourceTypeEnum } from '../../../../../../modules/ResourceContext/shared/types/Resource';
 import { Result, ok, fail } from '../../../../../../shared-kernel/utils/Result';
 import { Content } from '../../../../../../modules/ResourceContext/domain/Content/Content';
-import { CannotPublishContentError } from './publishContent.error';
+import {
+  BadContentStatusForPublishError,
+  CannotPublishContentError,
+} from './publishContent.error';
+import { ContentStatusEnum } from '../../../../../../modules/ResourceContext/shared/types/Content';
 import { CannotFindContentError } from '../content.error';
 import { PublishContentCommand } from './publishContent.command';
 import { randomBytes } from 'crypto';
@@ -43,6 +47,18 @@ export class PublishContentCommandHandler {
         new CannotFindContentError(
           contentId,
           new Error('Content does not belong to the requested resource'),
+        ),
+      );
+    }
+
+    if (
+      contentResult.ok.state.status &&
+      contentResult.ok.state.status !== ContentStatusEnum.Draft
+    ) {
+      return fail(
+        new BadContentStatusForPublishError(
+          contentId,
+          contentResult.ok.state.status,
         ),
       );
     }
