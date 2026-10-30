@@ -28,7 +28,6 @@ test('dark theme defines shared application surfaces and form controls', async (
   assert.ok(css.includes("[data-joy-color-scheme='dark'] input"));
   assert.ok(css.includes("[data-joy-color-scheme='dark'] .MuiDivider-root"));
   assert.ok(css.includes("[data-joy-color-scheme='dark'] .login-page"));
-  assert.ok(css.includes("[data-joy-color-scheme='dark'] .theme-light-explorer"));
   assert.ok(css.includes("#3a4b61"));
   assert.match(css, /\.theme-mode-toggle\s*\{[^}]*position:\s*fixed/);
 });
@@ -74,10 +73,10 @@ test('login and resource explorer retain light surfaces in dark mode', async () 
   const css = await read('src/styles.css');
   assert.ok(login.includes('className="login-page"'));
   assert.ok(login.includes('data-joy-color-scheme="light"'));
-  assert.ok(tree.includes('className="theme-light-explorer"'));
-  assert.ok(tree.includes('data-joy-color-scheme="light"'));
+  assert.doesNotMatch(tree, /theme-light-explorer|data-joy-color-scheme="light"/);
   assert.ok(css.includes('.login-page .MuiCard-root'));
-  assert.ok(css.includes('.theme-light-explorer .MuiInput-root'));
+  assert.ok(css.includes('.viewerFolderPanel .MuiInput-root'));
+  assert.ok(css.includes(".viewerFolderPanel .rct-tree-item-button[aria-selected='true']"));
 });
 
 test('dark theme gives RACI matrix a dark surface and outlined controls', async () => {
@@ -85,4 +84,13 @@ test('dark theme gives RACI matrix a dark surface and outlined controls', async 
   assert.ok(css.includes("[data-joy-color-scheme='dark'] .raci-table td"));
   assert.ok(css.includes('border: 1px solid #ffffff'));
   assert.ok(css.includes('background: #202d3e'));
+});
+
+test('dark theme styles BPMN shapes, connectors, labels and text annotations', async () => {
+  const css = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
+  assert.ok(css.includes("[data-joy-color-scheme='dark'] .process-viewer-canvas"));
+  assert.ok(css.includes('.djs-shape:not(.djs-label) .djs-visual > rect'));
+  assert.ok(css.includes('.djs-connection .djs-visual > path'));
+  assert.ok(css.includes('.djs-element text'));
+  assert.ok(css.includes('.bpmn-text-annotation .djs-visual > path'));
 });
