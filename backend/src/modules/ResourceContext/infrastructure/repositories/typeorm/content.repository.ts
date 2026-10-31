@@ -179,7 +179,9 @@ export class ContentTypeOrmRepository implements ContentRepository {
       return this.findOne(params.contentId);
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Error while updating editable content fields: ${detail}`);
+      this.logger.error(
+        `Error while updating editable content fields: ${detail}`,
+      );
       return fail(new Error('Error while updating content'));
     }
   }
