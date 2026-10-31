@@ -525,14 +525,9 @@ export const ProcessDetails = ({
     }
   };
 
-  if (isLoading) {
-    return (
-      <Stack gap={2}>
-        <Skeleton variant="rectangular" height={200} />
-        <Skeleton variant="rectangular" height={200} />
-      </Stack>
-    );
-  }
+  // Keep the explorer and workspace mounted while the newly selected
+  // process loads. Replacing the whole ProcessDetails tree with skeletons
+  // makes navigation look like a full page reload and resets local UI state.
 
   return (
     <Box
@@ -571,7 +566,12 @@ export const ProcessDetails = ({
 
         <TabPanel value={0} className="processViewerTabPanel processViewerProcessTab">
           <Sheet className="processViewerDiagram" variant="outlined">
-            {viewerContent ? (
+            {isLoading ? (
+              <Stack gap={2} padding={2}>
+                <Skeleton variant="rectangular" height={72} />
+                <Skeleton variant="rectangular" height={360} />
+              </Stack>
+            ) : viewerContent ? (
               <>
                 <Stack
                   direction="row"
