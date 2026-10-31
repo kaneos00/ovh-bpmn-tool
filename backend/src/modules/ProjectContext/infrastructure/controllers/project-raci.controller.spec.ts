@@ -9,9 +9,8 @@ import { ProjectRaciRole } from '../entities/projectRaciEntry.ormEntity';
 import { ProjectRaciController } from './project-raci.controller';
 
 describe('ProjectRaciController actor register', () => {
-  const configService = { getOrThrow: jest.fn().mockReturnValue('x-user') };
+  const projectResourceAccess = { assertProjectRole: jest.fn() };
   const dataSource = { transaction: jest.fn() };
-  const projectMembers = { findOne: jest.fn() };
   const projectProcesses = { find: jest.fn() };
   const entries = {
     find: jest.fn(),
@@ -38,8 +37,19 @@ describe('ProjectRaciController actor register', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     dataSource.transaction.mockReset();
-    configService.getOrThrow.mockReturnValue('x-user');
-    projectMembers.findOne.mockResolvedValue(membership);
+    projectResourceAccess.assertProjectRole.mockImplementation(
+      async (_projectId, _headers, minimumRole) => {
+        const rank = {
+          [ProjectMemberRole.Viewer]: 1,
+          [ProjectMemberRole.Modeler]: 2,
+          [ProjectMemberRole.Admin]: 3,
+        };
+        if (rank[membership.role] < rank[minimumRole]) {
+          throw new ForbiddenException();
+        }
+        return 'alice';
+      },
+    );
     projectProcesses.find.mockResolvedValue([]);
     actors.find.mockResolvedValue([]);
     actors.findOne.mockResolvedValue(null);
@@ -48,7 +58,9 @@ describe('ProjectRaciController actor register', () => {
   });
 
   it('requires project membership before exposing the actor register', async () => {
-    projectMembers.findOne.mockResolvedValue(null);
+    projectResourceAccess.assertProjectRole.mockRejectedValue(
+      new ForbiddenException(),
+    );
 
     await expect(
       controllerCall().getProjectActors('project-1', headers),
@@ -248,9 +260,8 @@ describe('ProjectRaciController actor register', () => {
   function controllerCall() {
     if (!controller) {
       controller = new ProjectRaciController(
-        configService as never,
+        projectResourceAccess as never,
         dataSource as never,
-        projectMembers as never,
         projectProcesses as never,
         entries as never,
         actors as never,
