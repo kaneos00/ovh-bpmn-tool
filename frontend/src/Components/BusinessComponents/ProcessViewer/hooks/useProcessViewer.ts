@@ -33,7 +33,9 @@ export const useProcessViewer = (
     getXmlContentQuery(resourceId, contentId),
   );
 
-  const viewer = useMemo(() => getViewerInstance(), []);
+  // Recreate the Viewer when provider extensions/modules change; an empty
+  // dependency list would permanently capture the initial provider options.
+  const viewer = useMemo(() => getViewerInstance(), [getViewerInstance]);
   const setMinimapVisibility = useCallback((visible: boolean) => {
     setMinimapVisible(visible);
     const minimap = viewer.get('minimap') as { open?: () => void; close?: () => void };
