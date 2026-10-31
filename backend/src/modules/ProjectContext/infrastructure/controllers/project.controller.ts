@@ -53,7 +53,7 @@ export class ProjectController {
   @Get()
   @UseAcl()
   async listProjects(@Headers() headers: RequestHeaders) {
-    const userId = this.getUserId(headers);
+    const userId = this.projectResourceAccess.getAuthenticatedUserId(headers);
     const memberships = await this.projectMembers.find({ where: { userId } });
     if (!memberships.length) return [];
     return this.projects.find({
@@ -69,7 +69,7 @@ export class ProjectController {
   @Get('me/workspace')
   @UseAcl()
   async getMyWorkspace(@Headers() headers: RequestHeaders) {
-    const userId = this.getUserId(headers);
+    const userId = this.projectResourceAccess.getAuthenticatedUserId(headers);
     const memberships = await this.projectMembers.find({
       where: { userId },
       order: { createdAt: 'ASC' },
@@ -144,7 +144,7 @@ export class ProjectController {
     const projectIds = [...new Set(links.map((link) => link.projectId))];
     if (!projectIds.length) return { shared: false, projects: [] };
 
-    const userId = this.getUserId(headers);
+    const userId = this.projectResourceAccess.getAuthenticatedUserId(headers);
     const groupsHeader =
       this.configService.getOrThrow<string>('userGroupsHeader');
     const groups =
@@ -188,7 +188,7 @@ export class ProjectController {
     @Body() body: { name?: string; description?: string },
     @Headers() headers: RequestHeaders,
   ) {
-    const userId = this.getUserId(headers);
+    const userId = this.projectResourceAccess.getAuthenticatedUserId(headers);
     const name = body.name?.trim();
     if (!name) throw new BadRequestException('Project name is required');
     if (name.length > 255) {
@@ -328,7 +328,7 @@ export class ProjectController {
     @Body() body: { role?: ProjectMemberRole },
     @Headers() headers: RequestHeaders,
   ) {
-    const actorId = this.getUserId(headers);
+    const actorId = this.projectResourceAccess.getAuthenticatedUserId(headers);
     const userId = this.validateUserId(userIdParam);
     const role = this.validateMemberRole(body.role);
     return this.changeProjectMember(projectId, userId, role, actorId);
@@ -490,7 +490,7 @@ export class ProjectController {
     },
     @Headers() headers: RequestHeaders,
   ) {
-    const userId = this.getUserId(headers);
+    const userId = this.projectResourceAccess.getAuthenticatedUserId(headers);
     await this.assertProjectRole(projectId, headers, ProjectMemberRole.Modeler);
     if (!body.resourceId) {
       throw new BadRequestException('resourceId is required');
@@ -562,7 +562,7 @@ export class ProjectController {
     },
     @Headers() headers: RequestHeaders,
   ) {
-    const userId = this.getUserId(headers);
+    const userId = this.projectResourceAccess.getAuthenticatedUserId(headers);
     await this.assertProjectRole(projectId, headers, ProjectMemberRole.Modeler);
 
     if (!body.sourceResourceId) {
@@ -731,7 +731,7 @@ export class ProjectController {
     @Body() body: { role?: ProjectMemberRole },
     @Headers() headers: RequestHeaders,
   ) {
-    const actorId = this.getUserId(headers);
+    const actorId = this.projectResourceAccess.getAuthenticatedUserId(headers);
     const userId = this.validateUserId(userIdParam);
     const role = this.validateMemberRole(body.role);
     return this.changeProjectMember(projectId, userId, role, actorId, headers);
@@ -791,7 +791,7 @@ export class ProjectController {
 
       const members = manager.getRepository(ProjectMemberTypeOrmEntity);
       if (headers) {
-        const requesterId = this.getUserId(headers);
+        const requesterId = this.projectResourceAccess.getAuthenticatedUserId(headers);
         const requester = await members.findOneBy({
           projectId,
           userId: requesterId,
@@ -837,16 +837,6 @@ export class ProjectController {
     });
   }
 
-  private getUserId(headers: RequestHeaders): string {
-    const configuredHeader =
-      this.configService.getOrThrow<string>('userHeader');
-    const userId =
-      headers[configuredHeader] ?? headers[configuredHeader.toLowerCase()];
-    if (!userId?.trim()) {
-      throw new ForbiddenException('Authenticated user identity is missing');
-    }
-    return userId.trim();
-  }
 
   private async assertProjectReadRole(
     projectId: string,
