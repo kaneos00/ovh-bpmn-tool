@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Await, Outlet, useNavigate, useParams } from 'react-router-dom';
+import { Outlet, useNavigate, useParams } from 'react-router-dom';
 import { Box, Sheet, Stack } from '@mui/joy';
 
 import { ProcessDetails } from '../../Components/BusinessComponents/ProcessDetails';
@@ -93,71 +93,67 @@ export const Component = () => {
       className="mainContainer processViewerActive"
     >
       <Sheet className="innerContent">
-        <React.Suspense fallback={<BpmnContentLoading />}>
-          <Await resolve={resource}>
-            {resource && (
-              <>
-                <WorkspaceNavigation />
-                <Header
-                  title={resource.name}
-                  description={resource.description}
-                  breadcrumbs={getBreadCrumbs()}
-                  actions={
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      {actions}
-                    </Stack>
-                  }
-                />
-                {isFolder(resource) ? (
-                  <Box className="processViewerLayout" aria-label="Espace du dossier">
-                    <Box className="processViewerWorkspace" style={{ "--explorer-width": `${folderExplorerWidth}px` } as React.CSSProperties}>
-                      <ViewerExplorerPanel
-                        variant="process-details"
-                        selectedId={resourceId}
-                        onNodeClick={callbacks.folderTree.onFolderTreeItemClick}
-                        collapsed={folderExplorerCollapsed}
-                        onToggle={() => setFolderExplorerCollapsed(value => !value)}
-                        showHistory
-                        onBack={() => navigate(-1)}
-                        onForward={() => navigate(1)}
-                      />
-                      {!folderExplorerCollapsed && (
-                        <Box
-                          className="processViewerResizeHandle"
-                          role="separator"
-                          aria-label="Redimensionner le panneau explorateur"
-                          title="Glisser pour régler la largeur de l’explorateur"
-                          onMouseDown={startFolderExplorerResize}
-                        />
-                      )}
-                      <Sheet className="processViewerDiagram folderViewerEmptyState" variant="outlined">
-                        <FolderOverview resource={resource} />
-                      </Sheet>
-                    </Box>
-                  </Box>
-                ) : (
-                  <ProcessDetails
-                    resourceId={resourceId}
-                    onContentUpload={callbacks.processDetails.onContentUpload}
-                    onContentPublish={callbacks.processDetails.onContentPublish}
-                    onContentErase={callbacks.processDetails.onContentErase}
-                    onContentClone={callbacks.processDetails.onContentClone}
-                    onContentViewerLinkCopy={
-                      callbacks.processDetails.onContentViewerLinkCopy
-                    }
-                    onCompareClick={callbacks.processDetails.onCompareClick}
-                    selectedElementId={selectedElementId}
-                    onElementSelect={setSelectedElementId}
-                    selectedContentId={requestedContentId}
-                    requestedRaciView={requestedRaciView}
-                    readOnlyShell
-                  />
-                )}
-                <Outlet />
-              </>
-            )}
-          </Await>
-        </React.Suspense>
+        {resource ? (
+                          <WorkspaceNavigation />
+                          <Header
+                            title={resource.name}
+                            description={resource.description}
+                            breadcrumbs={getBreadCrumbs()}
+                            actions={
+                              <Stack direction="row" spacing={1} alignItems="center">
+                                {actions}
+                              </Stack>
+                            }
+                          />
+                          {isFolder(resource) ? (
+                            <Box className="processViewerLayout" aria-label="Espace du dossier">
+                              <Box className="processViewerWorkspace" style={{ "--explorer-width": `${folderExplorerWidth}px` } as React.CSSProperties}>
+                                <ViewerExplorerPanel
+                                  variant="process-details"
+                                  selectedId={resourceId}
+                                  onNodeClick={callbacks.folderTree.onFolderTreeItemClick}
+                                  collapsed={folderExplorerCollapsed}
+                                  onToggle={() => setFolderExplorerCollapsed(value => !value)}
+                                  showHistory
+                                  onBack={() => navigate(-1)}
+                                  onForward={() => navigate(1)}
+                                />
+                                {!folderExplorerCollapsed && (
+                                  <Box
+                                    className="processViewerResizeHandle"
+                                    role="separator"
+                                    aria-label="Redimensionner le panneau explorateur"
+                                    title="Glisser pour régler la largeur de l’explorateur"
+                                    onMouseDown={startFolderExplorerResize}
+                                  />
+                                )}
+                                <Sheet className="processViewerDiagram folderViewerEmptyState" variant="outlined">
+                                  <FolderOverview resource={resource} />
+                                </Sheet>
+                              </Box>
+                            </Box>
+                          ) : (
+                            <ProcessDetails
+                              resourceId={resourceId}
+                              onContentUpload={callbacks.processDetails.onContentUpload}
+                              onContentPublish={callbacks.processDetails.onContentPublish}
+                              onContentErase={callbacks.processDetails.onContentErase}
+                              onContentClone={callbacks.processDetails.onContentClone}
+                              onContentViewerLinkCopy={
+                                callbacks.processDetails.onContentViewerLinkCopy
+                              }
+                              onCompareClick={callbacks.processDetails.onCompareClick}
+                              selectedElementId={selectedElementId}
+                              onElementSelect={setSelectedElementId}
+                              selectedContentId={requestedContentId}
+                              requestedRaciView={requestedRaciView}
+                              readOnlyShell
+                            />
+                          )}
+                          <Outlet />
+        ) : (
+          <BpmnContentLoading />
+        )}
       </Sheet>
     </div>
   );
