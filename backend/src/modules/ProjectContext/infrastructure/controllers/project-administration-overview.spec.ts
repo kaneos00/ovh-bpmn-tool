@@ -117,7 +117,9 @@ describe('ProjectController administration overview', () => {
       resources as never,
       projectMembers as never,
       {
-        getAuthenticatedUserId: jest.fn().mockReturnValue('x-user'),
+        getAuthenticatedUserId: jest.fn(
+          (headers: Record<string, string | undefined>) => headers['x-user'] ?? '',
+        ),
       } as never,
     );
   });
