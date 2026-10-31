@@ -15,6 +15,7 @@ describe('ProjectResourceAccessService', () => {
   };
   const projectMembers = {
     find: jest.fn(),
+    findOne: jest.fn(),
   };
   const resources = {
     find: jest.fn(),
@@ -36,6 +37,30 @@ describe('ProjectResourceAccessService', () => {
   });
 
   const headers = { 'x-user': 'alice' };
+
+  it('enforces the shared Viewer, Modeler and Admin role hierarchy', async () => {
+    projectMembers.findOne.mockResolvedValue({
+      projectId: 'project-1',
+      userId: 'alice',
+      role: ProjectMemberRole.Modeler,
+    });
+
+    await expect(
+      service.assertProjectRole('project-1', headers, ProjectMemberRole.Viewer),
+    ).resolves.toBe('alice');
+    await expect(
+      service.assertProjectRole('project-1', headers, ProjectMemberRole.Modeler),
+    ).resolves.toBe('alice');
+    await expect(
+      service.assertProjectRole('project-1', headers, ProjectMemberRole.Admin),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('rejects project access when the authenticated identity is missing', async () => {
+    await expect(
+      service.assertProjectRole('project-1', {}, ProjectMemberRole.Viewer),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
 
   it('allows reading a resource that is not linked to a project', async () => {
     await expect(
