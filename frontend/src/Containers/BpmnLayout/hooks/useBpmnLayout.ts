@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useQuery } from 'react-query';
 import {
   useActionData,
@@ -33,7 +33,13 @@ export const useBpmnLayout = () => {
   const submit = useSubmit();
   const { showAlert } = useSnackbar();
 
-  const { resource } = useResource(resourceId);
+  const { resource: fetchedResource } = useResource(resourceId);
+  // Keep the previous resource available while React Query fetches the next one.
+  // This prevents the route shell (and, for process-to-process navigation, the
+  // explorer inside ProcessDetails) from being replaced by a Suspense fallback.
+  const previousResourceRef = useRef<Resource | undefined>(undefined);
+  if (fetchedResource) previousResourceRef.current = fetchedResource;
+  const resource = fetchedResource ?? previousResourceRef.current;
   const { data: contents } = useQuery({
     ...contentsQuery(resourceId),
     enabled: Boolean(resource && resource.type === ResourceType.Process),
