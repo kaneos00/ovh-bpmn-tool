@@ -475,7 +475,7 @@ test('V3 central viewer exposes the data inventory and saves it through the exis
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
 
-  assert.match(details, /<Tab value=\{4\}>Inventaire des données<\/Tab>/);
+  assert.match(details, /<Tab value=\{4\}>Informations documentées<\/Tab>/);
   assert.match(details, /<TabPanel value=\{4\} className="processViewerTabPanel">[\s\S]*?<DataInventory/s);
   assert.match(details, /await saveContent\(resourceId, viewerContent\.id, \{ content: updatedXml \}\)/);
   assert.match(details, /canEdit=\{canEditDescription\}/);
