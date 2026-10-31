@@ -19,15 +19,19 @@ const saveContentAction = async (
 
   const response = await saveContent(resourceId, contentId, contentData);
 
-  queryClient.invalidateQueries({
-    queryKey: contentsQuery(resourceId).queryKey,
-  });
-  queryClient.invalidateQueries({
-    queryKey: getContentQuery(resourceId, contentId).queryKey,
-  });
-  queryClient.invalidateQueries({
-    queryKey: getXmlContentQuery(resourceId, contentId).queryKey,
-  });
+  // Wait for refreshed metadata and XML before navigating to the publication
+  // preview; otherwise the preview can briefly use the previous draft content.
+  await Promise.all([
+    queryClient.invalidateQueries({
+      queryKey: contentsQuery(resourceId).queryKey,
+    }),
+    queryClient.invalidateQueries({
+      queryKey: getContentQuery(resourceId, contentId).queryKey,
+    }),
+    queryClient.invalidateQueries({
+      queryKey: getXmlContentQuery(resourceId, contentId).queryKey,
+    }),
+  ]);
 
   return response;
 };
