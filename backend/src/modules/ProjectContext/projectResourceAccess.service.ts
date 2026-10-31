@@ -47,6 +47,19 @@ export class ProjectResourceAccessService {
     return userId.trim();
   }
 
+  /** Organization-level group checks shared by project controllers. */
+  hasOrganizationAdminRole(headers: RequestHeaders): boolean {
+    return this.getUserGroups(headers).some((group) =>
+      group.startsWith('bpmn-tool-admin-'),
+    );
+  }
+
+  hasOrganizationReadWriteRole(headers: RequestHeaders): boolean {
+    return this.getUserGroups(headers).some((group) =>
+      group.startsWith('bpmn-tool-readwrite-'),
+    );
+  }
+
   /** Shared role hierarchy for project-scoped controllers. */
   async assertProjectRole(
     projectId: string,
@@ -185,7 +198,7 @@ export class ProjectResourceAccessService {
     if (links.some((link) => link.usage === ProjectProcessUsage.Common)) {
       if (
         options.allowCommonForOrganizationAdmin &&
-        this.isOrganizationAdmin(headers)
+        this.hasOrganizationAdminRole(headers)
       ) {
         return;
       }
@@ -275,15 +288,13 @@ export class ProjectResourceAccessService {
     }
   }
 
-  private isOrganizationAdmin(headers: RequestHeaders): boolean {
+  private getUserGroups(headers: RequestHeaders): string[] {
     const configuredHeader =
       this.configService.getOrThrow<string>('userGroupsHeader');
     const groups =
       headers[configuredHeader] ??
       headers[configuredHeader.toLowerCase()] ??
       '';
-    return groups
-      .split(',')
-      .some((group) => group.trim().startsWith('bpmn-tool-admin-'));
+    return groups.split(',').map((group) => group.trim());
   }
 }
