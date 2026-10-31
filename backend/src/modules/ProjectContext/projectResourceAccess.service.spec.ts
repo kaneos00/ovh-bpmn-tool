@@ -49,7 +49,11 @@ describe('ProjectResourceAccessService', () => {
       service.assertProjectRole('project-1', headers, ProjectMemberRole.Viewer),
     ).resolves.toBe('alice');
     await expect(
-      service.assertProjectRole('project-1', headers, ProjectMemberRole.Modeler),
+      service.assertProjectRole(
+        'project-1',
+        headers,
+        ProjectMemberRole.Modeler,
+      ),
     ).resolves.toBe('alice');
     await expect(
       service.assertProjectRole('project-1', headers, ProjectMemberRole.Admin),
