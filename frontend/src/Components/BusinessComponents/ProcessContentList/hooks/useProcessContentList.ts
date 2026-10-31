@@ -52,6 +52,11 @@ export const useProcessContentList = (contents: Content[]) => {
       header: 'Updated At',
       cell: info => formatDateTime(info.getValue()),
     }),
+    columnHelper.accessor('changeComment', {
+      id: 'changeComment',
+      header: 'Commentaire des modifications',
+      cell: info => info.getValue()?.trim() || '—',
+    }),
     columnHelper.display({
       id: 'actions',
     }),
