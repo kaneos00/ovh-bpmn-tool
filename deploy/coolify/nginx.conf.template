@@ -1,4 +1,9 @@
+# Never write query strings or referrers to access logs: legacy export URLs
+# may still contain bearer tokens in the authToken query parameter.
+log_format bpmn_safe '$remote_addr - [$time_local] "$request_method $uri $server_protocol" $status $body_bytes_sent';
+
 server {
+    access_log /dev/stdout bpmn_safe;
     listen 80;
     server_name _;
     root /usr/share/nginx/html;
