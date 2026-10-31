@@ -60,6 +60,29 @@ describe('ProjectResourceAccessService', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
+  it('applies consistent organization admin and read-write group checks', () => {
+    const organizationAdminHeaders = {
+      'x-user-groups': 'bpmn-tool-admin-global',
+    };
+    const organizationModelerHeaders = {
+      'x-user-groups': 'bpmn-tool-readwrite-global',
+    };
+
+    expect(
+      service.hasOrganizationAdminRole(organizationAdminHeaders),
+    ).toBe(true);
+    expect(
+      service.hasOrganizationReadWriteRole(organizationAdminHeaders),
+    ).toBe(false);
+    expect(
+      service.hasOrganizationAdminRole(organizationModelerHeaders),
+    ).toBe(false);
+    expect(
+      service.hasOrganizationReadWriteRole(organizationModelerHeaders),
+    ).toBe(true);
+    expect(service.hasOrganizationAdminRole({})).toBe(false);
+  });
+
   it('rejects project access when the authenticated identity is missing', async () => {
     await expect(
       service.assertProjectRole('project-1', {}, ProjectMemberRole.Viewer),
