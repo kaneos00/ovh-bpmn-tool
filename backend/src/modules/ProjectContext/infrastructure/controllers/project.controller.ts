@@ -12,7 +12,6 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, IsNull, Repository } from 'typeorm';
 import { UseAcl } from '../../../../shared-kernel/modules/acl/infrastructure/acl.decorator';
@@ -37,7 +36,6 @@ type RequestHeaders = Record<string, string | undefined>;
 @Controller('projects')
 export class ProjectController {
   constructor(
-    private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
     @InjectRepository(ProjectTypeOrmEntity)
     private readonly projects: Repository<ProjectTypeOrmEntity>,
@@ -145,18 +143,11 @@ export class ProjectController {
     if (!projectIds.length) return { shared: false, projects: [] };
 
     const userId = this.projectResourceAccess.getAuthenticatedUserId(headers);
-    const groupsHeader =
-      this.configService.getOrThrow<string>('userGroupsHeader');
-    const groups =
-      headers[groupsHeader] ?? headers[groupsHeader.toLowerCase()] ?? '';
-    const isOrganizationAdmin = groups
-      .split(',')
-      .some((group) => group.trim().startsWith('bpmn-tool-admin-'));
+    const isOrganizationAdmin =
+      this.projectResourceAccess.hasOrganizationAdminRole(headers);
     const canSeeProjectNames =
       isOrganizationAdmin ||
-      groups
-        .split(',')
-        .some((group) => group.trim().startsWith('bpmn-tool-readwrite-'));
+      this.projectResourceAccess.hasOrganizationReadWriteRole(headers);
     const memberships = await this.projectMembers.find({
       where: projectIds.map((projectId) => ({ projectId, userId })),
     });
@@ -842,13 +833,8 @@ export class ProjectController {
     projectId: string,
     headers: RequestHeaders,
   ) {
-    const groupsHeader =
-      this.configService.getOrThrow<string>('userGroupsHeader');
-    const groups =
-      headers[groupsHeader] ?? headers[groupsHeader.toLowerCase()] ?? '';
-    const isOrganizationAdmin = groups
-      .split(',')
-      .some((group) => group.trim().startsWith('bpmn-tool-admin-'));
+    const isOrganizationAdmin =
+      this.projectResourceAccess.hasOrganizationAdminRole(headers);
     if (isOrganizationAdmin) {
       await this.assertProjectExists(projectId);
       return;
