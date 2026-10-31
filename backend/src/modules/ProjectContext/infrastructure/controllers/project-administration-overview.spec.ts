@@ -117,7 +117,6 @@ describe('ProjectController administration overview', () => {
       projectProcesses as never,
       resources as never,
       projectMembers as never,
-      {} as never,
     );
   });
 
