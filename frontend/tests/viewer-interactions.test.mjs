@@ -200,7 +200,9 @@ test('folder labels navigate to their page, chevrons expand branches and recent 
 
   assert.match(tree, /const handleTreeSelection = \(items: \(string \| number\)\[\]\) =>/);
   assert.ok(tree.includes('Selecting a folder opens its page; the dedicated chevron controls expansion.'));
-  assert.match(tree, /onNodeClick\(node\.targetId \?\? selected\)/);
+  assert.match(tree, /const targetId = node\.targetId \?\? selected;/);
+  assert.match(tree, /if \(targetId === selectedId\) return;/);
+  assert.match(tree, /onNodeClick\(targetId\)/);
   assert.match(tree, /onClick=\{event => \{[\s\S]*?toggleNodeExpansion\(nodeId\)/);
   assert.match(tree, /view !== 'recent' \|\| node\.type === 'process' \|\| node\.type === 'linked-process'/);
   assert.match(tree, /const processId = selectedNode\.targetId \?\? selectedNode\.id/);
