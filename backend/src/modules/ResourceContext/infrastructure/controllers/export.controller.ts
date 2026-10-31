@@ -3,8 +3,8 @@ import {
   Controller,
   ForbiddenException,
   Get,
-  Headers,
   Header,
+  Headers,
   NotFoundException,
   Param,
   Query,
@@ -50,7 +50,7 @@ export class ExportController {
     // Prefer the Authorization header to keep bearer credentials out of URLs.
     // Query-string tokens remain supported for backwards compatibility.
     const bearerToken = authorization
-      ? /^Bearer\\s+(.+)$/i.exec(authorization)?.[1]
+      ? /^Bearer\s+(.+)$/i.exec(authorization)?.[1]
       : undefined;
     const token = authorization ? bearerToken : authToken;
 
