@@ -1,5 +1,5 @@
 /* eslint-disable no-nested-ternary */
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Button,
@@ -222,16 +222,29 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
     return items;
   }, [dataTree, filteredTree]);
 
-  const handleTreeSelection = (items: (string | number)[]) => {
+  const treeViewState = useMemo(() => ({
+    'repository-tree': {
+      focusedItem: selectedTreeNodeId || 'root',
+      expandedItems: effectiveExpandedNodes,
+      selectedItems: selectedTreeNodeId ? [selectedTreeNodeId] : [],
+    },
+  }), [selectedTreeNodeId, effectiveExpandedNodes]);
+
+  const handleTreeSelection = useCallback((items: (string | number)[]) => {
     const selected = items.length ? String(items[0]) : '';
     if (!selected || selected === 'root') return;
     const node = nodeById.get(selected);
     if (!node) return;
 
+    const targetId = node.targetId ?? selected;
+    // The controlled tree can emit selection again as its focused/selected state
+    // is synchronized after route navigation. Avoid navigating to the same page.
+    if (targetId === selectedId) return;
+
     // Selecting a folder opens its page; the dedicated chevron controls expansion.
     // This keeps folder navigation separate from expanding/collapsing tree branches.
-    onNodeClick(node.targetId ?? selected);
-  };
+    onNodeClick(targetId);
+  }, [nodeById, onNodeClick, selectedId]);
 
   return (
     <>
@@ -289,13 +302,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
             <ControlledTreeEnvironment
               items={treeItems}
               getItemTitle={item => item.data.name}
-              viewState={{
-                'repository-tree': {
-                  focusedItem: selectedTreeNodeId || 'root',
-                  expandedItems: effectiveExpandedNodes,
-                  selectedItems: selectedTreeNodeId ? [selectedTreeNodeId] : [],
-                },
-              }}
+              viewState={treeViewState}
               onExpandItem={item => {
                 const nodeId = String(item.index);
                 if (isSearching) setSearchCollapsedNodes(current => current.filter(id => id !== nodeId));
