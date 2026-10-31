@@ -68,9 +68,9 @@ describe('ProjectResourceAccessService', () => {
       'x-user-groups': 'bpmn-tool-readwrite-global',
     };
 
-    expect(
-      service.hasOrganizationAdminRole(organizationAdminHeaders),
-    ).toBe(true);
+    expect(service.hasOrganizationAdminRole(organizationAdminHeaders)).toBe(
+      true,
+    );
     expect(
       service.hasOrganizationReadWriteRole(organizationAdminHeaders),
     ).toBe(false);
