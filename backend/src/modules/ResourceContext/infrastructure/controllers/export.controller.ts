@@ -3,6 +3,7 @@ import {
   Controller,
   ForbiddenException,
   Get,
+  Headers,
   Header,
   NotFoundException,
   Param,
@@ -33,11 +34,27 @@ export class ExportController {
 
   @Get('/export/:resourceId.png')
   @Header('Content-Type', 'image/png')
+  @Header(
+    'Cache-Control',
+    'private, no-store, no-cache, must-revalidate, max-age=0',
+  )
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
+  @Header('Referrer-Policy', 'no-referrer')
+  @Header('X-Content-Type-Options', 'nosniff')
   async exportPng(
     @Param() params: ExportPngParams,
     @Query('authToken') authToken?: string,
+    @Headers('authorization') authorization?: string,
   ): Promise<any> {
-    if (!authToken) {
+    // Prefer the Authorization header to keep bearer credentials out of URLs.
+    // Query-string tokens remain supported for backwards compatibility.
+    const bearerToken = authorization
+      ? /^Bearer\\s+(.+)$/i.exec(authorization)?.[1]
+      : undefined;
+    const token = authorization ? bearerToken : authToken;
+
+    if (!token) {
       throw new UnauthorizedException('No token found');
     }
 
@@ -72,7 +89,7 @@ export class ExportController {
 
     const resoure = getResourceQueryResult.ok;
 
-    if (resoure?.authToken !== authToken) {
+    if (resoure?.authToken !== token) {
       throw new UnauthorizedException('Invalid token');
     }
 
