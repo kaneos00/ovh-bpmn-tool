@@ -1,5 +1,5 @@
 import React from 'react';
-import { Await, Navigate } from 'react-router-dom';
+import { Await, Navigate, useLocation } from 'react-router-dom';
 
 import { usePublishResource } from './hooks/usePublishResource';
 import { BaseModal } from '../../Components/GenericComponents/BaseModal/BaseModal';
@@ -9,11 +9,13 @@ import { PublishContent } from './components/PublishContent';
 import { Button, DialogActions } from '@mui/joy';
 
 export const Component = () => {
+  const location = useLocation();
   const { loaderData, resource, base64Png, actionData, viewerRef, callbacks } =
     usePublishResource();
 
   if ((resource && resource.type === ResourceType.Folder) || actionData) {
-    return <Navigate to={`/${resource?.id}`} />;
+    const returnToModeler = location.pathname.endsWith('/modeler/publish');
+    return <Navigate to={`/${resource?.id}${returnToModeler ? '/modeler' : ''}`} />;
   }
 
   return (
