@@ -566,12 +566,13 @@ export const ProcessDetails = ({
 
         <TabPanel value={0} className="processViewerTabPanel processViewerProcessTab">
           <Sheet className="processViewerDiagram" variant="outlined">
-            {isLoading ? (
+            {isLoading && (
               <Stack gap={2} padding={2}>
                 <Skeleton variant="rectangular" height={72} />
                 <Skeleton variant="rectangular" height={360} />
               </Stack>
-            ) : viewerContent ? (
+            )}
+            {!isLoading && viewerContent && (
               <>
                 <Stack
                   direction="row"
@@ -606,11 +607,12 @@ export const ProcessDetails = ({
                   />
                 </Box>
               </>
-            ) : (
+            )}
+            {!isLoading && !viewerContent && (
               <Stack spacing={2} padding={2}>
                 <Typography level="title-md">
                   {selectedContentId
-                    ? 'La version demandée est indisponible ou ne peut pas être consultée.'
+                    ? 'La version demandée est indisponibile o non può essere consultata.'
                     : 'No published version'}
                 </Typography>
                 {!readOnlyShell && (
