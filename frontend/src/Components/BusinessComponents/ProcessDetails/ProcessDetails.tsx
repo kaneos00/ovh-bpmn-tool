@@ -918,6 +918,8 @@ export const ProcessDetails = ({
                 await queryClient.invalidateQueries(xmlContentQuery.queryKey);
                 showAlert({ message: 'Inventaire des données enregistré.', severity: 'success' });
               }}
+              onElementSelect={elementId => { setActiveViewerTab(0); onElementSelect?.(elementId); }}
+              onShowDiagram={() => setActiveViewerTab(0)}
             />
           </Sheet>
         </TabPanel>
