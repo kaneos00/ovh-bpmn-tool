@@ -35,6 +35,27 @@ export class ProjectResourceAccessService {
     private readonly resources: Repository<ResourceTypeOrmEntity>,
   ) {}
 
+  /** Shared role hierarchy for project-scoped controllers. */
+  async assertProjectRole(
+    projectId: string,
+    headers: RequestHeaders,
+    minimumRole: ProjectMemberRole,
+  ): Promise<string> {
+    const userId = this.getUserId(headers);
+    const membership = await this.projectMembers.findOne({
+      where: { projectId, userId },
+    });
+    const rank: Record<ProjectMemberRole, number> = {
+      [ProjectMemberRole.Viewer]: 1,
+      [ProjectMemberRole.Modeler]: 2,
+      [ProjectMemberRole.Admin]: 3,
+    };
+    if (!membership || rank[membership.role] < rank[minimumRole]) {
+      throw new ForbiddenException('Insufficient project role');
+    }
+    return userId;
+  }
+
   async assertCanReadResource(resourceId: string, headers: RequestHeaders) {
     const userId = this.getUserId(headers);
     const links = await this.projectProcesses.find({ where: { resourceId } });
