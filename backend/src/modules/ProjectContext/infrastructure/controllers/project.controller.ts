@@ -791,7 +791,8 @@ export class ProjectController {
 
       const members = manager.getRepository(ProjectMemberTypeOrmEntity);
       if (headers) {
-        const requesterId = this.projectResourceAccess.getAuthenticatedUserId(headers);
+        const requesterId =
+          this.projectResourceAccess.getAuthenticatedUserId(headers);
         const requester = await members.findOneBy({
           projectId,
           userId: requesterId,
@@ -836,7 +837,6 @@ export class ProjectController {
       return members.save(member);
     });
   }
-
 
   private async assertProjectReadRole(
     projectId: string,
