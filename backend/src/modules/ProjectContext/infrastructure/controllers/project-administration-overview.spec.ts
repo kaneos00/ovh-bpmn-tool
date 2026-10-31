@@ -111,12 +111,14 @@ describe('ProjectController administration overview', () => {
     ]);
 
     controller = new ProjectController(
-      { getOrThrow: jest.fn().mockReturnValue('x-user') } as never,
       dataSource as never,
       projects as never,
       projectProcesses as never,
       resources as never,
       projectMembers as never,
+      {
+        getAuthenticatedUserId: jest.fn().mockReturnValue('x-user'),
+      } as never,
     );
   });
 
