@@ -91,9 +91,13 @@ test('linked Call Activity opens its target only on double-click and handles mis
   assert.match(navigation, /type !== 'bpmn:SubProcess'/);
   assert.match(navigation, /type !== 'bpmn:Transaction'/);
   assert.match(navigation, /resolveProcessTarget\(targetId, processInfo\)/);
-  assert.ok(navigation.includes('await queryClient.fetchQuery(resourceQuery) ?? []'));
-  assert.ok(navigation.includes('await queryClient.fetchQuery(resourceContentsQuery) ?? []'));
-  assert.ok(navigation.includes("await queryClient.fetchQuery(\n                xmlQuery.queryKey,\n                xmlQuery.queryFn,\n                { cacheTime: 0, staleTime: 0 },\n              ) ?? ''"));
+  assert.ok(navigation.includes('const query = explorerQuery()'));
+  assert.ok(navigation.includes('queryClient.fetchQuery(\n            query.queryKey,\n            query.queryFn,\n            { staleTime: 30_000 },\n          )'));
+  assert.ok(navigation.includes('explorer.links.map(link => [link.resourceId, link])'));
+  assert.ok(navigation.includes('processIds: linksByResourceId.get(resource.id)?.processIds ?? []'));
+  assert.ok(!navigation.includes('getXmlContentQuery'));
+  assert.ok(!navigation.includes('contentsQuery'));
+  assert.ok(!navigation.includes('resourcesQuery'));
   assert.match(navigation, /navigate\(\`\/\$\{targetResourceId\}\`\)/);
   assert.match(navigation, /processus cible est absent ou son identifiant BPMN est ambigu/);
   assert.match(navigation, /Accès au processus impossible/);
