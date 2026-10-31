@@ -64,6 +64,12 @@ export const routes = [
       {
         path: '/:resourceId/modeler',
         lazy: () => import('./Containers/ContentModeler'),
+        children: [
+          {
+            path: 'publish',
+            lazy: () => import('./Containers/PublishResource'),
+          },
+        ],
       },
       {
         path: '/:resourceId/viewer/:contentId',
