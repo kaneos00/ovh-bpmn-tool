@@ -1,8 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Checkbox, Stack, Table } from '@mui/joy';
+import { Checkbox, IconButton, Stack, Table, Textarea, Typography } from '@mui/joy';
 import { flexRender } from '@tanstack/react-table';
-import { AccountTreeOutlined, Delete, FileCopy, Publish } from '@mui/icons-material';
+import { AccountTreeOutlined, Delete, FileCopy, Publish, EditOutlined, Check, Close } from '@mui/icons-material';
 
 import { useProcessContentList } from './hooks/useProcessContentList';
 
@@ -18,6 +18,13 @@ type ProcessContentListProps = {
   onContentClone: (contentId: string) => void;
   onContentChecked: (contentIds: string[]) => void;
   canManageVersions?: boolean;
+  editingChangeCommentId?: string | null;
+  changeCommentDrafts?: Record<string, string>;
+  savingChangeCommentId?: string | null;
+  onEditChangeComment?: (contentId: string) => void;
+  onChangeCommentDraft?: (contentId: string, value: string) => void;
+  onSaveChangeComment?: (contentId: string) => void;
+  onCancelChangeComment?: (contentId: string) => void;
 };
 
 export const ProcessContentList = ({
@@ -28,6 +35,13 @@ export const ProcessContentList = ({
   onContentClone,
   onContentChecked,
   canManageVersions = false,
+  editingChangeCommentId = null,
+  changeCommentDrafts = {},
+  savingChangeCommentId = null,
+  onEditChangeComment,
+  onChangeCommentDraft,
+  onSaveChangeComment,
+  onCancelChangeComment,
 }: ProcessContentListProps) => {
   const navigate = useNavigate();
   const {
@@ -41,6 +55,13 @@ export const ProcessContentList = ({
   const getContentActions = (content: Content) => {
     if (!canManageVersions) return [];
 
+    const editCommentAction = {
+      id: `edit_comment_${content.id}`,
+      label: 'Modifier le commentaire',
+      icon: <EditOutlined fontSize="small" />,
+      onClick: () => onEditChangeComment?.(content.id),
+    };
+
     const openInModelerAction = {
       id: `open_modeler_${content.id}`,
       label: 'Ouvrir dans le modeleur',
@@ -51,6 +72,7 @@ export const ProcessContentList = ({
     if (content.status === ContentStatusEnum.Draft) {
       return [
         openInModelerAction,
+        editCommentAction,
         {
           id: `publish_${content.id}`,
           label: 'Publish',
@@ -68,6 +90,7 @@ export const ProcessContentList = ({
 
     return [
       openInModelerAction,
+      editCommentAction,
       ...(content.status === ContentStatusEnum.Obsolete
         ? [
             {
@@ -100,6 +123,19 @@ export const ProcessContentList = ({
             }}
           />
         );
+      case 'changeComment': {
+        const content = cell.row.original;
+        const editing = editingChangeCommentId === content.id;
+        return editing ? (
+          <Stack spacing={0.5} sx={{ minWidth: 220 }}>
+            <Textarea size="sm" minRows={1} maxRows={4} value={changeCommentDrafts[content.id] ?? content.changeComment ?? ''} placeholder="Commentaire de modification" onChange={event => onChangeCommentDraft?.(content.id, event.target.value)} />
+            <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+              <IconButton size="sm" title="Enregistrer le commentaire" aria-label="Enregistrer le commentaire" disabled={savingChangeCommentId !== null} onClick={() => onSaveChangeComment?.(content.id)}><Check /></IconButton>
+              <IconButton size="sm" title="Annuler" aria-label="Annuler" variant="plain" onClick={() => onCancelChangeComment?.(content.id)}><Close /></IconButton>
+            </Stack>
+          </Stack>
+        ) : <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', minWidth: 160 }}>{content.changeComment?.trim() || '—'}</Typography>;
+      }
       case 'actions':
         return (
           <Stack spacing={1} direction="row" justifyContent="flex-end">
