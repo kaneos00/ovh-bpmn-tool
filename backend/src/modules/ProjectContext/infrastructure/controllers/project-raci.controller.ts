@@ -3,7 +3,6 @@ import {
   Body,
   ConflictException,
   Controller,
-  ForbiddenException,
   Get,
   Headers,
   NotFoundException,
@@ -12,21 +11,18 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { UseAcl } from '../../../../shared-kernel/modules/acl/infrastructure/acl.decorator';
 import { UserGroup } from '../../../../shared-kernel/utils/UserGroup';
-import {
-  ProjectMemberRole,
-  ProjectMemberTypeOrmEntity,
-} from '../entities/projectMember.ormEntity';
+import { ProjectMemberRole } from '../entities/projectMember.ormEntity';
 import { ProjectProcessTypeOrmEntity } from '../entities/projectProcess.ormEntity';
 import {
   ProjectRaciEntryTypeOrmEntity,
   ProjectRaciRole,
 } from '../entities/projectRaciEntry.ormEntity';
 import { ProjectRaciActorTypeOrmEntity } from '../entities/projectRaciActor.ormEntity';
+import { ProjectResourceAccessService } from '../../projectResourceAccess.service';
 
 type RequestHeaders = Record<string, string | undefined>;
 
@@ -41,10 +37,8 @@ type RaciEntryInput = {
 @Controller('projects/:projectId/raci')
 export class ProjectRaciController {
   constructor(
-    private readonly configService: ConfigService,
+    private readonly projectResourceAccess: ProjectResourceAccessService,
     private readonly dataSource: DataSource,
-    @InjectRepository(ProjectMemberTypeOrmEntity)
-    private readonly projectMembers: Repository<ProjectMemberTypeOrmEntity>,
     @InjectRepository(ProjectProcessTypeOrmEntity)
     private readonly projectProcesses: Repository<ProjectProcessTypeOrmEntity>,
     @InjectRepository(ProjectRaciEntryTypeOrmEntity)
@@ -397,29 +391,15 @@ export class ProjectRaciController {
     return name.trim().toLocaleLowerCase();
   }
 
-  private async assertRole(
+  private assertRole(
     projectId: string,
     headers: RequestHeaders,
     minimumRole: ProjectMemberRole,
   ): Promise<string> {
-    const configuredHeader =
-      this.configService.getOrThrow<string>('userHeader');
-    const userId =
-      headers[configuredHeader] ?? headers[configuredHeader.toLowerCase()];
-    if (!userId?.trim()) {
-      throw new ForbiddenException('Authenticated user identity is missing');
-    }
-    const membership = await this.projectMembers.findOne({
-      where: { projectId, userId: userId.trim() },
-    });
-    const rank = {
-      [ProjectMemberRole.Viewer]: 1,
-      [ProjectMemberRole.Modeler]: 2,
-      [ProjectMemberRole.Admin]: 3,
-    };
-    if (!membership || rank[membership.role] < rank[minimumRole]) {
-      throw new ForbiddenException('Insufficient project role for RACI access');
-    }
-    return userId.trim();
+    return this.projectResourceAccess.assertProjectRole(
+      projectId,
+      headers,
+      minimumRole,
+    );
   }
 }
