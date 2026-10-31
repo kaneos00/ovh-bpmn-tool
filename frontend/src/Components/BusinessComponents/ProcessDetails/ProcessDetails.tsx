@@ -612,7 +612,7 @@ export const ProcessDetails = ({
               <Stack spacing={2} padding={2}>
                 <Typography level="title-md">
                   {selectedContentId
-                    ? 'La version demandée est indisponibile o non può essere consultata.'
+                    ? 'La version demandée est indisponible ou ne peut pas être consultée.'
                     : 'No published version'}
                 </Typography>
                 {!readOnlyShell && (
