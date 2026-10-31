@@ -1,5 +1,5 @@
 /* eslint-disable no-nested-ternary */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Button,
@@ -230,7 +230,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
     },
   }), [selectedTreeNodeId, effectiveExpandedNodes]);
 
-  const handleTreeSelection = useCallback((items: (string | number)[]) => {
+  const handleTreeSelection = (items: (string | number)[]) => {
     const selected = items.length ? String(items[0]) : '';
     if (!selected || selected === 'root') return;
     const node = nodeById.get(selected);
@@ -244,7 +244,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
     // Selecting a folder opens its page; the dedicated chevron controls expansion.
     // This keeps folder navigation separate from expanding/collapsing tree branches.
     onNodeClick(targetId);
-  }, [nodeById, onNodeClick, selectedId]);
+  };
 
   return (
     <>
