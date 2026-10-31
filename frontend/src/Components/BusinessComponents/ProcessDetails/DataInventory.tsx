@@ -143,7 +143,7 @@ export const DataInventory = ({ xmlContent, canEdit, onSave, onElementSelect, on
       <Stack spacing={2}>
         <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" spacing={1}>
           <Box>
-            <Typography level="title-lg">Inventaire des données, fichiers et bases</Typography>
+            <Typography level="title-lg">Informations documentées</Typography>
             <Typography level="body-sm" color="neutral">Référentiel des sources d’information du processus, de leur emplacement et de leurs règles d’accès.</Typography>
           </Box>
           {canEdit && <Stack direction="row" spacing={1}>
