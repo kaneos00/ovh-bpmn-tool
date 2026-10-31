@@ -38,8 +38,12 @@ describe('ProjectRaciController actor register', () => {
     jest.clearAllMocks();
     dataSource.transaction.mockReset();
     projectResourceAccess.assertProjectRole.mockImplementation(
-      async (_projectId, _headers, minimumRole) => {
-        const rank = {
+      async (
+        _projectId: string,
+        _headers: Record<string, string | undefined>,
+        minimumRole: ProjectMemberRole,
+      ) => {
+        const rank: Record<ProjectMemberRole, number> = {
           [ProjectMemberRole.Viewer]: 1,
           [ProjectMemberRole.Modeler]: 2,
           [ProjectMemberRole.Admin]: 3,
