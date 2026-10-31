@@ -19,9 +19,14 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
 
   const { getModelerProviders } = useBpmnToolOptions();
 
-  const providersRegisteredRef = useRef(false);
+  // Track registration by the actual panel instance: the React hook survives
+  // modeler replacement, but each new Modeler owns a fresh properties panel.
+  const registeredPropertiesPanelRef = useRef<PropertiesPanel | null>(null);
   const importGenerationRef = useRef(0);
-  const importQueueRef = useRef<Promise<void>>(Promise.resolve());
+  // Imports on a replacement Modeler must not wait for a pending import on the
+  // instance that is being destroyed.
+  const importQueueRef = useRef<{ modeler: Modeler; promise: Promise<void> } | null>(null);
+  const activeModelerRef = useRef<Modeler>(bpmnModelerInstance);
   const removeSelectionListenerRef = useRef<(() => void) | null>(null);
   const removeCommandStackListenerRef = useRef<(() => void) | null>(null);
   const savedStackIndexRef = useRef(0);
@@ -78,14 +83,14 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
       }
     });
 
-    if (!providersRegisteredRef.current) {
+    if (registeredPropertiesPanelRef.current !== propertiesPanel) {
       const providers = getModelerProviders();
 
       providers.forEach(({ priority, instance: ProviderInstance }) => {
         propertiesPanel.registerProvider(priority, new ProviderInstance());
       });
 
-      providersRegisteredRef.current = true;
+      registeredPropertiesPanelRef.current = propertiesPanel;
     }
 
     propertiesPanel.attachTo(diagramPropertiesRef.current);
@@ -123,6 +128,16 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
 
   useEffect(() => {
     const generation = ++importGenerationRef.current;
+    const isNewModeler = activeModelerRef.current !== bpmnModelerInstance;
+    if (isNewModeler) {
+      activeModelerRef.current = bpmnModelerInstance;
+      importQueueRef.current = null;
+      registeredPropertiesPanelRef.current = null;
+      setHasLintError(false);
+      setIsDirty(false);
+      setCanUndo(false);
+      setCanRedo(false);
+    }
 
     if (!diagramContainerRef.current || !diagramPropertiesRef.current) {
       return () => {
@@ -140,7 +155,10 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
 
     // Serialize imports on the shared Modeler. Rapid content changes must not
     // leave older imports attaching listeners or panels after a newer render.
-    const importTask = importQueueRef.current
+    const previousImport = importQueueRef.current?.modeler === bpmnModelerInstance
+      ? importQueueRef.current.promise
+      : Promise.resolve();
+    const importTask = previousImport
       .catch(() => undefined)
       .then(async () => {
         if (generation !== importGenerationRef.current) return;
@@ -163,7 +181,7 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
         }
       });
 
-    importQueueRef.current = importTask;
+    importQueueRef.current = { modeler: bpmnModelerInstance, promise: importTask };
 
     return () => {
       if (importGenerationRef.current === generation) importGenerationRef.current += 1;
