@@ -33,13 +33,13 @@ export const useBpmnLayout = () => {
   const submit = useSubmit();
   const { showAlert } = useSnackbar();
 
-  const { resource: fetchedResource } = useResource(resourceId);
+  const { resource: fetchedResource, isLoading: isResourceLoading } = useResource(resourceId);
   // Keep the previous resource available while React Query fetches the next one.
   // This prevents the route shell (and, for process-to-process navigation, the
   // explorer inside ProcessDetails) from being replaced by a Suspense fallback.
   const previousResourceRef = useRef<Resource | undefined>(undefined);
   if (fetchedResource) previousResourceRef.current = fetchedResource;
-  const resource = fetchedResource ?? previousResourceRef.current;
+  const resource = fetchedResource ?? (isResourceLoading ? previousResourceRef.current : undefined);
   const { data: contents } = useQuery({
     ...contentsQuery(resourceId),
     enabled: Boolean(resource && resource.type === ResourceType.Process),
