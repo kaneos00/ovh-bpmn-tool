@@ -35,13 +35,25 @@ export class ProjectResourceAccessService {
     private readonly resources: Repository<ResourceTypeOrmEntity>,
   ) {}
 
+  /** Resolve the trusted identity header consistently across project controllers. */
+  getAuthenticatedUserId(headers: RequestHeaders): string {
+    const configuredHeader =
+      this.configService.getOrThrow<string>('userHeader');
+    const userId =
+      headers[configuredHeader] ?? headers[configuredHeader.toLowerCase()];
+    if (!userId?.trim()) {
+      throw new ForbiddenException('Authenticated user identity is missing');
+    }
+    return userId.trim();
+  }
+
   /** Shared role hierarchy for project-scoped controllers. */
   async assertProjectRole(
     projectId: string,
     headers: RequestHeaders,
     minimumRole: ProjectMemberRole,
   ): Promise<string> {
-    const userId = this.getUserId(headers);
+    const userId = this.getAuthenticatedUserId(headers);
     const membership = await this.projectMembers.findOne({
       where: { projectId, userId },
     });
@@ -57,7 +69,7 @@ export class ProjectResourceAccessService {
   }
 
   async assertCanReadResource(resourceId: string, headers: RequestHeaders) {
-    const userId = this.getUserId(headers);
+    const userId = this.getAuthenticatedUserId(headers);
     const links = await this.projectProcesses.find({ where: { resourceId } });
     if (
       !links.length ||
@@ -81,7 +93,7 @@ export class ProjectResourceAccessService {
     headers: RequestHeaders,
   ): Promise<T[]> {
     if (!resources.length) return resources;
-    const userId = this.getUserId(headers);
+    const userId = this.getAuthenticatedUserId(headers);
     const resourceIds = resources.map(({ id }) =>
       typeof id === 'string' ? id : id.value,
     );
@@ -136,7 +148,7 @@ export class ProjectResourceAccessService {
     );
     if (!restrictedLinks.length) return;
 
-    const userId = this.getUserId(headers);
+    const userId = this.getAuthenticatedUserId(headers);
     const memberships = await this.projectMembers.find({
       where: restrictedLinks.map((link) => ({
         projectId: link.projectId,
@@ -164,7 +176,7 @@ export class ProjectResourceAccessService {
     headers: RequestHeaders,
     options: { allowCommonForOrganizationAdmin?: boolean } = {},
   ) {
-    const userId = this.getUserId(headers);
+    const userId = this.getAuthenticatedUserId(headers);
     const links = await this.projectProcesses.find({ where: { resourceId } });
 
     // Preserve existing ACL behavior for resources not yet attached to a project.
@@ -275,14 +287,4 @@ export class ProjectResourceAccessService {
       .some((group) => group.trim().startsWith('bpmn-tool-admin-'));
   }
 
-  private getUserId(headers: RequestHeaders): string {
-    const configuredHeader =
-      this.configService.getOrThrow<string>('userHeader');
-    const userId =
-      headers[configuredHeader] ?? headers[configuredHeader.toLowerCase()];
-    if (!userId?.trim()) {
-      throw new ForbiddenException('Authenticated user identity is missing');
-    }
-    return userId.trim();
-  }
 }
