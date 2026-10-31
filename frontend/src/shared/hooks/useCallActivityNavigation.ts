@@ -2,14 +2,9 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import queryClient from '../../queryClient';
-import { contentsQuery, getXmlContentQuery } from '../../api/contents/contents.queries';
-import { getResourceQuery, resourcesQuery } from '../../api/resources/resources.queries';
-import { ContentStatusEnum, type Content, type Resource } from '../../Types';
+import { getResourceQuery, explorerQuery, type ExplorerData } from '../../api/resources/resources.queries';
 import { ResourceType } from '../types/BpmnResource';
-import {
-  getProcessLinks,
-  resolveProcessTarget,
-} from '../../Components/BusinessComponents/FolderTree/processLinks';
+import { resolveProcessTarget } from '../../Components/BusinessComponents/FolderTree/processLinks';
 import { useSnackbar } from './useSnackbar';
 
 type LinkedElementEvent = {
@@ -82,55 +77,28 @@ export const useCallActivityNavigation = (
     const eventBus = bpmnInstance.get('eventBus') as BpmnEventBus;
     let indicatorOverlayId: string | number | undefined;
     let indicatorGeneration = 0;
-    let processInfoPromise: Promise<Array<{ resource: Resource; processIds: string[] }>> | null = null;
-    const processInfoFailures = new Set<string>();
+    let processInfoPromise: Promise<Array<{ resource: ExplorerData['resources'][number]; processIds: string[] }>> | null = null;
 
     const getProcessInfo = () => {
       if (!processInfoPromise) {
         processInfoPromise = (async () => {
-          const resourceQuery = resourcesQuery();
-          const cachedResources = queryClient.getQueryData(resourceQuery.queryKey) as Resource[] | undefined;
-          const resources = cachedResources ?? await queryClient.fetchQuery(resourceQuery) ?? [];
-          const processResources = resources.filter(resource => resource.type === ResourceType.Process);
+          const query = explorerQuery();
+          const cachedExplorer = queryClient.getQueryData(query.queryKey) as ExplorerData | undefined;
+          const explorer = cachedExplorer ?? await queryClient.fetchQuery(query.queryKey, query.queryFn);
+          const linksByResourceId = new Map(
+            explorer.links.map(link => [link.resourceId, link]),
+          );
 
-          const results: Array<{ resource: Resource; processIds: string[] }> = [];
-
-          // Read one XML at a time. A parallel scan can hold many large BPMN
-          // documents in memory simultaneously, although only their process IDs
-          // are needed for target resolution.
-          for (const resource of processResources) {
-            try {
-              const resourceContentsQuery = contentsQuery(resource.id);
-              const cachedContents = queryClient.getQueryData(resourceContentsQuery.queryKey) as Content[] | undefined;
-              const contents = cachedContents ?? await queryClient.fetchQuery(resourceContentsQuery) ?? [];
-              const publishedContent = contents
-                .filter(content => content.status === ContentStatusEnum.Published)
-                .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0];
-
-              if (!publishedContent) {
-                results.push({ resource, processIds: [] });
-                continue;
-              }
-
-              const xmlQuery = getXmlContentQuery(resource.id, publishedContent.id);
-              const cachedXml = queryClient.getQueryData(xmlQuery.queryKey) as string | undefined;
-              // Scan-only XML must not be retained for the global default cache
-              // lifetime. Active/previously cached query data is left untouched.
-              const xml = cachedXml ?? await queryClient.fetchQuery(
-                xmlQuery.queryKey,
-                xmlQuery.queryFn,
-                { cacheTime: 0, staleTime: 0 },
-              ) ?? '';
-              results.push({ resource, processIds: getProcessLinks(xml).processIds });
-            } catch {
-              // Keep the failed resource visible to diagnostics instead of treating
-              // a partial scan as proof that the target does not exist.
-              processInfoFailures.add(resource.id);
-              results.push({ resource, processIds: [] });
-            }
-          }
-
-          return results;
+          // The explorer endpoint already returns the process IDs extracted
+          // from published BPMN XML in one grouped read. Reuse that metadata:
+          // do not fetch every resource's content list and XML again on Viewer
+          // navigation or selection.
+          return explorer.resources
+            .filter(resource => resource.type === ResourceType.Process)
+            .map(resource => ({
+              resource,
+              processIds: linksByResourceId.get(resource.id)?.processIds ?? [],
+            }));
         })().catch(error => {
           processInfoPromise = null;
           throw error;
@@ -157,12 +125,9 @@ export const useCallActivityNavigation = (
       try {
         const targetResourceId = await resolveTargetResourceId(targetId);
         if (!targetResourceId) {
-          const hasResolutionFailures = processInfoFailures.size > 0;
           showAlert({
-            message: hasResolutionFailures
-              ? `Impossible de vérifier la cible : lecture de ${processInfoFailures.size} processus en échec.`
-              : 'Le processus cible est absent ou son identifiant BPMN est ambigu.',
-            severity: hasResolutionFailures ? 'danger' : 'warning',
+            message: 'Le processus cible est absent ou son identifiant BPMN est ambigu.',
+            severity: 'warning',
           });
           return;
         }
@@ -172,7 +137,7 @@ export const useCallActivityNavigation = (
         navigate(`/${targetResourceId}`);
       } catch {
         showAlert({
-          message: 'Accès au processus impossible : vous ne disposez pas des droits nécessaires ou le processus n’est plus disponible.',
+          message: 'Accès au processus impossible : vérifiez vos droits ou réessayez lorsque les métadonnées de l’explorateur sont disponibles.',
           severity: 'danger',
         });
       }
@@ -195,7 +160,6 @@ export const useCallActivityNavigation = (
       event.stopPropagation();
       openExternalUrl(url);
     };
-
 
     const clearIndicator = () => {
       if (indicatorOverlayId !== undefined) {
