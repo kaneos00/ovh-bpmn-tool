@@ -560,7 +560,7 @@ export const ProcessDetails = ({
           <Tab value={1}>Description</Tab>
           <Tab value={2}>Historique des versions</Tab>
           <Tab value={3}>RACI</Tab>
-          <Tab value={4}>Inventaire des données</Tab>
+          <Tab value={4}>Informations documentées</Tab>
         </TabList>
 
 
@@ -803,6 +803,24 @@ export const ProcessDetails = ({
                       onContentErase={onContentErase}
                       onContentClone={onContentClone}
                       canManageVersions={canManageVersions}
+                      editingChangeCommentId={editingChangeCommentId}
+                      changeCommentDrafts={changeCommentDrafts}
+                      savingChangeCommentId={savingChangeCommentId}
+                      onEditChangeComment={contentId => {
+                        const content = contents.find(item => item.id === contentId);
+                        setChangeCommentDrafts(previous => ({ ...previous, [contentId]: previous[contentId] ?? content?.changeComment ?? '' }));
+                        setEditingChangeCommentId(contentId);
+                      }}
+                      onChangeCommentDraft={(contentId, value) => setChangeCommentDrafts(previous => ({ ...previous, [contentId]: value }))}
+                      onSaveChangeComment={async contentId => {
+                        await saveChangeComment(contentId);
+                        setEditingChangeCommentId(null);
+                      }}
+                      onCancelChangeComment={contentId => {
+                        const content = contents.find(item => item.id === contentId);
+                        setChangeCommentDrafts(previous => ({ ...previous, [contentId]: content?.changeComment ?? '' }));
+                        setEditingChangeCommentId(null);
+                      }}
                     />
                   </ConditionalRender>
                   <ConditionalRender condition={Boolean(!contents.length)}>
@@ -810,26 +828,7 @@ export const ProcessDetails = ({
                   </ConditionalRender>
                 </>
               )}
-              {contents.length > 0 && (
-                <Box sx={{ mt: 1 }}>
-                  <Typography level="title-md" sx={{ mb: 0.5 }}>Commentaires des modifications</Typography>
-                  <Typography level="body-sm" textColor="neutral" sx={{ mb: 1 }}>Modifiables directement dans le tableau par les utilisateurs autorisés.</Typography>
-                  <Table size="sm" stickyHeader hoverRow>
-                    <thead><tr><th style={{ width: 100 }}>Version</th><th>Commentaire de modification</th><th style={{ width: 76, textAlign: 'center' }}>Action</th></tr></thead>
-                    <tbody>{contents.map(content => {
-                      const editing = editingChangeCommentId === content.id;
-                      return <tr key={content.id}>
-                        <td>v{content.version ?? 'N/A'}</td>
-                        <td>{editing && canManageVersions ? <Textarea minRows={1} maxRows={4} value={changeCommentDrafts[content.id] ?? content.changeComment ?? ''} placeholder="Ex. : Normalisation du schéma" onChange={event => setChangeCommentDrafts(previous => ({ ...previous, [content.id]: event.target.value }))} /> : <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>{content.changeComment?.trim() || '—'}</Typography>}</td>
-                        <td>{canManageVersions && (editing ? <Stack direction="row" spacing={0.5} justifyContent="center">
-                          <IconButton size="sm" title="Enregistrer le commentaire" aria-label="Enregistrer le commentaire" disabled={savingChangeCommentId !== null} onClick={() => void saveChangeComment(content.id).then(() => setEditingChangeCommentId(null))}><EditOutlined /></IconButton>
-                          <IconButton size="sm" title="Annuler" aria-label="Annuler" variant="plain" onClick={() => { setChangeCommentDrafts(previous => ({ ...previous, [content.id]: content.changeComment ?? '' })); setEditingChangeCommentId(null); }}>×</IconButton>
-                        </Stack> : <IconButton size="sm" title="Modifier le commentaire" aria-label="Modifier le commentaire" variant="plain" onClick={() => setEditingChangeCommentId(content.id)}><EditOutlined /></IconButton>)}</td>
-                      </tr>;
-                    })}</tbody>
-                  </Table>
-                </Box>
-              )}
+
             </Stack>
           </Sheet>
         </TabPanel>
