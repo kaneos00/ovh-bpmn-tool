@@ -45,7 +45,8 @@ const readSources = (xml?: string): InventorySource[] => {
   const doc = new DOMParser().parseFromString(xml, 'application/xml');
   if (doc.querySelector('parsererror')) return [];
   const elements = Array.from(doc.getElementsByTagName('*'));
-  const byId = new Map(elements.map(node => [node.getAttribute('id') || '', node]).filter(([id]) => Boolean(id)));
+  const byId = new Map<string, Element>();
+  elements.forEach(node => { const id = node.getAttribute('id'); if (id) byId.set(id, node); });
   const links = new Map<string, InventorySource['associations']>();
   const add = (dataId: string, taskId: string, direction: 'input' | 'output') => {
     const task = byId.get(taskId);
@@ -125,7 +126,7 @@ export const DataInventory = ({ xmlContent, canEdit, onSave, onElementSelect, on
       extension.appendChild(doc.createElementNS(NS, 'inventory:manifest'));
       sources.forEach(source => {
         const node = doc.createElementNS(NS, 'inventory:source');
-        (Object.keys(source) as (keyof InventorySource)[]).forEach(key => node.setAttribute(key, String(source[key])));
+        (Object.keys(source) as (keyof InventorySource)[]).filter(key => key !== 'associations').forEach(key => node.setAttribute(key, String(source[key])));
         extension!.appendChild(node);
       });
       await onSave(new XMLSerializer().serializeToString(doc));
