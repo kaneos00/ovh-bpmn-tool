@@ -94,7 +94,8 @@ export const Component = () => {
     >
       <Sheet className="innerContent">
         {resource ? (
-                          <WorkspaceNavigation />
+          <>
+            <WorkspaceNavigation />
                           <Header
                             title={resource.name}
                             description={resource.description}
@@ -150,7 +151,8 @@ export const Component = () => {
                               readOnlyShell
                             />
                           )}
-                          <Outlet />
+            <Outlet />
+          </>
         ) : (
           <BpmnContentLoading />
         )}
