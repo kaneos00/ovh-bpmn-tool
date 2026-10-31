@@ -108,7 +108,9 @@ test('explorer folder-label selection opens the folder page while the chevron co
   const explorer = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
 
   assert.ok(explorer.includes('const handleTreeSelection = (items: (string | number)[]) =>'));
-  assert.ok(explorer.includes('onNodeClick(node.targetId ?? selected)'));
+  assert.ok(explorer.includes('const targetId = node.targetId ?? selected;'));
+  assert.ok(explorer.includes('if (targetId === selectedId) return;'));
+  assert.ok(explorer.includes('onNodeClick(targetId)'));
   assert.ok(explorer.includes('Selecting a folder opens its page; the dedicated chevron controls expansion.'));
   assert.ok(!explorer.includes("if (node.type === 'folder')"), 'folder selection must not be intercepted as an expansion-only action');
 
