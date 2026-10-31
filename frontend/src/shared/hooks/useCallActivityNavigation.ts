@@ -2,7 +2,11 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import queryClient from '../../queryClient';
-import { getResourceQuery, explorerQuery, type ExplorerData } from '../../api/resources/resources.queries';
+import {
+  explorerQuery,
+  getResourceQuery,
+  type ExplorerData,
+} from '../../api/resources/resources.queries';
 import { ResourceType } from '../types/BpmnResource';
 import { resolveProcessTarget } from '../../Components/BusinessComponents/FolderTree/processLinks';
 import { useSnackbar } from './useSnackbar';
@@ -83,8 +87,11 @@ export const useCallActivityNavigation = (
       if (!processInfoPromise) {
         processInfoPromise = (async () => {
           const query = explorerQuery();
-          const cachedExplorer = queryClient.getQueryData(query.queryKey) as ExplorerData | undefined;
-          const explorer = cachedExplorer ?? await queryClient.fetchQuery(query.queryKey, query.queryFn);
+          const explorer = await queryClient.fetchQuery(
+            query.queryKey,
+            query.queryFn,
+            { staleTime: 30_000 },
+          );
           const linksByResourceId = new Map(
             explorer.links.map(link => [link.resourceId, link]),
           );
