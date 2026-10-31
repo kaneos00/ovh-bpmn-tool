@@ -60,9 +60,7 @@ describe('ExportController', () => {
       ),
     ).rejects.toBeInstanceOf(UnauthorizedException);
 
-    expect(
-      getPublishedContentQueryHandler.execute,
-    ).not.toHaveBeenCalled();
+    expect(getPublishedContentQueryHandler.execute).not.toHaveBeenCalled();
   });
 
   it('rejects an invalid token', async () => {
