@@ -71,12 +71,12 @@ describe('ProjectResourceAccessService', () => {
     expect(service.hasOrganizationAdminRole(organizationAdminHeaders)).toBe(
       true,
     );
-    expect(
-      service.hasOrganizationReadWriteRole(organizationAdminHeaders),
-    ).toBe(false);
-    expect(
-      service.hasOrganizationAdminRole(organizationModelerHeaders),
-    ).toBe(false);
+    expect(service.hasOrganizationReadWriteRole(organizationAdminHeaders)).toBe(
+      false,
+    );
+    expect(service.hasOrganizationAdminRole(organizationModelerHeaders)).toBe(
+      false,
+    );
     expect(
       service.hasOrganizationReadWriteRole(organizationModelerHeaders),
     ).toBe(true);
