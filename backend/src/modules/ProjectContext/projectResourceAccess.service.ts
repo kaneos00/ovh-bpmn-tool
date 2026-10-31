@@ -286,5 +286,4 @@ export class ProjectResourceAccessService {
       .split(',')
       .some((group) => group.trim().startsWith('bpmn-tool-admin-'));
   }
-
 }
