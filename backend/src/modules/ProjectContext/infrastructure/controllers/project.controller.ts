@@ -872,20 +872,11 @@ export class ProjectController {
     minimumRole: ProjectMemberRole,
   ) {
     await this.assertProjectExists(projectId);
-    const userId = this.getUserId(headers);
-    const membership = await this.projectMembers.findOneBy({
+    return this.projectResourceAccess.assertProjectRole(
       projectId,
-      userId,
-    });
-    const roleRank: Record<ProjectMemberRole, number> = {
-      [ProjectMemberRole.Viewer]: 1,
-      [ProjectMemberRole.Modeler]: 2,
-      [ProjectMemberRole.Admin]: 3,
-    };
-    if (!membership || roleRank[membership.role] < roleRank[minimumRole]) {
-      throw new ForbiddenException('Insufficient project permissions');
-    }
-    return membership;
+      headers,
+      minimumRole,
+    );
   }
 
   private async assertProjectExists(projectId: string) {
