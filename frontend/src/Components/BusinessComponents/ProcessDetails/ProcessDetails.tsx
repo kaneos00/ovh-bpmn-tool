@@ -10,7 +10,6 @@ import {
   Sheet,
   Skeleton,
   Stack,
-  Table,
   Select,
   Option,
   Tab,
