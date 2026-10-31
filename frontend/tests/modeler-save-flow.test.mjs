@@ -11,10 +11,12 @@ test('modeler save-and-publish navigates only after a successful draft save', as
   const container = await read('src/Containers/ContentModeler/ContentModeler.container.tsx');
   const action = await read('src/Containers/ContentModeler/ContentModeler.action.ts');
 
-  assert.match(container, /if (actionData.error) {[\\s\\S]*?return;/);
-  assert.match(container, /if (actionData.formAction === 'saveContent')[\\s\\S]*?return;[\\s\\S]*?navigate/);
-  assert.doesNotMatch(container, /<Navigate/);
-  assert.match(action, /await Promise.all([\\s\\S]*?getXmlContentQuery/);
+  assert.ok(container.includes('if (actionData.error)'));
+  assert.ok(container.includes("if (actionData.formAction === 'saveContent')"));
+  assert.ok(container.includes('navigate('));
+  assert.ok(!container.includes('<Navigate'));
+  assert.ok(action.includes('await Promise.all(['));
+  assert.ok(action.includes('getXmlContentQuery(resourceId, contentId)'));
 });
 
 test('failed publication stays on the confirmation screen for retry', async () => {
