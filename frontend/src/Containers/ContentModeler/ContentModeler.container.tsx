@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Navigate, Outlet, useBlocker, useNavigate, useParams } from 'react-router-dom';
+import { Outlet, useBlocker, useNavigate, useParams } from 'react-router-dom';
 
 import { ModelerActionBar } from './components/ModelerActionBar';
 import { Button, Modal, ModalDialog, DialogTitle, DialogContent, DialogActions } from '@mui/joy';
@@ -67,14 +67,20 @@ export const Component = () => {
     }
     if (actionData.formAction === 'saveContent' || actionData.formAction === 'saveContentBeforePublish') {
       markSaved();
-      if (pendingSaveExitRef.current && blocker.state === 'blocked') {
-        pendingSaveExitRef.current = false;
-        blocker.proceed?.();
-      } else if (pendingPublishExitRef.current) {
-        pendingPublishExitRef.current = false;
-        if (blocker.state === 'blocked') blocker.reset?.();
-        navigate(`/${resourceId}/modeler/publish`);
+
+      if (actionData.formAction === 'saveContent') {
+        if (pendingSaveExitRef.current && blocker.state === 'blocked') {
+          pendingSaveExitRef.current = false;
+          blocker.proceed?.();
+        }
+        return;
       }
+
+      // Publish only after the draft save has succeeded. This also handles the
+      // direct Publish button; failures must leave the user in the modeler.
+      pendingPublishExitRef.current = false;
+      if (blocker.state === 'blocked') blocker.reset?.();
+      navigate(`/${resourceId}/modeler/publish`);
     }
   }, [actionData, markSaved, blocker, navigate, resourceId]);
 
@@ -87,9 +93,6 @@ export const Component = () => {
 
   return (
     <>
-      {actionData && actionData.formAction === 'saveContentBeforePublish' && (
-        <Navigate to={`/${resourceId}/modeler/publish`} />
-      )}
       <ImpersonationBanner />
       <ModelerActionBar
         resourceId={resourceId}
