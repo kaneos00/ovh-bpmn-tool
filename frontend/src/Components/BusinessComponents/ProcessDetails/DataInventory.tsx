@@ -60,11 +60,12 @@ const readSources = (xml?: string): InventorySource[] => {
     refs.forEach(ref => add(ref, n.parentElement?.getAttribute('id') || '', n.localName === 'dataInputAssociation' ? 'input' : 'output'));
   });
   elements.filter(n => n.localName === 'association').forEach(n => {
-    const s = n.getAttribute('sourceRef') || '', t = n.getAttribute('targetRef') || '';
+    const s = n.getAttribute('sourceRef') || '';
+    const t = n.getAttribute('targetRef') || '';
     if (activityTypes.has(byId.get(s)?.localName || '')) add(t, s, 'output');
     if (activityTypes.has(byId.get(t)?.localName || '')) add(s, t, 'input');
   });
-  const hasManifest = doc.getElementsByTagNameNS(NS, 'manifest').length > 0;
+  const hasInventoryManifest = doc.getElementsByTagNameNS(NS, 'manifest').length > 0;
   const saved = Array.from(doc.getElementsByTagNameNS(NS, 'source')).map(n => ({
     id: n.getAttribute('id') || emptySource().id,
     kind: n.getAttribute('kind') === 'database' ? 'database' as const : 'file' as const,
@@ -74,7 +75,7 @@ const readSources = (xml?: string): InventorySource[] => {
     retention: n.getAttribute('retention') || '', authorizedPeople: n.getAttribute('authorizedPeople') || '',
     restrictions: n.getAttribute('restrictions') || '', associations: links.get(n.getAttribute('id') || '') ?? [],
   }));
-  if (hasManifest || saved.length) return saved;
+  if (hasInventoryManifest || saved.length) return saved;
   return elements.filter(n => ['dataObjectReference','dataStoreReference','dataInput','dataOutput'].includes(n.localName)).map(n => {
     const id = n.getAttribute('id') || emptySource().id;
     const bpmnType = n.localName as InventorySource['bpmnType'];
