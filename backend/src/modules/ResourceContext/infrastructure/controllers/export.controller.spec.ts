@@ -78,8 +78,6 @@ describe('ExportController', () => {
       controller.exportPng({ resourceId: 'resource-1' }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
 
-    expect(
-      getPublishedContentQueryHandler.execute,
-    ).not.toHaveBeenCalled();
+    expect(getPublishedContentQueryHandler.execute).not.toHaveBeenCalled();
   });
 });
