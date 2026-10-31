@@ -73,7 +73,7 @@ export const Component = () => {
       } else if (pendingPublishExitRef.current) {
         pendingPublishExitRef.current = false;
         if (blocker.state === 'blocked') blocker.reset?.();
-        navigate(`/${resourceId}/publish`);
+        navigate(`/${resourceId}/modeler/publish`);
       }
     }
   }, [actionData, markSaved, blocker, navigate, resourceId]);
@@ -88,7 +88,7 @@ export const Component = () => {
   return (
     <>
       {actionData && actionData.formAction === 'saveContentBeforePublish' && (
-        <Navigate to="./publish" />
+        <Navigate to={`/${resourceId}/modeler/publish`} />
       )}
       <ImpersonationBanner />
       <ModelerActionBar
