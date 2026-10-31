@@ -13,7 +13,12 @@ export const Component = () => {
   const { loaderData, resource, base64Png, actionData, viewerRef, callbacks } =
     usePublishResource();
 
-  if ((resource && resource.type === ResourceType.Folder) || actionData) {
+  // A failed publication must remain on the confirmation screen so the
+  // user can see the error and retry. Redirect only after a successful action.
+  if (
+    (resource && resource.type === ResourceType.Folder) ||
+    (actionData && !actionData.error)
+  ) {
     const returnToModeler = location.pathname.endsWith('/modeler/publish');
     return <Navigate to={`/${resource?.id}${returnToModeler ? '/modeler' : ''}`} />;
   }
