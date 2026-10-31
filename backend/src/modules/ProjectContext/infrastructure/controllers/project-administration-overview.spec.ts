@@ -118,7 +118,8 @@ describe('ProjectController administration overview', () => {
       projectMembers as never,
       {
         getAuthenticatedUserId: jest.fn(
-          (headers: Record<string, string | undefined>) => headers['x-user'] ?? '',
+          (headers: Record<string, string | undefined>) =>
+            headers['x-user'] ?? '',
         ),
       } as never,
     );
