@@ -588,28 +588,30 @@ export const ProcessDetails = ({
                         Published by {viewerContent.updatedBy} le {new Date(viewerContent.updatedAt).toLocaleDateString('fr-FR')}
                       </Typography>
                   </Stack>
-                  <IconButton
-                    title="Copy link"
-                    aria-label="Copier le lien du processus"
-                    variant="plain"
-                    color="neutral"
-                    size="sm"
-                    onClick={() => onContentViewerLinkCopy(viewerContent.id)}
-                  >
-                    <FileCopy />
-                  </IconButton>
-                  {canEditDescription && (
+                  <Stack direction="row" spacing={0.5} alignItems="center">
                     <IconButton
-                      title="Modifier le diagramme BPMN"
-                      aria-label="Modifier le diagramme BPMN"
+                      title="Copy link"
+                      aria-label="Copier le lien du processus"
                       variant="plain"
                       color="neutral"
                       size="sm"
-                      onClick={onModelerClick}
+                      onClick={() => onContentViewerLinkCopy(viewerContent.id)}
                     >
-                      <EditOutlined />
+                      <FileCopy />
                     </IconButton>
-                  )}
+                    {canEditDescription && (
+                      <IconButton
+                        title="Modifier le diagramme BPMN"
+                        aria-label="Modifier le diagramme BPMN"
+                        variant="plain"
+                        color="neutral"
+                        size="sm"
+                        onClick={onModelerClick}
+                      >
+                        <EditOutlined />
+                      </IconButton>
+                    )}
+                  </Stack>
                 </Stack>
                 <Divider />
                 <Box className="processViewerCanvas">
