@@ -125,7 +125,10 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
 
   useEffect(() => {
     const generation = ++importGenerationRef.current;
-    if (registeredPropertiesPanelRef.current && registeredPropertiesPanelRef.current !== propertiesPanel) {
+    if (
+      registeredPropertiesPanelRef.current &&
+      registeredPropertiesPanelRef.current !== propertiesPanel
+    ) {
       registeredPropertiesPanelRef.current = null;
       setHasLintError(false);
       setIsDirty(false);
@@ -149,7 +152,9 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
 
     // Serialize every import against the actual Modeler instance, including
     // user uploads handled by useContentModeler.
-    const importTask = enqueueModelerImport(bpmnModelerInstance, async () => {
+    const importTask = enqueueModelerImport(
+      bpmnModelerInstance,
+      async () => {
         if (generation !== importGenerationRef.current) return;
         if (content) {
           await bpmnModelerInstance.importXML(content);
@@ -160,15 +165,15 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
         if (generation !== importGenerationRef.current) return;
         setIsDirty(false);
         attachModeler();
-      })
-      .catch(() => {
-        if (generation === importGenerationRef.current) {
-          showAlert({
-            message: content ? 'Failed to import file' : 'Failed to render file',
-            severity: 'danger',
-          });
-        }
-      });
+      },
+    ).catch(() => {
+      if (generation === importGenerationRef.current) {
+        showAlert({
+          message: content ? 'Failed to import file' : 'Failed to render file',
+          severity: 'danger',
+        });
+      }
+    });
 
     return () => {
       if (importGenerationRef.current === generation) importGenerationRef.current += 1;
