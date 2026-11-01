@@ -58,6 +58,12 @@ export const routes = [
         ],
       },
       {
+        // Keep version comparison as a standalone viewer route: embedding it
+        // inside BpmnLayout would also render the process workspace behind it.
+        path: '/:resourceId/compare/:leftContentId/:rightContentId',
+        lazy: () => import('./Containers/ContentCompare'),
+      },
+      {
         path: '/projects/:projectId/viewer',
         lazy: () => import('./Containers/ProjectViewer'),
       },
