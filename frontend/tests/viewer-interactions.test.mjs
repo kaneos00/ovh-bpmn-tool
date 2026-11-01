@@ -252,8 +252,8 @@ test('BPMN label clicks select their owning diagram element', async () => {
 
 test('selection outline follows BPMN geometry and excludes separate labels', async () => {
   const css = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
-  assert.ok(css.includes('.djs-element.selected:not(.djs-label) .djs-visual > :not(text):not(tspan)'));
-  assert.ok(css.includes('.djs-element.task-selected:not(.djs-label) .djs-visual > :not(text):not(tspan)'));
+  assert.ok(css.includes('.djs-element.selected:not(.djs-label) .djs-visual > :first-child:not(text):not(tspan)'));
+  assert.ok(css.includes('.djs-element.task-selected:not(.djs-label) .djs-visual > :first-child:not(text):not(tspan)'));
   assert.ok(css.includes('stroke: #1976d2 !important'));
   assert.ok(css.includes('stroke-width: 4px !important'));
   assert.ok(!css.includes('.djs-element.selected .djs-outline'));
