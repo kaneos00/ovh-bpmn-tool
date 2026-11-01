@@ -35,7 +35,9 @@ export class ProcessChangeRequestService {
 
     return this.dataSource.transaction(async (manager) => {
       const requests = manager.getRepository(ProcessChangeRequestTypeOrmEntity);
-      const events = manager.getRepository(ProcessChangeRequestEventTypeOrmEntity);
+      const events = manager.getRepository(
+        ProcessChangeRequestEventTypeOrmEntity,
+      );
       const request = requests.create({
         resourceId: params.resourceId,
         authorId: params.authorId,
@@ -55,15 +57,17 @@ export class ProcessChangeRequestService {
         createdBy: params.authorId,
       });
       const saved = await requests.save(request);
-      await events.save(events.create({
-        requestId: saved.id,
-        actorId: params.authorId,
-        event: 'created',
-        fromStatus: null,
-        toStatus: Status.Proposed,
-        comment: null,
-        metadata: { type: RequestType.Proposal },
-      }));
+      await events.save(
+        events.create({
+          requestId: saved.id,
+          actorId: params.authorId,
+          event: 'created',
+          fromStatus: null,
+          toStatus: Status.Proposed,
+          comment: null,
+          metadata: { type: RequestType.Proposal },
+        }),
+      );
       return saved;
     });
   }
@@ -84,10 +88,17 @@ export class ProcessChangeRequestService {
         lock: { mode: 'pessimistic_write' },
       });
       if (!request || request.authorId !== params.authorId) {
-        throw new NotFoundException('Demande introuvable ou non détenue par l’auteur');
+        throw new NotFoundException(
+          'Demande introuvable ou non détenue par l’auteur',
+        );
       }
-      if (request.type !== RequestType.Proposal || request.status !== Status.Proposed) {
-        throw new BadRequestException('Solo una proposta non ancora avviata può diventare una modifica');
+      if (
+        request.type !== RequestType.Proposal ||
+        request.status !== Status.Proposed
+      ) {
+        throw new BadRequestException(
+          'Solo una proposta non ancora avviata può diventare una modifica',
+        );
       }
       request.type = RequestType.ContentChange;
       request.status = Status.Draft;
@@ -95,28 +106,32 @@ export class ProcessChangeRequestService {
       request.sourceVersion = params.sourceVersion;
       request.workingContentId = params.workingContentId;
       const saved = await requests.save(request);
-      await events.save(events.create({
-        requestId: saved.id,
-        actorId: params.authorId,
-        event: 'commented',
-        fromStatus: Status.Proposed,
-        toStatus: Status.Draft,
-        comment: null,
-        metadata: {
-          type: RequestType.ContentChange,
-          sourceContentId: params.sourceContentId,
-          workingContentId: params.workingContentId,
-        },
-      }));
+      await events.save(
+        events.create({
+          requestId: saved.id,
+          actorId: params.authorId,
+          event: 'commented',
+          fromStatus: Status.Proposed,
+          toStatus: Status.Draft,
+          comment: null,
+          metadata: {
+            type: RequestType.ContentChange,
+            sourceContentId: params.sourceContentId,
+            workingContentId: params.workingContentId,
+          },
+        }),
+      );
       return saved;
     });
   }
 
   async list(resourceId: string) {
-    return this.dataSource.getRepository(ProcessChangeRequestTypeOrmEntity).find({
-      where: { resourceId },
-      order: { createdAt: 'DESC' },
-    });
+    return this.dataSource
+      .getRepository(ProcessChangeRequestTypeOrmEntity)
+      .find({
+        where: { resourceId },
+        order: { createdAt: 'DESC' },
+      });
   }
 
   async transition(params: {
@@ -140,26 +155,46 @@ export class ProcessChangeRequestService {
         [Status.Withdrawn, Status.Draft].includes(params.nextStatus) &&
         request.authorId !== params.actorId
       ) {
-        throw new BadRequestException('Seul l’auteur peut modifier ou retirer sa demande');
+        throw new BadRequestException(
+          'Seul l’auteur peut modifier ou retirer sa demande',
+        );
       }
-      if (params.nextStatus === Status.InReview && request.type === RequestType.ContentChange) {
+      if (
+        params.nextStatus === Status.InReview &&
+        request.type === RequestType.ContentChange
+      ) {
         if (!request.workingContentId || !request.sourceContentId) {
-          throw new BadRequestException('La contribution BPMN doit être créée avant la soumission');
+          throw new BadRequestException(
+            'La contribution BPMN doit être créée avant la soumission',
+          );
         }
         const contents = manager.getRepository(ContentTypeOrmEntity);
         const working = await contents.findOne({
-          where: { id: request.workingContentId, resourceId: params.resourceId },
+          where: {
+            id: request.workingContentId,
+            resourceId: params.resourceId,
+          },
           lock: { mode: 'pessimistic_write' },
         });
         if (!working || working.status !== ContentStatusEnum.Draft) {
-          throw new BadRequestException('La version de travail n’est plus une bozza modificabile');
+          throw new BadRequestException(
+            'La version de travail n’est plus une bozza modificabile',
+          );
         }
         const latestPublished = await contents.findOne({
-          where: { resourceId: params.resourceId, status: ContentStatusEnum.Published },
+          where: {
+            resourceId: params.resourceId,
+            status: ContentStatusEnum.Published,
+          },
           order: { version: 'DESC' },
         });
-        if (!latestPublished || latestPublished.id !== request.sourceContentId) {
-          throw new ConflictException('La versione pubblicata è cambiata: aggiorna la bozza prima di sottoporla');
+        if (
+          !latestPublished ||
+          latestPublished.id !== request.sourceContentId
+        ) {
+          throw new ConflictException(
+            'La versione pubblicata è cambiata: aggiorna la bozza prima di sottoporla',
+          );
         }
       }
 
@@ -177,13 +212,19 @@ export class ProcessChangeRequestService {
         !params.comment?.trim() &&
         params.nextStatus !== Status.Approved
       ) {
-        throw new BadRequestException('Un commentaire est requis pour cette décision');
+        throw new BadRequestException(
+          'Un commentaire est requis pour cette décision',
+        );
       }
 
       const previousStatus = request.status;
       request.status = params.nextStatus;
-      if (params.nextStatus === Status.InReview) request.submittedAt = new Date();
-      if (params.nextStatus === Status.ChangesRequested) request.reviewedAt = new Date();
+      if (params.nextStatus === Status.InReview) {
+        request.submittedAt = new Date();
+      }
+      if (params.nextStatus === Status.ChangesRequested) {
+        request.reviewedAt = new Date();
+      }
       if ([Status.Approved, Status.Rejected].includes(params.nextStatus)) {
         request.decidedAt = new Date();
       }
@@ -196,15 +237,17 @@ export class ProcessChangeRequestService {
             : params.nextStatus === Status.Draft
               ? 'commented'
               : params.nextStatus;
-      await events.save(events.create({
-        requestId: saved.id,
-        actorId: params.actorId,
-        event: eventName,
-        fromStatus: previousStatus,
-        toStatus: params.nextStatus,
-        comment: params.comment?.trim() || null,
-        metadata: {},
-      }));
+      await events.save(
+        events.create({
+          requestId: saved.id,
+          actorId: params.actorId,
+          event: eventName,
+          fromStatus: previousStatus,
+          toStatus: params.nextStatus,
+          comment: params.comment?.trim() || null,
+          metadata: {},
+        }),
+      );
       return saved;
     });
   }
