@@ -91,11 +91,19 @@ Les commentaires de revue sont des événements métier, distincts des commentai
 - [x] Entités TypeORM enregistrées dans `ResourceContextModule`.
 - [x] Règles de transitions et calcul du statut synthétique, avec tests unitaires dédiés.
 - [x] Migration ajoutée à l'image et à la commande de migration Coolify ainsi qu'au smoke test CI.
-- [ ] Repository et services applicatifs transactionnels.
-- [ ] API protégée et contrôles ACL.
+- [x] Service applicatif transactionnel pour créer une proposition, lister les demandes, lire leur journal et enregistrer les transitions sous verrou.
+- [x] Première API protégée (création/liste/journal/soumission/demande de correction/approbation/refus/retrait), réutilisant l'ACL globale et `ProjectResourceAccessService`.
+- [ ] API de contribution BPMN éditable, affectation de validateurs et matrice de permissions fine.
 - [ ] Interfaces auteur et valideur.
 - [ ] Projection dans l'explorateur et le Viewer.
-- [ ] CI verte sur le commit final.
+- [ ] CI verte sur le commit final ; le dernier lancement est en attente.
+
+## Limites de cette première tranche API
+
+- La création exposée est actuellement une proposition descriptive (`proposal`) ; la contribution BPMN avec copie de travail (`content_change`) n'est pas encore branchée.
+- Les décisions sont limitées aux utilisateurs disposant des droits globaux lecture-écriture/administration et des droits de ressource existants ; l'affectation nominative et les niveaux de validation configurables restent à construire.
+- L'approbation ne publie rien. L'endpoint de publication contrôlée et le contrôle de conflit avec la version de référence restent à implémenter.
+- Les statuts synthétiques sont calculables côté domaine mais ne sont pas encore affichés dans l'explorateur ni le Viewer.
 
 ## Critères de non-régression
 
