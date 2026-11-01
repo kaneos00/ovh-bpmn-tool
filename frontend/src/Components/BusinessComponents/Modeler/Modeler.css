@@ -138,8 +138,8 @@
 
 /* Highlight the actual BPMN geometry, not diagram-js' rectangular
    bounding-box outline. Labels are separate elements and stay untouched. */
-.djs-element.task-selected:not(.djs-label) .djs-visual > :not(text):not(tspan),
-.djs-element.selected:not(.djs-label) .djs-visual > :not(text):not(tspan) {
+.djs-element.task-selected:not(.djs-label) .djs-visual > :first-child:not(text):not(tspan),
+.djs-element.selected:not(.djs-label) .djs-visual > :first-child:not(text):not(tspan) {
   stroke: #1976d2 !important;
   stroke-width: 4px !important;
   filter: drop-shadow(0 0 2px rgba(25, 118, 210, 0.35));
@@ -398,8 +398,8 @@
    bpmn-js writes stroke values on SVG geometry (often inline or with values
    not covered by the exact black-attribute selectors above). Target the
    rendered geometry itself, not text nodes, so BPMN labels keep their color. */
-[data-joy-color-scheme='dark'] .modelerContainer .djs-shape .djs-visual > :not(text):not(tspan),
-[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape .djs-visual > :not(text):not(tspan) {
+[data-joy-color-scheme='dark'] .modelerContainer .djs-shape .djs-visual > :first-child:not(text):not(tspan),
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-shape .djs-visual > :first-child:not(text):not(tspan) {
   stroke: #f1f5fb !important;
 }
 
@@ -448,10 +448,10 @@
 
 /* Dark mode uses the same geometry-following selection as light mode.
    Keep the selected outline blue after the general dark SVG recoloring. */
-[data-joy-color-scheme='dark'] .modelerContainer .djs-element.task-selected:not(.djs-label) .djs-visual > :not(text):not(tspan),
-[data-joy-color-scheme='dark'] .modelerContainer .djs-element.selected:not(.djs-label) .djs-visual > :not(text):not(tspan),
-[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-element.task-selected:not(.djs-label) .djs-visual > :not(text):not(tspan),
-[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-element.selected:not(.djs-label) .djs-visual > :not(text):not(tspan) {
+[data-joy-color-scheme='dark'] .modelerContainer .djs-element.task-selected:not(.djs-label) .djs-visual > :first-child:not(text):not(tspan),
+[data-joy-color-scheme='dark'] .modelerContainer .djs-element.selected:not(.djs-label) .djs-visual > :first-child:not(text):not(tspan),
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-element.task-selected:not(.djs-label) .djs-visual > :first-child:not(text):not(tspan),
+[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-element.selected:not(.djs-label) .djs-visual > :first-child:not(text):not(tspan) {
   stroke: #1976d2 !important;
   stroke-width: 4px !important;
   filter: drop-shadow(0 0 2px rgba(25, 118, 210, 0.45));
