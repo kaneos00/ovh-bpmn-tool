@@ -14,13 +14,13 @@ Le workflow de contribution est distinct du cycle de vie du contenu BPMN. Il ne 
 
 Ces états restent inchangés et rétrocompatibles.
 
-## Nouveovo workflow de contribution
+## Nouveau workflow de contribution
 
 Une entité séparée de demande de modification porte le cycle de revue :
 
 | État | Signification | Transitions autorisées |
 |---|---|---|
-| `proposed` | Proposition descriptive, sans XML modificato | `in_review`, `rejected`, `withdrawn` |
+| `proposed` | Proposition descriptive, sans XML modifiable | `in_review`, `rejected`, `withdrawn` |
 | `draft` | Contribution de travail modifiable par l'auteur et les éditeurs autorisés | `submitted`, `withdrawn` |
 | `in_review` | Contribution soumise, figée pour la revue | `changes_requested`, `approved`, `rejected` |
 | `changes_requested` | Le valideur demande des corrections | `draft`, puis nouvelle soumission |
@@ -61,7 +61,7 @@ Table d'événements `process_change_request_events` :
 - request_id, event_type, from_status, to_status, actor_id, comment, created_at ;
 - journal append-only des soumissions, retours, décisions, retraits et publications.
 
-Les commentaires de revue sont des événements métier, distincts des commentaires généraux du processus. Les identifiants BPMN sont préservés par copie du XML ; aucune fusion automatique des diagrammi.
+Les commentaires de revue sont des événements métier, distincts des commentaires généraux du processus. Les identifiants BPMN sont préservés par copie du XML ; aucune fusion automatique des diagrammes.
 
 ## Regole di sicurezza e integrità
 
