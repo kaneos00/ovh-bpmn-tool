@@ -125,7 +125,9 @@ export class ProcessChangeRequestService {
           ? 'submitted'
           : params.nextStatus === Status.ChangesRequested
             ? 'changes_requested'
-            : params.nextStatus;
+            : params.nextStatus === Status.Draft
+              ? 'commented'
+              : params.nextStatus;
       await events.save(events.create({
         requestId: saved.id,
         actorId: params.actorId,
