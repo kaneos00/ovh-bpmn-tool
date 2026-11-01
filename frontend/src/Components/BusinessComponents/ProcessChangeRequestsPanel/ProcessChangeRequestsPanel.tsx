@@ -264,8 +264,8 @@ export const ProcessChangeRequestsPanel = ({
             const canDecide =
               canReview &&
               request.status === 'in_review' &&
-              (!request.assignedReviewerId ||
-                request.assignedReviewerId === currentUserId);
+              Boolean(request.assignedReviewerId) &&
+              request.assignedReviewerId === currentUserId;
             const busy = busyId === request.id;
             return (
               <Card key={request.id} variant="outlined" sx={{ gap: 1 }}>

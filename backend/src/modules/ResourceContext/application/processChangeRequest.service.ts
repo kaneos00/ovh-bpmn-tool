@@ -128,6 +128,35 @@ export class ProcessChangeRequestService {
     });
   }
 
+  async getEligibleReviewer(reviewerId: string): Promise<{
+    userId: string;
+    role: 'admin' | 'modeler';
+  }> {
+    const normalizedId = reviewerId.trim();
+    if (!normalizedId) {
+      throw new BadRequestException('Un identifiant de valideur est requis');
+    }
+    const users: Array<{
+      username: string;
+      global_role: string;
+      active: boolean;
+    }> = await this.dataSource.query(
+      'SELECT username, global_role, active FROM app_users WHERE lower(username) = lower($1) LIMIT 1',
+      [normalizedId],
+    );
+    const user = users[0];
+    if (
+      !user ||
+      !user.active ||
+      (user.global_role !== 'admin' && user.global_role !== 'modeler')
+    ) {
+      throw new BadRequestException(
+        'Le valideur doit être un compte actif avec un rôle modélisateur ou administrateur',
+      );
+    }
+    return { userId: user.username, role: user.global_role };
+  }
+
   async assignReviewer(params: {
     resourceId: string;
     requestId: string;
@@ -225,6 +254,11 @@ export class ProcessChangeRequestService {
           'Seul l’auteur peut modifier ou retirer sa demande',
         );
       }
+      if (params.nextStatus === Status.InReview && !request.assignedReviewerId) {
+        throw new BadRequestException(
+          'Désignez un valideur avant de soumettre la demande',
+        );
+      }
       if (
         params.nextStatus === Status.InReview &&
         request.type === RequestType.ContentChange
@@ -267,13 +301,18 @@ export class ProcessChangeRequestService {
       if (
         [Status.ChangesRequested, Status.Approved, Status.Rejected].includes(
           params.nextStatus,
-        ) &&
-        request.assignedReviewerId &&
-        request.assignedReviewerId !== params.actorId
+        )
       ) {
-        throw new ForbiddenException(
-          'Seul le valideur désigné peut prendre cette décision',
-        );
+        if (!request.assignedReviewerId) {
+          throw new ForbiddenException(
+            'Aucun valideur n’est désigné pour cette demande',
+          );
+        }
+        if (request.assignedReviewerId !== params.actorId) {
+          throw new ForbiddenException(
+            'Seul le valideur désigné peut prendre cette décision',
+          );
+        }
       }
 
       assertProcessChangeRequestTransition(

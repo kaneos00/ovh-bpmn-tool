@@ -39,6 +39,7 @@ import { useViewerRaciAnalysis } from './hooks/useViewerRaciAnalysis';
 import { getRaciIssueLabel } from '../../extensions/raci-engine';
 import type { RaciCode } from '../../extensions/raci-engine';
 import { useViewerRaciFilters } from './hooks/useViewerRaciFilters';
+import { ProcessChangeRequestsPanel } from '../../Components/BusinessComponents/ProcessChangeRequestsPanel/ProcessChangeRequestsPanel';
 
 import './ContentViewerContainer.scss';
 
@@ -68,7 +69,7 @@ const ProcessContentViewer = () => {
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
   const { requestedElementId, requestedRaciView } = useViewerRouteState();
   const [folderOpen, setFolderOpen] = useState(true);
-  const [infoTab, setInfoTab] = useState<0 | 1>(0);
+  const [infoTab, setInfoTab] = useState<0 | 1 | 2>(0);
   const [infoPanelOpen, setInfoPanelOpen] = useState(false);
   const [actorFilter, setActorFilter] = useState('');
   const [codeFilter, setCodeFilter] = useState<RaciCode | ''>('');
@@ -87,6 +88,11 @@ const ProcessContentViewer = () => {
     setInfoPanelOpen(raciRequested);
   }, [resourceId, contentId, raciRequested]);
 
+  const { data: session } = useQuery<{
+    userId: string;
+    role: 'admin' | 'modeler' | 'viewer';
+  }>(['auth-session'], () => apiClient.get('/auth/session'));
+  
   const { data: workspace } = useQuery<WorkspaceSummary>(
     ['my-workspace'],
     () => apiClient.get('/projects/me/workspace'),
@@ -240,13 +246,14 @@ const ProcessContentViewer = () => {
 
         <Divider />
 
-        <Tabs value={infoTab} onChange={(_, value) => setInfoTab(value as 0 | 1)} className="viewerTabs">
+        <Tabs value={infoTab} onChange={(_, value) => setInfoTab(value as 0 | 1 | 2)} className="viewerTabs">
           <TabList sticky="top" variant="plain">
             <Tab value={0}>Historique des versions</Tab>
             <Tab value={1} sx={{ flexDirection: 'row', gap: 0.75, alignItems: 'center' }}>
               <GroupsOutlined fontSize="small" />
               <span>RACI ({raciMatrix.activities.length})</span>
             </Tab>
+            <Tab value={2}>Richieste di modifica</Tab>
           </TabList>
 
           <TabPanel value={0} className="viewerTabPanel">
@@ -269,6 +276,20 @@ const ProcessContentViewer = () => {
                 </Sheet>
               ))}
             </Stack>
+          </TabPanel>
+
+          <TabPanel value={2} className="viewerTabPanel">
+            <ProcessChangeRequestsPanel
+              resourceId={resourceId}
+              currentUserId={session?.userId ?? ''}
+              canPropose={Boolean(session?.userId)}
+              canReview={
+                (session?.role === 'admin' || session?.role === 'modeler') &&
+                (!associatedProject ||
+                  associatedProject.role === 'admin' ||
+                  associatedProject.role === 'modeler')
+              }
+            />
           </TabPanel>
 
           <TabPanel value={1} className="viewerTabPanel">

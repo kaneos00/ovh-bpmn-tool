@@ -228,6 +228,45 @@ export class ProjectResourceAccessService {
     }
   }
 
+  /**
+   * Validate that a proposed reviewer is an active modeler/admin for the
+   * resource's project scope. The global role is checked against app_users
+   * before this method is called.
+   */
+  async assertUserCanEditResource(
+    resourceId: string,
+    userId: string,
+    globalRole: 'admin' | 'modeler',
+  ) {
+    const links = await this.projectProcesses.find({ where: { resourceId } });
+    if (!links.length) return;
+
+    if (links.some((link) => link.usage === ProjectProcessUsage.Common)) {
+      if (globalRole === 'admin') return;
+      throw new ForbiddenException(
+        'Un valideur d’un processus commun doit être administrateur de l’organisation',
+      );
+    }
+
+    const memberships = await this.projectMembers.find({
+      where: links.map((link) => ({ projectId: link.projectId, userId })),
+    });
+    const roleByProject = new Map(
+      memberships.map((membership) => [membership.projectId, membership.role]),
+    );
+    const canReviewEveryProject = links.every((link) => {
+      const role = roleByProject.get(link.projectId);
+      return (
+        role === ProjectMemberRole.Modeler || role === ProjectMemberRole.Admin
+      );
+    });
+    if (!canReviewEveryProject) {
+      throw new ForbiddenException(
+        'Le valideur doit être modélisateur ou administrateur de chaque projet lié',
+      );
+    }
+  }
+
   async assertCanDeleteResource(resourceId: string) {
     const links = await this.projectProcesses.find({ where: { resourceId } });
     if (links.some((link) => link.usage === ProjectProcessUsage.Common)) {

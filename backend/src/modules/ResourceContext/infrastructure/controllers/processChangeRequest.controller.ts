@@ -144,11 +144,19 @@ export class ProcessChangeRequestController {
     @Headers() headers: Record<string, string>,
   ) {
     await this.projectResourceAccess.assertCanEditResource(resourceId, headers);
+    const reviewer = await this.requests.getEligibleReviewer(
+      body?.reviewerId ?? '',
+    );
+    await this.projectResourceAccess.assertUserCanEditResource(
+      resourceId,
+      reviewer.userId,
+      reviewer.role,
+    );
     return this.requests.assignReviewer({
       resourceId,
       requestId,
       actorId: this.projectResourceAccess.getAuthenticatedUserId(headers),
-      reviewerId: body.reviewerId ?? '',
+      reviewerId: reviewer.userId,
     });
   }
 
