@@ -121,9 +121,11 @@ export class ProcessChangeRequestService {
       }
       const saved = await requests.save(request);
       const eventName =
-        params.nextStatus === Status.ChangesRequested
-          ? 'changes_requested'
-          : params.nextStatus;
+        params.nextStatus === Status.InReview
+          ? 'submitted'
+          : params.nextStatus === Status.ChangesRequested
+            ? 'changes_requested'
+            : params.nextStatus;
       await events.save(events.create({
         requestId: saved.id,
         actorId: params.actorId,
