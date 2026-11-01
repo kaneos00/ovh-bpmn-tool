@@ -565,3 +565,16 @@ test('modeler publication route stays inside the modeler and returns there after
   assert.ok(publish.includes("returnToModeler ? '/modeler' : ''"));
   assert.ok(publishHook.includes("return navigate('..')"));
 });
+
+
+test('version comparison route is exposed in the authenticated V3 viewer', async () => {
+  const routes = await read('src/routes.tsx');
+  assert.match(routes, /path: '\/:resourceId\\/compare\\/:leftContentId\\/:rightContentId'[\\s\\S]*?lazy: \(\) => import\('\.\/Containers\/ContentCompare'\)/);
+});
+
+test('BPMN version diff compares older to newer and marks changes on the correct side', async () => {
+  const compare = await read('src/Components/BusinessComponents/Compare/hooks/useCompare.ts');
+  assert.match(compare, /diff\(\\s*leftViewer\.getDefinitions\(\),\\s*rightViewer\.getDefinitions\(\)/);
+  assert.match(compare, /highlight\(rightViewer, obj\.id, 'diff-added'\)/);
+  assert.match(compare, /highlight\(leftViewer, obj\.id, 'diff-removed'\)/);
+});
