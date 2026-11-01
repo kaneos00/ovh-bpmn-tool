@@ -36,3 +36,13 @@ test('Modeler instance lifecycle follows property-provider configuration changes
     /\[getModelerExtensions, getModelerModules, getModelerProviders, lintingOptions\]/,
   );
 });
+
+test('Modeler replacement and unmount release instance-owned listeners and services', async () => {
+  const instanceHook = await read('src/shared/hooks/useModelerInstance.ts');
+  const modelerHook = await read('src/Containers/ContentModeler/hooks/useModeler.ts');
+
+  assert.match(instanceHook, /return \(\) => \{\s*modeler\.destroy\(\);\s*\};/);
+  assert.match(modelerHook, /bpmnModelerInstance\.off\('linting\.completed', onLintingCompleted\)/);
+  assert.match(modelerHook, /removeSelectionListenerRef\.current\?\.\(\)/);
+  assert.match(modelerHook, /removeCommandStackListenerRef\.current\?\.\(\)/);
+});
