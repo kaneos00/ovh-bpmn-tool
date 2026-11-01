@@ -588,6 +588,16 @@ export const ProcessDetails = ({
                         Published by {viewerContent.updatedBy} le {new Date(viewerContent.updatedAt).toLocaleDateString('fr-FR')}
                       </Typography>
                   </Stack>
+                  <IconButton
+                    title="Copy link"
+                    aria-label="Copier le lien du processus"
+                    variant="plain"
+                    color="neutral"
+                    size="sm"
+                    onClick={() => onContentViewerLinkCopy(viewerContent.id)}
+                  >
+                    <FileCopy />
+                  </IconButton>
                   {canEditDescription && (
                     <IconButton
                       title="Modifier le diagramme BPMN"
@@ -599,17 +609,6 @@ export const ProcessDetails = ({
                     >
                       <EditOutlined />
                     </IconButton>
-                  )}
-                  <IconButton
-                    title="Copy link"
-                    aria-label="Copier le lien du processus"
-                    variant="plain"
-                    color="neutral"
-                    size="sm"
-                    onClick={() => onContentViewerLinkCopy(viewerContent.id)}
-                  >
-                    <FileCopy />
-                  </IconButton>
                 </Stack>
                 <Divider />
                 <Box className="processViewerCanvas">
