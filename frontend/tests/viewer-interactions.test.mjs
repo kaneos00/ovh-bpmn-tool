@@ -44,7 +44,7 @@ test('viewer selection resolves BPMN labels to their owning shape and recognizes
   assert.match(hook, /elementType\.startsWith\('bpmn:'\)/);
   assert.match(hook, /!Array\.isArray\(element\.waypoints\)/);
   assert.match(hook, /onElementSelectRef\.current\?\.\(element\.id\)/);
-  assert.match(hook, /const element = clickedElement\?\.labelTarget \?\? clickedElement[\s\S]*?element\.businessObject\?\.link/);
+  assert.match(hook, /const element = clickedElement\?\.labelTarget \?\? clickedElement[\s\S]*?element\?\.businessObject\?\.link/);
 });
 
 test('selection marker is removed before the next selection is applied', async () => {
