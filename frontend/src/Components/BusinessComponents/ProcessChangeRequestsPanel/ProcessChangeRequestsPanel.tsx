@@ -353,6 +353,21 @@ export const ProcessChangeRequestsPanel = ({
                     </Stack>
                   )}
 
+                {canReview && request.status === 'approved' && (
+                  <Button
+                    size="sm"
+                    color="success"
+                    variant="outlined"
+                    onClick={() =>
+                      navigate(
+                        `/${resourceId}/modeler/publish?changeRequestId=${encodeURIComponent(request.id)}`,
+                      )
+                    }
+                  >
+                    Préparer la publication
+                  </Button>
+                )}
+
                 {canDecide && (
                   <Stack spacing={0.75}>
                     <Typography level="title-sm">Décision de revue</Typography>

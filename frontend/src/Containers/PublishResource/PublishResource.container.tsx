@@ -6,11 +6,20 @@ import { BaseModal } from '../../Components/GenericComponents/BaseModal/BaseModa
 
 import { ResourceType } from '../../shared/types/BpmnResource';
 import { PublishContent } from './components/PublishContent';
-import { Button, DialogActions } from '@mui/joy';
+import { Button, DialogActions, Typography } from '@mui/joy';
 
 export const Component = () => {
   const location = useLocation();
-  const { loaderData, resource, base64Png, actionData, viewerRef, callbacks } =
+  const {
+    loaderData,
+    resource,
+    base64Png,
+    actionData,
+    viewerRef,
+    changeRequestId,
+    canPublish,
+    callbacks,
+  } =
     usePublishResource();
 
   // A failed publication must remain on the confirmation screen so the
@@ -39,12 +48,17 @@ export const Component = () => {
       >
         <Await resolve={loaderData.resource}>
           <BaseModal
-            title="Business Process publication"
+            title={changeRequestId ? "Publication de la contribution approuvée" : "Business Process publication"}
             open
             onClose={callbacks.onModalClose}
             sx={{ maxWidth: 1000 }}
           >
             <>
+              {changeRequestId && !canPublish && (
+                <Typography level="body-sm" color="warning">
+                  Cette contribution doit être approuvée avant sa publication.
+                </Typography>
+              )}
               <PublishContent
                 resource={resource}
                 base64Png={base64Png}
@@ -56,8 +70,9 @@ export const Component = () => {
                   variant="solid"
                   color="primary"
                   onClick={callbacks.onPublish}
+                  disabled={!base64Png || !canPublish}
                 >
-                  Publish
+                  {changeRequestId ? 'Publier la contribution' : 'Publish'}
                 </Button>
                 <Button
                   variant="plain"

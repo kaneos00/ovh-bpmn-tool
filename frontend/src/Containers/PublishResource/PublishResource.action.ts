@@ -6,6 +6,10 @@ import {
   getXmlContentQuery,
 } from '../../api/contents/contents.queries';
 import { getResourceQuery } from '../../api/resources/resources.queries';
+import {
+  CHANGE_REQUESTS_QUERY_KEY,
+  publishApprovedProcessChangeRequest,
+} from '../../api/changeRequests/changeRequests.queries';
 
 import type { PublishResourceParams } from '.';
 
@@ -13,10 +17,17 @@ const publishContentAction = async (
   resourceId: string,
   contentId: string,
   pngContent: string,
+  changeRequestId?: string,
 ) => {
-  const response = await publishContent(resourceId, contentId, {
-    pngContent,
-  });
+  const response = changeRequestId
+    ? await publishApprovedProcessChangeRequest(
+        resourceId,
+        changeRequestId,
+        pngContent,
+      )
+    : await publishContent(resourceId, contentId, {
+        pngContent,
+      });
 
   queryClient.invalidateQueries({
     queryKey: getResourceQuery(resourceId).queryKey,
@@ -29,6 +40,9 @@ const publishContentAction = async (
   });
   queryClient.invalidateQueries({
     queryKey: getXmlContentQuery(resourceId, contentId).queryKey,
+  });
+  queryClient.invalidateQueries({
+    queryKey: [`${CHANGE_REQUESTS_QUERY_KEY}_${resourceId}`],
   });
 
   return response;
@@ -52,6 +66,7 @@ export const action = async ({
       resourceId,
       contentId,
       formData.get('pngContent') as string,
+      (formData.get('changeRequestId') as string) || undefined,
     );
 
     return {

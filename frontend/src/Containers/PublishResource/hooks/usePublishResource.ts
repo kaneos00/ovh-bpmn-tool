@@ -5,6 +5,7 @@ import {
   useNavigate,
   useParams,
   useSubmit,
+  useSearchParams,
 } from 'react-router-dom';
 import { useQuery } from 'react-query';
 
@@ -13,6 +14,7 @@ import {
   contentsQuery,
   getXmlContentQuery,
 } from '../../../api/contents/contents.queries';
+import { processChangeRequestsQuery } from '../../../api/changeRequests/changeRequests.queries';
 // @ts-ignore
 import { generatePngFromSvg } from '../../../shared/utils/generatePngFromSvg';
 
@@ -32,11 +34,20 @@ export const usePublishResource = () => {
   const navigate = useNavigate();
   const actionData = useActionData() as ActionResponse;
   const submit = useSubmit();
+  const [searchParams] = useSearchParams();
+  const changeRequestId = searchParams.get('changeRequestId');
 
   const { showAlert } = useSnackbar();
 
   const { resource } = useResource(resourceId);
   const { data: contents } = useQuery(contentsQuery(resourceId));
+  const { data: changeRequests = [] } = useQuery({
+    ...processChangeRequestsQuery(resourceId),
+    enabled: Boolean(changeRequestId),
+  });
+  const approvedChangeRequest = changeRequests.find(
+    request => request.id === changeRequestId,
+  );
 
   const { getViewerInstance } = useBpmnViewerInstance();
   const viewer = useMemo(() => getViewerInstance(), [getViewerInstance]);
@@ -52,10 +63,23 @@ export const usePublishResource = () => {
       return undefined;
     }
 
+    if (changeRequestId) {
+      if (
+        approvedChangeRequest?.status !== 'approved' ||
+        !approvedChangeRequest.workingContentId
+      ) {
+        return undefined;
+      }
+      return contents.find(
+        content =>
+          content.id === approvedChangeRequest.workingContentId &&
+          content.status === ContentStatusEnum.Draft,
+      );
+    }
     return contents.find(
       ({ status }: Content) => status === ContentStatusEnum.Draft,
     );
-  }, [contents]);
+  }, [contents, changeRequestId, approvedChangeRequest]);
 
   const { data: draftXmlContent } = useQuery({
     ...getXmlContentQuery(resourceId, draftContent?.id as string),
@@ -113,6 +137,7 @@ export const usePublishResource = () => {
         action: 'publishContent',
         contentId: (draftContent as Content).id,
         pngContent: base64Png,
+        changeRequestId: changeRequestId ?? '',
       },
       { method: 'post' },
     );
@@ -154,8 +179,12 @@ export const usePublishResource = () => {
     }
   }, [actionData, showAlert]);
 
+  const canPublish = !changeRequestId || approvedChangeRequest?.status === 'approved';
+
   return {
     loaderData,
+    changeRequestId,
+    canPublish,
     resource,
     base64Png,
     viewerRef,

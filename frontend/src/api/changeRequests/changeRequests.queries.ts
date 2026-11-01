@@ -104,3 +104,13 @@ export const rejectProcessChangeRequest = (
     `/resources/${resourceId}/change-requests/${requestId}/reject`,
     { comment },
   );
+
+export const publishApprovedProcessChangeRequest = (
+  resourceId: string,
+  requestId: string,
+  pngContent: string,
+) =>
+  apiClient.post(
+    `/resources/${resourceId}/change-requests/${requestId}/publish`,
+    { pngContent },
+  );
