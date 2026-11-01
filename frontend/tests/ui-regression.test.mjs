@@ -440,7 +440,7 @@ test('modeler exposes undo/redo controls and guards unsaved navigation', async (
   assert.ok(container.includes('Enregistrer et publier'));
 });
 
-test('modeler action is an icon beside the process link and RACI icon stays inline', async () => {
+test('authorized modeler shortcut is beside the process link and RACI icon stays inline', async () => {
   const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const hook = await read('src/Containers/ContentModeler/hooks/useContentModeler.ts');
@@ -449,6 +449,9 @@ test('modeler action is an icon beside the process link and RACI icon stays inli
   assert.ok(!details.includes('title="Ouvrir dans le modeleur"'));
   assert.ok(!details.includes('AccountTreeOutlined'));
   assert.ok(details.includes('onContentViewerLinkCopy(viewerContent.id)'));
+  assert.ok(details.includes('title="Modifier le diagramme BPMN"'));
+  assert.ok(details.includes('onClick={onModelerClick}'));
+  assert.ok(details.includes('{canEditDescription && ('));
   assert.ok(versionList.includes("label: 'Ouvrir dans le modeleur'"));
   assert.ok(versionList.includes('<AccountTreeOutlined fontSize="small" />'));
   assert.ok(versionList.includes('contentId=${encodeURIComponent(content.id)}'));
@@ -634,11 +637,11 @@ test('dark theme does not add borders to plain icon buttons', async () => {
   assert.ok(!styles.includes('[data-joy-color-scheme=\'dark\'] .MuiIconButton-root:hover {'));
 });
 
-test('process modeler action uses the edit icon', async () => {
+test('process modeler action does not duplicate the edit icon', async () => {
   const actions = await read('src/Containers/BpmnLayout/components/BusinessProcessActions.tsx');
 
-  assert.ok(actions.includes('EditOutlined'));
-  assert.ok(actions.includes('leftIcon={<EditOutlined fontSize="small" />}'));
+  assert.ok(!actions.includes('EditOutlined'));
+  assert.ok(!actions.includes('leftIcon='));
   assert.ok(actions.includes('onClick={onModelerBtnClick}'));
 });
 
