@@ -7,7 +7,7 @@ import RechercheModule from '../../extensions/recherche/recherche-module';
 import { useBpmnToolOptions } from '../../Providers/BpmnToolOptions/useBpmnToolOptions';
 
 export const useModelerInstance = () => {
-  const { getModelerExtensions, getModelerModules, getModelerLinting } =
+  const { getModelerExtensions, getModelerModules, getModelerLinting, getModelerProviders } =
     useBpmnToolOptions();
 
   const lintingOptions = useMemo(
@@ -29,7 +29,7 @@ export const useModelerInstance = () => {
         open: true,
       },
     });
-  }, [getModelerExtensions, getModelerModules, lintingOptions]);
+  }, [getModelerExtensions, getModelerModules, getModelerProviders, lintingOptions]);
 
   useEffect(() => {
     return () => {
