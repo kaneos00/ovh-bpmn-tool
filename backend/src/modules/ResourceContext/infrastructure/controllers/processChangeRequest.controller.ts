@@ -13,6 +13,9 @@ import { UseAcl } from '../../../../shared-kernel/modules/acl/infrastructure/acl
 import { ProjectResourceAccessService } from '../../../ProjectContext/projectResourceAccess.service';
 import { ProcessChangeRequestService } from '../../application/processChangeRequest.service';
 import { ProcessChangeRequestStatusEnum as Status } from '../../shared/types/ProcessChangeRequest';
+import { CloneContentCommandHandler } from '../../application/commands/Content/cloneContent/cloneContent.commandHandler';
+import { ListContentQueryHandler } from '../../application/queries/Content/listContent/listContent.queryHandler';
+import { ContentStatusEnum } from '../../shared/types/Content';
 
 type ProposalBody = {
   title: string;
@@ -30,7 +33,7 @@ export class ProcessChangeRequestController {
   constructor(
     private readonly configService: ConfigService,
     private readonly projectResourceAccess: ProjectResourceAccessService,
-    private readonly requests: ProcessChangeRequestService,
+    private readonly requests: ProcessChangeRequestService,\n    private readonly cloneContent: CloneContentCommandHandler,\n    private readonly listContents: ListContentQueryHandler,
   ) {}
 
   @Post()
@@ -50,6 +53,52 @@ export class ProcessChangeRequestController {
   }
 
   @Get()
+  @Post(':requestId/start-editing')
+  async startEditing(
+    @Param('resourceId') resourceId: string,
+    @Param('requestId') requestId: string,
+    @Body() body: ProposalBody = { title: '', description: '' },
+    @Headers() headers: Record<string, string>,
+  ) {
+    await this.projectResourceAccess.assertCanEditResource(resourceId, headers, {
+      allowCommonForOrganizationAdmin: true,
+    });
+    const authorId = this.projectResourceAccess.getAuthenticatedUserId(headers);
+    const request = (await this.requests.list(resourceId)).find(
+      (item) => item.id === requestId,
+    );
+    if (!request || request.authorId !== authorId) {
+      throw new BadRequestException('Demande introuvable ou non détenue par l’auteur');
+    }
+    if (request.workingContentId) {
+      throw new BadRequestException('La demande possède déjà une version de travail');
+    }
+    const contentsResult = await this.listContents.execute(resourceId, {
+      filters: { status: ContentStatusEnum.Published },
+    });
+    if (contentsResult.fail || !contentsResult.ok.length) {
+      throw new BadRequestException('Aucune version publiée disponible');
+    }
+    const source = [...contentsResult.ok].sort(
+      (a, b) => (b.state.version ?? 0) - (a.state.version ?? 0),
+    )[0];
+    const cloneResult = await this.cloneContent.execute(resourceId, source.id, {
+      clonedBy: authorId,
+      changeComment: body.description || request.description,
+    });
+    if (cloneResult.fail) throw new BadRequestException(cloneResult.fail.message);
+    return this.requests.createContentChange({
+      resourceId,
+      authorId,
+      title: body.title || request.title,
+      description: body.description || request.description,
+      justification: body.justification || request.justification || undefined,
+      sourceContentId: source.id,
+      sourceVersion: source.state.version ?? 1,
+      workingContentId: cloneResult.ok.id,
+    });
+  }
+
   async list(
     @Param('resourceId') resourceId: string,
     @Headers() headers: Record<string, string>,
