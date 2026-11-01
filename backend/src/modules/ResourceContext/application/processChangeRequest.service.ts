@@ -65,6 +65,61 @@ export class ProcessChangeRequestService {
     });
   }
 
+  async createContentChange(params: {
+    resourceId: string;
+    authorId: string;
+    title: string;
+    description: string;
+    justification?: string;
+    sourceContentId: string;
+    sourceVersion: number;
+    workingContentId: string;
+  }) {
+    const title = params.title.trim();
+    const description = params.description.trim();
+    if (!title || !description) {
+      throw new BadRequestException('Un titre et une description sont requis');
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const requests = manager.getRepository(ProcessChangeRequestTypeOrmEntity);
+      const events = manager.getRepository(ProcessChangeRequestEventTypeOrmEntity);
+      const request = requests.create({
+        resourceId: params.resourceId,
+        authorId: params.authorId,
+        type: RequestType.ContentChange,
+        status: Status.Draft,
+        title,
+        description,
+        justification: params.justification?.trim() || null,
+        sourceContentId: params.sourceContentId,
+        sourceVersion: params.sourceVersion,
+        workingContentId: params.workingContentId,
+        assignedReviewerId: null,
+        submittedAt: null,
+        reviewedAt: null,
+        decidedAt: null,
+        publishedContentId: null,
+        createdBy: params.authorId,
+      });
+      const saved = await requests.save(request);
+      await events.save(events.create({
+        requestId: saved.id,
+        actorId: params.authorId,
+        event: 'created',
+        fromStatus: null,
+        toStatus: Status.Draft,
+        comment: null,
+        metadata: {
+          type: RequestType.ContentChange,
+          sourceContentId: params.sourceContentId,
+          workingContentId: params.workingContentId,
+        },
+      }));
+      return saved;
+    });
+  }
+
   async list(resourceId: string) {
     return this.dataSource.getRepository(ProcessChangeRequestTypeOrmEntity).find({
       where: { resourceId },
