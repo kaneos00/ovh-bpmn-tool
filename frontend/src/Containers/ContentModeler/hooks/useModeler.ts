@@ -8,6 +8,7 @@ import {
 } from '../../../Components/BusinessComponents/Modeler/helpers';
 import Modeler from 'camunda-bpmn-js/lib/base/Modeler';
 import { useBpmnToolOptions } from '../../../Providers/BpmnToolOptions/useBpmnToolOptions';
+import { enqueueModelerImport } from '../../../shared/utils/modelerImportQueue';
 
 export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
   const diagramContainerRef = useRef<HTMLDivElement>(null);
@@ -23,10 +24,6 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
   // modeler replacement, but each new Modeler owns a fresh properties panel.
   const registeredPropertiesPanelRef = useRef<PropertiesPanel | null>(null);
   const importGenerationRef = useRef(0);
-  // Imports on a replacement Modeler must not wait for a pending import on the
-  // instance that is being destroyed.
-  const importQueueRef = useRef<{ modeler: Modeler; promise: Promise<void> } | null>(null);
-  const activeModelerRef = useRef<Modeler>(bpmnModelerInstance);
   const removeSelectionListenerRef = useRef<(() => void) | null>(null);
   const removeCommandStackListenerRef = useRef<(() => void) | null>(null);
   const savedStackIndexRef = useRef(0);
@@ -128,10 +125,7 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
 
   useEffect(() => {
     const generation = ++importGenerationRef.current;
-    const isNewModeler = activeModelerRef.current !== bpmnModelerInstance;
-    if (isNewModeler) {
-      activeModelerRef.current = bpmnModelerInstance;
-      importQueueRef.current = null;
+    if (registeredPropertiesPanelRef.current && registeredPropertiesPanelRef.current !== propertiesPanel) {
       registeredPropertiesPanelRef.current = null;
       setHasLintError(false);
       setIsDirty(false);
@@ -153,14 +147,9 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
 
     bpmnModelerInstance.on('linting.completed', onLintingCompleted);
 
-    // Serialize imports on the shared Modeler. Rapid content changes must not
-    // leave older imports attaching listeners or panels after a newer render.
-    const previousImport = importQueueRef.current?.modeler === bpmnModelerInstance
-      ? importQueueRef.current.promise
-      : Promise.resolve();
-    const importTask = previousImport
-      .catch(() => undefined)
-      .then(async () => {
+    // Serialize every import against the actual Modeler instance, including
+    // user uploads handled by useContentModeler.
+    const importTask = enqueueModelerImport(bpmnModelerInstance, async () => {
         if (generation !== importGenerationRef.current) return;
         if (content) {
           await bpmnModelerInstance.importXML(content);
@@ -180,8 +169,6 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
           });
         }
       });
-
-    importQueueRef.current = { modeler: bpmnModelerInstance, promise: importTask };
 
     return () => {
       if (importGenerationRef.current === generation) importGenerationRef.current += 1;
