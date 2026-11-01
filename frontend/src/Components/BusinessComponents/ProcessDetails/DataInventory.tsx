@@ -40,7 +40,7 @@ const emptySource = (): InventorySource => ({
 });
 
 const activityTypes = new Set(['task','userTask','manualTask','serviceTask','scriptTask','businessRuleTask','sendTask','receiveTask','callActivity','subProcess','transaction']);
-const readSources = (xml?: string): InventorySource[] => {
+export const readInventorySources = (xml?: string): InventorySource[] => {
   if (!xml) return [];
   const doc = new DOMParser().parseFromString(xml, 'application/xml');
   if (doc.querySelector('parsererror')) return [];
@@ -95,7 +95,7 @@ const BpmnDataSymbol = ({ type }: { type: InventorySource['bpmnType'] }) => (
   </svg>
 );
 export const DataInventory = ({ xmlContent, canEdit, onSave, onElementSelect, onShowDiagram }: Props) => {
-  const original = useMemo(() => readSources(xmlContent), [xmlContent]);
+  const original = useMemo(() => readInventorySources(xmlContent), [xmlContent]);
   const [sources, setSources] = useState<InventorySource[]>(original);
   const [saving, setSaving] = useState(false);
   const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
