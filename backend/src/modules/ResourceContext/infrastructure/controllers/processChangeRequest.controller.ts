@@ -87,12 +87,10 @@ export class ProcessChangeRequestController {
       changeComment: body.description || request.description,
     });
     if (cloneResult.fail) throw new BadRequestException(cloneResult.fail.message);
-    return this.requests.createContentChange({
+    return this.requests.attachWorkingContent({
       resourceId,
+      requestId,
       authorId,
-      title: body.title || request.title,
-      description: body.description || request.description,
-      justification: body.justification || request.justification || undefined,
       sourceContentId: source.id,
       sourceVersion: source.state.version ?? 1,
       workingContentId: cloneResult.ok.id,
