@@ -247,10 +247,7 @@ export class ProcessChangeRequestController {
     @Body() body: { pngContent: string },
     @Headers() headers: Record<string, string>,
   ) {
-    await this.projectResourceAccess.assertCanEditResource(
-      resourceId,
-      headers,
-    );
+    await this.projectResourceAccess.assertCanEditResource(resourceId, headers);
     const actorId = this.projectResourceAccess.getAuthenticatedUserId(headers);
     const request = await this.requests.getRequest(resourceId, requestId);
     if (request.status !== Status.Approved) {
