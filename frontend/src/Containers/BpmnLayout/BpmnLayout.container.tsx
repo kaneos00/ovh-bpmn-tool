@@ -160,6 +160,7 @@ export const Component = () => {
                               onContentViewerLinkCopy={
                                 callbacks.processDetails.onContentViewerLinkCopy
                               }
+                              onModelerClick={callbacks.header.onModelerBtnClick}
                               onCompareClick={callbacks.processDetails.onCompareClick}
                               selectedElementId={selectedElementId}
                               onElementSelect={setSelectedElementId}
