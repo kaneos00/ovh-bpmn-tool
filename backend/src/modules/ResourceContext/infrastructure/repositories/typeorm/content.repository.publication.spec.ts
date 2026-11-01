@@ -177,9 +177,7 @@ describe('ContentTypeOrmRepository.publishAtomically', () => {
     });
 
     expect(result.ok).toBeNull();
-    expect(result.fail?.message).toContain(
-      'published source version changed',
-    );
+    expect(result.fail?.message).toContain('published source version changed');
     expect(contents.save).not.toHaveBeenCalled();
     expect(resources.save).not.toHaveBeenCalled();
   });
