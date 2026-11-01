@@ -9,6 +9,8 @@ import { getQueries } from './application/queries';
 import { ResourceTypeOrmEntity } from './infrastructure/entities/resource.ormEntity';
 import { ContentTypeOrmEntity } from './infrastructure/entities/content.ormEntity';
 import { CommentTypeOrmEntity } from './infrastructure/entities/comment.ormEntity';
+import { ProcessChangeRequestTypeOrmEntity } from './infrastructure/entities/processChangeRequest.ormEntity';
+import { ProcessChangeRequestEventTypeOrmEntity } from './infrastructure/entities/processChangeRequestEvent.ormEntity';
 import { TerminusModule } from '@nestjs/terminus';
 import { ProjectContextModule } from '../ProjectContext/projectContext.module';
 
@@ -19,6 +21,8 @@ import { ProjectContextModule } from '../ProjectContext/projectContext.module';
       ResourceTypeOrmEntity,
       ContentTypeOrmEntity,
       CommentTypeOrmEntity,
+      ProcessChangeRequestTypeOrmEntity,
+      ProcessChangeRequestEventTypeOrmEntity,
     ]),
     ProjectContextModule,
     TerminusModule,
