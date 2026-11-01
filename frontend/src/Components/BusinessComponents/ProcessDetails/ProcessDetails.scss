@@ -22,9 +22,43 @@
   box-sizing: border-box;
   min-height: 0;
   min-width: 0;
-  flex: 1 1 auto;
+  width: 100%;
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
   overflow: auto;
   padding: 8px 0 0;
+}
+
+/* Joy TabPanel is a flex container. Keep information views anchored to the
+   top even when the available height is much larger than their contents. */
+.processViewerTabPanel:not(.processViewerProcessTab) > .processViewerInfo {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+  margin-block: 0 auto;
+}
+
+.processViewerTabPanel:not(.processViewerProcessTab) > .processViewerInfo.processViewerRaci {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.processViewerTabPanel:not(.processViewerProcessTab) > .processViewerInfo > * {
+  flex-shrink: 0;
+}
+
+.processViewerTabPanel:not(.processViewerProcessTab) > .processViewerInfo .raci-table-wrapper {
+  align-self: stretch;
+  width: 100%;
 }
 
 .processViewerProcessTab {
