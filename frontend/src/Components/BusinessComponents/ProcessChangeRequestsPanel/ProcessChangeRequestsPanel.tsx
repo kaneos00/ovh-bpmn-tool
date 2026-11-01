@@ -294,6 +294,14 @@ export const ProcessChangeRequestsPanel = ({
                     Justification : {request.justification}
                   </Typography>
                 )}
+                {isAuthor &&
+                  request.status === 'draft' &&
+                  !request.assignedReviewerId && (
+                    <Typography level="body-xs" color="warning">
+                      Un valideur doit être désigné avant de pouvoir soumettre
+                      cette contribution.
+                    </Typography>
+                  )}
                 {request.assignedReviewerId && (
                   <Typography level="body-xs" color="neutral">
                     Valideur : {request.assignedReviewerId}

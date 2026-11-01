@@ -143,7 +143,11 @@ export class ProcessChangeRequestController {
     @Body() body: ReviewerAssignmentBody,
     @Headers() headers: Record<string, string>,
   ) {
-    await this.projectResourceAccess.assertCanEditResource(resourceId, headers);
+    await this.projectResourceAccess.assertCanEditResource(
+      resourceId,
+      headers,
+      { allowCommonForOrganizationAdmin: true },
+    );
     const reviewer = await this.requests.getEligibleReviewer(
       body?.reviewerId ?? '',
     );
@@ -167,7 +171,11 @@ export class ProcessChangeRequestController {
     @Param('requestId') requestId: string,
     @Headers() headers: Record<string, string>,
   ) {
-    await this.projectResourceAccess.assertCanEditResource(resourceId, headers);
+    await this.projectResourceAccess.assertCanEditResource(
+      resourceId,
+      headers,
+      { allowCommonForOrganizationAdmin: true },
+    );
     return this.requests.transition({
       resourceId,
       requestId,
@@ -182,7 +190,11 @@ export class ProcessChangeRequestController {
     @Param('requestId') requestId: string,
     @Headers() headers: Record<string, string>,
   ) {
-    await this.projectResourceAccess.assertCanEditResource(resourceId, headers);
+    await this.projectResourceAccess.assertCanEditResource(
+      resourceId,
+      headers,
+      { allowCommonForOrganizationAdmin: true },
+    );
     return this.requests.transition({
       resourceId,
       requestId,
@@ -198,7 +210,11 @@ export class ProcessChangeRequestController {
     @Body() body: TransitionBody = {},
     @Headers() headers: Record<string, string>,
   ) {
-    await this.projectResourceAccess.assertCanEditResource(resourceId, headers);
+    await this.projectResourceAccess.assertCanEditResource(
+      resourceId,
+      headers,
+      { allowCommonForOrganizationAdmin: true },
+    );
     if (!body.comment?.trim()) {
       throw new BadRequestException('Un commentaire est requis');
     }
@@ -218,7 +234,11 @@ export class ProcessChangeRequestController {
     @Body() body: TransitionBody,
     @Headers() headers: Record<string, string>,
   ) {
-    await this.projectResourceAccess.assertCanEditResource(resourceId, headers);
+    await this.projectResourceAccess.assertCanEditResource(
+      resourceId,
+      headers,
+      { allowCommonForOrganizationAdmin: true },
+    );
     return this.requests.transition({
       resourceId,
       requestId,
@@ -235,7 +255,11 @@ export class ProcessChangeRequestController {
     @Body() body: TransitionBody,
     @Headers() headers: Record<string, string>,
   ) {
-    await this.projectResourceAccess.assertCanEditResource(resourceId, headers);
+    await this.projectResourceAccess.assertCanEditResource(
+      resourceId,
+      headers,
+      { allowCommonForOrganizationAdmin: true },
+    );
     if (!body.comment?.trim()) {
       throw new BadRequestException('Un motif de refus est requis');
     }
@@ -255,7 +279,11 @@ export class ProcessChangeRequestController {
     @Body() body: { pngContent: string },
     @Headers() headers: Record<string, string>,
   ) {
-    await this.projectResourceAccess.assertCanEditResource(resourceId, headers);
+    await this.projectResourceAccess.assertCanEditResource(
+      resourceId,
+      headers,
+      { allowCommonForOrganizationAdmin: true },
+    );
     const actorId = this.projectResourceAccess.getAuthenticatedUserId(headers);
     const request = await this.requests.getRequest(resourceId, requestId);
     if (request.status !== Status.Approved) {
