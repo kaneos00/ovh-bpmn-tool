@@ -229,8 +229,45 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     }
   }, [changeRequestId, selectedContent, saveDiagram, showAlert]);
 
+  const onDiagramSubmitChangeRequest = useCallback(async () => {
+    if (!changeRequestId || !selectedContent) {
+      return;
+    }
+
+    try {
+      const contentXml = await bpmnModelerInstance.saveXML({ format: true });
+      if (!contentXml.xml) {
+        throw new Error('Le diagramme BPMN ne peut pas être exporté');
+      }
+      submit(
+        {
+          action: 'submitChangeRequest',
+          requestId: changeRequestId,
+          contentId: selectedContent.id,
+          content: contentXml.xml,
+        },
+        { method: 'post' },
+      );
+    } catch (error) {
+      showAlert({
+        message:
+          error instanceof Error
+            ? `Impossible de soumettre la contribution : ${error.message}`
+            : 'Impossible de soumettre la contribution BPMN.',
+        severity: 'danger',
+      });
+    }
+  }, [
+    changeRequestId,
+    selectedContent,
+    bpmnModelerInstance,
+    submit,
+    showAlert,
+  ]);
+
   const processActionMessages: Record<string, string> = {
     saveContent: 'Content has been saved successfully.',
+    submitChangeRequest: 'La contribution BPMN a été soumise à validation.',
   };
 
   const getSaveErrorMessage = (error: unknown, formAction: string) => {
@@ -295,6 +332,10 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     onFileExport,
     onDiagramSave,
     onDiagramPublish,
+    onDiagramSubmitChangeRequest: changeRequestId
+      ? onDiagramSubmitChangeRequest
+      : undefined,
+    isChangeRequest: Boolean(changeRequestId),
     onCompareWithSource: sourceResourceId ? onCompareWithSource : undefined,
   };
 };

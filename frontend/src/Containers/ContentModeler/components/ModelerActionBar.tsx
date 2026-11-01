@@ -36,6 +36,8 @@ type ModelerActionBarProps = {
   onFileExport: (exportType: 'svg' | 'bpmn' | 'svg-a4-portrait' | 'svg-a4-landscape') => void;
   onDiagramSave: () => void;
   onDiagramPublish: () => void;
+  onDiagramSubmitChangeRequest?: () => void;
+  isChangeRequest?: boolean;
   onShortcutDisplay: () => void;
   onRaciOpen: () => void;
   onRolesOpen: () => void;
@@ -52,6 +54,8 @@ export const ModelerActionBar = ({
   onFileExport,
   onDiagramSave,
   onDiagramPublish,
+  onDiagramSubmitChangeRequest,
+  isChangeRequest = false,
   onShortcutDisplay,
   onRaciOpen,
   onRolesOpen,
@@ -159,15 +163,26 @@ export const ModelerActionBar = ({
           Save
         </Button>
 
-        <Button
-          onClick={onDiagramPublish}
-          variant="outlined"
-          // disabled={hasLintError}
-          color="success"
-          endDecorator={<Done fontSize="small" />}
-        >
-          Publish
-        </Button>
+        {isChangeRequest && onDiagramSubmitChangeRequest ? (
+          <Button
+            onClick={onDiagramSubmitChangeRequest}
+            variant="solid"
+            color="primary"
+            endDecorator={<Done fontSize="small" />}
+          >
+            Soumettre à validation
+          </Button>
+        ) : (
+          <Button
+            onClick={onDiagramPublish}
+            variant="outlined"
+            // disabled={hasLintError}
+            color="success"
+            endDecorator={<Done fontSize="small" />}
+          >
+            Publish
+          </Button>
+        )}
         <UserAccountMenu dark={false} />
       </Stack>
     </ActionBar>

@@ -5,6 +5,7 @@ import {
   getContentQuery,
   getXmlContentQuery,
 } from '../../api/contents/contents.queries';
+import { submitProcessChangeRequest } from '../../api/changeRequests/changeRequests.queries';
 
 import type { ContentModelerRouteParams } from '.';
 
@@ -36,6 +37,16 @@ const saveContentAction = async (
   return response;
 };
 
+const submitChangeRequestAction = async (
+  resourceId: string,
+  contentId: string,
+  requestId: string,
+  formData: FormData,
+) => {
+  await saveContentAction(resourceId, contentId, formData);
+  return submitProcessChangeRequest(resourceId, requestId);
+};
+
 export const action = async ({
   params,
   request,
@@ -55,6 +66,14 @@ export const action = async ({
       case 'saveContent':
       case 'saveContentBeforePublish':
         actionPromise = saveContentAction(resourceId, contentId, formData);
+        break;
+      case 'submitChangeRequest':
+        actionPromise = submitChangeRequestAction(
+          resourceId,
+          contentId,
+          formData.get('requestId') as string,
+          formData,
+        );
         break;
       default:
         break;

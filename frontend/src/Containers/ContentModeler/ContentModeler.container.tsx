@@ -50,6 +50,8 @@ export const Component = () => {
     onFileExport,
     onDiagramSave,
     onDiagramPublish,
+    onDiagramSubmitChangeRequest,
+    isChangeRequest,
     onCompareWithSource,
     actionData,
   } = useContentModeler(bpmnModelerInstance);
@@ -65,10 +67,17 @@ export const Component = () => {
       pendingPublishExitRef.current = false;
       return;
     }
-    if (actionData.formAction === 'saveContent' || actionData.formAction === 'saveContentBeforePublish') {
+    if (
+      actionData.formAction === 'saveContent' ||
+      actionData.formAction === 'saveContentBeforePublish' ||
+      actionData.formAction === 'submitChangeRequest'
+    ) {
       markSaved();
 
-      if (actionData.formAction === 'saveContent') {
+      if (
+        actionData.formAction === 'saveContent' ||
+        actionData.formAction === 'submitChangeRequest'
+      ) {
         if (pendingSaveExitRef.current && blocker.state === 'blocked') {
           pendingSaveExitRef.current = false;
           blocker.proceed?.();
@@ -105,6 +114,8 @@ export const Component = () => {
         onFileExport={onFileExport}
         onDiagramSave={onDiagramSave}
         onDiagramPublish={onDiagramPublish}
+        onDiagramSubmitChangeRequest={onDiagramSubmitChangeRequest}
+        isChangeRequest={isChangeRequest}
         onShortcutDisplay={() => setIsShortcurtModalOpen(true)}
         onRaciOpen={() => setRaciView('matrix')}
         onRolesOpen={() => setRaciView('actors')}
@@ -133,7 +144,26 @@ export const Component = () => {
             <Button variant="plain" color="neutral" onClick={() => { pendingSaveExitRef.current = false; pendingPublishExitRef.current = false; blocker.reset?.(); }}>Continuer l’édition</Button>
             <Button variant="outlined" color="danger" onClick={() => { markSaved(); blocker.proceed?.(); }}>Abandonner les modifications</Button>
             <Button variant="outlined" color="neutral" onClick={() => { pendingSaveExitRef.current = true; onDiagramSave(); }}>Enregistrer sans publier</Button>
-            <Button variant="solid" color="success" onClick={() => { pendingPublishExitRef.current = true; onDiagramPublish(); }}>Enregistrer et publier</Button>
+            {isChangeRequest && onDiagramSubmitChangeRequest ? (
+              <Button
+                variant="solid"
+                color="primary"
+                onClick={onDiagramSubmitChangeRequest}
+              >
+                Enregistrer et soumettre à validation
+              </Button>
+            ) : (
+              <Button
+                variant="solid"
+                color="success"
+                onClick={() => {
+                  pendingPublishExitRef.current = true;
+                  onDiagramPublish();
+                }}
+              >
+                Enregistrer et publier
+              </Button>
+            )}
           </DialogActions>
         </ModalDialog>
       </Modal>
