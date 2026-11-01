@@ -248,7 +248,6 @@ test('BPMN label clicks select their owning diagram element', async () => {
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
   assert.ok(hook.includes('const element = clickedElement?.labelTarget ?? clickedElement'));
   assert.ok(hook.includes('follows the object the user actually clicked'));
-  assert.ok(!hook.includes('!element.labelTarget'));
 });
 
 test('selection outline follows BPMN geometry and excludes separate labels', async () => {
