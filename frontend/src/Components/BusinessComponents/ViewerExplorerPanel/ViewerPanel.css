@@ -1,0 +1,14 @@
+/* Shared visual contract for headers of equivalent Viewer side panels. */
+.viewerPanelHeader {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 4px 8px;
+  color: var(--joy-palette-text-primary);
+  background: var(--joy-palette-background-level1, #f7f8fa);
+  border-bottom: 1px solid var(--joy-palette-divider, #dce3ec);
+}
+
+.viewerPanelHeader .MuiTypography-root {
+  color: inherit;
+}
