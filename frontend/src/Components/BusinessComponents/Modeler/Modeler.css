@@ -139,9 +139,13 @@
 /* Keep the active BPMN selection visible in both light and dark themes.
    diagram-js draws the outline on its dedicated .djs-outline layer. */
 .modelerContainer .djs-element.selected .djs-outline,
+.modelerContainer .djs-element.task-selected .djs-outline,
 .modelerContainer .djs-element.hover .djs-outline,
 .processViewerDiagramContent .djs-element.selected .djs-outline,
+.processViewerDiagramContent .djs-element.task-selected .djs-outline,
 .processViewerDiagramContent .djs-element.hover .djs-outline {
+  visibility: visible !important;
+  opacity: 1 !important;
   stroke: #1976d2 !important;
   stroke-width: 3px !important;
   fill: none !important;
