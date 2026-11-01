@@ -13,6 +13,7 @@ import { ProcessChangeRequestTypeOrmEntity } from './infrastructure/entities/pro
 import { ProcessChangeRequestEventTypeOrmEntity } from './infrastructure/entities/processChangeRequestEvent.ormEntity';
 import { TerminusModule } from '@nestjs/terminus';
 import { ProjectContextModule } from '../ProjectContext/projectContext.module';
+import { ProcessChangeRequestService } from './application/processChangeRequest.service';
 
 @Module({
   controllers: [...getControllers()],
@@ -27,6 +28,6 @@ import { ProjectContextModule } from '../ProjectContext/projectContext.module';
     ProjectContextModule,
     TerminusModule,
   ],
-  providers: [...getCommands(), ...getQueries(), ...getRepositories()],
+  providers: [...getCommands(), ...getQueries(), ...getRepositories(), ProcessChangeRequestService],
 })
 export class ResourceContextModule {}
