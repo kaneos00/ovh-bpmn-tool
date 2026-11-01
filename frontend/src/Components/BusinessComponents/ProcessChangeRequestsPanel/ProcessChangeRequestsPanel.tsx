@@ -31,6 +31,12 @@ type Props = {
   canReview: boolean;
 };
 
+const getWorkingCopyActionLabel = (status: ProcessChangeRequest['status']) => {
+  if (status === 'proposed') return 'Créer la version de travail';
+  if (status === 'changes_requested') return 'Reprendre la modification';
+  return 'Ouvrir la version de travail';
+};
+
 const labels: Record<ProcessChangeRequest['status'], string> = {
   proposed: 'Proposition',
   draft: 'Brouillon',
@@ -172,13 +178,15 @@ export const ProcessChangeRequestsPanel = ({
       }
       await refresh();
       setComments(current => ({ ...current, [request.id]: '' }));
+      let decisionMessage = 'Contribution refusée.';
+      if (decision === 'approve') {
+        decisionMessage =
+          'Contribution approuvée. La publication reste distincte.';
+      } else if (decision === 'changes') {
+        decisionMessage = 'Corrections demandées à l’auteur.';
+      }
       showAlert({
-        message:
-          decision === 'approve'
-            ? 'Contribution approuvée. La publication reste distincte.'
-            : decision === 'changes'
-              ? 'Corrections demandées à l’auteur.'
-              : 'Contribution refusée.',
+        message: decisionMessage,
         severity: 'success',
       });
     } catch (error) {
@@ -237,17 +245,19 @@ export const ProcessChangeRequestsPanel = ({
         </Card>
       )}
 
-      {isLoading ? (
+      {isLoading && (
         <Typography level="body-sm" color="neutral">
           Chargement des demandes…
         </Typography>
-      ) : requests.length === 0 ? (
+      )}
+      {!isLoading && requests.length === 0 && (
         <Card variant="outlined">
           <Typography level="body-sm" color="neutral">
             Aucune demande de modification pour ce processus.
           </Typography>
         </Card>
-      ) : (
+      )}
+      {!isLoading && requests.length > 0 && (
         <Stack spacing={1.5}>
           {requests.map(request => {
             const isAuthor = request.authorId === currentUserId;
@@ -301,11 +311,7 @@ export const ProcessChangeRequestsPanel = ({
                       disabled={busy}
                       onClick={() => void openWorkingCopy(request)}
                     >
-                      {request.status === 'proposed'
-                        ? 'Créer la version de travail'
-                        : request.status === 'changes_requested'
-                          ? 'Reprendre la modification'
-                          : 'Ouvrir la version de travail'}
+                      {getWorkingCopyActionLabel(request.status)}
                     </Button>
                   )}
 

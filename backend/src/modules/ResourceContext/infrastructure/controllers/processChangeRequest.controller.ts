@@ -157,10 +157,7 @@ export class ProcessChangeRequestController {
     @Param('requestId') requestId: string,
     @Headers() headers: Record<string, string>,
   ) {
-    await this.projectResourceAccess.assertCanEditResource(
-      resourceId,
-      headers,
-    );
+    await this.projectResourceAccess.assertCanEditResource(resourceId, headers);
     return this.requests.transition({
       resourceId,
       requestId,
