@@ -105,6 +105,7 @@ export const useFolderTree = (selectedResourceId: string) => {
         name: item.name,
         type: nodeType,
         targetId,
+        processLifecycleStatus: item.processLifecycleStatus,
         children,
       } as RenderTree;
     };
