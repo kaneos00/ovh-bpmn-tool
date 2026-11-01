@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Button,
+  Chip,
   Divider,
   IconButton,
   Input,
@@ -331,6 +332,32 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                   >
                     {node?.type === 'folder' ? <FolderOutlined fontSize="small" /> : <DescriptionOutlined fontSize="small" />}
                     <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</Box>
+                    {node?.processLifecycleStatus && (
+                      <Chip
+                        size="sm"
+                        variant="soft"
+                        color={
+                          node.processLifecycleStatus === 'published' ||
+                          node.processLifecycleStatus === 'validation_granted'
+                            ? 'success'
+                            : node.processLifecycleStatus === 'in_validation'
+                              ? 'primary'
+                              : node.processLifecycleStatus === 'changes_requested'
+                                ? 'warning'
+                                : 'neutral'
+                        }
+                        sx={{ flexShrink: 0, fontSize: 10, minHeight: 20, px: 0.5 }}
+                      >
+                        {{
+                          unpublished: 'Non publié',
+                          published: 'Publié',
+                          modification_in_preparation: 'En préparation',
+                          in_validation: 'En validation',
+                          changes_requested: 'À corriger',
+                          validation_granted: 'À publier',
+                        }[node.processLifecycleStatus]}
+                      </Chip>
+                    )}
                     {Boolean(node?.children?.length) && (
                       <IconButton
                         size="sm"
