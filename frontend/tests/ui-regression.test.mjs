@@ -214,7 +214,7 @@ test('detail panel starts collapsed, opens on element selection and exposes task
 
   assert.match(details, /useState\(true\);[\s\S]*?taskPanelCollapsed/);
   assert.match(details, /if \(selectedElementId\) setTaskPanelCollapsed\(false\)/);
-  assert.match(details, /className="processTaskPanelHeader"[\s\S]*?onClick=\{\(\) => setTaskPanelCollapsed\(value => !value\)\}/);
+  assert.match(details, /className="viewerPanelHeader processTaskPanelHeader"[\s\S]*?onClick=\{\(\) => setTaskPanelCollapsed\(value => !value\)\}/);
   assert.match(details, /aria-label=\{taskPanelCollapsed \? 'Développer le panneau de tâche' : 'Replier le panneau de tâche'\}/);
   const taskInfo = details.indexOf('1. Description de la tâche');
   const raci = details.indexOf('2. RACI');
@@ -415,7 +415,9 @@ test('RACI activity links select the BPMN element and return to the process tab'
   const viewer = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
   assert.ok(viewer.includes("selection?.select?.([element])"));
   const css = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
-  assert.ok(css.includes('.djs-element.task-selected:not(.djs-label) .djs-visual > :not(text):not(tspan)'));
+  assert.ok(css.includes('.djs-element.selected .djs-outline'));
+  assert.ok(css.includes('stroke-width: 3px !important'));
+  assert.ok(!css.includes('.djs-element.task-selected:not(.djs-label) .djs-visual > :not(text):not(tspan)'));
 });
 
 
