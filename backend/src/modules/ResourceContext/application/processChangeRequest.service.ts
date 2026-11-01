@@ -381,15 +381,12 @@ export class ProcessChangeRequestService {
     const request = await this.dataSource
       .getRepository(ProcessChangeRequestTypeOrmEntity)
       .findOne({
-        where: [
-          { resourceId, workingContentId: contentId, status: Status.InReview },
-          { resourceId, workingContentId: contentId, status: Status.Approved },
-        ],
+        where: { resourceId, workingContentId: contentId },
         select: { id: true, status: true },
       });
-    if (request) {
+    if (request && request.status !== Status.Draft) {
       throw new ConflictException(
-        'La versione BPMN è bloccata perché la richiesta è in revisione o approvata',
+        'La versione BPMN ne peut être modifiée que lorsque la demande est en brouillon',
       );
     }
   }

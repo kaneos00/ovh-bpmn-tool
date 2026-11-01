@@ -269,6 +269,25 @@ export class ProcessChangeRequestController {
       );
     }
 
+    // Recover safely if the content publication committed but the request
+    // audit transition was interrupted before it could be recorded.
+    const publishedContents = await this.listContents.execute(resourceId, {
+      filters: { status: ContentStatusEnum.Published },
+    });
+    if (
+      !publishedContents.fail &&
+      publishedContents.ok.some(
+        (content) => content.id.value === request.workingContentId,
+      )
+    ) {
+      return this.requests.markPublished({
+        resourceId,
+        requestId,
+        actorId,
+        publishedContentId: request.workingContentId,
+      });
+    }
+
     const publication = await this.publishContent.execute(
       resourceId,
       request.workingContentId,

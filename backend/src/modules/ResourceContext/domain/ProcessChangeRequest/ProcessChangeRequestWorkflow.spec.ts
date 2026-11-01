@@ -47,6 +47,16 @@ describe('ProcessChangeRequestWorkflow', () => {
     ).toThrow(InvalidProcessChangeRequestTransitionError);
   });
 
+  it('does not allow an approved contribution to be withdrawn', () => {
+    expect(() =>
+      assertProcessChangeRequestTransition(
+        { status: RequestStatus.Approved, authorId: 'author-1' },
+        RequestStatus.Withdrawn,
+        'author-1',
+      ),
+    ).toThrow(InvalidProcessChangeRequestTransitionError);
+  });
+
   it('prevents an author from approving their own request by default', () => {
     expect(() =>
       assertProcessChangeRequestTransition(
