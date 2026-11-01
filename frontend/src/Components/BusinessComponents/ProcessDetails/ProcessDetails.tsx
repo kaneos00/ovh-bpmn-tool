@@ -54,6 +54,7 @@ type ProcessDetailsProps = {
   onContentErase: (contentId: string) => void;
   onContentClone: (contentId: string) => void;
   onContentViewerLinkCopy: (content: string) => void;
+  onModelerClick: () => void;
   onCompareClick: (leftContentId: string, rightContentId: string) => void;
   selectedElementId?: string | null;
   onElementSelect?: (elementId: string) => void;
@@ -149,6 +150,7 @@ export const ProcessDetails = ({
   onContentErase,
   onContentClone,
   onContentViewerLinkCopy,
+  onModelerClick,
   onCompareClick,
   selectedElementId,
   onElementSelect,
@@ -585,16 +587,30 @@ export const ProcessDetails = ({
                         Published by {viewerContent.updatedBy} le {new Date(viewerContent.updatedAt).toLocaleDateString('fr-FR')}
                       </Typography>
                   </Stack>
-                  <IconButton
-                    title="Copy link"
-                    aria-label="Copier le lien du processus"
-                    variant="plain"
-                    color="neutral"
-                    size="sm"
-                    onClick={() => onContentViewerLinkCopy(viewerContent.id)}
-                  >
-                    <FileCopy />
-                  </IconButton>
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    {canEditDescription && (
+                      <IconButton
+                        title="Modifier le diagramme BPMN"
+                        aria-label="Modifier le diagramme BPMN"
+                        variant="plain"
+                        color="neutral"
+                        size="sm"
+                        onClick={onModelerClick}
+                      >
+                        <EditOutlined />
+                      </IconButton>
+                    )}
+                    <IconButton
+                      title="Copier le lien"
+                      aria-label="Copier le lien du processus"
+                      variant="plain"
+                      color="neutral"
+                      size="sm"
+                      onClick={() => onContentViewerLinkCopy(viewerContent.id)}
+                    >
+                      <FileCopy />
+                    </IconButton>
+                  </Stack>
                 </Stack>
                 <Divider />
                 <Box className="processViewerCanvas">
