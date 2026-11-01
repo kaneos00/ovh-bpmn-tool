@@ -558,7 +558,7 @@ test('V3 process and content viewers share the same explorer panel without losin
   assert.ok(shared.includes('onForward'));
 });
 
-test('modeler publication route stays inside the modeler and returns there after publish', async () => {
+test('modeler publication route stays inside the modeler and returns to the Viewer after publish', async () => {
   const routes = await read('src/routes.tsx');
   const modeler = await read('src/Containers/ContentModeler/ContentModeler.container.tsx');
   const publish = await read('src/Containers/PublishResource/PublishResource.container.tsx');
@@ -566,8 +566,8 @@ test('modeler publication route stays inside the modeler and returns there after
 
   assert.match(routes, /path: '\/:resourceId\/modeler'[\s\S]*?children: \[[\s]*\{\s*path: 'publish'/);
   assert.ok(modeler.includes('${resourceId}/modeler/publish'));
-  assert.ok(publish.includes("location.pathname.endsWith('/modeler/publish')"));
-  assert.ok(publish.includes("returnToModeler ? '/modeler' : ''"));
+  assert.ok(publish.includes('<Navigate to={`/${resource?.id}`} replace />'));
+  assert.ok(!publish.includes("location.pathname.endsWith('/modeler/publish')"));
   assert.ok(publishHook.includes("return navigate('..')"));
 });
 
