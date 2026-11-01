@@ -277,17 +277,31 @@ body {
   box-shadow: 0 2px 8px rgb(0 0 0 / 24%);
 }
 [data-joy-color-scheme='dark'] .MuiButton-root.MuiButton-variant-outlined,
-[data-joy-color-scheme='dark'] .MuiButton-root.MuiButton-variant-soft,
-[data-joy-color-scheme='dark'] .MuiIconButton-root {
+[data-joy-color-scheme='dark'] .MuiButton-root.MuiButton-variant-soft {
   color: #f2f6fc;
   background-color: #263548;
   border: 1px solid #d5deea;
 }
 [data-joy-color-scheme='dark'] .MuiButton-root.MuiButton-variant-outlined:hover,
-[data-joy-color-scheme='dark'] .MuiButton-root.MuiButton-variant-soft:hover,
-[data-joy-color-scheme='dark'] .MuiIconButton-root:hover {
+[data-joy-color-scheme='dark'] .MuiButton-root.MuiButton-variant-soft:hover {
   background-color: #3b4e65;
   border-color: #ffffff;
+}
+
+/* Plain icon actions (navigation arrows, edit, link, delete, collapse) must
+   remain borderless in dark mode, just as they are in the light theme.
+   Only explicitly outlined/soft buttons receive the shared button border. */
+[data-joy-color-scheme='dark'] .MuiIconButton-root.MuiIconButton-variantPlain {
+  color: #e6edf7;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+[data-joy-color-scheme='dark'] .MuiIconButton-root.MuiIconButton-variantPlain:hover {
+  color: #ffffff;
+  background: rgb(255 255 255 / 9%);
+  border: 0;
+  box-shadow: none;
 }
 [data-joy-color-scheme='dark'] .MuiButton-root.MuiButton-variant-solid.MuiButton-color-primary {
   color: #ffffff;
