@@ -45,6 +45,7 @@ import { ContentStatusEnum } from '../../../Types';
 
 import '../../../raci.css';
 import { DataInventory } from './DataInventory';
+import { ProcessChangeRequestsPanel } from '../ProcessChangeRequestsPanel/ProcessChangeRequestsPanel';
 import './ProcessDetails.scss';
 
 type ProcessDetailsProps = {
@@ -193,6 +194,7 @@ export const ProcessDetails = ({
   const { data: resourceShares } = useQuery(resourceSharesQuery(resourceId));
   const { showAlert } = useSnackbar();
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
+  const [sessionUserId, setSessionUserId] = useState<string | null>(null);
   const [activeViewerTab, setActiveViewerTab] = useState(0);
 
   // A deep link may explicitly open the RACI workspace. Otherwise keep the
@@ -231,8 +233,13 @@ export const ProcessDetails = ({
       credentials: 'same-origin',
       headers: { accept: 'application/json' },
     })
-      .then(async response => response.ok ? response.json() as Promise<{ role?: 'admin' | 'modeler' | 'viewer' }> : null)
-      .then(session => { if (mounted) setSessionRole(session?.role ?? null); })
+      .then(async response => response.ok ? response.json() as Promise<{ userId?: string; role?: 'admin' | 'modeler' | 'viewer' }> : null)
+      .then(session => {
+        if (mounted) {
+          setSessionRole(session?.role ?? null);
+          setSessionUserId(session?.userId ?? null);
+        }
+      })
       .catch(() => { if (mounted) setSessionRole(null); });
     return () => { mounted = false; };
   }, []);
@@ -564,6 +571,7 @@ export const ProcessDetails = ({
           <Tab value={2}>Historique des versions</Tab>
           <Tab value={3}>RACI</Tab>
           <Tab value={4}>Informations documentées</Tab>
+          <Tab value={5}>Demandes de modification</Tab>
         </TabList>
 
 
@@ -945,6 +953,15 @@ export const ProcessDetails = ({
               <span>Lecture seule dans le Viewer</span>
             </Box>
           </Sheet>
+        </TabPanel>
+
+        <TabPanel value={5} className="processViewerTabPanel">
+          <ProcessChangeRequestsPanel
+            resourceId={resourceId}
+            currentUserId={sessionUserId ?? ''}
+            canPropose={Boolean(sessionUserId)}
+            canReview={sessionRole === 'admin' || sessionRole === 'modeler'}
+          />
         </TabPanel>
 
         <TabPanel value={4} className="processViewerTabPanel">
