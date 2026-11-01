@@ -1,5 +1,5 @@
 import React from 'react';
-import { Await, Navigate, useLocation } from 'react-router-dom';
+import { Await, Navigate } from 'react-router-dom';
 
 import { usePublishResource } from './hooks/usePublishResource';
 import { BaseModal } from '../../Components/GenericComponents/BaseModal/BaseModal';
@@ -9,18 +9,18 @@ import { PublishContent } from './components/PublishContent';
 import { Button, DialogActions } from '@mui/joy';
 
 export const Component = () => {
-  const location = useLocation();
   const { loaderData, resource, base64Png, actionData, viewerRef, callbacks } =
     usePublishResource();
 
   // A failed publication must remain on the confirmation screen so the
-  // user can see the error and retry. Redirect only after a successful action.
+  // user can see the error and retry. After success, return to the process
+  // workspace (Viewer), regardless of whether Publish was opened from the
+  // Viewer or directly from the Modeler.
   if (
     (resource && resource.type === ResourceType.Folder) ||
     (actionData && !actionData.error)
   ) {
-    const returnToModeler = location.pathname.endsWith('/modeler/publish');
-    return <Navigate to={`/${resource?.id}${returnToModeler ? '/modeler' : ''}`} />;
+    return <Navigate to={`/${resource?.id}`} replace />;
   }
 
   return (
