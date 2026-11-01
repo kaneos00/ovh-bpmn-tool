@@ -1,10 +1,10 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { ProcessChangeRequestTypeOrmEntity } from './processChangeRequest.ormEntity';
 
 @Entity('process_change_request_events')
 @Index(['requestId', 'createdAt'])
 export class ProcessChangeRequestEventTypeOrmEntity {
-  @Column('uuid', { primary: true, generated: 'uuid' })
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column('uuid')
