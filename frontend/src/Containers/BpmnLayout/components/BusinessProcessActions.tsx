@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight } from '@mui/icons-material';
+import { EditOutlined } from '@mui/icons-material';
 
 import { ActionButton } from '../../../Components/GenericComponents/ActionButton/ActionButton';
 
@@ -15,6 +15,6 @@ export const BusinessProcessActions = ({
     onClick={onModelerBtnClick}
     content="Modeleur"
     label="Ouvrir le modeleur BPMN"
-    rightIcon={<ChevronRight fontSize="small" />}
+    leftIcon={<EditOutlined fontSize="small" />}
   />
 );
