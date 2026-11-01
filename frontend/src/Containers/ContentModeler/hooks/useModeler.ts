@@ -152,7 +152,7 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
 
     // Serialize every import against the actual Modeler instance, including
     // user uploads handled by useContentModeler.
-    const importTask = enqueueModelerImport(
+    enqueueModelerImport(
       bpmnModelerInstance,
       async () => {
         if (generation !== importGenerationRef.current) return;
