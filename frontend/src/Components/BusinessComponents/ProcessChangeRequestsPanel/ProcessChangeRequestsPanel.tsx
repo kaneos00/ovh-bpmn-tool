@@ -359,7 +359,7 @@ export const ProcessChangeRequestsPanel = ({
                     {(eventQueries[requests.indexOf(request)]?.data ?? []).map(event => (
                       <Card key={event.id} variant="soft" size="sm">
                         <Typography level="body-xs" color="neutral">
-                          {event.event.replaceAll('_', ' ')} · {event.actorId} ·{' '}
+                          {event.event.replace(/_/g, ' ')} · {event.actorId} ·{' '}
                           {new Date(event.createdAt).toLocaleString('fr-FR')}
                         </Typography>
                         {event.comment && (

@@ -44,7 +44,9 @@ const submitChangeRequestAction = async (
   formData: FormData,
 ) => {
   await saveContentAction(resourceId, contentId, formData);
-  return submitProcessChangeRequest(resourceId, requestId);
+  const comment = window.prompt('Commentaire accompagnant la soumission');
+  if (!comment?.trim()) return;
+  return submitProcessChangeRequest(resourceId, requestId, comment.trim());
 };
 
 export const action = async ({
