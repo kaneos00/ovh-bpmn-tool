@@ -20,6 +20,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   const { resourceId } = useParams() as ContentModelerRouteParams;
   const [searchParams] = useSearchParams();
   const requestedContentId = searchParams.get('contentId');
+  const changeRequestId = searchParams.get('changeRequestId');
   const actionData = useActionData() as Content & ActionResponse;
   const navigate = useNavigate();
 
@@ -111,11 +112,11 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
    */
   const triggerDownload = useCallback(
     (content: string, exportType: 'svg' | 'bpmn', suffix = ''): void => {
-      if (resource && draftContent) {
+      if (resource && selectedContent) {
         const hiddenElement = document.createElement('a');
         const mimeType = exportType === 'svg' ? 'image/svg+xml' : 'text/xml';
         const fileContent = new Blob([content], { type: mimeType });
-        const fileName = `${resource.name}_v${draftContent.version}${suffix}`;
+        const fileName = `${resource.name}_v${selectedContent.version}${suffix}`;
         const objectUrl = window.URL.createObjectURL(fileContent);
         hiddenElement.setAttribute('download', `${fileName}.${exportType}`);
         hiddenElement.setAttribute('href', objectUrl);
@@ -126,7 +127,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
         window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000);
       }
     },
-    [draftContent, resource],
+    [selectedContent, resource],
   );
 
   const onFileExport = useCallback(
@@ -195,34 +196,38 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   );
 
   const onDiagramSave = useCallback(async () => {
-    if (!draftContent) {
+    if (!selectedContent) {
       return;
     }
 
     try {
-      await saveDiagram('saveContent', draftContent);
+      await saveDiagram('saveContent', selectedContent);
     } catch {
       showAlert({
         message: 'An error occur during saving content.',
         severity: 'danger',
       });
     }
-  }, [draftContent, saveDiagram, showAlert]);
+  }, [selectedContent, saveDiagram, showAlert]);
 
   const onDiagramPublish = useCallback(async () => {
-    if (!draftContent) {
+    if (changeRequestId) {
+      showAlert({ message: 'Une contribution liée à une demande de modification doit être soumise à validation, et non publiée directement.', severity: 'warning' });
+      return;
+    }
+    if (!selectedContent) {
       return;
     }
 
     try {
-      await saveDiagram('saveContentBeforePublish', draftContent);
+      await saveDiagram('saveContentBeforePublish', selectedContent);
     } catch {
       showAlert({
         message: 'An error occur during saving content.',
         severity: 'danger',
       });
     }
-  }, [draftContent, saveDiagram, showAlert]);
+  }, [changeRequestId, selectedContent, saveDiagram, showAlert]);
 
   const processActionMessages: Record<string, string> = {
     saveContent: 'Content has been saved successfully.',
