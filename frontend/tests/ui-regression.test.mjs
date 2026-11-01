@@ -635,12 +635,31 @@ test('dark theme does not add borders to plain icon buttons', async () => {
   assert.ok(!styles.includes('[data-joy-color-scheme=\'dark\'] .MuiIconButton-root:hover {'));
 });
 
-test('process modeler action uses the edit icon', async () => {
+test('process edit shortcut sits beside the copy-link action, not inside the Modeleur title button', async () => {
   const actions = await read('src/Containers/BpmnLayout/components/BusinessProcessActions.tsx');
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
 
-  assert.ok(actions.includes('EditOutlined'));
-  assert.ok(actions.includes('leftIcon={<EditOutlined fontSize="small" />}'));
   assert.ok(actions.includes('onClick={onModelerBtnClick}'));
+  assert.ok(!actions.includes('EditOutlined'));
+  assert.ok(!actions.includes('leftIcon='));
+  assert.ok(details.includes('onModelerClick: () => void'));
+  assert.ok(details.includes('canEditDescription && ('));
+  assert.ok(details.includes('title="Modifier le diagramme BPMN"'));
+  assert.ok(details.includes('onClick={onModelerClick}'));
+  assert.ok(details.includes('title="Copier le lien"'));
+  assert.ok(layout.includes('onModelerClick={callbacks.header.onModelerBtnClick}'));
+});
+
+test('blue BPMN selection outline is available in both light and dark themes', async () => {
+  const css = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
+  const lightSelection = css.indexOf('.modelerContainer .djs-element.selected .djs-outline');
+  const darkThemeRules = css.indexOf("[data-joy-color-scheme='dark']");
+
+  assert.ok(lightSelection >= 0);
+  assert.ok(darkThemeRules > lightSelection, 'the shared selection rule must not be nested in the dark-theme overrides');
+  assert.ok(css.includes('stroke: #1976d2 !important;'));
+  assert.ok(css.includes('stroke-width: 3px !important'));
 });
 
 
