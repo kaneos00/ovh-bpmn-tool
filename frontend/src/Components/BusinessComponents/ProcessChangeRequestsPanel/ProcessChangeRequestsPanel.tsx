@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from 'react-query';
+import { useQueries, useQuery, useQueryClient } from 'react-query';
 import {
   Button,
   Card,
@@ -17,6 +17,7 @@ import {
   assignProcessChangeRequestReviewer,
   createProcessChangeRequestProposal,
   processChangeRequestsQuery,
+  processChangeRequestEventsQuery,
   rejectProcessChangeRequest,
   requestProcessChangeRequestChanges,
   resumeProcessChangeRequestEditing,
@@ -61,6 +62,11 @@ export const ProcessChangeRequestsPanel = ({
   const { showAlert } = useSnackbar();
   const { data: requests = [], isLoading } = useQuery(
     processChangeRequestsQuery(resourceId),
+  );
+  const eventQueries = useQueries(
+    requests.map(request =>
+      processChangeRequestEventsQuery(resourceId, request.id),
+    ),
   );
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -346,6 +352,24 @@ export const ProcessChangeRequestsPanel = ({
                   <Typography level="body-xs" color="neutral">
                     Valideur : {request.assignedReviewerId}
                   </Typography>
+                )}
+                {(eventQueries[requests.indexOf(request)]?.data ?? []).length > 0 && (
+                  <Stack spacing={0.5}>
+                    <Typography level="title-sm">Historique et commentaires</Typography>
+                    {(eventQueries[requests.indexOf(request)]?.data ?? []).map(event => (
+                      <Card key={event.id} variant="soft" size="sm">
+                        <Typography level="body-xs" color="neutral">
+                          {event.event.replaceAll('_', ' ')} · {event.actorId} ·{' '}
+                          {new Date(event.createdAt).toLocaleString('fr-FR')}
+                        </Typography>
+                        {event.comment && (
+                          <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>
+                            {event.comment}
+                          </Typography>
+                        )}
+                      </Card>
+                    ))}
+                  </Stack>
                 )}
 
                 {isAuthor && request.status === 'draft' && (

@@ -36,6 +36,27 @@ export type ProcessChangeRequest = {
   createdAt: string;
 };
 
+export type ProcessChangeRequestEvent = {
+  id: string;
+  actorId: string;
+  event: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  comment: string | null;
+  createdAt: string;
+};
+
+export const processChangeRequestEventsQuery = (
+  resourceId: string,
+  requestId: string,
+) => ({
+  queryKey: [`${CHANGE_REQUESTS_QUERY_KEY}_${resourceId}`, requestId, 'events'],
+  queryFn: async (): Promise<ProcessChangeRequestEvent[]> =>
+    apiClient.get(
+      `/resources/${resourceId}/change-requests/${requestId}/events`,
+    ),
+});
+
 export const processChangeRequestsQuery = (resourceId: string) => ({
   queryKey: [`${CHANGE_REQUESTS_QUERY_KEY}_${resourceId}`],
   queryFn: async (): Promise<ProcessChangeRequest[]> =>
