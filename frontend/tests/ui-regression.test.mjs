@@ -579,3 +579,46 @@ test('BPMN version diff compares older to newer and marks changes on the correct
   assert.ok(compare.includes("highlight(rightViewer, obj.id, 'diff-added')"));
   assert.ok(compare.includes("highlight(leftViewer, obj.id, 'diff-removed')"));
 });
+
+
+test('read-only version history can select and compare exactly two historical versions', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const hook = await read('src/Components/BusinessComponents/ProcessDetails/hooks/useProcessDetails.ts');
+
+  assert.ok(details.includes('Comparer les deux versions sélectionnées'));
+  assert.ok(details.includes('checked={contentIdsToCompare.includes(content.id)}'));
+  assert.ok(details.includes('onCompareClick(contentIdsToCompare[0], contentIdsToCompare[1])'));
+  assert.ok(hook.includes('const selectedIds = [...new Set(contentIds)]'));
+  assert.ok(hook.includes('setIsCompareDisabled(selectedIds.length !== 2)'));
+});
+
+test('dark-mode BPMN selection uses one outline layer without a second geometry stroke', async () => {
+  const css = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
+
+  assert.ok(css.includes('.modelerContainer .djs-element.selected .djs-outline'));
+  assert.ok(css.includes('.processViewerDiagramContent .djs-element.selected .djs-outline'));
+  assert.ok(!css.includes('.djs-element.task-selected:not(.djs-label) .djs-visual'));
+  assert.ok(!css.includes('.djs-element.selected:not(.djs-label) .djs-visual'));
+  assert.ok(css.includes('Do not also stroke the SVG geometry'));
+});
+
+test('explorer and element-details panel headers share one theme-aware visual contract', async () => {
+  const explorer = await read('src/Components/BusinessComponents/ViewerExplorerPanel/ViewerExplorerPanel.tsx');
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const sharedCss = await read('src/Components/BusinessComponents/ViewerExplorerPanel/ViewerPanel.css');
+
+  assert.ok(explorer.includes('viewerPanelHeader'));
+  assert.ok(details.includes('viewerPanelHeader processTaskPanelHeader'));
+  assert.ok(sharedCss.includes('.viewerPanelHeader'));
+  assert.ok(sharedCss.includes('var(--joy-palette-background-level1'));
+  assert.ok(sharedCss.includes('var(--joy-palette-divider'));
+});
+
+test('version comparison waits for both resource records as well as both BPMN versions', async () => {
+  const compareData = await read('src/Containers/ContentCompare/hooks/useCompareData.ts');
+
+  assert.ok(compareData.includes('isLeftResourceLoading'));
+  assert.ok(compareData.includes('isRightResourceLoading'));
+  assert.ok(compareData.includes('isLeftResourceLoading ||'));
+  assert.ok(compareData.includes('isRightResourceLoading ||'));
+});
