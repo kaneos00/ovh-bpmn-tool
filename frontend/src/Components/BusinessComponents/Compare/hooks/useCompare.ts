@@ -223,8 +223,8 @@ export const useCompare = (leftContent: string, rightContent: string) => {
 
     setDiffs(
       diff(
-        rightViewer.getDefinitions(),
         leftViewer.getDefinitions(),
+        rightViewer.getDefinitions(),
         getModelerDiffChangeHandler(),
       ),
     );
@@ -263,11 +263,11 @@ export const useCompare = (leftContent: string, rightContent: string) => {
     }
 
     Object.values(diffs._added).forEach(obj => {
-      highlight(leftViewer, obj.id, 'diff-added');
-      addMarker(leftViewer, obj.id, 'marker-added', '&#43;');
+      highlight(rightViewer, obj.id, 'diff-added');
+      addMarker(rightViewer, obj.id, 'marker-added', '&#43;');
     });
     return undefined;
-  }, [diffs?._added, leftSideLoaded, rightSideLoaded, leftViewer, highlight, addMarker]);
+  }, [diffs?._added, leftSideLoaded, rightSideLoaded, rightViewer, highlight, addMarker]);
 
   useEffect(() => {
     if (
@@ -280,11 +280,11 @@ export const useCompare = (leftContent: string, rightContent: string) => {
     }
 
     Object.values(diffs._removed).forEach(obj => {
-      highlight(rightViewer, obj.id, 'diff-removed');
-      addMarker(rightViewer, obj.id, 'marker-removed', '&minus;');
+      highlight(leftViewer, obj.id, 'diff-removed');
+      addMarker(leftViewer, obj.id, 'marker-removed', '&minus;');
     });
     return undefined;
-  }, [diffs?._removed, leftSideLoaded, rightSideLoaded, rightViewer, highlight, addMarker]);
+  }, [diffs?._removed, leftSideLoaded, rightSideLoaded, leftViewer, highlight, addMarker]);
 
   useEffect(() => {
     if (
