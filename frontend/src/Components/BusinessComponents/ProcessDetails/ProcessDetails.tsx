@@ -749,10 +749,36 @@ export const ProcessDetails = ({
             <Stack spacing={1} padding={1}>
               {readOnlyShell && !canManageVersions ? (
                 <>
+                  <Stack direction="row" alignItems="center" justifyContent="flex-end">
+                    <IconButton
+                      title="Comparer les deux versions sélectionnées"
+                      aria-label="Comparer les deux versions sélectionnées"
+                      variant="plain"
+                      color="neutral"
+                      size="sm"
+                      disabled={isCompareDisabled}
+                      onClick={() => onCompareClick(contentIdsToCompare[0], contentIdsToCompare[1])}
+                    >
+                      <Compare />
+                    </IconButton>
+                  </Stack>
                   {contents.map(content => (
                     <Sheet key={content.id} variant="soft" sx={{ p: 1.5, borderRadius: 'sm' }}>
                       <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
-                        <Typography level="title-sm">Version v{content.version ?? 'N/A'}</Typography>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Checkbox
+                            size="sm"
+                            checked={contentIdsToCompare.includes(content.id)}
+                            disabled={content.status === ContentStatusEnum.Draft}
+                            onChange={event => onContentChecked(
+                              event.target.checked
+                                ? [...contentIdsToCompare, content.id]
+                                : contentIdsToCompare.filter(id => id !== content.id),
+                            )}
+                            aria-label={`Sélectionner la version v${content.version ?? 'N/A'} pour comparaison`}
+                          />
+                          <Typography level="title-sm">Version v{content.version ?? 'N/A'}</Typography>
+                        </Stack>
                         <Chip size="sm" variant="soft" color={getContentStatusColor(content.status)}>
                           {getContentStatusLabel(content.status)}
                         </Chip>
