@@ -622,3 +622,21 @@ test('version comparison waits for both resource records as well as both BPMN ve
   assert.ok(compareData.includes('isLeftResourceLoading ||'));
   assert.ok(compareData.includes('isRightResourceLoading ||'));
 });
+
+
+test('dark theme does not add borders to plain icon buttons', async () => {
+  const styles = await read('src/styles.css');
+
+  assert.ok(styles.includes('.MuiIconButton-root.MuiIconButton-variantPlain'));
+  assert.ok(styles.includes('background: transparent;'));
+  assert.ok(styles.includes('border: 0;'));
+  assert.ok(!styles.includes('[data-joy-color-scheme=\'dark\'] .MuiIconButton-root:hover {'));
+});
+
+test('process modeler action uses the edit icon', async () => {
+  const actions = await read('src/Containers/BpmnLayout/components/BusinessProcessActions.tsx');
+
+  assert.ok(actions.includes('EditOutlined'));
+  assert.ok(actions.includes('leftIcon={<EditOutlined fontSize="small" />}'));
+  assert.ok(actions.includes('onClick={onModelerBtnClick}'));
+});
