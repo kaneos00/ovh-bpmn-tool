@@ -193,11 +193,12 @@ export const ProcessDetails = ({
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
   const [activeViewerTab, setActiveViewerTab] = useState(0);
 
-  // Deep links may request the RACI workspace tab. Keep the route authoritative
-  // when navigating to another process or version, without controlling manual tab changes.
+  // A deep link may explicitly open the RACI workspace. Otherwise keep the
+  // current tab when the user navigates between processes or versions.
+  // Do not reset to the BPMN tab when the route query disappears after navigation.
   useEffect(() => {
-    setActiveViewerTab(requestedRaciView ? 3 : 0);
-  }, [resourceId, selectedContentId, requestedRaciView]);
+    if (requestedRaciView) setActiveViewerTab(3);
+  }, [requestedRaciView]);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState('');
   const [titleDraft, setTitleDraft] = useState('');
