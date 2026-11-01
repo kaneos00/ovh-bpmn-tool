@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { ProcessChangeRequestTypeOrmEntity } from '../infrastructure/entities/processChangeRequest.ormEntity';
 import { ProcessChangeRequestEventTypeOrmEntity } from '../infrastructure/entities/processChangeRequestEvent.ormEntity';
 import { ContentTypeOrmEntity } from '../infrastructure/entities/content.ormEntity';
@@ -15,7 +15,10 @@ import {
   ProcessChangeRequestStatusEnum as Status,
   ProcessChangeRequestTypeEnum as RequestType,
 } from '../shared/types/ProcessChangeRequest';
-import { assertProcessChangeRequestTransition } from '../domain/ProcessChangeRequest/ProcessChangeRequestWorkflow';
+import {
+  assertProcessChangeRequestTransition,
+  deriveProcessLifecycleStatus,
+} from '../domain/ProcessChangeRequest/ProcessChangeRequestWorkflow';
 
 @Injectable()
 export class ProcessChangeRequestService {
@@ -214,6 +217,56 @@ export class ProcessChangeRequestService {
       );
       return saved;
     });
+  }
+
+  async getLifecycleStatuses(
+    resourceIds: string[],
+  ): Promise<Record<string, string>> {
+    const ids = Array.from(new Set(resourceIds.filter(Boolean)));
+    if (!ids.length) return {};
+
+    const requests = await this.dataSource
+      .getRepository(ProcessChangeRequestTypeOrmEntity)
+      .find({
+        where: {
+          resourceId: In(ids),
+          status: In([
+            Status.Proposed,
+            Status.Draft,
+            Status.InReview,
+            Status.ChangesRequested,
+            Status.Approved,
+          ]),
+        },
+        select: { resourceId: true, status: true, authorId: true },
+      });
+    const publishedContents = await this.dataSource
+      .getRepository(ContentTypeOrmEntity)
+      .find({
+        where: {
+          resourceId: In(ids),
+          status: ContentStatusEnum.Published,
+        },
+        select: { resourceId: true },
+      });
+    const publishedIds = new Set(
+      publishedContents.map((content) => content.resourceId),
+    );
+
+    return Object.fromEntries(
+      ids.map((resourceId) => [
+        resourceId,
+        deriveProcessLifecycleStatus(
+          publishedIds.has(resourceId),
+          requests
+            .filter((request) => request.resourceId === resourceId)
+            .map((request) => ({
+              status: request.status,
+              authorId: request.authorId,
+            })),
+        ),
+      ]),
+    );
   }
 
   async list(resourceId: string) {
