@@ -91,13 +91,9 @@ export const useProcessDetails = (
 
   const onContentChecked = useCallback(
     (contentIds: string[]) => {
-      if (contentIds.length === 2) {
-        setIsCompareDisabled(false);
-        setContentIdsToCompare([...contentIds]);
-      } else {
-        setIsCompareDisabled(true);
-        setContentIdsToCompare([]);
-      }
+      const selectedIds = [...new Set(contentIds)];
+      setContentIdsToCompare(selectedIds);
+      setIsCompareDisabled(selectedIds.length !== 2);
     },
     [contents],
   );
