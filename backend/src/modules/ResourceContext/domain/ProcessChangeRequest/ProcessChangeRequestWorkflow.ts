@@ -22,7 +22,7 @@ const transitions: Record<Status, readonly Status[]> = {
     Status.Withdrawn,
   ],
   [Status.ChangesRequested]: [Status.Draft, Status.InReview, Status.Withdrawn],
-  [Status.Approved]: [Status.Published, Status.Withdrawn],
+  [Status.Approved]: [Status.Published],
   [Status.Rejected]: [],
   [Status.Published]: [],
   [Status.Withdrawn]: [],

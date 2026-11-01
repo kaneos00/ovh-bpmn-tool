@@ -67,4 +67,14 @@ describe('ProcessChangeRequestWorkflow', () => {
       ),
     ).not.toThrow();
   });
+
+  it('does not allow withdrawal after approval', () => {
+    expect(() =>
+      assertProcessChangeRequestTransition(
+        { status: RequestStatus.Approved, authorId: 'author-1' },
+        RequestStatus.Withdrawn,
+        'author-1',
+      ),
+    ).toThrow(InvalidProcessChangeRequestTransitionError);
+  });
 });

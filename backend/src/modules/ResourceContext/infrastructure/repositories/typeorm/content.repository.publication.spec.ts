@@ -166,6 +166,24 @@ describe('ContentTypeOrmRepository.publishAtomically', () => {
     );
   });
 
+  it('rejects approved publication when the published source has changed', async () => {
+    const result = await repository.publishAtomically({
+      resourceId: 'resource-1',
+      contentId: 'content-2',
+      updatedBy: 'publisher',
+      pngContent: 'data:image/png;base64,cG5n',
+      authToken: 'generated-token',
+      expectedPublishedContentId: 'content-1',
+    });
+
+    expect(result.ok).toBeNull();
+    expect(result.fail?.message).toContain(
+      'published source version changed',
+    );
+    expect(contents.save).not.toHaveBeenCalled();
+    expect(resources.save).not.toHaveBeenCalled();
+  });
+
   it('returns a failure and lets the transaction roll back when a write fails', async () => {
     resources.save.mockRejectedValueOnce(new Error('token write failed'));
 
