@@ -100,10 +100,10 @@ Les commentaires de revue sont des événements métier, distincts des commentai
 
 ## Limites de cette première tranche API
 
-- La création exposée est actuellement une proposition descriptive (`proposal`) ; la contribution BPMN avec copie de travail (`content_change`) n'est pas encore branchée.
+- La création d'une contribution BPMN réutilise `CloneContentCommandHandler` : elle clone la version publiée existante et rattache le `Content` brouillon à la demande. L'édition continue de passer par l'API de contenu existante.
 - Les décisions sont limitées aux utilisateurs disposant des droits globaux lecture-écriture/administration et des droits de ressource existants ; l'affectation nominative et les niveaux de validation configurables restent à construire.
-- L'approbation ne publie rien. L'endpoint de publication contrôlée et le contrôle de conflit avec la version de référence restent à implémenter.
-- Les statuts synthétiques sont calculables côté domaine mais ne sont pas encore affichés dans l'explorateur ni le Viewer.
+- L'approbation ne publie rien. La comparaison réutilise l'écran `ContentCompare` existant ; la publication doit réutiliser `PublishContentCommandHandler` après approbation. Un premier contrôle de conflit de version est exécuté à la soumission.
+- Les statuts synthétiques sont calculables côté domaine mais ne sont pas encore affichés dans l'explorateur ni le Viewer. L'interface existante de comparaison n'est pas encore raccordée aux demandes.
 
 ## Critères de non-régression
 
