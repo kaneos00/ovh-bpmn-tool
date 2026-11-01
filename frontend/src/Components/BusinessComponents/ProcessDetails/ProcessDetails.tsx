@@ -609,6 +609,7 @@ export const ProcessDetails = ({
                     >
                       <EditOutlined />
                     </IconButton>
+                  )}
                 </Stack>
                 <Divider />
                 <Box className="processViewerCanvas">
