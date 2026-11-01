@@ -384,6 +384,8 @@ test('viewer keeps the explorer and task details in side panels while all centra
   const styles = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.scss');
   assert.match(styles, /\.processViewerTabs\s*\{[^}]*flex:\s*1 1 0;[^}]*width:\s*0;/s);
   assert.match(styles, /\.processViewerDiagram\s*\{[^}]*width:\s*100%;/s);
+  assert.match(styles, /\.processViewerCanvas\s*\{[^}]*display:\s*flex;[^}]*flex:\s*1 1 0;[^}]*min-height:\s*0;/s);
+  assert.match(details, /<Stack direction="row" spacing=\{0\.5\} alignItems="center">[\s\S]*?aria-label="Copier le lien du processus"[\s\S]*?aria-label="Modifier le diagramme BPMN"/);
   assert.ok(details.includes("import '../../../raci.css'"), 'Viewer should reuse the Modeler RACI design system');
   assert.ok(details.includes('className="raci-table"'));
   assert.ok(details.includes('raci-code-badge raci-code-'));
