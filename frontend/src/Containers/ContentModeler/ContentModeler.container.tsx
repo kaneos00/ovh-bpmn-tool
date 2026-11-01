@@ -194,7 +194,6 @@ export const Component = () => {
           </DialogContent>
           <Textarea
             minRows={4}
-            autoFocus
             value={submissionComment}
             onChange={event => setSubmissionComment(event.target.value)}
             placeholder="Commentaire obligatoire de soumission"
