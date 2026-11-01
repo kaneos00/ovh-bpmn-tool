@@ -31,6 +31,7 @@ export type ProcessChangeRequest = {
   justification: string | null;
   assignedReviewerId: string | null;
   workingContentId: string | null;
+  sourceContentId: string | null;
   sourceVersion: number | null;
   createdAt: string;
 };

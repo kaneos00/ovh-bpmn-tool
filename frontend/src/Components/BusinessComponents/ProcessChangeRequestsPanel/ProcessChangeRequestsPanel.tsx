@@ -379,6 +379,21 @@ export const ProcessChangeRequestsPanel = ({
                   </Stack>
                 )}
 
+                {request.workingContentId && request.sourceContentId && (
+                  <Button
+                    size="sm"
+                    variant="outlined"
+                    color="neutral"
+                    onClick={() =>
+                      navigate(
+                        `/${resourceId}/compare/${encodeURIComponent(request.sourceContentId as string)}/${encodeURIComponent(request.workingContentId as string)}`,
+                      )
+                    }
+                  >
+                    Comparer avec la version de référence
+                  </Button>
+                )}
+
                 {isAuthor &&
                   ['proposed', 'draft', 'changes_requested'].includes(
                     request.status,
