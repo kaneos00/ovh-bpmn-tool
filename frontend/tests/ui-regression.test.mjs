@@ -415,9 +415,9 @@ test('RACI activity links select the BPMN element and return to the process tab'
   const viewer = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
   assert.ok(viewer.includes("selection?.select?.([element])"));
   const css = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
-  assert.ok(css.includes('.djs-element.selected .djs-outline'));
-  assert.ok(css.includes('stroke-width: 3px !important'));
-  assert.ok(!css.includes('.djs-element.task-selected:not(.djs-label) .djs-visual > :not(text):not(tspan)'));
+  assert.ok(css.includes('.djs-element.selected:not(.djs-label) .djs-visual > :not(text):not(tspan)'));
+  assert.ok(css.includes('stroke-width: 4px !important'));
+  assert.ok(!css.includes('.djs-element.selected .djs-outline'));
 });
 
 
@@ -594,14 +594,13 @@ test('read-only version history can select and compare exactly two historical ve
   assert.ok(hook.includes('setIsCompareDisabled(selectedIds.length !== 2)'));
 });
 
-test('dark-mode BPMN selection uses one outline layer without a second geometry stroke', async () => {
+test('dark-mode BPMN selection follows the actual SVG geometry', async () => {
   const css = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
 
-  assert.ok(css.includes('.modelerContainer .djs-element.selected .djs-outline'));
-  assert.ok(css.includes('.processViewerDiagramContent .djs-element.selected .djs-outline'));
-  assert.ok(!css.includes('.djs-element.task-selected:not(.djs-label) .djs-visual'));
-  assert.ok(!css.includes('.djs-element.selected:not(.djs-label) .djs-visual'));
-  assert.ok(css.includes('Do not also stroke the SVG geometry'));
+  assert.ok(css.includes('[data-joy-color-scheme=\'dark\'] .modelerContainer .djs-element.selected:not(.djs-label) .djs-visual > :not(text):not(tspan)'));
+  assert.ok(css.includes('[data-joy-color-scheme=\'dark\'] .processViewerDiagramContent .djs-element.selected:not(.djs-label) .djs-visual > :not(text):not(tspan)'));
+  assert.ok(css.includes('stroke: #1976d2 !important'));
+  assert.ok(!css.includes('.djs-element.selected .djs-outline'));
 });
 
 test('explorer and element-details panel headers share one theme-aware visual contract', async () => {
