@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, useBlocker, useNavigate, useParams } from 'react-router-dom';
 
 import { ModelerActionBar } from './components/ModelerActionBar';
-import { Button, Modal, ModalDialog, DialogTitle, DialogContent, DialogActions } from '@mui/joy';
+import { Button, Modal, ModalDialog, DialogTitle, DialogContent, DialogActions, Textarea } from '@mui/joy';
 import { ModelerShortcuts } from '../../Components/BusinessComponents/ModelerShortcuts/ModelerShortcuts';
 import { useContentModeler } from './hooks/useContentModeler';
 import { useModeler } from './hooks/useModeler';
@@ -27,6 +27,8 @@ export const Component = () => {
   const handledActionDataRef = useRef<typeof actionData>(undefined);
   const { resource } = useResource(routeResourceId);
   const [raciView, setRaciView] = useState<'matrix' | 'actors' | null>(null);
+  const [submissionDialogOpen, setSubmissionDialogOpen] = useState(false);
+  const [submissionComment, setSubmissionComment] = useState('');
 
   useCallActivityNavigation(bpmnModelerInstance);
 
@@ -55,6 +57,23 @@ export const Component = () => {
     onCompareWithSource,
     actionData,
   } = useContentModeler(bpmnModelerInstance);
+
+  const openSubmissionDialog = (exitAfterSubmit = false) => {
+    pendingSaveExitRef.current = exitAfterSubmit;
+    setSubmissionDialogOpen(true);
+  };
+
+  const closeSubmissionDialog = () => {
+    pendingSaveExitRef.current = false;
+    setSubmissionDialogOpen(false);
+  };
+
+  const confirmSubmission = () => {
+    if (!submissionComment.trim() || !onDiagramSubmitChangeRequest) return;
+    onDiagramSubmitChangeRequest(submissionComment.trim());
+    setSubmissionDialogOpen(false);
+    setSubmissionComment('');
+  };
 
   const { diagramContainerRef, diagramPropertiesRef, hasLintError, isDirty, canUndo, canRedo, undo, redo, markSaved } = useModeler(bpmnModelerInstance, draftXmlContent);
   const blocker = useBlocker(({ nextLocation }) => isDirty && nextLocation.pathname === `/${resourceId}`);
@@ -114,7 +133,7 @@ export const Component = () => {
         onFileExport={onFileExport}
         onDiagramSave={onDiagramSave}
         onDiagramPublish={onDiagramPublish}
-        onDiagramSubmitChangeRequest={onDiagramSubmitChangeRequest}
+        onDiagramSubmitChangeRequest={() => openSubmissionDialog(false)}
         isChangeRequest={isChangeRequest}
         onShortcutDisplay={() => setIsShortcurtModalOpen(true)}
         onRaciOpen={() => setRaciView('matrix')}
@@ -136,7 +155,7 @@ export const Component = () => {
         onCancelClick={() => setIsShortcurtModalOpen(false)}
       />
       <Outlet />
-      <Modal open={blocker.state === 'blocked'} onClose={() => { pendingSaveExitRef.current = false; pendingPublishExitRef.current = false; blocker.reset?.(); }}>
+      <Modal open={blocker.state === 'blocked' && !submissionDialogOpen} onClose={() => { pendingSaveExitRef.current = false; pendingPublishExitRef.current = false; blocker.reset?.(); }}>
         <ModalDialog>
           <DialogTitle>Modifications non enregistrées</DialogTitle>
           <DialogContent>Le diagramme a été modifié depuis le dernier enregistrement. Que souhaitez-vous faire avant de quitter le modeleur ?</DialogContent>
@@ -148,7 +167,7 @@ export const Component = () => {
               <Button
                 variant="solid"
                 color="primary"
-                onClick={onDiagramSubmitChangeRequest}
+                onClick={() => openSubmissionDialog(true)}
               >
                 Enregistrer et soumettre à validation
               </Button>
@@ -164,6 +183,34 @@ export const Component = () => {
                 Enregistrer et publier
               </Button>
             )}
+          </DialogActions>
+        </ModalDialog>
+      </Modal>
+      <Modal open={submissionDialogOpen} onClose={closeSubmissionDialog}>
+        <ModalDialog>
+          <DialogTitle>Soumettre la contribution à validation</DialogTitle>
+          <DialogContent>
+            Ajoutez un commentaire qui explique les changements apportés et les points à vérifier.
+          </DialogContent>
+          <Textarea
+            minRows={4}
+            autoFocus
+            value={submissionComment}
+            onChange={event => setSubmissionComment(event.target.value)}
+            placeholder="Commentaire obligatoire de soumission"
+            aria-label="Commentaire de soumission"
+          />
+          <DialogActions>
+            <Button variant="plain" color="neutral" onClick={closeSubmissionDialog}>
+              Annuler
+            </Button>
+            <Button
+              variant="solid"
+              disabled={!submissionComment.trim()}
+              onClick={confirmSubmission}
+            >
+              Soumettre à validation
+            </Button>
           </DialogActions>
         </ModalDialog>
       </Modal>

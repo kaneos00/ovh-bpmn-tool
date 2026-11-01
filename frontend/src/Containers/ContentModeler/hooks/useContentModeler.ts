@@ -229,7 +229,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     }
   }, [changeRequestId, selectedContent, saveDiagram, showAlert]);
 
-  const onDiagramSubmitChangeRequest = useCallback(async () => {
+  const onDiagramSubmitChangeRequest = useCallback(async (comment: string) => {
     if (!changeRequestId || !selectedContent) {
       return;
     }
@@ -245,6 +245,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
           requestId: changeRequestId,
           contentId: selectedContent.id,
           content: contentXml.xml,
+          comment,
         },
         { method: 'post' },
       );
