@@ -41,6 +41,7 @@ export class ProcessChangeRequestController {
   ) {}
 
   @Post()
+  @UseAcl()
   async createProposal(
     @Param('resourceId') resourceId: string,
     @Body() body: ProposalBody = { title: '', description: '' },
@@ -113,6 +114,7 @@ export class ProcessChangeRequestController {
   }
 
   @Get()
+  @UseAcl()
   async list(
     @Param('resourceId') resourceId: string,
     @Headers() headers: Record<string, string>,
@@ -122,6 +124,7 @@ export class ProcessChangeRequestController {
   }
 
   @Get(':requestId/events')
+  @UseAcl()
   async getEvents(
     @Param('resourceId') resourceId: string,
     @Param('requestId') requestId: string,
@@ -220,6 +223,7 @@ export class ProcessChangeRequestController {
   }
 
   @Post(':requestId/withdraw')
+  @UseAcl()
   async withdraw(
     @Param('resourceId') resourceId: string,
     @Param('requestId') requestId: string,
