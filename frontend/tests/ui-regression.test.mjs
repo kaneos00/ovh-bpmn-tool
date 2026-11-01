@@ -640,3 +640,15 @@ test('process modeler action uses the edit icon', async () => {
   assert.ok(actions.includes('leftIcon={<EditOutlined fontSize="small" />}'));
   assert.ok(actions.includes('onClick={onModelerBtnClick}'));
 });
+
+
+test('description, version history, RACI and documented information stay top-aligned', async () => {
+  const styles = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.scss');
+
+  assert.ok(styles.includes('align-items: stretch;'));
+  assert.ok(styles.includes('justify-content: flex-start;'));
+  assert.ok(styles.includes('flex: 1 1 0;'));
+  assert.ok(styles.includes('margin-block: 0 auto;'));
+  assert.ok(styles.includes('.processViewerTabPanel:not(.processViewerProcessTab) > .processViewerInfo'));
+  assert.ok(styles.includes('.processViewerTabPanel:not(.processViewerProcessTab) > .processViewerInfo.processViewerRaci'));
+});
