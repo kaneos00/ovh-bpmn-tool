@@ -4,6 +4,8 @@ import { ArrowBack, ArrowForward, ChevronLeft, ChevronRight, FolderOutlined, Men
 
 import { FolderTree } from '../FolderTree';
 
+import './ViewerPanel.css';
+
 type Props = {
   selectedId: string;
   onNodeClick: (id: string) => void;
