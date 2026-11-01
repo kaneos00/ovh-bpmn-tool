@@ -286,7 +286,9 @@ test('Viewer entry points share URL state for BPMN selection, content versions a
   assert.doesNotMatch(layout, /useSearchParams|searchParams\.get\(/);
   assert.doesNotMatch(legacyViewer, /useSearchParams|searchParams\.get\(/);
   assert.match(details, /requestedRaciView\?: boolean/);
-  assert.match(details, /setActiveViewerTab\(requestedRaciView \? 3 : 0\);[\s\S]*?\[resourceId, selectedContentId, requestedRaciView\]/);
+  assert.match(details, /if \(requestedRaciView\) setActiveViewerTab\(3\);[\s\S]*?\[requestedRaciView\]/);
+  assert.ok(details.includes('keep the'));
+  assert.ok(!details.includes('[resourceId, selectedContentId, requestedRaciView]'));
   assert.ok(details.includes('<Tab value={3}>RACI</Tab>'));
 });
 
