@@ -71,6 +71,7 @@ export class PublishContentCommandHandler {
       updatedBy: command.updatedBy,
       pngContent: command.pngContent,
       authToken: randomBytes(32).toString('hex'),
+      expectedPublishedContentId: command.expectedPublishedContentId,
     });
 
     if (publicationResult.fail) {

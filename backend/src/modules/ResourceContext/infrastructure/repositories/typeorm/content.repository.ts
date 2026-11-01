@@ -41,6 +41,7 @@ export class ContentTypeOrmRepository implements ContentRepository {
     updatedBy: string;
     pngContent: string;
     authToken: string;
+    expectedPublishedContentId?: string;
   }): Promise<Result<Content, Error>> {
     if (!this.dataSource) {
       return fail(
@@ -103,6 +104,15 @@ export class ContentTypeOrmRepository implements ContentRepository {
           order: { version: 'DESC' },
           lock: { mode: 'pessimistic_write' },
         });
+
+        if (
+          params.expectedPublishedContentId !== undefined &&
+          previousPublished?.id !== params.expectedPublishedContentId
+        ) {
+          throw new Error(
+            'The published source version changed before approved publication',
+          );
+        }
 
         if (previousPublished && previousPublished.id !== contentEntity.id) {
           const previous = ContentMapper.fromPersistence(previousPublished);

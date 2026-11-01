@@ -14,6 +14,7 @@ import { ProcessChangeRequestService } from '../../application/processChangeRequ
 import { ProcessChangeRequestStatusEnum as Status } from '../../shared/types/ProcessChangeRequest';
 import { CloneContentCommandHandler } from '../../application/commands/Content/cloneContent/cloneContent.commandHandler';
 import { ListContentQueryHandler } from '../../application/queries/Content/listContent/listContent.queryHandler';
+import { PublishContentCommandHandler } from '../../application/commands/Content/publishContent/publishContent.commandHandler';
 import { ContentStatusEnum } from '../../shared/types/Content';
 
 type ProposalBody = {
@@ -38,6 +39,7 @@ export class ProcessChangeRequestController {
     private readonly requests: ProcessChangeRequestService,
     private readonly cloneContent: CloneContentCommandHandler,
     private readonly listContents: ListContentQueryHandler,
+    private readonly publishContent: PublishContentCommandHandler,
   ) {}
 
   @Post()
@@ -235,6 +237,50 @@ export class ProcessChangeRequestController {
       actorId: this.projectResourceAccess.getAuthenticatedUserId(headers),
       nextStatus: Status.Rejected,
       comment: body.comment,
+    });
+  }
+
+  @Post(':requestId/publish')
+  async publishApproved(
+    @Param('resourceId') resourceId: string,
+    @Param('requestId') requestId: string,
+    @Body() body: { pngContent: string },
+    @Headers() headers: Record<string, string>,
+  ) {
+    await this.projectResourceAccess.assertCanEditResource(
+      resourceId,
+      headers,
+    );
+    const actorId = this.projectResourceAccess.getAuthenticatedUserId(headers);
+    const request = await this.requests.getRequest(resourceId, requestId);
+    if (request.status !== Status.Approved) {
+      throw new BadRequestException(
+        'Seules les contributions approuvées peuvent être publiées',
+      );
+    }
+    if (!request.workingContentId || !request.sourceContentId) {
+      throw new BadRequestException(
+        'La demande ne contient pas une version de travail publiable',
+      );
+    }
+
+    const publication = await this.publishContent.execute(
+      resourceId,
+      request.workingContentId,
+      {
+        updatedBy: actorId,
+        pngContent: body.pngContent,
+        expectedPublishedContentId: request.sourceContentId,
+      },
+    );
+    if (publication.fail) {
+      throw new BadRequestException(publication.fail.message);
+    }
+    return this.requests.markPublished({
+      resourceId,
+      requestId,
+      actorId,
+      publishedContentId: publication.ok.id.value,
     });
   }
 

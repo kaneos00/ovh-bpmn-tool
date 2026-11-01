@@ -385,6 +385,67 @@ export class ProcessChangeRequestService {
     }
   }
 
+  async getRequest(resourceId: string, requestId: string) {
+    const request = await this.dataSource
+      .getRepository(ProcessChangeRequestTypeOrmEntity)
+      .findOne({ where: { id: requestId, resourceId } });
+    if (!request) {
+      throw new NotFoundException('Demande introuvable');
+    }
+    return request;
+  }
+
+  async markPublished(params: {
+    resourceId: string;
+    requestId: string;
+    actorId: string;
+    publishedContentId: string;
+  }) {
+    return this.dataSource.transaction(async (manager) => {
+      const requests = manager.getRepository(ProcessChangeRequestTypeOrmEntity);
+      const events = manager.getRepository(
+        ProcessChangeRequestEventTypeOrmEntity,
+      );
+      const request = await requests.findOne({
+        where: { id: params.requestId, resourceId: params.resourceId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!request) {
+        throw new NotFoundException('Demande introuvable');
+      }
+      if (
+        request.status === Status.Published &&
+        request.publishedContentId === params.publishedContentId
+      ) {
+        return request;
+      }
+      if (
+        request.status !== Status.Approved ||
+        request.workingContentId !== params.publishedContentId
+      ) {
+        throw new ConflictException(
+          'La demande a changé pendant la publication ; vérifiez son état avant de réessayer',
+        );
+      }
+
+      request.status = Status.Published;
+      request.publishedContentId = params.publishedContentId;
+      const saved = await requests.save(request);
+      await events.save(
+        events.create({
+          requestId: saved.id,
+          actorId: params.actorId,
+          event: 'published',
+          fromStatus: Status.Approved,
+          toStatus: Status.Published,
+          comment: null,
+          metadata: { publishedContentId: params.publishedContentId },
+        }),
+      );
+      return saved;
+    });
+  }
+
   async getEvents(resourceId: string, requestId: string) {
     const request = await this.dataSource
       .getRepository(ProcessChangeRequestTypeOrmEntity)

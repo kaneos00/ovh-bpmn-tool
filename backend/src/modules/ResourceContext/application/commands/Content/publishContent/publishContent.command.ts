@@ -10,4 +10,6 @@ export class PublishContentCommand {
 
   @IsNotEmpty()
   pngContent: string;
+
+  expectedPublishedContentId?: string;
 }

@@ -30,6 +30,7 @@ export interface ContentRepository {
     updatedBy: string;
     pngContent: string;
     authToken: string;
+    expectedPublishedContentId?: string;
   }): Promise<Result<Content, Error>>;
   delete(contentId: string): Promise<Result<boolean, Error>>;
 
