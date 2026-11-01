@@ -24,7 +24,11 @@ export class ProcessChangeRequestTypeOrmEntity extends AbstractEntity {
   @Column({ type: 'varchar', length: 32 })
   type: ProcessChangeRequestTypeEnum;
 
-  @Column({ type: 'varchar', length: 32, default: ProcessChangeRequestStatusEnum.Proposed })
+  @Column({
+    type: 'varchar',
+    length: 32,
+    default: ProcessChangeRequestStatusEnum.Proposed,
+  })
   status: ProcessChangeRequestStatusEnum;
 
   @Column({ type: 'varchar', length: 255 })
@@ -39,7 +43,10 @@ export class ProcessChangeRequestTypeOrmEntity extends AbstractEntity {
   @Column({ type: 'uuid', nullable: true })
   sourceContentId: string | null;
 
-  @ManyToOne(() => ContentTypeOrmEntity, { onDelete: 'RESTRICT', nullable: true })
+  @ManyToOne(() => ContentTypeOrmEntity, {
+    onDelete: 'RESTRICT',
+    nullable: true,
+  })
   @JoinColumn({ name: 'sourceContentId' })
   sourceContent: ContentTypeOrmEntity | null;
 
@@ -49,7 +56,10 @@ export class ProcessChangeRequestTypeOrmEntity extends AbstractEntity {
   @Column({ type: 'uuid', nullable: true })
   workingContentId: string | null;
 
-  @ManyToOne(() => ContentTypeOrmEntity, { onDelete: 'SET NULL', nullable: true })
+  @ManyToOne(() => ContentTypeOrmEntity, {
+    onDelete: 'SET NULL',
+    nullable: true,
+  })
   @JoinColumn({ name: 'workingContentId' })
   workingContent: ContentTypeOrmEntity | null;
 
