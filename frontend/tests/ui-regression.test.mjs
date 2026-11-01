@@ -658,6 +658,9 @@ test('blue BPMN selection outline is available in both light and dark themes', a
 
   assert.ok(lightSelection >= 0);
   assert.ok(darkThemeRules > lightSelection, 'the shared selection rule must not be nested in the dark-theme overrides');
+  assert.ok(css.includes('.djs-element.task-selected .djs-outline'));
+  assert.ok(css.includes('visibility: visible !important;'));
+  assert.ok(css.includes('opacity: 1 !important;'));
   assert.ok(css.includes('stroke: #1976d2 !important;'));
   assert.ok(css.includes('stroke-width: 3px !important'));
 });
