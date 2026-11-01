@@ -16,6 +16,13 @@ export type Resource = {
   sourceResourceId?: string | null;
   type: ResourceType;
   authToken?: string;
+  processLifecycleStatus?:
+    | 'unpublished'
+    | 'published'
+    | 'modification_in_preparation'
+    | 'in_validation'
+    | 'changes_requested'
+    | 'validation_granted';
 };
 
 export type Comment = {
