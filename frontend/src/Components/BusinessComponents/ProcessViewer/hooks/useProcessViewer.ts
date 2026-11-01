@@ -220,17 +220,20 @@ export const useProcessViewer = (
       pendingSelectionTimer = null;
     };
     const onElementClick = (event: any) => {
-      const element = event?.element;
+      const clickedElement = event?.element;
+      // diagram-js emits clicks on BPMN labels as separate elements. Resolve
+      // those labels to their owning shape so the right-hand task panel always
+      // follows the object the user actually clicked.
+      const element = clickedElement?.labelTarget ?? clickedElement;
       if (!element?.id) return;
 
       // Select BPMN shapes by their business-object type rather than a closed
-      // list of diagram-js shape types. This includes collapsed SubProcesses
-      // and future BPMN shape types, while excluding labels and connections.
+      // list of diagram-js shape types. This includes labels, collapsed
+      // SubProcesses and future BPMN shape types, while excluding connections.
       const elementType = element.businessObject?.$type ?? element.type;
       const isSelectableElement =
         typeof elementType === 'string' &&
         elementType.startsWith('bpmn:') &&
-        !element.labelTarget &&
         !Array.isArray(element.waypoints);
       if (!isSelectableElement) return;
 
@@ -268,7 +271,8 @@ export const useProcessViewer = (
       lastClickedElementId = null;
       lastClickAt = 0;
 
-      const element = event?.element;
+      const clickedElement = event?.element;
+      const element = clickedElement?.labelTarget ?? clickedElement;
       const elementType = element?.businessObject?.$type ?? element?.type;
       const isTaskWithUrl =
         (elementType === 'bpmn:Task' || String(elementType ?? '').endsWith('Task')) &&
