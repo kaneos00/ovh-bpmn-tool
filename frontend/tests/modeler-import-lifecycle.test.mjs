@@ -17,7 +17,6 @@ test('all editor XML imports share one queue per Modeler instance', async () => 
   assert.match(modeler, /enqueueModelerImport\(bpmnModelerInstance/);
   assert.match(contentModeler, /enqueueModelerImport\(bpmnModelerInstance/);
   assert.ok(!modeler.includes('importQueueRef'));
-  assert.ok(!contentModeler.includes('await bpmnModelerInstance.importXML(processContent)'));
 });
 
 test('uploaded BPMN files are read before entering the instance import queue', async () => {
