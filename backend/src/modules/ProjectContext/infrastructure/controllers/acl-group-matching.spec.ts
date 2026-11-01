@@ -6,7 +6,7 @@ import { UserGroup } from '../../../../shared-kernel/utils/UserGroup';
 describe('AclGuard group matching', () => {
   const makeGuard = (allowedGroups: UserGroup[]) => {
     const reflector = {
-      get: jest.fn().mockReturnValue({ allowedGroups }),
+      getAllAndOverride: jest.fn().mockReturnValue({ allowedGroups }),
     } as unknown as Reflector;
     const configService = {
       getOrThrow: jest.fn((key: string) =>
@@ -18,6 +18,7 @@ describe('AclGuard group matching', () => {
     const activate = (groups: string) =>
       guard.canActivate({
         getHandler: () => ({}),
+        getClass: () => ({}),
         switchToHttp: () => ({
           getRequest: () => ({
             headers: {
