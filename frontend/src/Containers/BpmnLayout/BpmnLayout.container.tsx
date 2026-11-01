@@ -28,6 +28,20 @@ export const Component = () => {
   const { resourceId } = useParams() as BpmnLayoutRouteParams;
   const { requestedElementId, requestedContentId, requestedRaciView } = useViewerRouteState();
   const navigate = useNavigate();
+  const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\\/+$/, '');
+    fetch(`${apiBase}/auth/session`, {
+      credentials: 'same-origin',
+      headers: { accept: 'application/json' },
+    })
+      .then(async response => response.ok ? response.json() as Promise<{ role?: 'admin' | 'modeler' | 'viewer' }> : null)
+      .then(session => { if (mounted) setSessionRole(session?.role ?? null); })
+      .catch(() => { if (mounted) setSessionRole(null); });
+    return () => { mounted = false; };
+  }, []);
   const [folderExplorerWidth, setFolderExplorerWidth] = useState(() => {
     const saved = Number(window.localStorage.getItem('bpmn-viewer-explorer-width'));
     return Number.isFinite(saved) && saved >= 180 && saved <= 480 ? saved : 248;
@@ -86,7 +100,7 @@ export const Component = () => {
         onModelerBtnClick={callbacks.header.onModelerBtnClick}
       />
     );
-  }, [resourceId, resource, contents]);
+  }, [resourceId, resource, contents, sessionRole]);
 
   return (
     <div
