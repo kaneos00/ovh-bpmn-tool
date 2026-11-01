@@ -57,6 +57,7 @@ import { CannotFindContentError } from '../../../../modules/ResourceContext/appl
 import { DraftContentExistsError } from '../../../../modules/ResourceContext/application/commands/Content/cloneContent/cloneContent.error';
 import { ConfigService } from '@nestjs/config';
 import { ProjectResourceAccessService } from '../../../ProjectContext/projectResourceAccess.service';
+import { ProcessChangeRequestService } from '../../application/processChangeRequest.service';
 
 type CreateContentBody = Omit<CreateContentCommand, 'createdBy'>;
 type UpdateContentBody = Omit<UpdateContentCommand, 'updatedBy'>;
@@ -69,6 +70,7 @@ export class ContentController {
   constructor(
     private readonly configService: ConfigService,
     private readonly projectResourceAccess: ProjectResourceAccessService,
+    private readonly processChangeRequests: ProcessChangeRequestService,
     private readonly listContentQueryHandler: ListContentQueryHandler,
     private readonly getContentQueryHandler: GetContentQueryHandler,
     private readonly getXmlContentQueryHandler: GetXmlContentQueryHandler,
@@ -211,6 +213,8 @@ export class ContentController {
       { allowCommonForOrganizationAdmin: true },
     );
 
+    await this.processChangeRequests.assertContentCanBeEdited(resourceId, contentId);
+
     const commandResult = await this.updateContentCommandHandler.execute(
       resourceId,
       contentId,
@@ -269,6 +273,8 @@ export class ContentController {
       headers,
       { allowCommonForOrganizationAdmin: true },
     );
+
+    await this.processChangeRequests.assertGenericPublicationAllowed(resourceId, contentId);
 
     const commandResult = await this.publishContentCommandHandler.execute(
       resourceId,

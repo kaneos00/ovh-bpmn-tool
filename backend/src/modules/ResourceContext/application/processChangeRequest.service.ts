@@ -209,6 +209,47 @@ export class ProcessChangeRequestService {
     });
   }
 
+  /**
+   * A submitted or approved working copy is immutable through the generic
+   * content editor. It can only be changed again after the reviewer requests
+   * corrections and the author returns the request to Draft.
+   */
+  async assertContentCanBeEdited(resourceId: string, contentId: string) {
+    const request = await this.dataSource
+      .getRepository(ProcessChangeRequestTypeOrmEntity)
+      .findOne({
+        where: [
+          { resourceId, workingContentId: contentId, status: Status.InReview },
+          { resourceId, workingContentId: contentId, status: Status.Approved },
+        ],
+        select: { id: true, status: true },
+      });
+    if (request) {
+      throw new ConflictException(
+        'La versione BPMN è bloccata perché la richiesta è in revisione o approvata',
+      );
+    }
+  }
+
+  /**
+   * Generic publication must not bypass the request workflow. A working copy
+   * linked to a change request will require the dedicated approved-publication
+   * operation, which records the Published transition and its audit event.
+   */
+  async assertGenericPublicationAllowed(resourceId: string, contentId: string) {
+    const request = await this.dataSource
+      .getRepository(ProcessChangeRequestTypeOrmEntity)
+      .findOne({
+        where: { resourceId, workingContentId: contentId },
+        select: { id: true, status: true },
+      });
+    if (request) {
+      throw new ConflictException(
+        'Questa versione BPMN è collegata a una richiesta: pubblicala tramite il workflow di validazione',
+      );
+    }
+  }
+
   async getEvents(resourceId: string, requestId: string) {
     const request = await this.dataSource
       .getRepository(ProcessChangeRequestTypeOrmEntity)
