@@ -4,6 +4,7 @@ export type RenderTree = {
   type?: string;
   children?: RenderTree[];
   targetId?: string;
+  processLifecycleStatus?: import('../../../Types').Resource['processLifecycleStatus'];
 };
 
 export * from './FolderTree';
