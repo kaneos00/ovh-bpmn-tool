@@ -7,7 +7,6 @@ import {
   Post,
   BadRequestException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { UserGroup } from '../../../../shared-kernel/utils/UserGroup';
 import { UseAcl } from '../../../../shared-kernel/modules/acl/infrastructure/acl.decorator';
 import { ProjectResourceAccessService } from '../../../ProjectContext/projectResourceAccess.service';
@@ -31,9 +30,9 @@ type TransitionBody = {
 @UseAcl([UserGroup.RW, UserGroup.Admin])
 export class ProcessChangeRequestController {
   constructor(
-    private readonly configService: ConfigService,
     private readonly projectResourceAccess: ProjectResourceAccessService,
-    private readonly requests: ProcessChangeRequestService,\n    private readonly cloneContent: CloneContentCommandHandler,\n    private readonly listContents: ListContentQueryHandler,
+    private readonly requests: ProcessChangeRequestService,
+    private readonly cloneContent: CloneContentCommandHandler,\n    private readonly listContents: ListContentQueryHandler,
   ) {}
 
   @Post()
@@ -52,7 +51,6 @@ export class ProcessChangeRequestController {
     });
   }
 
-  @Get()
   @Post(':requestId/start-editing')
   async startEditing(
     @Param('resourceId') resourceId: string,
@@ -97,6 +95,7 @@ export class ProcessChangeRequestController {
     });
   }
 
+  @Get()
   async list(
     @Param('resourceId') resourceId: string,
     @Headers() headers: Record<string, string>,
