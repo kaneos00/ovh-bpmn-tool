@@ -82,7 +82,9 @@ export class ProcessChangeRequestService {
   }) {
     return this.dataSource.transaction(async (manager) => {
       const requests = manager.getRepository(ProcessChangeRequestTypeOrmEntity);
-      const events = manager.getRepository(ProcessChangeRequestEventTypeOrmEntity);
+      const events = manager.getRepository(
+        ProcessChangeRequestEventTypeOrmEntity,
+      );
       const request = await requests.findOne({
         where: { id: params.requestId, resourceId: params.resourceId },
         lock: { mode: 'pessimistic_write' },
@@ -144,7 +146,9 @@ export class ProcessChangeRequestService {
   }) {
     return this.dataSource.transaction(async (manager) => {
       const requests = manager.getRepository(ProcessChangeRequestTypeOrmEntity);
-      const events = manager.getRepository(ProcessChangeRequestEventTypeOrmEntity);
+      const events = manager.getRepository(
+        ProcessChangeRequestEventTypeOrmEntity,
+      );
       const request = await requests.findOne({
         where: { id: params.requestId, resourceId: params.resourceId },
         lock: { mode: 'pessimistic_write' },

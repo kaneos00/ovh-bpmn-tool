@@ -28,11 +28,6 @@ import { ProcessChangeRequestService } from './application/processChangeRequest.
     ProjectContextModule,
     TerminusModule,
   ],
-  providers: [
-    ...getCommands(),
-    ...getQueries(),
-    ...getRepositories(),
-    ProcessChangeRequestService,
-  ],
+  providers: [...getCommands(), ...getQueries(), ...getRepositories(), ProcessChangeRequestService],
 })
 export class ResourceContextModule {}

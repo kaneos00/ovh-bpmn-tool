@@ -59,24 +59,18 @@ export class ProcessChangeRequestController {
     @Body() body: ProposalBody = { title: '', description: '' },
     @Headers() headers: Record<string, string>,
   ) {
-    await this.projectResourceAccess.assertCanEditResource(
-      resourceId,
-      headers,
-      { allowCommonForOrganizationAdmin: true },
-    );
+    await this.projectResourceAccess.assertCanEditResource(resourceId, headers, {
+      allowCommonForOrganizationAdmin: true,
+    });
     const authorId = this.projectResourceAccess.getAuthenticatedUserId(headers);
     const request = (await this.requests.list(resourceId)).find(
       (item) => item.id === requestId,
     );
     if (!request || request.authorId !== authorId) {
-      throw new BadRequestException(
-        'Demande introuvable ou non détenue par l’auteur',
-      );
+      throw new BadRequestException('Demande introuvable ou non détenue par l’auteur');
     }
     if (request.workingContentId) {
-      throw new BadRequestException(
-        'La demande possède déjà une version de travail',
-      );
+      throw new BadRequestException('La demande possède déjà une version de travail');
     }
     const contentsResult = await this.listContents.execute(resourceId, {
       filters: { status: ContentStatusEnum.Published },
@@ -87,24 +81,18 @@ export class ProcessChangeRequestController {
     const source = [...contentsResult.ok].sort(
       (a, b) => (b.state.version ?? 0) - (a.state.version ?? 0),
     )[0];
-    const cloneResult = await this.cloneContent.execute(
-      resourceId,
-      source.id.value,
-      {
-        clonedBy: authorId,
-        changeComment: body.description || request.description,
-      },
-    );
-    if (cloneResult.fail) {
-      throw new BadRequestException(cloneResult.fail.message);
-    }
+    const cloneResult = await this.cloneContent.execute(resourceId, source.id, {
+      clonedBy: authorId,
+      changeComment: body.description || request.description,
+    });
+    if (cloneResult.fail) throw new BadRequestException(cloneResult.fail.message);
     return this.requests.attachWorkingContent({
       resourceId,
       requestId,
       authorId,
-      sourceContentId: source.id.value,
+      sourceContentId: source.id,
       sourceVersion: source.state.version ?? 1,
-      workingContentId: cloneResult.ok.id.value,
+      workingContentId: cloneResult.ok.id,
     });
   }
 

@@ -213,10 +213,7 @@ export class ContentController {
       { allowCommonForOrganizationAdmin: true },
     );
 
-    await this.processChangeRequests.assertContentCanBeEdited(
-      resourceId,
-      contentId,
-    );
+    await this.processChangeRequests.assertContentCanBeEdited(resourceId, contentId);
 
     const commandResult = await this.updateContentCommandHandler.execute(
       resourceId,
@@ -277,10 +274,7 @@ export class ContentController {
       { allowCommonForOrganizationAdmin: true },
     );
 
-    await this.processChangeRequests.assertGenericPublicationAllowed(
-      resourceId,
-      contentId,
-    );
+    await this.processChangeRequests.assertGenericPublicationAllowed(resourceId, contentId);
 
     const commandResult = await this.publishContentCommandHandler.execute(
       resourceId,
