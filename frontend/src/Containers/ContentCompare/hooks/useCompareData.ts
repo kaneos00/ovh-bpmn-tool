@@ -18,11 +18,11 @@ export const useCompareData = () => {
   const { leftContentId, rightContentId } = params;
   const resourceId = rightResourceId;
 
-  const { data: leftResource, isError: isLeftResourceError } = useQuery({
+  const { data: leftResource, isLoading: isLeftResourceLoading, isError: isLeftResourceError } = useQuery({
     ...getResourceQuery(leftResourceId),
     enabled: Boolean(leftResourceId),
   });
-  const { data: rightResource, isError: isRightResourceError } = useQuery({
+  const { data: rightResource, isLoading: isRightResourceLoading, isError: isRightResourceError } = useQuery({
     ...getResourceQuery(rightResourceId),
     enabled: Boolean(rightResourceId),
   });
@@ -58,6 +58,8 @@ export const useCompareData = () => {
     rightXmlContent: rightXmlContent ?? '',
     rightContent,
     isLoading:
+      isLeftResourceLoading ||
+      isRightResourceLoading ||
       isLeftContentLoading ||
       isRightContentLoading ||
       isLeftXmlContentLoading ||
