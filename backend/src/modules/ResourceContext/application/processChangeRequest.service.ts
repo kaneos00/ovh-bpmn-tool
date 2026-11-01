@@ -65,49 +65,38 @@ export class ProcessChangeRequestService {
     });
   }
 
-  async createContentChange(params: {
+  async attachWorkingContent(params: {
     resourceId: string;
+    requestId: string;
     authorId: string;
-    title: string;
-    description: string;
-    justification?: string;
     sourceContentId: string;
     sourceVersion: number;
     workingContentId: string;
   }) {
-    const title = params.title.trim();
-    const description = params.description.trim();
-    if (!title || !description) {
-      throw new BadRequestException('Un titre et une description sont requis');
-    }
-
     return this.dataSource.transaction(async (manager) => {
       const requests = manager.getRepository(ProcessChangeRequestTypeOrmEntity);
       const events = manager.getRepository(ProcessChangeRequestEventTypeOrmEntity);
-      const request = requests.create({
-        resourceId: params.resourceId,
-        authorId: params.authorId,
-        type: RequestType.ContentChange,
-        status: Status.Draft,
-        title,
-        description,
-        justification: params.justification?.trim() || null,
-        sourceContentId: params.sourceContentId,
-        sourceVersion: params.sourceVersion,
-        workingContentId: params.workingContentId,
-        assignedReviewerId: null,
-        submittedAt: null,
-        reviewedAt: null,
-        decidedAt: null,
-        publishedContentId: null,
-        createdBy: params.authorId,
+      const request = await requests.findOne({
+        where: { id: params.requestId, resourceId: params.resourceId },
+        lock: { mode: 'pessimistic_write' },
       });
+      if (!request || request.authorId !== params.authorId) {
+        throw new NotFoundException('Demande introuvable ou non détenue par l’auteur');
+      }
+      if (request.type !== RequestType.Proposal || request.status !== Status.Proposed) {
+        throw new BadRequestException('Solo una proposta non ancora avviata può diventare una modifica');
+      }
+      request.type = RequestType.ContentChange;
+      request.status = Status.Draft;
+      request.sourceContentId = params.sourceContentId;
+      request.sourceVersion = params.sourceVersion;
+      request.workingContentId = params.workingContentId;
       const saved = await requests.save(request);
       await events.save(events.create({
         requestId: saved.id,
         actorId: params.authorId,
-        event: 'created',
-        fromStatus: null,
+        event: 'commented',
+        fromStatus: Status.Proposed,
         toStatus: Status.Draft,
         comment: null,
         metadata: {
