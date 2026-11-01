@@ -246,9 +246,11 @@ test('authorized roles can edit the central element sheet in the Viewer shell', 
 
 test('selection outline excludes BPMN label and text elements', async () => {
   const css = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
-  assert.ok(css.includes('.djs-element.task-selected:not(.djs-label)'));
-  assert.ok(css.includes('.djs-element.selected:not(.djs-label)'));
-  assert.ok(css.includes(':not(text):not(tspan)'));
+  assert.ok(css.includes('.djs-element.selected .djs-outline'));
+  assert.ok(css.includes('.djs-element.hover .djs-outline'));
+  assert.ok(css.includes('stroke: #1976d2 !important'));
+  assert.ok(!css.includes('.djs-element.selected:not(.djs-label) .djs-visual'));
+  assert.ok(!css.includes('.djs-element.task-selected:not(.djs-label) .djs-visual'));
 });
 
 test('administrator explorer context menu restores folder and resource actions', async () => {
