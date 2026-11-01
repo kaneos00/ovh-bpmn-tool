@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -7,6 +8,8 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { ProcessChangeRequestTypeOrmEntity } from '../infrastructure/entities/processChangeRequest.ormEntity';
 import { ProcessChangeRequestEventTypeOrmEntity } from '../infrastructure/entities/processChangeRequestEvent.ormEntity';
+import { ContentTypeOrmEntity } from '../infrastructure/entities/content.ormEntity';
+import { ContentStatusEnum } from '../shared/types/Content';
 import {
   ProcessChangeRequestStatusEnum as Status,
   ProcessChangeRequestTypeEnum as RequestType,
@@ -139,6 +142,27 @@ export class ProcessChangeRequestService {
       ) {
         throw new BadRequestException('Seul l’auteur peut modifier ou retirer sa demande');
       }
+      if (params.nextStatus === Status.InReview && request.type === RequestType.ContentChange) {
+        if (!request.workingContentId || !request.sourceContentId) {
+          throw new BadRequestException('La contribution BPMN doit être créée avant la soumission');
+        }
+        const contents = manager.getRepository(ContentTypeOrmEntity);
+        const working = await contents.findOne({
+          where: { id: request.workingContentId, resourceId: params.resourceId },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!working || working.status !== ContentStatusEnum.Draft) {
+          throw new BadRequestException('La version de travail n’est plus une bozza modificabile');
+        }
+        const latestPublished = await contents.findOne({
+          where: { resourceId: params.resourceId, status: ContentStatusEnum.Published },
+          order: { version: 'DESC' },
+        });
+        if (!latestPublished || latestPublished.id !== request.sourceContentId) {
+          throw new ConflictException('La versione pubblicata è cambiata: aggiorna la bozza prima di sottoporla');
+        }
+      }
+
       assertProcessChangeRequestTransition(
         { status: request.status, authorId: request.authorId },
         params.nextStatus,
