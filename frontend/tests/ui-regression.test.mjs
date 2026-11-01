@@ -590,7 +590,7 @@ test('read-only version history can select and compare exactly two historical ve
   assert.ok(details.includes('Comparer les deux versions sélectionnées'));
   assert.ok(details.includes('checked={contentIdsToCompare.includes(content.id)}'));
   assert.ok(details.includes('onCompareClick(contentIdsToCompare[0], contentIdsToCompare[1])'));
-  assert.ok(hook.includes('const selectedIds = [...new Set(contentIds)]'));
+  assert.ok(hook.includes('const selectedIds = Array.from(new Set(contentIds))'));
   assert.ok(hook.includes('setIsCompareDisabled(selectedIds.length !== 2)'));
 });
 
