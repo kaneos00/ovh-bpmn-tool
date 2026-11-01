@@ -8,13 +8,18 @@ describe('enqueueModelerImport', () => {
     const modeler = {};
     const events = [];
     let releaseFirst;
+    let signalFirstStarted;
 
     const firstGate = new Promise(resolve => {
       releaseFirst = resolve;
     });
+    const firstStarted = new Promise(resolve => {
+      signalFirstStarted = resolve;
+    });
 
     const first = enqueueModelerImport(modeler, async () => {
       events.push('first:start');
+      signalFirstStarted();
       await firstGate;
       events.push('first:end');
     });
@@ -23,7 +28,7 @@ describe('enqueueModelerImport', () => {
       events.push('second:end');
     });
 
-    await Promise.resolve();
+    await firstStarted;
     assert.deepEqual(events, ['first:start']);
 
     releaseFirst();
