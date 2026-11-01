@@ -67,6 +67,7 @@ export const ProcessChangeRequestsPanel = ({
   const [justification, setJustification] = useState('');
   const [reviewers, setReviewers] = useState<Record<string, string>>({});
   const [comments, setComments] = useState<Record<string, string>>({});
+  const [submissionComments, setSubmissionComments] = useState<Record<string, string>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const refresh = async () => {
@@ -134,7 +135,12 @@ export const ProcessChangeRequestsPanel = ({
   const submitRequest = async (request: ProcessChangeRequest) => {
     setBusyId(request.id);
     try {
-      await submitProcessChangeRequest(resourceId, request.id);
+      await submitProcessChangeRequest(
+        resourceId,
+        request.id,
+        (submissionComments[request.id] ?? '').trim(),
+      );
+      setSubmissionComments(current => ({ ...current, [request.id]: '' }));
       await refresh();
       showAlert({ message: 'Demande soumise au valideur.', severity: 'success' });
     } catch (error) {
@@ -343,15 +349,34 @@ export const ProcessChangeRequestsPanel = ({
                 )}
 
                 {isAuthor && request.status === 'draft' && (
-                  <Button
-                    size="sm"
-                    variant="solid"
-                    loading={busy}
-                    disabled={busy || !request.assignedReviewerId}
-                    onClick={() => void submitRequest(request)}
-                  >
-                    Soumettre à validation
-                  </Button>
+                  <Stack spacing={0.75}>
+                    <Textarea
+                      size="sm"
+                      minRows={2}
+                      value={submissionComments[request.id] ?? ''}
+                      onChange={event =>
+                        setSubmissionComments(current => ({
+                          ...current,
+                          [request.id]: event.target.value,
+                        }))
+                      }
+                      placeholder="Commentaire accompagnant la soumission"
+                      aria-label="Commentaire de soumission"
+                    />
+                    <Button
+                      size="sm"
+                      variant="solid"
+                      loading={busy}
+                      disabled={
+                        busy ||
+                        !request.assignedReviewerId ||
+                        !(submissionComments[request.id] ?? '').trim()
+                      }
+                      onClick={() => void submitRequest(request)}
+                    >
+                      Soumettre à validation
+                    </Button>
+                  </Stack>
                 )}
 
                 {isAuthor &&

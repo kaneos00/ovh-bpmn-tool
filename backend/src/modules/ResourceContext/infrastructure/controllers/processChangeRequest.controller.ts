@@ -188,6 +188,7 @@ export class ProcessChangeRequestController {
   async submit(
     @Param('resourceId') resourceId: string,
     @Param('requestId') requestId: string,
+    @Body() body: TransitionBody = {},
     @Headers() headers: Record<string, string>,
   ) {
     await this.projectResourceAccess.assertCanEditResource(
@@ -195,11 +196,15 @@ export class ProcessChangeRequestController {
       headers,
       { allowCommonForOrganizationAdmin: true },
     );
+    if (!body.comment?.trim()) {
+      throw new BadRequestException('Un commentaire de soumission est requis');
+    }
     return this.requests.transition({
       resourceId,
       requestId,
       actorId: this.projectResourceAccess.getAuthenticatedUserId(headers),
       nextStatus: Status.InReview,
+      comment: body.comment,
     });
   }
 
