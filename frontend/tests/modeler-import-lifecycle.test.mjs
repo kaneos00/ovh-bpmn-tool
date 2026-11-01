@@ -26,3 +26,13 @@ test('uploaded BPMN files are read before entering the instance import queue', a
   assert.match(contentModeler, /const processContent = await file\.text\(\)/);
   assert.match(contentModeler, /await enqueueModelerImport\(bpmnModelerInstance, async \(\) =>/);
 });
+
+test('Modeler instance lifecycle follows property-provider configuration changes', async () => {
+  const instanceHook = await read('src/shared/hooks/useModelerInstance.ts');
+
+  assert.match(instanceHook, /getModelerProviders/);
+  assert.match(
+    instanceHook,
+    /\[getModelerExtensions, getModelerModules, getModelerProviders, lintingOptions\]/,
+  );
+});
