@@ -32,7 +32,8 @@ export class ProcessChangeRequestController {
   constructor(
     private readonly projectResourceAccess: ProjectResourceAccessService,
     private readonly requests: ProcessChangeRequestService,
-    private readonly cloneContent: CloneContentCommandHandler,\n    private readonly listContents: ListContentQueryHandler,
+    private readonly cloneContent: CloneContentCommandHandler,
+    private readonly listContents: ListContentQueryHandler,
   ) {}
 
   @Post()
