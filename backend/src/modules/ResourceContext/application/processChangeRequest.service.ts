@@ -254,7 +254,10 @@ export class ProcessChangeRequestService {
           'Seul l’auteur peut modifier ou retirer sa demande',
         );
       }
-      if (params.nextStatus === Status.InReview && !request.assignedReviewerId) {
+      if (
+        params.nextStatus === Status.InReview &&
+        !request.assignedReviewerId
+      ) {
         throw new BadRequestException(
           'Désignez un valideur avant de soumettre la demande',
         );
