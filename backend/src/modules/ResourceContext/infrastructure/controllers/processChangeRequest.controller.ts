@@ -138,10 +138,7 @@ export class ProcessChangeRequestController {
     @Body() body: ReviewerAssignmentBody,
     @Headers() headers: Record<string, string>,
   ) {
-    await this.projectResourceAccess.assertCanEditResource(
-      resourceId,
-      headers,
-    );
+    await this.projectResourceAccess.assertCanEditResource(resourceId, headers);
     return this.requests.assignReviewer({
       resourceId,
       requestId,

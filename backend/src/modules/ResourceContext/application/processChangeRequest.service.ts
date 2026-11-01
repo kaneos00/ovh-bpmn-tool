@@ -265,11 +265,9 @@ export class ProcessChangeRequestService {
       }
 
       if (
-        [
-          Status.ChangesRequested,
-          Status.Approved,
-          Status.Rejected,
-        ].includes(params.nextStatus) &&
+        [Status.ChangesRequested, Status.Approved, Status.Rejected].includes(
+          params.nextStatus,
+        ) &&
         request.assignedReviewerId &&
         request.assignedReviewerId !== params.actorId
       ) {
