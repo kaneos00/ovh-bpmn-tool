@@ -58,6 +58,12 @@ export const routes = [
         ],
       },
       {
+        // Legacy cross-resource comparison URL: /compare-resources/{leftResourceId}/{leftContentId}/{rightResourceId}/{rightContentId}.
+        // Keep it standalone so it does not render the process workspace behind the comparison.
+        path: '/compare-resources/:leftResourceId/:leftContentId/:rightResourceId/:rightContentId',
+        lazy: () => import('./Containers/ContentCompare'),
+      },
+      {
         // Keep version comparison as a standalone viewer route: embedding it
         // inside BpmnLayout would also render the process workspace behind it.
         path: '/:resourceId/compare/:leftContentId/:rightContentId',
