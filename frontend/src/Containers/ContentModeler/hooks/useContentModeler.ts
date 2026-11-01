@@ -15,6 +15,7 @@ import { useResource } from '../../../shared/hooks/useResource';
 import Modeler from 'camunda-bpmn-js/lib/base/Modeler';
 import { paginateBpmnSvg } from '../../../shared/utils/paginatedBpmnSvg';
 import { HttpError } from '../../../shared/api/httpError';
+import { enqueueModelerImport } from '../../../shared/utils/modelerImportQueue';
 
 export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   const { resourceId } = useParams() as ContentModelerRouteParams;
@@ -94,8 +95,12 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   const onFileUpload = useCallback(
     async (files: FileList) => {
       try {
-        const processContent = await files[0].text();
-        await bpmnModelerInstance.importXML(processContent);
+        const file = files.item(0);
+        if (!file) return;
+        const processContent = await file.text();
+        await enqueueModelerImport(bpmnModelerInstance, async () => {
+          await bpmnModelerInstance.importXML(processContent);
+        });
       } catch {
         showAlert({
           message: 'An error occurs during file upload.',
