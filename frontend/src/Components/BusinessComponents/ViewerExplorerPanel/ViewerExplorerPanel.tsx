@@ -29,7 +29,7 @@ export const ViewerExplorerPanel = ({
   const panelClass = isContentViewer
     ? `processTaskPanel viewerFolderPanel ${collapsed ? 'collapsed' : 'open'}`
     : `processExplorerPanel ${collapsed ? 'collapsed' : ''}`;
-  const headerClass = isContentViewer ? 'viewerFolderHeader' : 'processExplorerPanelHeader';
+  const headerClass = `viewerPanelHeader ${isContentViewer ? 'viewerFolderHeader' : 'processExplorerPanelHeader'}`;
   const contentClass = isContentViewer ? 'viewerFolderTree' : 'processExplorerPanelContent';
   let toggleIcon = <ChevronLeft />;
   if (collapsed) toggleIcon = isContentViewer ? <MenuIcon /> : <ChevronRight />;
