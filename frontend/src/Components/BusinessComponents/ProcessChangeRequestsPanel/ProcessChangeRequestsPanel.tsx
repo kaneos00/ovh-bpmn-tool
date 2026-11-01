@@ -21,6 +21,8 @@ import {
   requestProcessChangeRequestChanges,
   resumeProcessChangeRequestEditing,
   startProcessChangeRequestEditing,
+  submitProcessChangeRequest,
+  withdrawProcessChangeRequest,
   type ProcessChangeRequest,
 } from '../../../api/changeRequests/changeRequests.queries';
 
@@ -122,6 +124,38 @@ export const ProcessChangeRequestsPanel = ({
           error instanceof Error
             ? error.message
             : 'Impossible d’ouvrir la version de travail.',
+        severity: 'danger',
+      });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const submitRequest = async (request: ProcessChangeRequest) => {
+    setBusyId(request.id);
+    try {
+      await submitProcessChangeRequest(resourceId, request.id);
+      await refresh();
+      showAlert({ message: 'Demande soumise au valideur.', severity: 'success' });
+    } catch (error) {
+      showAlert({
+        message: error instanceof Error ? error.message : 'Impossible de soumettre la demande.',
+        severity: 'danger',
+      });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const withdrawRequest = async (request: ProcessChangeRequest) => {
+    setBusyId(request.id);
+    try {
+      await withdrawProcessChangeRequest(resourceId, request.id);
+      await refresh();
+      showAlert({ message: 'Demande retirée.', severity: 'success' });
+    } catch (error) {
+      showAlert({
+        message: error instanceof Error ? error.message : 'Impossible de retirer la demande.',
         severity: 'danger',
       });
     } finally {
@@ -308,6 +342,18 @@ export const ProcessChangeRequestsPanel = ({
                   </Typography>
                 )}
 
+                {isAuthor && request.status === 'draft' && (
+                  <Button
+                    size="sm"
+                    variant="solid"
+                    loading={busy}
+                    disabled={busy || !request.assignedReviewerId}
+                    onClick={() => void submitRequest(request)}
+                  >
+                    Soumettre à validation
+                  </Button>
+                )}
+
                 {isAuthor &&
                   ['proposed', 'draft', 'changes_requested'].includes(
                     request.status,
@@ -320,6 +366,22 @@ export const ProcessChangeRequestsPanel = ({
                       onClick={() => void openWorkingCopy(request)}
                     >
                       {getWorkingCopyActionLabel(request.status)}
+                    </Button>
+                  )}
+
+                {isAuthor &&
+                  ['proposed', 'draft', 'in_review', 'changes_requested'].includes(
+                    request.status,
+                  ) && (
+                    <Button
+                      size="sm"
+                      variant="plain"
+                      color="neutral"
+                      loading={busy}
+                      disabled={busy}
+                      onClick={() => void withdrawRequest(request)}
+                    >
+                      Retirer la demande
                     </Button>
                   )}
 

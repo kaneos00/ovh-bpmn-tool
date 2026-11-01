@@ -65,6 +65,15 @@ export const resumeProcessChangeRequestEditing = (
     {},
   );
 
+export const withdrawProcessChangeRequest = (
+  resourceId: string,
+  requestId: string,
+) =>
+  apiClient.post(
+    `/resources/${resourceId}/change-requests/${requestId}/withdraw`,
+    {},
+  );
+
 export const assignProcessChangeRequestReviewer = (
   resourceId: string,
   requestId: string,
