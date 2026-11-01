@@ -36,7 +36,7 @@ export class ProcessChangeRequestController {
   @Post()
   async createProposal(
     @Param('resourceId') resourceId: string,
-    @Body() body: ProposalBody,
+    @Body() body: ProposalBody = { title: '', description: '' },
     @Headers() headers: Record<string, string>,
   ) {
     await this.projectResourceAccess.assertCanReadResource(resourceId, headers);
@@ -87,7 +87,7 @@ export class ProcessChangeRequestController {
   async requestChanges(
     @Param('resourceId') resourceId: string,
     @Param('requestId') requestId: string,
-    @Body() body: TransitionBody,
+    @Body() body: TransitionBody = {},
     @Headers() headers: Record<string, string>,
   ) {
     await this.projectResourceAccess.assertCanEditResource(resourceId, headers);
