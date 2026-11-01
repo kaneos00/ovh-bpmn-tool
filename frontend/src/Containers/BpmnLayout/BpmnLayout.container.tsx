@@ -32,7 +32,7 @@ export const Component = () => {
 
   useEffect(() => {
     let mounted = true;
-    const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\\/+$/, '');
+    const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
     fetch(`${apiBase}/auth/session`, {
       credentials: 'same-origin',
       headers: { accept: 'application/json' },
@@ -93,13 +93,16 @@ export const Component = () => {
       return <></>;
     }
 
-    return resource.type === ResourceType.Folder ? (
-      <FolderActions />
-    ) : (
+    if (resource.type === ResourceType.Folder) {
+      return <FolderActions />;
+    }
+
+    // The modeler entry point is reserved for authenticated editing roles.
+    return sessionRole === 'admin' || sessionRole === 'modeler' ? (
       <BusinessProcessActions
         onModelerBtnClick={callbacks.header.onModelerBtnClick}
       />
-    );
+    ) : <></>;
   }, [resourceId, resource, contents, sessionRole]);
 
   return (
