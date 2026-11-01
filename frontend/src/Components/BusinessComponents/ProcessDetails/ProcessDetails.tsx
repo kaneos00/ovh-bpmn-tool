@@ -940,7 +940,7 @@ export const ProcessDetails = ({
                 direction="row"
                 alignItems="center"
                 justifyContent={taskPanelCollapsed ? 'center' : 'space-between'}
-                className="processTaskPanelHeader"
+                className="viewerPanelHeader processTaskPanelHeader"
                 onClick={() => setTaskPanelCollapsed(value => !value)}
                 role="button"
                 tabIndex={0}
