@@ -78,7 +78,10 @@ export class ProcessChangeRequestTypeOrmEntity extends AbstractEntity {
   @Column({ type: 'uuid', nullable: true })
   publishedContentId: string | null;
 
-  @ManyToOne(() => ContentTypeOrmEntity, { onDelete: 'SET NULL', nullable: true })
+  @ManyToOne(() => ContentTypeOrmEntity, {
+    onDelete: 'SET NULL',
+    nullable: true,
+  })
   @JoinColumn({ name: 'publishedContentId' })
   publishedContent: ContentTypeOrmEntity | null;
 }
