@@ -39,6 +39,7 @@ import { useViewerRaciAnalysis } from './hooks/useViewerRaciAnalysis';
 import { getRaciIssueLabel } from '../../extensions/raci-engine';
 import type { RaciCode } from '../../extensions/raci-engine';
 import { useViewerRaciFilters } from './hooks/useViewerRaciFilters';
+import { explorerQuery } from '../../api/resources/resources.queries';
 import { ProcessChangeRequestsPanel } from '../../Components/BusinessComponents/ProcessChangeRequestsPanel/ProcessChangeRequestsPanel';
 
 import './ContentViewerContainer.scss';
@@ -93,6 +94,19 @@ const ProcessContentViewer = () => {
     role: 'admin' | 'modeler' | 'viewer';
   }>(['auth-session'], () => apiClient.get('/auth/session'));
   
+  const { data: explorerData } = useQuery(explorerQuery());
+  const processLifecycleStatus = explorerData?.resources.find(
+    resource => resource.id === resourceId,
+  )?.processLifecycleStatus;
+  const lifecycleLabels = {
+    unpublished: 'Non publié',
+    published: 'Publié',
+    modification_in_preparation: 'Modification en préparation',
+    in_validation: 'En validation',
+    changes_requested: 'Corrections demandées',
+    validation_granted: 'Validation accordée — publication à effectuer',
+  } as const;
+
   const { data: workspace } = useQuery<WorkspaceSummary>(
     ['my-workspace'],
     () => apiClient.get('/projects/me/workspace'),
@@ -227,6 +241,11 @@ const ProcessContentViewer = () => {
             </IconButton>
           </Stack>
 
+          {processLifecycleStatus && (
+            <Typography level="body-sm">
+              État du processus : {lifecycleLabels[processLifecycleStatus]}
+            </Typography>
+          )}
           {lastPublishedContent ? (
             <Stack spacing={0.25}>
               <Typography level="body-sm">
