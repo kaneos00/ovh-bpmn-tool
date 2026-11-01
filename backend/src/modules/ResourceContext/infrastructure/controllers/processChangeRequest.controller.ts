@@ -150,6 +150,25 @@ export class ProcessChangeRequestController {
     });
   }
 
+  @Post(':requestId/resume-editing')
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
+  async resumeEditing(
+    @Param('resourceId') resourceId: string,
+    @Param('requestId') requestId: string,
+    @Headers() headers: Record<string, string>,
+  ) {
+    await this.projectResourceAccess.assertCanEditResource(
+      resourceId,
+      headers,
+    );
+    return this.requests.transition({
+      resourceId,
+      requestId,
+      actorId: this.projectResourceAccess.getAuthenticatedUserId(headers),
+      nextStatus: Status.Draft,
+    });
+  }
+
   @Post(':requestId/submit')
   async submit(
     @Param('resourceId') resourceId: string,
