@@ -14,8 +14,8 @@ test('all editor XML imports share one queue per Modeler instance', async () => 
 
   assert.match(queue, /WeakMap<Modeler, Promise<void>>/);
   assert.match(queue, /previous\.catch\(\(\) => undefined\)\.then\(operation\)/);
-  assert.match(modeler, /enqueueModelerImport\(bpmnModelerInstance/);
-  assert.match(contentModeler, /enqueueModelerImport\(bpmnModelerInstance/);
+  assert.match(modeler, /enqueueModelerImport\(\s*bpmnModelerInstance/);
+  assert.match(contentModeler, /enqueueModelerImport\(\s*bpmnModelerInstance/);
   assert.ok(!modeler.includes('importQueueRef'));
 });
 
