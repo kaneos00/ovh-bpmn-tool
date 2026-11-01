@@ -461,9 +461,6 @@
 
 /* Some selection paths are rendered inside the visual group rather than as
    the separate djs-outline layer. Preserve blue for those as well. */
-[data-joy-color-scheme='dark'] .modelerContainer .djs-element.selected:not(.djs-label) .djs-visual > :not(text):not(tspan),
-[data-joy-color-scheme='dark'] .processViewerDiagramContent .djs-element.selected:not(.djs-label) .djs-visual > :not(text):not(tspan) {
-  stroke: #1976d2 !important;
-  stroke-width: 3px !important;
-  filter: drop-shadow(0 0 2px rgba(25, 118, 210, 0.45));
-}
+/* Selection is drawn by diagram-js on the dedicated .djs-outline layer.
+   Do not also stroke the SVG geometry: that creates a visible double contour
+   on lanes, gateways, tasks and other selected BPMN shapes. */
