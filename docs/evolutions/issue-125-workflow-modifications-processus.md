@@ -20,10 +20,10 @@ Une entité séparée de demande de modification porte le cycle de revue :
 
 | État | Signification | Transitions autorisées |
 |---|---|---|
-| `proposed` | Proposition descriptive, sans XML modifiable | `in_review`, `rejected`, `withdrawn` |
-| `draft` | Contribution de travail modifiable par l'auteur et les éditeurs autorisés | `submitted`, `withdrawn` |
-| `in_review` | Contribution soumise, figée pour la revue | `changes_requested`, `approved`, `rejected` |
-| `changes_requested` | Le valideur demande des corrections | `draft`, puis nouvelle soumission |
+| `proposed` | Proposition descriptive, sans XML modifiable | `draft`, `in_review`, `withdrawn` |
+| `draft` | Contribution de travail modifiable par l'auteur et les éditeurs autorisés | `in_review`, `withdrawn` |
+| `in_review` | Contribution soumise, figée pour la revue | `changes_requested`, `approved`, `rejected`, `withdrawn` |
+| `changes_requested` | Le valideur demande des corrections | `draft`, `in_review`, `withdrawn` |
 | `approved` | Contribution approuvée, pas encore publiée | `published`, `withdrawn` |
 | `rejected` | Contribution refusée avec motif | terminal ; nouvelle demande nécessaire |
 | `published` | Contribution publiée comme nouvelle version de référence | terminal |
@@ -48,7 +48,7 @@ En présence de plusieurs demandes simultanées, le statut synthétique doit aff
 
 ## Modèle de données cible
 
-Table dédiée `process_change_requests` (nom à confirmer lors de l'implémentation) :
+Table dédiée `process_change_requests` (créée par la migration `20261101_v3_process_change_requests.sql`) :
 - id UUID, resource_id, author_id, type (`proposal` / `content_change`), status ;
 - source_content_id et source_version (instantané logique de la référence au dépôt) ;
 - working_content_id nullable pour les propositions descriptives, obligatoire pour une contribution éditable ;
@@ -57,7 +57,7 @@ Table dédiée `process_change_requests` (nom à confirmer lors de l'implémenta
 - reviewer_id / assigned_reviewer_id selon les permissions existantes ;
 - created_at, updated_at.
 
-Table d'événements `process_change_request_events` :
+Table d'événements `process_change_request_events` (créée par la même migration) :
 - request_id, event_type, from_status, to_status, actor_id, comment, created_at ;
 - journal append-only des soumissions, retours, décisions, retraits et publications.
 
@@ -83,6 +83,19 @@ Les commentaires de revue sont des événements métier, distincts des commentai
 4. Interface valideur : file de revue, comparaison BPMN de référence/contribution, commentaire et décision.
 5. Statut synthétique dans explorateur et Viewer, filtres et badges cohérents avec les états existants.
 6. Tests d'intégration des ACL, des transitions, de concurrence/version, et parcours frontend.
+
+## État d'avancement au 1er novembre 2026
+
+- [x] Types distincts pour le workflow de demande et le statut synthétique du processus ; `ContentStatusEnum` inchangé.
+- [x] Tables SQL des demandes et du journal d'événements, contraintes et index initiaux.
+- [x] Entités TypeORM enregistrées dans `ResourceContextModule`.
+- [x] Règles de transitions et calcul du statut synthétique, avec tests unitaires dédiés.
+- [x] Migration ajoutée à l'image et à la commande de migration Coolify ainsi qu'au smoke test CI.
+- [ ] Repository et services applicatifs transactionnels.
+- [ ] API protégée et contrôles ACL.
+- [ ] Interfaces auteur et valideur.
+- [ ] Projection dans l'explorateur et le Viewer.
+- [ ] CI verte sur le commit final.
 
 ## Critères de non-régression
 
