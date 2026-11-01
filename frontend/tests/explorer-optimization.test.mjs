@@ -30,7 +30,9 @@ test('explorer link API filters resources by read permissions before requesting 
   assert.ok(accessFilter >= 0, 'resource visibility must be checked');
   assert.ok(metadataQuery > accessFilter, 'BPMN link metadata must only be requested for readable resources');
   assert.match(route, /filter\(\(resource\) => resource\.type === ResourceTypeEnum\.Process\)/);
-  assert.match(route, /resources: readableResources\.map\(ResourceMapper\.toPresenter\)/);
+  assert.match(route, /const lifecycleStatuses =\\s*await this\\.processChangeRequests\\.getLifecycleStatuses\\(processIds\\)/);
+  assert.match(route, /processLifecycleStatus: lifecycleStatuses\\[resource\\.id\\.value\\]/);
+  assert.match(route, /resources: readableResources\\.map\\(\\(resource\\) =>/);
 });
 
 test('explorer endpoint is a single batched metadata request, not a per-process XML download', async () => {
