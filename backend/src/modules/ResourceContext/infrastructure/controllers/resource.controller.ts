@@ -42,12 +42,14 @@ import { CreateContentCommandHandler } from '../../application/commands/Content/
 import { ResourceNameExistError } from '../../../../modules/ResourceContext/application/commands/Resource/resource.error';
 import { ConfigService } from '@nestjs/config';
 import { ProjectResourceAccessService } from '../../../ProjectContext/projectResourceAccess.service';
+import { ProcessChangeRequestService } from '../../application/processChangeRequest.service';
 
 @Controller('resources')
 export class ResourceController {
   constructor(
     private readonly configService: ConfigService,
     private readonly projectResourceAccess: ProjectResourceAccessService,
+    private readonly processChangeRequests: ProcessChangeRequestService,
     private readonly createResourceCommandHandler: CreateResourceCommandHandler,
     private readonly updateResourceCommandHandler: UpdateResourceCommandHandler,
     private readonly deleteResourceCommandHandler: DeleteResourceCommandHandler,
@@ -113,8 +115,18 @@ export class ResourceController {
       throw linksResult.fail;
     }
 
+    const lifecycleStatuses =
+      await this.processChangeRequests.getLifecycleStatuses(processIds);
+
     return {
-      resources: readableResources.map(ResourceMapper.toPresenter),
+      resources: readableResources.map((resource) => {
+        const presenter = ResourceMapper.toPresenter(resource);
+        if (resource.type !== ResourceTypeEnum.Process) return presenter;
+        return {
+          ...presenter,
+          processLifecycleStatus: lifecycleStatuses[resource.id.value],
+        };
+      }),
       links: linksResult.ok,
     };
   }
