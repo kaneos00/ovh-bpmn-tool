@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -127,6 +128,65 @@ export class ProcessChangeRequestService {
     });
   }
 
+  async assignReviewer(params: {
+    resourceId: string;
+    requestId: string;
+    actorId: string;
+    reviewerId: string;
+  }) {
+    const reviewerId = params.reviewerId.trim();
+    if (!reviewerId) {
+      throw new BadRequestException('Un identifiant de valideur est requis');
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const requests = manager.getRepository(ProcessChangeRequestTypeOrmEntity);
+      const events = manager.getRepository(
+        ProcessChangeRequestEventTypeOrmEntity,
+      );
+      const request = await requests.findOne({
+        where: { id: params.requestId, resourceId: params.resourceId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!request) {
+        throw new NotFoundException('Demande introuvable');
+      }
+      if (reviewerId === request.authorId) {
+        throw new BadRequestException(
+          'L’auteur ne peut pas être désigné comme valideur de sa propre demande',
+        );
+      }
+      if (
+        [
+          Status.Approved,
+          Status.Rejected,
+          Status.Published,
+          Status.Withdrawn,
+        ].includes(request.status)
+      ) {
+        throw new ConflictException(
+          'Le valideur ne peut plus être modifié après la décision finale',
+        );
+      }
+
+      const previousReviewerId = request.assignedReviewerId;
+      request.assignedReviewerId = reviewerId;
+      const saved = await requests.save(request);
+      await events.save(
+        events.create({
+          requestId: saved.id,
+          actorId: params.actorId,
+          event: 'reviewer_assigned',
+          fromStatus: request.status,
+          toStatus: request.status,
+          comment: null,
+          metadata: { previousReviewerId, reviewerId },
+        }),
+      );
+      return saved;
+    });
+  }
+
   async list(resourceId: string) {
     return this.dataSource
       .getRepository(ProcessChangeRequestTypeOrmEntity)
@@ -204,6 +264,20 @@ export class ProcessChangeRequestService {
         }
       }
 
+      if (
+        [
+          Status.ChangesRequested,
+          Status.Approved,
+          Status.Rejected,
+        ].includes(params.nextStatus) &&
+        request.assignedReviewerId &&
+        request.assignedReviewerId !== params.actorId
+      ) {
+        throw new ForbiddenException(
+          'Seul le valideur désigné peut prendre cette décision',
+        );
+      }
+
       assertProcessChangeRequestTransition(
         { status: request.status, authorId: request.authorId },
         params.nextStatus,
@@ -276,6 +350,20 @@ export class ProcessChangeRequestService {
     if (request) {
       throw new ConflictException(
         'La versione BPMN è bloccata perché la richiesta è in revisione o approvata',
+      );
+    }
+  }
+
+  async assertContentCanBeDeleted(resourceId: string, contentId: string) {
+    const request = await this.dataSource
+      .getRepository(ProcessChangeRequestTypeOrmEntity)
+      .findOne({
+        where: { resourceId, workingContentId: contentId },
+        select: { id: true },
+      });
+    if (request) {
+      throw new ConflictException(
+        'Cette version est conservée dans l’historique d’une demande de modification et ne peut pas être supprimée',
       );
     }
   }

@@ -26,6 +26,10 @@ type TransitionBody = {
   comment?: string;
 };
 
+type ReviewerAssignmentBody = {
+  reviewerId: string;
+};
+
 @Controller('resources/:resourceId/change-requests')
 @UseAcl([UserGroup.RW, UserGroup.Admin])
 export class ProcessChangeRequestController {
@@ -125,6 +129,25 @@ export class ProcessChangeRequestController {
   ) {
     await this.projectResourceAccess.assertCanReadResource(resourceId, headers);
     return this.requests.getEvents(resourceId, requestId);
+  }
+
+  @Post(':requestId/assign-reviewer')
+  async assignReviewer(
+    @Param('resourceId') resourceId: string,
+    @Param('requestId') requestId: string,
+    @Body() body: ReviewerAssignmentBody,
+    @Headers() headers: Record<string, string>,
+  ) {
+    await this.projectResourceAccess.assertCanEditResource(
+      resourceId,
+      headers,
+    );
+    return this.requests.assignReviewer({
+      resourceId,
+      requestId,
+      actorId: this.projectResourceAccess.getAuthenticatedUserId(headers),
+      reviewerId: body.reviewerId ?? '',
+    });
   }
 
   @Post(':requestId/submit')

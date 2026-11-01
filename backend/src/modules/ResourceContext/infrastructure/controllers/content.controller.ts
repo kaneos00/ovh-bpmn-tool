@@ -250,6 +250,10 @@ export class ContentController {
       params.resourceId,
       headers,
     );
+    await this.processChangeRequests.assertContentCanBeDeleted(
+      params.resourceId,
+      params.contentId,
+    );
     const commandResult =
       await this.deleteContentCommandHandler.execute(params);
 
