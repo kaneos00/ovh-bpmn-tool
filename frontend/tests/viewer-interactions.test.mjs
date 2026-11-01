@@ -244,6 +244,13 @@ test('authorized roles can edit the central element sheet in the Viewer shell', 
   assert.ok(details.includes('canEditDescription && !isEditingDescription'));
 });
 
+test('BPMN label clicks select their owning diagram element', async () => {
+  const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+  assert.ok(hook.includes('const element = clickedElement?.labelTarget ?? clickedElement'));
+  assert.ok(hook.includes('follows the object the user actually clicked'));
+  assert.ok(!hook.includes('!element.labelTarget'));
+});
+
 test('selection outline follows BPMN geometry and excludes separate labels', async () => {
   const css = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
   assert.ok(css.includes('.djs-element.selected:not(.djs-label) .djs-visual > :not(text):not(tspan)'));
