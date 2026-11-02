@@ -16,7 +16,11 @@ import { ProjectRaciActorTypeOrmEntity } from '../ProjectContext/infrastructure/
 import { ProjectResourceAccessService } from '../ProjectContext/projectResourceAccess.service';
 
 export type SearchResultType = 'process' | 'bpmn' | 'raci' | 'actor';
-export type SearchResultSource = 'resource' | 'bpmn' | 'project-raci' | 'project-actor';
+export type SearchResultSource =
+  | 'resource'
+  | 'bpmn'
+  | 'project-raci'
+  | 'project-actor';
 export type UnifiedSearchResult = {
   type: SearchResultType;
   id: string;
