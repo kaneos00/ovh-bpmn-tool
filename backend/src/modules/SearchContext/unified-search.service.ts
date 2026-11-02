@@ -243,10 +243,13 @@ export class UnifiedSearchService {
       }
     }
 
-    const memberships = await this.projectMembers.find({
-      where: { userId: this.resourceAccess.getAuthenticatedUserId(headers) },
-      select: { projectId: true },
-    });
+    const needsProjectData = includes('raci') || includes('actor');
+    const memberships = needsProjectData
+      ? await this.projectMembers.find({
+          where: { userId: this.resourceAccess.getAuthenticatedUserId(headers) },
+          select: { projectId: true },
+        })
+      : [];
     const allowedProjectIds = [...new Set(memberships.map((membership) => membership.projectId))];
 
     let bpmnDocumentsAvailable = 0;
@@ -260,11 +263,11 @@ export class UnifiedSearchService {
       });
       const [documents] = await this.contents
         .createQueryBuilder('content')
-        .select(['content.id', 'content.resourceId', 'content.content'])
+        .select(['content.id', 'content.resourceId', 'content.content', 'content.updatedAt'])
         .where('content.resourceId IN (:...resourceIds)', { resourceIds })
         .andWhere('content.status = :status', { status: ContentStatusEnum.Published })
         .andWhere('octet_length(content.content) <= :maxBytes', { maxBytes: MAX_BPMN_BYTES })
-        .orderBy('content.id', 'ASC')
+        .orderBy('content.updatedAt', 'DESC')
         .take(MAX_BPMN_DOCUMENTS)
         .getManyAndCount();
 
@@ -363,9 +366,7 @@ export class UnifiedSearchService {
       results: results.slice(offset, offset + limit),
       coverage: {
         readableProcesses: readableResources.length,
-        bpmnDocumentsAvailable: includes('bpmn') ? await this.contents.count({
-          where: { resourceId: In([...resourceById.keys()]), status: ContentStatusEnum.Published },
-        }) : 0,
+        bpmnDocumentsAvailable,
         bpmnDocumentsScanned,
         bpmnDocumentsSkipped,
         partial: includes('bpmn') && bpmnDocumentsSkipped > 0,
