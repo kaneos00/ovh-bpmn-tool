@@ -247,62 +247,69 @@ export class UnifiedSearchService {
     });
     const allowedProjectIds = [...new Set(memberships.map((membership) => membership.projectId))];
 
-    if (includes('bpmn') || includes('raci') || includes('actor')) {
-      const contentWhere = {
-        resourceId: In([...resourceById.keys()]),
-        status: ContentStatusEnum.Published,
-      };
-      const [documents, bpmnDocumentsAvailable] = await this.contents.findAndCount({
-        where: contentWhere,
-        select: { resourceId: true, content: true },
-        take: MAX_BPMN_DOCUMENTS,
-      });
-      let bpmnDocumentsScanned = 0;
-      let bpmnDocumentsSkipped = Math.max(0, bpmnDocumentsAvailable - documents.length);
+    let bpmnDocumentsAvailable = 0;
+    let bpmnDocumentsScanned = 0;
+    let bpmnDocumentsSkipped = 0;
+    const resourceIds = [...resourceById.keys()];
 
-      if (includes('bpmn')) {
-        for (const document of documents) {
-          bpmnDocumentsScanned += 1;
-          const resource = resourceById.get(document.resourceId);
-          if (!resource || Buffer.byteLength(document.content, 'utf8') > MAX_BPMN_BYTES) {
-            bpmnDocumentsSkipped += 1;
-            continue;
-          }
-          try {
-            results.push(...extractBpmnSearchResults(
-              document.content,
-              document.resourceId,
-              resource.name,
-              normalizedQuery,
-            ));
-          } catch {
-            bpmnDocumentsSkipped += 1;
-          }
+    if (includes('bpmn') && resourceIds.length) {
+      bpmnDocumentsAvailable = await this.contents.count({
+        where: { resourceId: In(resourceIds), status: ContentStatusEnum.Published },
+      });
+      const [documents] = await this.contents
+        .createQueryBuilder('content')
+        .select(['content.id', 'content.resourceId', 'content.content'])
+        .where('content.resourceId IN (:...resourceIds)', { resourceIds })
+        .andWhere('content.status = :status', { status: ContentStatusEnum.Published })
+        .andWhere('octet_length(content.content) <= :maxBytes', { maxBytes: MAX_BPMN_BYTES })
+        .orderBy('content.id', 'ASC')
+        .take(MAX_BPMN_DOCUMENTS)
+        .getManyAndCount();
+
+      bpmnDocumentsScanned = documents.length;
+      bpmnDocumentsSkipped = Math.max(0, bpmnDocumentsAvailable - documents.length);
+      for (const document of documents) {
+        const resource = resourceById.get(document.resourceId);
+        if (!resource) continue;
+        try {
+          results.push(...extractBpmnSearchResults(
+            document.content,
+            document.resourceId,
+            resource.name,
+            normalizedQuery,
+          ));
+        } catch {
+          bpmnDocumentsSkipped += 1;
         }
       }
+    }
 
-      if (allowedProjectIds.length && (includes('raci') || includes('actor'))) {
+    if (allowedProjectIds.length && (includes('raci') || includes('actor'))) {
+      if (resourceIds.length) {
         const links = await this.projectProcesses.find({
           where: {
             projectId: In(allowedProjectIds),
-            resourceId: In([...resourceById.keys()]),
+            resourceId: In(resourceIds),
           },
           select: { projectId: true, resourceId: true },
         });
-        const accessiblePairs = new Set(links.map((link) => `${link.projectId}:${link.resourceId}`));
         if (includes('raci') && links.length) {
           const entries = await this.raciEntries.find({
-            where: links.map((link) => ({ projectId: link.projectId, resourceId: link.resourceId })),
+            where: links.map((link) => ({
+              projectId: link.projectId,
+              resourceId: link.resourceId,
+            })),
           });
           for (const entry of entries) {
-            if (!accessiblePairs.has(`${entry.projectId}:${entry.resourceId}`)) continue;
             const roleLabel = ROLE_LABELS[entry.role];
             const values = [
               { value: entry.taskName, field: 'attività' },
               { value: entry.actorName, field: 'attore' },
               { value: roleLabel, field: 'responsabilità' },
             ];
-            const match = values.find(({ value }) => normalizeSearchText(value).includes(normalizedQuery));
+            const match = values.find(({ value }) =>
+              normalizeSearchText(value).includes(normalizedQuery),
+            );
             if (match) {
               results.push({
                 type: 'raci',
@@ -319,21 +326,22 @@ export class UnifiedSearchService {
             }
           }
         }
-        if (includes('actor')) {
-          const actors = await this.raciActors.find({
-            where: { projectId: In(allowedProjectIds), active: true },
+      }
+
+      if (includes('actor')) {
+        const actors = await this.raciActors.find({
+          where: { projectId: In(allowedProjectIds), active: true },
+        });
+        for (const actor of actors) {
+          if (!normalizeSearchText(actor.name).includes(normalizedQuery)) continue;
+          results.push({
+            type: 'actor',
+            id: `${actor.projectId}:${actor.id}`,
+            label: actor.name,
+            excerpt: 'Attore registrato nel progetto',
+            field: 'attore',
+            projectId: actor.projectId,
           });
-          for (const actor of actors) {
-            if (!normalizeSearchText(actor.name).includes(normalizedQuery)) continue;
-            results.push({
-              type: 'actor',
-              id: `${actor.projectId}:${actor.id}`,
-              label: actor.name,
-              excerpt: 'Attore registrato nel progetto',
-              field: 'attore',
-              projectId: actor.projectId,
-            });
-          }
         }
       }
     }
@@ -355,9 +363,9 @@ export class UnifiedSearchService {
         bpmnDocumentsAvailable: includes('bpmn') ? await this.contents.count({
           where: { resourceId: In([...resourceById.keys()]), status: ContentStatusEnum.Published },
         }) : 0,
-        bpmnDocumentsScanned: includes('bpmn') ? bpmnDocumentsScanned : 0,
-        bpmnDocumentsSkipped: includes('bpmn') ? bpmnDocumentsSkipped : 0,
-        partial: includes('bpmn') && (bpmnDocumentsSkipped > 0 || bpmnDocumentsAvailable > MAX_BPMN_DOCUMENTS),
+        bpmnDocumentsScanned,
+        bpmnDocumentsSkipped,
+        partial: includes('bpmn') && bpmnDocumentsSkipped > 0,
       },
     };
   }
