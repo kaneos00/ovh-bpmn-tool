@@ -8,7 +8,10 @@ import { ResourceTypeOrmEntity } from '../ResourceContext/infrastructure/entitie
 import { ContentTypeOrmEntity } from '../ResourceContext/infrastructure/entities/content.ormEntity';
 import { ProjectProcessTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectProcess.ormEntity';
 import { ProjectMemberTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectMember.ormEntity';
-import { ProjectRaciEntryTypeOrmEntity, ProjectRaciRole } from '../ProjectContext/infrastructure/entities/projectRaciEntry.ormEntity';
+import {
+  ProjectRaciEntryTypeOrmEntity,
+  ProjectRaciRole,
+} from '../ProjectContext/infrastructure/entities/projectRaciEntry.ormEntity';
 import { ProjectRaciActorTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectRaciActor.ormEntity';
 import { ProjectResourceAccessService } from '../ProjectContext/projectResourceAccess.service';
 
@@ -104,20 +107,32 @@ export function normalizeSearchText(value: string): string {
 }
 
 function collectText(value: unknown): string {
-  if (typeof value === 'string' || typeof value === 'number') return String(value);
-  if (Array.isArray(value)) return value.map(collectText).filter(Boolean).join(' ');
+  if (typeof value === 'string' || typeof value === 'number')
+    return String(value);
+  if (Array.isArray(value))
+    return value.map(collectText).filter(Boolean).join(' ');
   if (!value || typeof value !== 'object') return '';
   return Object.entries(value as Record<string, unknown>)
-    .filter(([key]) => key === '#text' || key === 'text' || key === 'documentation')
+    .filter(
+      ([key]) => key === '#text' || key === 'text' || key === 'documentation',
+    )
     .map(([, child]) => collectText(child))
     .filter(Boolean)
     .join(' ');
 }
 
 const BPMN_ACTIVITY_TYPES = new Set([
-  'task', 'userTask', 'serviceTask', 'manualTask', 'scriptTask',
-  'businessRuleTask', 'sendTask', 'receiveTask', 'callActivity',
-  'subProcess', 'transaction',
+  'task',
+  'userTask',
+  'serviceTask',
+  'manualTask',
+  'scriptTask',
+  'businessRuleTask',
+  'sendTask',
+  'receiveTask',
+  'callActivity',
+  'subProcess',
+  'transaction',
 ]);
 
 function readXmlAttribute(node: Record<string, unknown>, name: string): string {
@@ -147,7 +162,14 @@ function parseActorNames(raw: string): string[] {
   } catch {
     // Older BPMN files may store actors as a comma-separated list.
   }
-  return [...new Set(raw.split(',').map((name) => name.trim()).filter(Boolean))];
+  return [
+    ...new Set(
+      raw
+        .split(',')
+        .map((name) => name.trim())
+        .filter(Boolean),
+    ),
+  ];
 }
 
 export function extractBpmnSearchResults(
@@ -157,12 +179,22 @@ export function extractBpmnSearchResults(
   normalizedQuery: string,
   requestedTypes?: SearchResultType[],
 ): UnifiedSearchResult[] {
-  if (Buffer.byteLength(xml, 'utf8') > MAX_BPMN_BYTES || /<!DOCTYPE|<!ENTITY/i.test(xml)) return [];
+  if (
+    Buffer.byteLength(xml, 'utf8') > MAX_BPMN_BYTES ||
+    /<!DOCTYPE|<!ENTITY/i.test(xml)
+  )
+    return [];
   const parsed = parser.parse(xml) as Record<string, unknown>;
   const results: UnifiedSearchResult[] = [];
-  const includes = (type: SearchResultType) => !requestedTypes?.length || requestedTypes.includes(type);
+  const includes = (type: SearchResultType) =>
+    !requestedTypes?.length || requestedTypes.includes(type);
   const addActor = (name: string, elementId?: string) => {
-    if (!includes('actor') || !name || !normalizeSearchText(name).includes(normalizedQuery)) return;
+    if (
+      !includes('actor') ||
+      !name ||
+      !normalizeSearchText(name).includes(normalizedQuery)
+    )
+      return;
     results.push({
       type: 'actor',
       id: `${resourceId}:actor:${name.toLocaleLowerCase()}`,
@@ -187,9 +219,11 @@ export function extractBpmnSearchResults(
     const typeLabel = BPMN_ELEMENT_TYPES[key];
     const elementId = readXmlAttribute(node, 'id') || undefined;
     const name = readXmlAttribute(node, 'name');
-    const annotationText = key === 'textAnnotation' ? collectText(node.text) : '';
+    const annotationText =
+      key === 'textAnnotation' ? collectText(node.text) : '';
     const documentation = collectText(node.documentation);
-    const label = name || annotationText || (elementId && typeLabel ? typeLabel : '');
+    const label =
+      name || annotationText || (elementId && typeLabel ? typeLabel : '');
 
     if (typeLabel && includes('bpmn')) {
       const searchableFields = [
@@ -198,8 +232,10 @@ export function extractBpmnSearchResults(
         { value: annotationText, field: 'testo annotazione' },
         { value: elementId ?? '', field: 'identificativo' },
       ];
-      const match = searchableFields.find(({ value: fieldValue }) =>
-        fieldValue && normalizeSearchText(fieldValue).includes(normalizedQuery),
+      const match = searchableFields.find(
+        ({ value: fieldValue }) =>
+          fieldValue &&
+          normalizeSearchText(fieldValue).includes(normalizedQuery),
       );
       if (label && match) {
         results.push({
@@ -221,7 +257,9 @@ export function extractBpmnSearchResults(
     // relying only on the separate project RACI tables.
     if (includes('actor')) {
       if (key === 'process') {
-        parseActorNames(readXmlAttribute(node, 'actors')).forEach((actor) => addActor(actor, elementId));
+        parseActorNames(readXmlAttribute(node, 'actors')).forEach((actor) =>
+          addActor(actor, elementId),
+        );
       }
       if (key === 'lane' || key === 'participant') addActor(name, elementId);
     }
@@ -248,7 +286,9 @@ export function extractBpmnSearchResults(
             { value: actorName, field: 'attore' },
             { value: roleLabel, field: 'responsabilità' },
             { value: role, field: 'responsabilità' },
-          ].find(({ value }) => normalizeSearchText(value).includes(normalizedQuery));
+          ].find(({ value }) =>
+            normalizeSearchText(value).includes(normalizedQuery),
+          );
           if (match) {
             results.push({
               type: 'raci',
@@ -268,7 +308,8 @@ export function extractBpmnSearchResults(
     }
 
     Object.entries(node).forEach(([childKey, child]) => {
-      if (!childKey.startsWith('@_') && childKey !== '#text') visit(child, childKey);
+      if (!childKey.startsWith('@_') && childKey !== '#text')
+        visit(child, childKey);
     });
   };
 
@@ -297,13 +338,19 @@ export class UnifiedSearchService {
   async search(
     rawQuery: string,
     headers: Record<string, string | undefined>,
-    options: { types?: SearchResultType[]; limit?: number; offset?: number } = {},
+    options: {
+      types?: SearchResultType[];
+      limit?: number;
+      offset?: number;
+    } = {},
   ): Promise<UnifiedSearchResponse> {
     if (typeof rawQuery !== 'string' || rawQuery.trim().length < 2) {
       throw new BadRequestException('q must contain at least 2 characters');
     }
     if (rawQuery.length > MAX_QUERY_LENGTH) {
-      throw new BadRequestException(`q must contain at most ${MAX_QUERY_LENGTH} characters`);
+      throw new BadRequestException(
+        `q must contain at most ${MAX_QUERY_LENGTH} characters`,
+      );
     }
     const limit = options.limit ?? 30;
     const offset = options.offset ?? 0;
@@ -311,19 +358,35 @@ export class UnifiedSearchService {
       throw new BadRequestException(`limit must be between 1 and ${MAX_LIMIT}`);
     }
     if (!Number.isInteger(offset) || offset < 0 || offset > MAX_OFFSET) {
-      throw new BadRequestException(`offset must be between 0 and ${MAX_OFFSET}`);
+      throw new BadRequestException(
+        `offset must be between 0 and ${MAX_OFFSET}`,
+      );
     }
 
-    const requestedTypes = options.types?.length ? new Set(options.types) : null;
-    const includes = (type: SearchResultType) => !requestedTypes || requestedTypes.has(type);
+    const requestedTypes = options.types?.length
+      ? new Set(options.types)
+      : null;
+    const includes = (type: SearchResultType) =>
+      !requestedTypes || requestedTypes.has(type);
     const query = rawQuery.trim();
     const normalizedQuery = normalizeSearchText(query);
     const allResources = await this.resources.find({
       where: { type: ResourceTypeEnum.Process },
-      select: { id: true, name: true, description: true, parentId: true, type: true },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        parentId: true,
+        type: true,
+      },
     });
-    const readableResources = await this.resourceAccess.filterReadableResources(allResources, headers);
-    const resourceById = new Map(readableResources.map((resource) => [resource.id, resource]));
+    const readableResources = await this.resourceAccess.filterReadableResources(
+      allResources,
+      headers,
+    );
+    const resourceById = new Map(
+      readableResources.map((resource) => [resource.id, resource]),
+    );
     const results: UnifiedSearchResult[] = [];
 
     if (includes('process')) {
@@ -333,7 +396,9 @@ export class UnifiedSearchService {
           { value: resource.description ?? '', field: 'descrizione' },
           { value: resource.id, field: 'identificativo' },
         ];
-        const match = fields.find(({ value }) => normalizeSearchText(value).includes(normalizedQuery));
+        const match = fields.find(({ value }) =>
+          normalizeSearchText(value).includes(normalizedQuery),
+        );
         if (match) {
           results.push({
             type: 'process',
@@ -352,45 +417,67 @@ export class UnifiedSearchService {
     const needsProjectData = includes('raci') || includes('actor');
     const memberships = needsProjectData
       ? await this.projectMembers.find({
-          where: { userId: this.resourceAccess.getAuthenticatedUserId(headers) },
+          where: {
+            userId: this.resourceAccess.getAuthenticatedUserId(headers),
+          },
           select: { projectId: true },
         })
       : [];
-    const allowedProjectIds = [...new Set(memberships.map((membership) => membership.projectId))];
+    const allowedProjectIds = [
+      ...new Set(memberships.map((membership) => membership.projectId)),
+    ];
 
     let bpmnDocumentsAvailable = 0;
     let bpmnDocumentsScanned = 0;
     let bpmnDocumentsSkipped = 0;
     const resourceIds = [...resourceById.keys()];
 
-    const includesXmlSources = includes('bpmn') || includes('raci') || includes('actor');
+    const includesXmlSources =
+      includes('bpmn') || includes('raci') || includes('actor');
     if (includesXmlSources && resourceIds.length) {
       bpmnDocumentsAvailable = await this.contents.count({
-        where: { resourceId: In(resourceIds), status: ContentStatusEnum.Published },
+        where: {
+          resourceId: In(resourceIds),
+          status: ContentStatusEnum.Published,
+        },
       });
       const [documents] = await this.contents
         .createQueryBuilder('content')
-        .select(['content.id', 'content.resourceId', 'content.content', 'content.updatedAt'])
+        .select([
+          'content.id',
+          'content.resourceId',
+          'content.content',
+          'content.updatedAt',
+        ])
         .where('content.resourceId IN (:...resourceIds)', { resourceIds })
-        .andWhere('content.status = :status', { status: ContentStatusEnum.Published })
-        .andWhere('octet_length(content.content) <= :maxBytes', { maxBytes: MAX_BPMN_BYTES })
+        .andWhere('content.status = :status', {
+          status: ContentStatusEnum.Published,
+        })
+        .andWhere('octet_length(content.content) <= :maxBytes', {
+          maxBytes: MAX_BPMN_BYTES,
+        })
         .orderBy('content.updatedAt', 'DESC')
         .take(MAX_BPMN_DOCUMENTS)
         .getManyAndCount();
 
       bpmnDocumentsScanned = documents.length;
-      bpmnDocumentsSkipped = Math.max(0, bpmnDocumentsAvailable - documents.length);
+      bpmnDocumentsSkipped = Math.max(
+        0,
+        bpmnDocumentsAvailable - documents.length,
+      );
       for (const document of documents) {
         const resource = resourceById.get(document.resourceId);
         if (!resource) continue;
         try {
-          results.push(...extractBpmnSearchResults(
-            document.content,
-            document.resourceId,
-            resource.name,
-            normalizedQuery,
-            options.types,
-          ));
+          results.push(
+            ...extractBpmnSearchResults(
+              document.content,
+              document.resourceId,
+              resource.name,
+              normalizedQuery,
+              options.types,
+            ),
+          );
         } catch {
           bpmnDocumentsSkipped += 1;
         }
@@ -448,7 +535,8 @@ export class UnifiedSearchService {
           where: { projectId: In(allowedProjectIds), active: true },
         });
         for (const actor of actors) {
-          if (!normalizeSearchText(actor.name).includes(normalizedQuery)) continue;
+          if (!normalizeSearchText(actor.name).includes(normalizedQuery))
+            continue;
           results.push({
             type: 'actor',
             id: `${actor.projectId}:${actor.id}`,
@@ -468,10 +556,16 @@ export class UnifiedSearchService {
       uniqueByKey.set(key, result);
     }
     const uniqueResults = [...uniqueByKey.values()];
-    const typeOrder: Record<SearchResultType, number> = { process: 0, bpmn: 1, raci: 2, actor: 3 };
-    uniqueResults.sort((left, right) =>
-      typeOrder[left.type] - typeOrder[right.type] ||
-      left.label.localeCompare(right.label, 'fr'),
+    const typeOrder: Record<SearchResultType, number> = {
+      process: 0,
+      bpmn: 1,
+      raci: 2,
+      actor: 3,
+    };
+    uniqueResults.sort(
+      (left, right) =>
+        typeOrder[left.type] - typeOrder[right.type] ||
+        left.label.localeCompare(right.label, 'fr'),
     );
 
     return {

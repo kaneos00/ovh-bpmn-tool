@@ -1,8 +1,13 @@
-import { extractBpmnSearchResults, normalizeSearchText } from './unified-search.service';
+import {
+  extractBpmnSearchResults,
+  normalizeSearchText,
+} from './unified-search.service';
 
 describe('unified search normalization', () => {
   it('matches case and accents consistently', () => {
-    expect(normalizeSearchText('  RÉVISION   Générale ')).toBe('revision generale');
+    expect(normalizeSearchText('  RÉVISION   Générale ')).toBe(
+      'revision generale',
+    );
     expect(normalizeSearchText('REVISION generale')).toBe('revision generale');
   });
 });
@@ -20,7 +25,12 @@ describe('BPMN search extraction', () => {
     </definitions>`;
 
   it('finds activity names, descriptions, lanes and annotation text', () => {
-    const activity = extractBpmnSearchResults(xml, 'resource-1', 'Order', 'invoice');
+    const activity = extractBpmnSearchResults(
+      xml,
+      'resource-1',
+      'Order',
+      'invoice',
+    );
     expect(activity).toHaveLength(1);
     expect(activity[0]).toMatchObject({
       type: 'bpmn',
@@ -29,19 +39,48 @@ describe('BPMN search extraction', () => {
       processName: 'Order',
     });
 
-    const description = extractBpmnSearchResults(xml, 'resource-1', 'Order', 'supplier');
-    expect(description[0]).toMatchObject({ elementId: 'Task_Approve', field: 'descrizione' });
+    const description = extractBpmnSearchResults(
+      xml,
+      'resource-1',
+      'Order',
+      'supplier',
+    );
+    expect(description[0]).toMatchObject({
+      elementId: 'Task_Approve',
+      field: 'descrizione',
+    });
 
-    const lane = extractBpmnSearchResults(xml, 'resource-1', 'Order', 'finance');
-    expect(lane[0]).toMatchObject({ elementId: 'Lane_Finance', label: 'Lane: Finance' });
+    const lane = extractBpmnSearchResults(
+      xml,
+      'resource-1',
+      'Order',
+      'finance',
+    );
+    expect(lane[0]).toMatchObject({
+      elementId: 'Lane_Finance',
+      label: 'Lane: Finance',
+    });
 
-    const annotation = extractBpmnSearchResults(xml, 'resource-1', 'Order', 'reference');
-    expect(annotation[0]).toMatchObject({ elementId: 'Text_Note', field: 'testo annotazione' });
+    const annotation = extractBpmnSearchResults(
+      xml,
+      'resource-1',
+      'Order',
+      'reference',
+    );
+    expect(annotation[0]).toMatchObject({
+      elementId: 'Text_Note',
+      field: 'testo annotazione',
+    });
   });
 
-
   it('indexes BPMN actors and explicit RACI assignments with type filters', () => {
-    const raci = extractBpmnSearchResults(xml, 'resource-1', 'Order', 'controller', ['raci']);
+    const raci = extractBpmnSearchResults(
+      xml,
+      'resource-1',
+      'Order',
+      'controller',
+      ['raci'],
+    );
     expect(raci).toHaveLength(1);
     expect(raci[0]).toMatchObject({
       type: 'raci',
@@ -50,14 +89,26 @@ describe('BPMN search extraction', () => {
       source: 'bpmn',
     });
 
-    const actor = extractBpmnSearchResults(xml, 'resource-1', 'Order', 'finance manager', ['actor']);
+    const actor = extractBpmnSearchResults(
+      xml,
+      'resource-1',
+      'Order',
+      'finance manager',
+      ['actor'],
+    );
     expect(actor[0]).toMatchObject({
       type: 'actor',
       label: 'Finance Manager',
       source: 'bpmn',
     });
 
-    const laneActor = extractBpmnSearchResults(xml, 'resource-1', 'Order', 'finance', ['actor']);
+    const laneActor = extractBpmnSearchResults(
+      xml,
+      'resource-1',
+      'Order',
+      'finance',
+      ['actor'],
+    );
     expect(laneActor.some((result) => result.label === 'Finance')).toBe(true);
   });
 
@@ -66,10 +117,24 @@ describe('BPMN search extraction', () => {
       <definitions><process><task id="Task_1" name="Payment">
         <documentation>&privateValue;</documentation>
       </task></process></definitions>`;
-    expect(extractBpmnSearchResults(hostileXml, 'resource-1', 'Payment', 'expanded-secret')).toEqual([]);
+    expect(
+      extractBpmnSearchResults(
+        hostileXml,
+        'resource-1',
+        'Payment',
+        'expanded-secret',
+      ),
+    ).toEqual([]);
   });
 
   it('skips documents over the configured byte limit', () => {
-    expect(extractBpmnSearchResults('x'.repeat(1_000_001), 'resource-1', 'Large', 'large')).toEqual([]);
+    expect(
+      extractBpmnSearchResults(
+        'x'.repeat(1_000_001),
+        'resource-1',
+        'Large',
+        'large',
+      ),
+    ).toEqual([]);
   });
 });
