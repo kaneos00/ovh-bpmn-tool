@@ -24,6 +24,7 @@ export type UnifiedSearchResult = {
   elementId?: string;
   projectId?: string;
   role?: ProjectRaciRole;
+  source?: 'resource' | 'bpmn' | 'project-raci' | 'project-actor';
 };
 
 export type UnifiedSearchResponse = {
@@ -88,7 +89,7 @@ const BPMN_ELEMENT_TYPES: Record<string, string> = {
 
 const ROLE_LABELS: Record<ProjectRaciRole, string> = {
   [ProjectRaciRole.Responsible]: 'Responsabile',
-  [ProjectRaciRole.Accountable]: 'Approvatore',
+  [ProjectRaciRole.Accountable]: 'Approbateur / redevable',
   [ProjectRaciRole.Consulted]: 'Consultato',
   [ProjectRaciRole.Informed]: 'Informato',
 };
