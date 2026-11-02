@@ -18,7 +18,7 @@ import {
 import {
   ChevronLeft,
   ChevronRight,
-  ExternalLink,
+  OpenInNew,
   Search,
 } from '@mui/icons-material';
 
@@ -368,7 +368,7 @@ export const Component = () => {
                   <Button
                     size="sm"
                     variant="plain"
-                    endDecorator={<ExternalLink fontSize="small" />}
+                    endDecorator={<OpenInNew fontSize="small" />}
                     disabled={!result.resourceId && !result.projectId}
                     onClick={() => openResult(result)}
                   >
