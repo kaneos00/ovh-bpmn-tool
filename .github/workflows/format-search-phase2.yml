@@ -1,0 +1,50 @@
+name: Format issue 72 search phase 2
+
+on:
+  push:
+    branches:
+      - feat/issue-72-recherche-unifiee
+    paths:
+      - "backend/src/modules/SearchContext/**"
+      - "frontend/src/api/search/**"
+      - "frontend/src/Containers/SearchResults/**"
+      - "frontend/src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx"
+      - "frontend/src/routes.tsx"
+      - ".github/workflows/format-search-phase2.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.3
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: backend/pnpm-lock.yaml
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pnpm install --frozen-lockfile
+      - name: Format search files
+        working-directory: backend
+        run: pnpm exec prettier --write "src/modules/SearchContext/**/*.ts" "../frontend/src/api/search/**/*.ts" "../frontend/src/Containers/SearchResults/**/*.ts" "../frontend/src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx" "../frontend/src/routes.tsx"
+      - name: Commit formatted files
+        run: |
+          if git diff --quiet; then
+            echo "Search files are already formatted."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/src/modules/SearchContext frontend/src/api/search frontend/src/Containers/SearchResults frontend/src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx frontend/src/routes.tsx
+          git commit -m "style(search): format unified search interface"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
