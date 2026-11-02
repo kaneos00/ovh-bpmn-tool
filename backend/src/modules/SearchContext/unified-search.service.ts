@@ -290,7 +290,7 @@ export class UnifiedSearchService {
           select: { projectId: true, resourceId: true },
         });
         const accessiblePairs = new Set(links.map((link) => `${link.projectId}:${link.resourceId}`));
-        if (includes('raci')) {
+        if (includes('raci') && links.length) {
           const entries = await this.raciEntries.find({
             where: links.map((link) => ({ projectId: link.projectId, resourceId: link.resourceId })),
           });
