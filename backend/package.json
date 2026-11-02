@@ -39,7 +39,8 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "typeorm": "^0.3.20",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "fast-xml-parser": "5.11.2"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.4.4",
