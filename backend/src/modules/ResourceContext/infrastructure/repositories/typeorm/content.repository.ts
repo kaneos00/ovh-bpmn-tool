@@ -168,10 +168,14 @@ export class ContentTypeOrmRepository implements ContentRepository {
 
       // Update only editable columns. In particular, never write a potentially
       // stale status/version/png snapshot over a concurrent publication.
-      const result = await this.contentRepository.update(
-        { id: params.contentId, resourceId: params.resourceId },
-        fields,
-      );
+      const result = await this.contentRepository
+        .createQueryBuilder()
+        .update(ContentTypeOrmEntity)
+        .set(fields)
+        .where('id = :contentId', { contentId: params.contentId })
+        .andWhere('"resourceId" = :resourceId', { resourceId: params.resourceId })
+        .andWhere('status <> :submitted', { submitted: ContentStatusEnum.Submitted })
+        .execute();
       if (!result.affected) {
         return fail(new Error('Content not found for the requested resource'));
       }
@@ -188,12 +192,18 @@ export class ContentTypeOrmRepository implements ContentRepository {
 
   async delete(contentId: string): Promise<Result<boolean, Error>> {
     try {
-      const deletedResource = await this.contentRepository.delete({
-        id: contentId,
-      });
+      // Submitted content is a frozen review snapshot. Keep the status
+      // predicate in the DELETE itself to avoid a read/delete race.
+      const deletedResource = await this.contentRepository
+        .createQueryBuilder()
+        .delete()
+        .from(ContentTypeOrmEntity)
+        .where('id = :contentId', { contentId })
+        .andWhere('status <> :submitted', { submitted: ContentStatusEnum.Submitted })
+        .execute();
 
       if (!deletedResource?.affected || deletedResource.affected < 1) {
-        return fail(new Error('Error while deleting content'));
+        return fail(new Error('Content not found or submitted content cannot be deleted'));
       }
 
       return ok(true);

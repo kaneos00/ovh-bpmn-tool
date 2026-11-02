@@ -3,6 +3,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TYPE contents_status_enum AS ENUM (
     'obsolete',
     'draft',
+    'submitted',
     'published'
 );
 
