@@ -377,6 +377,23 @@ export const WorkspaceNavigation = () => {
     navigate(query ? `/${result.resourceId}?${query}` : `/${result.resourceId}`);
   };
 
+  const openAllResults = () => {
+    const term = search.trim();
+    if (term.length < 2) return;
+    const params = new URLSearchParams({ q: term });
+    const typeByScope: Partial<Record<SearchScope, string>> = {
+      processes: 'process',
+      bpmn: 'bpmn',
+      roles: 'actor',
+      raci: 'raci',
+      iaComm: 'bpmn',
+    };
+    const type = typeByScope[scope];
+    if (type) params.set('types', type);
+    setSearchOpen(false);
+    navigate(`/search?${params.toString()}`);
+  };
+
   const isLoading = resources.isLoading || deepSearchLoading;
 
   return (
@@ -514,6 +531,19 @@ export const WorkspaceNavigation = () => {
                 </List>
               )}
               {results.length >= 10 && <Typography level="body-xs" sx={{ px: 1.5, pb: 1, color: 'text.tertiary' }}>Affinez la recherche pour réduire les résultats.</Typography>}
+              {search.trim().length >= 2 && (
+                <Box sx={{ p: 1, borderTop: '1px solid', borderColor: 'divider' }}>
+                  <Button
+                    size="sm"
+                    variant="soft"
+                    color="primary"
+                    fullWidth
+                    onClick={openAllResults}
+                  >
+                    Voir tous les résultats
+                  </Button>
+                </Box>
+              )}
             </Sheet>
           )}
         </Box>
