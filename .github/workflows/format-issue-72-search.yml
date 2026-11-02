@@ -6,6 +6,7 @@ on:
       - feat/issue-72-recherche-unifiee
     paths:
       - "backend/src/modules/SearchContext/**"
+      - ".github/workflows/format-issue-72-search.yml"
 
 permissions:
   contents: write
