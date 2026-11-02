@@ -107,11 +107,12 @@ export const Component = () => {
     resourcesQuery({ type: ResourceType.Process }),
   );
 
-  const selectedTypes = roleFilter
-    ? ['raci' as UnifiedSearchType]
-    : typeFilter
-      ? [typeFilter]
-      : undefined;
+  let selectedTypes: UnifiedSearchType[] | undefined;
+  if (roleFilter) {
+    selectedTypes = ['raci'];
+  } else if (typeFilter) {
+    selectedTypes = [typeFilter];
+  }
 
   const searchQuery = useQuery(
     unifiedSearchQuery({
