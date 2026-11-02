@@ -6,7 +6,7 @@ const baseline = JSON.parse(
   readFileSync(new URL('../security/dependency-audit-baseline.json', import.meta.url), 'utf8'),
 );
 
-if (!/(?:\\d+\\s+vulnerabilities found|no known vulnerabilities found)/i.test(report)) {
+if (!/(?:\d+\s+vulnerabilities found|no known vulnerabilities found)/i.test(report)) {
   console.error('Dependency audit did not produce a recognizable report summary.');
   process.exit(2);
 }
