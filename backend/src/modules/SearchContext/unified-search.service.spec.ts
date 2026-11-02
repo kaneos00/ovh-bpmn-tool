@@ -30,6 +30,7 @@ describe('BPMN search extraction', () => {
       'resource-1',
       'Order',
       'invoice',
+      ['bpmn'],
     );
     expect(activity).toHaveLength(1);
     expect(activity[0]).toMatchObject({
@@ -44,6 +45,7 @@ describe('BPMN search extraction', () => {
       'resource-1',
       'Order',
       'supplier',
+      ['bpmn'],
     );
     expect(description[0]).toMatchObject({
       elementId: 'Task_Approve',
@@ -55,6 +57,7 @@ describe('BPMN search extraction', () => {
       'resource-1',
       'Order',
       'finance',
+      ['bpmn'],
     );
     expect(lane[0]).toMatchObject({
       elementId: 'Lane_Finance',
@@ -66,6 +69,7 @@ describe('BPMN search extraction', () => {
       'resource-1',
       'Order',
       'reference',
+      ['bpmn'],
     );
     expect(annotation[0]).toMatchObject({
       elementId: 'Text_Note',
