@@ -6,12 +6,20 @@ import {
   Query,
 } from '@nestjs/common';
 import { UseAcl } from '../../shared-kernel/modules/acl/infrastructure/acl.decorator';
+import { ProjectRaciRole } from '../ProjectContext/infrastructure/entities/projectRaciEntry.ormEntity';
 import {
-  UnifiedSearchService,
+  SearchResultSource,
   SearchResultType,
+  UnifiedSearchService,
 } from './unified-search.service';
 
 const SEARCH_TYPES: SearchResultType[] = ['process', 'bpmn', 'raci', 'actor'];
+const SEARCH_SOURCES: SearchResultSource[] = [
+  'resource',
+  'bpmn',
+  'project-raci',
+  'project-actor',
+];
 
 @Controller('search')
 export class UnifiedSearchController {
@@ -22,6 +30,9 @@ export class UnifiedSearchController {
   search(
     @Query('q') query: string,
     @Query('types') rawTypes: string | undefined,
+    @Query('source') rawSource: string | undefined,
+    @Query('resourceId') resourceId: string | undefined,
+    @Query('role') rawRole: string | undefined,
     @Query('limit') rawLimit: string | undefined,
     @Query('offset') rawOffset: string | undefined,
     @Headers() headers: Record<string, string | undefined>,
@@ -38,10 +49,27 @@ export class UnifiedSearchController {
       );
     }
 
+    if (
+      rawSource &&
+      !SEARCH_SOURCES.includes(rawSource as SearchResultSource)
+    ) {
+      throw new BadRequestException(
+        `source must contain only: ${SEARCH_SOURCES.join(', ')}`,
+      );
+    }
+
+    const role = rawRole as ProjectRaciRole | undefined;
+    if (role && !Object.values(ProjectRaciRole).includes(role)) {
+      throw new BadRequestException('role must be one of R, A, C or I');
+    }
+
     const limit = rawLimit === undefined ? undefined : Number(rawLimit);
     const offset = rawOffset === undefined ? undefined : Number(rawOffset);
     return this.searchService.search(query, headers, {
       types: types as SearchResultType[] | undefined,
+      source: rawSource as SearchResultSource | undefined,
+      resourceId,
+      role,
       limit,
       offset,
     });
