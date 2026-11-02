@@ -173,8 +173,12 @@ export class ContentTypeOrmRepository implements ContentRepository {
         .update(ContentTypeOrmEntity)
         .set(fields)
         .where('id = :contentId', { contentId: params.contentId })
-        .andWhere('"resourceId" = :resourceId', { resourceId: params.resourceId })
-        .andWhere('status <> :submitted', { submitted: ContentStatusEnum.Submitted })
+        .andWhere('"resourceId" = :resourceId', {
+          resourceId: params.resourceId,
+        })
+        .andWhere('status <> :submitted', {
+          submitted: ContentStatusEnum.Submitted,
+        })
         .execute();
       if (!result.affected) {
         return fail(new Error('Content not found for the requested resource'));
@@ -203,7 +207,9 @@ export class ContentTypeOrmRepository implements ContentRepository {
         .execute();
 
       if (!deletedResource?.affected || deletedResource.affected < 1) {
-        return fail(new Error('Content not found or submitted content cannot be deleted'));
+        return fail(
+          new Error('Content not found or submitted content cannot be deleted'),
+        );
       }
 
       return ok(true);
