@@ -389,7 +389,9 @@ export class UnifiedSearchService {
     const allReadableResources =
       await this.resourceAccess.filterReadableResources(allResources, headers);
     const readableResources = options.resourceId
-      ? allReadableResources.filter((resource) => resource.id === options.resourceId)
+      ? allReadableResources.filter(
+          (resource) => resource.id === options.resourceId,
+        )
       : allReadableResources;
     const resourceById = new Map(
       readableResources.map((resource) => [resource.id, resource]),
