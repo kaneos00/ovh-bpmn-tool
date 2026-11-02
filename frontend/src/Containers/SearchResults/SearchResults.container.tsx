@@ -114,16 +114,18 @@ export const Component = () => {
     selectedTypes = [typeFilter];
   }
 
+  const searchOptions = unifiedSearchQuery({
+    q: query,
+    types: selectedTypes,
+    source: sourceFilter || undefined,
+    resourceId: processFilter || undefined,
+    role: roleFilter || undefined,
+    limit: PAGE_SIZE,
+    offset,
+  });
   const searchQuery = useQuery(
-    unifiedSearchQuery({
-      q: query,
-      types: selectedTypes,
-      source: sourceFilter || undefined,
-      resourceId: processFilter || undefined,
-      role: roleFilter || undefined,
-      limit: PAGE_SIZE,
-      offset,
-    }),
+    searchOptions.queryKey,
+    searchOptions.queryFn,
     {
       enabled: query.trim().length >= 2,
       keepPreviousData: true,
