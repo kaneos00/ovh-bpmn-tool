@@ -319,7 +319,7 @@ export const Component = () => {
 
         {data?.coverage.partial && (
           <Alert color="warning">
-            Résultats partiels : seuls {data.coverage.bpmnDocumentsScanned} documents sur {data.coverage.bpmnDocumentsAvailable}. Certains contenus ont été ignorés en raison des limites de sécurité ou de couverture.
+            Résultats partiels : {data.coverage.bpmnDocumentsScanned} documents sur {data.coverage.bpmnDocumentsAvailable} ont été analysés. Certains contenus ont été ignorés en raison des limites de sécurité ou de couverture.
           </Alert>
         )}
 
