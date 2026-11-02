@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import {
   Alert,
-  Box,
   Button,
   Card,
   Chip,
@@ -320,7 +319,7 @@ export const Component = () => {
 
         {data?.coverage.partial && (
           <Alert color="warning">
-            Résultati parziali: sono stati analizzati {data.coverage.bpmnDocumentsScanned} documenti su {data.coverage.bpmnDocumentsAvailable}. Alcuni contenuti sono stati ignorati per i limiti di sicurezza o di copertura.
+            Résultats partiels : seuls {data.coverage.bpmnDocumentsScanned} documents sur {data.coverage.bpmnDocumentsAvailable}. Certains contenus ont été ignorés en raison des limites de sécurité ou de couverture.
           </Alert>
         )}
 
