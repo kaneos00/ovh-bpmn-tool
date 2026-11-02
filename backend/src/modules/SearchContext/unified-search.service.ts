@@ -119,7 +119,7 @@ export function extractBpmnSearchResults(
   processName: string,
   normalizedQuery: string,
 ): UnifiedSearchResult[] {
-  if (Buffer.byteLength(xml, 'utf8') > MAX_BPMN_BYTES) return [];
+  if (Buffer.byteLength(xml, 'utf8') > MAX_BPMN_BYTES || /<!DOCTYPE|<!ENTITY/i.test(xml)) return [];
   const parsed = parser.parse(xml) as Record<string, unknown>;
   const results: UnifiedSearchResult[] = [];
 
