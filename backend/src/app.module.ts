@@ -10,6 +10,7 @@ import { DomainEventModule } from './shared-kernel/modules/domain-event/domain-e
 import { getTypeormConfig } from './shared-kernel/modules/infrastructure/db/typeorm/typeormConfig';
 import { loadConfigFromEnv } from './config';
 import { AuthModule } from './auth/auth.module';
+import { SearchContextModule } from './modules/SearchContext/searchContext.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { AuthModule } from './auth/auth.module';
     AuthModule,
     ResourceContextModule,
     ProjectContextModule,
+    SearchContextModule,
     EventEmitterModule,
     UuidGeneratorModule,
     DomainEventModule,
