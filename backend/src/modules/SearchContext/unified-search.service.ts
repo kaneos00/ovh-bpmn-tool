@@ -513,6 +513,7 @@ export class UnifiedSearchService {
             })),
           });
           for (const entry of entries) {
+            if (options.role && entry.role !== options.role) continue;
             const roleLabel = ROLE_LABELS[entry.role];
             const values = [
               { value: entry.taskName, field: 'attività' },
