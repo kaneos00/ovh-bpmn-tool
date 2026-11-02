@@ -203,7 +203,9 @@ export class ContentTypeOrmRepository implements ContentRepository {
         .delete()
         .from(ContentTypeOrmEntity)
         .where('id = :contentId', { contentId })
-        .andWhere('status <> :submitted', { submitted: ContentStatusEnum.Submitted })
+        .andWhere('status <> :submitted', {
+          submitted: ContentStatusEnum.Submitted,
+        })
         .execute();
 
       if (!deletedResource?.affected || deletedResource.affected < 1) {
