@@ -7,12 +7,16 @@ on:
     paths:
       - "backend/package.json"
       - "backend/pnpm-lock.yaml"
+      - "backend/scripts/check-dependency-audit.mjs"
+      - "backend/security/dependency-audit-baseline.json"
       - ".github/dependabot.yml"
       - ".github/workflows/backend-dependency-audit.yml"
   pull_request:
     paths:
       - "backend/package.json"
       - "backend/pnpm-lock.yaml"
+      - "backend/scripts/check-dependency-audit.mjs"
+      - "backend/security/dependency-audit-baseline.json"
       - ".github/dependabot.yml"
       - ".github/workflows/backend-dependency-audit.yml"
   schedule:
@@ -47,6 +51,12 @@ jobs:
       - name: Install locked dependencies
         working-directory: backend
         run: pnpm install --frozen-lockfile
-      - name: Audit all backend dependencies
+      - name: Run full dependency audit
         working-directory: backend
-        run: pnpm audit --audit-level=low
+        run: |
+          pnpm audit --audit-level=low > dependency-audit.log 2>&1 || audit_exit=$?
+          cat dependency-audit.log
+          echo "pnpm audit exit code: ${audit_exit:-0}"
+      - name: Fail only on advisories newer than the reviewed baseline
+        working-directory: backend
+        run: node scripts/check-dependency-audit.mjs dependency-audit.log
