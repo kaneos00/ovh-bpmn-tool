@@ -7,10 +7,10 @@ import {
 } from '@nestjs/common';
 import { UseAcl } from '../../shared-kernel/modules/acl/infrastructure/acl.decorator';
 import { ProjectRaciRole } from '../ProjectContext/infrastructure/entities/projectRaciEntry.ormEntity';
-import {
+import { UnifiedSearchService } from './unified-search.service';
+import type {
   SearchResultSource,
   SearchResultType,
-  UnifiedSearchService,
 } from './unified-search.service';
 
 const SEARCH_TYPES: SearchResultType[] = ['process', 'bpmn', 'raci', 'actor'];
