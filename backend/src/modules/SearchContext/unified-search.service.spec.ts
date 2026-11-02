@@ -93,6 +93,17 @@ describe('BPMN search extraction', () => {
       source: 'bpmn',
     });
 
+    expect(
+      extractBpmnSearchResults(
+        xml,
+        'resource-1',
+        'Order',
+        'controller',
+        ['raci'],
+        'R',
+      ),
+    ).toEqual([]);
+
     const actor = extractBpmnSearchResults(
       xml,
       'resource-1',
