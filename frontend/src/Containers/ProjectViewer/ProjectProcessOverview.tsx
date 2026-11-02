@@ -20,6 +20,7 @@ type ProcessContentRecord = Content & { processName: string };
 
 const statusLabel: Record<ContentStatusEnum, string> = {
   [ContentStatusEnum.Draft]: 'Brouillon',
+  [ContentStatusEnum.Submitted]: 'Soumise à validation',
   [ContentStatusEnum.Published]: 'Publiée',
   [ContentStatusEnum.Obsolete]: 'Historique',
 };

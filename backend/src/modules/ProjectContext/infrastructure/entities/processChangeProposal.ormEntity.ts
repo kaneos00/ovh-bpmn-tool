@@ -9,7 +9,9 @@ export enum ProcessChangeProposalStatus {
 
 @Entity('process_change_proposals')
 @Index('process_change_proposals_project_status_idx', ['projectId', 'status'])
-@Index('process_change_proposals_clone_unique', ['cloneResourceId'], { unique: true })
+@Index('process_change_proposals_clone_unique', ['cloneResourceId'], {
+  unique: true,
+})
 export class ProcessChangeProposalTypeOrmEntity extends AbstractEntity {
   @Column('uuid')
   projectId: string;
@@ -32,7 +34,11 @@ export class ProcessChangeProposalTypeOrmEntity extends AbstractEntity {
   @Column('uuid', { nullable: true })
   validatorUserId: string | null;
 
-  @Column({ type: 'varchar', length: 16, default: ProcessChangeProposalStatus.Draft })
+  @Column({
+    type: 'varchar',
+    length: 16,
+    default: ProcessChangeProposalStatus.Draft,
+  })
   status: ProcessChangeProposalStatus;
 
   @Column({ type: 'text', nullable: true })

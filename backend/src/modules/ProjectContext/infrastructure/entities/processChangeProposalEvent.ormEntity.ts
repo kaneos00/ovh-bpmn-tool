@@ -11,7 +11,10 @@ export type ProcessChangeProposalEventType =
   | 'published';
 
 @Entity('process_change_proposal_events')
-@Index('process_change_proposal_events_proposal_created_idx', ['proposalId', 'createdAt'])
+@Index('process_change_proposal_events_proposal_created_idx', [
+  'proposalId',
+  'createdAt',
+])
 export class ProcessChangeProposalEventTypeOrmEntity extends AbstractEntity {
   @Column('uuid')
   proposalId: string;
