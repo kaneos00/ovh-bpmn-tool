@@ -1,4 +1,5 @@
 name: Format issue 72 search phase 2
+# Temporary branch-only formatter; removed after formatting.
 
 on:
   push:
