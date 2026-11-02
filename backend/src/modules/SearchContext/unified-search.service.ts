@@ -90,8 +90,8 @@ const BPMN_ELEMENT_TYPES: Record<string, string> = {
 const ROLE_LABELS: Record<ProjectRaciRole, string> = {
   [ProjectRaciRole.Responsible]: 'Responsabile',
   [ProjectRaciRole.Accountable]: 'Approbateur / redevable',
-  [ProjectRaciRole.Consulted]: 'Consultato',
-  [ProjectRaciRole.Informed]: 'Informato',
+  [ProjectRaciRole.Consulted]: 'Consulté',
+  [ProjectRaciRole.Informed]: 'Informé',
 };
 
 export function normalizeSearchText(value: string): string {
@@ -458,18 +458,24 @@ export class UnifiedSearchService {
       }
     }
 
+    const uniqueResults = [...new Map(
+      results.map((result) => [
+        `${result.type}:${result.resourceId ?? ''}:${result.projectId ?? ''}:${result.id}`,
+        result,
+      ]),
+    ).values()];
     const typeOrder: Record<SearchResultType, number> = { process: 0, bpmn: 1, raci: 2, actor: 3 };
-    results.sort((left, right) =>
+    uniqueResults.sort((left, right) =>
       typeOrder[left.type] - typeOrder[right.type] ||
       left.label.localeCompare(right.label, 'fr'),
     );
 
     return {
       query,
-      total: results.length,
+      total: uniqueResults.length,
       offset,
       limit,
-      results: results.slice(offset, offset + limit),
+      results: uniqueResults.slice(offset, offset + limit),
       coverage: {
         readableProcesses: readableResources.length,
         bpmnDocumentsAvailable,
