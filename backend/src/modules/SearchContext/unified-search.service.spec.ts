@@ -1,3 +1,4 @@
+import { ProjectRaciRole } from '../ProjectContext/infrastructure/entities/projectRaciEntry.ormEntity';
 import {
   extractBpmnSearchResults,
   normalizeSearchText,
@@ -100,7 +101,7 @@ describe('BPMN search extraction', () => {
         'Order',
         'controller',
         ['raci'],
-        'R',
+        ProjectRaciRole.Responsible,
       ),
     ).toEqual([]);
 
