@@ -113,15 +113,63 @@ function collectText(value: unknown): string {
     .join(' ');
 }
 
+const BPMN_ACTIVITY_TYPES = new Set([
+  'task', 'userTask', 'serviceTask', 'manualTask', 'scriptTask',
+  'businessRuleTask', 'sendTask', 'receiveTask', 'callActivity',
+  'subProcess', 'transaction',
+]);
+
+function readXmlAttribute(node: Record<string, unknown>, name: string): string {
+  const value = node[`@_${name}`] ?? node[`@_raci:${name}`];
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function parseActorNames(raw: string): string[] {
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return [...new Set(parsed.flatMap((actor) => {
+        if (typeof actor === 'string') return actor.trim() ? [actor.trim()] : [];
+        if (actor && typeof actor === 'object') {
+          const item = actor as { name?: unknown; active?: unknown };
+          const name = typeof item.name === 'string' ? item.name.trim() : '';
+          return name && item.active !== false ? [name] : [];
+        }
+        return [];
+      }))];
+    }
+  } catch {
+    // Older BPMN files may store actors as a comma-separated list.
+  }
+  return [...new Set(raw.split(',').map((name) => name.trim()).filter(Boolean))];
+}
+
 export function extractBpmnSearchResults(
   xml: string,
   resourceId: string,
   processName: string,
   normalizedQuery: string,
+  requestedTypes?: SearchResultType[],
 ): UnifiedSearchResult[] {
   if (Buffer.byteLength(xml, 'utf8') > MAX_BPMN_BYTES || /<!DOCTYPE|<!ENTITY/i.test(xml)) return [];
   const parsed = parser.parse(xml) as Record<string, unknown>;
   const results: UnifiedSearchResult[] = [];
+  const includes = (type: SearchResultType) => !requestedTypes?.length || requestedTypes.includes(type);
+  const addActor = (name: string, elementId?: string) => {
+    if (!includes('actor') || !name || !normalizeSearchText(name).includes(normalizedQuery)) return;
+    results.push({
+      type: 'actor',
+      id: `${resourceId}:actor:${name.toLocaleLowerCase()}`,
+      label: name,
+      excerpt: 'Attore/ruolo dichiarato nel BPMN',
+      field: 'attore',
+      resourceId,
+      processName,
+      elementId,
+      source: 'bpmn',
+    });
+  };
 
   const visit = (value: unknown, key = ''): void => {
     if (Array.isArray(value)) {
@@ -132,13 +180,13 @@ export function extractBpmnSearchResults(
 
     const node = value as Record<string, unknown>;
     const typeLabel = BPMN_ELEMENT_TYPES[key];
-    if (typeLabel) {
-      const attributes = node;
-      const elementId = typeof attributes['@_id'] === 'string' ? attributes['@_id'] : undefined;
-      const name = typeof attributes['@_name'] === 'string' ? attributes['@_name'] : '';
-      const annotationText = key === 'textAnnotation' ? collectText(node.text) : '';
-      const documentation = collectText(node.documentation);
-      const label = name || annotationText || (elementId ? typeLabel : '');
+    const elementId = readXmlAttribute(node, 'id') || undefined;
+    const name = readXmlAttribute(node, 'name');
+    const annotationText = key === 'textAnnotation' ? collectText(node.text) : '';
+    const documentation = collectText(node.documentation);
+    const label = name || annotationText || (elementId && typeLabel ? typeLabel : '');
+
+    if (typeLabel && includes('bpmn')) {
       const searchableFields = [
         { value: name, field: 'nome' },
         { value: documentation, field: 'descrizione' },
@@ -158,7 +206,59 @@ export function extractBpmnSearchResults(
           resourceId,
           processName,
           elementId,
+          source: 'bpmn',
         });
+      }
+    }
+
+    // The Viewer derives actors from process metadata, lanes, pools and
+    // explicit RACI attributes. Search those same BPMN sources rather than
+    // relying only on the separate project RACI tables.
+    if (includes('actor')) {
+      if (key === 'process') {
+        parseActorNames(readXmlAttribute(node, 'actors')).forEach((actor) => addActor(actor, elementId));
+      }
+      if (key === 'lane' || key === 'participant') addActor(name, elementId);
+    }
+
+    if (BPMN_ACTIVITY_TYPES.has(key)) {
+      const activityLabel = name || elementId || 'Attività';
+      const roleAttributes: Array<[ProjectRaciRole, string]> = [
+        [ProjectRaciRole.Responsible, 'responsible'],
+        [ProjectRaciRole.Accountable, 'accountable'],
+        [ProjectRaciRole.Consulted, 'consulted'],
+        [ProjectRaciRole.Informed, 'informed'],
+      ];
+      for (const [role, attribute] of roleAttributes) {
+        const actorNames = readXmlAttribute(node, attribute)
+          .split(',')
+          .map((actor) => actor.trim())
+          .filter(Boolean);
+        for (const actorName of actorNames) {
+          addActor(actorName, elementId);
+          if (!includes('raci')) continue;
+          const roleLabel = ROLE_LABELS[role];
+          const match = [
+            { value: activityLabel, field: 'attività' },
+            { value: actorName, field: 'attore' },
+            { value: roleLabel, field: 'responsabilità' },
+            { value: role, field: 'responsabilità' },
+          ].find(({ value }) => normalizeSearchText(value).includes(normalizedQuery));
+          if (match) {
+            results.push({
+              type: 'raci',
+              id: `${resourceId}:${elementId ?? key}:${role}:${actorName}`,
+              label: `${activityLabel} — ${actorName} (${role})`,
+              excerpt: `${actorName} · ${role} — ${roleLabel}`,
+              field: match.field,
+              resourceId,
+              processName,
+              elementId,
+              role,
+              source: 'bpmn',
+            });
+          }
+        }
       }
     }
 
@@ -238,6 +338,7 @@ export class UnifiedSearchService {
             field: match.field,
             resourceId: resource.id,
             processName: resource.name,
+            source: 'resource',
           });
         }
       }
@@ -257,7 +358,8 @@ export class UnifiedSearchService {
     let bpmnDocumentsSkipped = 0;
     const resourceIds = [...resourceById.keys()];
 
-    if (includes('bpmn') && resourceIds.length) {
+    const includesXmlSources = includes('bpmn') || includes('raci') || includes('actor');
+    if (includesXmlSources && resourceIds.length) {
       bpmnDocumentsAvailable = await this.contents.count({
         where: { resourceId: In(resourceIds), status: ContentStatusEnum.Published },
       });
@@ -282,6 +384,7 @@ export class UnifiedSearchService {
             document.resourceId,
             resource.name,
             normalizedQuery,
+            options.types,
           ));
         } catch {
           bpmnDocumentsSkipped += 1;
@@ -328,6 +431,7 @@ export class UnifiedSearchService {
                 elementId: entry.taskId,
                 projectId: entry.projectId,
                 role: entry.role,
+                source: 'project-raci',
               });
             }
           }
@@ -347,6 +451,7 @@ export class UnifiedSearchService {
             excerpt: 'Attore registrato nel progetto',
             field: 'attore',
             projectId: actor.projectId,
+            source: 'project-actor',
           });
         }
       }
@@ -369,7 +474,7 @@ export class UnifiedSearchService {
         bpmnDocumentsAvailable,
         bpmnDocumentsScanned,
         bpmnDocumentsSkipped,
-        partial: includes('bpmn') && bpmnDocumentsSkipped > 0,
+        partial: includesXmlSources && bpmnDocumentsSkipped > 0,
       },
     };
   }
