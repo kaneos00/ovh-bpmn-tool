@@ -1,0 +1,148 @@
+import { apiClient } from '../../queryClient';
+
+export const CHANGE_REQUESTS_QUERY_KEY = 'resources_change_requests';
+
+export const submitProcessChangeRequest = (
+  resourceId: string,
+  requestId: string,
+  comment: string,
+) =>
+  apiClient.post(
+    `/resources/${resourceId}/change-requests/${requestId}/submit`,
+    { comment },
+  );
+
+export type ProcessChangeRequestStatus =
+  | 'proposed'
+  | 'draft'
+  | 'in_review'
+  | 'changes_requested'
+  | 'approved'
+  | 'rejected'
+  | 'published'
+  | 'withdrawn';
+
+export type ProcessChangeRequest = {
+  id: string;
+  authorId: string;
+  status: ProcessChangeRequestStatus;
+  title: string;
+  description: string;
+  justification: string | null;
+  assignedReviewerId: string | null;
+  workingContentId: string | null;
+  sourceContentId: string | null;
+  sourceVersion: number | null;
+  createdAt: string;
+};
+
+export type ProcessChangeRequestEvent = {
+  id: string;
+  actorId: string;
+  event: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  comment: string | null;
+  createdAt: string;
+};
+
+export const processChangeRequestEventsQuery = (
+  resourceId: string,
+  requestId: string,
+) => ({
+  queryKey: [`${CHANGE_REQUESTS_QUERY_KEY}_${resourceId}`, requestId, 'events'],
+  queryFn: async (): Promise<ProcessChangeRequestEvent[]> =>
+    apiClient.get(
+      `/resources/${resourceId}/change-requests/${requestId}/events`,
+    ),
+});
+
+export const processChangeRequestsQuery = (resourceId: string) => ({
+  queryKey: [`${CHANGE_REQUESTS_QUERY_KEY}_${resourceId}`],
+  queryFn: async (): Promise<ProcessChangeRequest[]> =>
+    apiClient.get(`/resources/${resourceId}/change-requests`),
+});
+
+export const createProcessChangeRequestProposal = (
+  resourceId: string,
+  payload: { title: string; description: string; justification?: string },
+) =>
+  apiClient.post(`/resources/${resourceId}/change-requests`, payload);
+
+export const startProcessChangeRequestEditing = (
+  resourceId: string,
+  requestId: string,
+  description: string,
+) =>
+  apiClient.post(
+    `/resources/${resourceId}/change-requests/${requestId}/start-editing`,
+    { description },
+  );
+
+export const resumeProcessChangeRequestEditing = (
+  resourceId: string,
+  requestId: string,
+) =>
+  apiClient.post(
+    `/resources/${resourceId}/change-requests/${requestId}/resume-editing`,
+    {},
+  );
+
+export const withdrawProcessChangeRequest = (
+  resourceId: string,
+  requestId: string,
+) =>
+  apiClient.post(
+    `/resources/${resourceId}/change-requests/${requestId}/withdraw`,
+    {},
+  );
+
+export const assignProcessChangeRequestReviewer = (
+  resourceId: string,
+  requestId: string,
+  reviewerId: string,
+) =>
+  apiClient.post(
+    `/resources/${resourceId}/change-requests/${requestId}/assign-reviewer`,
+    { reviewerId },
+  );
+
+export const requestProcessChangeRequestChanges = (
+  resourceId: string,
+  requestId: string,
+  comment: string,
+) =>
+  apiClient.post(
+    `/resources/${resourceId}/change-requests/${requestId}/request-changes`,
+    { comment },
+  );
+
+export const approveProcessChangeRequest = (
+  resourceId: string,
+  requestId: string,
+  comment?: string,
+) =>
+  apiClient.post(
+    `/resources/${resourceId}/change-requests/${requestId}/approve`,
+    { comment },
+  );
+
+export const rejectProcessChangeRequest = (
+  resourceId: string,
+  requestId: string,
+  comment: string,
+) =>
+  apiClient.post(
+    `/resources/${resourceId}/change-requests/${requestId}/reject`,
+    { comment },
+  );
+
+export const publishApprovedProcessChangeRequest = (
+  resourceId: string,
+  requestId: string,
+  pngContent: string,
+) =>
+  apiClient.post(
+    `/resources/${resourceId}/change-requests/${requestId}/publish`,
+    { pngContent },
+  );
