@@ -130,15 +130,19 @@ function parseActorNames(raw: string): string[] {
   try {
     const parsed: unknown = JSON.parse(raw);
     if (Array.isArray(parsed)) {
-      return [...new Set(parsed.flatMap((actor) => {
-        if (typeof actor === 'string') return actor.trim() ? [actor.trim()] : [];
+      const names: string[] = [];
+      for (const actor of parsed) {
+        if (typeof actor === 'string') {
+          if (actor.trim()) names.push(actor.trim());
+          continue;
+        }
         if (actor && typeof actor === 'object') {
           const item = actor as { name?: unknown; active?: unknown };
           const name = typeof item.name === 'string' ? item.name.trim() : '';
-          return name && item.active !== false ? [name] : [];
+          if (name && item.active !== false) names.push(name);
         }
-        return [];
-      }))];
+      }
+      return [...new Set(names)];
     }
   } catch {
     // Older BPMN files may store actors as a comma-separated list.
@@ -458,12 +462,12 @@ export class UnifiedSearchService {
       }
     }
 
-    const uniqueResults = [...new Map(
-      results.map((result) => [
-        `${result.type}:${result.resourceId ?? ''}:${result.projectId ?? ''}:${result.id}`,
-        result,
-      ]),
-    ).values()];
+    const uniqueByKey = new Map<string, UnifiedSearchResult>();
+    for (const result of results) {
+      const key = `${result.type}:${result.resourceId ?? ''}:${result.projectId ?? ''}:${result.id}`;
+      uniqueByKey.set(key, result);
+    }
+    const uniqueResults = [...uniqueByKey.values()];
     const typeOrder: Record<SearchResultType, number> = { process: 0, bpmn: 1, raci: 2, actor: 3 };
     uniqueResults.sort((left, right) =>
       typeOrder[left.type] - typeOrder[right.type] ||
