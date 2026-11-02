@@ -10,8 +10,8 @@ describe('unified search normalization', () => {
 describe('BPMN search extraction', () => {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
     <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL">
-      <process id="Process_Order" name="Order">
-        <userTask id="Task_Approve" name="Approve invoice">
+      <process id="Process_Order" name="Order" actors='["Finance Manager"]'>
+        <userTask id="Task_Approve" name="Approve invoice" responsible="Finance" accountable="Controller">
           <documentation>Check supplier invoice before payment</documentation>
         </userTask>
         <lane id="Lane_Finance" name="Finance" />
@@ -37,6 +37,28 @@ describe('BPMN search extraction', () => {
 
     const annotation = extractBpmnSearchResults(xml, 'resource-1', 'Order', 'reference');
     expect(annotation[0]).toMatchObject({ elementId: 'Text_Note', field: 'testo annotazione' });
+  });
+
+
+  it('indexes BPMN actors and explicit RACI assignments with type filters', () => {
+    const raci = extractBpmnSearchResults(xml, 'resource-1', 'Order', 'controller', ['raci']);
+    expect(raci).toHaveLength(1);
+    expect(raci[0]).toMatchObject({
+      type: 'raci',
+      elementId: 'Task_Approve',
+      role: 'A',
+      source: 'bpmn',
+    });
+
+    const actor = extractBpmnSearchResults(xml, 'resource-1', 'Order', 'finance manager', ['actor']);
+    expect(actor[0]).toMatchObject({
+      type: 'actor',
+      label: 'Finance Manager',
+      source: 'bpmn',
+    });
+
+    const laneActor = extractBpmnSearchResults(xml, 'resource-1', 'Order', 'finance', ['actor']);
+    expect(laneActor.some((result) => result.label === 'Finance')).toBe(true);
   });
 
   it('does not expand document-defined XML entities', () => {
