@@ -16,6 +16,7 @@ import { ProjectRaciActorTypeOrmEntity } from '../ProjectContext/infrastructure/
 import { ProjectResourceAccessService } from '../ProjectContext/projectResourceAccess.service';
 
 export type SearchResultType = 'process' | 'bpmn' | 'raci' | 'actor';
+export type SearchResultSource = 'resource' | 'bpmn' | 'project-raci' | 'project-actor';
 export type UnifiedSearchResult = {
   type: SearchResultType;
   id: string;
@@ -27,7 +28,7 @@ export type UnifiedSearchResult = {
   elementId?: string;
   projectId?: string;
   role?: ProjectRaciRole;
-  source?: 'resource' | 'bpmn' | 'project-raci' | 'project-actor';
+  source?: SearchResultSource;
 };
 
 export type UnifiedSearchResponse = {
@@ -178,6 +179,7 @@ export function extractBpmnSearchResults(
   processName: string,
   normalizedQuery: string,
   requestedTypes?: SearchResultType[],
+  roleFilter?: ProjectRaciRole,
 ): UnifiedSearchResult[] {
   if (
     Buffer.byteLength(xml, 'utf8') > MAX_BPMN_BYTES ||
@@ -258,7 +260,7 @@ export function extractBpmnSearchResults(
     if (includes('actor')) {
       if (key === 'process') {
         parseActorNames(readXmlAttribute(node, 'actors')).forEach((actor) =>
-          addActor(actor, elementId),
+          addActor(actor),
         );
       }
       if (key === 'lane' || key === 'participant') addActor(name, elementId);
@@ -273,6 +275,7 @@ export function extractBpmnSearchResults(
         [ProjectRaciRole.Informed, 'informed'],
       ];
       for (const [role, attribute] of roleAttributes) {
+        if (roleFilter && role !== roleFilter) continue;
         const actorNames = readXmlAttribute(node, attribute)
           .split(',')
           .map((actor) => actor.trim())
@@ -340,6 +343,9 @@ export class UnifiedSearchService {
     headers: Record<string, string | undefined>,
     options: {
       types?: SearchResultType[];
+      source?: SearchResultSource;
+      resourceId?: string;
+      role?: ProjectRaciRole;
       limit?: number;
       offset?: number;
     } = {},
@@ -380,10 +386,11 @@ export class UnifiedSearchService {
         type: true,
       },
     });
-    const readableResources = await this.resourceAccess.filterReadableResources(
-      allResources,
-      headers,
-    );
+    const allReadableResources =
+      await this.resourceAccess.filterReadableResources(allResources, headers);
+    const readableResources = options.resourceId
+      ? allReadableResources.filter((resource) => resource.id === options.resourceId)
+      : allReadableResources;
     const resourceById = new Map(
       readableResources.map((resource) => [resource.id, resource]),
     );
@@ -476,6 +483,7 @@ export class UnifiedSearchService {
               resource.name,
               normalizedQuery,
               options.types,
+              options.role,
             ),
           );
         } catch {
@@ -485,6 +493,7 @@ export class UnifiedSearchService {
     }
 
     if (allowedProjectIds.length && (includes('raci') || includes('actor'))) {
+      let actorProjectIds = options.resourceId ? [] : allowedProjectIds;
       if (resourceIds.length) {
         const links = await this.projectProcesses.find({
           where: {
@@ -493,6 +502,9 @@ export class UnifiedSearchService {
           },
           select: { projectId: true, resourceId: true },
         });
+        if (options.resourceId) {
+          actorProjectIds = [...new Set(links.map((link) => link.projectId))];
+        }
         if (includes('raci') && links.length) {
           const entries = await this.raciEntries.find({
             where: links.map((link) => ({
@@ -530,9 +542,9 @@ export class UnifiedSearchService {
         }
       }
 
-      if (includes('actor')) {
+      if (includes('actor') && actorProjectIds.length) {
         const actors = await this.raciActors.find({
-          where: { projectId: In(allowedProjectIds), active: true },
+          where: { projectId: In(actorProjectIds), active: true },
         });
         for (const actor of actors) {
           if (!normalizeSearchText(actor.name).includes(normalizedQuery))
@@ -550,8 +562,11 @@ export class UnifiedSearchService {
       }
     }
 
+    const sourceFilteredResults = options.source
+      ? results.filter((result) => result.source === options.source)
+      : results;
     const uniqueByKey = new Map<string, UnifiedSearchResult>();
-    for (const result of results) {
+    for (const result of sourceFilteredResults) {
       const key = `${result.type}:${result.resourceId ?? ''}:${result.projectId ?? ''}:${result.id}`;
       uniqueByKey.set(key, result);
     }
