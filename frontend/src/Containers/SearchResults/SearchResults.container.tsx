@@ -201,7 +201,7 @@ export const Component = () => {
     return <>{value.slice(0, index)}<Box component="mark" sx={{ bgcolor: '#fff1a8', color: 'inherit', px: 0.15, borderRadius: '2px' }}>{value.slice(index, index + term.length)}</Box>{value.slice(index + term.length)}</>;
   };
 
-  const getResultBadge = (result: (typeof data.results)[number]) => {
+  const getResultBadge = (result: { type: UnifiedSearchType; label: string }) => {
     const label = result.label.toLocaleLowerCase('fr');
     if (result.type === 'raci') return { label: 'RACI', color: '#654c98', background: '#eee8fb', border: '#d5c8f0' };
     if (result.type === 'actor') return { label: 'Rôle', color: '#654c98', background: '#eee8fb', border: '#d5c8f0' };
@@ -218,6 +218,10 @@ export const Component = () => {
   };
 
   const data = searchQuery.data;
+  const getResultTitle = (result: { type: UnifiedSearchType; label: string }) => {
+    if (result.type !== 'bpmn') return result.label;
+    return result.label.replace(/^(?:Attività(?: utente| di servizio| manuale| script| regola| invio| ricezione)?|Activité appelée|Sotto-processo|Transazione|Evento iniziale|Evento finale|Evento intermedio|Evento di confine|Gateway esclusivo|Gateway parallelo|Gateway inclusivo|Gateway basato su eventi|Gateway complesso|Partecipante|Lane|Annotazione):\\s*/i, '');
+  };
   const total = data?.total ?? 0;
   const pageNumber = Math.floor(offset / PAGE_SIZE) + 1;
   const hasPrevious = offset > 0;
@@ -427,7 +431,7 @@ export const Component = () => {
                           {badge.label}
                         </Box>
                         <Box sx={{ minWidth: 0 }}>
-                          <Typography level="title-sm">{highlight(result.label)}</Typography>
+                          <Typography level="title-sm">{highlight(getResultTitle(result))}</Typography>
                           <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>{highlight(detail)}</Typography>
                         </Box>
                       </Box>
