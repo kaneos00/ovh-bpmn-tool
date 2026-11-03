@@ -219,7 +219,8 @@ export function extractBpmnSearchResults(
       (Array.isArray(refs) ? refs : refs ? [refs] : []).forEach(addRef);
     }
     Object.entries(node).forEach(([childKey, child]) => {
-      if (!childKey.startsWith('@_') && childKey !== '#text') collectLaneAssignments(child, childKey);
+      if (!childKey.startsWith('@_') && childKey !== '#text')
+        collectLaneAssignments(child, childKey);
     });
   };
   collectLaneAssignments(parsed);
@@ -316,7 +317,8 @@ export function extractBpmnSearchResults(
           .map((actor) => actor.trim())
           .filter(Boolean);
         const inferredLaneRole = laneRoleByActivity.get(elementId ?? '');
-        if (inferredLaneRole && role === ProjectRaciRole.Responsible) actorNames.push(inferredLaneRole);
+        if (inferredLaneRole && role === ProjectRaciRole.Responsible)
+          actorNames.push(inferredLaneRole);
         if (
           inferredLaneRole &&
           role === ProjectRaciRole.Accountable &&
