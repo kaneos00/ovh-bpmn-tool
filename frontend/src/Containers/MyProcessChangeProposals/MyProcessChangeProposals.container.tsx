@@ -137,17 +137,19 @@ export const Component = () => {
               />
             </Stack>
 
-            {isLoading ? (
+            {isLoading && (
               <Stack alignItems="center" spacing={1.5} sx={{ py: 6 }}>
                 <CircularProgress size="md" />
                 <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Chargement de vos demandes…</Typography>
               </Stack>
-            ) : isError ? (
+            )}
+            {!isLoading && isError && (
               <Stack alignItems="center" spacing={1.5} sx={{ py: 5 }}>
                 <Typography color="danger">Impossible de charger vos demandes.</Typography>
                 <Button size="sm" variant="outlined" onClick={() => refetch()}>Réessayer</Button>
               </Stack>
-            ) : filtered.length === 0 ? (
+            )}
+            {!isLoading && !isError && filtered.length === 0 && (
               <Box sx={{ py: 6, px: 2, textAlign: 'center' }}>
                 <Typography level="title-md">Aucune demande à afficher</Typography>
                 <Typography level="body-sm" sx={{ color: 'text.secondary', mt: 0.5 }}>
@@ -156,7 +158,8 @@ export const Component = () => {
                     : 'Les propositions que vous créerez depuis un processus apparaîtront ici.'}
                 </Typography>
               </Box>
-            ) : (
+            )}
+            {!isLoading && !isError && filtered.length > 0 && (
               <Box sx={{ overflowX: 'auto' }}>
                 <Table hoverRow size="md" borderAxis="none" sx={{ minWidth: 920, '& th': { bgcolor: 'background.level1', color: 'text.tertiary', fontSize: 'xs', fontWeight: 700 }, '& td': { py: 1.5, verticalAlign: 'middle' } }}>
                   <thead><tr><th>Processus</th><th>Projet</th><th>Créée le</th><th>Validateur</th><th>Dernière activité</th><th>Statut</th><th /></tr></thead>
@@ -178,7 +181,7 @@ export const Component = () => {
                           </td>
                           <td><Chip size="sm" variant="soft" color={status.color}>{status.label}</Chip></td>
                           <td>
-                            <Button size="sm" variant="outlined" color="primary" startDecorator={proposal.status === 'draft' || proposal.status === 'changes_requested' ? <EditOutlined /> : <VisibilityOutlined />} onClick={() => openProposal(proposal)}>
+                            <Button size="sm" variant="outlined" color="primary" startDecorator={['draft', 'changes_requested'].includes(proposal.status) ? <EditOutlined /> : <VisibilityOutlined />} onClick={() => openProposal(proposal)}>
                               {['draft', 'changes_requested'].includes(proposal.status) ? 'Reprendre' : 'Consulter'}
                             </Button>
                           </td>
