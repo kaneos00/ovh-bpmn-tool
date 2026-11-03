@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import {
   Alert,
+  Box,
   Button,
   Card,
   Chip,
@@ -190,6 +191,14 @@ export const Component = () => {
     if (result.type === 'raci') params.set('raci', '1');
     const queryString = params.toString();
     navigate(queryString ? `/${result.resourceId}?${queryString}` : `/${result.resourceId}`);
+  };
+
+  const highlight = (value: string) => {
+    const term = query.trim();
+    if (!term) return value;
+    const index = value.toLocaleLowerCase('fr').indexOf(term.toLocaleLowerCase('fr'));
+    if (index < 0) return value;
+    return <>{value.slice(0, index)}<Box component="mark" sx={{ bgcolor: '#fff1a8', color: 'inherit', px: 0.15, borderRadius: '2px' }}>{value.slice(index, index + term.length)}</Box>{value.slice(index + term.length)}</>;
   };
 
   const data = searchQuery.data;
@@ -398,9 +407,9 @@ export const Component = () => {
                     Ouvrir
                   </Button>
                 </Stack>
-                <Typography level="title-md">{result.label}</Typography>
+                <Typography level="title-md">{highlight(result.label)}</Typography>
                 <Typography level="body-sm" color="neutral" sx={{ fontSize: '0.82rem', color: 'text.tertiary' }}>
-                  {FIELD_LABELS[result.field] ?? result.field}: {result.excerpt}
+                  {FIELD_LABELS[result.field] ?? result.field}: {highlight(result.excerpt)}
                 </Typography>
                 <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                   {result.processName && (
