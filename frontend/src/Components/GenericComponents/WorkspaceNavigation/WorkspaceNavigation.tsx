@@ -308,7 +308,8 @@ export const WorkspaceNavigation = () => {
                 (matchesTerm(text, term) || matchesTerm(name, term));
             });
             textElements.forEach((element, index) => {
-              const isTextAnnotation = element.localName.toLocaleLowerCase('fr') === 'textannotation';
+              const tag = element.localName.toLocaleLowerCase('fr');
+              const isTextAnnotation = tag === 'textannotation';
               const annotationText = isTextAnnotation
                 ? Array.from(element.children).find(child => child.localName.toLocaleLowerCase('fr') === 'text')?.textContent
                 : undefined;
