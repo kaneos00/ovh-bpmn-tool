@@ -232,7 +232,7 @@ test('global annotation search labels text annotations as Description and carrie
   const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
 
   assert.match(navigation, /if \(\/annotation BPMN\/i\.test\(detail\)\)[\s\S]*?label: 'Description'/);
-  assert.match(navigation, /const isTextAnnotation = element\.localName\.toLocaleLowerCase\('fr'\) === 'textannotation'/);
+  assert.match(navigation, /const isTextAnnotation = tag === 'textannotation'/);
   assert.match(navigation, /let bpmnOwner: Element \| null = element/);
   assert.match(navigation, /bpmnOwner\.namespaceURI !== BPMN_MODEL_NS/);
   assert.match(navigation, /const elementId = bpmnOwner\?\.getAttribute\('id'\) \|\| undefined/);
