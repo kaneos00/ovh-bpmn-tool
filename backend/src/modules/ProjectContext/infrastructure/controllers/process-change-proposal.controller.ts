@@ -287,7 +287,8 @@ export class ProcessChangeProposalController {
           cloneResourceId: proposal.cloneResourceId,
           submittedContentId: proposal.submittedContentId,
           authorUserId: proposal.authorUserId,
-          authorName: authorById.get(proposal.authorUserId) ?? proposal.authorUserId,
+          authorName:
+            authorById.get(proposal.authorUserId) ?? proposal.authorUserId,
           validatorUserId: proposal.validatorUserId,
           status: proposal.status,
           submissionComment: proposal.submissionComment,
