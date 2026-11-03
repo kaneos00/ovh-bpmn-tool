@@ -144,7 +144,7 @@ export const Component = () => {
           <Textarea
             minRows={3}
             value={submissionComment}
-            onChange={value => setSubmissionComment(value)}
+            onChange={event => setSubmissionComment(event.target.value)}
             placeholder="Décrivez les modifications proposées et leur justification…"
           />
           {submissionError && <Alert color="danger">{submissionError}</Alert>}
