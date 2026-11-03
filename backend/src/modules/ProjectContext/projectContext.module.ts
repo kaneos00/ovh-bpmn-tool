@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ResourceTypeOrmEntity } from '../ResourceContext/infrastructure/entities/resource.ormEntity';
 import { ContentTypeOrmEntity } from '../ResourceContext/infrastructure/entities/content.ormEntity';
 import { ProjectController } from './infrastructure/controllers/project.controller';
+import { ProcessChangeProposalController } from './infrastructure/controllers/process-change-proposal.controller';
 import { ProjectRaciController } from './infrastructure/controllers/project-raci.controller';
 import { ProjectMemberTypeOrmEntity } from './infrastructure/entities/projectMember.ormEntity';
 import { ProjectProcessTypeOrmEntity } from './infrastructure/entities/projectProcess.ormEntity';
@@ -27,7 +28,7 @@ import { ProjectResourceAccessService } from './projectResourceAccess.service';
       ProcessChangeProposalEventTypeOrmEntity,
     ]),
   ],
-  controllers: [ProjectController, ProjectRaciController],
+  controllers: [ProjectController, ProjectRaciController, ProcessChangeProposalController],
   providers: [ProjectResourceAccessService],
   exports: [ProjectResourceAccessService],
 })
