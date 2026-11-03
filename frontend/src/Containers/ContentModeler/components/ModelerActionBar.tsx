@@ -41,6 +41,7 @@ type ModelerActionBarProps = {
   onRolesOpen: () => void;
   onCompareWithSource?: () => void;
   proposalMode?: boolean;
+  proposalMode?: boolean;
 };
 
 export const ModelerActionBar = ({
