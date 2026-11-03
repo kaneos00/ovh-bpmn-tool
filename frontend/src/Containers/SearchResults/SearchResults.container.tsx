@@ -107,7 +107,7 @@ export const Component = () => {
   const [sortBy, setSortBy] = useState('relevance');
   const [sortDirection, setSortDirection] = useState('asc');
   useEffect(() => {
-    const base = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\\/+$/, '');
+    const base = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
     let active = true;
     fetch(`${base}/auth/preferences/search-sort`, { credentials: 'same-origin' })
       .then(response => response.ok ? response.json() : null)
@@ -117,7 +117,7 @@ export const Component = () => {
   }, []);
   const saveSort = (field: string, direction: string) => {
     setSortBy(field); setSortDirection(direction);
-    const base = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\\/+$/, '');
+    const base = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
     fetch(`${base}/auth/preferences/search-sort`, { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sortBy: field, sortDirection: direction }) }).catch(() => undefined);
   };
   const processesQuery = useQuery<Resource[]>(
