@@ -107,7 +107,7 @@ export const Component = () => {
   const [sortBy, setSortBy] = useState('relevance');
   const [sortDirection, setSortDirection] = useState('asc');
   useEffect(() => {
-    const base = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
+    const base = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\\/+$/, '');
     let active = true;
     fetch(`${base}/auth/preferences/search-sort`, { credentials: 'same-origin' })
       .then(response => response.ok ? response.json() : null)
@@ -117,7 +117,7 @@ export const Component = () => {
   }, []);
   const saveSort = (field: string, direction: string) => {
     setSortBy(field); setSortDirection(direction);
-    const base = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
+    const base = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\\/+$/, '');
     fetch(`${base}/auth/preferences/search-sort`, { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sortBy: field, sortDirection: direction }) }).catch(() => undefined);
   };
   const processesQuery = useQuery<Resource[]>(
@@ -203,10 +203,16 @@ export const Component = () => {
 
   const getTypeColor = (type: UnifiedSearchType) => {
     switch (type) {
-      case 'process': return 'warning';
-      case 'bpmn': return 'primary';
-      case 'raci': return 'success';
-      case 'actor': return 'neutral';
+      case 'process':
+        return 'warning';
+      case 'bpmn':
+        return 'primary';
+      case 'raci':
+        return 'success';
+      case 'actor':
+        return 'neutral';
+      default:
+        return 'neutral';
     }
   };
 
@@ -429,7 +435,7 @@ export const Component = () => {
                 <Typography level="body-sm" color="neutral" sx={{ fontSize: '0.82rem', color: 'text.tertiary' }}>
                   {FIELD_LABELS[result.field] ?? result.field}: {highlight(result.excerpt)}
                 </Typography>
-                                <Typography level="body-xs" color="neutral" sx={{ color: 'text.tertiary' }}>
+                <Typography level="body-xs" color="neutral" sx={{ color: 'text.tertiary' }}>
                   {[result.processName && `Processus : ${result.processName}`, result.elementId && `Élément : ${result.elementId}`, result.projectId && `Projet : ${result.projectId}`].filter(Boolean).join(' · ')}
                 </Typography>
               </Card>
