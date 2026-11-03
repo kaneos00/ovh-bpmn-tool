@@ -192,8 +192,19 @@ export class ProjectResourceAccessService {
     const userId = this.getAuthenticatedUserId(headers);
     const links = await this.projectProcesses.find({ where: { resourceId } });
 
-    // Preserve existing ACL behavior for resources not yet attached to a project.
-    if (!links.length) return;
+    // Preserve the legacy organization-wide ACL for resources not yet attached to a project.
+    // Project-linked resources are authorized by their explicit project role below.
+    if (!links.length) {
+      if (
+        !this.hasOrganizationReadWriteRole(headers) &&
+        !this.hasOrganizationAdminRole(headers)
+      ) {
+        throw new ForbiddenException(
+          'Editing an unassigned resource requires organization read-write access',
+        );
+      }
+      return;
+    }
 
     if (links.some((link) => link.usage === ProjectProcessUsage.Common)) {
       if (
