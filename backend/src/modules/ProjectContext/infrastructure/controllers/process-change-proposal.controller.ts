@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   ConflictException,
+  ForbiddenException,
   Controller,
   Get,
   Headers,
@@ -159,8 +160,12 @@ export class ProcessChangeProposalController {
       const resources = manager.getRepository(ResourceTypeOrmEntity);
       const contents = manager.getRepository(ContentTypeOrmEntity);
       const links = manager.getRepository(ProjectProcessTypeOrmEntity);
-      const proposals = manager.getRepository(ProcessChangeProposalTypeOrmEntity);
-      const events = manager.getRepository(ProcessChangeProposalEventTypeOrmEntity);
+      const proposals = manager.getRepository(
+        ProcessChangeProposalTypeOrmEntity,
+      );
+      const events = manager.getRepository(
+        ProcessChangeProposalEventTypeOrmEntity,
+      );
 
       const sourceLink = await links.findOne({
         where: { projectId, resourceId: sourceResourceId },
@@ -231,7 +236,8 @@ export class ProcessChangeProposalController {
         createdBy: authorUserId,
       }));
 
-      const proposal = await proposals.save(proposals.create({
+      const proposal = await proposals.save(
+        proposals.create({
         projectId,
         sourceResourceId,
         cloneResourceId: savedClone.id,
@@ -243,10 +249,12 @@ export class ProcessChangeProposalController {
         submissionComment: null,
         submittedAt: null,
         decidedAt: null,
-        createdBy: authorUserId,
-      }));
+          createdBy: authorUserId,
+        }),
+      );
 
-      await events.save(events.create({
+      await events.save(
+        events.create({
         proposalId: proposal.id,
         eventType: 'created',
         actorUserId: authorUserId,
@@ -257,8 +265,9 @@ export class ProcessChangeProposalController {
           cloneResourceId: savedClone.id,
           cloneContentId: savedCloneContent.id,
         },
-        createdBy: authorUserId,
-      }));
+          createdBy: authorUserId,
+        }),
+      );
 
       return {
         id: proposal.id,
@@ -300,7 +309,9 @@ export class ProcessChangeProposalController {
       const proposals = manager.getRepository(ProcessChangeProposalTypeOrmEntity);
       const contents = manager.getRepository(ContentTypeOrmEntity);
       const members = manager.getRepository(ProjectMemberTypeOrmEntity);
-      const events = manager.getRepository(ProcessChangeProposalEventTypeOrmEntity);
+      const events = manager.getRepository(
+        ProcessChangeProposalEventTypeOrmEntity,
+      );
       const resources = manager.getRepository(ResourceTypeOrmEntity);
 
       const proposal = await proposals.findOne({
@@ -388,15 +399,17 @@ export class ProcessChangeProposalController {
       proposal.status = ProcessChangeProposalStatus.Submitted;
       const savedProposal = await proposals.save(proposal);
 
-      await events.save(events.create({
+      await events.save(
+        events.create({
         proposalId,
         eventType: 'submitted',
         actorUserId,
         validatorUserId,
         comment,
         details: { submittedContentId: submittedContent.id },
-        createdBy: actorUserId,
-      }));
+          createdBy: actorUserId,
+        }),
+      );
 
       return {
         id: savedProposal.id,
