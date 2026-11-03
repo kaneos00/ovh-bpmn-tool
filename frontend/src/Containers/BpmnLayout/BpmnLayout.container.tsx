@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, useNavigate, useParams } from 'react-router-dom';
 import { Box, Sheet, Stack } from '@mui/joy';
 
@@ -12,7 +12,6 @@ import { ViewerExplorerPanel } from '../../Components/BusinessComponents/ViewerE
 import { FolderOverview } from './FolderOverview';
 import {
   BpmnContentLoading,
-  BusinessProcessActions,
   FolderActions,
 } from './components';
 import { isFolder, isRoot } from '../../shared/helpers/resource';
@@ -28,20 +27,6 @@ export const Component = () => {
   const { resourceId } = useParams() as BpmnLayoutRouteParams;
   const { requestedElementId, requestedContentId, requestedRaciView } = useViewerRouteState();
   const navigate = useNavigate();
-  const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-    const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
-    fetch(`${apiBase}/auth/session`, {
-      credentials: 'same-origin',
-      headers: { accept: 'application/json' },
-    })
-      .then(async response => response.ok ? response.json() as Promise<{ role?: 'admin' | 'modeler' | 'viewer' }> : null)
-      .then(session => { if (mounted) setSessionRole(session?.role ?? null); })
-      .catch(() => { if (mounted) setSessionRole(null); });
-    return () => { mounted = false; };
-  }, []);
   const [folderExplorerWidth, setFolderExplorerWidth] = useState(() => {
     const saved = Number(window.localStorage.getItem('bpmn-viewer-explorer-width'));
     return Number.isFinite(saved) && saved >= 180 && saved <= 480 ? saved : 248;
@@ -82,28 +67,11 @@ export const Component = () => {
   const { resource, contents, callbacks } = useBpmnLayout();
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
 
-  const actions = useMemo(() => {
-    const isRootFolder = isRoot(resourceId);
-
-    if (isRootFolder) {
-      return <FolderActions />;
-    }
-
-    if (!resource) {
-      return <></>;
-    }
-
-    if (resource.type === ResourceType.Folder) {
-      return <FolderActions />;
-    }
-
-    // The modeler entry point is reserved for authenticated editing roles.
-    return sessionRole === 'admin' || sessionRole === 'modeler' ? (
-      <BusinessProcessActions
-        onModelerBtnClick={callbacks.header.onModelerBtnClick}
-      />
-    ) : <></>;
-  }, [resourceId, resource, contents, sessionRole]);
+  // The text button « Modeleur » in the page header is intentionally removed.
+  // The pencil action inside the Processus tab remains the modeler entry point.
+  const actions = isRoot(resourceId) || resource?.type === ResourceType.Folder
+    ? <FolderActions />
+    : <></>;
 
   return (
     <div
