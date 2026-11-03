@@ -32,6 +32,10 @@ export const routes = [
         loader: () => redirect('/root'),
       },
       {
+        path: '/mes-demandes',
+        lazy: () => import('./Containers/MyProcessChangeProposals/MyProcessChangeProposals.container'),
+      },
+      {
         path: '/:resourceId',
         lazy: () => import('./Containers/BpmnLayout'),
         children: [
