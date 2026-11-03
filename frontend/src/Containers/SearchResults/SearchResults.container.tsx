@@ -103,6 +103,22 @@ export const Component = () => {
     setRoleFilter(isSearchRole(role) ? role : '');
   }, [searchParams]);
 
+  const [sortBy, setSortBy] = useState('relevance');
+  const [sortDirection, setSortDirection] = useState('asc');
+  useEffect(() => {
+    const base = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\\/+$/, '');
+    let active = true;
+    fetch(base + '/auth/preferences/search-sort', { credentials: 'same-origin' })
+      .then(response => response.ok ? response.json() : null)
+      .then(value => { if (active && value) { if (['relevance','type','label','source','process'].includes(value.sortBy)) setSortBy(value.sortBy); if (value.sortDirection === 'asc' || value.sortDirection === 'desc') setSortDirection(value.sortDirection); } })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+  const saveSort = (field: string, direction: string) => {
+    setSortBy(field); setSortDirection(direction);
+    const base = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\\/+$/, '');
+    fetch(base + '/auth/preferences/search-sort', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sortBy: field, sortDirection: direction }) }).catch(() => undefined);
+  };
   const processesQuery = useQuery<Resource[]>(
     resourcesQuery({ type: ResourceType.Process }),
   );
@@ -186,9 +202,9 @@ export const Component = () => {
     <Sheet
       sx={{
         width: '100%',
-        maxWidth: 1440,
+        maxWidth: 'none',
         boxSizing: 'border-box',
-        mx: 'auto',
+        mx: 0,
         p: { xs: 1, md: 2 },
         bgcolor: 'transparent',
       }}
@@ -294,10 +310,9 @@ export const Component = () => {
               <Option value="I">I — Informé</Option>
             </Select>
           </Stack>
-          <Stack direction="row" justifyContent="flex-end">
-            <Button size="sm" variant="outlined" color="neutral" onClick={applySearch}>
-              Appliquer les filtres
-            </Button>
+          <Stack direction="row" justifyContent="flex-end" spacing={1}>
+            <Button size="sm" variant="plain" color="neutral" onClick={() => { setTypeFilter(''); setSourceFilter(''); setProcessFilter(''); setRoleFilter(''); const next = new URLSearchParams(); if (draftQuery.trim()) next.set('q', draftQuery.trim()); next.set('offset', '0'); setSearchParams(next); }}>Réinitialiser les filtres</Button>
+            <Button size="sm" variant="outlined" color="neutral" onClick={applySearch}>Appliquer les filtres</Button>
           </Stack>
         </Card>
 
@@ -351,7 +366,12 @@ export const Component = () => {
               </Card>
             )}
 
-            {data.results.map((result) => (
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>
+              <Typography level="body-sm" color="neutral">Trier par</Typography>
+              <Select size="sm" value={sortBy} onChange={(_, value) => value && saveSort(value, sortDirection)} sx={{ minWidth: 170 }}><Option value="relevance">Pertinence</Option><Option value="type">Type</Option><Option value="label">Nom</Option><Option value="source">Source</Option><Option value="process">Processus</Option></Select>
+              <Select size="sm" value={sortDirection} onChange={(_, value) => value && saveSort(sortBy, value)} sx={{ minWidth: 130 }}><Option value="asc">Croissant</Option><Option value="desc">Décroissant</Option></Select>
+            </Stack>
+            {([...data.results].sort((a, b) => { const get = (x: typeof data.results[number]) => sortBy === 'type' ? TYPE_LABELS[x.type] : sortBy === 'source' ? (x.source ? SOURCE_LABELS[x.source] : '') : sortBy === 'process' ? (x.processName || '') : x.label; return sortBy === 'relevance' ? 0 : get(a).localeCompare(get(b), 'fr') * (sortDirection === 'asc' ? 1 : -1); })).map((result) => (
               <Card key={`${result.type}:${result.source}:${result.resourceId}:${result.projectId}:${result.id}`} variant="outlined" sx={{ gap: 0.75 }}>
                 <Stack
                   direction={{ xs: 'column', sm: 'row' }}
@@ -360,7 +380,7 @@ export const Component = () => {
                   justifyContent="space-between"
                 >
                   <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" alignItems="center">
-                    <Chip size="sm" variant="soft">{TYPE_LABELS[result.type]}</Chip>
+                    <Chip size="sm" variant="soft" color={result.type === 'process' ? 'warning' : result.type === 'bpmn' ? 'primary' : result.type === 'raci' ? 'success' : 'neutral'}>{TYPE_LABELS[result.type]}</Chip>
                     {result.source && (
                       <Chip size="sm" variant="outlined" color="neutral">
                         {SOURCE_LABELS[result.source]}
@@ -379,7 +399,7 @@ export const Component = () => {
                   </Button>
                 </Stack>
                 <Typography level="title-md">{result.label}</Typography>
-                <Typography level="body-sm" color="neutral">
+                <Typography level="body-sm" color="neutral" sx={{ fontSize: '0.82rem', color: 'text.tertiary' }}>
                   {FIELD_LABELS[result.field] ?? result.field}: {result.excerpt}
                 </Typography>
                 <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
