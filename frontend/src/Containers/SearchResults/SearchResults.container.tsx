@@ -6,10 +6,11 @@ import {
   Box,
   Button,
   Card,
-  Chip,
   CircularProgress,
   Divider,
   Input,
+  List,
+  ListItem,
   Option,
   Select,
   Sheet,
@@ -19,7 +20,6 @@ import {
 import {
   ChevronLeft,
   ChevronRight,
-  OpenInNew,
   Search,
 } from '@mui/icons-material';
 
@@ -201,19 +201,20 @@ export const Component = () => {
     return <>{value.slice(0, index)}<Box component="mark" sx={{ bgcolor: '#fff1a8', color: 'inherit', px: 0.15, borderRadius: '2px' }}>{value.slice(index, index + term.length)}</Box>{value.slice(index + term.length)}</>;
   };
 
-  const getTypeColor = (type: UnifiedSearchType) => {
-    switch (type) {
-      case 'process':
-        return 'warning';
-      case 'bpmn':
-        return 'primary';
-      case 'raci':
-        return 'success';
-      case 'actor':
-        return 'neutral';
-      default:
-        return 'neutral';
-    }
+  const getResultBadge = (result: (typeof data.results)[number]) => {
+    const label = result.label.toLocaleLowerCase('fr');
+    if (result.type === 'raci') return { label: 'RACI', color: '#654c98', background: '#eee8fb', border: '#d5c8f0' };
+    if (result.type === 'actor') return { label: 'Rôle', color: '#654c98', background: '#eee8fb', border: '#d5c8f0' };
+    if (result.type === 'process') return { label: 'Processus', color: '#895d1e', background: '#fff0d9', border: '#f0d5a6' };
+    if (/^(lane)\s*:/i.test(label)) return { label: 'Lane', color: '#276b63', background: '#e0f3ef', border: '#b9e3da' };
+    if (/sous-processus|sotto-processo/i.test(label)) return { label: 'Sous-processus', color: '#28569a', background: '#e4efff', border: '#bfd4f7' };
+    if (/^activit|^attivit|transaction/i.test(label)) return { label: 'Activité', color: '#28569a', background: '#e4efff', border: '#bfd4f7' };
+    if (/^processus\s+bpmn/i.test(label)) return { label: 'Processus', color: '#895d1e', background: '#fff0d9', border: '#f0d5a6' };
+    if (/annotation|annotazione|description/i.test(label)) return { label: 'Description', color: '#4b5563', background: '#f1f5f9', border: '#d8e0e8' };
+    if (/^événement|^evento/i.test(label)) return { label: 'Événement', color: '#4b5563', background: '#f1f5f9', border: '#d8e0e8' };
+    if (/gateway|passerelle/i.test(label)) return { label: 'Passerelle', color: '#4b5563', background: '#f1f5f9', border: '#d8e0e8' };
+    if (/participant/i.test(label)) return { label: 'Participant', color: '#4b5563', background: '#f1f5f9', border: '#d8e0e8' };
+    return { label: 'BPMN', color: '#4b5563', background: '#f1f5f9', border: '#d8e0e8' };
   };
 
   const data = searchQuery.data;
@@ -335,7 +336,7 @@ export const Component = () => {
             </Select>
           </Stack>
           <Stack direction="row" justifyContent="flex-end" spacing={1}>
-            <Button size="sm" variant="plain" color="neutral" onClick={() => { setDraftQuery(''); setTypeFilter(''); setSourceFilter(''); setProcessFilter(''); setRoleFilter(''); const next = new URLSearchParams(); next.set('offset', '0'); setSearchParams(next); }}>Réinitialiser les filtres</Button>
+            <Button size="sm" variant="plain" color="neutral" onClick={() => { setDraftQuery(''); setTypeFilter(''); setSourceFilter(''); setProcessFilter(''); setRoleFilter(''); setSearchParams(new URLSearchParams({ offset: '0' })); }}>Réinitialiser la recherche</Button>
             <Button size="sm" variant="outlined" color="neutral" onClick={applySearch}>Appliquer les filtres</Button>
           </Stack>
         </Card>
@@ -365,7 +366,7 @@ export const Component = () => {
           </Alert>
         )}
 
-        {data && !searchQuery.isLoading && (
+        {query.trim().length >= 2 && data && !searchQuery.isLoading && (
           <Stack spacing={1.25}>
             <Stack
               direction={{ xs: 'column', sm: 'row' }}
@@ -395,51 +396,46 @@ export const Component = () => {
               <Select size="sm" value={sortBy} onChange={(_, value) => value && saveSort(value, sortDirection)} sx={{ minWidth: 170 }}><Option value="relevance">Pertinence</Option><Option value="type">Type</Option><Option value="label">Nom</Option><Option value="source">Source</Option><Option value="process">Processus</Option></Select>
               <Select size="sm" value={sortDirection} onChange={(_, value) => value && saveSort(sortBy, value)} sx={{ minWidth: 130 }}><Option value="asc">Croissant</Option><Option value="desc">Décroissant</Option></Select>
             </Stack>
-            {([...data.results].sort((a, b) => {
-              const get = (item: typeof data.results[number]) => {
-                if (sortBy === 'type') return TYPE_LABELS[item.type];
-                if (sortBy === 'source') return item.source ? SOURCE_LABELS[item.source] : '';
-                if (sortBy === 'process') return item.processName || '';
-                return item.label;
-              };
-              if (sortBy === 'relevance') return 0;
-              return get(a).localeCompare(get(b), 'fr') * (sortDirection === 'asc' ? 1 : -1);
-            })).map((result) => (
-              <Card key={`${result.type}:${result.source}:${result.resourceId}:${result.projectId}:${result.id}`} variant="outlined" sx={{ gap: 0.75 }}>
-                <Stack
-                  direction={{ xs: 'column', sm: 'row' }}
-                  spacing={1}
-                  alignItems={{ sm: 'center' }}
-                  justifyContent="space-between"
-                >
-                  <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" alignItems="center" sx={{ minWidth: 0, flex: 1 }}>
-                    <Chip size="sm" variant="soft" color={getTypeColor(result.type)}>{TYPE_LABELS[result.type]}</Chip>
-                    {result.source && (
-                      <Chip size="sm" variant="outlined" color="neutral">
-                        {SOURCE_LABELS[result.source]}
-                      </Chip>
-                    )}
-                    {result.role && <Chip size="sm" color="success">{result.role}</Chip>}
-                    <Typography level="title-md" sx={{ minWidth: 0 }}>{highlight(result.label)}</Typography>
-                  </Stack>
-                  <Button
-                    size="sm"
-                    variant="plain"
-                    endDecorator={<OpenInNew fontSize="small" />}
-                    disabled={!result.resourceId && !result.projectId}
-                    onClick={() => openResult(result)}
-                  >
-                    Ouvrir
-                  </Button>
-                </Stack>
-                <Typography level="body-sm" color="neutral" sx={{ fontSize: '0.82rem', color: 'text.tertiary' }}>
-                  {FIELD_LABELS[result.field] ?? result.field}: {highlight(result.excerpt)}
-                </Typography>
-                <Typography level="body-xs" color="neutral" sx={{ color: 'text.tertiary' }}>
-                  {[result.processName && `Processus : ${result.processName}`, result.elementId && `Élément : ${result.elementId}`, result.projectId && `Projet : ${result.projectId}`].filter(Boolean).join(' · ')}
-                </Typography>
-              </Card>
-            ))}
+            <List size="sm" sx={{ '--ListItem-radius': '6px', p: 0.5, border: '1px solid', borderColor: 'divider', borderRadius: 'md' }}>
+              {([...data.results].sort((a, b) => {
+                const get = (item: typeof data.results[number]) => {
+                  if (sortBy === 'type') return TYPE_LABELS[item.type];
+                  if (sortBy === 'source') return item.source ? SOURCE_LABELS[item.source] : '';
+                  if (sortBy === 'process') return item.processName || '';
+                  return item.label;
+                };
+                if (sortBy === 'relevance') return 0;
+                return get(a).localeCompare(get(b), 'fr') * (sortDirection === 'asc' ? 1 : -1);
+              })).map((result) => {
+                const badge = getResultBadge(result);
+                const detail = [
+                  result.processName,
+                  `${FIELD_LABELS[result.field] ?? result.field} : ${result.excerpt}`,
+                  result.elementId,
+                ].filter(Boolean).join(' · ');
+                return (
+                  <ListItem key={`${result.type}:${result.source}:${result.resourceId}:${result.projectId}:${result.id}`} sx={{ p: 0 }}>
+                    <Button
+                      variant="plain"
+                      color="neutral"
+                      disabled={!result.resourceId && !result.projectId}
+                      onClick={() => openResult(result)}
+                      sx={{ justifyContent: 'flex-start', textAlign: 'left', width: '100%', whiteSpace: 'normal', py: 0.75 }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, minWidth: 0, width: '100%' }}>
+                        <Box component="span" sx={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', mt: '1px', px: 0.75, py: 0.25, borderRadius: '5px', border: '1px solid', borderColor: badge.border, color: badge.color, bgcolor: badge.background, fontSize: 10, fontWeight: 800, lineHeight: 1.4, whiteSpace: 'nowrap' }}>
+                          {badge.label}
+                        </Box>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography level="title-sm">{highlight(result.label)}</Typography>
+                          <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>{highlight(detail)}</Typography>
+                        </Box>
+                      </Box>
+                    </Button>
+                  </ListItem>
+                );
+              })}
+            </List>
 
             {total > PAGE_SIZE && (
               <>
