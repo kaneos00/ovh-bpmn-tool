@@ -658,3 +658,15 @@ test('description, version history, RACI and documented information stay top-ali
   assert.ok(styles.includes('.processViewerTabPanel:not(.processViewerProcessTab) > .processViewerInfo'));
   assert.ok(styles.includes('.processViewerTabPanel:not(.processViewerProcessTab) > .processViewerInfo.processViewerRaci'));
 });
+
+test('project Modelers can start change proposals and the personal proposals page uses the full workspace width', async () => {
+  const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+  const proposals = await read('src/Containers/MyProcessChangeProposals/MyProcessChangeProposals.container.tsx');
+
+  assert.match(viewer, /project\.role === 'modeler' \|\| project\.role === 'admin'/);
+  assert.ok(viewer.includes('project.processes.some(process => process.resourceId === resourceId)'));
+  assert.ok(viewer.includes('Proposer une modification'));
+  assert.ok(proposals.includes("width: '100%'"));
+  assert.ok(proposals.includes("maxWidth: 'none'"));
+  assert.ok(!proposals.includes('maxWidth: 1600'));
+});

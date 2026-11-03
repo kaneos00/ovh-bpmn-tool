@@ -76,8 +76,8 @@ export const Component = () => {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.level1' }}>
-      <Box sx={{ maxWidth: 1600, mx: 'auto', p: { xs: 1, md: 2 } }}>
+    <Box sx={{ minHeight: '100vh', width: '100%', bgcolor: 'background.level1', boxSizing: 'border-box' }}>
+      <Box sx={{ width: '100%', maxWidth: 'none', mx: 0, p: { xs: 1, md: 2 }, boxSizing: 'border-box' }}>
         <WorkspaceNavigation />
         <Box sx={{ px: { xs: 0.5, md: 1 }, pt: 2, pb: 3 }}>
           <Typography level="body-xs" sx={{ color: 'text.tertiary', mb: 0.75 }}>

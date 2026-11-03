@@ -167,7 +167,7 @@ export class ContentController {
   }
 
   @Post()
-  @UseAcl([UserGroup.RW, UserGroup.Admin])
+  @UseAcl()
   async createContent(
     @Param('resourceId') resourceId: string,
     @Body() body: CreateContentBody,
@@ -198,7 +198,7 @@ export class ContentController {
   }
 
   @Put('/:contentId')
-  @UseAcl([UserGroup.RW, UserGroup.Admin])
+  @UseAcl()
   async updateContent(
     @Param() params: UpdateContentCommandParams,
     @Body() body: UpdateContentBody,
@@ -257,7 +257,7 @@ export class ContentController {
   }
 
   @Post('/:contentId/publish')
-  @UseAcl([UserGroup.RW, UserGroup.Admin])
+  @UseAcl()
   async publishContent(
     @Param() params: PublishContentCommandParams,
     @Body() body: PublishContentBody,
@@ -293,7 +293,7 @@ export class ContentController {
   }
 
   @Post('/:contentId/clone')
-  @UseAcl([UserGroup.RW, UserGroup.Admin])
+  @UseAcl()
   async cloneContent(
     @Param() params: CloneContentCommandParams,
     @Body() body: { changeComment?: string | null },

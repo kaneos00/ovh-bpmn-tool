@@ -45,6 +45,7 @@ import './ContentViewerContainer.scss';
 
 type WorkspaceProjectSummary = {
   id: string;
+  name: string;
   role: 'viewer' | 'modeler' | 'admin';
   processes: { resourceId: string }[];
 };
@@ -90,10 +91,11 @@ const ProcessContentViewer = () => {
     setInfoPanelOpen(raciRequested);
   }, [resourceId, contentId, raciRequested]);
 
-  const { data: workspace } = useQuery<WorkspaceSummary>(
+  const workspaceQuery = useQuery<WorkspaceSummary>(
     ['my-workspace'],
     () => apiClient.get('/projects/me/workspace'),
   );
+  const workspace = workspaceQuery.data;
   const associatedProject = workspace?.projects.find(project =>
     project.processes.some(process => process.resourceId === resourceId),
   );
@@ -236,6 +238,21 @@ const ProcessContentViewer = () => {
             </Stack>
           </Stack>
         </Box>
+        {workspaceQuery.isError && (
+          <Alert color="warning" variant="soft" sx={{ mx: 2, mt: 1 }}>
+            Impossible de vérifier vos droits sur les projets. Le bouton de proposition reste masqué tant que cette vérification n’a pas abouti.
+          </Alert>
+        )}
+        {!workspaceQuery.isLoading && !workspaceQuery.isError && associatedProject && !proposalProject && (
+          <Alert color="neutral" variant="soft" sx={{ mx: 2, mt: 1 }}>
+            Ce processus est associé au projet « {associatedProject.name} », mais votre rôle ({associatedProject.role}) ne permet pas de proposer une modification. Un rôle Modélisateur ou Administrateur du projet est requis.
+          </Alert>
+        )}
+        {!workspaceQuery.isLoading && !workspaceQuery.isError && workspace && !associatedProject && (
+          <Alert color="neutral" variant="soft" sx={{ mx: 2, mt: 1 }}>
+            Ce processus n’est pas directement rattaché à un projet auquel vous avez accès. La proposition de modification est donc indisponible depuis cette page.
+          </Alert>
+        )}
         {proposalError && (
           <Alert color="danger" variant="soft" sx={{ mx: 2, mt: 1 }}>
             {proposalError}

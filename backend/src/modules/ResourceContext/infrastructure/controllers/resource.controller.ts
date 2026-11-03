@@ -165,7 +165,7 @@ export class ResourceController {
   }
 
   @Put('/:resourceId')
-  @UseAcl([UserGroup.RW, UserGroup.Admin])
+  @UseAcl()
   async updateResource(
     @Param() params: Pick<UpdateResourceCommand, 'resourceId'>,
     @Body() updateResourceCommand: UpdateResourceBody,
