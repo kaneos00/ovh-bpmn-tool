@@ -109,7 +109,7 @@ export const Component = () => {
   useEffect(() => {
     const base = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
     let active = true;
-    fetch(base + '/auth/preferences/search-sort', { credentials: 'same-origin' })
+    fetch(`${base}/auth/preferences/search-sort`, { credentials: 'same-origin' })
       .then(response => response.ok ? response.json() : null)
       .then(value => { if (active && value) { if (['relevance','type','label','source','process'].includes(value.sortBy)) setSortBy(value.sortBy); if (value.sortDirection === 'asc' || value.sortDirection === 'desc') setSortDirection(value.sortDirection); } })
       .catch(() => undefined);
@@ -118,7 +118,7 @@ export const Component = () => {
   const saveSort = (field: string, direction: string) => {
     setSortBy(field); setSortDirection(direction);
     const base = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
-    fetch(base + '/auth/preferences/search-sort', { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sortBy: field, sortDirection: direction }) }).catch(() => undefined);
+    fetch(`${base}/auth/preferences/search-sort`, { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sortBy: field, sortDirection: direction }) }).catch(() => undefined);
   };
   const processesQuery = useQuery<Resource[]>(
     resourcesQuery({ type: ResourceType.Process }),
@@ -199,6 +199,15 @@ export const Component = () => {
     const index = value.toLocaleLowerCase('fr').indexOf(term.toLocaleLowerCase('fr'));
     if (index < 0) return value;
     return <>{value.slice(0, index)}<Box component="mark" sx={{ bgcolor: '#fff1a8', color: 'inherit', px: 0.15, borderRadius: '2px' }}>{value.slice(index, index + term.length)}</Box>{value.slice(index + term.length)}</>;
+  };
+
+  const getTypeColor = (type: UnifiedSearchType) => {
+    switch (type) {
+      case 'process': return 'warning';
+      case 'bpmn': return 'primary';
+      case 'raci': return 'success';
+      case 'actor': return 'neutral';
+    }
   };
 
   const data = searchQuery.data;
@@ -380,7 +389,16 @@ export const Component = () => {
               <Select size="sm" value={sortBy} onChange={(_, value) => value && saveSort(value, sortDirection)} sx={{ minWidth: 170 }}><Option value="relevance">Pertinence</Option><Option value="type">Type</Option><Option value="label">Nom</Option><Option value="source">Source</Option><Option value="process">Processus</Option></Select>
               <Select size="sm" value={sortDirection} onChange={(_, value) => value && saveSort(sortBy, value)} sx={{ minWidth: 130 }}><Option value="asc">Croissant</Option><Option value="desc">Décroissant</Option></Select>
             </Stack>
-            {([...data.results].sort((a, b) => { const get = (x: typeof data.results[number]) => sortBy === 'type' ? TYPE_LABELS[x.type] : sortBy === 'source' ? (x.source ? SOURCE_LABELS[x.source] : '') : sortBy === 'process' ? (x.processName || '') : x.label; return sortBy === 'relevance' ? 0 : get(a).localeCompare(get(b), 'fr') * (sortDirection === 'asc' ? 1 : -1); })).map((result) => (
+            {([...data.results].sort((a, b) => {
+              const get = (item: typeof data.results[number]) => {
+                if (sortBy === 'type') return TYPE_LABELS[item.type];
+                if (sortBy === 'source') return item.source ? SOURCE_LABELS[item.source] : '';
+                if (sortBy === 'process') return item.processName || '';
+                return item.label;
+              };
+              if (sortBy === 'relevance') return 0;
+              return get(a).localeCompare(get(b), 'fr') * (sortDirection === 'asc' ? 1 : -1);
+            })).map((result) => (
               <Card key={`${result.type}:${result.source}:${result.resourceId}:${result.projectId}:${result.id}`} variant="outlined" sx={{ gap: 0.75 }}>
                 <Stack
                   direction={{ xs: 'column', sm: 'row' }}
@@ -389,7 +407,7 @@ export const Component = () => {
                   justifyContent="space-between"
                 >
                   <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" alignItems="center" sx={{ minWidth: 0, flex: 1 }}>
-                    <Chip size="sm" variant="soft" color={result.type === 'process' ? 'warning' : result.type === 'bpmn' ? 'primary' : result.type === 'raci' ? 'success' : 'neutral'}>{TYPE_LABELS[result.type]}</Chip>
+                    <Chip size="sm" variant="soft" color={getTypeColor(result.type)}>{TYPE_LABELS[result.type]}</Chip>
                     {result.source && (
                       <Chip size="sm" variant="outlined" color="neutral">
                         {SOURCE_LABELS[result.source]}
@@ -412,7 +430,7 @@ export const Component = () => {
                   {FIELD_LABELS[result.field] ?? result.field}: {highlight(result.excerpt)}
                 </Typography>
                                 <Typography level="body-xs" color="neutral" sx={{ color: 'text.tertiary' }}>
-                  {[result.processName && 'Processus : ' + result.processName, result.elementId && 'Élément : ' + result.elementId, result.projectId && 'Projet : ' + result.projectId].filter(Boolean).join(' · ')}
+                  {[result.processName && `Processus : ${result.processName}`, result.elementId && `Élément : ${result.elementId}`, result.projectId && `Projet : ${result.projectId}`].filter(Boolean).join(' · ')}
                 </Typography>
               </Card>
             ))}
