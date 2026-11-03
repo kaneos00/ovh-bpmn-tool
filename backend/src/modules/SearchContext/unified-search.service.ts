@@ -261,9 +261,9 @@ export function extractBpmnSearchResults(
       key === 'textAnnotation' ? collectText(node.text) : '';
     const documentation = collectText(node.documentation);
     const label =
-      name || annotationText || (elementId && typeLabel ? typeLabel : '');
+      name || annotationText || (elementId ? typeLabel ?? 'Élément BPMN' : '');
 
-    if (typeLabel && includes('bpmn')) {
+    if ((typeLabel || (elementId && documentation)) && includes('bpmn')) {
       const searchableFields = [
         { value: name, field: 'nome' },
         { value: documentation, field: 'descrizione' },
@@ -279,7 +279,7 @@ export function extractBpmnSearchResults(
         results.push({
           type: 'bpmn',
           id: elementId ?? `${resourceId}:${key}:${results.length}`,
-          label: `${typeLabel}: ${label}`,
+          label: `${typeLabel ?? 'Élément BPMN'}: ${label}`,
           excerpt: match.value.slice(0, 240),
           field: match.field,
           resourceId,
