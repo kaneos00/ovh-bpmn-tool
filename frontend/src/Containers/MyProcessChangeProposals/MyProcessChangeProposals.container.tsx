@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import {
-  Box, Button, Chip, CircularProgress, Input, Sheet, Stack,
+  Alert, Box, Button, Chip, CircularProgress, Input, Sheet, Stack,
   Table, Textarea, Typography,
 } from '@mui/joy';
 import { Search, VisibilityOutlined, EditOutlined } from '@mui/icons-material';
@@ -65,6 +65,7 @@ export const Component = () => {
   const [search, setSearch] = useState('');
   const [reviewComments, setReviewComments] = useState<Record<string, string>>({});
   const [reviewingId, setReviewingId] = useState<string | null>(null);
+  const [reviewError, setReviewError] = useState<string | null>(null);
   const { data = [], isLoading, isError, refetch } = useQuery(proposalsQuery());
   const { data: reviews = [], isLoading: reviewsLoading, isError: reviewsError, refetch: refetchReviews } = useQuery(reviewProposalsQuery());
 
@@ -72,10 +73,13 @@ export const Component = () => {
     const comment = reviewComments[proposal.id]?.trim() ?? '';
     if (decision !== 'approved' && !comment) return;
     setReviewingId(proposal.id);
+    setReviewError(null);
     try {
       await apiClient.post(`/projects/process-change-proposals/${proposal.id}/decision`, { decision, comment });
       setReviewComments(previous => ({ ...previous, [proposal.id]: '' }));
       await Promise.all([refetchReviews(), refetch()]);
+    } catch (error) {
+      setReviewError(error instanceof Error ? error.message : 'La décision n’a pas pu être enregistrée.');
     } finally {
       setReviewingId(null);
     }
@@ -135,6 +139,7 @@ export const Component = () => {
               </Stack>
             </Box>
             {reviewsLoading && <Box sx={{ p: 2 }}><Typography level="body-sm">Caricamento delle richieste…</Typography></Box>}
+            {reviewError && <Alert color="danger" sx={{ m: 2 }}>{reviewError}</Alert>}
             {reviewsError && <Stack direction="row" spacing={1} alignItems="center" sx={{ p: 2 }}>
               <Typography level="body-sm" color="danger">Impossibile caricare le richieste da validare.</Typography>
               <Button size="sm" variant="outlined" onClick={() => refetchReviews()}>Riprova</Button>
