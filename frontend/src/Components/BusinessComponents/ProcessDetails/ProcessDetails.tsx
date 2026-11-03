@@ -76,14 +76,12 @@ const PROCESS_TYPES = [
 
 const getContentStatusColor = (status: ContentStatusEnum) => {
   if (status === ContentStatusEnum.Published) return 'success' as const;
-  if (status === ContentStatusEnum.Submitted) return 'primary' as const;
   if (status === ContentStatusEnum.Draft) return 'warning' as const;
   return 'neutral' as const;
 };
 
 const getContentStatusLabel = (status: ContentStatusEnum) => {
   if (status === ContentStatusEnum.Published) return 'Publiée';
-  if (status === ContentStatusEnum.Submitted) return 'Soumise à validation';
   if (status === ContentStatusEnum.Draft) return 'Brouillon';
   return 'Obsolète';
 };
