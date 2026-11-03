@@ -171,6 +171,25 @@ describe('ContentTypeOrmRepository.publishAtomically', () => {
     );
   });
 
+  it('blocks generic publication of a proposal clone workspace', async () => {
+    manager.query.mockResolvedValueOnce([{ id: 'proposal-1' }]);
+
+    const result = await repository.publishAtomically({
+      resourceId: 'resource-1',
+      contentId: 'content-2',
+      updatedBy: 'publisher',
+      pngContent: 'data:image/png;base64,cG5n',
+      authToken: 'generated-token',
+    });
+
+    expect(result.ok).toBeNull();
+    expect(result.fail?.message).toContain(
+      'proposal workspace cannot be published',
+    );
+    expect(contents.findOne).not.toHaveBeenCalled();
+    expect(contents.save).not.toHaveBeenCalled();
+  });
+
   it('returns a failure and lets the transaction roll back when a write fails', async () => {
     resources.save.mockRejectedValueOnce(new Error('token write failed'));
 
