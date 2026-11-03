@@ -24,6 +24,9 @@ CREATE TABLE IF NOT EXISTS process_change_proposals (
     CHECK ("sourceResourceId" <> "cloneResourceId")
 );
 
+ALTER TABLE process_change_proposals
+  ALTER COLUMN status TYPE varchar(24);
+
 CREATE INDEX IF NOT EXISTS process_change_proposals_project_status_idx
   ON process_change_proposals ("projectId", status);
 CREATE INDEX IF NOT EXISTS process_change_proposals_source_idx
