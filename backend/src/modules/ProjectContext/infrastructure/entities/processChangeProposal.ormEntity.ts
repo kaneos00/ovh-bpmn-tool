@@ -4,6 +4,9 @@ import { AbstractEntity } from '../../../../shared-kernel/modules/infrastructure
 export enum ProcessChangeProposalStatus {
   Draft = 'draft',
   Submitted = 'submitted',
+  Approved = 'approved',
+  ChangesRequested = 'changes_requested',
+  Rejected = 'rejected',
   Published = 'published',
 }
 
