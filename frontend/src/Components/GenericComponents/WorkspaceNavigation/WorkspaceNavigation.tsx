@@ -315,11 +315,19 @@ export const WorkspaceNavigation = () => {
               const text = (element.getAttribute('name') || annotationText || element.textContent || '').trim().replace(/\s+/g, ' ');
               const title = text.length > 100 ? `${text.slice(0, 97)}…` : text;
               if (!title) return;
-              const elementId = isTextAnnotation ? element.getAttribute('id') || undefined : undefined;
+              // Resolve documentation to its owning BPMN element for viewer selection.
+              let bpmnOwner: Element | null = element;
+              while (bpmnOwner && (
+                bpmnOwner.namespaceURI !== BPMN_MODEL_NS ||
+                !bpmnOwner.getAttribute('id')
+              )) {
+                bpmnOwner = bpmnOwner.parentElement;
+              }
+              const elementId = bpmnOwner?.getAttribute('id') || undefined;
               found.push({
                 key: `${process.id}:ia-comm:${element.localName}:${elementId || index}:${title}`,
                 title,
-                detail: isTextAnnotation
+                detail: isTextAnnotation || tag === 'documentation'
                   ? `Description · ${process.name} · ${elementId || ''}`
                   : `IA comm. / annotation BPMN · ${process.name} · ${element.localName}`,
                 resourceId: process.id,
