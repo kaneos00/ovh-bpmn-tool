@@ -480,8 +480,16 @@ export const WorkspaceNavigation = () => {
           {searchOpen && search.trim().length >= 1 && (
             <Sheet
               variant="outlined"
-              sx={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 1400, width: '100%', borderRadius: 'md', maxHeight: 280, overflowY: 'auto', bgcolor: 'background.surface', boxShadow: 'lg' }}
+              sx={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 1600, width: '100%', minWidth: 320, borderRadius: 'md', maxHeight: 'min(70vh, 620px)', display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: 'background.surface', boxShadow: 'lg' }}
             >
+              {search.trim().length >= 2 && (
+                <Box sx={{ p: 1, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.surface', position: 'sticky', top: 0, zIndex: 1 }}>
+                  <Button size="sm" variant="soft" color="primary" fullWidth onClick={openAllResults}>
+                    Voir tous les résultats
+                  </Button>
+                </Box>
+              )}
+              <Box sx={{ overflowY: 'auto', minHeight: 0, flex: 1 }}>
               {isLoading && <Typography level="body-sm" sx={{ p: 1.5 }}>Recherche dans les contenus…</Typography>}
               {resources.isError && <Typography level="body-sm" color="danger" sx={{ p: 1.5 }}>Recherche indisponible pour le moment.</Typography>}
               {!isLoading && results.length === 0 && (
@@ -530,21 +538,7 @@ export const WorkspaceNavigation = () => {
                   ))}
                 </List>
               )}
-              {results.length >= 10 && <Typography level="body-xs" sx={{ px: 1.5, pb: 1, color: 'text.tertiary' }}>Affinez la recherche pour réduire les résultats.</Typography>}
-              {search.trim().length >= 2 && (
-                <Box sx={{ p: 1, borderTop: '1px solid', borderColor: 'divider' }}>
-                  <Button
-                    size="sm"
-                    variant="soft"
-                    color="primary"
-                    fullWidth
-                    onClick={openAllResults}
-                  >
-                    Voir tous les résultats
-                  </Button>
-                </Box>
-              )}
-            </Sheet>
+              {results.length >= 10 && <Typography level="body-xs" sx={{ px: 1.5, pb: 1, color: 'text.tertiary' }}>Affinez la recherche pour réduire les résultats.</Typography>}            </Sheet>
           )}
         </Box>
 
