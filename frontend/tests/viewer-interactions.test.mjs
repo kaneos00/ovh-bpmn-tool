@@ -233,9 +233,9 @@ test('global annotation search labels text annotations as Description and carrie
 
   assert.match(navigation, /if \(\/annotation BPMN\/i\.test\(detail\)\)[\s\S]*?label: 'Description'/);
   assert.match(navigation, /const isTextAnnotation = element\.localName\.toLocaleLowerCase\('fr'\) === 'textannotation'/);
-  assert.match(navigation, /let bpmnOwner: Element \\| null = element/);
-  assert.match(navigation, /bpmnOwner\\.namespaceURI !== BPMN_MODEL_NS/);
-  assert.match(navigation, /const elementId = bpmnOwner\\?\\.getAttribute\\('id'\\) \\|\\| undefined/);
+  assert.match(navigation, /let bpmnOwner: Element \| null = element/);
+  assert.match(navigation, /bpmnOwner\.namespaceURI !== BPMN_MODEL_NS/);
+  assert.match(navigation, /const elementId = bpmnOwner\?\.getAttribute\('id'\) \|\| undefined/);
   assert.match(navigation, /const tag = element\\.localName\\.toLocaleLowerCase\\('fr'\\)/);
   assert.match(navigation, /isTextAnnotation = tag === 'textannotation'/);
   assert.match(navigation, /isTextAnnotation \\|\\| tag === 'documentation'/);
