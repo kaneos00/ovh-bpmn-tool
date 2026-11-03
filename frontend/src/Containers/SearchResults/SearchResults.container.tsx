@@ -388,7 +388,7 @@ export const Component = () => {
                   alignItems={{ sm: 'center' }}
                   justifyContent="space-between"
                 >
-                  <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" alignItems="center">
+                  <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" alignItems="center" sx={{ minWidth: 0, flex: 1 }}>
                     <Chip size="sm" variant="soft" color={result.type === 'process' ? 'warning' : result.type === 'bpmn' ? 'primary' : result.type === 'raci' ? 'success' : 'neutral'}>{TYPE_LABELS[result.type]}</Chip>
                     {result.source && (
                       <Chip size="sm" variant="outlined" color="neutral">
@@ -396,6 +396,7 @@ export const Component = () => {
                       </Chip>
                     )}
                     {result.role && <Chip size="sm" color="success">{result.role}</Chip>}
+                    <Typography level="title-md" sx={{ minWidth: 0 }}>{highlight(result.label)}</Typography>
                   </Stack>
                   <Button
                     size="sm"
@@ -407,27 +408,12 @@ export const Component = () => {
                     Ouvrir
                   </Button>
                 </Stack>
-                <Typography level="title-md">{highlight(result.label)}</Typography>
                 <Typography level="body-sm" color="neutral" sx={{ fontSize: '0.82rem', color: 'text.tertiary' }}>
                   {FIELD_LABELS[result.field] ?? result.field}: {highlight(result.excerpt)}
                 </Typography>
-                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                  {result.processName && (
-                    <Typography level="body-xs" color="neutral">
-                      Processus : {result.processName}
-                    </Typography>
-                  )}
-                  {result.elementId && (
-                    <Typography level="body-xs" color="neutral">
-                      Élément : {result.elementId}
-                    </Typography>
-                  )}
-                  {result.projectId && (
-                    <Typography level="body-xs" color="neutral">
-                      Projet : {result.projectId}
-                    </Typography>
-                  )}
-                </Stack>
+                                <Typography level="body-xs" color="neutral" sx={{ color: 'text.tertiary' }}>
+                  {[result.processName && 'Processus : ' + result.processName, result.elementId && 'Élément : ' + result.elementId, result.projectId && 'Projet : ' + result.projectId].filter(Boolean).join(' · ')}
+                </Typography>
               </Card>
             ))}
 
