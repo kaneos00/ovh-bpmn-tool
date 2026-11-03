@@ -453,7 +453,7 @@ export const WorkspaceNavigation = () => {
               value={scope}
               onChange={(_, value) => { if (value) { setScope(value); setSearchOpen(true); } }}
               aria-label="Type de recherche"
-              sx={{ minWidth: 170, flexShrink: 0, bgcolor: '#263e59', color: '#fff', borderColor: '#40556d', '--Select-focusedHighlight': '#91b7ff', '&:hover': { bgcolor: '#2b4664' } }}
+              sx={{ width: 210, minWidth: 210, flex: '0 0 210px', bgcolor: '#263e59', color: '#fff', borderColor: '#40556d', '--Select-focusedHighlight': '#91b7ff', '&:hover': { bgcolor: '#2b4664' } }}
             >
               <Option value="all">Tout rechercher</Option>
               <Option value="processes">Processus / sous-processus</Option>
@@ -480,7 +480,7 @@ export const WorkspaceNavigation = () => {
           {searchOpen && search.trim().length >= 1 && (
             <Sheet
               variant="outlined"
-              sx={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 1600, width: '100%', minWidth: 320, borderRadius: 'md', maxHeight: 'min(70vh, 620px)', display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: 'background.surface', boxShadow: 'lg' }}
+              sx={{ position: 'absolute', top: 'calc(100% + 4px)', left: 'calc(210px + 6px)', right: 0, zIndex: 1600, width: 'auto', minWidth: 0, borderRadius: 'md', maxHeight: 'min(70vh, 620px)', display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: 'background.surface', boxShadow: 'lg' }}
             >
               {search.trim().length >= 2 && (
                 <Box sx={{ p: 1, borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.surface', position: 'sticky', top: 0, zIndex: 1 }}>
