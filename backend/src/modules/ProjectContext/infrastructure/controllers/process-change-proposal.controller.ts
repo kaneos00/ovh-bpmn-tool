@@ -642,8 +642,7 @@ export class ProcessChangeProposalController {
     if (!existing) throw new NotFoundException('Demande introuvable');
 
     const actorUsername = this.access.getAuthenticatedUserId(headers);
-    const isOrganizationAdmin =
-      this.access.hasOrganizationAdminRole(headers);
+    const isOrganizationAdmin = this.access.hasOrganizationAdminRole(headers);
     if (!isOrganizationAdmin) {
       await this.access.assertProjectRole(
         existing.projectId,
