@@ -1,7 +1,7 @@
 -- V3: proposal-based process changes.
 -- The clone is a separate workspace; the source publication remains untouched
 -- until a later, explicitly approved atomic promotion operation.
-ALTER TYPE contents_status_enum ADD VALUE IF NOT EXISTS 'submitted';
+-- Proposal workflow states live only in this table, never in contents.status.
 
 CREATE TABLE IF NOT EXISTS process_change_proposals (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS process_change_proposals (
   "authorUserId" uuid NOT NULL REFERENCES app_users(id) ON DELETE RESTRICT,
   "validatorUserId" uuid NULL REFERENCES app_users(id) ON DELETE SET NULL,
   status varchar(16) NOT NULL DEFAULT 'draft'
-    CHECK (status IN ('draft', 'submitted', 'published')),
+    CHECK (status IN ('draft', 'submitted', 'approved', 'changes_requested', 'rejected', 'published')),
   "submissionComment" text NULL,
   "submittedAt" timestamptz NULL,
   "decidedAt" timestamptz NULL,
