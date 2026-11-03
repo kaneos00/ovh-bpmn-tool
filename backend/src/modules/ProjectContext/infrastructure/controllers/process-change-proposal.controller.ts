@@ -200,6 +200,7 @@ export class ProcessChangeProposalController {
       const resources = manager.getRepository(ResourceTypeOrmEntity);
       const contents = manager.getRepository(ContentTypeOrmEntity);
       const links = manager.getRepository(ProjectProcessTypeOrmEntity);
+      const members = manager.getRepository(ProjectMemberTypeOrmEntity);
       const proposals = manager.getRepository(
         ProcessChangeProposalTypeOrmEntity,
       );
