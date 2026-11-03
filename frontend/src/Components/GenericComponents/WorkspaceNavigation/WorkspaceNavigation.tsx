@@ -538,7 +538,9 @@ export const WorkspaceNavigation = () => {
                   ))}
                 </List>
               )}
-              {results.length >= 10 && <Typography level="body-xs" sx={{ px: 1.5, pb: 1, color: 'text.tertiary' }}>Affinez la recherche pour réduire les résultats.</Typography>}            </Sheet>
+              {results.length >= 10 && <Typography level="body-xs" sx={{ px: 1.5, pb: 1, color: 'text.tertiary' }}>Affinez la recherche pour réduire les résultats.</Typography>}
+              </Box>
+            </Sheet>
           )}
         </Box>
 
