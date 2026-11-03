@@ -220,7 +220,7 @@ export class ProcessChangeProposalController {
       }
 
       const cloneResource = resources.create({
-        name: `${source.name} — proposition ${randomUUID().slice(0, 8)}`,
+        name: `${source.name.slice(0, 220)} — proposition ${randomUUID().slice(0, 8)}`,
         description: source.description,
         depth: source.depth,
         parentId: source.parentId,
