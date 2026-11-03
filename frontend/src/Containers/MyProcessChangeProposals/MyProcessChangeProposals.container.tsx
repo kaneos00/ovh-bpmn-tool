@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import {
-  Box, Button, Chip, CircularProgress, Input, Sheet, Stack, Tab, TabList,
+  Box, Button, Chip, CircularProgress, Input, Sheet, Stack,
   Table, Typography,
 } from '@mui/joy';
 import { Search, VisibilityOutlined, EditOutlined } from '@mui/icons-material';
@@ -112,11 +112,11 @@ export const Component = () => {
             <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
               <Typography level="title-md">Historique de mes demandes</Typography>
               <Typography level="body-xs" sx={{ color: 'text.secondary', mt: 0.35 }}>
-                Vue personnelle et transversale. Les droits d’accès au progetto restano applicabili.
+                Vue personnelle et transversale. Les droits d’accès au projet restent applicables.
               </Typography>
             </Box>
             <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'center' }} justifyContent="space-between" spacing={1} sx={{ p: 1.5, bgcolor: 'background.level1', borderBottom: '1px solid', borderColor: 'divider' }}>
-              <TabList size="sm" variant="plain" sx={{ flexWrap: 'wrap', gap: 0.25 }}>
+              <Stack direction="row" useFlexGap flexWrap="wrap" spacing={0.5}>
                 {[
                   ['all', 'Toutes'],
                   ['draft', 'Brouillons'],
@@ -124,11 +124,9 @@ export const Component = () => {
                   ['approved', 'Approuvées'],
                   ['rejected', 'Refusées'],
                 ].map(([value, label]) => (
-                  <Tab key={value} value={value} selected={filter === value} onClick={() => setFilter(value as typeof filter)}>
-                    {label}
-                  </Tab>
+                  <Button key={value} size="sm" variant={filter === value ? 'soft' : 'plain'} color={filter === value ? 'primary' : 'neutral'} onClick={() => setFilter(value as typeof filter)}>{label}</Button>
                 ))}
-              </TabList>
+              </Stack>
               <Input
                 size="sm"
                 value={search}
