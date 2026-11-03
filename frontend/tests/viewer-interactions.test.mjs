@@ -236,9 +236,9 @@ test('global annotation search labels text annotations as Description and carrie
   assert.match(navigation, /let bpmnOwner: Element \| null = element/);
   assert.match(navigation, /bpmnOwner\.namespaceURI !== BPMN_MODEL_NS/);
   assert.match(navigation, /const elementId = bpmnOwner\?\.getAttribute\('id'\) \|\| undefined/);
-  assert.match(navigation, /const tag = element\\.localName\\.toLocaleLowerCase\\('fr'\\)/);
+  assert.match(navigation, /const tag = element\.localName\.toLocaleLowerCase\('fr'\)/);
   assert.match(navigation, /isTextAnnotation = tag === 'textannotation'/);
-  assert.match(navigation, /isTextAnnotation \\|\\| tag === 'documentation'/);
+  assert.match(navigation, /isTextAnnotation \|\| tag === 'documentation'/);
   assert.match(navigation, /resourceId: process\.id,[\s\S]*?elementId,/);
   assert.match(navigation, /if \(result\.elementId\) params\.set\('elementId', result\.elementId\)/);
 });
