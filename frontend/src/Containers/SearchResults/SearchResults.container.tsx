@@ -335,7 +335,7 @@ export const Component = () => {
             </Select>
           </Stack>
           <Stack direction="row" justifyContent="flex-end" spacing={1}>
-            <Button size="sm" variant="plain" color="neutral" onClick={() => { setTypeFilter(''); setSourceFilter(''); setProcessFilter(''); setRoleFilter(''); const next = new URLSearchParams(); if (draftQuery.trim()) next.set('q', draftQuery.trim()); next.set('offset', '0'); setSearchParams(next); }}>Réinitialiser les filtres</Button>
+            <Button size="sm" variant="plain" color="neutral" onClick={() => { setDraftQuery(''); setTypeFilter(''); setSourceFilter(''); setProcessFilter(''); setRoleFilter(''); const next = new URLSearchParams(); next.set('offset', '0'); setSearchParams(next); }}>Réinitialiser les filtres</Button>
             <Button size="sm" variant="outlined" color="neutral" onClick={applySearch}>Appliquer les filtres</Button>
           </Stack>
         </Card>
