@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS process_change_proposals (
   "updatedAt" timestamptz NOT NULL DEFAULT NOW(),
   "projectId" uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   "sourceResourceId" uuid NOT NULL REFERENCES resources(id) ON DELETE RESTRICT,
-  "cloneResourceId" uuid NOT NULL UNIQUE REFERENCES resources(id) ON DELETE CASCADE,
+  "cloneResourceId" uuid NOT NULL UNIQUE REFERENCES resources(id) ON DELETE RESTRICT,
   "sourcePublishedContentId" uuid NOT NULL REFERENCES contents(id) ON DELETE RESTRICT,
   "submittedContentId" uuid NULL REFERENCES contents(id) ON DELETE RESTRICT,
   "authorUserId" uuid NOT NULL REFERENCES app_users(id) ON DELETE RESTRICT,
