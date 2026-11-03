@@ -64,7 +64,7 @@ export const Component = () => {
     requestedElementId,
   );
 
-  const { resource, contents, callbacks } = useBpmnLayout();
+  const { resource, callbacks } = useBpmnLayout();
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
 
   // The text button « Modeleur » in the page header is intentionally removed.
