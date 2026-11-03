@@ -537,11 +537,16 @@ export class ProcessChangeProposalController {
     });
     if (!existing) throw new NotFoundException('Demande introuvable');
 
-    const actorUsername = await this.access.assertProjectRole(
-      existing.projectId,
-      headers,
-      ProjectMemberRole.Modeler,
-    );
+    const actorUsername = this.access.getAuthenticatedUserId(headers);
+    const isOrganizationAdmin =
+      this.access.hasOrganizationAdminRole(headers);
+    if (!isOrganizationAdmin) {
+      await this.access.assertProjectRole(
+        existing.projectId,
+        headers,
+        ProjectMemberRole.Modeler,
+      );
+    }
     const actorUserId = await this.resolveAccountId(actorUsername);
     const decision = body.decision;
     if (
@@ -585,7 +590,8 @@ export class ProcessChangeProposalController {
       });
       if (
         proposal.validatorUserId !== actorUserId &&
-        currentMembership?.role !== ProjectMemberRole.Admin
+        currentMembership?.role !== ProjectMemberRole.Admin &&
+        !isOrganizationAdmin
       ) {
         throw new ForbiddenException(
           'Seul le validateur désigné ou un administrateur du projet peut décider',
@@ -631,11 +637,16 @@ export class ProcessChangeProposalController {
     });
     if (!existing) throw new NotFoundException('Demande introuvable');
 
-    const actorUsername = await this.access.assertProjectRole(
-      existing.projectId,
-      headers,
-      ProjectMemberRole.Modeler,
-    );
+    const actorUsername = this.access.getAuthenticatedUserId(headers);
+    const isOrganizationAdmin =
+      this.access.hasOrganizationAdminRole(headers);
+    if (!isOrganizationAdmin) {
+      await this.access.assertProjectRole(
+        existing.projectId,
+        headers,
+        ProjectMemberRole.Modeler,
+      );
+    }
     const actorUserId = await this.resolveAccountId(actorUsername);
     const pngContent = body.pngContent?.trim();
     if (!pngContent) {
@@ -670,7 +681,8 @@ export class ProcessChangeProposalController {
       });
       if (
         proposal.validatorUserId !== actorUserId &&
-        currentMembership?.role !== ProjectMemberRole.Admin
+        currentMembership?.role !== ProjectMemberRole.Admin &&
+        !isOrganizationAdmin
       ) {
         throw new ForbiddenException(
           'Seul le validateur désigné ou un administrateur du projet peut publier',
