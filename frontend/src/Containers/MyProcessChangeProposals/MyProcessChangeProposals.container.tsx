@@ -10,6 +10,12 @@ import { WorkspaceNavigation } from '../../Components/GenericComponents/Workspac
 import { apiClient } from '../../queryClient';
 
 type ProposalStatus = 'draft' | 'submitted' | 'approved' | 'changes_requested' | 'rejected' | 'published';
+type ReviewProposal = {
+  id: string; projectId: string; projectName: string; sourceResourceId: string;
+  sourcePublishedContentId: string; processName: string; cloneResourceId: string;
+  submittedContentId: string | null; authorName: string; submissionComment: string | null;
+  submittedAt: string | null; latestActivityAt: string;
+};
 type Proposal = {
   id: string;
   projectId: string;
@@ -35,6 +41,11 @@ const proposalsQuery = () => ({
   queryFn: (): Promise<Proposal[]> => apiClient.get('/projects/me/process-change-proposals'),
 });
 
+const reviewProposalsQuery = () => ({
+  queryKey: ['process-change-proposals-to-review'],
+  queryFn: (): Promise<ReviewProposal[]> => apiClient.get('/projects/me/process-change-proposals/to-review'),
+});
+
 const statusPresentation: Record<ProposalStatus, { label: string; color: 'neutral' | 'warning' | 'success' | 'danger' | 'primary' }> = {
   draft: { label: 'Brouillon', color: 'neutral' },
   submitted: { label: 'En attente', color: 'warning' },
@@ -52,7 +63,23 @@ export const Component = () => {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<'all' | ProposalStatus>('all');
   const [search, setSearch] = useState('');
+  const [reviewComments, setReviewComments] = useState<Record<string, string>>({});
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
   const { data = [], isLoading, isError, refetch } = useQuery(proposalsQuery());
+  const { data: reviews = [], isLoading: reviewsLoading, isError: reviewsError, refetch: refetchReviews } = useQuery(reviewProposalsQuery());
+
+  const decideProposal = async (proposal: ReviewProposal, decision: 'approved' | 'changes_requested' | 'rejected') => {
+    const comment = reviewComments[proposal.id]?.trim() ?? '';
+    if (decision !== 'approved' && !comment) return;
+    setReviewingId(proposal.id);
+    try {
+      await apiClient.post(`/projects/process-change-proposals/${proposal.id}/decision`, { decision, comment });
+      setReviewComments(previous => ({ ...previous, [proposal.id]: '' }));
+      await Promise.all([refetchReviews(), refetch()]);
+    } finally {
+      setReviewingId(null);
+    }
+  };
 
   const filtered = useMemo(() => data.filter(proposal => {
     const statusMatch = filter === 'all' || proposal.status === filter ||
@@ -94,6 +121,73 @@ export const Component = () => {
             </Box>
             <Chip variant="outlined" color="neutral" size="sm">Demandes rattachées à leur processus d’origine</Chip>
           </Stack>
+
+          <Sheet variant="outlined" sx={{ borderRadius: '10px', overflow: 'hidden', mb: 2.5 }}>
+            <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Box>
+                  <Typography level="title-md">Richieste da validare</Typography>
+                  <Typography level="body-xs" sx={{ color: 'text.secondary', mt: 0.35 }}>
+                    Richieste assegnate al tuo account e richieste dei progetti di cui sei amministratore.
+                  </Typography>
+                </Box>
+                <Chip size="sm" color="warning" variant="soft">{reviews.length} in attesa</Chip>
+              </Stack>
+            </Box>
+            {reviewsLoading && <Box sx={{ p: 2 }}><Typography level="body-sm">Caricamento delle richieste…</Typography></Box>}
+            {reviewsError && <Stack direction="row" spacing={1} alignItems="center" sx={{ p: 2 }}>
+              <Typography level="body-sm" color="danger">Impossibile caricare le richieste da validare.</Typography>
+              <Button size="sm" variant="outlined" onClick={() => refetchReviews()}>Riprova</Button>
+            </Stack>}
+            {!reviewsLoading && !reviewsError && reviews.length === 0 && (
+              <Box sx={{ p: 2.5 }}><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Nessuna richiesta in attesa di validazione.</Typography></Box>
+            )}
+            {!reviewsLoading && !reviewsError && reviews.length > 0 && (
+              <Stack divider={<Box sx={{ borderTop: '1px solid', borderColor: 'divider' }} />}>
+                {reviews.map(proposal => (
+                  <Box key={proposal.id} sx={{ p: 2 }}>
+                    <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'flex-start' }} spacing={1}>
+                      <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Typography level="title-sm">{proposal.processName}</Typography>
+                        <Typography level="body-xs" sx={{ color: 'text.secondary' }}>
+                          {proposal.projectName} · Proposée par {proposal.authorName} · {formatDate(proposal.submittedAt)}
+                        </Typography>
+                        {proposal.submissionComment && (
+                          <Sheet variant="soft" sx={{ p: 1, mt: 1, borderRadius: 'sm' }}>
+                            <Typography level="body-sm">{proposal.submissionComment}</Typography>
+                          </Sheet>
+                        )}
+                      </Box>
+                      <Button size="sm" variant="outlined" color="neutral"
+                        disabled={!proposal.submittedContentId}
+                        onClick={() => navigate(`/compare-resources/${proposal.sourceResourceId}/${proposal.sourcePublishedContentId}/${proposal.cloneResourceId}/${proposal.submittedContentId}`)}>
+                        Comparer les versions
+                      </Button>
+                    </Stack>
+                    <Textarea
+                      size="sm"
+                      minRows={2}
+                      value={reviewComments[proposal.id] ?? ''}
+                      onChange={event => setReviewComments(previous => ({ ...previous, [proposal.id]: event.target.value }))}
+                      placeholder="Commentaire du valideur (obligatoire pour demander des corrections ou refuser)…"
+                      sx={{ mt: 1.25 }}
+                    />
+                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mt: 1 }}>
+                      <Button size="sm" color="success" variant="solid" loading={reviewingId === proposal.id}
+                        disabled={reviewingId !== null}
+                        onClick={() => decideProposal(proposal, 'approved')}>Approuver</Button>
+                      <Button size="sm" color="primary" variant="outlined" loading={reviewingId === proposal.id}
+                        disabled={reviewingId !== null || !(reviewComments[proposal.id] ?? '').trim()}
+                        onClick={() => decideProposal(proposal, 'changes_requested')}>Demander des corrections</Button>
+                      <Button size="sm" color="danger" variant="outlined" loading={reviewingId === proposal.id}
+                        disabled={reviewingId !== null || !(reviewComments[proposal.id] ?? '').trim()}
+                        onClick={() => decideProposal(proposal, 'rejected')}>Refuser</Button>
+                    </Stack>
+                  </Box>
+                ))}
+              </Stack>
+            )}
+          </Sheet>
 
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2,minmax(0,1fr))', lg: 'repeat(4,minmax(0,1fr))' }, gap: 1.5, mb: 2.5 }}>
             {[
