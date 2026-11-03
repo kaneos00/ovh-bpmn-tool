@@ -164,6 +164,10 @@ export class ProcessChangeProposalController {
         latestActivityAt: latestEvent?.createdAt ?? proposal.updatedAt,
         latestActivityType: latestEvent?.eventType ?? 'created',
         latestActivityComment: latestEvent?.comment ?? null,
+        validatorWarning:
+          typeof latestEvent?.details?.validatorWarning === 'string'
+            ? latestEvent.details.validatorWarning
+            : null,
       };
     });
   }
@@ -472,6 +476,7 @@ export class ProcessChangeProposalController {
         }
       }
 
+      proposal.validatorUserId = validatorUserId;
       proposal.submittedContentId = submittedContent.id;
       proposal.submissionComment = comment;
       proposal.submittedAt = new Date();
@@ -486,7 +491,14 @@ export class ProcessChangeProposalController {
           actorUserId,
           validatorUserId,
           comment,
-          details: { submittedContentId: submittedContent.id },
+          details: {
+            submittedContentId: submittedContent.id,
+            validatorResolution,
+            validatorWarning:
+              validatorResolution === 'pilot_assigned'
+                ? null
+                : 'Le pilote du processus est absent ou non reconnu ; une validation administrateur est à prévoir.',
+          },
           createdBy: actorUsername,
         }),
       );
