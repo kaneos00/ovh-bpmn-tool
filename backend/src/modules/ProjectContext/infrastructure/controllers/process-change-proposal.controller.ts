@@ -7,14 +7,13 @@ import {
   NotFoundException,
   Param,
   Post,
-  Body,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
 import { ContentStatusEnum } from '../../../ResourceContext/shared/types/Content';
 import { ResourceTypeEnum } from '../../../ResourceContext/shared/types/Resource';
-import { ProjectMemberRole, ProjectMemberTypeOrmEntity } from '../entities/projectMember.ormEntity';
+import { ProjectMemberRole } from '../entities/projectMember.ormEntity';
 import { ProjectProcessUsage } from '../entities/projectProcess.ormEntity';
 import { ProcessChangeProposalStatus } from '../entities/processChangeProposal.ormEntity';
 import { UseAcl } from '../../../../shared-kernel/modules/acl/infrastructure/acl.decorator';
@@ -136,6 +135,7 @@ export class ProcessChangeProposalController {
       };
     });
   }
+
   /**
    * Start a proposal by cloning the currently published BPMN inside one
    * transaction. The source remains untouched and the clone is linked only
@@ -269,5 +269,4 @@ export class ProcessChangeProposalController {
       };
     });
   }
-
 }
