@@ -420,8 +420,37 @@ export class ProcessChangeProposalController {
         );
       }
 
-      let validatorUserId =
-        body.validatorUserId?.trim() || proposal.validatorUserId;
+      let validatorUserId: string | null = null;
+      let validatorResolution:
+        | 'pilot_assigned'
+        | 'pilot_missing'
+        | 'pilot_invalid' = body.validatorUserId?.trim()
+        ? 'pilot_invalid'
+        : 'pilot_missing';
+      const pilotIdentifier =
+        body.validatorUserId?.trim() || proposal.validatorUserId || null;
+      let pilotRows: Array<{ id: string; username: string }> = [];
+      if (pilotIdentifier) {
+        pilotRows = await manager.query(
+          'SELECT id, username FROM app_users WHERE (lower(username) = lower($1) OR lower(email) = lower($1) OR id::text = $1) AND active = TRUE LIMIT 1',
+          [pilotIdentifier],
+        );
+      }
+      const pilot = pilotRows[0];
+      if (pilot && pilot.id !== actorUserId) {
+        const pilotMembership = await members.findOne({
+          where: { projectId: proposal.projectId, userId: pilot.username },
+        });
+        if (
+          pilotMembership &&
+          (pilotMembership.role === ProjectMemberRole.Admin ||
+            pilotMembership.role === ProjectMemberRole.Modeler)
+        ) {
+          validatorUserId = pilot.id;
+          validatorResolution = 'pilot_assigned';
+        }
+      }
+
       if (!validatorUserId) {
         const admins = await members.find({
           where: {
@@ -430,29 +459,19 @@ export class ProcessChangeProposalController {
           },
           order: { createdAt: 'ASC' },
         });
-        validatorUserId =
-        admins.find((member) => member.userId !== actorUserId)?.userId ?? null;
-      }
-      if (!validatorUserId || validatorUserId === actorUserId) {
-        throw new BadRequestException(
-          'Désignez un validateur membre du projet, différent de l’auteur',
-        );
-      }
-
-      const validator = await members.findOne({
-        where: { projectId: proposal.projectId, userId: validatorUserId },
-      });
-      if (
-        !validator ||
-        (validator.role !== ProjectMemberRole.Admin &&
-          validator.role !== ProjectMemberRole.Modeler)
-      ) {
-        throw new BadRequestException(
-          'Le validateur doit être membre du projet avec un rôle Modeleur ou Administrateur',
-        );
+        for (const admin of admins) {
+          if (admin.userId === actorUsername) continue;
+          const adminRows: Array<{ id: string }> = await manager.query(
+            'SELECT id FROM app_users WHERE lower(username) = lower($1) AND active = TRUE LIMIT 1',
+            [admin.userId],
+          );
+          if (adminRows[0]) {
+            validatorUserId = adminRows[0].id;
+            break;
+          }
+        }
       }
 
-      proposal.validatorUserId = validatorUserId;
       proposal.submittedContentId = submittedContent.id;
       proposal.submissionComment = comment;
       proposal.submittedAt = new Date();
@@ -476,9 +495,10 @@ export class ProcessChangeProposalController {
         id: savedProposal.id,
         status: savedProposal.status,
         validatorUserId,
-        validatorWarning: validatorResolution === 'pilot_assigned'
-          ? null
-          : 'Le pilote du processus est absent ou non reconnu ; une validation administrateur est à prévoir.',
+        validatorWarning:
+          validatorResolution === 'pilot_assigned'
+            ? null
+            : 'Le pilote du processus est absent ou non reconnu ; une validation administrateur est à prévoir.',
         submittedContentId: submittedContent.id,
         submittedAt: savedProposal.submittedAt,
       };
@@ -634,7 +654,7 @@ export class ProcessChangeProposalController {
         );
       }
       const currentMembership = await members.findOne({
-        where: { projectId: proposal.projectId, userId: actorUserId },
+        where: { projectId: proposal.projectId, userId: actorUsername },
       });
       if (
         proposal.validatorUserId !== actorUserId &&
@@ -700,7 +720,7 @@ export class ProcessChangeProposalController {
         .getOne();
 
       currentPublished.status = ContentStatusEnum.Obsolete;
-      currentPublished.updatedBy = actorUserId;
+      currentPublished.updatedBy = actorUsername;
       currentPublished.pngContent = null;
       await contents.save(currentPublished);
 
@@ -718,8 +738,8 @@ export class ProcessChangeProposalController {
             pngContent.replace(/^data:image\/png;base64,/, ''),
             'base64',
           ),
-          updatedBy: actorUserId,
-          createdBy: actorUserId,
+          updatedBy: actorUsername,
+          createdBy: actorUsername,
         }),
       );
 
@@ -742,7 +762,7 @@ export class ProcessChangeProposalController {
             sourcePublishedContentId: newPublished.id,
             version: newPublished.version,
           },
-          createdBy: actorUserId,
+          createdBy: actorUsername,
         }),
       );
 
