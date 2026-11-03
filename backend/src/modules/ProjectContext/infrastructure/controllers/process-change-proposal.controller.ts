@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { randomBytes, randomUUID } from 'crypto';
 import {
   BadRequestException,
   Body,
@@ -452,4 +452,272 @@ export class ProcessChangeProposalController {
       };
     });
   }
+  /**
+   * Record the validator's decision without changing the BPMN content status.
+   * Project administrators may act as a fallback when the assigned validator
+   * is unavailable.
+   */
+  @Post('process-change-proposals/:proposalId/decision')
+  @UseAcl()
+  async decideProposal(
+    @Param('proposalId') proposalId: string,
+    @Body() body: {
+      decision?: 'approved' | 'changes_requested' | 'rejected';
+      comment?: string;
+    },
+    @Headers() headers: RequestHeaders,
+  ) {
+    const existing = await this.proposals.findOne({
+      where: { id: proposalId },
+    });
+    if (!existing) throw new NotFoundException('Demande introuvable');
+
+    const actorUserId = await this.access.assertProjectRole(
+      existing.projectId,
+      headers,
+      ProjectMemberRole.Modeler,
+    );
+    const actorMembership = await this.members.findOne({
+      where: { projectId: existing.projectId, userId: actorUserId },
+    });
+    const isProjectAdmin = actorMembership?.role === ProjectMemberRole.Admin;
+    if (existing.validatorUserId !== actorUserId && !isProjectAdmin) {
+      throw new ForbiddenException(
+        'Seul le validateur désigné ou un administrateur du projet peut décider',
+      );
+    }
+
+    const decision = body.decision;
+    if (
+      decision !== ProcessChangeProposalStatus.Approved &&
+      decision !== ProcessChangeProposalStatus.ChangesRequested &&
+      decision !== ProcessChangeProposalStatus.Rejected
+    ) {
+      throw new BadRequestException('Décision de validation non reconnue');
+    }
+    const comment = body.comment?.trim() ?? '';
+    if (
+      (decision === ProcessChangeProposalStatus.ChangesRequested ||
+        decision === ProcessChangeProposalStatus.Rejected) &&
+      !comment
+    ) {
+      throw new BadRequestException(
+        'Un commentaire est obligatoire pour demander des modifications ou rejeter la demande',
+      );
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const proposals = manager.getRepository(
+        ProcessChangeProposalTypeOrmEntity,
+      );
+      const events = manager.getRepository(
+        ProcessChangeProposalEventTypeOrmEntity,
+      );
+      const proposal = await proposals.findOne({
+        where: { id: proposalId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!proposal) throw new NotFoundException('Demande introuvable');
+      if (proposal.status !== ProcessChangeProposalStatus.Submitted) {
+        throw new ConflictException(
+          'Seule une demande soumise peut faire l’objet d’une décision',
+        );
+      }
+      if (proposal.validatorUserId !== actorUserId && !isProjectAdmin) {
+        throw new ForbiddenException('Le validateur de la demande a changé');
+      }
+
+      proposal.status = decision;
+      proposal.decidedAt = new Date();
+      const saved = await proposals.save(proposal);
+      await events.save(
+        events.create({
+          proposalId,
+          eventType: decision,
+          actorUserId,
+          validatorUserId: proposal.validatorUserId,
+          comment: comment || null,
+          details: null,
+          createdBy: actorUserId,
+        }),
+      );
+      return {
+        id: saved.id,
+        status: saved.status,
+        decidedAt: saved.decidedAt,
+      };
+    });
+  }
+
+  /**
+   * Promote the reviewed BPMN snapshot to the source process. Source version
+   * verification, previous-version obsolescence, new publication and proposal
+   * history are committed in one database transaction.
+   */
+  @Post('process-change-proposals/:proposalId/publish')
+  @UseAcl()
+  async publishApprovedProposal(
+    @Param('proposalId') proposalId: string,
+    @Body() body: { pngContent?: string },
+    @Headers() headers: RequestHeaders,
+  ) {
+    const existing = await this.proposals.findOne({
+      where: { id: proposalId },
+    });
+    if (!existing) throw new NotFoundException('Demande introuvable');
+
+    const actorUserId = await this.access.assertProjectRole(
+      existing.projectId,
+      headers,
+      ProjectMemberRole.Modeler,
+    );
+    const actorMembership = await this.members.findOne({
+      where: { projectId: existing.projectId, userId: actorUserId },
+    });
+    const isProjectAdmin = actorMembership?.role === ProjectMemberRole.Admin;
+    if (existing.validatorUserId !== actorUserId && !isProjectAdmin) {
+      throw new ForbiddenException(
+        'Seul le validateur désigné ou un administrateur du projet peut publier',
+      );
+    }
+    if (!body.pngContent?.trim()) {
+      throw new BadRequestException(
+        'La prévisualisation PNG du processus est obligatoire pour publier',
+      );
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const proposals = manager.getRepository(
+        ProcessChangeProposalTypeOrmEntity,
+      );
+      const resources = manager.getRepository(ResourceTypeOrmEntity);
+      const contents = manager.getRepository(ContentTypeOrmEntity);
+      const events = manager.getRepository(
+        ProcessChangeProposalEventTypeOrmEntity,
+      );
+
+      const proposal = await proposals.findOne({
+        where: { id: proposalId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!proposal) throw new NotFoundException('Demande introuvable');
+      if (proposal.status !== ProcessChangeProposalStatus.Approved) {
+        throw new ConflictException(
+          'La demande doit être approuvée avant publication',
+        );
+      }
+      if (proposal.validatorUserId !== actorUserId && !isProjectAdmin) {
+        throw new ForbiddenException('Le validateur de la demande a changé');
+      }
+      if (!proposal.submittedContentId) {
+        throw new ConflictException(
+          'La demande ne contient aucune version soumise à validation',
+        );
+      }
+
+      const source = await resources.findOne({
+        where: { id: proposal.sourceResourceId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!source) throw new NotFoundException('Processus source introuvable');
+
+      const submittedContent = await contents.findOne({
+        where: {
+          id: proposal.submittedContentId,
+          resourceId: proposal.cloneResourceId,
+          status: ContentStatusEnum.Draft,
+        },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!submittedContent) {
+        throw new ConflictException(
+          'La version soumise n’est plus disponible comme brouillon',
+        );
+      }
+
+      const currentPublished = await contents.findOne({
+        where: {
+          resourceId: proposal.sourceResourceId,
+          status: ContentStatusEnum.Published,
+        },
+        order: { version: 'DESC' },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (
+        !currentPublished ||
+        currentPublished.id !== proposal.sourcePublishedContentId
+      ) {
+        throw new ConflictException(
+          'Le processus source a changé depuis la soumission. La publication est bloquée.',
+        );
+      }
+
+      const latestVersion = await contents
+        .createQueryBuilder('content')
+        .setLock('pessimistic_write')
+        .where('content."resourceId" = :resourceId', {
+          resourceId: proposal.sourceResourceId,
+        })
+        .andWhere('content.status IN (:...statuses)', {
+          statuses: [ContentStatusEnum.Published, ContentStatusEnum.Obsolete],
+        })
+        .orderBy('content.version', 'DESC', 'NULLS LAST')
+        .getOne();
+
+      currentPublished.status = ContentStatusEnum.Obsolete;
+      currentPublished.updatedBy = actorUserId;
+      currentPublished.pngContent = null;
+      await contents.save(currentPublished);
+
+      const newPublished = await contents.save(
+        contents.create({
+          resourceId: proposal.sourceResourceId,
+          status: ContentStatusEnum.Published,
+          version: Math.max(
+            (latestVersion?.version ?? 0) + 1,
+            submittedContent.version ?? 1,
+          ),
+          content: submittedContent.content,
+          changeComment: proposal.submissionComment,
+          pngContent: Buffer.from(
+            body.pngContent.replace(/^data:image\/png;base64,/, ''),
+            'base64',
+          ),
+          updatedBy: actorUserId,
+          createdBy: actorUserId,
+        }),
+      );
+
+      if (!source.authToken) {
+        source.authToken = randomBytes(32).toString('hex');
+        await resources.save(source);
+      }
+
+      proposal.status = ProcessChangeProposalStatus.Published;
+      proposal.decidedAt = new Date();
+      await proposals.save(proposal);
+      await events.save(
+        events.create({
+          proposalId,
+          eventType: 'published',
+          actorUserId,
+          validatorUserId: proposal.validatorUserId,
+          comment: null,
+          details: {
+            sourcePublishedContentId: newPublished.id,
+            version: newPublished.version,
+          },
+          createdBy: actorUserId,
+        }),
+      );
+
+      return {
+        id: proposal.id,
+        status: proposal.status,
+        publishedContentId: newPublished.id,
+        version: newPublished.version,
+      };
+    });
+  }
+
 }
