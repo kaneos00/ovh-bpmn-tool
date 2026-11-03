@@ -39,7 +39,7 @@ export class ProcessChangeProposalTypeOrmEntity extends AbstractEntity {
 
   @Column({
     type: 'varchar',
-    length: 16,
+    length: 24,
     default: ProcessChangeProposalStatus.Draft,
   })
   status: ProcessChangeProposalStatus;
