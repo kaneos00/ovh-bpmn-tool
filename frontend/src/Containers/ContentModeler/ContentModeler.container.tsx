@@ -14,7 +14,7 @@ import { useResource } from '../../shared/hooks/useResource';
 import type { ContentModelerRouteParams } from '.';
 import { useCallActivityNavigation } from '../../shared/hooks/useCallActivityNavigation';
 import { ImpersonationBanner } from '../../Components/GenericComponents/ImpersonationBanner/ImpersonationBanner';
-import { apiClient } from '../../queryClient';
+import queryClient, { apiClient } from '../../queryClient';
 
 export const Component = () => {
   // share modeler instance in order to avoid create instance in useContentModeler and useModeler
@@ -171,6 +171,9 @@ export const Component = () => {
                     `/projects/process-change-proposals/${proposalId}/submit`,
                     { comment: submissionComment.trim() },
                   );
+                  await queryClient.invalidateQueries({
+                    queryKey: ['my-process-change-proposals'],
+                  });
                   setValidationModalOpen(false);
                   navigate('/mes-demandes');
                 } catch (error) {
