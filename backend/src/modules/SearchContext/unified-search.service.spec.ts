@@ -128,6 +128,30 @@ describe('BPMN search extraction', () => {
     expect(laneActor.some((result) => result.label === 'Finance')).toBe(true);
   });
 
+  it('indexes descriptions attached to BPMN element types without a dedicated label', () => {
+    const xmlWithGenericElement = `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL">
+      <process id="Process_Order" name="Order">
+        <dataObjectReference id="Data_Supplier" name="Supplier record">
+          <documentation>Supplier master data source</documentation>
+        </dataObjectReference>
+      </process></definitions>`;
+    const results = extractBpmnSearchResults(
+      xmlWithGenericElement,
+      'resource-1',
+      'Order',
+      'master data',
+      ['bpmn'],
+    );
+    expect(results).toContainEqual(
+      expect.objectContaining({
+        type: 'bpmn',
+        elementId: 'Data_Supplier',
+        field: 'descrizione',
+        excerpt: 'Supplier master data source',
+      }),
+    );
+  });
+
   it('indexes process-level documentation and inferred lane RACI assignments', () => {
     const processXml = `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL">
       <process id="Process_Order" name="Order">
