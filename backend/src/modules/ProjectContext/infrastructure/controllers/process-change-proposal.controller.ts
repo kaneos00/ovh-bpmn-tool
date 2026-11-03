@@ -593,6 +593,16 @@ export class ProcessChangeProposalController {
         where: { projectId: proposal.projectId, userId: actorUsername },
       });
       if (
+        !isOrganizationAdmin &&
+        (!currentMembership ||
+          (currentMembership.role !== ProjectMemberRole.Admin &&
+            currentMembership.role !== ProjectMemberRole.Modeler))
+      ) {
+        throw new ForbiddenException(
+          'Votre rôle dans le projet ne permet plus cette action',
+        );
+      }
+      if (
         proposal.validatorUserId !== actorUserId &&
         currentMembership?.role !== ProjectMemberRole.Admin &&
         !isOrganizationAdmin
