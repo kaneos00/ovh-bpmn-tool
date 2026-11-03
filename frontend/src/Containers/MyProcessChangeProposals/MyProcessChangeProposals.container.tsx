@@ -67,7 +67,7 @@ export const Component = () => {
 
   const openProposal = (proposal: Proposal) => {
     if (proposal.status === 'draft' || proposal.status === 'changes_requested') {
-      navigate(`/${proposal.cloneResourceId}/modeler`);
+      navigate(`/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}`);
       return;
     }
     navigate(`/${proposal.sourceResourceId}`);
