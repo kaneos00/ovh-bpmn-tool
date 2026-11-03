@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   ConflictException,
   Controller,
   Get,
@@ -183,7 +184,7 @@ export class ProcessChangeProposalController {
         lock: { mode: 'pessimistic_read' },
       });
       if (!published) {
-        throw new BadRequestException('Il n’existe aucune versione pubblicata da proporre');
+        throw new BadRequestException('Aucune version publiée du processus ne peut être proposée');
       }
 
       const existingDraft = await proposals.findOne({
@@ -269,4 +270,142 @@ export class ProcessChangeProposalController {
       };
     });
   }
+  /**
+   * Submit a frozen draft snapshot for review. Proposal workflow state is
+   * stored only on the proposal row; the BPMN content remains a draft.
+   */
+  @Post('process-change-proposals/:proposalId/submit')
+  @UseAcl()
+  async submitProposal(
+    @Param('proposalId') proposalId: string,
+    @Body() body: { comment?: string; validatorUserId?: string },
+    @Headers() headers: RequestHeaders,
+  ) {
+    const existing = await this.proposals.findOne({
+      where: { id: proposalId },
+    });
+    if (!existing) throw new NotFoundException('Demande introuvable');
+
+    const actorUserId = await this.access.assertProjectRole(
+      existing.projectId,
+      headers,
+      ProjectMemberRole.Modeler,
+    );
+    const comment = body.comment?.trim() ?? '';
+    if (!comment) {
+      throw new BadRequestException('Un commentaire de soumission est obligatoire');
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const proposals = manager.getRepository(ProcessChangeProposalTypeOrmEntity);
+      const contents = manager.getRepository(ContentTypeOrmEntity);
+      const members = manager.getRepository(ProjectMemberTypeOrmEntity);
+      const events = manager.getRepository(ProcessChangeProposalEventTypeOrmEntity);
+      const resources = manager.getRepository(ResourceTypeOrmEntity);
+
+      const proposal = await proposals.findOne({
+        where: { id: proposalId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!proposal) throw new NotFoundException('Demande introuvable');
+      if (proposal.authorUserId !== actorUserId) {
+        throw new ForbiddenException('Seul l’auteur peut soumettre cette demande');
+      }
+      if (
+        proposal.status !== ProcessChangeProposalStatus.Draft &&
+        proposal.status !== ProcessChangeProposalStatus.ChangesRequested
+      ) {
+        throw new ConflictException('La demande ne peut pas être soumise dans son état actuel');
+      }
+
+      const source = await resources.findOne({
+        where: { id: proposal.sourceResourceId },
+        lock: { mode: 'pessimistic_read' },
+      });
+      if (!source) throw new NotFoundException('Processus source introuvable');
+
+      const currentPublished = await contents.findOne({
+        where: {
+          resourceId: proposal.sourceResourceId,
+          status: ContentStatusEnum.Published,
+        },
+        order: { version: 'DESC' },
+        lock: { mode: 'pessimistic_read' },
+      });
+      if (
+        !currentPublished ||
+        currentPublished.id !== proposal.sourcePublishedContentId
+      ) {
+        throw new ConflictException(
+          'Le processus source a changé depuis la création de la demande. Créez une nouvelle proposition.',
+        );
+      }
+
+      const submittedContent = await contents.findOne({
+        where: {
+          resourceId: proposal.cloneResourceId,
+          status: ContentStatusEnum.Draft,
+        },
+        order: { version: 'DESC' },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!submittedContent) {
+        throw new BadRequestException('Le brouillon de travail est introuvable ou n’est plus modifiable');
+      }
+
+      let validatorUserId = body.validatorUserId?.trim() || proposal.validatorUserId;
+      if (!validatorUserId) {
+        const admins = await members.find({
+          where: { projectId: proposal.projectId, role: ProjectMemberRole.Admin },
+          order: { createdAt: 'ASC' },
+        });
+        validatorUserId = admins.find((member) => member.userId !== actorUserId)?.userId ?? null;
+      }
+      if (!validatorUserId || validatorUserId === actorUserId) {
+        throw new BadRequestException(
+          'Désignez un validateur membre du projet, différent de l’auteur',
+        );
+      }
+
+      const validator = await members.findOne({
+        where: { projectId: proposal.projectId, userId: validatorUserId },
+      });
+      if (
+        !validator ||
+        (validator.role !== ProjectMemberRole.Admin &&
+          validator.role !== ProjectMemberRole.Modeler)
+      ) {
+        throw new BadRequestException(
+          'Le validateur doit être membre du projet avec un rôle Modeleur ou Administrateur',
+        );
+      }
+
+      proposal.validatorUserId = validatorUserId;
+      proposal.submittedContentId = submittedContent.id;
+      proposal.submissionComment = comment;
+      proposal.submittedAt = new Date();
+      proposal.decidedAt = null;
+      proposal.status = ProcessChangeProposalStatus.Submitted;
+      const savedProposal = await proposals.save(proposal);
+
+      await events.save(events.create({
+        proposalId,
+        eventType: 'submitted',
+        actorUserId,
+        validatorUserId,
+        comment,
+        details: { submittedContentId: submittedContent.id },
+        createdBy: actorUserId,
+      }));
+
+      return {
+        id: savedProposal.id,
+        status: savedProposal.status,
+        validatorUserId,
+        submittedContentId: submittedContent.id,
+        submittedAt: savedProposal.submittedAt,
+      };
+    });
+  }
+
 }
