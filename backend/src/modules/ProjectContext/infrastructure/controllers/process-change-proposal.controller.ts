@@ -19,7 +19,10 @@ import { ResourceTypeEnum } from '../../../ResourceContext/shared/types/Resource
 import { ContentTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/content.ormEntity';
 import { ResourceTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/resource.ormEntity';
 import { ProjectResourceAccessService } from '../../projectResourceAccess.service';
-import { ProjectMemberRole, ProjectMemberTypeOrmEntity } from '../entities/projectMember.ormEntity';
+import {
+  ProjectMemberRole,
+  ProjectMemberTypeOrmEntity,
+} from '../entities/projectMember.ormEntity';
 import {
   ProjectProcessTypeOrmEntity,
   ProjectProcessUsage,
@@ -402,7 +405,7 @@ export class ProcessChangeProposalController {
           order: { createdAt: 'ASC' },
         });
         validatorUserId =
-          admins.find((member) => member.userId !== actorUserId)?.userId ?? null;
+        admins.find((member) => member.userId !== actorUserId)?.userId ?? null;
       }
       if (!validatorUserId || validatorUserId === actorUserId) {
         throw new BadRequestException(
@@ -461,8 +464,9 @@ export class ProcessChangeProposalController {
   @UseAcl()
   async decideProposal(
     @Param('proposalId') proposalId: string,
-    @Body() body: {
-      decision?: 'approved' | 'changes_requested' | 'rejected';
+    @Body()
+    body: {
+      decision?: ProcessChangeProposalStatus;
       comment?: string;
     },
     @Headers() headers: RequestHeaders,
@@ -570,7 +574,8 @@ export class ProcessChangeProposalController {
       headers,
       ProjectMemberRole.Modeler,
     );
-    if (!body.pngContent?.trim()) {
+    const pngContent = body.pngContent?.trim();
+    if (!pngContent) {
       throw new BadRequestException(
         'La prévisualisation PNG du processus est obligatoire pour publier',
       );
@@ -679,7 +684,7 @@ export class ProcessChangeProposalController {
           content: submittedContent.content,
           changeComment: proposal.submissionComment,
           pngContent: Buffer.from(
-            body.pngContent.replace(/^data:image\/png;base64,/, ''),
+            pngContent.replace(/^data:image\/png;base64,/, ''),
             'base64',
           ),
           updatedBy: actorUserId,
@@ -718,5 +723,4 @@ export class ProcessChangeProposalController {
       };
     });
   }
-
 }
