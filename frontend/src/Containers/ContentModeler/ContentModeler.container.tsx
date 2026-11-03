@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Outlet, useBlocker, useNavigate, useParams } from 'react-router-dom';
+import { Outlet, useBlocker, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { ModelerActionBar } from './components/ModelerActionBar';
-import { Button, Modal, ModalDialog, DialogTitle, DialogContent, DialogActions } from '@mui/joy';
+import { Alert, Button, Modal, ModalDialog, DialogTitle, DialogContent, DialogActions, Textarea } from '@mui/joy';
 import { ModelerShortcuts } from '../../Components/BusinessComponents/ModelerShortcuts/ModelerShortcuts';
 import { useContentModeler } from './hooks/useContentModeler';
 import { useModeler } from './hooks/useModeler';
@@ -14,6 +14,7 @@ import { useResource } from '../../shared/hooks/useResource';
 import type { ContentModelerRouteParams } from '.';
 import { useCallActivityNavigation } from '../../shared/hooks/useCallActivityNavigation';
 import { ImpersonationBanner } from '../../Components/GenericComponents/ImpersonationBanner/ImpersonationBanner';
+import { apiClient } from '../../queryClient';
 
 export const Component = () => {
   // share modeler instance in order to avoid create instance in useContentModeler and useModeler
@@ -22,11 +23,18 @@ export const Component = () => {
   const { getRechercheProvider } = useBpmnToolOptions();
   const { resourceId: routeResourceId } = useParams() as ContentModelerRouteParams;
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const proposalId = searchParams.get('proposalId');
+  const proposalMode = Boolean(proposalId);
   const pendingSaveExitRef = useRef(false);
   const pendingPublishExitRef = useRef(false);
   const handledActionDataRef = useRef<typeof actionData>(undefined);
   const { resource } = useResource(routeResourceId);
   const [raciView, setRaciView] = useState<'matrix' | 'actors' | null>(null);
+  const [validationModalOpen, setValidationModalOpen] = useState(false);
+  const [submissionComment, setSubmissionComment] = useState('');
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [submittingProposal, setSubmittingProposal] = useState(false);
 
   useCallActivityNavigation(bpmnModelerInstance);
 
@@ -63,6 +71,12 @@ export const Component = () => {
     if (actionData.error) {
       pendingSaveExitRef.current = false;
       pendingPublishExitRef.current = false;
+      return;
+    }
+    if (actionData.formAction === 'saveContentBeforeSubmit') {
+      markSaved();
+      setSubmissionError(null);
+      setValidationModalOpen(true);
       return;
     }
     if (actionData.formAction === 'saveContent' || actionData.formAction === 'saveContentBeforePublish') {
@@ -109,11 +123,72 @@ export const Component = () => {
         onRaciOpen={() => setRaciView('matrix')}
         onRolesOpen={() => setRaciView('actors')}
         onCompareWithSource={onCompareWithSource}
+        proposalMode={proposalMode}
       />
       <Modeler
         diagramContainerRef={diagramContainerRef}
         diagramPropertiesRef={diagramPropertiesRef}
       />
+      <Modal
+        open={validationModalOpen}
+        onClose={() => {
+          if (!submittingProposal) setValidationModalOpen(false);
+        }}
+      >
+        <ModalDialog>
+          <DialogTitle>Demander la validation de la modification</DialogTitle>
+          <DialogContent>
+            Le brouillon est enregistré. Ajoutez un commentaire pour transmettre
+            cette version au validateur du projet.
+          </DialogContent>
+          <Textarea
+            minRows={3}
+            value={submissionComment}
+            onChange={value => setSubmissionComment(value)}
+            placeholder="Décrivez les modifications proposées et leur justification…"
+          />
+          {submissionError && <Alert color="danger">{submissionError}</Alert>}
+          <DialogActions>
+            <Button
+              variant="plain"
+              color="neutral"
+              disabled={submittingProposal}
+              onClick={() => setValidationModalOpen(false)}
+            >
+              Continuer l’édition
+            </Button>
+            <Button
+              variant="solid"
+              color="primary"
+              loading={submittingProposal}
+              disabled={!submissionComment.trim() || submittingProposal || !proposalId}
+              onClick={async () => {
+                if (!proposalId) return;
+                setSubmittingProposal(true);
+                setSubmissionError(null);
+                try {
+                  await apiClient.post(
+                    `/projects/process-change-proposals/${proposalId}/submit`,
+                    { comment: submissionComment.trim() },
+                  );
+                  setValidationModalOpen(false);
+                  navigate('/mes-demandes');
+                } catch (error) {
+                  setSubmissionError(
+                    error instanceof Error
+                      ? error.message
+                      : 'Impossible de soumettre la demande.',
+                  );
+                } finally {
+                  setSubmittingProposal(false);
+                }
+              }}
+            >
+              Envoyer au validateur
+            </Button>
+          </DialogActions>
+        </ModalDialog>
+      </Modal>
       <RaciMatrix
         modeler={bpmnModelerInstance}
         open={raciView !== null}
@@ -133,7 +208,7 @@ export const Component = () => {
             <Button variant="plain" color="neutral" onClick={() => { pendingSaveExitRef.current = false; pendingPublishExitRef.current = false; blocker.reset?.(); }}>Continuer l’édition</Button>
             <Button variant="outlined" color="danger" onClick={() => { markSaved(); blocker.proceed?.(); }}>Abandonner les modifications</Button>
             <Button variant="outlined" color="neutral" onClick={() => { pendingSaveExitRef.current = true; onDiagramSave(); }}>Enregistrer sans publier</Button>
-            <Button variant="solid" color="success" onClick={() => { pendingPublishExitRef.current = true; onDiagramPublish(); }}>Enregistrer et publier</Button>
+            <Button variant="solid" color="success" onClick={() => { pendingPublishExitRef.current = true; onDiagramPublish(); }}>{proposalMode ? 'Enregistrer et demander en validation' : 'Enregistrer et publier'}</Button>
           </DialogActions>
         </ModalDialog>
       </Modal>
