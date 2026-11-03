@@ -206,6 +206,18 @@ export class ProcessChangeProposalController {
       const events = manager.getRepository(
         ProcessChangeProposalEventTypeOrmEntity,
       );
+      const authorMembership = await members.findOne({
+        where: { projectId, userId: authorUsername },
+      });
+      if (
+        !authorMembership ||
+        (authorMembership.role !== ProjectMemberRole.Modeler &&
+          authorMembership.role !== ProjectMemberRole.Admin)
+      ) {
+        throw new ForbiddenException(
+          'Le rôle de modélisateur est requis pour proposer une modification',
+        );
+      }
 
       const sourceLink = await links.findOne({
         where: { projectId, resourceId: sourceResourceId },
@@ -370,6 +382,18 @@ export class ProcessChangeProposalController {
         ProcessChangeProposalEventTypeOrmEntity,
       );
       const resources = manager.getRepository(ResourceTypeOrmEntity);
+      const authorMembership = await members.findOne({
+        where: { projectId: existing.projectId, userId: actorUsername },
+      });
+      if (
+        !authorMembership ||
+        (authorMembership.role !== ProjectMemberRole.Modeler &&
+          authorMembership.role !== ProjectMemberRole.Admin)
+      ) {
+        throw new ForbiddenException(
+          'Le rôle de modélisateur est requis pour soumettre cette demande',
+        );
+      }
 
       const proposal = await proposals.findOne({
         where: { id: proposalId },
