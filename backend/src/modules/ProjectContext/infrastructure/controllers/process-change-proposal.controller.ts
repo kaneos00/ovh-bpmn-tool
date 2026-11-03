@@ -74,7 +74,9 @@ export class ProcessChangeProposalController {
       ...new Set(authored.map((proposal) => proposal.projectId)),
     ];
     const [memberships, projects, links, resources] = await Promise.all([
-      this.members.find({ where: { userId: username, projectId: In(projectIds) } }),
+      this.members.find({
+        where: { userId: username, projectId: In(projectIds) },
+      }),
       this.projects.find({ where: { id: In(projectIds) } }),
       this.projectProcesses.find({
         where: { projectId: In(projectIds) },
@@ -115,13 +117,16 @@ export class ProcessChangeProposalController {
           .filter((id): id is string => Boolean(id)),
       ),
     ];
-    const validatorRows: Array<{ id: string; username: string; email: string | null }> =
-      validatorIds.length
-        ? await this.dataSource.query(
-            'SELECT id, username, email FROM app_users WHERE id = ANY($1::uuid[])',
-            [validatorIds],
-          )
-        : [];
+    const validatorRows: Array<{
+      id: string;
+      username: string;
+      email: string | null;
+    }> = validatorIds.length
+      ? await this.dataSource.query(
+          'SELECT id, username, email FROM app_users WHERE id = ANY($1::uuid[])',
+          [validatorIds],
+        )
+      : [];
     const validatorById = new Map(
       validatorRows.map((validator) => [
         validator.id,
@@ -153,7 +158,7 @@ export class ProcessChangeProposalController {
         authorUserId: proposal.authorUserId,
         validatorUserId: proposal.validatorUserId,
         validatorName: proposal.validatorUserId
-          ? validatorById.get(proposal.validatorUserId) ?? null
+          ? (validatorById.get(proposal.validatorUserId) ?? null)
           : null,
         status: proposal.status,
         submissionComment: proposal.submissionComment,
@@ -538,8 +543,7 @@ export class ProcessChangeProposalController {
     if (!existing) throw new NotFoundException('Demande introuvable');
 
     const actorUsername = this.access.getAuthenticatedUserId(headers);
-    const isOrganizationAdmin =
-      this.access.hasOrganizationAdminRole(headers);
+    const isOrganizationAdmin = this.access.hasOrganizationAdminRole(headers);
     if (!isOrganizationAdmin) {
       await this.access.assertProjectRole(
         existing.projectId,
@@ -810,5 +814,4 @@ export class ProcessChangeProposalController {
     }
     return rows[0].id;
   }
-
 }
