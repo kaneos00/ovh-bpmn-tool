@@ -77,7 +77,9 @@ export class ProcessChangeProposalController {
       this.members.find({
         where: { userId: username, projectId: In(projectIds) },
       }),
-      this.projects.find({ where: { id: In(projectIds) } }),
+      this.projects.find({
+        where: { id: In(projectIds) },
+      }),
       this.projectProcesses.find({
         where: { projectId: In(projectIds) },
       }),
@@ -211,13 +213,21 @@ export class ProcessChangeProposalController {
     });
     if (!visible.length) return [];
 
-    const projectIds = [...new Set(visible.map((proposal) => proposal.projectId))];
+    const projectIds = [
+      ...new Set(visible.map((proposal) => proposal.projectId)),
+    ];
     const proposalIds = visible.map((proposal) => proposal.id);
-    const sourceIds = [...new Set(visible.map((proposal) => proposal.sourceResourceId))];
+    const sourceIds = [
+      ...new Set(visible.map((proposal) => proposal.sourceResourceId)),
+    ];
     const [projects, resources, links, events, authors] = await Promise.all([
       this.projects.find({ where: { id: In(projectIds) } }),
-      this.resources.find({ where: { id: In(sourceIds) } }),
-      this.projectProcesses.find({ where: { projectId: In(projectIds) } }),
+      this.resources.find({
+        where: { id: In(sourceIds) },
+      }),
+      this.projectProcesses.find({
+        where: { projectId: In(projectIds) },
+      }),
       this.events.find({
         where: { proposalId: In(proposalIds) },
         order: { createdAt: 'DESC' },
@@ -230,12 +240,23 @@ export class ProcessChangeProposalController {
     const linked = new Set(
       links.map((link) => `${link.projectId}:${link.resourceId}`),
     );
-    const projectById = new Map(projects.map((project) => [project.id, project]));
-    const resourceById = new Map(resources.map((resource) => [resource.id, resource]));
+    const projectById = new Map(
+      projects.map((project) => [project.id, project]),
+    );
+    const resourceById = new Map(
+      resources.map((resource) => [resource.id, resource]),
+    );
     const authorById = new Map(
-      (authors as Array<{ id: string; username: string; email: string | null }>).map(
-        (author) => [author.id, author.username || author.email || author.id],
-      ),
+      (
+        authors as Array<{
+          id: string;
+          username: string;
+          email: string | null;
+        }>
+      ).map((author) => [
+        author.id,
+        author.username || author.email || author.id,
+      ]),
     );
     const latestEventByProposal = new Map<
       string,
@@ -248,16 +269,21 @@ export class ProcessChangeProposalController {
     }
 
     return visible
-      .filter((proposal) => linked.has(`${proposal.projectId}:${proposal.sourceResourceId}`))
+      .filter((proposal) =>
+        linked.has(`${proposal.projectId}:${proposal.sourceResourceId}`),
+      )
       .map((proposal) => {
         const latestEvent = latestEventByProposal.get(proposal.id);
         return {
           id: proposal.id,
           projectId: proposal.projectId,
-          projectName: projectById.get(proposal.projectId)?.name ?? 'Projet indisponible',
+          projectName:
+            projectById.get(proposal.projectId)?.name ?? 'Projet indisponible',
           sourceResourceId: proposal.sourceResourceId,
           sourcePublishedContentId: proposal.sourcePublishedContentId,
-          processName: resourceById.get(proposal.sourceResourceId)?.name ?? 'Processus indisponible',
+          processName:
+            resourceById.get(proposal.sourceResourceId)?.name ??
+            'Processus indisponible',
           cloneResourceId: proposal.cloneResourceId,
           submittedContentId: proposal.submittedContentId,
           authorUserId: proposal.authorUserId,
