@@ -40,6 +40,7 @@ type ModelerActionBarProps = {
   onRaciOpen: () => void;
   onRolesOpen: () => void;
   onCompareWithSource?: () => void;
+  proposalMode?: boolean;
 };
 
 export const ModelerActionBar = ({
@@ -56,6 +57,7 @@ export const ModelerActionBar = ({
   onRaciOpen,
   onRolesOpen,
   onCompareWithSource,
+  proposalMode = false,
 }: ModelerActionBarProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -150,14 +152,16 @@ export const ModelerActionBar = ({
           <Info fontSize="small" />
         </Button>
 
-        <Button
-          variant="outlined"
-          color="neutral"
-          startDecorator={<Save fontSize="small" />}
-          onClick={onDiagramSave}
-        >
-          Save
-        </Button>
+        {!proposalMode && (
+          <Button
+            variant="outlined"
+            color="neutral"
+            startDecorator={<Save fontSize="small" />}
+            onClick={onDiagramSave}
+          >
+            Save
+          </Button>
+        )}
 
         <Button
           onClick={onDiagramPublish}
@@ -166,7 +170,7 @@ export const ModelerActionBar = ({
           color="success"
           endDecorator={<Done fontSize="small" />}
         >
-          Publish
+          {proposalMode ? 'Demander en validation' : 'Publish'}
         </Button>
         <UserAccountMenu dark={false} />
       </Stack>
