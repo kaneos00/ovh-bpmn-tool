@@ -62,7 +62,8 @@ export class ProcessChangeProposalController {
   @Get('me/process-change-proposals')
   @UseAcl()
   async listMyProposals(@Headers() headers: RequestHeaders) {
-    const userId = this.access.getAuthenticatedUserId(headers);
+    const username = this.access.getAuthenticatedUserId(headers);
+    const userId = await this.resolveAccountId(username);
     const authored = await this.proposals.find({
       where: { authorUserId: userId },
       order: { updatedAt: 'DESC', createdAt: 'DESC' },
@@ -73,7 +74,7 @@ export class ProcessChangeProposalController {
       ...new Set(authored.map((proposal) => proposal.projectId)),
     ];
     const [memberships, projects, links, resources] = await Promise.all([
-      this.members.find({ where: { userId, projectId: In(projectIds) } }),
+      this.members.find({ where: { userId: username, projectId: In(projectIds) } }),
       this.projects.find({ where: { id: In(projectIds) } }),
       this.projectProcesses.find({
         where: { projectId: In(projectIds) },
@@ -107,6 +108,26 @@ export class ProcessChangeProposalController {
       where: { proposalId: In(visible.map((proposal) => proposal.id)) },
       order: { createdAt: 'DESC' },
     });
+    const validatorIds = [
+      ...new Set(
+        visible
+          .map((proposal) => proposal.validatorUserId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const validatorRows: Array<{ id: string; username: string; email: string | null }> =
+      validatorIds.length
+        ? await this.dataSource.query(
+            'SELECT id, username, email FROM app_users WHERE id = ANY($1::uuid[])',
+            [validatorIds],
+          )
+        : [];
+    const validatorById = new Map(
+      validatorRows.map((validator) => [
+        validator.id,
+        validator.username || validator.email || validator.id,
+      ]),
+    );
     const latestEventByProposal = new Map<
       string,
       ProcessChangeProposalEventTypeOrmEntity
@@ -131,6 +152,9 @@ export class ProcessChangeProposalController {
         submittedContentId: proposal.submittedContentId,
         authorUserId: proposal.authorUserId,
         validatorUserId: proposal.validatorUserId,
+        validatorName: proposal.validatorUserId
+          ? validatorById.get(proposal.validatorUserId) ?? null
+          : null,
         status: proposal.status,
         submissionComment: proposal.submissionComment,
         createdAt: proposal.createdAt,
@@ -156,11 +180,12 @@ export class ProcessChangeProposalController {
     @Param('resourceId') sourceResourceId: string,
     @Headers() headers: RequestHeaders,
   ) {
-    const authorUserId = await this.access.assertProjectRole(
+    const authorUsername = await this.access.assertProjectRole(
       projectId,
       headers,
       ProjectMemberRole.Modeler,
     );
+    const authorUserId = await this.resolveAccountId(authorUsername);
 
     return this.dataSource.transaction(async (manager) => {
       const resources = manager.getRepository(ResourceTypeOrmEntity);
@@ -227,7 +252,7 @@ export class ProcessChangeProposalController {
         sourceResourceId: source.id,
         type: ResourceTypeEnum.Process,
         authToken: null,
-        createdBy: authorUserId,
+        createdBy: authorUsername,
       });
       const savedClone = await resources.save(cloneResource);
 
@@ -238,8 +263,8 @@ export class ProcessChangeProposalController {
         content: published.content,
         changeComment: null,
         pngContent: null,
-        updatedBy: authorUserId,
-        createdBy: authorUserId,
+        updatedBy: authorUsername,
+        createdBy: authorUsername,
       });
       const savedCloneContent = await contents.save(cloneContent);
 
@@ -249,7 +274,7 @@ export class ProcessChangeProposalController {
           resourceId: savedClone.id,
           usage: ProjectProcessUsage.ProjectSpecific,
           sourceResourceId,
-          createdBy: authorUserId,
+          createdBy: authorUsername,
         }),
       );
 
@@ -266,7 +291,7 @@ export class ProcessChangeProposalController {
           submissionComment: null,
           submittedAt: null,
           decidedAt: null,
-          createdBy: authorUserId,
+          createdBy: authorUsername,
         }),
       );
 
@@ -282,7 +307,7 @@ export class ProcessChangeProposalController {
             cloneResourceId: savedClone.id,
             cloneContentId: savedCloneContent.id,
           },
-          createdBy: authorUserId,
+          createdBy: authorUsername,
         }),
       );
 
@@ -313,11 +338,12 @@ export class ProcessChangeProposalController {
     });
     if (!existing) throw new NotFoundException('Demande introuvable');
 
-    const actorUserId = await this.access.assertProjectRole(
+    const actorUsername = await this.access.assertProjectRole(
       existing.projectId,
       headers,
       ProjectMemberRole.Modeler,
     );
+    const actorUserId = await this.resolveAccountId(actorUsername);
     const comment = body.comment?.trim() ?? '';
     if (!comment) {
       throw new BadRequestException(
@@ -442,7 +468,7 @@ export class ProcessChangeProposalController {
           validatorUserId,
           comment,
           details: { submittedContentId: submittedContent.id },
-          createdBy: actorUserId,
+          createdBy: actorUsername,
         }),
       );
 
@@ -450,6 +476,9 @@ export class ProcessChangeProposalController {
         id: savedProposal.id,
         status: savedProposal.status,
         validatorUserId,
+        validatorWarning: validatorResolution === 'pilot_assigned'
+          ? null
+          : 'Le pilote du processus est absent ou non reconnu ; une validation administrateur est à prévoir.',
         submittedContentId: submittedContent.id,
         submittedAt: savedProposal.submittedAt,
       };
@@ -476,11 +505,12 @@ export class ProcessChangeProposalController {
     });
     if (!existing) throw new NotFoundException('Demande introuvable');
 
-    const actorUserId = await this.access.assertProjectRole(
+    const actorUsername = await this.access.assertProjectRole(
       existing.projectId,
       headers,
       ProjectMemberRole.Modeler,
     );
+    const actorUserId = await this.resolveAccountId(actorUsername);
     const decision = body.decision;
     if (
       decision !== ProcessChangeProposalStatus.Approved &&
@@ -519,7 +549,7 @@ export class ProcessChangeProposalController {
         );
       }
       const currentMembership = await members.findOne({
-        where: { projectId: proposal.projectId, userId: actorUserId },
+        where: { projectId: proposal.projectId, userId: actorUsername },
       });
       if (
         proposal.validatorUserId !== actorUserId &&
@@ -541,7 +571,7 @@ export class ProcessChangeProposalController {
           validatorUserId: proposal.validatorUserId,
           comment: comment || null,
           details: null,
-          createdBy: actorUserId,
+          createdBy: actorUsername,
         }),
       );
       return {
@@ -569,11 +599,12 @@ export class ProcessChangeProposalController {
     });
     if (!existing) throw new NotFoundException('Demande introuvable');
 
-    const actorUserId = await this.access.assertProjectRole(
+    const actorUsername = await this.access.assertProjectRole(
       existing.projectId,
       headers,
       ProjectMemberRole.Modeler,
     );
+    const actorUserId = await this.resolveAccountId(actorUsername);
     const pngContent = body.pngContent?.trim();
     if (!pngContent) {
       throw new BadRequestException(
@@ -723,4 +754,17 @@ export class ProcessChangeProposalController {
       };
     });
   }
+  private async resolveAccountId(username: string): Promise<string> {
+    const rows: Array<{ id: string }> = await this.dataSource.query(
+      'SELECT id FROM app_users WHERE lower(username) = lower($1) AND active = TRUE LIMIT 1',
+      [username],
+    );
+    if (!rows[0]?.id) {
+      throw new ForbiddenException(
+        'Le compte utilisateur associé à la session est introuvable ou désactivé',
+      );
+    }
+    return rows[0].id;
+  }
+
 }
