@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
+  Alert,
   Box,
   Button,
   Divider,
@@ -73,6 +74,8 @@ const ProcessContentViewer = () => {
   const [actorFilter, setActorFilter] = useState('');
   const [codeFilter, setCodeFilter] = useState<RaciCode | ''>('');
   const [issuesOnly, setIssuesOnly] = useState(false);
+  const [startingProposal, setStartingProposal] = useState(false);
+  const [proposalError, setProposalError] = useState<string | null>(null);
   const {
     selectedElementId: selectedActivityId,
     setSelectedElementId: setSelectedActivityId,
@@ -94,6 +97,33 @@ const ProcessContentViewer = () => {
   const associatedProject = workspace?.projects.find(project =>
     project.processes.some(process => process.resourceId === resourceId),
   );
+  const proposalProject = workspace?.projects.find(project =>
+    (project.role === 'modeler' || project.role === 'admin') &&
+    project.processes.some(process => process.resourceId === resourceId),
+  );
+
+  const startChangeProposal = async () => {
+    if (!proposalProject || startingProposal) return;
+    setStartingProposal(true);
+    setProposalError(null);
+    try {
+      const proposal = await apiClient.post(
+        `/projects/${proposalProject.id}/processes/${resourceId}/change-proposals`,
+        {},
+      );
+      navigate(
+        `/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}`,
+      );
+    } catch (error) {
+      setProposalError(
+        error instanceof Error
+          ? error.message
+          : 'Impossible de créer la demande de modification.',
+      );
+    } finally {
+      setStartingProposal(false);
+    }
+  };
 
   const { data: contents = [] } = useQuery(contentsQuery(resourceId));
   const { data: xmlContent } = useQuery(
@@ -181,6 +211,18 @@ const ProcessContentViewer = () => {
             </Stack>
             <Stack direction="row" alignItems="center" spacing={1} useFlexGap flexWrap="wrap">
               <Breadcrumbs breadcrumbItems={getBreadCrumbs()} />
+              {proposalProject && (
+                <Button
+                  size="sm"
+                  variant="soft"
+                  color="primary"
+                  loading={startingProposal}
+                  disabled={startingProposal}
+                  onClick={startChangeProposal}
+                >
+                  Proposer une modification
+                </Button>
+              )}
               {associatedProject && (
                 <Button
                   size="sm"
@@ -194,6 +236,11 @@ const ProcessContentViewer = () => {
             </Stack>
           </Stack>
         </Box>
+        {proposalError && (
+          <Alert color="danger" variant="soft" sx={{ mx: 2, mt: 1 }}>
+            {proposalError}
+          </Alert>
+        )}
         <ProcessViewer
           resourceId={resourceId}
           contentId={contentId}
