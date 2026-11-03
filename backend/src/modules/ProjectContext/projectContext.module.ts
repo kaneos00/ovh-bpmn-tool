@@ -28,7 +28,11 @@ import { ProjectResourceAccessService } from './projectResourceAccess.service';
       ProcessChangeProposalEventTypeOrmEntity,
     ]),
   ],
-  controllers: [ProjectController, ProjectRaciController, ProcessChangeProposalController],
+  controllers: [
+    ProjectController,
+    ProjectRaciController,
+    ProcessChangeProposalController,
+  ],
   providers: [ProjectResourceAccessService],
   exports: [ProjectResourceAccessService],
 })
