@@ -1,6 +1,22 @@
-import { Controller, Get, Headers } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Controller,
+  Get,
+  Headers,
+  NotFoundException,
+  Param,
+  Post,
+  Body,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
+import { randomUUID } from 'crypto';
+import { ContentStatusEnum } from '../../../ResourceContext/shared/types/Content';
+import { ResourceTypeEnum } from '../../../ResourceContext/shared/types/Resource';
+import { ProjectMemberRole, ProjectMemberTypeOrmEntity } from '../entities/projectMember.ormEntity';
+import { ProjectProcessUsage } from '../entities/projectProcess.ormEntity';
+import { ProcessChangeProposalStatus } from '../entities/processChangeProposal.ormEntity';
 import { UseAcl } from '../../../../shared-kernel/modules/acl/infrastructure/acl.decorator';
 import { ProjectResourceAccessService } from '../../projectResourceAccess.service';
 import { ProjectTypeOrmEntity } from '../entities/project.ormEntity';
@@ -9,12 +25,14 @@ import { ProjectMemberTypeOrmEntity } from '../entities/projectMember.ormEntity'
 import { ProcessChangeProposalTypeOrmEntity } from '../entities/processChangeProposal.ormEntity';
 import { ProcessChangeProposalEventTypeOrmEntity } from '../entities/processChangeProposalEvent.ormEntity';
 import { ResourceTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/resource.ormEntity';
+import { ContentTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/content.ormEntity';
 
 type RequestHeaders = Record<string, string | undefined>;
 
 @Controller('projects')
 export class ProcessChangeProposalController {
   constructor(
+    private readonly dataSource: DataSource,
     private readonly access: ProjectResourceAccessService,
     @InjectRepository(ProcessChangeProposalTypeOrmEntity)
     private readonly proposals: Repository<ProcessChangeProposalTypeOrmEntity>,
@@ -118,4 +136,138 @@ export class ProcessChangeProposalController {
       };
     });
   }
+  /**
+   * Start a proposal by cloning the currently published BPMN inside one
+   * transaction. The source remains untouched and the clone is linked only
+   * to the project in which the proposal was initiated.
+   */
+  @Post(':projectId/processes/:resourceId/change-proposals')
+  @UseAcl()
+  async createProposal(
+    @Param('projectId') projectId: string,
+    @Param('resourceId') sourceResourceId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    const authorUserId = await this.access.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Modeler,
+    );
+
+    return this.dataSource.transaction(async (manager) => {
+      const resources = manager.getRepository(ResourceTypeOrmEntity);
+      const contents = manager.getRepository(ContentTypeOrmEntity);
+      const links = manager.getRepository(ProjectProcessTypeOrmEntity);
+      const proposals = manager.getRepository(ProcessChangeProposalTypeOrmEntity);
+      const events = manager.getRepository(ProcessChangeProposalEventTypeOrmEntity);
+
+      const sourceLink = await links.findOne({
+        where: { projectId, resourceId: sourceResourceId },
+        lock: { mode: 'pessimistic_read' },
+      });
+      if (!sourceLink) {
+        throw new NotFoundException('Le processus ne fait pas partie de ce projet');
+      }
+
+      const source = await resources.findOne({
+        where: { id: sourceResourceId },
+        lock: { mode: 'pessimistic_read' },
+      });
+      if (!source || source.type !== ResourceTypeEnum.Process) {
+        throw new NotFoundException('Processus source introuvable');
+      }
+
+      const published = await contents.findOne({
+        where: { resourceId: sourceResourceId, status: ContentStatusEnum.Published },
+        order: { version: 'DESC' },
+        lock: { mode: 'pessimistic_read' },
+      });
+      if (!published) {
+        throw new BadRequestException('Il n’existe aucune versione pubblicata da proporre');
+      }
+
+      const existingDraft = await proposals.findOne({
+        where: {
+          projectId,
+          sourceResourceId,
+          authorUserId,
+          status: ProcessChangeProposalStatus.Draft,
+        },
+      });
+      if (existingDraft) {
+        throw new ConflictException('Vous avez déjà une demande brouillon pour ce processus');
+      }
+
+      const cloneResource = resources.create({
+        name: `${source.name} — proposition ${randomUUID().slice(0, 8)}`,
+        description: source.description,
+        depth: source.depth,
+        parentId: source.parentId,
+        sourceResourceId: source.id,
+        type: ResourceTypeEnum.Process,
+        authToken: null,
+        createdBy: authorUserId,
+      });
+      const savedClone = await resources.save(cloneResource);
+
+      const cloneContent = contents.create({
+        resourceId: savedClone.id,
+        status: ContentStatusEnum.Draft,
+        version: 1,
+        content: published.content,
+        changeComment: null,
+        pngContent: null,
+        updatedBy: authorUserId,
+        createdBy: authorUserId,
+      });
+      const savedCloneContent = await contents.save(cloneContent);
+
+      await links.save(links.create({
+        projectId,
+        resourceId: savedClone.id,
+        usage: ProjectProcessUsage.ProjectSpecific,
+        sourceResourceId,
+        createdBy: authorUserId,
+      }));
+
+      const proposal = await proposals.save(proposals.create({
+        projectId,
+        sourceResourceId,
+        cloneResourceId: savedClone.id,
+        sourcePublishedContentId: published.id,
+        submittedContentId: null,
+        authorUserId,
+        validatorUserId: null,
+        status: ProcessChangeProposalStatus.Draft,
+        submissionComment: null,
+        submittedAt: null,
+        decidedAt: null,
+        createdBy: authorUserId,
+      }));
+
+      await events.save(events.create({
+        proposalId: proposal.id,
+        eventType: 'created',
+        actorUserId: authorUserId,
+        validatorUserId: null,
+        comment: null,
+        details: {
+          sourcePublishedContentId: published.id,
+          cloneResourceId: savedClone.id,
+          cloneContentId: savedCloneContent.id,
+        },
+        createdBy: authorUserId,
+      }));
+
+      return {
+        id: proposal.id,
+        projectId,
+        sourceResourceId,
+        cloneResourceId: savedClone.id,
+        cloneContentId: savedCloneContent.id,
+        status: proposal.status,
+      };
+    });
+  }
+
 }
