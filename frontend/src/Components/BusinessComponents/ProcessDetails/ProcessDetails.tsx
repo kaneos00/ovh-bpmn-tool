@@ -42,6 +42,7 @@ import { analyzeRaciMatrix, type RaciCode } from '../../../extensions/raci-engin
 import { ConditionalRender } from '../../../Components/GenericComponents/ConditionalRender/ConditionalRender';
 import { DropZone } from '../../../Components/GenericComponents/DropZone/DropZone';
 import { ContentStatusEnum } from '../../../Types';
+import { apiClient } from '../../../queryClient';
 
 import '../../../raci.css';
 import { DataInventory } from './DataInventory';
@@ -191,6 +192,19 @@ export const ProcessDetails = ({
   const queryClient = useQueryClient();
   const { resource: processResource } = useResource(resourceId);
   const { data: resourceShares } = useQuery(resourceSharesQuery(resourceId));
+  const { data: myWorkspace } = useQuery(
+    ['my-workspace'],
+    () => apiClient.get('/projects/me/workspace'),
+  );
+  const pilotProjectId = myWorkspace?.projects.find((project: {
+    id: string;
+    processes: { resourceId: string }[];
+  }) => project.processes.some(process => process.resourceId === resourceId))?.id;
+  const { data: pilotCandidates = [] } = useQuery(
+    ['project-members', pilotProjectId],
+    () => apiClient.get(`/projects/${pilotProjectId}/members`),
+    { enabled: Boolean(pilotProjectId) },
+  );
   const { showAlert } = useSnackbar();
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
   const [activeViewerTab, setActiveViewerTab] = useState(0);
@@ -700,7 +714,42 @@ export const ProcessDetails = ({
                       {PROCESS_TYPES.map(type => <Option key={type.value} value={type.value}><Chip size="sm" variant="soft" color={type.color}>{type.label}</Chip></Option>)}
                     </Select>
                   </Stack>
-                  <Input value={processMetadata.pilot} onChange={event => setProcessMetadata(current => ({ ...current, pilot: event.target.value }))} placeholder="Pilote du processus" aria-label="Pilote du processus" disabled={isSavingProcessDescription} />
+                  <Stack spacing={0.5}>
+                    <Typography level="title-sm">Pilote du processus</Typography>
+                    <Select
+                      value={processMetadata.pilot || null}
+                      placeholder="Sélectionner un compte du projet"
+                      onChange={(_, value) =>
+                        setProcessMetadata(current => ({
+                          ...current,
+                          pilot: value ?? '',
+                        }))
+                      }
+                      disabled={isSavingProcessDescription || !pilotProjectId}
+                    >
+                      {processMetadata.pilot &&
+                        !pilotCandidates.some(
+                          (member: { userId: string }) =>
+                            member.userId === processMetadata.pilot,
+                        ) && (
+                          <Option value={processMetadata.pilot}>
+                            Valeur actuelle à vérifier : {processMetadata.pilot}
+                          </Option>
+                        )}
+                      {pilotCandidates.map(
+                        (member: { userId: string; role: string }) => (
+                          <Option key={member.userId} value={member.userId}>
+                            {member.userId} — {member.role}
+                          </Option>
+                        ),
+                      )}
+                    </Select>
+                    <Typography level="body-xs" color="neutral">
+                      Identifiant du compte utilisateur. Si le pilote est absent
+                      ou n’est plus membre du projet, la demande sera signalée
+                      et un administrateur pourra reprendre l’affectation.
+                    </Typography>
+                  </Stack>
                   <Stack spacing={0.5}>
                     <Typography level="title-sm">Surveillance</Typography>
                     <Textarea value={processMetadata.surveillance} onChange={event => setProcessMetadata(current => ({ ...current, surveillance: event.target.value }))} minRows={2} placeholder="Indicateurs, fréquence et modalités de surveillance…" aria-label="Surveillance du processus" disabled={isSavingProcessDescription} />
