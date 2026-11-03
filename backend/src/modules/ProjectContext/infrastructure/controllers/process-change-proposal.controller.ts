@@ -44,7 +44,9 @@ export class ProcessChangeProposalController {
     });
     if (!authored.length) return [];
 
-    const projectIds = [...new Set(authored.map((proposal) => proposal.projectId))];
+    const projectIds = [
+      ...new Set(authored.map((proposal) => proposal.projectId)),
+    ];
     const [memberships, projects, links, resources] = await Promise.all([
       this.members.find({ where: { userId, projectId: In(projectIds) } }),
       this.projects.find({ where: { id: In(projectIds) } }),
@@ -52,16 +54,27 @@ export class ProcessChangeProposalController {
         where: { projectId: In(projectIds) },
       }),
       this.resources.find({
-        where: { id: In(authored.map((proposal) => proposal.sourceResourceId)) },
+        where: {
+          id: In(authored.map((proposal) => proposal.sourceResourceId)),
+        },
       }),
     ]);
-    const membershipIds = new Set(memberships.map((membership) => membership.projectId));
-    const projectById = new Map(projects.map((project) => [project.id, project]));
-    const resourceById = new Map(resources.map((resource) => [resource.id, resource]));
-    const linkByKey = new Map(links.map((link) => [`${link.projectId}:${link.resourceId}`, link]));
-    const visible = authored.filter((proposal) =>
-      membershipIds.has(proposal.projectId) &&
-      linkByKey.has(`${proposal.projectId}:${proposal.sourceResourceId}`),
+    const membershipIds = new Set(
+      memberships.map((membership) => membership.projectId),
+    );
+    const projectById = new Map(
+      projects.map((project) => [project.id, project]),
+    );
+    const resourceById = new Map(
+      resources.map((resource) => [resource.id, resource]),
+    );
+    const linkByKey = new Map(
+      links.map((link) => [`${link.projectId}:${link.resourceId}`, link]),
+    );
+    const visible = authored.filter(
+      (proposal) =>
+        membershipIds.has(proposal.projectId) &&
+        linkByKey.has(`${proposal.projectId}:${proposal.sourceResourceId}`),
     );
     if (!visible.length) return [];
 
@@ -69,7 +82,10 @@ export class ProcessChangeProposalController {
       where: { proposalId: In(visible.map((proposal) => proposal.id)) },
       order: { createdAt: 'DESC' },
     });
-    const latestEventByProposal = new Map<string, ProcessChangeProposalEventTypeOrmEntity>();
+    const latestEventByProposal = new Map<
+      string,
+      ProcessChangeProposalEventTypeOrmEntity
+    >();
     for (const event of events) {
       if (!latestEventByProposal.has(event.proposalId)) {
         latestEventByProposal.set(event.proposalId, event);
