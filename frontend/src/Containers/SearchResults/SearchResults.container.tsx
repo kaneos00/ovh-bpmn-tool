@@ -220,7 +220,7 @@ export const Component = () => {
   const data = searchQuery.data;
   const getResultTitle = (result: { type: UnifiedSearchType; label: string }) => {
     if (result.type !== 'bpmn') return result.label;
-    return result.label.replace(/^(?:Attività(?: utente| di servizio| manuale| script| regola| invio| ricezione)?|Activité appelée|Sotto-processo|Transazione|Evento iniziale|Evento finale|Evento intermedio|Evento di confine|Gateway esclusivo|Gateway parallelo|Gateway inclusivo|Gateway basato su eventi|Gateway complesso|Partecipante|Lane|Annotazione):\\s*/i, '');
+    return result.label.replace(/^(?:Attività(?: utente| di servizio| manuale| script| regola| invio| ricezione)?|Activité appelée|Sotto-processo|Transazione|Evento iniziale|Evento finale|Evento intermedio|Evento di confine|Gateway esclusivo|Gateway parallelo|Gateway inclusivo|Gateway basato su eventi|Gateway complesso|Partecipante|Lane|Annotazione):\s*/i, '');
   };
   const total = data?.total ?? 0;
   const pageNumber = Math.floor(offset / PAGE_SIZE) + 1;
