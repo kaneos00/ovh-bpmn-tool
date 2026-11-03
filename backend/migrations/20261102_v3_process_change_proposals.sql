@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS process_change_proposals (
   "submittedContentId" uuid NULL REFERENCES contents(id) ON DELETE RESTRICT,
   "authorUserId" uuid NOT NULL REFERENCES app_users(id) ON DELETE RESTRICT,
   "validatorUserId" uuid NULL REFERENCES app_users(id) ON DELETE SET NULL,
-  status varchar(16) NOT NULL DEFAULT 'draft'
+  status varchar(24) NOT NULL DEFAULT 'draft'
     CHECK (status IN ('draft', 'submitted', 'approved', 'changes_requested', 'rejected', 'published')),
   "submissionComment" text NULL,
   "submittedAt" timestamptz NULL,
