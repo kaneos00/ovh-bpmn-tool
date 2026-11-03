@@ -64,6 +64,16 @@ export class ContentTypeOrmRepository implements ContentRepository {
           throw new Error('A folder cannot receive published content');
         }
 
+        const proposalRows: Array<{ id: string }> = await manager.query(
+          'SELECT id FROM process_change_proposals WHERE "cloneResourceId" = $1 LIMIT 1',
+          [params.resourceId],
+        );
+        if (proposalRows.length) {
+          throw new Error(
+            'A proposal workspace cannot be published through the generic content endpoint',
+          );
+        }
+
         const contentEntity = await contents.findOne({
           where: { id: params.contentId, resourceId: params.resourceId },
           lock: { mode: 'pessimistic_write' },
