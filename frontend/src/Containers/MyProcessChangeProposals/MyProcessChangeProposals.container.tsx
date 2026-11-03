@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import {
   Box, Button, Chip, CircularProgress, Input, Sheet, Stack,
-  Table, Typography,
+  Table, Textarea, Typography,
 } from '@mui/joy';
 import { Search, VisibilityOutlined, EditOutlined } from '@mui/icons-material';
 import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
