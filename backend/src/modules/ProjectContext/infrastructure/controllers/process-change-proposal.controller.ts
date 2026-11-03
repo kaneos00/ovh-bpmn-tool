@@ -1,9 +1,10 @@
+import { randomUUID } from 'crypto';
 import {
   BadRequestException,
   Body,
   ConflictException,
-  ForbiddenException,
   Controller,
+  ForbiddenException,
   Get,
   Headers,
   NotFoundException,
@@ -12,21 +13,23 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
-import { randomUUID } from 'crypto';
+import { UseAcl } from '../../../../shared-kernel/modules/acl/infrastructure/acl.decorator';
 import { ContentStatusEnum } from '../../../ResourceContext/shared/types/Content';
 import { ResourceTypeEnum } from '../../../ResourceContext/shared/types/Resource';
-import { ProjectMemberRole } from '../entities/projectMember.ormEntity';
-import { ProjectProcessUsage } from '../entities/projectProcess.ormEntity';
-import { ProcessChangeProposalStatus } from '../entities/processChangeProposal.ormEntity';
-import { UseAcl } from '../../../../shared-kernel/modules/acl/infrastructure/acl.decorator';
-import { ProjectResourceAccessService } from '../../projectResourceAccess.service';
-import { ProjectTypeOrmEntity } from '../entities/project.ormEntity';
-import { ProjectProcessTypeOrmEntity } from '../entities/projectProcess.ormEntity';
-import { ProjectMemberTypeOrmEntity } from '../entities/projectMember.ormEntity';
-import { ProcessChangeProposalTypeOrmEntity } from '../entities/processChangeProposal.ormEntity';
-import { ProcessChangeProposalEventTypeOrmEntity } from '../entities/processChangeProposalEvent.ormEntity';
-import { ResourceTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/resource.ormEntity';
 import { ContentTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/content.ormEntity';
+import { ResourceTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/resource.ormEntity';
+import { ProjectResourceAccessService } from '../../projectResourceAccess.service';
+import { ProjectMemberRole, ProjectMemberTypeOrmEntity } from '../entities/projectMember.ormEntity';
+import {
+  ProjectProcessTypeOrmEntity,
+  ProjectProcessUsage,
+} from '../entities/projectProcess.ormEntity';
+import { ProjectTypeOrmEntity } from '../entities/project.ormEntity';
+import {
+  ProcessChangeProposalStatus,
+  ProcessChangeProposalTypeOrmEntity,
+} from '../entities/processChangeProposal.ormEntity';
+import { ProcessChangeProposalEventTypeOrmEntity } from '../entities/processChangeProposalEvent.ormEntity';
 
 type RequestHeaders = Record<string, string | undefined>;
 
@@ -172,24 +175,31 @@ export class ProcessChangeProposalController {
         lock: { mode: 'pessimistic_read' },
       });
       if (!sourceLink) {
-        throw new NotFoundException('Le processus ne fait pas partie de ce projet');
+        throw new NotFoundException(
+          'Le processus ne fait pas partie de ce projet',
+        );
       }
 
       const source = await resources.findOne({
         where: { id: sourceResourceId },
-        lock: { mode: 'pessimistic_read' },
+        lock: { mode: 'pessimistic_write' },
       });
       if (!source || source.type !== ResourceTypeEnum.Process) {
         throw new NotFoundException('Processus source introuvable');
       }
 
       const published = await contents.findOne({
-        where: { resourceId: sourceResourceId, status: ContentStatusEnum.Published },
+        where: {
+          resourceId: sourceResourceId,
+          status: ContentStatusEnum.Published,
+        },
         order: { version: 'DESC' },
         lock: { mode: 'pessimistic_read' },
       });
       if (!published) {
-        throw new BadRequestException('Aucune version publiée du processus ne peut être proposée');
+        throw new BadRequestException(
+          'Aucune version publiée du processus ne peut être proposée',
+        );
       }
 
       const existingDraft = await proposals.findOne({
@@ -201,7 +211,9 @@ export class ProcessChangeProposalController {
         },
       });
       if (existingDraft) {
-        throw new ConflictException('Vous avez déjà une demande brouillon pour ce processus');
+        throw new ConflictException(
+          'Vous avez déjà une demande brouillon pour ce processus',
+        );
       }
 
       const cloneResource = resources.create({
@@ -228,43 +240,45 @@ export class ProcessChangeProposalController {
       });
       const savedCloneContent = await contents.save(cloneContent);
 
-      await links.save(links.create({
-        projectId,
-        resourceId: savedClone.id,
-        usage: ProjectProcessUsage.ProjectSpecific,
-        sourceResourceId,
-        createdBy: authorUserId,
-      }));
+      await links.save(
+        links.create({
+          projectId,
+          resourceId: savedClone.id,
+          usage: ProjectProcessUsage.ProjectSpecific,
+          sourceResourceId,
+          createdBy: authorUserId,
+        }),
+      );
 
       const proposal = await proposals.save(
         proposals.create({
-        projectId,
-        sourceResourceId,
-        cloneResourceId: savedClone.id,
-        sourcePublishedContentId: published.id,
-        submittedContentId: null,
-        authorUserId,
-        validatorUserId: null,
-        status: ProcessChangeProposalStatus.Draft,
-        submissionComment: null,
-        submittedAt: null,
-        decidedAt: null,
+          projectId,
+          sourceResourceId,
+          cloneResourceId: savedClone.id,
+          sourcePublishedContentId: published.id,
+          submittedContentId: null,
+          authorUserId,
+          validatorUserId: null,
+          status: ProcessChangeProposalStatus.Draft,
+          submissionComment: null,
+          submittedAt: null,
+          decidedAt: null,
           createdBy: authorUserId,
         }),
       );
 
       await events.save(
         events.create({
-        proposalId: proposal.id,
-        eventType: 'created',
-        actorUserId: authorUserId,
-        validatorUserId: null,
-        comment: null,
-        details: {
-          sourcePublishedContentId: published.id,
-          cloneResourceId: savedClone.id,
-          cloneContentId: savedCloneContent.id,
-        },
+          proposalId: proposal.id,
+          eventType: 'created',
+          actorUserId: authorUserId,
+          validatorUserId: null,
+          comment: null,
+          details: {
+            sourcePublishedContentId: published.id,
+            cloneResourceId: savedClone.id,
+            cloneContentId: savedCloneContent.id,
+          },
           createdBy: authorUserId,
         }),
       );
@@ -279,6 +293,7 @@ export class ProcessChangeProposalController {
       };
     });
   }
+
   /**
    * Submit a frozen draft snapshot for review. Proposal workflow state is
    * stored only on the proposal row; the BPMN content remains a draft.
@@ -302,11 +317,15 @@ export class ProcessChangeProposalController {
     );
     const comment = body.comment?.trim() ?? '';
     if (!comment) {
-      throw new BadRequestException('Un commentaire de soumission est obligatoire');
+      throw new BadRequestException(
+        'Un commentaire de soumission est obligatoire',
+      );
     }
 
     return this.dataSource.transaction(async (manager) => {
-      const proposals = manager.getRepository(ProcessChangeProposalTypeOrmEntity);
+      const proposals = manager.getRepository(
+        ProcessChangeProposalTypeOrmEntity,
+      );
       const contents = manager.getRepository(ContentTypeOrmEntity);
       const members = manager.getRepository(ProjectMemberTypeOrmEntity);
       const events = manager.getRepository(
@@ -320,20 +339,26 @@ export class ProcessChangeProposalController {
       });
       if (!proposal) throw new NotFoundException('Demande introuvable');
       if (proposal.authorUserId !== actorUserId) {
-        throw new ForbiddenException('Seul l’auteur peut soumettre cette demande');
+        throw new ForbiddenException(
+          'Seul l’auteur peut soumettre cette demande',
+        );
       }
       if (
         proposal.status !== ProcessChangeProposalStatus.Draft &&
         proposal.status !== ProcessChangeProposalStatus.ChangesRequested
       ) {
-        throw new ConflictException('La demande ne peut pas être soumise dans son état actuel');
+        throw new ConflictException(
+          'La demande ne peut pas être soumise dans son état actuel',
+        );
       }
 
       const source = await resources.findOne({
         where: { id: proposal.sourceResourceId },
         lock: { mode: 'pessimistic_read' },
       });
-      if (!source) throw new NotFoundException('Processus source introuvable');
+      if (!source) {
+        throw new NotFoundException('Processus source introuvable');
+      }
 
       const currentPublished = await contents.findOne({
         where: {
@@ -361,16 +386,23 @@ export class ProcessChangeProposalController {
         lock: { mode: 'pessimistic_write' },
       });
       if (!submittedContent) {
-        throw new BadRequestException('Le brouillon de travail est introuvable ou n’est plus modifiable');
+        throw new BadRequestException(
+          'Le brouillon de travail est introuvable ou n’est plus modifiable',
+        );
       }
 
-      let validatorUserId = body.validatorUserId?.trim() || proposal.validatorUserId;
+      let validatorUserId =
+        body.validatorUserId?.trim() || proposal.validatorUserId;
       if (!validatorUserId) {
         const admins = await members.find({
-          where: { projectId: proposal.projectId, role: ProjectMemberRole.Admin },
+          where: {
+            projectId: proposal.projectId,
+            role: ProjectMemberRole.Admin,
+          },
           order: { createdAt: 'ASC' },
         });
-        validatorUserId = admins.find((member) => member.userId !== actorUserId)?.userId ?? null;
+        validatorUserId =
+          admins.find((member) => member.userId !== actorUserId)?.userId ?? null;
       }
       if (!validatorUserId || validatorUserId === actorUserId) {
         throw new BadRequestException(
@@ -401,12 +433,12 @@ export class ProcessChangeProposalController {
 
       await events.save(
         events.create({
-        proposalId,
-        eventType: 'submitted',
-        actorUserId,
-        validatorUserId,
-        comment,
-        details: { submittedContentId: submittedContent.id },
+          proposalId,
+          eventType: 'submitted',
+          actorUserId,
+          validatorUserId,
+          comment,
+          details: { submittedContentId: submittedContent.id },
           createdBy: actorUserId,
         }),
       );
@@ -420,5 +452,4 @@ export class ProcessChangeProposalController {
       };
     });
   }
-
 }
