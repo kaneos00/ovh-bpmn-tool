@@ -261,7 +261,9 @@ export function extractBpmnSearchResults(
       key === 'textAnnotation' ? collectText(node.text) : '';
     const documentation = collectText(node.documentation);
     const label =
-      name || annotationText || (elementId ? typeLabel ?? 'Élément BPMN' : '');
+      name ||
+      annotationText ||
+      (elementId ? (typeLabel ?? 'Élément BPMN') : '');
 
     if ((typeLabel || (elementId && documentation)) && includes('bpmn')) {
       const searchableFields = [
