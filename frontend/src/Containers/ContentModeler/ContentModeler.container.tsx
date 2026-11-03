@@ -167,9 +167,24 @@ export const Component = () => {
                 setSubmittingProposal(true);
                 setSubmissionError(null);
                 try {
+                  const metadataDocument = new DOMParser().parseFromString(
+                    draftXmlContent,
+                    'application/xml',
+                  );
+                  const processMetadata = Array.from(
+                    metadataDocument.getElementsByTagNameNS(
+                      'https://ovh-bpmn-tool.local/schema/process-metadata',
+                      'processMetadata',
+                    ),
+                  )[0];
+                  const pilotIdentifier =
+                    processMetadata?.getAttribute('pilot')?.trim() || undefined;
                   await apiClient.post(
                     `/projects/process-change-proposals/${proposalId}/submit`,
-                    { comment: submissionComment.trim() },
+                    {
+                      comment: submissionComment.trim(),
+                      validatorUserId: pilotIdentifier,
+                    },
                   );
                   await queryClient.invalidateQueries({
                     queryKey: ['my-process-change-proposals'],
