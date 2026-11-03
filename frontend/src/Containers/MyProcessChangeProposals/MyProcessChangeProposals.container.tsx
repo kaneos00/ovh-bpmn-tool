@@ -151,7 +151,9 @@ export const Component = () => {
               <Box sx={{ py: 6, px: 2, textAlign: 'center' }}>
                 <Typography level="title-md">Aucune demande à afficher</Typography>
                 <Typography level="body-sm" sx={{ color: 'text.secondary', mt: 0.5 }}>
-                  {data.length ? 'Modifiez les filtres ou la recherche.' : 'Les propositions que vous créerez depuis un processus apparaîtront ici.'}
+                  {data.length > 0
+                    ? 'Modifiez les filtres ou la recherche.'
+                    : 'Les propositions que vous créerez depuis un processus apparaîtront ici.'}
                 </Typography>
               </Box>
             ) : (
@@ -177,7 +179,7 @@ export const Component = () => {
                           <td><Chip size="sm" variant="soft" color={status.color}>{status.label}</Chip></td>
                           <td>
                             <Button size="sm" variant="outlined" color="primary" startDecorator={proposal.status === 'draft' || proposal.status === 'changes_requested' ? <EditOutlined /> : <VisibilityOutlined />} onClick={() => openProposal(proposal)}>
-                              {proposal.status === 'draft' || proposal.status === 'changes_requested' ? 'Reprendre' : 'Consulter'}
+                              {['draft', 'changes_requested'].includes(proposal.status) ? 'Reprendre' : 'Consulter'}
                             </Button>
                           </td>
                         </tr>
