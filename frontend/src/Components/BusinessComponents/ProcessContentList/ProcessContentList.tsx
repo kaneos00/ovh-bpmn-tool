@@ -69,11 +69,6 @@ export const ProcessContentList = ({
       onClick: () => navigate(`/${resourceId}/modeler?contentId=${encodeURIComponent(content.id)}`),
     };
 
-    if (content.status === ContentStatusEnum.Submitted) {
-      // A submitted version is frozen while its proposal is under review.
-      return [];
-    }
-
     if (content.status === ContentStatusEnum.Draft) {
       return [
         openInModelerAction,
