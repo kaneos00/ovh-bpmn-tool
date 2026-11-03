@@ -221,6 +221,19 @@ describe('ProjectResourceAccessService', () => {
     ).resolves.toBeUndefined();
   });
 
+  it('preserves organization ACL for resources not linked to a project', async () => {
+    await expect(
+      service.assertCanEditResource('legacy-resource', headers),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    await expect(
+      service.assertCanEditResource('legacy-resource', {
+        ...headers,
+        'x-user-groups': 'bpmn-tool-readwrite-global',
+      }),
+    ).resolves.toBeUndefined();
+  });
+
   it('denies reading a process linked only to another project', async () => {
     projectProcesses.find.mockResolvedValue([
       {
