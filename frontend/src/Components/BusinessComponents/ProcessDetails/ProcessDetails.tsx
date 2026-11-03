@@ -198,8 +198,12 @@ export const ProcessDetails = ({
   );
   const pilotProjectId = myWorkspace?.projects.find((project: {
     id: string;
+    role: 'viewer' | 'modeler' | 'admin';
     processes: { resourceId: string }[];
-  }) => project.processes.some(process => process.resourceId === resourceId))?.id;
+  }) =>
+    (project.role === 'modeler' || project.role === 'admin') &&
+    project.processes.some(process => process.resourceId === resourceId),
+  )?.id;
   const { data: pilotCandidates = [] } = useQuery(
     ['project-members', pilotProjectId],
     () => apiClient.get(`/projects/${pilotProjectId}/members`),
