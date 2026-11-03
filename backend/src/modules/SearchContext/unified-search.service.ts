@@ -69,6 +69,7 @@ const parser = new XMLParser({
 });
 
 const BPMN_ELEMENT_TYPES: Record<string, string> = {
+  process: 'Processus BPMN',
   task: 'Attività',
   userTask: 'Attività utente',
   serviceTask: 'Attività di servizio',
@@ -192,6 +193,27 @@ export function extractBpmnSearchResults(
     return [];
   const parsed = parser.parse(xml) as Record<string, unknown>;
   const results: UnifiedSearchResult[] = [];
+  // Match the Viewer RACI matrix: lane ownership creates inferred R/A assignments.
+  const laneRoleByActivity = new Map<string, string>();
+  const collectLaneAssignments = (value: unknown, key = ''): void => {
+    if (Array.isArray(value)) { value.forEach((item) => collectLaneAssignments(item, key)); return; }
+    if (!value || typeof value !== 'object') return;
+    const node = value as Record<string, unknown>;
+    if (key === 'lane') {
+      const laneName = readXmlAttribute(node, 'name');
+      const refs = node.flowNodeRef;
+      const addRef = (ref: unknown) => {
+        const id = typeof ref === 'string' ? ref.trim()
+          : ref && typeof ref === 'object' ? String((ref as Record<string, unknown>)['#text'] ?? '').trim() : '';
+        if (id && laneName) laneRoleByActivity.set(id, laneName);
+      };
+      (Array.isArray(refs) ? refs : refs ? [refs] : []).forEach(addRef);
+    }
+    Object.entries(node).forEach(([childKey, child]) => {
+      if (!childKey.startsWith('@_') && childKey !== '#text') collectLaneAssignments(child, childKey);
+    });
+  };
+  collectLaneAssignments(parsed);
   const includes = (type: SearchResultType) =>
     !requestedTypes?.length || requestedTypes.includes(type);
   const addActor = (name: string, elementId?: string) => {
@@ -280,11 +302,12 @@ export function extractBpmnSearchResults(
       ];
       for (const [role, attribute] of roleAttributes) {
         if (roleFilter && role !== roleFilter) continue;
-        const actorNames = readXmlAttribute(node, attribute)
-          .split(',')
-          .map((actor) => actor.trim())
-          .filter(Boolean);
-        for (const actorName of actorNames) {
+        const actorNames = readXmlAttribute(node, attribute).split(',').map((actor) => actor.trim()).filter(Boolean);
+        const inferredLaneRole = laneRoleByActivity.get(elementId ?? '');
+        if (inferredLaneRole && role === ProjectRaciRole.Responsible) actorNames.push(inferredLaneRole);
+        if (inferredLaneRole && role === ProjectRaciRole.Accountable &&
+          /approve|approval|validate|validation|authori[sz]e|authori[sz]ation|approuver|approbation|valider|autoriser|autorisation|décider|decision|décision/i.test(activityLabel)) actorNames.push(inferredLaneRole);
+        for (const actorName of [...new Set(actorNames)]) {
           addActor(actorName, elementId);
           if (!includes('raci')) continue;
           const roleLabel = ROLE_LABELS[role];

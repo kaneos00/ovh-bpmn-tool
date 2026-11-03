@@ -128,6 +128,20 @@ describe('BPMN search extraction', () => {
     expect(laneActor.some((result) => result.label === 'Finance')).toBe(true);
   });
 
+  it('indexes process-level documentation and inferred lane RACI assignments', () => {
+    const processXml = `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL">
+      <process id="Process_Order" name="Order">
+        <documentation>Supplier onboarding policy</documentation>
+        <laneSet id="LaneSet_1"><lane id="Lane_Finance" name="Finance"><flowNodeRef>Task_Approve</flowNodeRef></lane></laneSet>
+        <userTask id="Task_Approve" name="Approve supplier"/>
+      </process></definitions>`;
+    const description = extractBpmnSearchResults(processXml, 'resource-1', 'Order', 'onboarding', ['bpmn']);
+    expect(description).toContainEqual(expect.objectContaining({ type: 'bpmn', field: 'descrizione', elementId: 'Process_Order', source: 'bpmn' }));
+    const raci = extractBpmnSearchResults(processXml, 'resource-1', 'Order', 'finance', ['raci']);
+    expect(raci).toContainEqual(expect.objectContaining({ type: 'raci', elementId: 'Task_Approve', role: 'R', source: 'bpmn' }));
+    expect(raci).toContainEqual(expect.objectContaining({ type: 'raci', elementId: 'Task_Approve', role: 'A', source: 'bpmn' }));
+  });
+
   it('does not expand document-defined XML entities', () => {
     const hostileXml = `<!DOCTYPE definitions [<!ENTITY privateValue "expanded-secret">]>
       <definitions><process><task id="Task_1" name="Payment">
