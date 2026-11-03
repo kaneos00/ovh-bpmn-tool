@@ -45,6 +45,7 @@ describe('ContentTypeOrmRepository.publishAtomically', () => {
     getRepository: jest.fn((entity) =>
       entity === ResourceTypeOrmEntity ? resources : contents,
     ),
+    query: jest.fn().mockResolvedValue([]),
   };
   const dataSource = {
     transaction: jest.fn((callback) => callback(manager)),
@@ -77,6 +78,10 @@ describe('ContentTypeOrmRepository.publishAtomically', () => {
     });
 
     expect(dataSource.transaction).toHaveBeenCalledTimes(1);
+    expect(manager.query).toHaveBeenCalledWith(
+      'SELECT id FROM process_change_proposals WHERE "cloneResourceId" = $1 LIMIT 1',
+      ['resource-1'],
+    );
     expect(resources.findOne).toHaveBeenCalledWith({
       where: { id: 'resource-1' },
       lock: { mode: 'pessimistic_write' },
