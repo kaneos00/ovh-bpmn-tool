@@ -77,7 +77,7 @@ const BPMN_ELEMENT_TYPES: Record<string, string> = {
   businessRuleTask: 'Attività regola',
   sendTask: 'Attività invio',
   receiveTask: 'Attività ricezione',
-  callActivity: 'Call Activity',
+  callActivity: 'Activité appelée',
   subProcess: 'Sotto-processo',
   transaction: 'Transazione',
   startEvent: 'Evento iniziale',
