@@ -1,11 +1,11 @@
-import { Controller, Get, Headers, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Headers } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { UseAcl } from '../../../../shared-kernel/modules/acl/infrastructure/acl.decorator';
 import { ProjectResourceAccessService } from '../../projectResourceAccess.service';
 import { ProjectTypeOrmEntity } from '../entities/project.ormEntity';
 import { ProjectProcessTypeOrmEntity } from '../entities/projectProcess.ormEntity';
-import { ProjectMemberRole, ProjectMemberTypeOrmEntity } from '../entities/projectMember.ormEntity';
+import { ProjectMemberTypeOrmEntity } from '../entities/projectMember.ormEntity';
 import { ProcessChangeProposalTypeOrmEntity } from '../entities/processChangeProposal.ormEntity';
 import { ProcessChangeProposalEventTypeOrmEntity } from '../entities/processChangeProposalEvent.ormEntity';
 import { ResourceTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/resource.ormEntity';
