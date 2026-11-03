@@ -18,6 +18,8 @@ type Proposal = {
   processName: string;
   cloneResourceId: string;
   validatorUserId: string | null;
+  validatorName?: string | null;
+  validatorWarning?: string | null;
   status: ProposalStatus;
   createdAt: string;
   updatedAt: string;
@@ -174,7 +176,16 @@ export const Component = () => {
                           </td>
                           <td><Typography level="body-sm">{proposal.projectName}</Typography></td>
                           <td><Typography level="body-sm">{formatDate(proposal.createdAt)}</Typography></td>
-                          <td><Typography level="body-sm">{proposal.validatorUserId || 'À définir'}</Typography></td>
+                          <td>
+                            <Typography level="body-sm">
+                              {proposal.validatorName || 'À définir'}
+                            </Typography>
+                            {proposal.validatorWarning && (
+                              <Typography level="body-xs" color="warning">
+                                {proposal.validatorWarning}
+                              </Typography>
+                            )}
+                          </td>
                           <td>
                             <Typography level="body-sm">{formatDate(proposal.latestActivityAt)}</Typography>
                             {proposal.latestActivityComment && <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>{proposal.latestActivityComment}</Typography>}
