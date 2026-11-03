@@ -477,16 +477,6 @@ export class ProcessChangeProposalController {
       headers,
       ProjectMemberRole.Modeler,
     );
-    const actorMembership = await this.members.findOne({
-      where: { projectId: existing.projectId, userId: actorUserId },
-    });
-    const isProjectAdmin = actorMembership?.role === ProjectMemberRole.Admin;
-    if (existing.validatorUserId !== actorUserId && !isProjectAdmin) {
-      throw new ForbiddenException(
-        'Seul le validateur désigné ou un administrateur du projet peut décider',
-      );
-    }
-
     const decision = body.decision;
     if (
       decision !== ProcessChangeProposalStatus.Approved &&
@@ -513,6 +503,7 @@ export class ProcessChangeProposalController {
       const events = manager.getRepository(
         ProcessChangeProposalEventTypeOrmEntity,
       );
+      const members = manager.getRepository(ProjectMemberTypeOrmEntity);
       const proposal = await proposals.findOne({
         where: { id: proposalId },
         lock: { mode: 'pessimistic_write' },
@@ -523,8 +514,16 @@ export class ProcessChangeProposalController {
           'Seule une demande soumise peut faire l’objet d’une décision',
         );
       }
-      if (proposal.validatorUserId !== actorUserId && !isProjectAdmin) {
-        throw new ForbiddenException('Le validateur de la demande a changé');
+      const currentMembership = await members.findOne({
+        where: { projectId: proposal.projectId, userId: actorUserId },
+      });
+      if (
+        proposal.validatorUserId !== actorUserId &&
+        currentMembership?.role !== ProjectMemberRole.Admin
+      ) {
+        throw new ForbiddenException(
+          'Seul le validateur désigné ou un administrateur du projet peut décider',
+        );
       }
 
       proposal.status = decision;
@@ -571,15 +570,6 @@ export class ProcessChangeProposalController {
       headers,
       ProjectMemberRole.Modeler,
     );
-    const actorMembership = await this.members.findOne({
-      where: { projectId: existing.projectId, userId: actorUserId },
-    });
-    const isProjectAdmin = actorMembership?.role === ProjectMemberRole.Admin;
-    if (existing.validatorUserId !== actorUserId && !isProjectAdmin) {
-      throw new ForbiddenException(
-        'Seul le validateur désigné ou un administrateur du projet peut publier',
-      );
-    }
     if (!body.pngContent?.trim()) {
       throw new BadRequestException(
         'La prévisualisation PNG du processus est obligatoire pour publier',
@@ -595,6 +585,7 @@ export class ProcessChangeProposalController {
       const events = manager.getRepository(
         ProcessChangeProposalEventTypeOrmEntity,
       );
+      const members = manager.getRepository(ProjectMemberTypeOrmEntity);
 
       const proposal = await proposals.findOne({
         where: { id: proposalId },
@@ -606,8 +597,16 @@ export class ProcessChangeProposalController {
           'La demande doit être approuvée avant publication',
         );
       }
-      if (proposal.validatorUserId !== actorUserId && !isProjectAdmin) {
-        throw new ForbiddenException('Le validateur de la demande a changé');
+      const currentMembership = await members.findOne({
+        where: { projectId: proposal.projectId, userId: actorUserId },
+      });
+      if (
+        proposal.validatorUserId !== actorUserId &&
+        currentMembership?.role !== ProjectMemberRole.Admin
+      ) {
+        throw new ForbiddenException(
+          'Seul le validateur désigné ou un administrateur du projet peut publier',
+        );
       }
       if (!proposal.submittedContentId) {
         throw new ConflictException(
