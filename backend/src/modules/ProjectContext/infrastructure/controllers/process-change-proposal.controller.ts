@@ -1237,7 +1237,7 @@ export class ProcessChangeProposalController {
             ...remarks.map(remark =>
               `- [${remark.status}] ${remark.createdAt.toISOString()} · auteur ${remark.authorUserId} · élément ${remark.elementId} · ${remark.comment}${remark.decidedAt ? ` · décidé le ${remark.decidedAt.toISOString()} par ${remark.decisionBy}` : ''}${remark.decisionComment ? ` · décision : ${remark.decisionComment}` : ''}`,
             ),
-          ].join('\\n'),
+          ].join('\n'),
           pngContent: Buffer.from(
             pngContent.replace(/^data:image\/png;base64,/, ''),
             'base64',
