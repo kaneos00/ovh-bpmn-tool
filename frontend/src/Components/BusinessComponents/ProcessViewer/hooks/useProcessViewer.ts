@@ -231,6 +231,15 @@ export const useProcessViewer = (
       // list of diagram-js shape types. This includes labels, collapsed
       // SubProcesses and future BPMN shape types, while excluding connections.
       const elementType = element.businessObject?.$type ?? element.type;
+      const isConnection = Array.isArray(element.waypoints) ||
+        /^(?:bpmn:)?(?:sequenceFlow|messageFlow|association|dataInputAssociation|dataOutputAssociation|conversationLink)$/i.test(String(elementType ?? ''));
+      if (isConnection) {
+        // Prevent diagram-js' default click handler from selecting a BPMN flow.
+        event?.stopPropagation?.();
+        const selection = viewer.get('selection') as any;
+        selection?.deselect?.([element]);
+        return;
+      }
       const isSelectableElement =
         typeof elementType === 'string' &&
         elementType.startsWith('bpmn:') &&
