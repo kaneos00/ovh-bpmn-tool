@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Box, Button, Input, List, ListItem, Option, Select, Sheet, Stack, Typography } from '@mui/joy';
+import { Box, Button, Input, List, Option, Select, Sheet, Stack, Typography } from '@mui/joy';
 import { Search } from '@mui/icons-material';
 import { useQuery } from 'react-query';
 
@@ -10,6 +10,7 @@ import { ContentStatusEnum, type Content, type Resource } from '../../../Types';
 import { ResourceType } from '../../../shared/types/BpmnResource';
 import { deriveRaciMatrixFromXml } from '../../../extensions/raci-viewer';
 import { UserAccountMenu } from '../UserAccountMenu/UserAccountMenu';
+import { SearchResultItem } from '../SearchResultItem/SearchResultItem';
 
 type SearchScope = 'all' | 'processes' | 'bpmn' | 'roles' | 'raci' | 'iaComm';
 type SearchResult = {
@@ -515,41 +516,13 @@ export const WorkspaceNavigation = () => {
               {results.length > 0 && (
                 <List size="sm" sx={{ '--ListItem-radius': '6px', p: 0.5 }}>
                   {results.map(result => (
-                    <ListItem key={result.key} sx={{ p: 0 }}>
-                      <Button variant="plain" color="neutral" onClick={() => openResult(result)}
-                        sx={{ justifyContent: 'flex-start', textAlign: 'left', width: '100%', whiteSpace: 'normal' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, minWidth: 0 }}>
-                          <Box
-                            component="span"
-                            aria-label={resultBadge(result.detail).label}
-                            sx={{
-                              flex: '0 0 auto',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              mt: '1px',
-                              px: 0.75,
-                              py: 0.25,
-                              borderRadius: '5px',
-                              border: '1px solid',
-                              borderColor: resultBadge(result.detail).border,
-                              color: resultBadge(result.detail).color,
-                              bgcolor: resultBadge(result.detail).background,
-                              fontSize: 10,
-                              fontWeight: 800,
-                              lineHeight: 1.4,
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {resultBadge(result.detail).label}
-                          </Box>
-                          <Box sx={{ minWidth: 0 }}>
-                            <Typography level="title-sm">{result.title}</Typography>
-                          <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>{result.detail}</Typography>
-                          </Box>
-                        </Box>
-                      </Button>
-                    </ListItem>
+                    <SearchResultItem
+                      key={result.key}
+                      badge={resultBadge(result.detail)}
+                      title={result.title}
+                      detail={result.detail}
+                      onClick={() => openResult(result)}
+                    />
                   ))}
                 </List>
               )}
