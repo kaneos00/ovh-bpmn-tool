@@ -43,11 +43,11 @@ describe('ProcessChangeProposalController remark permissions', () => {
     };
     const comments = {
       findOne: jest.fn().mockResolvedValue(remark),
-      save: jest.fn(async (value: any) => value),
+      save: jest.fn(async (value: unknown) => value),
     };
     const events = {
-      create: jest.fn((value: any) => value),
-      save: jest.fn(async (value: any) => value),
+      create: jest.fn((value: unknown) => value),
+      save: jest.fn(async (value: unknown) => value),
     };
     const members = {
       findOne: jest.fn().mockResolvedValue(
