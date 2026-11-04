@@ -425,7 +425,7 @@ test('global and full search share yellow highlighting and direct BPMN element n
   const routeState = await read('src/shared/hooks/useViewerRouteState.ts');
 
   assert.match(shared, /bgcolor: '#fff1a8'/);
-  assert.match(shared, /while \(match !== -1\)/);
+  assert.match(shared, /const valueWords = \[\.\.\.searchable\.matchAll/);
   assert.match(shared, /normalize\(character\)/);
   assert.match(quickSearch, /query=\{search\}/);
   assert.match(fullSearch, /query=\{query\}/);
