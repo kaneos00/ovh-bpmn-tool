@@ -33,17 +33,17 @@ describe('unified search normalization', () => {
     expect(isSearchTextMatch('Validation des factures', 'VALIDATION')).toBe(
       true,
     );
-    expect(isSearchTextMatch('Validation des factures', 'val')).toBe(
-      true,
-    );
-    expect(isSearchTextMatch('Validation des factures', 'vla')).toBe(
-      false,
-    );
+    expect(isSearchTextMatch('Validation des factures', 'val')).toBe(true);
+    expect(isSearchTextMatch('Validation des factures', 'vla')).toBe(false);
     expect(isSearchTextMatch('Validation des factures', 'valdiation')).toBe(
       true,
     );
-    expect(isSearchTextMatch('Validation des factures', 'livraison')).toBe(false);
-    expect(isSearchTextMatch('Gestion des commandes', 'gestion comandes')).toBe(true);
+    expect(isSearchTextMatch('Validation des factures', 'livraison')).toBe(
+      false,
+    );
+    expect(
+      isSearchTextMatch('Gestion des commandes', 'gestion comandes'),
+    ).toBe(true);
     expect(
       isExactSearchTextMatch('Supplier invoice validation', 'invoice supplier'),
     ).toBe(true);
