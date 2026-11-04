@@ -13,7 +13,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, Repository } from 'typeorm';
+import { DataSource, EntityManager, In, Repository } from 'typeorm';
 import { UseAcl } from '../../../../shared-kernel/modules/acl/infrastructure/acl.decorator';
 import { ContentStatusEnum } from '../../../ResourceContext/shared/types/Content';
 import { ResourceTypeEnum } from '../../../ResourceContext/shared/types/Resource';
@@ -1512,6 +1512,74 @@ export class ProcessChangeProposalController {
       current.decisionComment = decisionComment || null;
       return comments.save(current);
     });
+  }
+
+  private async resolveProposalValidator(
+    manager: EntityManager,
+    members: Repository<ProjectMemberTypeOrmEntity>,
+    projectId: string,
+    actorUsername: string,
+    actorUserId: string,
+    pilotIdentifier?: string | null,
+  ): Promise<{
+    validatorUserId: string | null;
+    validatorResolution: 'pilot_assigned' | 'pilot_missing' | 'pilot_invalid';
+    validatorWarning: string | null;
+  }> {
+    let validatorUserId: string | null = null;
+    let validatorResolution:
+      | 'pilot_assigned'
+      | 'pilot_missing'
+      | 'pilot_invalid' = pilotIdentifier?.trim()
+      ? 'pilot_invalid'
+      : 'pilot_missing';
+
+    if (pilotIdentifier?.trim()) {
+      const pilotRows: Array<{ id: string; username: string }> = await manager.query(
+        'SELECT id, username FROM app_users WHERE (lower(username) = lower($1) OR lower(email) = lower($1) OR id::text = $1) AND active = TRUE LIMIT 1',
+        [pilotIdentifier.trim()],
+      );
+      const pilot = pilotRows[0];
+      if (pilot && pilot.id !== actorUserId) {
+        const pilotMembership = await members.findOne({
+          where: { projectId, userId: pilot.username },
+        });
+        if (
+          pilotMembership &&
+          (pilotMembership.role === ProjectMemberRole.Admin ||
+            pilotMembership.role === ProjectMemberRole.Modeler)
+        ) {
+          validatorUserId = pilot.id;
+          validatorResolution = 'pilot_assigned';
+        }
+      }
+    }
+
+    if (!validatorUserId) {
+      const admins = await members.find({
+        where: { projectId, role: ProjectMemberRole.Admin },
+        order: { createdAt: 'ASC' },
+      });
+      for (const admin of admins) {
+        if (admin.userId === actorUsername) continue;
+        const adminRows: Array<{ id: string }> = await manager.query(
+          'SELECT id FROM app_users WHERE lower(username) = lower($1) AND active = TRUE LIMIT 1',
+          [admin.userId],
+        );
+        if (adminRows[0]) {
+          validatorUserId = adminRows[0].id;
+          break;
+        }
+      }
+    }
+
+    return {
+      validatorUserId,
+      validatorResolution,
+      validatorWarning: validatorResolution === 'pilot_assigned'
+        ? null
+        : 'Le pilote du processus est absent ou non reconnu ; une validation administrateur est à prévoir.',
+    };
   }
 
   private async resolveAccountId(username: string): Promise<string> {
