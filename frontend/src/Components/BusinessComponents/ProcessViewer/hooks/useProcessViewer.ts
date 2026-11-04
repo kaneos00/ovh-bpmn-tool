@@ -40,11 +40,13 @@ export const useProcessViewer = (
     if (!importedRef.current) return;
     const overlays = viewer.get('overlays') as any;
     const registry = viewer.get('elementRegistry') as any;
-    remarkOverlayIdsRef.current.forEach(id => overlays.remove(id));
+    remarkOverlayIdsRef.current.forEach(id => {
+      try { overlays.remove(id); } catch { /* The Viewer may already have cleared the overlay. */ }
+    });
     remarkOverlayIdsRef.current = [];
 
     const countByElement = new Map<string, number>();
-    remarks.forEach(remark => {
+    remarks.filter(remark => remark.status === 'pending').forEach(remark => {
       if (registry.get(remark.elementId)) {
         countByElement.set(
           remark.elementId,
