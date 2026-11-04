@@ -8,7 +8,9 @@ export type ProcessChangeProposalEventType =
   | 'approved'
   | 'changes_requested'
   | 'rejected'
-  | 'published';
+  | 'published'
+  | 'remark_accepted'
+  | 'remark_rejected';
 
 @Entity('process_change_proposal_events')
 @Index('process_change_proposal_events_proposal_created_idx', [
