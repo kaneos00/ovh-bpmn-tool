@@ -8,6 +8,26 @@ export type ProcessLinkInfo<TResource extends ProcessResource = ProcessResource>
 
 const BPMN_MODEL_NS = 'http://www.omg.org/spec/BPMN/20100524/MODEL';
 
+/**
+ * A SubProcess with embedded flow elements is an in-diagram subprocess and
+ * must remain available to the native BPMN drilldown, even if diagram-js
+ * exposes a default false value for its DI expansion flag.
+ */
+export const isCollapsedLinkedSubProcess = (element: any): boolean => {
+  const type = element?.businessObject?.$type ?? element?.type;
+  if (type !== 'bpmn:SubProcess' && type !== 'bpmn:Transaction') return false;
+
+  const flowElements = element?.businessObject?.flowElements;
+  if (Array.isArray(flowElements) && flowElements.length > 0) return false;
+
+  const expandedState =
+    element?.businessObject?.di?.isExpanded ??
+    element?.di?.isExpanded ??
+    element?.isExpanded ??
+    element?.businessObject?.isExpanded;
+  return expandedState === false || expandedState === 'false';
+};
+
 export const getProcessLinks = (xml: string) => {
   if (!xml || typeof DOMParser === 'undefined') {
     return { processIds: [] as string[], targets: [] as string[] };
