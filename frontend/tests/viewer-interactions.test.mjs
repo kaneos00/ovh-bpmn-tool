@@ -244,6 +244,26 @@ test('global BPMN search excludes connecting arrows and their documentation', as
   assert.match(navigation, /BPMN_CONNECTION_TYPES\.has\(bpmnOwner\.localName\.toLocaleLowerCase\('fr'\)\)/);
 });
 
+test('quick search removes the IA Comm option and excludes technical BPMN identifiers', async () => {
+  const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+
+  assert.doesNotMatch(navigation, /<Option value="iaComm">/);
+  assert.doesNotMatch(navigation, /'iaComm'/);
+  assert.match(navigation, /return id && \(matchesTerm\(name, term\) \|\|[\s\S]*?matchesTerm\(documentation, term\)/);
+  assert.doesNotMatch(navigation, /matchesTerm\(id, term\)/);
+  assert.doesNotMatch(navigation, /matchesTerm\(activity\.elementId, term\)/);
+  assert.match(navigation, /if \(scope === 'all'\) \{/);
+});
+
+test('shared result highlighting marks the matched word for approximate searches', async () => {
+  const shared = await read('src/Components/GenericComponents/SearchResultItem/SearchResultItem.tsx');
+
+  assert.match(shared, /const editDistance =/);
+  assert.match(shared, /queryWord\.length >= 5/);
+  assert.match(shared, /const distance = editDistance\(candidate, queryWord\)/);
+  assert.match(shared, /bgcolor: '#fff1a8'/);
+});
+
 test('global and full search use the same shared result row component', async () => {
   const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
   const fullSearch = await read('src/Containers/SearchResults/SearchResults.container.tsx');
