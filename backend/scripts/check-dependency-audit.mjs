@@ -11,43 +11,87 @@ if (!/(?:\d+\s+vulnerabilities found|no known vulnerabilities found)/i.test(repo
   process.exit(2);
 }
 
-const summaryMatch = report.match(/(\d+)\s+vulnerabilities found/i);
-const reportedVulnerabilityCount = summaryMatch ? Number(summaryMatch[1]) : 0;
-const baselineVulnerabilityCount = Number(baseline.reportedVulnerabilities ?? 0);
-
-const reported = new Set(
-  [...report.matchAll(/GHSA-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}/gi)].map(([id]) =>
-    id.toUpperCase(),
-  ),
+const reportedCount = Number(
+  report.match(/(\d+)\s+vulnerabilities found/i)?.[1] ?? 0,
 );
-const known = new Set(baseline.advisories);
-const newAdvisories = [...reported].filter((id) => !known.has(id)).sort();
-const resolved = [...known].filter((id) => !reported.has(id)).sort();
+const blocks = report.split(/(?=┌)/).filter((block) => block.includes('│ Package'));
+
+const readField = (block, label) =>
+  block.match(new RegExp(`│\\s*${label}\\s*│\\s*([^│\\n]+)`))?.[1]?.trim() ?? '';
+
+const findings = blocks.map((block) => {
+  const severity =
+    block.match(/│\s*(critical|high|moderate|low)\s*│/i)?.[1]?.toLowerCase() ?? '';
+  const title =
+    block.match(/│\s*(?:critical|high|moderate|low)\s*│\s*([^│\n]+)/i)?.[1]?.trim() ?? '';
+  const id =
+    block.match(/https:\/\/github\.com\/advisories\/([A-Z0-9-]+)/i)?.[1]?.toUpperCase() ?? '';
+
+  return {
+    id,
+    package: readField(block, 'Package'),
+    severity,
+    title,
+    vulnerableVersions: readField(block, 'Vulnerable versions'),
+    patchedVersions: readField(block, 'Patched versions'),
+  };
+});
+
+if (reportedCount > 0 && findings.length === 0) {
+  console.error('Dependency findings were reported, but no advisory details could be parsed.');
+  process.exit(2);
+}
+
+if (
+  findings.some(
+    (finding) =>
+      !finding.package ||
+      !finding.severity ||
+      !finding.vulnerableVersions ||
+      !finding.patchedVersions,
+  )
+) {
+  console.error('At least one dependency advisory is missing package, severity or version metadata.');
+  process.exit(2);
+}
+
+const fingerprint = (finding) =>
+  [
+    finding.id || `NO-ID:${finding.title}`,
+    finding.package,
+    finding.severity,
+    finding.vulnerableVersions,
+    finding.patchedVersions,
+  ].join('::');
+
+const known = new Set((baseline.findings ?? []).map(fingerprint));
+if (known.size === 0 && reportedCount > 0) {
+  console.error('The reviewed baseline has no advisory fingerprints; refusing to bypass the audit.');
+  process.exit(2);
+}
+
+const current = new Set(findings.map(fingerprint));
+const newFindings = [...current].filter((item) => !known.has(item)).sort();
+const resolvedFindings = [...known].filter((item) => !current.has(item)).sort();
 
 console.log(
-  `Audit baseline: ${known.size} known GHSA advisories; current report: ${reported.size} unique GHSA advisories.`,
+  `Audit baseline: ${known.size} reviewed advisory fingerprints; current report: ${current.size}.`,
 );
-console.log(`Advisories no longer reported: ${resolved.length}.`);
+console.log(`Findings no longer reported: ${resolvedFindings.length}.`);
 
-if (newAdvisories.length > 0) {
-  console.error('New advisories detected:');
-  for (const id of newAdvisories) console.error(`- ${id}`);
+if (newFindings.length > 0) {
+  console.error('New or changed dependency findings detected (identifier, package, severity or version range):');
+  for (const item of newFindings) console.error(`- ${item}`);
   process.exit(1);
 }
 
-// GHSA identifiers are not present for every registry advisory. Compare the
-// total finding count as a second guard so a newly reported CVE-only advisory
-// cannot silently pass merely because it has no GHSA identifier.
-if (
-  baselineVulnerabilityCount > 0 &&
-  reportedVulnerabilityCount > baselineVulnerabilityCount
-) {
+if (reportedCount > Number(baseline.reportedVulnerabilities ?? 0)) {
   console.error(
-    `Dependency findings increased from ${baselineVulnerabilityCount} to ${reportedVulnerabilityCount}; review advisories without a known GHSA identifier.`,
+    `Dependency findings increased from ${baseline.reportedVulnerabilities} to ${reportedCount}.`,
   );
   process.exit(1);
 }
 
 console.log(
-  `No new GHSA identifiers or increase in reported findings (${reportedVulnerabilityCount}/${baselineVulnerabilityCount}).`,
+  `No new or changed advisory fingerprints; reported findings: ${reportedCount}/${baseline.reportedVulnerabilities}.`,
 );
