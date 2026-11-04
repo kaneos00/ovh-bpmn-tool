@@ -156,7 +156,7 @@ const resultBadge = (detail: string) => {
       border: '#d5c8f0',
     };
   }
-  if (/annotation BPMN/i.test(detail)) {
+  if (/annotation BPMN|Description/i.test(detail)) {
     return {
       label: 'Description',
       color: '#4b5563',
@@ -429,7 +429,7 @@ export const WorkspaceNavigation = () => {
 
       if (!cancelled) {
         const uniqueResults = Array.from(new Map(found.map(result => [resultKey(result), result])).values());
-        setDeepResults(uniqueResults.sort((a, b) => a.title.localeCompare(b.title, 'fr')).slice(0, 20));
+        setDeepResults(uniqueResults.sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0) || a.title.localeCompare(b.title, 'fr')).slice(0, 20));
         setDeepSearchLoading(false);
       }
     }, 250);
