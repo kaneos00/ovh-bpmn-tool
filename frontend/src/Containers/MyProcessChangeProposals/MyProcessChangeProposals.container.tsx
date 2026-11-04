@@ -168,11 +168,17 @@ export const Component = () => {
                           </Sheet>
                         )}
                       </Box>
-                      <Button size="sm" variant="outlined" color="neutral"
-                        disabled={!proposal.submittedContentId}
-                        onClick={() => navigate(`/compare-resources/${proposal.sourceResourceId}/${proposal.sourcePublishedContentId}/${proposal.cloneResourceId}/${proposal.submittedContentId}`)}>
-                        Comparer les versions
-                      </Button>
+                      <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                        <Button size="sm" variant="outlined" color="neutral"
+                          disabled={!proposal.submittedContentId}
+                          onClick={() => navigate(`/compare-resources/${proposal.sourceResourceId}/${proposal.sourcePublishedContentId}/${proposal.cloneResourceId}/${proposal.submittedContentId}`)}>
+                          Comparer les versions
+                        </Button>
+                        <Button size="sm" variant="solid" color="primary"
+                          onClick={() => navigate(`/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}&reviewRemarks=1`)}>
+                          Traiter dans le modeleur
+                        </Button>
+                      </Stack>
                     </Stack>
                     {proposal.status === 'submitted' ? (
                       <>
