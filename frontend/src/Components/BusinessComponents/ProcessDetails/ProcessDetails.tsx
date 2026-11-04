@@ -263,10 +263,22 @@ export const ProcessDetails = ({
         `/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}`,
       );
     } catch (error) {
+      const apiError = error as {
+        message?: string;
+        response?: {
+          status?: number;
+          data?: { message?: string | string[]; error?: string };
+        };
+      };
+      const backendMessage = apiError.response?.data?.message;
+      const readableMessage = Array.isArray(backendMessage)
+        ? backendMessage.join(' — ')
+        : backendMessage;
+      const status = apiError.response?.status;
       showAlert({
-        message: error instanceof Error
-          ? error.message
-          : 'Impossible de créer la demande de modification.',
+        message: readableMessage ||
+          (status ? `Erreur serveur (HTTP ${status}). ` : '') +
+          (apiError.message || 'Impossible de créer la demande de modification.'),
         severity: 'danger',
       });
     } finally {
