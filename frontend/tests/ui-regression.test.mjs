@@ -133,9 +133,10 @@ test('explorer delegates Call Activity and collapsed SubProcess links to the tes
   assert.ok(processLinks.includes("getElementsByTagNameNS('*', 'BPMNShape')"));
   assert.ok(processLinks.includes("shape.getAttribute('isExpanded') === 'false'"));
   assert.ok(processLinks.includes("shape.getAttribute('bpmnElement')?.trim() || ''"));
-  const navigation = await read('src/shared/hooks/useCallActivityNavigation.ts');
-  assert.ok(navigation.includes('element?.businessObject?.di?.isExpanded'));
-  assert.ok(navigation.includes("return expandedState === false || expandedState === 'false'"));
+  assert.ok(processLinks.includes('element?.businessObject?.di?.isExpanded'));
+  assert.ok(processLinks.includes("return expandedState === false || expandedState === 'false'"));
+  assert.ok(processLinks.includes('const flowElements = element?.businessObject?.flowElements'));
+  assert.ok(processLinks.includes('flowElements.length > 0) return false'));
 });
 
 test('viewer uses the shared explorer panel instead of the legacy ResourceExplorer', async () => {
