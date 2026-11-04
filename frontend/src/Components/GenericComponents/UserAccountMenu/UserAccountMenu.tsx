@@ -150,7 +150,7 @@ export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
             {username}
           </Typography>
           <Typography level="body-xs" sx={{ color: 'inherit', opacity: 0.72 }}>
-            {roleLabel}
+            {session?.impersonating ? 'Session simulée' : roleLabel}
           </Typography>
         </Box>
       </MenuButton>
@@ -176,13 +176,13 @@ export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
           </MenuItem>
         )}
         {session?.impersonating && (
-          <MenuItem disabled>Session simulée · administrateur : {session.impersonatorUserId || 'identifié'}</MenuItem>
-        {session?.impersonating && (
-          <MenuItem color="warning" disabled={busy} onClick={stopImpersonation}>
-            <AdminPanelSettingsOutlined fontSize="small" />
-            {busy ? 'Reprise de session…' : 'Revenir à ma session administrateur'}
-          </MenuItem>
-        )}
+          <>
+            <MenuItem disabled>Session simulée · administrateur : {session.impersonatorUserId || 'identifié'}</MenuItem>
+            <MenuItem color="warning" disabled={busy} onClick={stopImpersonation}>
+              <AdminPanelSettingsOutlined fontSize="small" />
+              {busy ? 'Reprise de session…' : 'Revenir à ma session administrateur'}
+            </MenuItem>
+          </>
         )}
         {error && <MenuItem disabled>{error}</MenuItem>}
         <MenuItem color="danger" disabled={busy} onClick={logout}>
