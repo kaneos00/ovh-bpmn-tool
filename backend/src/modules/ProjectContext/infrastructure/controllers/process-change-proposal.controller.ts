@@ -1010,6 +1010,21 @@ export class ProcessChangeProposalController {
           'Seule une demande soumise peut faire l’objet d’une décision',
         );
       }
+      if (decision === ProcessChangeProposalStatus.Approved) {
+        const pendingRemarks = await manager
+          .getRepository(ProcessChangeProposalCommentTypeOrmEntity)
+          .count({
+            where: {
+              proposalId,
+              status: ProcessChangeProposalCommentStatus.Pending,
+            },
+          });
+        if (pendingRemarks > 0) {
+          throw new ConflictException(
+            `L’approbation est bloquée : ${pendingRemarks} remarque(s) restent à traiter`,
+          );
+        }
+      }
       const currentMembership = await members.findOne({
         where: { projectId: proposal.projectId, userId: actorUsername },
       });
@@ -1208,7 +1223,7 @@ export class ProcessChangeProposalController {
             body.summaryComment?.trim() || proposal.submissionComment || 'Validation de la demande de modification',
             'Synthèse des remarques contextuelles :',
             ...remarks.map(remark =>
-              `- [${remark.status}] ${remark.createdAt.toISOString()} · élément ${remark.elementId} · ${remark.comment}${remark.decisionComment ? ` · décision : ${remark.decisionComment}` : ''}`,
+              `- [${remark.status}] ${remark.createdAt.toISOString()} · auteur ${remark.authorUserId} · élément ${remark.elementId} · ${remark.comment}${remark.decisionComment ? ` · décision : ${remark.decisionComment}` : ''}`,
             ),
           ].join('\\n'),
           pngContent: Buffer.from(
@@ -1270,10 +1285,33 @@ export class ProcessChangeProposalController {
         ProjectMemberRole.Viewer,
       );
     }
-    return this.proposalComments.find({
+    const comments = await this.proposalComments.find({
       where: { proposalId },
       order: { createdAt: 'ASC' },
     });
+    if (!comments.length) return [];
+    const userIds = [...new Set(
+      comments.flatMap(comment => [
+        comment.authorUserId,
+        ...(comment.decisionBy ? [comment.decisionBy] : []),
+      ]),
+    )];
+    const users: Array<{ id: string; username: string; email: string | null }> =
+      await this.dataSource.query(
+        'SELECT id, username, email FROM app_users WHERE id = ANY($1::uuid[])',
+        [userIds],
+      );
+    const userNameById = new Map(users.map(user => [
+      user.id,
+      user.username || user.email || user.id,
+    ]));
+    return comments.map(comment => ({
+      ...comment,
+      authorName: userNameById.get(comment.authorUserId) ?? comment.authorUserId,
+      decisionByName: comment.decisionBy
+        ? userNameById.get(comment.decisionBy) ?? comment.decisionBy
+        : null,
+    }));
   }
 
   /**
