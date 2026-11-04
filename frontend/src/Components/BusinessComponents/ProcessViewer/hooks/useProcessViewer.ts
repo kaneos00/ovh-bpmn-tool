@@ -62,6 +62,11 @@ export const useProcessViewer = (
         ? '1 remarque associée à cet élément'
         : `${count} remarques associées à cet élément`;
       badge.setAttribute('aria-label', badge.title);
+      badge.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        onElementSelectRef.current?.(elementId);
+      });
       Object.assign(badge.style, {
         display: 'inline-flex',
         alignItems: 'center',
