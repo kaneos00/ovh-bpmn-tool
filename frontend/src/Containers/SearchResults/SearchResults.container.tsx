@@ -432,6 +432,11 @@ export const Component = () => {
                         </Box>
                         <Box sx={{ minWidth: 0 }}>
                           <Typography level="title-sm">{highlight(getResultTitle(result))}</Typography>
+                          {result.description && (
+                            <Typography level="body-sm" sx={{ color: 'text.secondary', mt: 0.25 }}>
+                              <strong>Description :</strong> {highlight(result.description)}
+                            </Typography>
+                          )}
                           <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>{highlight(detail)}</Typography>
                         </Box>
                       </Box>
