@@ -254,7 +254,10 @@ test('global and full search use the same shared result row component', async ()
   assert.ok(navigation.includes('<SearchResultItem'));
   assert.ok(fullSearch.includes('<SearchResultItem'));
   assert.ok(shared.includes('badge={badge}') === false);
-  assert.ok(shared.includes('<Typography level="title-sm">{title}</Typography>'));
+  assert.ok(shared.includes('<Typography level="title-sm">{highlightNode(title, query)}</Typography>'));
+  assert.ok(shared.includes('bgcolor: \'#fff1a8\''));
+  assert.ok(navigation.includes('query={search}'));
+  assert.ok(fullSearch.includes('query={query}'));
   assert.ok(shared.includes('level="body-xs"'));
 });
 
