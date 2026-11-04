@@ -1,6 +1,7 @@
 import { ProjectRaciRole } from '../ProjectContext/infrastructure/entities/projectRaciEntry.ormEntity';
 import {
   extractBpmnSearchResults,
+  isSearchTextMatch,
   normalizeSearchText,
 } from './unified-search.service';
 
@@ -10,6 +11,15 @@ describe('unified search normalization', () => {
       'revision generale',
     );
     expect(normalizeSearchText('REVISION generale')).toBe('revision generale');
+  });
+
+  it('matches conservative typos only for sufficiently long words', () => {
+    expect(isSearchTextMatch('Validation des factures', 'validaton')).toBe(true);
+    expect(isSearchTextMatch('Validation des factures', 'VALIDATION')).toBe(true);
+    expect(isSearchTextMatch('Validation des factures', 'val')).toBe(false);
+    expect(isSearchTextMatch('Validation des factures', 'valdiation')).toBe(true);
+    expect(isSearchTextMatch('Validation des factures', 'livraison')).toBe(false);
+    expect(isSearchTextMatch('Gestion des commandes', 'gestion comandes')).toBe(true);
   });
 });
 
