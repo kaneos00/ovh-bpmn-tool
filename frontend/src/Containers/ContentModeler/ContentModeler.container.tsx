@@ -15,6 +15,7 @@ import type { ContentModelerRouteParams } from '.';
 import { useCallActivityNavigation } from '../../shared/hooks/useCallActivityNavigation';
 import { ImpersonationBanner } from '../../Components/GenericComponents/ImpersonationBanner/ImpersonationBanner';
 import queryClient, { apiClient } from '../../queryClient';
+import { generatePngFromSvg } from '../../shared/utils/generatePngFromSvg';
 
 export const Component = () => {
   // share modeler instance in order to avoid create instance in useContentModeler and useModeler
@@ -26,6 +27,8 @@ export const Component = () => {
   const [searchParams] = useSearchParams();
   const proposalId = searchParams.get('proposalId');
   const proposalMode = Boolean(proposalId);
+  const approvedProposalMode = searchParams.get('publishApproved') === '1';
+  const sourceResourceId = searchParams.get('sourceResourceId');
   const pendingSaveExitRef = useRef(false);
   const pendingPublishExitRef = useRef(false);
   const handledActionDataRef = useRef<typeof actionData>(undefined);
@@ -35,6 +38,8 @@ export const Component = () => {
   const [submissionComment, setSubmissionComment] = useState('');
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submittingProposal, setSubmittingProposal] = useState(false);
+  const [publishingApprovedProposal, setPublishingApprovedProposal] = useState(false);
+  const [publicationError, setPublicationError] = useState<string | null>(null);
 
   useCallActivityNavigation(bpmnModelerInstance);
 
@@ -62,8 +67,35 @@ export const Component = () => {
     actionData,
   } = useContentModeler(bpmnModelerInstance);
 
-  const { diagramContainerRef, diagramPropertiesRef, hasLintError, isDirty, canUndo, canRedo, undo, redo, markSaved } = useModeler(bpmnModelerInstance, draftXmlContent);
+  const { diagramContainerRef, diagramPropertiesRef, hasLintError, isDirty, canUndo, canRedo, undo, redo, markSaved, isModelerReady } = useModeler(bpmnModelerInstance, draftXmlContent);
   const blocker = useBlocker(({ nextLocation }) => isDirty && nextLocation.pathname === `/${resourceId}`);
+  const publishApprovedProposal = async () => {
+    if (!proposalId || !approvedProposalMode || publishingApprovedProposal) return;
+    setPublishingApprovedProposal(true);
+    setPublicationError(null);
+    try {
+      const { svg } = await bpmnModelerInstance.saveSVG();
+      const pngContent = await generatePngFromSvg(svg);
+      await apiClient.post(
+        `/projects/process-change-proposals/${proposalId}/publish`,
+        { pngContent },
+      );
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['my-process-change-proposals'] }),
+        queryClient.invalidateQueries({ queryKey: ['process-change-proposals-to-review'] }),
+      ]);
+      navigate(sourceResourceId ? `/${sourceResourceId}` : '/mes-demandes');
+    } catch (error) {
+      setPublicationError(
+        error instanceof Error
+          ? error.message
+          : 'Impossible de publier la version approuvée.',
+      );
+    } finally {
+      setPublishingApprovedProposal(false);
+    }
+  };
+
 
   useEffect(() => {
     if (!actionData || handledActionDataRef.current === actionData) return;
@@ -124,7 +156,12 @@ export const Component = () => {
         onRolesOpen={() => setRaciView('actors')}
         onCompareWithSource={onCompareWithSource}
         proposalMode={proposalMode}
+        approvedProposalMode={approvedProposalMode}
+        onPublishApprovedProposal={publishApprovedProposal}
+        publishApprovedDisabled={!isModelerReady || publishingApprovedProposal || !proposalId}
+        publishApprovedLoading={publishingApprovedProposal}
       />
+      {publicationError && <Alert color="danger" sx={{ mx: 2, my: 1 }}>{publicationError}</Alert>}
       <Modeler
         diagramContainerRef={diagramContainerRef}
         diagramPropertiesRef={diagramPropertiesRef}
