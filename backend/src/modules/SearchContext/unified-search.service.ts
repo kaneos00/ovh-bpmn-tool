@@ -56,6 +56,18 @@ export function sortUnifiedSearchResults(
     raci: 2,
     actor: 3,
   };
+  const typeLabels: Record<SearchResultType, string> = {
+    process: 'Processus',
+    bpmn: 'Élément BPMN',
+    raci: 'Responsabilité RACI',
+    actor: 'Acteur / rôle',
+  };
+  const sourceLabels: Record<SearchResultSource, string> = {
+    resource: 'Processus',
+    bpmn: 'BPMN',
+    'project-raci': 'RACI projet',
+    'project-actor': 'Acteurs projet',
+  };
   const direction = sortDirection === 'desc' ? -1 : 1;
   return [...results].sort((left, right) => {
     if (sortBy === 'relevance') {
@@ -66,8 +78,8 @@ export function sortUnifiedSearchResults(
       );
     }
     const value = (item: UnifiedSearchResult) => {
-      if (sortBy === 'type') return item.type;
-      if (sortBy === 'source') return item.source ?? '';
+      if (sortBy === 'type') return typeLabels[item.type];
+      if (sortBy === 'source') return sourceLabels[item.source ?? 'resource'];
       if (sortBy === 'process') return item.processName ?? '';
       return item.label;
     };
