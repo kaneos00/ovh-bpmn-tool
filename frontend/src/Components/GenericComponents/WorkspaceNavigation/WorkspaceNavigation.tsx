@@ -521,6 +521,7 @@ export const WorkspaceNavigation = () => {
                       badge={resultBadge(result.detail)}
                       title={result.title}
                       detail={result.detail}
+                      query={search}
                       onClick={() => openResult(result)}
                     />
                   ))}
