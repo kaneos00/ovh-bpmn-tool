@@ -714,7 +714,7 @@ export class UnifiedSearchService {
             : canReadProjectMetadata
               ? undefined
               : ['bpmn' as SearchResultType];
-          if (!options.types?.length || extractionTypes.length > 0) {
+          if (!extractionTypes || extractionTypes.length > 0) {
             results.push(
               ...extractBpmnSearchResults(
                 document.content,
