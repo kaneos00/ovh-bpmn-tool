@@ -406,9 +406,9 @@ export const WorkspaceNavigation = () => {
                 bpmnOwner = bpmnOwner.parentElement;
               }
               if (bpmnOwner && BPMN_CONNECTION_TYPES.has(bpmnOwner.localName.toLocaleLowerCase('fr'))) return;
-              if ((scope === 'all' || scope === 'bpmn') && bpmnOwner && bpmnOwner.getAttribute('id') && bpmnOwner.localName.toLocaleLowerCase('fr') !== 'textannotation') return;
+
               const elementId = bpmnOwner?.getAttribute('id') || undefined;
-              if ((scope === 'all' || scope === 'bpmn') && bpmnOwner && namedElements.includes(bpmnOwner)) return;
+              if (bpmnOwner && namedElements.includes(bpmnOwner)) return;
               found.push({
                 key: `${process.id}:ia-comm:${element.localName}:${elementId || index}:${title}`,
                 title,
