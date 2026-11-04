@@ -266,7 +266,7 @@ test('global and full search use the same shared result row component', async ()
 test('global annotation search labels text annotations as Description and carries the BPMN element ID', async () => {
   const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
 
-  assert.match(navigation, /if \(\/annotation BPMN\/i\.test\(detail\)\)[\s\S]*?label: 'Description'/);
+  assert.match(navigation, /if \(\/annotation BPMN\|Description\/i\.test\(detail\)\)[\s\S]*?label: 'Description'/);
   assert.match(navigation, /const isTextAnnotation = tag === 'textannotation'/);
   assert.match(navigation, /let bpmnOwner: Element \| null = element/);
   assert.match(navigation, /bpmnOwner\.namespaceURI !== BPMN_MODEL_NS/);
