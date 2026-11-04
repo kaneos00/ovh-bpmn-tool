@@ -12,6 +12,7 @@ import { ProjectRaciEntryTypeOrmEntity } from './infrastructure/entities/project
 import { ProjectRaciActorTypeOrmEntity } from './infrastructure/entities/projectRaciActor.ormEntity';
 import { ProcessChangeProposalTypeOrmEntity } from './infrastructure/entities/processChangeProposal.ormEntity';
 import { ProcessChangeProposalEventTypeOrmEntity } from './infrastructure/entities/processChangeProposalEvent.ormEntity';
+import { ProcessChangeProposalCommentTypeOrmEntity } from './infrastructure/entities/processChangeProposalComment.ormEntity';
 import { ProjectResourceAccessService } from './projectResourceAccess.service';
 
 @Module({
@@ -26,6 +27,7 @@ import { ProjectResourceAccessService } from './projectResourceAccess.service';
       ProjectRaciActorTypeOrmEntity,
       ProcessChangeProposalTypeOrmEntity,
       ProcessChangeProposalEventTypeOrmEntity,
+      ProcessChangeProposalCommentTypeOrmEntity,
     ]),
   ],
   controllers: [
