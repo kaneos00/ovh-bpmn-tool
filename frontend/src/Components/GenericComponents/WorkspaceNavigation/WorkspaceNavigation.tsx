@@ -50,7 +50,7 @@ const destinations = [
 ];
 
 const normalizeSearch = (value: string) =>
-  value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase('fr').trim();
+  value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr').trim();
 
 const editDistance = (left: string, right: string) => {
   const row = Array.from({ length: right.length + 1 }, (_, index) => index);
