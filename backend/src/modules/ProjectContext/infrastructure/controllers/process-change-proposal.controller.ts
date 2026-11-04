@@ -803,7 +803,7 @@ export class ProcessChangeProposalController {
   @UseAcl()
   async publishApprovedProposal(
     @Param('proposalId') proposalId: string,
-    @Body() body: { pngContent?: string },
+    @Body() body: { pngContent?: string; summaryComment?: string },
     @Headers() headers: RequestHeaders,
   ) {
     const existing = await this.proposals.findOne({
@@ -838,6 +838,7 @@ export class ProcessChangeProposalController {
         ProcessChangeProposalEventTypeOrmEntity,
       );
       const members = manager.getRepository(ProjectMemberTypeOrmEntity);
+      const proposalComments = manager.getRepository(ProcessChangeProposalCommentTypeOrmEntity);
 
       const proposal = await proposals.findOne({
         where: { id: proposalId },
@@ -859,6 +860,18 @@ export class ProcessChangeProposalController {
       ) {
         throw new ForbiddenException(
           'Seul le validateur désigné ou un administrateur du projet peut publier',
+        );
+      }
+      const remarks = await proposalComments.find({
+        where: { proposalId },
+        order: { createdAt: 'ASC' },
+      });
+      const pendingRemarks = remarks.filter(
+        remark => remark.status === ProcessChangeProposalCommentStatus.Pending,
+      );
+      if (pendingRemarks.length) {
+        throw new ConflictException(
+          `La publication est bloquée : ${pendingRemarks.length} remarque(s) restent à traiter`,
         );
       }
       if (!proposal.submittedContentId) {
@@ -930,7 +943,13 @@ export class ProcessChangeProposalController {
             submittedContent.version ?? 1,
           ),
           content: submittedContent.content,
-          changeComment: proposal.submissionComment,
+          changeComment: [
+            body.summaryComment?.trim() || proposal.submissionComment || 'Validation de la demande de modification',
+            'Synthèse des remarques contextuelles :',
+            ...remarks.map(remark =>
+              `- [${remark.status}] ${remark.createdAt.toISOString()} · élément ${remark.elementId} · ${remark.comment}${remark.decisionComment ? ` · décision : ${remark.decisionComment}` : ''}`,
+            ),
+          ].join('\\n'),
           pngContent: Buffer.from(
             pngContent.replace(/^data:image\/png;base64,/, ''),
             'base64',
@@ -1021,14 +1040,14 @@ export class ProcessChangeProposalController {
       proposal.status === ProcessChangeProposalStatus.Published
     ) {
       throw new ConflictException(
-        'Non è possibile aggiungere osservazioni a una richiesta chiusa',
+        'Impossible d’ajouter une remarque à une demande clôturée',
       );
     }
     const elementId = body.elementId?.trim() ?? '';
     const comment = body.comment?.trim() ?? '';
     if (!elementId || !comment) {
       throw new BadRequestException(
-        'L’elemento BPMN e il testo della remarque sono obbligatori',
+        'L’élément BPMN et le texte de la remarque sont obligatoires',
       );
     }
     if (elementId.length > 255) {
@@ -1120,7 +1139,6 @@ export class ProcessChangeProposalController {
       current.decisionBy = actorUserId;
       current.decidedAt = new Date();
       current.decisionComment = decisionComment || null;
-      current.updatedBy = actorUsername;
       return comments.save(current);
     });
   }
