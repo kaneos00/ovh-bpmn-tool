@@ -128,6 +128,15 @@ function collectText(value: unknown): string {
     .join(' ');
 }
 
+const BPMN_CONNECTION_TYPES = new Set([
+  'sequenceFlow',
+  'messageFlow',
+  'association',
+  'dataInputAssociation',
+  'dataOutputAssociation',
+  'conversationLink',
+]);
+
 const BPMN_ACTIVITY_TYPES = new Set([
   'task',
   'userTask',
@@ -253,6 +262,8 @@ export function extractBpmnSearchResults(
       return;
     }
     if (!value || typeof value !== 'object') return;
+
+    if (BPMN_CONNECTION_TYPES.has(key)) return;
 
     const node = value as Record<string, unknown>;
     const typeLabel = BPMN_ELEMENT_TYPES[key];
