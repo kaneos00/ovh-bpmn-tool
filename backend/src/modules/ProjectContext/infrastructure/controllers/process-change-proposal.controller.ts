@@ -119,6 +119,9 @@ export class ProcessChangeProposalController {
       where: { proposalId: In(visible.map((proposal) => proposal.id)) },
       order: { createdAt: 'DESC' },
     });
+    const remarks = await this.proposalComments.find({
+      where: { proposalId: In(visible.map((proposal) => proposal.id)) },
+    });
     const validatorIds = [
       ...new Set(
         visible
@@ -283,6 +286,18 @@ export class ProcessChangeProposalController {
         author.username || author.email || author.id,
       ]),
     );
+    const remarkCountsByProposal = new Map<string, { total: number; pending: number }>();
+    for (const remark of remarks) {
+      const counts = remarkCountsByProposal.get(remark.proposalId) ?? {
+        total: 0,
+        pending: 0,
+      };
+      counts.total += 1;
+      if (remark.status === ProcessChangeProposalCommentStatus.Pending) {
+        counts.pending += 1;
+      }
+      remarkCountsByProposal.set(remark.proposalId, counts);
+    }
     const latestEventByProposal = new Map<
       string,
       ProcessChangeProposalEventTypeOrmEntity
@@ -966,7 +981,7 @@ export class ProcessChangeProposalController {
       });
       const lastSubmitterUserId =
         latestSubmission?.actorUserId ?? proposal.authorUserId;
-      if (lastSubmitterUserId === actorUserId && !isOrganizationAdmin) {
+      if (lastSubmitterUserId === actorUserId) {
         throw new ForbiddenException(
           'L’auteur de la dernière soumission ne peut pas approuver ou refuser sa propre demande',
         );
@@ -1476,7 +1491,7 @@ export class ProcessChangeProposalController {
         lock: { mode: 'pessimistic_write' },
       });
       if (!current) throw new NotFoundException('Remarque introuvable');
-      if (current.authorUserId === actorUserId && !isOrganizationAdmin) {
+      if (current.authorUserId === actorUserId) {
         throw new ForbiddenException(
           'L’auteur ne peut pas décider de sa propre remarque',
         );
@@ -1492,7 +1507,23 @@ export class ProcessChangeProposalController {
       current.decisionBy = actorUserId;
       current.decidedAt = new Date();
       current.decisionComment = decisionComment || null;
-      return comments.save(current);
+      const savedComment = await comments.save(current);
+      await manager.getRepository(ProcessChangeProposalEventTypeOrmEntity).save(
+        manager.getRepository(ProcessChangeProposalEventTypeOrmEntity).create({
+          proposalId,
+          eventType: body.decision === 'accepted' ? 'remark_accepted' : 'remark_rejected',
+          actorUserId,
+          validatorUserId: lockedProposal.validatorUserId,
+          comment: decisionComment || null,
+          details: {
+            remarkId: savedComment.id,
+            elementId: savedComment.elementId,
+            decision: body.decision,
+          },
+          createdBy: actorUsername,
+        }),
+      );
+      return savedComment;
     });
   }
 
