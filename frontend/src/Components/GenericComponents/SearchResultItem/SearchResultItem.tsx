@@ -26,6 +26,23 @@ const normalize = (value: string) =>
     .replace(/[\u0300-\u036f]/g, '')
     .toLocaleLowerCase('fr');
 
+const editDistance = (left: string, right: string): number => {
+  const initialRow = Array.from({ length: right.length + 1 }, (_, index) => index);
+  let previous = initialRow;
+  for (let i = 1; i <= left.length; i += 1) {
+    const current = [i];
+    for (let j = 1; j <= right.length; j += 1) {
+      current[j] = Math.min(
+        current[j - 1] + 1,
+        previous[j] + 1,
+        previous[j - 1] + (left[i - 1] === right[j - 1] ? 0 : 1),
+      );
+    }
+    previous = current;
+  }
+  return previous[right.length];
+};
+
 const highlightText = (value: string, query: string): React.ReactNode => {
   const term = normalize(query.trim());
   if (!term) return value;
@@ -43,15 +60,57 @@ const highlightText = (value: string, query: string): React.ReactNode => {
     sourceOffset += character.length;
   }
 
+  const queryWords = term.split(/[^a-z0-9]+/).filter(Boolean);
+  const valueWords = [...searchable.matchAll(/[a-z0-9]+/g)];
+  const ranges: Array<{ start: number; end: number }> = [];
+
+  for (const queryWord of queryWords) {
+    let best: { start: number; end: number; distance: number; exact: boolean } | undefined;
+    for (const token of valueWords) {
+      const candidate = token[0];
+      const tokenStart = token.index ?? 0;
+      const tokenEnd = tokenStart + candidate.length;
+      const substringIndex = candidate.indexOf(queryWord);
+      if (substringIndex !== -1) {
+        const exactRange = {
+          start: tokenStart + substringIndex,
+          end: tokenStart + substringIndex + queryWord.length,
+          distance: 0,
+          exact: true,
+        };
+        if (!best || !best.exact) best = exactRange;
+        continue;
+      }
+
+      if (queryWord.length < 5) continue;
+      const maxDistance = queryWord.length >= 8 ? 2 : 1;
+      if (Math.abs(candidate.length - queryWord.length) > maxDistance) continue;
+      const distance = editDistance(candidate, queryWord);
+      if (distance <= maxDistance && (!best || (!best.exact && distance < best.distance))) {
+        best = { start: tokenStart, end: tokenEnd, distance, exact: false };
+      }
+    }
+
+    if (best) {
+      const start = sourceMap[best.start]?.start;
+      const end = sourceMap[best.end - 1]?.end;
+      if (start !== undefined && end !== undefined) ranges.push({ start, end });
+    }
+  }
+
+  const mergedRanges = ranges
+    .sort((a, b) => a.start - b.start)
+    .reduce<Array<{ start: number; end: number }>>((merged, range) => {
+      const previous = merged[merged.length - 1];
+      if (previous && range.start <= previous.end) previous.end = Math.max(previous.end, range.end);
+      else merged.push({ ...range });
+      return merged;
+    }, []);
+
+  if (!mergedRanges.length) return value;
   const parts: React.ReactNode[] = [];
   let cursor = 0;
-  let match = searchable.indexOf(term);
-
-  while (match !== -1) {
-    const start = sourceMap[match]?.start;
-    const end = sourceMap[match + term.length - 1]?.end;
-    if (start === undefined || end === undefined) break;
-
+  mergedRanges.forEach(({ start, end }) => {
     if (start > cursor) parts.push(value.slice(cursor, start));
     parts.push(
       <Box
@@ -63,10 +122,7 @@ const highlightText = (value: string, query: string): React.ReactNode => {
       </Box>,
     );
     cursor = end;
-    match = searchable.indexOf(term, match + term.length);
-  }
-
-  if (!parts.length) return value;
+  });
   if (cursor < value.length) parts.push(value.slice(cursor));
   return <>{parts}</>;
 };
