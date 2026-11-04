@@ -320,6 +320,9 @@ export class ProcessChangeProposalController {
       headers,
       ProjectMemberRole.Modeler,
     );
+    // Proposal creation clones the source; it never edits a common process.
+    // Apply clone permissions separately from generic resource edit permissions.
+    await this.access.assertCanCloneResource(sourceResourceId, headers);
     const authorUserId = await this.resolveAccountId(authorUsername);
 
     return this.dataSource.transaction(async (manager) => {

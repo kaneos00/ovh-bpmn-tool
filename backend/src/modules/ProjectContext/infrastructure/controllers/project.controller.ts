@@ -140,7 +140,7 @@ export class ProjectController {
       order: { createdAt: 'ASC' },
     });
     const projectIds = [...new Set(links.map((link) => link.projectId))];
-    if (!projectIds.length) return { shared: false, projects: [] };
+    if (!projectIds.length) return { shared: false, common: false, projects: [] };
 
     const userId = this.projectResourceAccess.getAuthenticatedUserId(headers);
     const isOrganizationAdmin =
