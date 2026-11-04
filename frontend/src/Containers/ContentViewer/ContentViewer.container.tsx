@@ -452,6 +452,16 @@ const ProcessContentViewer = () => {
               <Typography level="body-sm" textColor="neutral">
                 Les remarques sont rattachées aux éléments BPMN et restent visibles aux membres du projet jusqu’à leur traitement.
               </Typography>
+              {activeProposal?.status === 'draft' && (
+                <Alert color="info" variant="soft">
+                  Une demande est en préparation. Les remarques seront transmises au validateur lorsque le brouillon sera soumis.
+                </Alert>
+              )}
+              {activeProposal?.status === 'changes_requested' && (
+                <Alert color="warning" variant="soft">
+                  Des corrections ont été demandées. Les nouvelles remarques seront reprises lors de la prochaine soumission du brouillon.
+                </Alert>
+              )}
               {proposalRemarks.length === 0 ? (
                 <Typography level="body-sm" textColor="neutral">
                   Aucune remarque pour cette version publiée.
