@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { cloneElement, isValidElement } from 'react';
 import { Box, Button, ListItem, Typography } from '@mui/joy';
 
 export type SearchResultBadge = {
@@ -79,8 +79,8 @@ const highlightNode = (node: React.ReactNode, query: string): React.ReactNode =>
       <React.Fragment key={index}>{highlightNode(child, query)}</React.Fragment>
     ));
   }
-  if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
-    return React.cloneElement(node, undefined, highlightNode(node.props.children, query));
+  if (isValidElement<{ children?: React.ReactNode }>(node)) {
+    return cloneElement(node, undefined, highlightNode(node.props.children, query));
   }
   return node;
 };
