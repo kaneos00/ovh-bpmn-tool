@@ -217,6 +217,22 @@ describe('BPMN search extraction', () => {
     );
   });
 
+  it('excludes BPMN connecting objects such as sequence flows from search results', () => {
+    const flowXml = `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL">
+      <process id="Process_Order" name="Order">
+        <task id="Task_Start" name="Start payment" />
+        <task id="Task_End" name="End payment" />
+        <sequenceFlow id="Flow_Payment" name="Payment route" sourceRef="Task_Start" targetRef="Task_End">
+          <documentation>Payment routing arrow</documentation>
+        </sequenceFlow>
+      </process></definitions>`;
+    const results = extractBpmnSearchResults(
+      flowXml, 'resource-1', 'Order', 'payment', ['bpmn'],
+    );
+    expect(results.map(result => result.elementId)).toEqual(['Task_Start', 'Task_End']);
+    expect(results.some(result => result.elementId === 'Flow_Payment')).toBe(false);
+  });
+
   it('does not expand document-defined XML entities', () => {
     const hostileXml = `<!DOCTYPE definitions [<!ENTITY privateValue "expanded-secret">]>
       <definitions><process><task id="Task_1" name="Payment">
