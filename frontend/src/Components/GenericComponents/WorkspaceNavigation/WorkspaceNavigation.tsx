@@ -12,7 +12,7 @@ import { deriveRaciMatrixFromXml } from '../../../extensions/raci-viewer';
 import { UserAccountMenu } from '../UserAccountMenu/UserAccountMenu';
 import { SearchResultItem } from '../SearchResultItem/SearchResultItem';
 
-type SearchScope = 'all' | 'processes' | 'bpmn' | 'roles' | 'raci' | 'iaComm';
+type SearchScope = 'all' | 'processes' | 'bpmn' | 'roles' | 'raci';
 type SearchResult = {
   key: string;
   title: string;
@@ -272,14 +272,14 @@ export const WorkspaceNavigation = () => {
             const annotation = element.localName.toLocaleLowerCase('fr') === 'textannotation'
               ? Array.from(element.children).find(child => child.localName.toLocaleLowerCase('fr') === 'text')?.textContent?.trim() || ''
               : '';
-            return id && (matchesTerm(name, term) || matchesTerm(id, term) ||
+            return id && (matchesTerm(name, term) ||
               matchesTerm(documentation, term) || matchesTerm(annotation, term));
           });
 
           if (scope === 'all' || scope === 'bpmn') {
             namedElements.forEach(element => {
               const id = element.getAttribute('id') || '';
-              const name = element.getAttribute('name')?.trim() || id;
+              const name = element.getAttribute('name')?.trim() || '';
               let kind: string;
             if (element.localName.toLowerCase().includes('subprocess')) {
               kind = 'Sous-processus';
@@ -303,12 +303,12 @@ export const WorkspaceNavigation = () => {
                   : '');
               found.push({
                 key: `${process.id}:bpmn:${id}`,
-                title: element.localName.toLocaleLowerCase('fr') === 'textannotation' ? (description || name) : name,
+                title: element.localName.toLocaleLowerCase('fr') === 'textannotation' ? (description || name || kind) : (name || description || kind),
                 detail: `${kind} · ${id}`,
                 resourceId: process.id,
                 processName: process.name,
                 description: description || undefined,
-                similarity: similarityFor(`${name} ${description} ${id}`, search),
+                similarity: similarityFor(`${name} ${description}`, search),
                 elementId: element.localName === 'process' ? undefined : id,
               });
             });
@@ -319,11 +319,11 @@ export const WorkspaceNavigation = () => {
               .filter(element => element.localName.toLowerCase().includes('subprocess'))
               .forEach(element => {
                 const id = element.getAttribute('id') || '';
-                const name = element.getAttribute('name')?.trim() || id;
+                const name = element.getAttribute('name')?.trim() || '';
                 found.push({
                   key: `${process.id}:subprocess:${id}`,
-                  title: name,
-                  detail: `Sous-processus · ${process.name} · ${id}`,
+                  title: name || 'Sous-processus',
+                  detail: `Sous-processus · ${process.name}`,
                   resourceId: process.id,
                   elementId: id,
                 });
@@ -354,8 +354,7 @@ export const WorkspaceNavigation = () => {
             matrix.activities.forEach(activity => {
               activity.cells.forEach(cell => {
                 const roleMatches = matchesTerm(cell.role, term);
-                const activityMatches = matchesTerm(activity.activity, term) ||
-                  matchesTerm(activity.elementId, term);
+                const activityMatches = matchesTerm(activity.activity, term);
                 const assignmentMatches = cell.codes.some(code => matchesTerm(code, term));
                 if (cell.codes.length && (
                   (scope === 'all' && (roleMatches || activityMatches || assignmentMatches)) ||
@@ -376,7 +375,7 @@ export const WorkspaceNavigation = () => {
             });
           }
 
-          if (scope === 'all' || scope === 'iaComm') {
+          if (scope === 'all') {
             // Search BPMN documentation, text annotations and communication-related labels.
             const textElements = Array.from(document.getElementsByTagName('*')).filter(element => {
               const tag = element.localName.toLocaleLowerCase('fr');
@@ -481,7 +480,6 @@ export const WorkspaceNavigation = () => {
       bpmn: 'bpmn',
       roles: 'actor',
       raci: 'raci',
-      iaComm: 'bpmn',
     };
     const type = typeByScope[scope];
     if (type) params.set('types', type);
@@ -555,7 +553,6 @@ export const WorkspaceNavigation = () => {
               <Option value="bpmn">Éléments BPMN</Option>
               <Option value="roles">Rôles</Option>
               <Option value="raci">RACI</Option>
-              <Option value="iaComm">IA comm. / annotations</Option>
             </Select>
             <Input
               size="sm"
