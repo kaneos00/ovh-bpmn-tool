@@ -399,6 +399,8 @@ export const Component = () => {
                   if (sortBy === 'process') return item.processName || '';
                   return item.label;
                 };
+                const quality = (a.matchKind === 'approximate' ? 1 : 0) - (b.matchKind === 'approximate' ? 1 : 0);
+                if (quality !== 0) return quality;
                 if (sortBy === 'relevance') return 0;
                 return get(a).localeCompare(get(b), 'fr') * (sortDirection === 'asc' ? 1 : -1);
               })).map((result) => {
