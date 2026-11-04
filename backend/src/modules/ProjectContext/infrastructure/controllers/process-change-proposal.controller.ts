@@ -1339,7 +1339,8 @@ export class ProcessChangeProposalController {
   ) {
     const proposal = await this.proposals.findOne({ where: { id: proposalId } });
     if (!proposal) throw new NotFoundException('Demande introuvable');
-    if (!this.access.hasOrganizationAdminRole(headers)) {
+    const isOrganizationAdmin = this.access.hasOrganizationAdminRole(headers);
+    if (!isOrganizationAdmin) {
       await this.access.assertProjectRole(
         proposal.projectId,
         headers,
@@ -1375,6 +1376,12 @@ export class ProcessChangeProposalController {
         lock: { mode: 'pessimistic_write' },
       });
       if (!lockedProposal) throw new NotFoundException('Demande introuvable');
+      const currentMembership = await manager
+        .getRepository(ProjectMemberTypeOrmEntity)
+        .findOne({ where: { projectId: lockedProposal.projectId, userId: actorUsername } });
+      if (!isOrganizationAdmin && !currentMembership) {
+        throw new ForbiddenException('L’accès au projet a été retiré ; la remarque ne peut pas être ajoutée');
+      }
       if (
         lockedProposal.status === ProcessChangeProposalStatus.Rejected ||
         lockedProposal.status === ProcessChangeProposalStatus.Published
@@ -1455,6 +1462,37 @@ export class ProcessChangeProposalController {
     }
     const decisionComment = body.comment?.trim() ?? '';
     return this.dataSource.transaction(async (manager) => {
+      const lockedProposal = await manager
+        .getRepository(ProcessChangeProposalTypeOrmEntity)
+        .findOne({
+          where: { id: proposalId },
+          lock: { mode: 'pessimistic_write' },
+        });
+      if (!lockedProposal) throw new NotFoundException('Demande introuvable');
+      if (
+        lockedProposal.status === ProcessChangeProposalStatus.Rejected ||
+        lockedProposal.status === ProcessChangeProposalStatus.Published
+      ) {
+        throw new ConflictException('La demande est clôturée');
+      }
+      const currentMembership = await manager
+        .getRepository(ProjectMemberTypeOrmEntity)
+        .findOne({ where: { projectId: lockedProposal.projectId, userId: actorUsername } });
+      const canStillReviewAsProjectAdmin =
+        currentMembership?.role === ProjectMemberRole.Admin;
+      const canStillReviewAsAssignedValidator =
+        lockedProposal.validatorUserId === actorUserId &&
+        (currentMembership?.role === ProjectMemberRole.Admin ||
+          currentMembership?.role === ProjectMemberRole.Modeler);
+      if (
+        !isOrganizationAdmin &&
+        !canStillReviewAsProjectAdmin &&
+        !canStillReviewAsAssignedValidator
+      ) {
+        throw new ForbiddenException(
+          'Vos droits de traitement ont changé ; cette remarque ne peut plus être décidée',
+        );
+      }
       const comments = manager.getRepository(ProcessChangeProposalCommentTypeOrmEntity);
       const current = await comments.findOne({
         where: { id: commentId, proposalId },
