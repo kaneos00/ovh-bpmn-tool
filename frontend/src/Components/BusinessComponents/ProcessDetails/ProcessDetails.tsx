@@ -233,9 +233,19 @@ export const ProcessDetails = ({
   const [editingChangeCommentId, setEditingChangeCommentId] = useState<string | null>(null);
   const [savingChangeCommentId, setSavingChangeCommentId] = useState<string | null>(null);
   const [processMetadata, setProcessMetadata] = useState({ processType: '', pilot: '', surveillance: '', riskPrevention: '' });
-  // Common-library processes are intentionally read-only through generic resource endpoints.
-  // Keep proposal creation available, but never expose direct editing controls for them.
-  const isCommonProcess = Boolean(resourceShares?.common);
+  // A process can be marked common in the project workspace even while the
+  // shares read-model is still loading or stale. Use both sources so the UI
+  // never exposes generic edit controls that the backend must reject.
+  const isCommonProcess = Boolean(
+    resourceShares?.common ||
+    myWorkspace?.projects.some((project: {
+      processes: { resourceId: string; usage?: string }[];
+    }) =>
+      project.processes.some(
+        process => process.resourceId === resourceId && process.usage === 'common',
+      ),
+    ),
+  );
   const canEditDescription = Boolean(resourceShares) && !isHistoricalView && !isCommonProcess && (sessionRole === 'admin' || sessionRole === 'modeler');
   const canManageVersions = Boolean(resourceShares) && !isHistoricalView && !isCommonProcess && (sessionRole === 'admin' || sessionRole === 'modeler');
 
