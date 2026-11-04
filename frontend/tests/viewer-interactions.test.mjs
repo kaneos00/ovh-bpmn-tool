@@ -393,3 +393,30 @@ test('contextual remark migration is included in every existing Coolify and CI m
   assert.ok(workflow.includes('20261104_v3_process_change_proposal_comments.sql'));
   assert.ok(workflow.includes("'process_change_proposal_comments'"));
 });
+
+test('review queue opens the existing modeler and exposes pending remark counts', async () => {
+  const queue = await read('src/Containers/MyProcessChangeProposals/MyProcessChangeProposals.container.tsx');
+  const modeler = await read('src/Containers/ContentModeler/ContentModeler.container.tsx');
+  const actionBar = await read('src/Containers/ContentModeler/components/ModelerActionBar.tsx');
+
+  assert.ok(queue.includes('pendingRemarksCount'));
+  assert.ok(queue.includes('Traiter dans le modeleur'));
+  assert.ok(queue.includes('&reviewRemarks=1'));
+  assert.ok(modeler.includes('reviewOnly={reviewRemarksMode && !approvedProposalMode}'));
+  assert.ok(modeler.includes('Mode revue : le diagramme soumis est consulté sans modification directe'));
+  assert.ok(actionBar.includes('{!reviewOnly && ('));
+  assert.ok(actionBar.includes('Retour aux demandes'));
+});
+
+test('a project modeler can take over corrections for a Viewer-originated proposal', async () => {
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/process-change-proposal.controller.ts');
+  const start = controller.indexOf('async submitProposal(');
+  const end = controller.indexOf('@Post(\'process-change-proposals/:proposalId/decision\')', start);
+  const submitMethod = controller.slice(start, end);
+
+  assert.ok(submitMethod.includes('ProjectMemberRole.Modeler'));
+  assert.ok(submitMethod.includes('ProjectMemberRole.Admin'));
+  assert.ok(submitMethod.includes('isOrganizationAdmin'));
+  assert.ok(!submitMethod.includes('proposal.authorUserId !== actorUserId'));
+  assert.ok(controller.includes('const lastSubmitterUserId'));
+});
