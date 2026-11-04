@@ -22,6 +22,10 @@ type SearchResult = {
 };
 
 const BPMN_MODEL_NS = 'http://www.omg.org/spec/BPMN/20100524/MODEL';
+const BPMN_CONNECTION_TYPES = new Set([
+  'sequenceflow', 'messageflow', 'association', 'datainputassociation',
+  'dataoutputassociation', 'conversationlink',
+]);
 
 const destinations = [
   {
@@ -206,6 +210,7 @@ export const WorkspaceNavigation = () => {
             'subProcess', 'transaction',
           ]);
           const namedElements = bpmnElements.filter(element => {
+            if (BPMN_CONNECTION_TYPES.has(element.localName.toLocaleLowerCase('fr'))) return false;
             const id = element.getAttribute('id') || '';
             const name = element.getAttribute('name')?.trim() || '';
             return id && (matchesTerm(name, term) || matchesTerm(id, term));
@@ -324,6 +329,7 @@ export const WorkspaceNavigation = () => {
               )) {
                 bpmnOwner = bpmnOwner.parentElement;
               }
+              if (bpmnOwner && BPMN_CONNECTION_TYPES.has(bpmnOwner.localName.toLocaleLowerCase('fr'))) return;
               const elementId = bpmnOwner?.getAttribute('id') || undefined;
               found.push({
                 key: `${process.id}:ia-comm:${element.localName}:${elementId || index}:${title}`,
