@@ -254,7 +254,9 @@ test('global and full search use the same shared result row component', async ()
   assert.ok(navigation.includes('<SearchResultItem'));
   assert.ok(fullSearch.includes('<SearchResultItem'));
   assert.ok(shared.includes('badge={badge}') === false);
-  assert.ok(shared.includes('<Typography level="title-sm">{highlightNode(title, query)}</Typography>'));
+  assert.ok(shared.includes('highlightNode(title, query)'));
+  assert.ok(shared.includes('processName && processName !== title'));
+  assert.ok(shared.includes('{similarity} %'));
   assert.ok(shared.includes('bgcolor: \'#fff1a8\''));
   assert.ok(navigation.includes('query={search}'));
   assert.ok(fullSearch.includes('query={query}'));
@@ -376,6 +378,24 @@ test('Viewer delegates RACI issue analysis and filtering to a dedicated hook', a
   assert.ok(filters.includes('analyzeRaciMatrix(raciMatrix)'));
   assert.ok(filters.includes('filters.issuesOnly') === false);
   assert.ok(filters.includes('actorFilter, codeFilter, issuesOnly'));
+});
+
+test('search rows show process context, percentage similarity and group BPMN name with description', async () => {
+  const shared = await read('src/Components/GenericComponents/SearchResultItem/SearchResultItem.tsx');
+  const quick = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+  const full = await read('src/Containers/SearchResults/SearchResults.container.tsx');
+  const backend = await read('../backend/src/modules/SearchContext/unified-search.service.ts');
+
+  assert.ok(shared.includes('processName && processName !== title'));
+  assert.ok(shared.includes('{similarity} %'));
+  assert.ok(quick.includes('processName={result.processName}'));
+  assert.ok(quick.includes('similarity={result.similarity}'));
+  assert.ok(quick.includes('matchesTerm(documentation, term)'));
+  assert.ok(quick.includes('namedElements.includes(bpmnOwner)'));
+  assert.ok(full.includes('processName={result.processName}'));
+  assert.ok(full.includes('similarity={result.matchScore}'));
+  assert.ok(backend.includes('getSearchSimilarity'));
+  assert.ok(backend.includes('matchScore'));
 });
 
 test('global and full search share yellow highlighting and direct BPMN element navigation', async () => {
