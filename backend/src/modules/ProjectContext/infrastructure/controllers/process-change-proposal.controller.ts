@@ -1363,6 +1363,7 @@ export class ProcessChangeProposalController {
     return this.dataSource.transaction(async (manager) => {
       const proposals = manager.getRepository(ProcessChangeProposalTypeOrmEntity);
       const comments = manager.getRepository(ProcessChangeProposalCommentTypeOrmEntity);
+      const events = manager.getRepository(ProcessChangeProposalEventTypeOrmEntity);
       const lockedProposal = await proposals.findOne({
         where: { id: proposalId },
         lock: { mode: 'pessimistic_write' },
@@ -1373,6 +1374,21 @@ export class ProcessChangeProposalController {
         lockedProposal.status === ProcessChangeProposalStatus.Published
       ) {
         throw new ConflictException('La demande est clôturée');
+      }
+      if (lockedProposal.status === ProcessChangeProposalStatus.Approved) {
+        lockedProposal.status = ProcessChangeProposalStatus.Submitted;
+        lockedProposal.decidedAt = null;
+        lockedProposal.submittedAt = new Date();
+        await proposals.save(lockedProposal);
+        await events.save(events.create({
+          proposalId,
+          eventType: 'submitted',
+          actorUserId: authorUserId,
+          validatorUserId: lockedProposal.validatorUserId,
+          comment: 'Nouvelle remarque ajoutée après approbation',
+          details: { reopenedByRemark: true },
+          createdBy: actorUsername,
+        }));
       }
       return comments.save(comments.create({
         proposalId,
@@ -1402,6 +1418,12 @@ export class ProcessChangeProposalController {
   ) {
     const proposal = await this.proposals.findOne({ where: { id: proposalId } });
     if (!proposal) throw new NotFoundException('Demande introuvable');
+    if (
+      proposal.status === ProcessChangeProposalStatus.Rejected ||
+      proposal.status === ProcessChangeProposalStatus.Published
+    ) {
+      throw new ConflictException('La demande est clôturée');
+    }
     const actorUsername = this.access.getAuthenticatedUserId(headers);
     const actorUserId = await this.resolveAccountId(actorUsername);
     const isOrganizationAdmin = this.access.hasOrganizationAdminRole(headers);
