@@ -736,11 +736,14 @@ export class ProcessChangeProposalController {
     });
     if (!existing) throw new NotFoundException('Demande introuvable');
 
-    const actorUsername = await this.access.assertProjectRole(
-      existing.projectId,
-      headers,
-      ProjectMemberRole.Modeler,
-    );
+    const isOrganizationAdmin = this.access.hasOrganizationAdminRole(headers);
+    const actorUsername = isOrganizationAdmin
+      ? this.access.getAuthenticatedUserId(headers)
+      : await this.access.assertProjectRole(
+          existing.projectId,
+          headers,
+          ProjectMemberRole.Modeler,
+        );
     const actorUserId = await this.resolveAccountId(actorUsername);
     const comment = body.comment?.trim() ?? '';
     if (!comment) {
@@ -763,9 +766,10 @@ export class ProcessChangeProposalController {
         where: { projectId: existing.projectId, userId: actorUsername },
       });
       if (
-        !authorMembership ||
-        (authorMembership.role !== ProjectMemberRole.Modeler &&
-          authorMembership.role !== ProjectMemberRole.Admin)
+        !isOrganizationAdmin &&
+        (!authorMembership ||
+          (authorMembership.role !== ProjectMemberRole.Modeler &&
+            authorMembership.role !== ProjectMemberRole.Admin))
       ) {
         throw new ForbiddenException(
           'Le rôle de modélisateur est requis pour soumettre cette demande',
@@ -777,11 +781,7 @@ export class ProcessChangeProposalController {
         lock: { mode: 'pessimistic_write' },
       });
       if (!proposal) throw new NotFoundException('Demande introuvable');
-      if (proposal.authorUserId !== actorUserId) {
-        throw new ForbiddenException(
-          'Seul l’auteur peut soumettre cette demande',
-        );
-      }
+      // A project modeler/admin may take over corrections for a Viewer-originated request.
       if (
         proposal.status !== ProcessChangeProposalStatus.Draft &&
         proposal.status !== ProcessChangeProposalStatus.ChangesRequested
@@ -940,12 +940,18 @@ export class ProcessChangeProposalController {
         lock: { mode: 'pessimistic_write' },
       });
       if (!proposal) throw new NotFoundException('Demande introuvable');
-      if (
-        proposal.authorUserId === actorUserId &&
-        !isOrganizationAdmin
-      ) {
+      const latestSubmission = await events.findOne({
+        where: {
+          proposalId,
+          eventType: 'submitted',
+        },
+        order: { createdAt: 'DESC' },
+      });
+      const lastSubmitterUserId =
+        latestSubmission?.actorUserId ?? proposal.authorUserId;
+      if (lastSubmitterUserId === actorUserId && !isOrganizationAdmin) {
         throw new ForbiddenException(
-          'L’auteur ne peut pas approuver ou refuser sa propre demande',
+          'L’auteur de la dernière sottomission ne peut pas approuver ou refuser sa propre demande',
         );
       }
       if (proposal.status !== ProcessChangeProposalStatus.Submitted) {
