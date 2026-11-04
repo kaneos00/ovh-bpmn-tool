@@ -22,6 +22,7 @@ export type UnifiedSearchResult = {
   role?: UnifiedSearchRole;
   source?: UnifiedSearchSource;
   matchKind?: 'exact' | 'approximate';
+  matchScore?: number;
 };
 
 export type UnifiedSearchResponse = {
