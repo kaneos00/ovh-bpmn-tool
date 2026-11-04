@@ -233,8 +233,11 @@ export const ProcessDetails = ({
   const [editingChangeCommentId, setEditingChangeCommentId] = useState<string | null>(null);
   const [savingChangeCommentId, setSavingChangeCommentId] = useState<string | null>(null);
   const [processMetadata, setProcessMetadata] = useState({ processType: '', pilot: '', surveillance: '', riskPrevention: '' });
-  const canEditDescription = !isHistoricalView && (sessionRole === 'admin' || sessionRole === 'modeler');
-  const canManageVersions = !isHistoricalView && (sessionRole === 'admin' || sessionRole === 'modeler');
+  // Common-library processes are intentionally read-only through generic resource endpoints.
+  // Keep proposal creation available, but never expose direct editing controls for them.
+  const isCommonProcess = Boolean(resourceShares?.common);
+  const canEditDescription = !isHistoricalView && !isCommonProcess && (sessionRole === 'admin' || sessionRole === 'modeler');
+  const canManageVersions = !isHistoricalView && !isCommonProcess && (sessionRole === 'admin' || sessionRole === 'modeler');
 
   const navigate = useNavigate();
 
@@ -651,6 +654,7 @@ export const ProcessDetails = ({
                         disabled={startingProposal}
                         onClick={startChangeProposal}
                       >
+                        <EditOutlined sx={{ fontSize: 16, mr: 0.5 }} />
                         Proposer une modification
                       </Button>
                     )}
