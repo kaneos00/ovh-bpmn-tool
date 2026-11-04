@@ -701,6 +701,8 @@ export class UnifiedSearchService {
         try {
           const canReadProjectMetadata = canReadEmbeddedProjectMetadata(
             document.resourceId,
+            projectLinks,
+            allowedProjectIds,
           );
           const extractionTypes = options.types?.length
             ? options.types.filter(
