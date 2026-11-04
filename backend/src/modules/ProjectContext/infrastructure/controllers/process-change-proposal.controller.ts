@@ -469,7 +469,26 @@ export class ProcessChangeProposalController {
             ) validatorUserId = candidate.id;
           }
         }
-        if (existingOpenProposal.status !== ProcessChangeProposalStatus.Submitted) {
+        if (!validatorUserId) {
+          const admins = await members.find({
+            where: { projectId, role: ProjectMemberRole.Admin },
+            order: { createdAt: 'ASC' },
+          });
+          for (const admin of admins) {
+            if (admin.userId === authorUsername) continue;
+            const adminRows: Array<{ id: string }> = await manager.query(
+              'SELECT id FROM app_users WHERE lower(username) = lower($1) AND active = TRUE LIMIT 1',
+              [admin.userId],
+            );
+            if (adminRows[0]) {
+              validatorUserId = adminRows[0].id;
+              break;
+            }
+          }
+        }
+        const shouldSubmit =
+          existingOpenProposal.status !== ProcessChangeProposalStatus.Submitted;
+        if (shouldSubmit) {
           existingOpenProposal.status = ProcessChangeProposalStatus.Submitted;
           existingOpenProposal.submittedContentId = cloneDraft.id;
           existingOpenProposal.submittedAt = new Date();
@@ -477,8 +496,15 @@ export class ProcessChangeProposalController {
           existingOpenProposal.submissionComment =
             existingOpenProposal.submissionComment ||
             'Remarques déposées depuis le Viewer';
+        }
+        if (
+          existingOpenProposal.validatorUserId !== validatorUserId ||
+          shouldSubmit
+        ) {
           existingOpenProposal.validatorUserId = validatorUserId;
           await proposals.save(existingOpenProposal);
+        }
+        if (shouldSubmit) {
           await events.save(events.create({
             proposalId: existingOpenProposal.id,
             eventType: 'submitted',
