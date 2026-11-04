@@ -171,6 +171,7 @@ const ProcessContentViewer = () => {
     if (!associatedProject || !selectedActivityId || !remarkText.trim() || submittingRemark) return;
     setSubmittingRemark(true);
     setRemarkError(null);
+    setRemarkWarning(null);
     try {
       const metadataDocument = new DOMParser().parseFromString(xmlContent ?? '', 'application/xml');
       const processMetadata = Array.from(
