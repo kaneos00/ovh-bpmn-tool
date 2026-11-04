@@ -46,8 +46,48 @@ export const Component = () => {
   const [remarkDecisionComments, setRemarkDecisionComments] = useState<Record<string, string>>({});
   const [decidingRemarkId, setDecidingRemarkId] = useState<string | null>(null);
   const [remarkDecisionError, setRemarkDecisionError] = useState<string | null>(null);
+  const [selectedModelerElementId, setSelectedModelerElementId] = useState<string | null>(null);
+  const [newRemarkText, setNewRemarkText] = useState('');
+  const [submittingNewRemark, setSubmittingNewRemark] = useState(false);
 
   useCallActivityNavigation(bpmnModelerInstance);
+
+  useEffect(() => {
+    if (!isModelerReady) return undefined;
+    const eventBus = bpmnModelerInstance.get('eventBus') as any;
+    const selection = bpmnModelerInstance.get('selection') as any;
+    const syncSelectedElement = () => {
+      const selected = selection?.get?.() ?? [];
+      setSelectedModelerElementId(selected[0]?.id ?? null);
+    };
+    eventBus.on('selection.changed', syncSelectedElement);
+    syncSelectedElement();
+    return () => eventBus.off('selection.changed', syncSelectedElement);
+  }, [bpmnModelerInstance, isModelerReady]);
+
+  const addRemarkFromModeler = async () => {
+    if (!proposalId || !selectedModelerElementId || !newRemarkText.trim() || submittingNewRemark) return;
+    setSubmittingNewRemark(true);
+    setRemarkDecisionError(null);
+    try {
+      await apiClient.post(
+        `/projects/process-change-proposals/${proposalId}/comments`,
+        { elementId: selectedModelerElementId, comment: newRemarkText.trim() },
+      );
+      setNewRemarkText('');
+      await Promise.all([
+        refetchProposalRemarks(),
+        queryClient.invalidateQueries({ queryKey: ['process-change-proposal-comments', proposalId] }),
+        queryClient.invalidateQueries({ queryKey: ['process-change-proposals-to-review'] }),
+      ]);
+    } catch (error) {
+      setRemarkDecisionError(error instanceof Error ? error.message : 'Impossible d’ajouter la remarque.');
+    } finally {
+      setSubmittingNewRemark(false);
+    }
+  };
+
+
 
   useEffect(() => {
     const provider = getRechercheProvider();
@@ -247,6 +287,28 @@ export const Component = () => {
               <Typography level="body-xs" textColor="neutral">Les décisions sont historisées séparément du BPMN.</Typography>
             </Stack>
             {remarkDecisionError && <Alert color="danger">{remarkDecisionError}</Alert>}
+            <Stack spacing={1}>
+              <Typography level="title-sm">Ajouter une remarque sur le diagramme</Typography>
+              <Typography level="body-xs" textColor="neutral">
+                Sélectionnez un élément dans le modeleur, puis ajoutez une remarque au dossier de validation.
+              </Typography>
+              <Typography level="body-xs">
+                Élément sélectionné : {selectedModelerElementId || 'aucun'}
+              </Typography>
+              <Textarea
+                size="sm"
+                minRows={2}
+                value={newRemarkText}
+                onChange={event => setNewRemarkText(event.target.value)}
+                placeholder="Nouvelle remarque…"
+              />
+              <Button size="sm" variant="outlined" color="primary"
+                loading={submittingNewRemark}
+                disabled={!selectedModelerElementId || !newRemarkText.trim() || submittingNewRemark}
+                onClick={addRemarkFromModeler}>
+                Ajouter au dossier
+              </Button>
+            </Stack>
             {proposalRemarks.length === 0 ? (
               <Typography level="body-sm" textColor="neutral">Aucune remarque associée à cette demande.</Typography>
             ) : proposalRemarks.map(remark => (
