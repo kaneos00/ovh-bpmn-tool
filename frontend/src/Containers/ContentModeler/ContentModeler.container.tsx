@@ -76,6 +76,8 @@ export const Component = () => {
     id: string;
     elementId: string;
     authorUserId: string;
+    authorName?: string;
+    decisionByName?: string | null;
     comment: string;
     status: 'pending' | 'accepted' | 'rejected';
     createdAt: string;
@@ -245,7 +247,7 @@ export const Component = () => {
                   </Stack>
                   <Typography level="body-sm">{remark.comment}</Typography>
                   <Typography level="body-xs" textColor="neutral">
-                    Déposée le {new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(remark.createdAt))} · {remark.authorUserId}
+                    Déposée le {new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(remark.createdAt))} · {remark.authorName || remark.authorUserId}
                   </Typography>
                   {remark.status === 'pending' ? (
                     <>
@@ -269,7 +271,7 @@ export const Component = () => {
                   ) : (
                     <Typography level="body-xs" textColor="neutral">
                       Décidée le {remark.decidedAt ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(remark.decidedAt)) : '—'}
-                      {remark.decisionBy ? ` · par ${remark.decisionBy}` : ''}
+                      {remark.decisionByName ? ` · par ${remark.decisionByName}` : remark.decisionBy ? ` · par ${remark.decisionBy}` : ''}
                       {remark.decisionComment ? ` · ${remark.decisionComment}` : ''}
                     </Typography>
                   )}
