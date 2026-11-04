@@ -83,6 +83,7 @@ export class ProjectResourceAccessService {
 
   async assertCanReadResource(resourceId: string, headers: RequestHeaders) {
     const userId = this.getAuthenticatedUserId(headers);
+    if (this.hasOrganizationAdminRole(headers)) return;
     const links = await this.projectProcesses.find({ where: { resourceId } });
     if (
       !links.length ||
@@ -209,6 +210,10 @@ export class ProjectResourceAccessService {
         'Common processes are read-only through resource endpoints',
       );
     }
+
+    // Organization administrators can review and edit project-specific
+    // proposal clones without being added as members to every project.
+    if (this.hasOrganizationAdminRole(headers)) return;
 
     const memberships = await this.projectMembers.find({
       where: links.map((link) => ({ projectId: link.projectId, userId })),
