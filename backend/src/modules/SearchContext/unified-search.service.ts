@@ -419,7 +419,7 @@ export function extractBpmnSearchResults(
     }
 
     if (BPMN_ACTIVITY_TYPES.has(key)) {
-      const activityLabel = name || elementId || 'Attività';
+      const activityLabel = name || 'Attività';
       const roleAttributes: Array<[ProjectRaciRole, string]> = [
         [ProjectRaciRole.Responsible, 'responsible'],
         [ProjectRaciRole.Accountable, 'accountable'],
@@ -510,6 +510,8 @@ export class UnifiedSearchService {
       role?: ProjectRaciRole;
       limit?: number;
       offset?: number;
+      sortBy?: 'relevance' | 'type' | 'label' | 'source' | 'process';
+      sortDirection?: 'asc' | 'desc';
     } = {},
   ): Promise<UnifiedSearchResponse> {
     if (typeof rawQuery !== 'string' || rawQuery.trim().length < 2) {
@@ -597,11 +599,34 @@ export class UnifiedSearchService {
       ...new Set(memberships.map((membership) => membership.projectId)),
     ];
 
+    const resourceIds = [...resourceById.keys()];
+    const projectLinks = needsProjectData && resourceIds.length
+      ? await this.projectProcesses.find({
+          where: { resourceId: In(resourceIds) },
+          select: { projectId: true, resourceId: true, usage: true },
+        })
+      : [];
+    const resourcesWithProjectLinks = new Set(
+      projectLinks.map((link) => link.resourceId),
+    );
+    const resourcesWithAuthorizedProjectMetadata = new Set(
+      projectLinks
+        .filter(
+          (link) =>
+            link.usage === 'common' || allowedProjectIds.includes(link.projectId),
+        )
+        .map((link) => link.resourceId),
+    );
+    // BPMN-embedded actors/RACI are project metadata: do not expose them
+    // merely because the underlying process is readable through another path.
+    // Unlinked resources and explicitly common resources remain globally readable.
+    const canReadEmbeddedProjectMetadata = (resourceId: string) =>
+      !resourcesWithProjectLinks.has(resourceId) ||
+      resourcesWithAuthorizedProjectMetadata.has(resourceId);
+
     let bpmnDocumentsAvailable = 0;
     let bpmnDocumentsScanned = 0;
     let bpmnDocumentsSkipped = 0;
-    const resourceIds = [...resourceById.keys()];
-
     const includesXmlSources =
       includes('bpmn') || includes('raci') || includes('actor');
     if (includesXmlSources && resourceIds.length) {
@@ -639,16 +664,31 @@ export class UnifiedSearchService {
         const resource = resourceById.get(document.resourceId);
         if (!resource) continue;
         try {
-          results.push(
-            ...extractBpmnSearchResults(
-              document.content,
-              document.resourceId,
-              resource.name,
-              normalizedQuery,
-              options.types,
-              options.role,
-            ),
+          const canReadProjectMetadata = canReadEmbeddedProjectMetadata(
+            document.resourceId,
           );
+          const extractionTypes = options.types?.length
+            ? options.types.filter(
+                (type) =>
+                  type !== 'raci' &&
+                  type !== 'actor' ||
+                  canReadProjectMetadata,
+              )
+            : canReadProjectMetadata
+              ? undefined
+              : ['bpmn' as SearchResultType];
+          if (!options.types?.length || extractionTypes.length > 0) {
+            results.push(
+              ...extractBpmnSearchResults(
+                document.content,
+                document.resourceId,
+                resource.name,
+                normalizedQuery,
+                extractionTypes,
+                options.role,
+              ),
+            );
+          }
         } catch {
           bpmnDocumentsSkipped += 1;
         }
@@ -765,12 +805,28 @@ export class UnifiedSearchService {
       raci: 2,
       actor: 3,
     };
-    uniqueResults.sort(
-      (left, right) =>
-        (right.matchScore ?? 0) - (left.matchScore ?? 0) ||
-        typeOrder[left.type] - typeOrder[right.type] ||
-        left.label.localeCompare(right.label, 'fr'),
-    );
+    const sortBy = options.sortBy ?? 'relevance';
+    const sortDirection = options.sortDirection ?? 'asc';
+    const direction = sortDirection === 'desc' ? -1 : 1;
+    uniqueResults.sort((left, right) => {
+      if (sortBy === 'relevance') {
+        return (
+          (right.matchScore ?? 0) - (left.matchScore ?? 0) ||
+          typeOrder[left.type] - typeOrder[right.type] ||
+          left.label.localeCompare(right.label, 'fr')
+        );
+      }
+      const value = (item: UnifiedSearchResult) => {
+        if (sortBy === 'type') return item.type;
+        if (sortBy === 'source') return item.source ?? '';
+        if (sortBy === 'process') return item.processName ?? '';
+        return item.label;
+      };
+      return (
+        value(left).localeCompare(value(right), 'fr', { sensitivity: 'base' }) *
+        direction
+      );
+    });
 
     return {
       query,
