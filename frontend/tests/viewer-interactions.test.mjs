@@ -48,7 +48,7 @@ test('viewer selection recognizes collapsed SubProcesses through their BPMN busi
 test('embedded Camunda SubProcesses keep native drilldown instead of linked-process navigation', async () => {
   const navigation = await read('src/shared/hooks/useCallActivityNavigation.ts');
   const processLinks = await read('src/Components/BusinessComponents/FolderTree/processLinks.ts');
-  const fixture = await read('../exemples/test_sub_process-camunda.bpmn');
+  const fixture = await read('tests/fixtures/test_sub_process-camunda.bpmn');
 
   assert.ok(navigation.includes('isCollapsedLinkedSubProcess'));
   assert.match(processLinks, /const flowElements = element\?\.businessObject\?\.flowElements/);
