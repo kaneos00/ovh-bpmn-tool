@@ -63,11 +63,10 @@ const highlightText = (value: string, query: string): React.ReactNode => {
   const queryWords = term.split(/[^a-z0-9]+/).filter(Boolean);
   const valueWords: Array<{ token: string; index: number }> = [];
   const wordPattern = /[a-z0-9]+/g;
-  while (true) {
-    const wordMatch = wordPattern.exec(searchable);
-    if (wordMatch === null) break;
-    valueWords.push({ token: wordMatch[0], index: wordMatch.index });
-  }
+  searchable.replace(wordPattern, (token, index) => {
+    valueWords.push({ token, index });
+    return token;
+  });
   const ranges: Array<{ start: number; end: number }> = [];
 
   for (const queryWord of queryWords) {

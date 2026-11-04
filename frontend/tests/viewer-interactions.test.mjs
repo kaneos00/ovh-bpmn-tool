@@ -426,8 +426,8 @@ test('global and full search share yellow highlighting and direct BPMN element n
 
   assert.match(shared, /bgcolor: '#fff1a8'/);
   assert.match(shared, /const wordPattern = \/\[a-z0-9\]\+\/g/);
-  assert.match(shared, /const wordMatch = wordPattern\.exec\(searchable\)/);
-  assert.match(shared, /if \(wordMatch === null\) break/);
+  assert.match(shared, /searchable\.replace\(wordPattern, \(token, index\) =>/);
+  assert.match(shared, /valueWords\.push\(\{ token, index \}\)/);
   assert.match(shared, /normalize\(character\)/);
   assert.match(quickSearch, /query=\{search\}/);
   assert.match(fullSearch, /query=\{query\}/);
