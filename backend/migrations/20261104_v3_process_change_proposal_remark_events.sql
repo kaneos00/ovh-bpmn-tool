@@ -20,5 +20,5 @@ BEGIN
       'remark_accepted',
       'remark_rejected'
     ));
-END
-$$;
+END;
+$;
