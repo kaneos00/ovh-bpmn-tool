@@ -42,6 +42,7 @@ export const Component = () => {
   const [submittingProposal, setSubmittingProposal] = useState(false);
   const [publishingApprovedProposal, setPublishingApprovedProposal] = useState(false);
   const [publicationError, setPublicationError] = useState<string | null>(null);
+  const [publicationSummaryComment, setPublicationSummaryComment] = useState('');
   const [remarkDecisionComments, setRemarkDecisionComments] = useState<Record<string, string>>({});
   const [decidingRemarkId, setDecidingRemarkId] = useState<string | null>(null);
   const [remarkDecisionError, setRemarkDecisionError] = useState<string | null>(null);
@@ -138,7 +139,7 @@ export const Component = () => {
       const pngContent = await generatePngFromSvg(svg);
       await apiClient.post(
         `/projects/process-change-proposals/${proposalId}/publish`,
-        { pngContent },
+        { pngContent, summaryComment: publicationSummaryComment.trim() },
       );
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['my-process-change-proposals'] }),
@@ -218,10 +219,26 @@ export const Component = () => {
         proposalMode={proposalMode}
         approvedProposalMode={approvedProposalMode}
         onPublishApprovedProposal={publishApprovedProposal}
-        publishApprovedDisabled={!isModelerReady || publishingApprovedProposal || !proposalId}
+        publishApprovedDisabled={!isModelerReady || publishingApprovedProposal || !proposalId || !publicationSummaryComment.trim()}
         publishApprovedLoading={publishingApprovedProposal}
       />
       {publicationError && <Alert color="danger" sx={{ mx: 2, my: 1 }}>{publicationError}</Alert>}
+      {approvedProposalMode && (
+        <Sheet variant="outlined" sx={{ mx: 2, my: 1.5, p: 2, borderRadius: 'md' }}>
+          <Stack spacing={1}>
+            <Typography level="title-sm">Commentaire général de validation</Typography>
+            <Typography level="body-xs" textColor="neutral">
+              La trace détaillée des remarques, de leurs auteurs, dates et décisions sera ajoutée automatiquement à l’historique de publication.
+            </Typography>
+            <Textarea
+              minRows={2}
+              value={publicationSummaryComment}
+              onChange={event => setPublicationSummaryComment(event.target.value)}
+              placeholder="Saisissez le commentaire général qui accompagnera la publication…"
+            />
+          </Stack>
+        </Sheet>
+      )}
       {proposalId && (reviewRemarksMode || proposalRemarks.length > 0) && (
         <Sheet variant="outlined" sx={{ mx: 2, my: 1.5, p: 2, borderRadius: 'md' }}>
           <Stack spacing={1.5}>
