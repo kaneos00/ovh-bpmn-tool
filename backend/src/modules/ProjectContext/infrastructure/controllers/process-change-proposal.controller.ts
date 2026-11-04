@@ -33,6 +33,10 @@ import {
   ProcessChangeProposalTypeOrmEntity,
 } from '../entities/processChangeProposal.ormEntity';
 import { ProcessChangeProposalEventTypeOrmEntity } from '../entities/processChangeProposalEvent.ormEntity';
+import {
+  ProcessChangeProposalCommentStatus,
+  ProcessChangeProposalCommentTypeOrmEntity,
+} from '../entities/processChangeProposalComment.ormEntity';
 
 type RequestHeaders = Record<string, string | undefined>;
 
@@ -45,6 +49,8 @@ export class ProcessChangeProposalController {
     private readonly proposals: Repository<ProcessChangeProposalTypeOrmEntity>,
     @InjectRepository(ProcessChangeProposalEventTypeOrmEntity)
     private readonly events: Repository<ProcessChangeProposalEventTypeOrmEntity>,
+    @InjectRepository(ProcessChangeProposalCommentTypeOrmEntity)
+    private readonly proposalComments: Repository<ProcessChangeProposalCommentTypeOrmEntity>,
     @InjectRepository(ProjectTypeOrmEntity)
     private readonly projects: Repository<ProjectTypeOrmEntity>,
     @InjectRepository(ProjectProcessTypeOrmEntity)
@@ -965,6 +971,160 @@ export class ProcessChangeProposalController {
       };
     });
   }
+  /**
+   * Contextual BPMN remarks are stored outside the BPMN XML. Project viewers
+   * can read them; the proposal workflow remains the single source of truth.
+   */
+  @Get('process-change-proposals/:proposalId/comments')
+  @UseAcl()
+  async listProposalComments(
+    @Param('proposalId') proposalId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    const proposal = await this.proposals.findOne({ where: { id: proposalId } });
+    if (!proposal) throw new NotFoundException('Demande introuvable');
+    if (!this.access.hasOrganizationAdminRole(headers)) {
+      await this.access.assertProjectRole(
+        proposal.projectId,
+        headers,
+        ProjectMemberRole.Viewer,
+      );
+    }
+    return this.proposalComments.find({
+      where: { proposalId },
+      order: { createdAt: 'ASC' },
+    });
+  }
+
+  /**
+   * Add one independent remark to an existing proposal. New remarks reopen
+   * the review queue by preventing publication until each remark is decided.
+   */
+  @Post('process-change-proposals/:proposalId/comments')
+  @UseAcl()
+  async addProposalComment(
+    @Param('proposalId') proposalId: string,
+    @Body() body: { elementId?: string; comment?: string },
+    @Headers() headers: RequestHeaders,
+  ) {
+    const proposal = await this.proposals.findOne({ where: { id: proposalId } });
+    if (!proposal) throw new NotFoundException('Demande introuvable');
+    if (!this.access.hasOrganizationAdminRole(headers)) {
+      await this.access.assertProjectRole(
+        proposal.projectId,
+        headers,
+        ProjectMemberRole.Viewer,
+      );
+    }
+    if (
+      proposal.status === ProcessChangeProposalStatus.Rejected ||
+      proposal.status === ProcessChangeProposalStatus.Published
+    ) {
+      throw new ConflictException(
+        'Non è possibile aggiungere osservazioni a una richiesta chiusa',
+      );
+    }
+    const elementId = body.elementId?.trim() ?? '';
+    const comment = body.comment?.trim() ?? '';
+    if (!elementId || !comment) {
+      throw new BadRequestException(
+        'L’elemento BPMN e il testo della remarque sono obbligatori',
+      );
+    }
+    if (elementId.length > 255) {
+      throw new BadRequestException('Identifiant BPMN trop long');
+    }
+    const actorUsername = this.access.getAuthenticatedUserId(headers);
+    const authorUserId = await this.resolveAccountId(actorUsername);
+    return this.dataSource.transaction(async (manager) => {
+      const proposals = manager.getRepository(ProcessChangeProposalTypeOrmEntity);
+      const comments = manager.getRepository(ProcessChangeProposalCommentTypeOrmEntity);
+      const lockedProposal = await proposals.findOne({
+        where: { id: proposalId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!lockedProposal) throw new NotFoundException('Demande introuvable');
+      if (
+        lockedProposal.status === ProcessChangeProposalStatus.Rejected ||
+        lockedProposal.status === ProcessChangeProposalStatus.Published
+      ) {
+        throw new ConflictException('La demande est clôturée');
+      }
+      return comments.save(comments.create({
+        proposalId,
+        elementId,
+        authorUserId,
+        comment,
+        status: ProcessChangeProposalCommentStatus.Pending,
+        decisionBy: null,
+        decidedAt: null,
+        decisionComment: null,
+        createdBy: actorUsername,
+      }));
+    });
+  }
+
+  /**
+   * The assigned validator, a project administrator, or an organization
+   * administrator may decide an individual remark. Decisions are one-way.
+   */
+  @Post('process-change-proposals/:proposalId/comments/:commentId/decision')
+  @UseAcl()
+  async decideProposalComment(
+    @Param('proposalId') proposalId: string,
+    @Param('commentId') commentId: string,
+    @Body() body: { decision?: 'accepted' | 'rejected'; comment?: string },
+    @Headers() headers: RequestHeaders,
+  ) {
+    const proposal = await this.proposals.findOne({ where: { id: proposalId } });
+    if (!proposal) throw new NotFoundException('Demande introuvable');
+    const actorUsername = this.access.getAuthenticatedUserId(headers);
+    const actorUserId = await this.resolveAccountId(actorUsername);
+    const isOrganizationAdmin = this.access.hasOrganizationAdminRole(headers);
+    const membership = await this.members.findOne({
+      where: { projectId: proposal.projectId, userId: actorUsername },
+    });
+    const canReviewAsProjectAdmin = membership?.role === ProjectMemberRole.Admin;
+    const canReviewAsAssignedValidator =
+      proposal.validatorUserId === actorUserId &&
+      (membership?.role === ProjectMemberRole.Admin ||
+        membership?.role === ProjectMemberRole.Modeler);
+    if (
+      !isOrganizationAdmin &&
+      !canReviewAsProjectAdmin &&
+      !canReviewAsAssignedValidator
+    ) {
+      throw new ForbiddenException(
+        'Seul le validateur désigné, le gestionnaire du projet ou un administrateur global peut traiter cette remarque',
+      );
+    }
+    if (body.decision !== 'accepted' && body.decision !== 'rejected') {
+      throw new BadRequestException('Décision de remarque non reconnue');
+    }
+    const decisionComment = body.comment?.trim() ?? '';
+    return this.dataSource.transaction(async (manager) => {
+      const comments = manager.getRepository(ProcessChangeProposalCommentTypeOrmEntity);
+      const current = await comments.findOne({
+        where: { id: commentId, proposalId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!current) throw new NotFoundException('Remarque introuvable');
+      if (current.status !== ProcessChangeProposalCommentStatus.Pending) {
+        throw new ConflictException(
+          'Cette remarque a déjà fait l’objet d’une décision',
+        );
+      }
+      current.status = body.decision === 'accepted'
+        ? ProcessChangeProposalCommentStatus.Accepted
+        : ProcessChangeProposalCommentStatus.Rejected;
+      current.decisionBy = actorUserId;
+      current.decidedAt = new Date();
+      current.decisionComment = decisionComment || null;
+      current.updatedBy = actorUsername;
+      return comments.save(current);
+    });
+  }
+
   private async resolveAccountId(username: string): Promise<string> {
     const rows: Array<{ id: string }> = await this.dataSource.query(
       'SELECT id FROM app_users WHERE lower(username) = lower($1) AND active = TRUE LIMIT 1',
