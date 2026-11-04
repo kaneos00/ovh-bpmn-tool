@@ -141,7 +141,7 @@ const ProcessContentViewer = () => {
   );
 
   const { data: activeProposal } = useQuery<{ id: string; status: string; cloneResourceId: string } | null>(
-    ['active-process-change-proposal', associatedProject?.id, resourceId],
+    ['active-process-change-proposal', associatedProject?.id, resourceId, contentId],
     () => apiClient.get(
       `/projects/${associatedProject!.id}/processes/${resourceId}/change-proposals/active?contentId=${contentId}`,
     ),
