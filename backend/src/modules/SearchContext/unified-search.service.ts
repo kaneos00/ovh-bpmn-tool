@@ -139,8 +139,9 @@ export function isExactSearchTextMatch(value: string, query: string): boolean {
   if (normalizedValue === normalizedQuery) return true;
   const queryWords = normalizedQuery.split(/[^a-z0-9]+/).filter(Boolean);
   const valueWords = normalizedValue.split(/[^a-z0-9]+/).filter(Boolean);
-  return queryWords.length > 0 && queryWords.every((word) =>
-    valueWords.some((valueWord) => valueWord === word),
+  return (
+    queryWords.length > 0 &&
+    queryWords.every((word) => valueWords.some((valueWord) => valueWord === word))
   );
 }
 
@@ -174,8 +175,12 @@ export function getSearchSimilarity(value: string, query: string): number {
   if (!normalizedQuery) return 0;
   const queryWords = normalizedQuery.split(/[^a-z0-9]+/).filter(Boolean);
   const valueWords = normalizedValue.split(/[^a-z0-9]+/).filter(Boolean);
-  if (normalizedValue === normalizedQuery ||
-      (queryWords.length > 0 && queryWords.every((word) => valueWords.includes(word)))) return 100;
+  if (
+    normalizedValue === normalizedQuery ||
+    (queryWords.length > 0 &&
+      queryWords.every((word) => valueWords.includes(word)))
+  )
+    return 100;
   if (!queryWords.length || !valueWords.length) return 0;
 
   const scores = queryWords.map((queryWord) => {
@@ -187,17 +192,25 @@ export function getSearchSimilarity(value: string, query: string): number {
         continue;
       }
       const maxDistance = queryWord.length >= 8 ? 2 : 1;
-      if (queryWord.length >= 5 && Math.abs(valueWord.length - queryWord.length) <= maxDistance) {
+      if (
+        queryWord.length >= 5 &&
+        Math.abs(valueWord.length - queryWord.length) <= maxDistance
+      ) {
         const distance = editDistance(valueWord, queryWord);
         if (distance <= maxDistance) {
-          best = Math.max(best, (1 - distance / Math.max(valueWord.length, queryWord.length)) * 100);
+          best = Math.max(
+            best,
+            (1 - distance / Math.max(valueWord.length, queryWord.length)) * 100,
+          );
         }
       }
     }
     return best;
   });
   if (scores.some((score) => score === 0)) return 0;
-  return Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
+  return Math.round(
+    scores.reduce((sum, score) => sum + score, 0) / scores.length,
+  );
 }
 
 function collectText(value: unknown): string {
@@ -373,8 +386,7 @@ export function extractBpmnSearchResults(
       ];
       const match = searchableFields.find(
         ({ value: fieldValue }) =>
-          fieldValue &&
-          isSearchTextMatch(fieldValue, normalizedQuery),
+          fieldValue && isSearchTextMatch(fieldValue, normalizedQuery),
       );
       if (label && match) {
         results.push({
@@ -439,9 +451,7 @@ export function extractBpmnSearchResults(
             { value: actorName, field: 'attore' },
             { value: roleLabel, field: 'responsabilità' },
             { value: role, field: 'responsabilità' },
-          ].find(({ value }) =>
-            isSearchTextMatch(value, normalizedQuery),
-          );
+          ].find(({ value }) => isSearchTextMatch(value, normalizedQuery));
           if (match) {
             results.push({
               type: 'raci',
@@ -700,8 +710,7 @@ export class UnifiedSearchService {
           where: { projectId: In(actorProjectIds), active: true },
         });
         for (const actor of actors) {
-          if (!isSearchTextMatch(actor.name, normalizedQuery))
-            continue;
+          if (!isSearchTextMatch(actor.name, normalizedQuery)) continue;
           results.push({
             type: 'actor',
             id: `${actor.projectId}:${actor.id}`,
@@ -746,7 +755,8 @@ export class UnifiedSearchService {
       return {
         ...result,
         matchScore,
-        matchKind: matchScore === 100 ? 'exact' as const : 'approximate' as const,
+        matchKind:
+          matchScore === 100 ? ('exact' as const) : ('approximate' as const),
       };
     });
     const typeOrder: Record<SearchResultType, number> = {
