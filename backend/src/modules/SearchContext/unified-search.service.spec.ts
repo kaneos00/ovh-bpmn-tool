@@ -227,10 +227,19 @@ describe('BPMN search extraction', () => {
         </sequenceFlow>
       </process></definitions>`;
     const results = extractBpmnSearchResults(
-      flowXml, 'resource-1', 'Order', 'payment', ['bpmn'],
+      flowXml,
+      'resource-1',
+      'Order',
+      'payment',
+      ['bpmn'],
     );
-    expect(results.map(result => result.elementId)).toEqual(['Task_Start', 'Task_End']);
-    expect(results.some(result => result.elementId === 'Flow_Payment')).toBe(false);
+    expect(results.map((result) => result.elementId)).toEqual([
+      'Task_Start',
+      'Task_End',
+    ]);
+    expect(results.some((result) => result.elementId === 'Flow_Payment')).toBe(
+      false,
+    );
   });
 
   it('does not expand document-defined XML entities', () => {
