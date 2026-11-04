@@ -340,3 +340,55 @@ test('Viewer delegates RACI issue analysis and filtering to a dedicated hook', a
   assert.ok(filters.includes('filters.issuesOnly') === false);
   assert.ok(filters.includes('actorFilter, codeFilter, issuesOnly'));
 });
+
+test('Viewer remarks are stored outside BPMN XML and displayed only while pending', async () => {
+  const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+  const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+  const entity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/processChangeProposalComment.ormEntity.ts');
+
+  assert.ok(viewer.includes('change-proposals/active?contentId='));
+  assert.ok(viewer.includes('elementId: selectedActivityId'));
+  assert.ok(viewer.includes('comment: remarkText.trim()'));
+  assert.ok(viewer.includes('Remarques ('));
+  assert.ok(hook.includes("overlays.add(elementId, 'contextual-remarks'"));
+  assert.ok(hook.includes("remarks.filter(remark => remark.status === 'pending')"));
+  assert.ok(entity.includes("@Entity('process_change_proposal_comments')"));
+  assert.ok(entity.includes("status: ProcessChangeProposalCommentStatus"));
+});
+
+test('proposal reviewers can handle remarks in the existing modeler and publication requires a final summary', async () => {
+  const modeler = await read('src/Containers/ContentModeler/ContentModeler.container.tsx');
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/process-change-proposal.controller.ts');
+
+  assert.ok(modeler.includes('/comments/${remark.id}/decision'));
+  assert.ok(modeler.includes("decideRemark(remark, 'accepted')"));
+  assert.ok(modeler.includes("decideRemark(remark, 'rejected')"));
+  assert.ok(modeler.includes('/comments`'));
+  assert.ok(modeler.includes('summaryComment: publicationSummaryComment.trim()'));
+  assert.ok(controller.includes('ProcessChangeProposalCommentStatus.Pending'));
+  assert.ok(controller.includes('L’approbation est bloquée'));
+  assert.ok(controller.includes('La publication est bloquée'));
+  assert.ok(controller.includes('Un commentaire général de validation est obligatoire pour publier'));
+});
+
+test('remark decisions reuse the existing validator, project-admin and global-admin permissions', async () => {
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/process-change-proposal.controller.ts');
+
+  assert.ok(controller.includes('canReviewAsProjectAdmin'));
+  assert.ok(controller.includes('canReviewAsAssignedValidator'));
+  assert.ok(controller.includes('this.access.hasOrganizationAdminRole(headers)'));
+  assert.ok(controller.includes('ProjectMemberRole.Admin'));
+  assert.ok(controller.includes('ProjectMemberRole.Modeler'));
+  assert.ok(controller.includes('recheck proposal remark permissions inside transactions') === false);
+});
+
+test('contextual remark migration is included in every existing Coolify and CI migration path', async () => {
+  const dockerfile = await read('../deploy/coolify/Dockerfile.migrations');
+  const compose = await read('../deploy/coolify/compose.yaml');
+  const workflow = await read('../.github/workflows/validate.yml');
+
+  assert.ok(dockerfile.includes('20261104_v3_process_change_proposal_comments.sql'));
+  assert.ok(compose.includes('20261104_v3_process_change_proposal_comments.sql'));
+  assert.ok(workflow.includes('20261104_v3_process_change_proposal_comments.sql'));
+  assert.ok(workflow.includes("'process_change_proposal_comments'"));
+});
