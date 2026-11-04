@@ -1039,7 +1039,13 @@ export class ProcessChangeProposalController {
           actorUserId,
           validatorUserId: proposal.validatorUserId,
           comment: comment || null,
-          details: null,
+          details: {
+            actorRole: isOrganizationAdmin
+              ? 'organization_admin'
+              : currentMembership?.role === ProjectMemberRole.Admin
+                ? 'project_admin'
+                : 'designated_validator',
+          },
           createdBy: actorUsername,
         }),
       );
@@ -1257,6 +1263,11 @@ export class ProcessChangeProposalController {
           details: {
             sourcePublishedContentId: newPublished.id,
             version: newPublished.version,
+            actorRole: isOrganizationAdmin
+              ? 'organization_admin'
+              : currentMembership?.role === ProjectMemberRole.Admin
+                ? 'project_admin'
+                : 'designated_validator',
           },
           createdBy: actorUsername,
         }),
@@ -1519,6 +1530,11 @@ export class ProcessChangeProposalController {
             remarkId: savedComment.id,
             elementId: savedComment.elementId,
             decision: body.decision,
+            actorRole: isOrganizationAdmin
+              ? 'organization_admin'
+              : currentMembership?.role === ProjectMemberRole.Admin
+                ? 'project_admin'
+                : 'designated_validator',
           },
           createdBy: actorUsername,
         }),
