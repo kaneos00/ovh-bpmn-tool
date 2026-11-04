@@ -16,6 +16,8 @@ type SearchResultItemProps = {
   disabled?: boolean;
   onClick: () => void;
   query?: string;
+  processName?: string;
+  similarity?: number;
 };
 
 const normalize = (value: string) =>
@@ -94,6 +96,8 @@ export const SearchResultItem = ({
   disabled = false,
   onClick,
   query = '',
+  processName,
+  similarity,
 }: SearchResultItemProps) => (
   <ListItem sx={{ p: 0 }}>
     <Button
@@ -134,8 +138,15 @@ export const SearchResultItem = ({
         >
           {badge.label}
         </Box>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography level="title-sm">{highlightNode(title, query)}</Typography>
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          {processName && (
+            <Typography level="title-sm" sx={{ fontWeight: 800 }}>
+              {highlightNode(processName, query)}
+            </Typography>
+          )}
+          <Typography level={processName ? 'body-sm' : 'title-sm'} sx={processName ? { fontWeight: 650, mt: 0.15 } : undefined}>
+            {highlightNode(title, query)}
+          </Typography>
           {description && (
             <Typography level="body-sm" sx={{ color: 'text.secondary', mt: 0.25 }}>
               {highlightNode(description, query)}
@@ -145,6 +156,15 @@ export const SearchResultItem = ({
             {highlightNode(detail, query)}
           </Typography>
         </Box>
+        {typeof similarity === 'number' && (
+          <Box
+            component="span"
+            aria-label={`Similarité ${similarity} pour cent`}
+            sx={{ flex: '0 0 auto', ml: 1, px: 0.75, py: 0.25, borderRadius: '5px', bgcolor: 'neutral.softBg', color: 'text.secondary', fontSize: 11, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}
+          >
+            {similarity} %
+          </Box>
+        )}
       </Box>
     </Button>
   </ListItem>
