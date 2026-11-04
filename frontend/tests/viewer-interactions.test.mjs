@@ -374,3 +374,18 @@ test('Viewer delegates RACI issue analysis and filtering to a dedicated hook', a
   assert.ok(filters.includes('filters.issuesOnly') === false);
   assert.ok(filters.includes('actorFilter, codeFilter, issuesOnly'));
 });
+
+test('global and full search share yellow highlighting and direct BPMN element navigation', async () => {
+  const shared = await read('src/Components/GenericComponents/SearchResultItem/SearchResultItem.tsx');
+  const quickSearch = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+  const fullSearch = await read('src/Containers/SearchResults/SearchResults.container.tsx');
+  const routeState = await read('src/shared/hooks/useViewerRouteState.ts');
+
+  assert.match(shared, /bgcolor: '#fff1a8'/);
+  assert.match(shared, /while \(match !== -1\)/);
+  assert.match(shared, /normalize\(character\)/);
+  assert.match(quickSearch, /query=\{search\}/);
+  assert.match(fullSearch, /query=\{query\}/);
+  assert.match(fullSearch, /if \(result\.elementId\) params\.set\('elementId', result\.elementId\)/);
+  assert.match(routeState, /requestedElementId: searchParams\.get\('elementId'\)/);
+});
