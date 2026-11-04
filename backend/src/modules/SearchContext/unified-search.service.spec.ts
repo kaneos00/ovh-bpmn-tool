@@ -134,6 +134,18 @@ describe('BPMN search extraction', () => {
     ).toEqual([]);
   });
 
+  it('does not search BPMN elements by their technical identifiers', () => {
+    expect(
+      extractBpmnSearchResults(
+        xml,
+        'resource-1',
+        'Order',
+        'Task_Approve',
+        ['bpmn'],
+      ),
+    ).toEqual([]);
+  });
+
   it('indexes BPMN actors and explicit RACI assignments with type filters', () => {
     const raci = extractBpmnSearchResults(
       xml,
