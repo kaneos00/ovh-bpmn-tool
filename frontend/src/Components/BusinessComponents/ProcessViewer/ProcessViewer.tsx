@@ -4,6 +4,8 @@ import { useProcessViewer, type ContextualRemark } from './hooks/useProcessViewe
 import 'diagram-js-minimap/assets/diagram-js-minimap.css';
 import '../Modeler/Modeler.css';
 
+const EMPTY_CONTEXTUAL_REMARKS: ContextualRemark[] = [];
+
 type ProcessViewerProps = {
   resourceId: string;
   contentId: string;
@@ -23,7 +25,7 @@ export const ProcessViewer = ({
   onToggleInfoPanel,
   infoPanelOpen = false,
   toolbarExtra,
-  remarks = [],
+  remarks = EMPTY_CONTEXTUAL_REMARKS,
 }: ProcessViewerProps) => {
   const {
     viewerRef,
