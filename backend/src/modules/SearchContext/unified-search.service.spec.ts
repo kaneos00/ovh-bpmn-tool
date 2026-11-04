@@ -41,9 +41,9 @@ describe('unified search normalization', () => {
     expect(isSearchTextMatch('Validation des factures', 'livraison')).toBe(
       false,
     );
-    expect(
-      isSearchTextMatch('Gestion des commandes', 'gestion comandes'),
-    ).toBe(true);
+    expect(isSearchTextMatch('Gestion des commandes', 'gestion comandes')).toBe(
+      true,
+    );
     expect(
       isExactSearchTextMatch('Supplier invoice validation', 'invoice supplier'),
     ).toBe(true);
