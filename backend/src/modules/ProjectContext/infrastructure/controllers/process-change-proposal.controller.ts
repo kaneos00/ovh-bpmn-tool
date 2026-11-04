@@ -10,6 +10,7 @@ import {
   NotFoundException,
   Param,
   Post,
+  Query,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
@@ -318,6 +319,7 @@ export class ProcessChangeProposalController {
   async getActiveProposalForProcess(
     @Param('projectId') projectId: string,
     @Param('resourceId') resourceId: string,
+    @Query('contentId') contentId: string | undefined,
     @Headers() headers: RequestHeaders,
   ) {
     if (!this.access.hasOrganizationAdminRole(headers)) {
@@ -332,7 +334,11 @@ export class ProcessChangeProposalController {
     });
     if (!link) throw new NotFoundException('Le processus ne fait pas partie de ce projet');
     const published = await this.dataSource.getRepository(ContentTypeOrmEntity).findOne({
-      where: { resourceId, status: ContentStatusEnum.Published },
+      where: {
+        resourceId,
+        status: ContentStatusEnum.Published,
+        ...(contentId ? { id: contentId } : {}),
+      },
       order: { version: 'DESC' },
     });
     if (!published) return null;
