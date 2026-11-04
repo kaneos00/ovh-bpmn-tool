@@ -1,6 +1,6 @@
 -- Extend the existing proposal event log with individual contextual-remark decisions.
 -- Idempotent so the Coolify migration container can safely run on every release.
-DO $$
+DO $remark_event_migration$
 BEGIN
   ALTER TABLE process_change_proposal_events
     DROP CONSTRAINT IF EXISTS process_change_proposal_events_eventType_check;
@@ -21,4 +21,4 @@ BEGIN
       'remark_rejected'
     ));
 END;
-$;
+$remark_event_migration$;
