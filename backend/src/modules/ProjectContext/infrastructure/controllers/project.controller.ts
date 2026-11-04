@@ -163,6 +163,7 @@ export class ProjectController {
 
     return {
       shared: projectIds.length > 1,
+      common: links.some((link) => link.usage === ProjectProcessUsage.Common),
       projects: projects.map((project) => ({
         id: project.id,
         name: project.name,
