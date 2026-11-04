@@ -85,21 +85,20 @@ describe('ProcessChangeProposalController remark permissions', () => {
     return { controller, events, comments, proposals, remark };
   };
 
-  it.each([
-    ['validateur désigné', ProjectMemberRole.Modeler, false, true],
-    ['gestionnaire du projet', ProjectMemberRole.Admin, false, false],
-    ['administrateur global', null, true, false],
-  ])('allows the %s to decide a remark', async (_label, role, isGlobalAdmin, isAssigned) => {
+  const assertCanDecide = async (
+    membership: { role: ProjectMemberRole } | null,
+    isOrganizationAdmin: boolean,
+    validatorUserId: string,
+    expectedActorRole: string,
+  ) => {
     const { controller, events, comments, proposals } = makeController(
-      role ? { role } : null,
-      isGlobalAdmin,
+      membership,
+      isOrganizationAdmin,
     );
-    const proposalValidator = isAssigned ? actorUserId : '00000000-0000-4000-8000-000000000099';
-    // The proposal fixture is updated to exercise both assigned and fallback paths.
     proposals.findOne.mockResolvedValue({
       id: proposalId,
       projectId: 'project-1',
-      validatorUserId: proposalValidator,
+      validatorUserId,
       status: ProcessChangeProposalStatus.Submitted,
     });
 
@@ -120,14 +119,35 @@ describe('ProcessChangeProposalController remark permissions', () => {
       expect.objectContaining({
         eventType: 'remark_accepted',
         actorUserId,
-        details: expect.objectContaining({
-          actorRole: isGlobalAdmin
-            ? 'organization_admin'
-            : role === ProjectMemberRole.Admin
-              ? 'project_admin'
-              : 'designated_validator',
-        }),
+        details: expect.objectContaining({ actorRole: expectedActorRole }),
       }),
+    );
+  };
+
+  it('allows the designated validator to decide a remark', async () => {
+    await assertCanDecide(
+      { role: ProjectMemberRole.Modeler },
+      false,
+      actorUserId,
+      'designated_validator',
+    );
+  });
+
+  it('allows the project manager to decide a remark as project administrator', async () => {
+    await assertCanDecide(
+      { role: ProjectMemberRole.Admin },
+      false,
+      '00000000-0000-4000-8000-000000000099',
+      'project_admin',
+    );
+  });
+
+  it('allows the global administrator to decide a remark', async () => {
+    await assertCanDecide(
+      null,
+      true,
+      '00000000-0000-4000-8000-000000000099',
+      'organization_admin',
     );
   });
 
