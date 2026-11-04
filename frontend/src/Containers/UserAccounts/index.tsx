@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -16,77 +15,115 @@ import {
   Table,
   Typography,
 } from '@mui/joy';
+import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
+import './UserAccounts.scss';
+import '../OrganizationAdmin/OrganizationAdmin.scss';
 
-const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
 type Role = 'admin' | 'modeler' | 'viewer';
+type ProjectRole = 'admin' | 'modeler' | 'viewer';
 type Account = {
   id: string;
   username: string;
   email: string | null;
   role: Role;
   active: boolean;
+  createdAt?: string;
 };
-type AccountDraft = { username: string; email: string };
+type Project = { id: string; name: string };
+type Membership = {
+  userId: string;
+  projects: Array<{ projectId: string; projectName: string; role: ProjectRole }>;
+};
+type AdministrationOverview = { projects: Project[]; users: Membership[] };
+type AccountDraft = { username: string; email: string; role: Role; active: boolean };
+
+const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
 const roleLabels: Record<Role, string> = {
   admin: 'Administrateur',
   modeler: 'Modélisateur',
   viewer: 'Lecteur',
 };
+const projectRoleLabels: Record<ProjectRole, string> = {
+  admin: 'Admin projet',
+  modeler: 'Modeler',
+  viewer: 'Viewer',
+};
+const userPath = (id: string) => `/auth/users/${encodeURIComponent(id)}`;
 
-async function call(path: string, method = 'GET', body?: unknown) {
-  const response = await fetch([apiBase, path].join(''), {
+async function call<T = any>(path: string, method = 'GET', body?: unknown): Promise<T> {
+  const response = await fetch(`${apiBase}${path}`, {
     method,
     credentials: 'same-origin',
     headers: body ? { 'content-type': 'application/json' } : {},
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.message || 'Erreur de requête');
-  return data;
+  if (!response.ok) {
+    const message = Array.isArray(data.message) ? data.message.join(' · ') : data.message;
+    throw new Error(message || 'Erreur de requête');
+  }
+  return data as T;
 }
 
-const userPath = (id: string) => ['/auth/users', id].join('/');
-const passwordPath = (id: string) => ['/auth/users', id, 'password'].join('/');
-
 export const Component = () => {
-  const navigate = useNavigate();
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [overview, setOverview] = useState<AdministrationOverview>({ projects: [], users: [] });
   const [me, setMe] = useState('');
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | Role>('all');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, AccountDraft>>({});
-  const [resetPasswords, setResetPasswords] = useState<Record<string, string>>({});
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState<Role>('viewer');
-  const [currentPassword, setCurrentPassword] = useState('');
+  const [resetPassword, setResetPassword] = useState('');
+  const [newUsername, setNewUsername] = useState('');
+  const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [newRole, setNewRole] = useState<Role>('viewer');
+  const [showCreate, setShowCreate] = useState(false);
+  const [projectId, setProjectId] = useState('');
+  const [projectRole, setProjectRole] = useState<ProjectRole>('viewer');
   const [error, setError] = useState('');
-  const [status, setStatus] = useState('');
+  const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
 
   const refresh = async () => {
-    const session = await call('/auth/session');
+    const [session, accountRows, projectOverview] = await Promise.all([
+      call<{ userId: string }>('/auth/session'),
+      call<Account[]>('/auth/users'),
+      call<AdministrationOverview>('/projects/administration/overview'),
+    ]);
     setMe(session.userId);
-    setAccounts(await call('/auth/users'));
+    setAccounts(accountRows);
+    setOverview(projectOverview);
   };
 
   useEffect(() => {
-    refresh().catch((reason) =>
-      setError(reason instanceof Error ? reason.message : 'Erreur'),
-    );
+    let mounted = true;
+    Promise.all([
+      call<{ userId: string }>('/auth/session'),
+      call<Account[]>('/auth/users'),
+      call<AdministrationOverview>('/projects/administration/overview'),
+    ])
+      .then(([session, accountRows, projectOverview]) => {
+        if (!mounted) return;
+        setMe(session.userId);
+        setAccounts(accountRows);
+        setOverview(projectOverview);
+      })
+      .catch((reason) => {
+        if (mounted) setError(reason instanceof Error ? reason.message : 'Impossible de charger les comptes.');
+      });
+    return () => { mounted = false; };
   }, []);
 
-  const action = async (
-    fn: () => Promise<unknown>,
-    success: string,
-  ) => {
+  const runAction = async (fn: () => Promise<unknown>, success: string) => {
     setBusy(true);
     setError('');
-    setStatus('');
+    setNotice('');
     try {
       await fn();
       await refresh();
-      setStatus(success);
+      setNotice(success);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Erreur');
     } finally {
@@ -94,359 +131,320 @@ export const Component = () => {
     }
   };
 
-  const draftFor = (account: Account): AccountDraft =>
-    drafts[account.id] ?? {
-      username: account.username,
-      email: account.email ?? '',
-    };
+  const membershipsByUser = useMemo(() => {
+    const result = new Map<string, Membership>();
+    overview.users.forEach((membership) => result.set(membership.userId.toLocaleLowerCase(), membership));
+    return result;
+  }, [overview.users]);
 
-  const updateDraft = (
-    account: Account,
-    field: keyof AccountDraft,
-    value: string,
-  ) => {
+  const filteredAccounts = useMemo(() => {
+    const term = search.trim().toLocaleLowerCase('fr');
+    return accounts.filter((account) => {
+      const membership = membershipsByUser.get(account.username.toLocaleLowerCase());
+      const projectText = (membership?.projects ?? [])
+        .map((project) => `${project.projectName} ${project.role}`)
+        .join(' ');
+      const matchesSearch = !term || `${account.username} ${account.email ?? ''} ${roleLabels[account.role]} ${projectText}`
+        .toLocaleLowerCase('fr').includes(term);
+      const matchesStatus = statusFilter === 'all' ||
+        (statusFilter === 'active' ? account.active : !account.active);
+      const matchesRole = roleFilter === 'all' || account.role === roleFilter;
+      return matchesSearch && matchesStatus && matchesRole;
+    });
+  }, [accounts, membershipsByUser, search, statusFilter, roleFilter]);
+
+  const selectedAccount = accounts.find((account) => account.id === selectedId) ?? null;
+  const selectedMembership = selectedAccount
+    ? membershipsByUser.get(selectedAccount.username.toLocaleLowerCase())
+    : undefined;
+  const selectedDraft = selectedAccount
+    ? drafts[selectedAccount.id] ?? {
+      username: selectedAccount.username,
+      email: selectedAccount.email ?? '',
+      role: selectedAccount.role,
+      active: selectedAccount.active,
+    }
+    : null;
+  const activeCount = accounts.filter((account) => account.active).length;
+
+  const updateDraft = (field: keyof AccountDraft, value: string | boolean) => {
+    if (!selectedAccount || !selectedDraft) return;
     setDrafts((current) => ({
       ...current,
-      [account.id]: { ...draftFor(account), [field]: value },
+      [selectedAccount.id]: { ...selectedDraft, [field]: value },
     }));
   };
 
+  const saveAccount = () => {
+    if (!selectedAccount || !selectedDraft) return;
+    void runAction(
+      () => call(userPath(selectedAccount.id), 'PATCH', {
+        username: selectedDraft.username,
+        email: selectedDraft.email || null,
+        role: selectedDraft.role,
+        active: selectedDraft.active,
+      }),
+      'Compte utilisateur mis à jour.',
+    ).then(() => setDrafts((current) => {
+      const next = { ...current };
+      delete next[selectedAccount.id];
+      return next;
+    }));
+  };
+
+  const createAccount = async () => {
+    if (!newUsername.trim() || newPassword.length < 12) return;
+    await runAction(async () => {
+      await call('/auth/users', 'POST', {
+        username: newUsername.trim(),
+        email: newEmail.trim() || null,
+        password: newPassword,
+        role: newRole,
+      });
+      setNewUsername('');
+      setNewEmail('');
+      setNewPassword('');
+      setNewRole('viewer');
+      setShowCreate(false);
+    }, 'Compte créé.');
+  };
+
+  const addProjectAccess = async () => {
+    if (!selectedAccount || !projectId) return;
+    await runAction(
+      () => call(
+        `/projects/administration/projects/${encodeURIComponent(projectId)}/members/${encodeURIComponent(selectedAccount.username)}`,
+        'PUT',
+        { role: projectRole },
+      ),
+      'Accès au projet ajouté ou mis à jour.',
+    );
+    setProjectId('');
+    setProjectRole('viewer');
+  };
+
+  const updateProjectAccess = async (project: Membership['projects'][number], role: ProjectRole) => {
+    if (!selectedAccount || role === project.role) return;
+    await runAction(
+      () => call(
+        `/projects/administration/projects/${encodeURIComponent(project.projectId)}/members/${encodeURIComponent(selectedAccount.username)}`,
+        'PUT',
+        { role },
+      ),
+      'Rôle du projet mis à jour.',
+    );
+  };
+
+  const removeProjectAccess = async (project: Membership['projects'][number]) => {
+    if (!selectedAccount || !window.confirm(`Retirer l’accès de ${selectedAccount.username} au projet « ${project.projectName} » ?`)) return;
+    await runAction(
+      () => call(
+        `/projects/administration/projects/${encodeURIComponent(project.projectId)}/members/${encodeURIComponent(selectedAccount.username)}`,
+        'DELETE',
+      ),
+      'Accès au projet retiré.',
+    );
+  };
+
+  const resetUserPassword = async () => {
+    if (!selectedAccount || resetPassword.length < 12) return;
+    await runAction(async () => {
+      await call(`${userPath(selectedAccount.id)}/password`, 'POST', { newPassword: resetPassword });
+      setResetPassword('');
+    }, 'Mot de passe réinitialisé.');
+  };
+
+  const impersonate = async () => {
+    if (!selectedAccount || !selectedAccount.active || selectedAccount.username === me || busy) return;
+    if (!window.confirm(`Vous allez vous connecter en tant que « ${selectedAccount.username} ». Continuer ?`)) return;
+    setBusy(true);
+    setError('');
+    try {
+      await call(`${userPath(selectedAccount.id)}/impersonate`, 'POST');
+      window.location.assign('/');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Impossible de simuler ce compte.');
+      setBusy(false);
+    }
+  };
+
   return (
-    <Sheet sx={{ minHeight: '100vh', p: { xs: 2, md: 4 } }}>
-      <Stack spacing={2} sx={{ maxWidth: 1200, mx: 'auto' }}>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          flexWrap="wrap"
-          gap={1}
-        >
-          <Box>
-            <Typography level="h2">Comptes utilisateurs</Typography>
-            <Typography level="body-sm" color="neutral">
-              Comptes locaux, rôles globaux et mots de passe.
-            </Typography>
-          </Box>
-          <Button
-            variant="outlined"
-            onClick={() => navigate('/organization/users')}
-          >
-            Retour à l’administration
-          </Button>
-        </Stack>
-
-        {error && <Alert color="danger">{error}</Alert>}
-        {status && <Alert color="success">{status}</Alert>}
-
-        <Card variant="outlined" sx={{ gap: 2 }}>
-          <Typography level="title-lg">Créer un compte</Typography>
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            gap={1}
-            flexWrap="wrap"
-          >
-            <FormControl required sx={{ flex: 1, minWidth: 180 }}>
-              <FormLabel>Identifiant</FormLabel>
-              <Input
-                value={username}
-                onChange={(event) => setUsername(event.target.value)}
-              />
-            </FormControl>
-            <FormControl sx={{ flex: 1, minWidth: 220 }}>
-              <FormLabel>E-mail</FormLabel>
-              <Input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-              />
-            </FormControl>
-            <FormControl required sx={{ flex: 1, minWidth: 220 }}>
-              <FormLabel>Mot de passe (12 caractères min.)</FormLabel>
-              <Input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                autoComplete="new-password"
-              />
-            </FormControl>
-            <FormControl sx={{ minWidth: 160 }}>
-              <FormLabel>Rôle</FormLabel>
-              <Select
-                value={role}
-                onChange={(_, value) => value && setRole(value as Role)}
-              >
-                <Option value="admin">Administrateur</Option>
-                <Option value="modeler">Modélisateur</Option>
-                <Option value="viewer">Lecteur</Option>
-              </Select>
-            </FormControl>
-          </Stack>
-          <Box>
-            <Button
-              disabled={!username.trim() || password.length < 12 || busy}
-              loading={busy}
-              onClick={() =>
-                action(async () => {
-                  await call('/auth/users', 'POST', {
-                    username,
-                    email: email || null,
-                    password,
-                    role,
-                  });
-                  setUsername('');
-                  setEmail('');
-                  setPassword('');
-                  setRole('viewer');
-                }, 'Compte créé.')
-              }
-            >
-              Créer le compte
-            </Button>
-          </Box>
-        </Card>
-
-        <Card variant="outlined" sx={{ gap: 1.5 }}>
-          <Typography level="title-lg">Comptes existants</Typography>
-          <Box sx={{ overflowX: 'auto' }}>
-            <Table hoverRow stickyHeader>
-              <thead>
-                <tr>
-                  <th>Identifiant</th>
-                  <th>E-mail</th>
-                  <th>Rôle global</th>
-                  <th>Statut</th>
-                  <th>Gestion du compte</th>
-                </tr>
-              </thead>
-              <tbody>
-                {accounts.map((account) => (
-                  <tr key={account.id}>
-                    <td>
-                      <Typography level="title-sm">
-                        {account.username}
-                      </Typography>
-                      {account.username === me && (
-                        <Chip size="sm" color="primary">
-                          Votre compte
-                        </Chip>
-                      )}
-                    </td>
-                    <td>{account.email || '—'}</td>
-                    <td>
-                      <Select
-                        size="sm"
-                        value={account.role}
-                        disabled={
-                          busy ||
-                          (account.username === me && account.role === 'admin')
-                        }
-                        onChange={(_, value) =>
-                          value &&
-                          action(
-                            () =>
-                              call(userPath(account.id), 'PATCH', {
-                                role: value,
-                              }),
-                            'Rôle mis à jour.',
-                          )
-                        }
-                      >
-                        <Option value="admin">Administrateur</Option>
-                        <Option value="modeler">Modélisateur</Option>
-                        <Option value="viewer">Lecteur</Option>
-                      </Select>
-                      <Typography level="body-xs" color="neutral">
-                        {roleLabels[account.role]}
-                      </Typography>
-                    </td>
-                    <td>
-                      <Chip color={account.active ? 'success' : 'neutral'}>
-                        {account.active ? 'Actif' : 'Désactivé'}
-                      </Chip>
-                    </td>
-                    <td>
-                      <Stack spacing={1} sx={{ minWidth: 230 }}>
-                        <Button
-                          size="sm"
-                          variant="soft"
-                          color="warning"
-                          disabled={busy || !account.active || account.username === me}
-                          onClick={async () => {
-                            setBusy(true);
-                            setError('');
-                            setStatus('');
-                            try {
-                              await call(`${userPath(account.id)}/impersonate`, 'POST');
-                              window.location.assign('/');
-                            } catch (reason) {
-                              setError(reason instanceof Error ? reason.message : 'Impossible de simuler ce compte.');
-                              setBusy(false);
-                            }
-                          }}
-                        >
-                          Simuler ce compte
-                        </Button>
-                        <Input
-                          size="sm"
-                          aria-label="Nouvel identifiant"
-                          value={draftFor(account).username}
-                          onChange={(event) =>
-                            updateDraft(account, 'username', event.target.value)
-                          }
-                        />
-                        <Button
-                          size="sm"
-                          variant="outlined"
-                          disabled={
-                            busy ||
-                            !draftFor(account).username.trim() ||
-                            draftFor(account).username === account.username
-                          }
-                          onClick={() =>
-                            action(
-                              () =>
-                                call(userPath(account.id), 'PATCH', {
-                                  username: draftFor(account).username,
-                                }),
-                              'Identifiant modifié.',
-                            )
-                          }
-                        >
-                          Modifier l’identifiant
-                        </Button>
-                        <Input
-                          size="sm"
-                          type="email"
-                          aria-label="Nouvelle adresse e-mail"
-                          placeholder="Adresse e-mail"
-                          value={draftFor(account).email}
-                          onChange={(event) =>
-                            updateDraft(account, 'email', event.target.value)
-                          }
-                        />
-                        <Button
-                          size="sm"
-                          variant="outlined"
-                          disabled={
-                            busy ||
-                            draftFor(account).email === (account.email ?? '')
-                          }
-                          onClick={() =>
-                            action(
-                              () =>
-                                call(userPath(account.id), 'PATCH', {
-                                  email: draftFor(account).email || null,
-                                }),
-                              'Adresse e-mail modifiée.',
-                            )
-                          }
-                        >
-                          Modifier l’e-mail
-                        </Button>
-                        <Input
-                          size="sm"
-                          type="password"
-                          aria-label="Nouveau mot de passe utilisateur"
-                          placeholder="Nouveau mot de passe"
-                          value={resetPasswords[account.id] ?? ''}
-                          onChange={(event) =>
-                            setResetPasswords((current) => ({
-                              ...current,
-                              [account.id]: event.target.value,
-                            }))
-                          }
-                        />
-                        <Button
-                          size="sm"
-                          disabled={
-                            busy ||
-                            (resetPasswords[account.id] ?? '').length < 12
-                          }
-                          onClick={() =>
-                            action(async () => {
-                              await call(passwordPath(account.id), 'POST', {
-                                newPassword: resetPasswords[account.id],
-                              });
-                              setResetPasswords((current) => ({
-                                ...current,
-                                [account.id]: '',
-                              }));
-                            }, 'Mot de passe réinitialisé.')
-                          }
-                        >
-                          Réinitialiser le mot de passe
-                        </Button>
-                        <Button
-                          size="sm"
-                          color={account.active ? 'danger' : 'success'}
-                          variant="outlined"
-                          disabled={busy || account.username === me}
-                          onClick={() =>
-                            action(
-                              () =>
-                                call(userPath(account.id), 'PATCH', {
-                                  active: !account.active,
-                                }),
-                              account.active
-                                ? 'Compte désactivé.'
-                                : 'Compte réactivé.',
-                            )
-                          }
-                        >
-                          {account.active ? 'Désactiver' : 'Réactiver'}
-                        </Button>
-                      </Stack>
-                    </td>
-                  </tr>
+    <Sheet className="org-admin-v2__page" sx={{ width: '100%', maxWidth: 1440, boxSizing: 'border-box', mx: 'auto', p: { xs: 1, md: 2 }, bgcolor: 'transparent' }}>
+      <Stack spacing={2}>
+        <WorkspaceNavigation />
+        <div className="org-admin-v2">
+          <aside className="org-admin-v2__sidebar">
+            <div className="org-admin-v2__brand">
+              <img className="org-admin-v2__brand-logo" src="/bpmn-tool-logo.svg" alt="" />
+              <div><strong>KHI Flows</strong><small>Organisation</small></div>
+            </div>
+            <div className="org-admin-v2__nav-group">
+              <div className="org-admin-v2__nav-label">Administration</div>
+              <nav className="org-admin-v2__nav" aria-label="Navigation de l’administration">
+                {[
+                  ['overview', 'Vue d’ensemble', '▦'],
+                  ['users', 'Utilisateurs', '♙'],
+                  ['projects', 'Projets', '▣'],
+                  ['processes', 'Processus', '⌘'],
+                  ['governance', 'Acteurs et RACI', '⬡'],
+                  ['settings', 'Organisation', '⚙'],
+                ].map(([key, label, icon]) => (
+                  <button
+                    type="button"
+                    key={key}
+                    className={`org-admin-v2__nav-item${key === 'users' ? ' is-active' : ''}`}
+                    aria-current={key === 'users' ? 'page' : undefined}
+                    onClick={() => window.location.assign(`/organization/${key}`)}
+                  >
+                    <span className="org-admin-v2__nav-icon" aria-hidden="true">{icon}</span>
+                    <span>{label}</span>
+                  </button>
                 ))}
-              </tbody>
-            </Table>
-          </Box>
-        </Card>
+              </nav>
+            </div>
+            <div className="org-admin-v2__sidebar-foot">
+              <strong>Accès sécurisés</strong>
+              <span>Les droits sont contrôlés par l’API, indépendamment de l’interface.</span>
+            </div>
+          </aside>
+          <main className="org-admin-v2__main">
+            <header className="org-admin-v2__topbar">
+              <div><div className="org-admin-v2__crumb">Administration / Utilisateurs</div><div className="org-admin-v2__top-title">Administration de l’organisation</div></div>
+              <Chip size="sm" color="primary" variant="soft">Accès organisationnel</Chip>
+            </header>
+            <div className="org-admin-v2__content">
+              <div className="org-admin-v2__page-head">
+                <div>
+                  <div className="org-admin-v2__eyebrow">Administration des accès</div>
+                  <Typography level="h1">Utilisateurs</Typography>
+                  <Typography level="body-md" sx={{ color: 'text.secondary', maxWidth: 760, mt: 0.5 }}>
+                    Comptes de l’organisation, rôles globaux et accès aux projets. Les comptes sans projet restent visibles dans cet annuaire.
+                  </Typography>
+                </div>
+                <div className="org-admin-v2__actions">
+                  <Button onClick={() => setShowCreate((value) => !value)}>＋ Créer un compte</Button>
+                </div>
+              </div>
 
-        <Card variant="outlined" sx={{ gap: 2 }}>
-          <Typography level="title-lg">Modifier mon mot de passe</Typography>
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            gap={1}
-          >
-            <FormControl required sx={{ flex: 1 }}>
-              <FormLabel>Mot de passe actuel</FormLabel>
-              <Input
-                type="password"
-                autoComplete="current-password"
-                value={currentPassword}
-                onChange={(event) => setCurrentPassword(event.target.value)}
-              />
-            </FormControl>
-            <FormControl required sx={{ flex: 1 }}>
-              <FormLabel>Nouveau mot de passe (12 caractères min.)</FormLabel>
-              <Input
-                type="password"
-                autoComplete="new-password"
-                value={newPassword}
-                onChange={(event) => setNewPassword(event.target.value)}
-              />
-            </FormControl>
-          </Stack>
-          <Box>
-            <Button
-              disabled={!currentPassword || newPassword.length < 12 || busy}
-              onClick={() =>
-                action(async () => {
-                  await call('/auth/password', 'POST', {
-                    currentPassword,
-                    newPassword,
-                  });
-                  setCurrentPassword('');
-                  setNewPassword('');
-                }, 'Mot de passe modifié.')
-              }
-            >
-              Modifier mon mot de passe
-            </Button>
-          </Box>
-        </Card>
+              {error && <Alert color="danger" sx={{ mb: 2 }}>{error}</Alert>}
+              {notice && <Alert color="success" sx={{ mb: 2 }}>{notice}</Alert>}
+
+              {showCreate && (
+                <Card className="org-admin-v2__panel org-users__create" variant="outlined">
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Typography level="title-lg">Créer un compte utilisateur</Typography>
+                    <Button size="sm" variant="plain" color="neutral" onClick={() => setShowCreate(false)}>Fermer</Button>
+                  </Stack>
+                  <div className="org-users__form-grid">
+                    <FormControl required><FormLabel>Identifiant</FormLabel><Input value={newUsername} onChange={(event) => setNewUsername(event.target.value)} /></FormControl>
+                    <FormControl><FormLabel>Adresse e-mail</FormLabel><Input type="email" value={newEmail} onChange={(event) => setNewEmail(event.target.value)} /></FormControl>
+                    <FormControl required><FormLabel>Mot de passe (12 caractères minimum)</FormLabel><Input type="password" autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} /></FormControl>
+                    <FormControl><FormLabel>Rôle global</FormLabel><Select value={newRole} onChange={(_event, value) => value && setNewRole(value as Role)}><Option value="viewer">Lecteur</Option><Option value="modeler">Modélisateur</Option><Option value="admin">Administrateur</Option></Select></FormControl>
+                  </div>
+                  <Box><Button disabled={!newUsername.trim() || newPassword.length < 12 || busy} loading={busy} onClick={createAccount}>Créer le compte</Button></Box>
+                  <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>La création utilise le mécanisme de compte local existant. Le mot de passe n’est jamais réaffiché.</Typography>
+                </Card>
+              )}
+
+              <div className="org-admin-v2__stats org-users__stats">
+                <Card className="org-admin-v2__stat"><div className="org-admin-v2__stat-top"><span>Comptes utilisateurs</span><span className="org-admin-v2__stat-icon">♙</span></div><div className="org-admin-v2__stat-value">{accounts.length}</div><div className="org-admin-v2__stat-note">Comptes locaux enregistrés</div></Card>
+                <Card className="org-admin-v2__stat"><div className="org-admin-v2__stat-top"><span>Comptes actifs</span><span className="org-admin-v2__stat-icon">✓</span></div><div className="org-admin-v2__stat-value">{activeCount}</div><div className="org-admin-v2__stat-note">Accès autorisé à la connexion</div></Card>
+                <Card className="org-admin-v2__stat"><div className="org-admin-v2__stat-top"><span>Sans projet</span><span className="org-admin-v2__stat-icon">⌕</span></div><div className="org-admin-v2__stat-value">{accounts.filter((account) => !(membershipsByUser.get(account.username.toLocaleLowerCase())?.projects.length)).length}</div><div className="org-admin-v2__stat-note">Comptes sans adhésion projet</div></Card>
+              </div>
+
+              <Card className="org-admin-v2__panel org-users__list" variant="outlined">
+                <div className="org-users__toolbar">
+                  <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher un identifiant, un e-mail ou un projet…" sx={{ flex: 1, minWidth: 240 }} />
+                  <FormControl sx={{ minWidth: 160 }}><FormLabel>État du compte</FormLabel><Select value={statusFilter} onChange={(_event, value) => setStatusFilter((value ?? 'all') as typeof statusFilter)}><Option value="all">Tous les états</Option><Option value="active">Actif</Option><Option value="inactive">Désactivé</Option></Select></FormControl>
+                  <FormControl sx={{ minWidth: 180 }}><FormLabel>Rôle global</FormLabel><Select value={roleFilter} onChange={(_event, value) => setRoleFilter((value ?? 'all') as typeof roleFilter)}><Option value="all">Tous les rôles</Option><Option value="admin">Administrateur</Option><Option value="modeler">Modélisateur</Option><Option value="viewer">Lecteur</Option></Select></FormControl>
+                </div>
+                <Box sx={{ overflowX: 'auto' }}>
+                  <Table hoverRow stickyHeader>
+                    <thead><tr><th>Utilisateur</th><th>Rôle global</th><th>Projets associés</th><th>Statut</th><th>Fiche</th></tr></thead>
+                    <tbody>
+                      {filteredAccounts.map((account) => {
+                        const membership = membershipsByUser.get(account.username.toLocaleLowerCase());
+                        const isSelected = selectedId === account.id;
+                        return (
+                          <tr key={account.id} aria-selected={isSelected}>
+                            <td><Stack spacing={0.25}><Typography level="title-sm">{account.username}</Typography><Typography level="body-xs" sx={{ color: 'text.secondary' }}>{account.email || 'Aucune adresse e-mail'}{account.username === me ? ' · Votre compte' : ''}</Typography></Stack></td>
+                            <td><Chip size="sm" color={account.role === 'admin' ? 'warning' : account.role === 'modeler' ? 'primary' : 'neutral'} variant="soft">{roleLabels[account.role]}</Chip></td>
+                            <td><Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">{(membership?.projects ?? []).slice(0, 2).map((project) => <Chip key={project.projectId} size="sm" variant="soft" color="neutral">{project.projectName}</Chip>)}{(membership?.projects.length ?? 0) > 2 && <Chip size="sm" variant="outlined">+{membership!.projects.length - 2}</Chip>}{!membership?.projects.length && <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Aucun projet</Typography>}</Stack></td>
+                            <td><Chip size="sm" color={account.active ? 'success' : 'neutral'} variant="soft">{account.active ? 'Actif' : 'Désactivé'}</Chip></td>
+                            <td><Button size="sm" variant={isSelected ? 'solid' : 'outlined'} onClick={() => { setSelectedId(isSelected ? null : account.id); setResetPassword(''); }}>{isSelected ? 'Fermer' : 'Ouvrir'}</Button></td>
+                          </tr>
+                        );
+                      })}
+                      {filteredAccounts.length === 0 && <tr><td colSpan={5}><Typography level="body-sm" sx={{ color: 'text.secondary', py: 2 }}>Aucun compte ne correspond aux filtres.</Typography></td></tr>}
+                    </tbody>
+                  </Table>
+                </Box>
+                <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>{filteredAccounts.length} compte(s) affiché(s) · les rôles globaux proviennent de l’annuaire des comptes ; les rôles projet des adhésions existantes.</Typography>
+              </Card>
+
+              {selectedAccount && selectedDraft && (
+                <Card className="org-admin-v2__panel org-users__detail" variant="outlined">
+                  <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} gap={1}>
+                    <Box><div className="org-admin-v2__eyebrow">Fiche utilisateur</div><Typography level="h2">{selectedAccount.username}</Typography><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Compte, sécurité et associations aux projets.</Typography></Box>
+                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                      <Button color="warning" variant="soft" disabled={busy || !selectedAccount.active || selectedAccount.username === me} onClick={impersonate}>⇄ Se connecter en tant que…</Button>
+                      <Button disabled={busy} loading={busy} onClick={saveAccount}>Enregistrer les modifications</Button>
+                    </Stack>
+                  </Stack>
+
+                  <div className="org-users__detail-grid">
+                    <div className="org-users__detail-main">
+                      <Typography level="title-lg">Informations du compte</Typography>
+                      <div className="org-users__form-grid">
+                        <FormControl><FormLabel>Identifiant de connexion</FormLabel><Input value={selectedDraft.username} onChange={(event) => updateDraft('username', event.target.value)} /></FormControl>
+                        <FormControl><FormLabel>Adresse e-mail</FormLabel><Input type="email" value={selectedDraft.email} onChange={(event) => updateDraft('email', event.target.value)} /></FormControl>
+                        <FormControl><FormLabel>Rôle global</FormLabel><Select value={selectedDraft.role} onChange={(_event, value) => value && updateDraft('role', value)}><Option value="viewer">Lecteur</Option><Option value="modeler">Modélisateur</Option><Option value="admin">Administrateur</Option></Select></FormControl>
+                        <FormControl><FormLabel>État du compte</FormLabel><Select value={selectedDraft.active ? 'active' : 'inactive'} onChange={(_event, value) => value && updateDraft('active', value === 'active')}><Option value="active">Actif</Option><Option value="inactive">Désactivé</Option></Select></FormControl>
+                      </div>
+                      <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Les protections du dernier administrateur et les contrôles de sécurité restent appliqués par l’API existante.</Typography>
+
+                      <Box className="org-users__projects">
+                        <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}><Typography level="title-lg">Associations aux projets</Typography><Chip size="sm" variant="soft">{selectedMembership?.projects.length ?? 0} projet(s)</Chip></Stack>
+                        {(selectedMembership?.projects ?? []).map((project) => (
+                          <Stack key={project.projectId} direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'center' }} spacing={1} className="org-users__project-row">
+                            <Box sx={{ flex: 1, minWidth: 180 }}><Typography level="title-sm">{project.projectName}</Typography><Typography level="body-xs" sx={{ color: 'text.secondary' }}>Rôle limité à ce projet</Typography></Box>
+                            <FormControl sx={{ minWidth: 170 }}><Select size="sm" value={project.role} disabled={busy} onChange={(_event, value) => value && void updateProjectAccess(project, value as ProjectRole)}><Option value="viewer">Viewer</Option><Option value="modeler">Modeler</Option><Option value="admin">Admin projet</Option></Select></FormControl>
+                            <Button size="sm" variant="outlined" color="danger" disabled={busy} onClick={() => void removeProjectAccess(project)}>Retirer l’accès</Button>
+                          </Stack>
+                        ))}
+                        {(!selectedMembership || selectedMembership.projects.length === 0) && <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Aucune association à un projet.</Typography>}
+                        <Divider />
+                        <Typography level="title-sm">Ajouter un accès projet</Typography>
+                        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ md: 'flex-end' }}>
+                          <FormControl sx={{ flex: 1 }}><FormLabel>Projet</FormLabel><Select value={projectId || null} placeholder="Choisir un projet" onChange={(_event, value) => setProjectId(value ?? '')}><Option value="">Choisir un projet</Option>{overview.projects.filter((project) => !(selectedMembership?.projects ?? []).some((membership) => membership.projectId === project.id)).map((project) => <Option key={project.id} value={project.id}>{project.name}</Option>)}</Select></FormControl>
+                          <FormControl sx={{ minWidth: 170 }}><FormLabel>Rôle projet</FormLabel><Select value={projectRole} onChange={(_event, value) => value && setProjectRole(value as ProjectRole)}><Option value="viewer">Viewer</Option><Option value="modeler">Modeler</Option><Option value="admin">Admin projet</Option></Select></FormControl>
+                          <Button disabled={!projectId || busy} loading={busy} onClick={() => void addProjectAccess()}>Ajouter l’accès</Button>
+                        </Stack>
+                      </Box>
+                    </div>
+
+                    <div className="org-users__detail-side">
+                      <Card variant="outlined" className="org-users__security">
+                        <Typography level="title-lg">État et sécurité</Typography>
+                        <Stack direction="row" justifyContent="space-between" alignItems="center"><Typography level="body-sm">Compte actif</Typography><Chip size="sm" color={selectedDraft.active ? 'success' : 'neutral'}>{selectedDraft.active ? 'Oui' : 'Non'}</Chip></Stack>
+                        <Typography level="body-xs" sx={{ color: 'text.secondary' }}>La désactivation bloque les nouvelles sessions. Le dernier administrateur actif est protégé côté serveur.</Typography>
+                        <Divider />
+                        <Typography level="title-sm">Réinitialiser le mot de passe</Typography>
+                        <FormControl><FormLabel>Nouveau mot de passe (12 caractères minimum)</FormLabel><Input type="password" autoComplete="new-password" value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} /></FormControl>
+                        <Button size="sm" disabled={busy || resetPassword.length < 12} loading={busy} onClick={() => void resetUserPassword()}>Réinitialiser le mot de passe</Button>
+                        <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Le mot de passe n’est jamais restitué ni affiché.</Typography>
+                      </Card>
+                      <Alert color="warning" variant="soft">
+                        <Typography level="title-sm">Simulation de session</Typography>
+                        <Typography level="body-xs">La fonction « Se connecter en tant que » utilise le mécanisme d’impersonation déjà présent. L’administrateur d’origine reste identifié et peut reprendre sa session depuis le menu du compte.</Typography>
+                      </Alert>
+                    </div>
+                  </div>
+                </Card>
+              )}
+            </div>
+          </main>
+        </div>
       </Stack>
     </Sheet>
   );
