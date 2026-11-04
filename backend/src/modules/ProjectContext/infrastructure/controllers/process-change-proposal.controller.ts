@@ -951,7 +951,7 @@ export class ProcessChangeProposalController {
         latestSubmission?.actorUserId ?? proposal.authorUserId;
       if (lastSubmitterUserId === actorUserId && !isOrganizationAdmin) {
         throw new ForbiddenException(
-          'L’auteur de la dernière sottomission ne peut pas approuver ou refuser sa propre demande',
+          'L’auteur de la dernière soumission ne peut pas approuver ou refuser sa propre demande',
         );
       }
       if (proposal.status !== ProcessChangeProposalStatus.Submitted) {
