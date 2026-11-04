@@ -20,6 +20,9 @@ type SearchResult = {
   resourceId: string;
   elementId?: string;
   openRaci?: boolean;
+  processName?: string;
+  description?: string;
+  similarity?: number;
 };
 
 const BPMN_MODEL_NS = 'http://www.omg.org/spec/BPMN/20100524/MODEL';
@@ -46,8 +49,53 @@ const destinations = [
   },
 ];
 
+const normalizeSearch = (value: string) =>
+  value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase('fr').trim();
+
+const editDistance = (left: string, right: string) => {
+  const row = Array.from({ length: right.length + 1 }, (_, index) => index);
+  let previous = row;
+  for (let i = 1; i <= left.length; i += 1) {
+    const current = [i];
+    for (let j = 1; j <= right.length; j += 1) {
+      current[j] = Math.min(current[j - 1] + 1, previous[j] + 1,
+        previous[j - 1] + (left[i - 1] === right[j - 1] ? 0 : 1));
+    }
+    previous = current;
+  }
+  return previous[right.length];
+};
+
+const similarityFor = (value: string, query: string) => {
+  const normalizedValue = normalizeSearch(value);
+  const normalizedQuery = normalizeSearch(query);
+  if (!normalizedQuery) return 0;
+  if (normalizedValue.includes(normalizedQuery)) return 100;
+  const queryWords = normalizedQuery.split(/[^a-z0-9]+/).filter(Boolean);
+  const valueWords = normalizedValue.split(/[^a-z0-9]+/).filter(Boolean);
+  if (!queryWords.length || !valueWords.length) return 0;
+  const scores = queryWords.map(word => {
+    let best = 0;
+    valueWords.forEach(candidate => {
+      if (candidate === word) best = 100;
+      else if (candidate.includes(word)) best = Math.max(best, word.length / candidate.length * 100);
+      else {
+        const maxDistance = word.length >= 8 ? 2 : 1;
+        if (word.length >= 5 && Math.abs(candidate.length - word.length) <= maxDistance) {
+          const distance = editDistance(candidate, word);
+          if (distance <= maxDistance) best = Math.max(best, (1 - distance / Math.max(candidate.length, word.length)) * 100);
+        }
+      }
+    });
+    return best;
+  });
+  return scores.some(score => score === 0)
+    ? 0
+    : Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
+};
+
 const matchesTerm = (value: string, term: string) =>
-  value.toLocaleLowerCase('fr').includes(term);
+  normalizeSearch(value).includes(normalizeSearch(term));
 
 const resultKey = (result: SearchResult) => result.key;
 
@@ -173,6 +221,9 @@ export const WorkspaceNavigation = () => {
         title: resource.name,
         detail: `${resource.type === ResourceType.Folder ? 'Dossier du référentiel' : 'Processus BPMN'}${resource.description ? ` · ${resource.description}` : ''}`,
         resourceId: resource.id,
+        processName: resource.type === ResourceType.Process ? undefined : resource.name,
+        description: resource.description || undefined,
+        similarity: similarityFor(`${resource.name} ${resource.description ?? ''}`, search),
       }));
   }, [resources.data, search, scope]);
 
@@ -214,7 +265,15 @@ export const WorkspaceNavigation = () => {
             if (BPMN_CONNECTION_TYPES.has(element.localName.toLocaleLowerCase('fr'))) return false;
             const id = element.getAttribute('id') || '';
             const name = element.getAttribute('name')?.trim() || '';
-            return id && (matchesTerm(name, term) || matchesTerm(id, term));
+            const documentation = Array.from(element.children)
+              .filter(child => child.localName.toLocaleLowerCase('fr') === 'documentation')
+              .map(child => child.textContent?.trim() || '')
+              .filter(Boolean).join(' ');
+            const annotation = element.localName.toLocaleLowerCase('fr') === 'textannotation'
+              ? Array.from(element.children).find(child => child.localName.toLocaleLowerCase('fr') === 'text')?.textContent?.trim() || ''
+              : '';
+            return id && (matchesTerm(name, term) || matchesTerm(id, term) ||
+              matchesTerm(documentation, term) || matchesTerm(annotation, term));
           });
 
           if (scope === 'all' || scope === 'bpmn') {
@@ -233,11 +292,21 @@ export const WorkspaceNavigation = () => {
             } else {
               kind = `Élément BPMN · ${element.localName}`;
             }
+              const description = Array.from(element.children)
+                .filter(child => child.localName.toLocaleLowerCase('fr') === 'documentation')
+                .map(child => child.textContent?.trim() || '')
+                .filter(Boolean).join(' ') ||
+                (element.localName.toLocaleLowerCase('fr') === 'textannotation'
+                  ? Array.from(element.children).find(child => child.localName.toLocaleLowerCase('fr') === 'text')?.textContent?.trim() || ''
+                  : '');
               found.push({
                 key: `${process.id}:bpmn:${id}`,
                 title: name,
-                detail: `${kind} · ${process.name} · ${id}`,
+                detail: `${kind} · ${id}`,
                 resourceId: process.id,
+                processName: process.name,
+                description: description || undefined,
+                similarity: similarityFor(`${name} ${description} ${id}`, search),
                 elementId: element.localName === 'process' ? undefined : id,
               });
             });
@@ -331,6 +400,7 @@ export const WorkspaceNavigation = () => {
                 bpmnOwner = bpmnOwner.parentElement;
               }
               if (bpmnOwner && BPMN_CONNECTION_TYPES.has(bpmnOwner.localName.toLocaleLowerCase('fr'))) return;
+              if (bpmnOwner && bpmnOwner.getAttribute('id') && bpmnOwner.localName.toLocaleLowerCase('fr') !== 'textannotation') return;
               const elementId = bpmnOwner?.getAttribute('id') || undefined;
               found.push({
                 key: `${process.id}:ia-comm:${element.localName}:${elementId || index}:${title}`,
@@ -339,6 +409,8 @@ export const WorkspaceNavigation = () => {
                   ? `Description · ${process.name} · ${elementId || ''}`
                   : `IA comm. / annotation BPMN · ${process.name} · ${element.localName}`,
                 resourceId: process.id,
+                processName: process.name,
+                similarity: similarityFor(text, search),
                 elementId,
               });
             });
@@ -520,6 +592,9 @@ export const WorkspaceNavigation = () => {
                       key={result.key}
                       badge={resultBadge(result.detail)}
                       title={result.title}
+                      processName={result.processName}
+                      description={result.description}
+                      similarity={result.similarity}
                       detail={result.detail}
                       query={search}
                       onClick={() => openResult(result)}
