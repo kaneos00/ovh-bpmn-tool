@@ -45,6 +45,11 @@ const roleLabels: Record<Role, string> = {
   modeler: 'Modélisateur',
   viewer: 'Lecteur',
 };
+const roleColors: Record<Role, 'warning' | 'primary' | 'neutral'> = {
+  admin: 'warning',
+  modeler: 'primary',
+  viewer: 'neutral',
+};
 const userPath = (id: string) => `/auth/users/${encodeURIComponent(id)}`;
 
 async function call<T = any>(path: string, method = 'GET', body?: unknown): Promise<T> {
@@ -83,6 +88,8 @@ export const Component = () => {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
+  const [pendingRemoval, setPendingRemoval] = useState<Membership['projects'][number] | null>(null);
+  const [confirmImpersonation, setConfirmImpersonation] = useState(false);
 
   const refresh = async () => {
     const [session, accountRows, projectOverview] = await Promise.all([
@@ -234,7 +241,7 @@ export const Component = () => {
   };
 
   const removeProjectAccess = async (project: Membership['projects'][number]) => {
-    if (!selectedAccount || !window.confirm(`Retirer l’accès de ${selectedAccount.username} au projet « ${project.projectName} » ?`)) return;
+    if (!selectedAccount) return;
     await runAction(
       () => call(
         `/projects/administration/projects/${encodeURIComponent(project.projectId)}/members/${encodeURIComponent(selectedAccount.username)}`,
@@ -242,6 +249,7 @@ export const Component = () => {
       ),
       'Accès au projet retiré.',
     );
+    setPendingRemoval(null);
   };
 
   const resetUserPassword = async () => {
@@ -254,7 +262,7 @@ export const Component = () => {
 
   const impersonate = async () => {
     if (!selectedAccount || !selectedAccount.active || selectedAccount.username === me || busy) return;
-    if (!window.confirm(`Vous allez vous connecter en tant que « ${selectedAccount.username} ». Continuer ?`)) return;
+    setConfirmImpersonation(false);
     setBusy(true);
     setError('');
     try {
@@ -366,7 +374,7 @@ export const Component = () => {
                         return (
                           <tr key={account.id} aria-selected={isSelected}>
                             <td><Stack spacing={0.25}><Typography level="title-sm">{account.username}</Typography><Typography level="body-xs" sx={{ color: 'text.secondary' }}>{account.email || 'Aucune adresse e-mail'}{account.username === me ? ' · Votre compte' : ''}</Typography></Stack></td>
-                            <td><Chip size="sm" color={account.role === 'admin' ? 'warning' : account.role === 'modeler' ? 'primary' : 'neutral'} variant="soft">{roleLabels[account.role]}</Chip></td>
+                            <td><Chip size="sm" color={roleColors[account.role]} variant="soft">{roleLabels[account.role]}</Chip></td>
                             <td><Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">{(membership?.projects ?? []).slice(0, 2).map((project) => <Chip key={project.projectId} size="sm" variant="soft" color="neutral">{project.projectName}</Chip>)}{(membership?.projects.length ?? 0) > 2 && <Chip size="sm" variant="outlined">+{membership!.projects.length - 2}</Chip>}{!membership?.projects.length && <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Aucun projet</Typography>}</Stack></td>
                             <td><Chip size="sm" color={account.active ? 'success' : 'neutral'} variant="soft">{account.active ? 'Actif' : 'Désactivé'}</Chip></td>
                             <td><Button size="sm" variant={isSelected ? 'solid' : 'outlined'} onClick={() => { setSelectedId(isSelected ? null : account.id); setResetPassword(''); }}>{isSelected ? 'Fermer' : 'Ouvrir'}</Button></td>
@@ -385,10 +393,21 @@ export const Component = () => {
                   <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} gap={1}>
                     <Box><div className="org-admin-v2__eyebrow">Fiche utilisateur</div><Typography level="h2">{selectedAccount.username}</Typography><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Compte, sécurité et associations aux projets.</Typography></Box>
                     <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                      <Button color="warning" variant="soft" disabled={busy || !selectedAccount.active || selectedAccount.username === me} onClick={impersonate}>⇄ Se connecter en tant que…</Button>
+                      <Button color="warning" variant="soft" disabled={busy || !selectedAccount.active || selectedAccount.username === me} onClick={() => setConfirmImpersonation(true)}>⇄ Se connecter en tant que…</Button>
                       <Button disabled={busy} loading={busy} onClick={saveAccount}>Enregistrer les modifications</Button>
                     </Stack>
                   </Stack>
+                  {confirmImpersonation && (
+                    <Alert color="warning" variant="soft">
+                      <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" spacing={1}>
+                        <Typography level="body-sm">Vous allez vous connecter en tant que « {selectedAccount.username} ». Continuer ?</Typography>
+                        <Stack direction="row" spacing={1}>
+                          <Button size="sm" variant="plain" color="neutral" disabled={busy} onClick={() => setConfirmImpersonation(false)}>Annuler</Button>
+                          <Button size="sm" color="warning" loading={busy} disabled={busy} onClick={() => void impersonate()}>Confirmer</Button>
+                        </Stack>
+                      </Stack>
+                    </Alert>
+                  )}
 
                   <div className="org-users__detail-grid">
                     <div className="org-users__detail-main">
@@ -403,11 +422,22 @@ export const Component = () => {
 
                       <Box className="org-users__projects">
                         <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}><Typography level="title-lg">Associations aux projets</Typography><Chip size="sm" variant="soft">{selectedMembership?.projects.length ?? 0} projet(s)</Chip></Stack>
+                        {pendingRemoval && (
+                          <Alert color="warning" variant="soft">
+                            <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" spacing={1}>
+                              <Typography level="body-sm">Retirer l’accès de {selectedAccount.username} au projet « {pendingRemoval.projectName} » ?</Typography>
+                              <Stack direction="row" spacing={1}>
+                                <Button size="sm" variant="plain" color="neutral" disabled={busy} onClick={() => setPendingRemoval(null)}>Annuler</Button>
+                                <Button size="sm" color="danger" loading={busy} disabled={busy} onClick={() => void removeProjectAccess(pendingRemoval)}>Confirmer</Button>
+                              </Stack>
+                            </Stack>
+                          </Alert>
+                        )}
                         {(selectedMembership?.projects ?? []).map((project) => (
                           <Stack key={project.projectId} direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'center' }} spacing={1} className="org-users__project-row">
                             <Box sx={{ flex: 1, minWidth: 180 }}><Typography level="title-sm">{project.projectName}</Typography><Typography level="body-xs" sx={{ color: 'text.secondary' }}>Rôle limité à ce projet</Typography></Box>
                             <FormControl sx={{ minWidth: 170 }}><Select size="sm" value={project.role} disabled={busy} onChange={(_event, value) => value && void updateProjectAccess(project, value as ProjectRole)}><Option value="viewer">Viewer</Option><Option value="modeler">Modeler</Option><Option value="admin">Admin projet</Option></Select></FormControl>
-                            <Button size="sm" variant="outlined" color="danger" disabled={busy} onClick={() => void removeProjectAccess(project)}>Retirer l’accès</Button>
+                            <Button size="sm" variant="outlined" color="danger" disabled={busy} onClick={() => setPendingRemoval(project)}>Retirer l’accès</Button>
                           </Stack>
                         ))}
                         {(!selectedMembership || selectedMembership.projects.length === 0) && <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Aucune association à un projet.</Typography>}
