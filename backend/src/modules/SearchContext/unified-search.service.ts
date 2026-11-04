@@ -35,6 +35,7 @@ export type UnifiedSearchResult = {
   role?: ProjectRaciRole;
   source?: SearchResultSource;
   matchKind?: 'exact' | 'approximate';
+  matchScore?: number;
 };
 
 export type UnifiedSearchResponse = {
@@ -165,6 +166,39 @@ export function isSearchTextMatch(value: string, query: string): boolean {
       return editDistance(valueWord, queryWord) <= maxDistance;
     });
   });
+}
+
+/** Returns a conservative 0-100 score for the best token alignment. */
+export function getSearchSimilarity(value: string, query: string): number {
+  const normalizedValue = normalizeSearchText(value);
+  const normalizedQuery = normalizeSearchText(query);
+  if (!normalizedQuery) return 0;
+  if (normalizedValue.includes(normalizedQuery)) return 100;
+
+  const queryWords = normalizedQuery.split(/[^a-z0-9]+/).filter(Boolean);
+  const valueWords = normalizedValue.split(/[^a-z0-9]+/).filter(Boolean);
+  if (!queryWords.length || !valueWords.length) return 0;
+
+  const scores = queryWords.map((queryWord) => {
+    let best = 0;
+    for (const valueWord of valueWords) {
+      if (valueWord === queryWord) return 100;
+      if (valueWord.includes(queryWord)) {
+        best = Math.max(best, (queryWord.length / valueWord.length) * 100);
+        continue;
+      }
+      const maxDistance = queryWord.length >= 8 ? 2 : 1;
+      if (queryWord.length >= 5 && Math.abs(valueWord.length - queryWord.length) <= maxDistance) {
+        const distance = editDistance(valueWord, queryWord);
+        if (distance <= maxDistance) {
+          best = Math.max(best, (1 - distance / Math.max(valueWord.length, queryWord.length)) * 100);
+        }
+      }
+    }
+    return best;
+  });
+  if (scores.some((score) => score === 0)) return 0;
+  return Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
 }
 
 function collectText(value: unknown): string {
@@ -705,17 +739,16 @@ export class UnifiedSearchService {
       });
     }
     const uniqueResults = [...uniqueByKey.values()].map((result) => {
-      const searchableText = [
-        result.label,
-        result.excerpt,
-        result.description ?? '',
-        result.processName ?? '',
-      ].map(normalizeSearchText);
+      const matchScore = Math.max(
+        getSearchSimilarity(result.label, normalizedQuery),
+        getSearchSimilarity(result.excerpt, normalizedQuery),
+        getSearchSimilarity(result.description ?? '', normalizedQuery),
+        getSearchSimilarity(result.processName ?? '', normalizedQuery),
+      );
       return {
         ...result,
-        matchKind: [result.label, result.excerpt, result.description ?? '', result.processName ?? ''].some((value) => isExactSearchTextMatch(value, normalizedQuery))
-          ? 'exact' as const
-          : 'approximate' as const,
+        matchScore,
+        matchKind: matchScore === 100 ? 'exact' as const : 'approximate' as const,
       };
     });
     const typeOrder: Record<SearchResultType, number> = {
@@ -726,8 +759,7 @@ export class UnifiedSearchService {
     };
     uniqueResults.sort(
       (left, right) =>
-        (left.matchKind === 'approximate' ? 1 : 0) -
-          (right.matchKind === 'approximate' ? 1 : 0) ||
+        (right.matchScore ?? 0) - (left.matchScore ?? 0) ||
         typeOrder[left.type] - typeOrder[right.type] ||
         left.label.localeCompare(right.label, 'fr'),
     );
