@@ -940,6 +940,14 @@ export class ProcessChangeProposalController {
         lock: { mode: 'pessimistic_write' },
       });
       if (!proposal) throw new NotFoundException('Demande introuvable');
+      if (
+        proposal.authorUserId === actorUserId &&
+        !isOrganizationAdmin
+      ) {
+        throw new ForbiddenException(
+          'L’auteur ne peut pas approuver ou refuser sa propre demande',
+        );
+      }
       if (proposal.status !== ProcessChangeProposalStatus.Submitted) {
         throw new ConflictException(
           'Seule une demande soumise peut faire l’objet d’une décision',
@@ -1445,6 +1453,11 @@ export class ProcessChangeProposalController {
         lock: { mode: 'pessimistic_write' },
       });
       if (!current) throw new NotFoundException('Remarque introuvable');
+      if (current.authorUserId === actorUserId && !isOrganizationAdmin) {
+        throw new ForbiddenException(
+          'L’auteur ne peut pas décider de sa propre remarque',
+        );
+      }
       if (current.status !== ProcessChangeProposalCommentStatus.Pending) {
         throw new ConflictException(
           'Cette remarque a déjà fait l’objet d’une décision',
