@@ -258,6 +258,7 @@ export const Component = () => {
         onRolesOpen={() => setRaciView('actors')}
         onCompareWithSource={onCompareWithSource}
         proposalMode={proposalMode}
+        reviewOnly={reviewRemarksMode && !approvedProposalMode}
         approvedProposalMode={approvedProposalMode}
         onPublishApprovedProposal={publishApprovedProposal}
         publishApprovedDisabled={!isModelerReady || publishingApprovedProposal || !proposalId || !publicationSummaryComment.trim()}
@@ -283,6 +284,11 @@ export const Component = () => {
       {proposalId && (reviewRemarksMode || proposalRemarks.length > 0) && (
         <Sheet variant="outlined" sx={{ mx: 2, my: 1.5, p: 2, borderRadius: 'md' }}>
           <Stack spacing={1.5}>
+            {reviewRemarksMode && (
+              <Alert color="info" variant="soft">
+                Mode revue : le diagramme soumis est consulté sans modification directe. Si une correction BPMN est nécessaire, utilisez la décision de demande de corrections pour laisser l’auteur reprendre le brouillon dans le circuit existant.
+              </Alert>
+            )}
             <Stack direction="row" justifyContent="space-between" alignItems="center">
               <Typography level="title-md">Remarques à traiter ({proposalRemarks.filter(remark => remark.status === 'pending').length} en attente)</Typography>
               <Typography level="body-xs" textColor="neutral">Les décisions sont historisées séparément du BPMN.</Typography>
