@@ -34,6 +34,7 @@ export type UnifiedSearchResult = {
   projectId?: string;
   role?: ProjectRaciRole;
   source?: SearchResultSource;
+  matchKind?: 'exact' | 'approximate';
 };
 
 export type UnifiedSearchResponse = {
@@ -111,6 +112,48 @@ export function normalizeSearchText(value: string): string {
     .toLocaleLowerCase('fr')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function editDistance(left: string, right: string): number {
+  if (Math.abs(left.length - right.length) > 2) return 3;
+  let previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+  for (let i = 1; i <= left.length; i += 1) {
+    const current = [i];
+    for (let j = 1; j <= right.length; j += 1) {
+      current[j] = Math.min(
+        current[j - 1] + 1,
+        previous[j] + 1,
+        previous[j - 1] + (left[i - 1] === right[j - 1] ? 0 : 1),
+      );
+    }
+    previous = current;
+  }
+  return previous[right.length];
+}
+
+/** Conservative typo matching used only by the deep-search API. */
+export function isSearchTextMatch(value: string, query: string): boolean {
+  const normalizedValue = normalizeSearchText(value);
+  const normalizedQuery = normalizeSearchText(query);
+  if (!normalizedQuery) return false;
+  if (normalizedValue.includes(normalizedQuery)) return true;
+
+  const queryWords = normalizedQuery.split(' ').filter(Boolean);
+  const valueWords = normalizedValue.split(/[^a-z0-9]+/).filter(Boolean);
+  if (!queryWords.length || queryWords.some((word) => word.length < 5)) {
+    return false;
+  }
+
+  return queryWords.every((queryWord) => {
+    const maxDistance = queryWord.length >= 8 ? 2 : 1;
+    return valueWords.some((valueWord) => {
+      if (valueWord.includes(queryWord)) return true;
+      if (Math.abs(valueWord.length - queryWord.length) > maxDistance) {
+        return false;
+      }
+      return editDistance(valueWord, queryWord) <= maxDistance;
+    });
+  });
 }
 
 function collectText(value: unknown): string {
@@ -240,7 +283,7 @@ export function extractBpmnSearchResults(
     if (
       !includes('actor') ||
       !name ||
-      !normalizeSearchText(name).includes(normalizedQuery)
+      !isSearchTextMatch(name, normalizedQuery)
     )
       return;
     results.push({
@@ -287,7 +330,7 @@ export function extractBpmnSearchResults(
       const match = searchableFields.find(
         ({ value: fieldValue }) =>
           fieldValue &&
-          normalizeSearchText(fieldValue).includes(normalizedQuery),
+          isSearchTextMatch(fieldValue, normalizedQuery),
       );
       if (label && match) {
         results.push({
@@ -353,7 +396,7 @@ export function extractBpmnSearchResults(
             { value: roleLabel, field: 'responsabilità' },
             { value: role, field: 'responsabilità' },
           ].find(({ value }) =>
-            normalizeSearchText(value).includes(normalizedQuery),
+            isSearchTextMatch(value, normalizedQuery),
           );
           if (match) {
             results.push({
@@ -613,7 +656,7 @@ export class UnifiedSearchService {
           where: { projectId: In(actorProjectIds), active: true },
         });
         for (const actor of actors) {
-          if (!normalizeSearchText(actor.name).includes(normalizedQuery))
+          if (!isSearchTextMatch(actor.name, normalizedQuery))
             continue;
           results.push({
             type: 'actor',
@@ -650,7 +693,20 @@ export class UnifiedSearchService {
           : {}),
       });
     }
-    const uniqueResults = [...uniqueByKey.values()];
+    const uniqueResults = [...uniqueByKey.values()].map((result) => {
+      const searchableText = [
+        result.label,
+        result.excerpt,
+        result.description ?? '',
+        result.processName ?? '',
+      ].map(normalizeSearchText);
+      return {
+        ...result,
+        matchKind: searchableText.some((value) => value.includes(normalizedQuery))
+          ? 'exact' as const
+          : 'approximate' as const,
+      };
+    });
     const typeOrder: Record<SearchResultType, number> = {
       process: 0,
       bpmn: 1,
@@ -659,6 +715,8 @@ export class UnifiedSearchService {
     };
     uniqueResults.sort(
       (left, right) =>
+        (left.matchKind === 'approximate' ? 1 : 0) -
+          (right.matchKind === 'approximate' ? 1 : 0) ||
         typeOrder[left.type] - typeOrder[right.type] ||
         left.label.localeCompare(right.label, 'fr'),
     );
