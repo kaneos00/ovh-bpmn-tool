@@ -41,6 +41,10 @@ type ModelerActionBarProps = {
   onRolesOpen: () => void;
   onCompareWithSource?: () => void;
   proposalMode?: boolean;
+  approvedProposalMode?: boolean;
+  onPublishApprovedProposal?: () => void;
+  publishApprovedDisabled?: boolean;
+  publishApprovedLoading?: boolean;
 };
 
 export const ModelerActionBar = ({
@@ -58,6 +62,10 @@ export const ModelerActionBar = ({
   onRolesOpen,
   onCompareWithSource,
   proposalMode = false,
+  approvedProposalMode = false,
+  onPublishApprovedProposal,
+  publishApprovedDisabled = false,
+  publishApprovedLoading = false,
 }: ModelerActionBarProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -164,13 +172,15 @@ export const ModelerActionBar = ({
         )}
 
         <Button
-          onClick={onDiagramPublish}
+          onClick={approvedProposalMode ? onPublishApprovedProposal : onDiagramPublish}
+          disabled={approvedProposalMode && publishApprovedDisabled}
+          loading={approvedProposalMode && publishApprovedLoading}
           variant="outlined"
           // disabled={hasLintError}
           color="success"
           endDecorator={<Done fontSize="small" />}
         >
-          {proposalMode ? 'Demander en validation' : 'Publish'}
+          {approvedProposalMode ? 'Publier la version approuvée' : proposalMode ? 'Demander en validation' : 'Publish'}
         </Button>
         <UserAccountMenu dark={false} />
       </Stack>
