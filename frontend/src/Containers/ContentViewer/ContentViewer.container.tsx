@@ -85,6 +85,7 @@ const ProcessContentViewer = () => {
   const [remarkModalOpen, setRemarkModalOpen] = useState(false);
   const [remarkText, setRemarkText] = useState('');
   const [remarkError, setRemarkError] = useState<string | null>(null);
+  const [remarkWarning, setRemarkWarning] = useState<string | null>(null);
   const [submittingRemark, setSubmittingRemark] = useState(false);
   const {
     selectedElementId: selectedActivityId,
@@ -179,7 +180,7 @@ const ProcessContentViewer = () => {
         ),
       )[0];
       const pilotIdentifier = processMetadata?.getAttribute('pilot')?.trim() || undefined;
-      await apiClient.post(
+      const submissionResult = await apiClient.post(
         `/projects/${associatedProject.id}/processes/${resourceId}/change-proposals`,
         {
           elementId: selectedActivityId,
@@ -187,6 +188,7 @@ const ProcessContentViewer = () => {
           validatorUserId: pilotIdentifier,
         },
       );
+      setRemarkWarning(submissionResult?.validatorWarning ?? null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['active-process-change-proposal', associatedProject.id, resourceId] }),
         queryClient.invalidateQueries({ queryKey: ['process-change-proposals-to-review'] }),
@@ -331,6 +333,11 @@ const ProcessContentViewer = () => {
         {proposalError && (
           <Alert color="danger" variant="soft" sx={{ mx: 2, mt: 1 }}>
             {proposalError}
+          </Alert>
+        )}
+        {remarkWarning && (
+          <Alert color="warning" variant="soft" sx={{ mx: 2, mt: 1 }}>
+            {remarkWarning}
           </Alert>
         )}
         <ProcessViewer
