@@ -404,6 +404,7 @@ export const Component = () => {
               })).map((result) => {
                 const badge = getResultBadge(result);
                 const detail = [
+                  result.matchKind === 'approximate' ? 'Correspondance approchée' : undefined,
                   result.processName,
                   `${FIELD_LABELS[result.field] ?? result.field} : ${result.excerpt}`,
                   result.elementId,
