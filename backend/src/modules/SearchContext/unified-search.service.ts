@@ -26,6 +26,7 @@ export type UnifiedSearchResult = {
   id: string;
   label: string;
   excerpt: string;
+  description?: string;
   field: string;
   resourceId?: string;
   processName?: string;
@@ -283,6 +284,7 @@ export function extractBpmnSearchResults(
           id: elementId ?? `${resourceId}:${key}:${results.length}`,
           label: `${typeLabel ?? 'Élément BPMN'}: ${label}`,
           excerpt: match.value.slice(0, 240),
+          description: documentation || annotationText || undefined,
           field: match.field,
           resourceId,
           processName,
@@ -620,8 +622,22 @@ export class UnifiedSearchService {
       : results;
     const uniqueByKey = new Map<string, UnifiedSearchResult>();
     for (const result of sourceFilteredResults) {
-      const key = `${result.type}:${result.resourceId ?? ''}:${result.projectId ?? ''}:${result.id}`;
-      uniqueByKey.set(key, result);
+      const key =
+        result.type === 'bpmn' && result.resourceId && result.elementId
+          ? `bpmn:${result.resourceId}:${result.elementId}`
+          : `${result.type}:${result.resourceId ?? ''}:${result.projectId ?? ''}:${result.id}`;
+      const previous = uniqueByKey.get(key);
+      if (!previous) {
+        uniqueByKey.set(key, result);
+        continue;
+      }
+      uniqueByKey.set(key, {
+        ...previous,
+        description: previous.description || result.description,
+        ...(previous.field !== 'descrizione' && result.field === 'descrizione'
+          ? { excerpt: result.excerpt, field: result.field }
+          : {}),
+      });
     }
     const uniqueResults = [...uniqueByKey.values()];
     const typeOrder: Record<SearchResultType, number> = {
