@@ -1,6 +1,7 @@
 import { ProjectRaciRole } from '../ProjectContext/infrastructure/entities/projectRaciEntry.ormEntity';
 import {
   extractBpmnSearchResults,
+  isExactSearchTextMatch,
   isSearchTextMatch,
   normalizeSearchText,
 } from './unified-search.service';
@@ -20,6 +21,7 @@ describe('unified search normalization', () => {
     expect(isSearchTextMatch('Validation des factures', 'valdiation')).toBe(true);
     expect(isSearchTextMatch('Validation des factures', 'livraison')).toBe(false);
     expect(isSearchTextMatch('Gestion des commandes', 'gestion comandes')).toBe(true);
+    expect(isExactSearchTextMatch('Supplier invoice validation', 'invoice supplier')).toBe(true);
   });
 });
 
