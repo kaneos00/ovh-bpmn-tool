@@ -142,6 +142,22 @@ describe('BPMN search extraction', () => {
     ).toEqual([]);
   });
 
+  it('does not expose an unnamed activity technical ID through inferred RACI search', () => {
+    const unnamedTaskXml = `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL">
+      <process id="Process_Order" name="Order">
+        <userTask id="Task_Secret" responsible="Finance" />
+      </process></definitions>`;
+    expect(
+      extractBpmnSearchResults(
+        unnamedTaskXml,
+        'resource-1',
+        'Order',
+        'Task_Secret',
+        ['raci'],
+      ),
+    ).toEqual([]);
+  });
+
   it('indexes BPMN actors and explicit RACI assignments with type filters', () => {
     const raci = extractBpmnSearchResults(
       xml,
