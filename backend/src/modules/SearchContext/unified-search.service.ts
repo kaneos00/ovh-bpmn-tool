@@ -385,7 +385,6 @@ export function extractBpmnSearchResults(
         { value: name, field: 'nome' },
         { value: documentation, field: 'descrizione' },
         { value: annotationText, field: 'testo annotazione' },
-        { value: elementId ?? '', field: 'identificativo' },
       ];
       const match = searchableFields.find(
         ({ value: fieldValue }) =>
@@ -566,7 +565,6 @@ export class UnifiedSearchService {
         const fields = [
           { value: resource.name, field: 'nome' },
           { value: resource.description ?? '', field: 'descrizione' },
-          { value: resource.id, field: 'identificativo' },
         ];
         const match = fields.find(({ value }) =>
           isSearchTextMatch(value, normalizedQuery),
@@ -684,7 +682,6 @@ export class UnifiedSearchService {
               { value: entry.taskName, field: 'attività' },
               { value: entry.actorName, field: 'attore' },
               { value: roleLabel, field: 'responsabilità' },
-              { value: entry.taskId, field: 'identificativo attività' },
             ];
             const match = values.find(({ value }) =>
               normalizeSearchText(value).includes(normalizedQuery),
