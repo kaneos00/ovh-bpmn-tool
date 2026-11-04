@@ -236,8 +236,8 @@ export const ProcessDetails = ({
   // Common-library processes are intentionally read-only through generic resource endpoints.
   // Keep proposal creation available, but never expose direct editing controls for them.
   const isCommonProcess = Boolean(resourceShares?.common);
-  const canEditDescription = !isHistoricalView && !isCommonProcess && (sessionRole === 'admin' || sessionRole === 'modeler');
-  const canManageVersions = !isHistoricalView && !isCommonProcess && (sessionRole === 'admin' || sessionRole === 'modeler');
+  const canEditDescription = Boolean(resourceShares) && !isHistoricalView && !isCommonProcess && (sessionRole === 'admin' || sessionRole === 'modeler');
+  const canManageVersions = Boolean(resourceShares) && !isHistoricalView && !isCommonProcess && (sessionRole === 'admin' || sessionRole === 'modeler');
 
   const navigate = useNavigate();
 
