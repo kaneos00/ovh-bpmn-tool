@@ -45,6 +45,14 @@ test('viewer selection recognizes collapsed SubProcesses through their BPMN busi
   assert.match(hook, /onElementSelectRef\.current\?\.\(element\.id\)/);
 });
 
+test('BPMN connecting arrows are not selectable in the Viewer', async () => {
+  const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+
+  assert.match(hook, /const isConnection = Array\.isArray\(element\.waypoints\)/);
+  assert.match(hook, /sequenceFlow\|messageFlow\|association\|dataInputAssociation\|dataOutputAssociation/);
+  assert.match(hook, /if \(isConnection\) \{[\s\S]*?event\?\.stopPropagation\?\.\(\);[\s\S]*?selection\?\.deselect\?\.\(\[element\]\);[\s\S]*?return;/);
+});
+
 test('selection marker is removed before the next selection is applied', async () => {
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
 
