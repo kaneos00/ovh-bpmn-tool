@@ -396,8 +396,8 @@ export const Component = () => {
                       <div className="org-users__form-grid">
                         <FormControl><FormLabel>Identifiant de connexion</FormLabel><Input value={selectedDraft.username} onChange={(event) => updateDraft('username', event.target.value)} /></FormControl>
                         <FormControl><FormLabel>Adresse e-mail</FormLabel><Input type="email" value={selectedDraft.email} onChange={(event) => updateDraft('email', event.target.value)} /></FormControl>
-                        <FormControl><FormLabel>Rôle global</FormLabel><Select value={selectedDraft.role} onChange={(_event, value) => value && updateDraft('role', value as Role)}><Option value="viewer">Lecteur</Option><Option value="modeler">Modélisateur</Option><Option value="admin">Administrateur</Option></Select></FormControl>
-                        <FormControl><FormLabel>État du compte</FormLabel><Select value={selectedDraft.active ? 'active' : 'inactive'} onChange={(_event, value) => value && updateDraft('active', value === 'active')}><Option value="active">Actif</Option><Option value="inactive">Désactivé</Option></Select></FormControl>
+                        <FormControl><FormLabel>Rôle global</FormLabel><Select value={selectedDraft.role} disabled={selectedAccount.username === me && selectedAccount.role === 'admin'} onChange={(_event, value) => value && updateDraft('role', value as Role)}><Option value="viewer">Lecteur</Option><Option value="modeler">Modélisateur</Option><Option value="admin">Administrateur</Option></Select></FormControl>
+                        <FormControl><FormLabel>État du compte</FormLabel><Select value={selectedDraft.active ? 'active' : 'inactive'} disabled={selectedAccount.username === me} onChange={(_event, value) => value && updateDraft('active', value === 'active')}><Option value="active">Actif</Option><Option value="inactive">Désactivé</Option></Select></FormControl>
                       </div>
                       <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Les protections du dernier administrateur et les contrôles de sécurité restent appliqués par l’API existante.</Typography>
 
@@ -414,7 +414,7 @@ export const Component = () => {
                         <Divider />
                         <Typography level="title-sm">Ajouter un accès projet</Typography>
                         <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ md: 'flex-end' }}>
-                          <FormControl sx={{ flex: 1 }}><FormLabel>Projet</FormLabel><Select value={projectId || null} placeholder="Choisir un projet" onChange={(_event, value) => setProjectId(value ?? '')}><Option value="">Choisir un projet</Option>{overview.projects.filter((project) => !(selectedMembership?.projects ?? []).some((membership) => membership.projectId === project.id)).map((project) => <Option key={project.id} value={project.id}>{project.name}</Option>)}</Select></FormControl>
+                          <FormControl sx={{ flex: 1 }}><FormLabel>Projet</FormLabel><Select value={projectId || null} placeholder="Choisir un projet" onChange={(_event, value) => setProjectId(value ?? '')}>{overview.projects.filter((project) => !(selectedMembership?.projects ?? []).some((membership) => membership.projectId === project.id)).map((project) => <Option key={project.id} value={project.id}>{project.name}</Option>)}</Select></FormControl>
                           <FormControl sx={{ minWidth: 170 }}><FormLabel>Rôle projet</FormLabel><Select value={projectRole} onChange={(_event, value) => value && setProjectRole(value as ProjectRole)}><Option value="viewer">Viewer</Option><Option value="modeler">Modeler</Option><Option value="admin">Admin projet</Option></Select></FormControl>
                           <Button disabled={!projectId || busy} loading={busy} onClick={() => void addProjectAccess()}>Ajouter l’accès</Button>
                         </Stack>
