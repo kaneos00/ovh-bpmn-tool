@@ -143,7 +143,7 @@ const ProcessContentViewer = () => {
   const { data: activeProposal } = useQuery<{ id: string; status: string; cloneResourceId: string } | null>(
     ['active-process-change-proposal', associatedProject?.id, resourceId],
     () => apiClient.get(
-      `/projects/${associatedProject!.id}/processes/${resourceId}/change-proposals/active`,
+      `/projects/${associatedProject!.id}/processes/${resourceId}/change-proposals/active?contentId=${contentId}`,
     ),
     { enabled: Boolean(associatedProject?.id) },
   );
@@ -294,13 +294,13 @@ const ProcessContentViewer = () => {
                   size="sm"
                   variant="soft"
                   color="warning"
-                  disabled={!selectedActivityId}
+                  disabled={!selectedActivityId || contentId !== lastPublishedContent?.id}
                   onClick={() => {
                     setRemarkError(null);
                     setRemarkModalOpen(true);
                   }}
                 >
-                  Ajouter une remarque
+                  {contentId !== lastPublishedContent?.id ? 'Remarques sur la dernière version uniquement' : 'Ajouter une remarque'}
                 </Button>
               )}
               {proposalProject && (
@@ -410,11 +410,11 @@ const ProcessContentViewer = () => {
         <Tabs value={infoTab} onChange={(_, value) => setInfoTab(value as 0 | 1 | 2)} className="viewerTabs">
           <TabList sticky="top" variant="plain">
             <Tab value={0}>Historique des versions</Tab>
-            <Tab value={2}>Remarques ({proposalRemarks.length})</Tab>
             <Tab value={1} sx={{ flexDirection: 'row', gap: 0.75, alignItems: 'center' }}>
               <GroupsOutlined fontSize="small" />
               <span>RACI ({raciMatrix.activities.length})</span>
             </Tab>
+            <Tab value={2}>Remarques ({proposalRemarks.length})</Tab>
           </TabList>
 
           <TabPanel value={0} className="viewerTabPanel">
