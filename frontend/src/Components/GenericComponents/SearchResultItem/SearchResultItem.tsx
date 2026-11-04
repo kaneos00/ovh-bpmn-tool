@@ -61,14 +61,19 @@ const highlightText = (value: string, query: string): React.ReactNode => {
   }
 
   const queryWords = term.split(/[^a-z0-9]+/).filter(Boolean);
-  const valueWords = [...searchable.matchAll(/[a-z0-9]+/g)];
+  const valueWords: Array<{ token: string; index: number }> = [];
+  const wordPattern = /[a-z0-9]+/g;
+  let wordMatch: RegExpExecArray | null;
+  while ((wordMatch = wordPattern.exec(searchable)) !== null) {
+    valueWords.push({ token: wordMatch[0], index: wordMatch.index });
+  }
   const ranges: Array<{ start: number; end: number }> = [];
 
   for (const queryWord of queryWords) {
     let best: { start: number; end: number; distance: number; exact: boolean } | undefined;
     for (const token of valueWords) {
-      const candidate = token[0];
-      const tokenStart = token.index ?? 0;
+      const candidate = token.token;
+      const tokenStart = token.index;
       const tokenEnd = tokenStart + candidate.length;
       const substringIndex = candidate.indexOf(queryWord);
       if (substringIndex !== -1) {
@@ -82,12 +87,13 @@ const highlightText = (value: string, query: string): React.ReactNode => {
         continue;
       }
 
-      if (queryWord.length < 5) continue;
-      const maxDistance = queryWord.length >= 8 ? 2 : 1;
-      if (Math.abs(candidate.length - queryWord.length) > maxDistance) continue;
-      const distance = editDistance(candidate, queryWord);
-      if (distance <= maxDistance && (!best || (!best.exact && distance < best.distance))) {
-        best = { start: tokenStart, end: tokenEnd, distance, exact: false };
+      if (queryWord.length >= 5) {
+        const maxDistance = queryWord.length >= 8 ? 2 : 1;
+        if (Math.abs(candidate.length - queryWord.length) > maxDistance) continue;
+        const distance = editDistance(candidate, queryWord);
+        if (distance <= maxDistance && (!best || (!best.exact && distance < best.distance))) {
+          best = { start: tokenStart, end: tokenEnd, distance, exact: false };
+        }
       }
     }
 
