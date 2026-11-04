@@ -236,6 +236,8 @@ export const ProcessDetails = ({
   const canEditDescription = !isHistoricalView && (sessionRole === 'admin' || sessionRole === 'modeler');
   const canManageVersions = !isHistoricalView && (sessionRole === 'admin' || sessionRole === 'modeler');
 
+  const navigate = useNavigate();
+
   const startChangeProposal = async () => {
     if (!pilotProjectId || startingProposal || isHistoricalView) return;
     setStartingProposal(true);
@@ -307,7 +309,6 @@ export const ProcessDetails = ({
     [raciMatrix],
   );
 
-  const navigate = useNavigate();
   const [explorerCollapsed, setExplorerCollapsed] = useState(false);
   const [taskPanelCollapsed, setTaskPanelCollapsed] = useState(true);
   const [explorerWidth, setExplorerWidth] = useState(() => {
