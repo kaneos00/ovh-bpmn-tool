@@ -399,7 +399,7 @@ export const Component = () => {
                   if (sortBy === 'process') return item.processName || '';
                   return item.label;
                 };
-                const quality = (a.matchKind === 'approximate' ? 1 : 0) - (b.matchKind === 'approximate' ? 1 : 0);
+                const quality = (b.matchScore ?? 0) - (a.matchScore ?? 0);
                 if (quality !== 0) return quality;
                 if (sortBy === 'relevance') return 0;
                 return get(a).localeCompare(get(b), 'fr') * (sortDirection === 'asc' ? 1 : -1);
@@ -416,6 +416,8 @@ export const Component = () => {
                     key={`${result.type}:${result.source}:${result.resourceId}:${result.projectId}:${result.id}`}
                     badge={badge}
                     title={getResultTitle(result)}
+                    processName={result.processName}
+                    similarity={result.matchScore}
                     description={result.description ? <><strong>Description :</strong> {result.description}</> : undefined}
                     detail={detail}
                     query={query}
