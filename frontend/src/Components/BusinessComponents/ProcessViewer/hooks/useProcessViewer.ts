@@ -77,11 +77,11 @@ export const useProcessViewer = (
         lineHeight: '15px',
         cursor: 'pointer',
       });
-      const overlay = overlays.add(elementId, 'contextual-remarks', {
+      const overlayId = overlays.add(elementId, 'contextual-remarks', {
         position: { top: -9, right: -9 },
         html: badge,
       });
-      if (overlay?.id !== undefined) remarkOverlayIdsRef.current.push(overlay.id);
+      if (overlayId !== undefined && overlayId !== null) remarkOverlayIdsRef.current.push(overlayId);
     });
   };
   const applyRemarkOverlaysRef = useRef(applyRemarkOverlays);
