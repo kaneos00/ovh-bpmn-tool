@@ -90,6 +90,25 @@ describe('BPMN search extraction', () => {
     });
   });
 
+  it('finds BPMN activities through a typo without accepting short fuzzy terms', () => {
+    const typoResults = extractBpmnSearchResults(
+      xml,
+      'resource-1',
+      'Order',
+      'invoce',
+      ['bpmn'],
+    );
+    expect(typoResults).toHaveLength(1);
+    expect(typoResults[0]).toMatchObject({
+      elementId: 'Task_Approve',
+      field: 'nome',
+    });
+
+    expect(
+      extractBpmnSearchResults(xml, 'resource-1', 'Order', 'invoc', ['bpmn']),
+    ).toEqual([]);
+  });
+
   it('indexes BPMN actors and explicit RACI assignments with type filters', () => {
     const raci = extractBpmnSearchResults(
       xml,
