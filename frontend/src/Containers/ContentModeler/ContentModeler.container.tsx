@@ -52,40 +52,6 @@ export const Component = () => {
 
   useCallActivityNavigation(bpmnModelerInstance);
 
-  useEffect(() => {
-    if (!isModelerReady) return undefined;
-    const eventBus = bpmnModelerInstance.get('eventBus') as any;
-    const selection = bpmnModelerInstance.get('selection') as any;
-    const syncSelectedElement = () => {
-      const selected = selection?.get?.() ?? [];
-      setSelectedModelerElementId(selected[0]?.id ?? null);
-    };
-    eventBus.on('selection.changed', syncSelectedElement);
-    syncSelectedElement();
-    return () => eventBus.off('selection.changed', syncSelectedElement);
-  }, [bpmnModelerInstance, isModelerReady]);
-
-  const addRemarkFromModeler = async () => {
-    if (!proposalId || !selectedModelerElementId || !newRemarkText.trim() || submittingNewRemark) return;
-    setSubmittingNewRemark(true);
-    setRemarkDecisionError(null);
-    try {
-      await apiClient.post(
-        `/projects/process-change-proposals/${proposalId}/comments`,
-        { elementId: selectedModelerElementId, comment: newRemarkText.trim() },
-      );
-      setNewRemarkText('');
-      await Promise.all([
-        refetchProposalRemarks(),
-        queryClient.invalidateQueries({ queryKey: ['process-change-proposal-comments', proposalId] }),
-        queryClient.invalidateQueries({ queryKey: ['process-change-proposals-to-review'] }),
-      ]);
-    } catch (error) {
-      setRemarkDecisionError(error instanceof Error ? error.message : 'Impossible d’ajouter la remarque.');
-    } finally {
-      setSubmittingNewRemark(false);
-    }
-  };
 
 
 
@@ -169,6 +135,41 @@ export const Component = () => {
   };
 
   const { diagramContainerRef, diagramPropertiesRef, hasLintError, isDirty, canUndo, canRedo, undo, redo, markSaved, isModelerReady } = useModeler(bpmnModelerInstance, draftXmlContent);
+  useEffect(() => {
+    if (!isModelerReady) return undefined;
+    const eventBus = bpmnModelerInstance.get('eventBus') as any;
+    const selection = bpmnModelerInstance.get('selection') as any;
+    const syncSelectedElement = () => {
+      const selected = selection?.get?.() ?? [];
+      setSelectedModelerElementId(selected[0]?.id ?? null);
+    };
+    eventBus.on('selection.changed', syncSelectedElement);
+    syncSelectedElement();
+    return () => eventBus.off('selection.changed', syncSelectedElement);
+  }, [bpmnModelerInstance, isModelerReady]);
+
+  const addRemarkFromModeler = async () => {
+    if (!proposalId || !selectedModelerElementId || !newRemarkText.trim() || submittingNewRemark) return;
+    setSubmittingNewRemark(true);
+    setRemarkDecisionError(null);
+    try {
+      await apiClient.post(
+        `/projects/process-change-proposals/${proposalId}/comments`,
+        { elementId: selectedModelerElementId, comment: newRemarkText.trim() },
+      );
+      setNewRemarkText('');
+      await Promise.all([
+        refetchProposalRemarks(),
+        queryClient.invalidateQueries({ queryKey: ['process-change-proposal-comments', proposalId] }),
+        queryClient.invalidateQueries({ queryKey: ['process-change-proposals-to-review'] }),
+      ]);
+    } catch (error) {
+      setRemarkDecisionError(error instanceof Error ? error.message : 'Impossible d’ajouter la remarque.');
+    } finally {
+      setSubmittingNewRemark(false);
+    }
+  };
+
   const blocker = useBlocker(({ nextLocation }) => isDirty && nextLocation.pathname === `/${resourceId}`);
   const publishApprovedProposal = async () => {
     if (!proposalId || !approvedProposalMode || publishingApprovedProposal) return;
