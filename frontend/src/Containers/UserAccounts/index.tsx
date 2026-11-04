@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Alert,
   Box,
   Button,
   Card,
   Chip,
+  Divider,
   FormControl,
   FormLabel,
   Input,
@@ -66,6 +68,7 @@ async function call<T = any>(path: string, method = 'GET', body?: unknown): Prom
 }
 
 export const Component = () => {
+  const navigate = useNavigate();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [overview, setOverview] = useState<AdministrationOverview>({ projects: [], users: [] });
   const [me, setMe] = useState('');
@@ -167,7 +170,7 @@ export const Component = () => {
     : null;
   const activeCount = accounts.filter((account) => account.active).length;
 
-  const updateDraft = (field: keyof AccountDraft, value: string | boolean) => {
+  const updateDraft = <K extends keyof AccountDraft>(field: K, value: AccountDraft[K]) => {
     if (!selectedAccount || !selectedDraft) return;
     setDrafts((current) => ({
       ...current,
@@ -294,7 +297,7 @@ export const Component = () => {
                     key={key}
                     className={`org-admin-v2__nav-item${key === 'users' ? ' is-active' : ''}`}
                     aria-current={key === 'users' ? 'page' : undefined}
-                    onClick={() => window.location.assign(`/organization/${key}`)}
+                    onClick={() => navigate(`/organization/${key}`)}
                   >
                     <span className="org-admin-v2__nav-icon" aria-hidden="true">{icon}</span>
                     <span>{label}</span>
