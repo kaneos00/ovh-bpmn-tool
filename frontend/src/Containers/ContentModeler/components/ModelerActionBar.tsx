@@ -68,6 +68,9 @@ export const ModelerActionBar = ({
   publishApprovedLoading = false,
 }: ModelerActionBarProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  let publishButtonLabel = 'Publish';
+  if (proposalMode) publishButtonLabel = 'Demander en validation';
+  if (approvedProposalMode) publishButtonLabel = 'Publier la version approuvée';
 
   return (
     <ActionBar>
@@ -180,7 +183,7 @@ export const ModelerActionBar = ({
           color="success"
           endDecorator={<Done fontSize="small" />}
         >
-          {approvedProposalMode ? 'Publier la version approuvée' : proposalMode ? 'Demander en validation' : 'Publish'}
+          {publishButtonLabel}
         </Button>
         <UserAccountMenu dark={false} />
       </Stack>
