@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, useBlocker, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useQuery } from 'react-query';
 
 import { ModelerActionBar } from './components/ModelerActionBar';
-import { Alert, Button, Modal, ModalDialog, DialogTitle, DialogContent, DialogActions, Textarea } from '@mui/joy';
+import { Alert, Button, Modal, ModalDialog, DialogTitle, DialogContent, DialogActions, Textarea, Sheet, Stack, Typography } from '@mui/joy';
 import { ModelerShortcuts } from '../../Components/BusinessComponents/ModelerShortcuts/ModelerShortcuts';
 import { useContentModeler } from './hooks/useContentModeler';
 import { useModeler } from './hooks/useModeler';
@@ -26,6 +27,7 @@ export const Component = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const proposalId = searchParams.get('proposalId');
+  const reviewRemarksMode = searchParams.get('reviewRemarks') === '1';
   const proposalMode = Boolean(proposalId);
   const approvedProposalMode = searchParams.get('publishApproved') === '1';
   const sourceResourceId = searchParams.get('sourceResourceId');
@@ -40,6 +42,9 @@ export const Component = () => {
   const [submittingProposal, setSubmittingProposal] = useState(false);
   const [publishingApprovedProposal, setPublishingApprovedProposal] = useState(false);
   const [publicationError, setPublicationError] = useState<string | null>(null);
+  const [remarkDecisionComments, setRemarkDecisionComments] = useState<Record<string, string>>({});
+  const [decidingRemarkId, setDecidingRemarkId] = useState<string | null>(null);
+  const [remarkDecisionError, setRemarkDecisionError] = useState<string | null>(null);
 
   useCallActivityNavigation(bpmnModelerInstance);
 
@@ -66,6 +71,59 @@ export const Component = () => {
     onCompareWithSource,
     actionData,
   } = useContentModeler(bpmnModelerInstance);
+
+  type ProposalRemark = {
+    id: string;
+    elementId: string;
+    authorUserId: string;
+    comment: string;
+    status: 'pending' | 'accepted' | 'rejected';
+    createdAt: string;
+    decisionBy: string | null;
+    decidedAt: string | null;
+    decisionComment: string | null;
+  };
+  const {
+    data: proposalRemarks = [],
+    refetch: refetchProposalRemarks,
+  } = useQuery<ProposalRemark[]>(
+    ['process-change-proposal-comments', proposalId],
+    () => apiClient.get(`/projects/process-change-proposals/${proposalId}/comments`),
+    { enabled: Boolean(proposalId) },
+  );
+
+  const selectRemarkElement = (elementId: string) => {
+    const element = (bpmnModelerInstance.get('elementRegistry') as any).get(elementId);
+    if (!element) {
+      setRemarkDecisionError(`L’élément BPMN « ${elementId} » n’existe plus dans le diagramme courant.`);
+      return;
+    }
+    (bpmnModelerInstance.get('selection') as any).select([element]);
+  };
+
+  const decideRemark = async (remark: ProposalRemark, decision: 'accepted' | 'rejected') => {
+    if (!proposalId || decidingRemarkId) return;
+    setDecidingRemarkId(remark.id);
+    setRemarkDecisionError(null);
+    try {
+      await apiClient.post(
+        `/projects/process-change-proposals/${proposalId}/comments/${remark.id}/decision`,
+        { decision, comment: remarkDecisionComments[remark.id]?.trim() || undefined },
+      );
+      setRemarkDecisionComments(previous => ({ ...previous, [remark.id]: '' }));
+      await Promise.all([
+        refetchProposalRemarks(),
+        queryClient.invalidateQueries({ queryKey: ['process-change-proposals-to-review'] }),
+        queryClient.invalidateQueries({ queryKey: ['process-change-proposal-comments', proposalId] }),
+      ]);
+    } catch (error) {
+      setRemarkDecisionError(
+        error instanceof Error ? error.message : 'La décision sur la remarque a échoué.',
+      );
+    } finally {
+      setDecidingRemarkId(null);
+    }
+  };
 
   const { diagramContainerRef, diagramPropertiesRef, hasLintError, isDirty, canUndo, canRedo, undo, redo, markSaved, isModelerReady } = useModeler(bpmnModelerInstance, draftXmlContent);
   const blocker = useBlocker(({ nextLocation }) => isDirty && nextLocation.pathname === `/${resourceId}`);
@@ -162,6 +220,65 @@ export const Component = () => {
         publishApprovedLoading={publishingApprovedProposal}
       />
       {publicationError && <Alert color="danger" sx={{ mx: 2, my: 1 }}>{publicationError}</Alert>}
+      {proposalId && (reviewRemarksMode || proposalRemarks.length > 0) && (
+        <Sheet variant="outlined" sx={{ mx: 2, my: 1.5, p: 2, borderRadius: 'md' }}>
+          <Stack spacing={1.5}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Typography level="title-md">Remarques à traiter ({proposalRemarks.filter(remark => remark.status === 'pending').length} en attente)</Typography>
+              <Typography level="body-xs" textColor="neutral">Les décisions sont historisées séparément du BPMN.</Typography>
+            </Stack>
+            {remarkDecisionError && <Alert color="danger">{remarkDecisionError}</Alert>}
+            {proposalRemarks.length === 0 ? (
+              <Typography level="body-sm" textColor="neutral">Aucune remarque associée à cette demande.</Typography>
+            ) : proposalRemarks.map(remark => (
+              <Sheet key={remark.id} variant="soft" sx={{ p: 1.25, borderRadius: 'sm' }}>
+                <Stack spacing={1}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" useFlexGap flexWrap="wrap">
+                    <Typography level="title-sm">{remark.elementId}</Typography>
+                    <Typography level="body-xs" color={
+                      remark.status === 'accepted' ? 'success' :
+                      remark.status === 'rejected' ? 'danger' : 'warning'
+                    }>
+                      {remark.status === 'accepted' ? 'Acceptée' :
+                       remark.status === 'rejected' ? 'Refusée' : 'En attente'}
+                    </Typography>
+                  </Stack>
+                  <Typography level="body-sm">{remark.comment}</Typography>
+                  <Typography level="body-xs" textColor="neutral">
+                    Déposée le {new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(remark.createdAt))} · {remark.authorUserId}
+                  </Typography>
+                  {remark.status === 'pending' ? (
+                    <>
+                      <Textarea
+                        size="sm"
+                        minRows={1}
+                        value={remarkDecisionComments[remark.id] ?? ''}
+                        onChange={event => setRemarkDecisionComments(previous => ({ ...previous, [remark.id]: event.target.value }))}
+                        placeholder="Commentaire de décision (facultatif)…"
+                      />
+                      <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                        <Button size="sm" variant="outlined" color="neutral" onClick={() => selectRemarkElement(remark.elementId)}>
+                          Localiser dans le diagramme
+                        </Button>
+                        <Button size="sm" color="success" loading={decidingRemarkId === remark.id} disabled={decidingRemarkId !== null}
+                          onClick={() => decideRemark(remark, 'accepted')}>Accepter</Button>
+                        <Button size="sm" color="danger" variant="outlined" loading={decidingRemarkId === remark.id} disabled={decidingRemarkId !== null}
+                          onClick={() => decideRemark(remark, 'rejected')}>Refuser</Button>
+                      </Stack>
+                    </>
+                  ) : (
+                    <Typography level="body-xs" textColor="neutral">
+                      Décidée le {remark.decidedAt ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(remark.decidedAt)) : '—'}
+                      {remark.decisionBy ? ` · par ${remark.decisionBy}` : ''}
+                      {remark.decisionComment ? ` · ${remark.decisionComment}` : ''}
+                    </Typography>
+                  )}
+                </Stack>
+              </Sheet>
+            ))}
+          </Stack>
+        </Sheet>
+      )}
       <Modeler
         diagramContainerRef={diagramContainerRef}
         diagramPropertiesRef={diagramPropertiesRef}
