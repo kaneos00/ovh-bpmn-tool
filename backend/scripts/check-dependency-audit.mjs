@@ -11,7 +11,7 @@ if (!/(?:\d+\s+vulnerabilities found|no known vulnerabilities found)/i.test(repo
   process.exit(2);
 }
 
-const summaryMatch = report.match(/(\\d+)\\s+vulnerabilities found/i);
+const summaryMatch = report.match(/(\d+)\s+vulnerabilities found/i);
 const reportedVulnerabilityCount = summaryMatch ? Number(summaryMatch[1]) : 0;
 const baselineVulnerabilityCount = Number(baseline.reportedVulnerabilities ?? 0);
 
