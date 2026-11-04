@@ -198,11 +198,14 @@ export class ProcessChangeProposalController {
     );
     if (!isOrganizationAdmin && !memberships.length) return [];
 
-    const submitted = await this.proposals.find({
-      where: { status: ProcessChangeProposalStatus.Submitted },
+    const reviewable = await this.proposals.find({
+      where: [
+        { status: ProcessChangeProposalStatus.Submitted },
+        { status: ProcessChangeProposalStatus.Approved },
+      ],
       order: { submittedAt: 'DESC', updatedAt: 'DESC' },
     });
-    const visible = submitted.filter((proposal) => {
+    const visible = reviewable.filter((proposal) => {
       const membership = membershipByProject.get(proposal.projectId);
       const canAdminReview = membership?.role === ProjectMemberRole.Admin;
       const canReviewAssigned =
