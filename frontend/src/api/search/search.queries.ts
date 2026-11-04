@@ -13,6 +13,7 @@ export type UnifiedSearchResult = {
   id: string;
   label: string;
   excerpt: string;
+  description?: string;
   field: string;
   resourceId?: string;
   processName?: string;
