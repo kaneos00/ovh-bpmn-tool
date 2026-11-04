@@ -28,6 +28,7 @@ BEGIN
       'changes_requested',
       'rejected',
       'published',
+      'remark_added',
       'remark_accepted',
       'remark_rejected'
     ));
