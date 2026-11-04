@@ -1,6 +1,7 @@
 import { ProjectRaciRole } from '../ProjectContext/infrastructure/entities/projectRaciEntry.ormEntity';
 import {
   extractBpmnSearchResults,
+  getSearchSimilarity,
   isExactSearchTextMatch,
   isSearchTextMatch,
   normalizeSearchText,
@@ -12,6 +13,13 @@ describe('unified search normalization', () => {
       'revision generale',
     );
     expect(normalizeSearchText('REVISION generale')).toBe('revision generale');
+  });
+
+  it('scores exact, substring and typo matches on a 0-100 scale', () => {
+    expect(getSearchSimilarity('Validation des factures', 'VALIDATION')).toBe(100);
+    expect(getSearchSimilarity('entretien annuel', 'entre')).toBe(56);
+    expect(getSearchSimilarity('Validation des factures', 'validaton')).toBe(90);
+    expect(getSearchSimilarity('Validation des factures', 'livraison')).toBe(0);
   });
 
   it('matches conservative typos only for sufficiently long words', () => {
