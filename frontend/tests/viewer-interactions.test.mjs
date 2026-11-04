@@ -379,6 +379,8 @@ test('remark decisions reuse the existing validator, project-admin and global-ad
   assert.ok(controller.includes('this.access.hasOrganizationAdminRole(headers)'));
   assert.ok(controller.includes('ProjectMemberRole.Admin'));
   assert.ok(controller.includes('ProjectMemberRole.Modeler'));
+  assert.ok(controller.includes('L’auteur ne peut pas approuver ou refuser sa propre demande'));
+  assert.ok(controller.includes('L’auteur ne peut pas décider de sa propre remarque'));
 });
 
 test('contextual remark migration is included in every existing Coolify and CI migration path', async () => {
