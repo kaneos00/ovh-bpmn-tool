@@ -14,7 +14,7 @@ type ReviewProposal = {
   id: string; projectId: string; projectName: string; sourceResourceId: string;
   sourcePublishedContentId: string; processName: string; cloneResourceId: string;
   submittedContentId: string | null; authorName: string; submissionComment: string | null;
-  submittedAt: string | null; latestActivityAt: string;
+  submittedAt: string | null; latestActivityAt: string; status: 'submitted' | 'approved';
 };
 type Proposal = {
   id: string;
@@ -130,12 +130,12 @@ export const Component = () => {
             <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Box>
-                  <Typography level="title-md">Richieste da validare</Typography>
+                  <Typography level="title-md">Demandes à traiter</Typography>
                   <Typography level="body-xs" sx={{ color: 'text.secondary', mt: 0.35 }}>
-                    Richieste assegnate al tuo account e richieste dei progetti di cui sei amministratore.
+                    Demandes qui vous sont affectées et demandes des projets que vous administrez.
                   </Typography>
                 </Box>
-                <Chip size="sm" color="warning" variant="soft">{reviews.length} in attesa</Chip>
+                <Chip size="sm" color="warning" variant="soft">{reviews.filter(proposal => proposal.status === 'submitted').length} en attente · {reviews.filter(proposal => proposal.status === 'approved').length} à publier</Chip>
               </Stack>
             </Box>
             {reviewsLoading && <Box sx={{ p: 2 }}><Typography level="body-sm">Caricamento delle richieste…</Typography></Box>}
@@ -153,7 +153,12 @@ export const Component = () => {
                   <Box key={proposal.id} sx={{ p: 2 }}>
                     <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'flex-start' }} spacing={1}>
                       <Box sx={{ minWidth: 0, flex: 1 }}>
-                        <Typography level="title-sm">{proposal.processName}</Typography>
+                        <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
+                          <Typography level="title-sm">{proposal.processName}</Typography>
+                          <Chip size="sm" variant="soft" color={proposal.status === 'approved' ? 'success' : 'warning'}>
+                            {proposal.status === 'approved' ? 'Approuvée — à publier' : 'En attente de validation'}
+                          </Chip>
+                        </Stack>
                         <Typography level="body-xs" sx={{ color: 'text.secondary' }}>
                           {proposal.projectName} · Proposée par {proposal.authorName} · {formatDate(proposal.submittedAt)}
                         </Typography>
@@ -169,25 +174,38 @@ export const Component = () => {
                         Comparer les versions
                       </Button>
                     </Stack>
-                    <Textarea
-                      size="sm"
-                      minRows={2}
-                      value={reviewComments[proposal.id] ?? ''}
-                      onChange={event => setReviewComments(previous => ({ ...previous, [proposal.id]: event.target.value }))}
-                      placeholder="Commentaire du valideur (obligatoire pour demander des corrections ou refuser)…"
-                      sx={{ mt: 1.25 }}
-                    />
-                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mt: 1 }}>
-                      <Button size="sm" color="success" variant="solid" loading={reviewingId === proposal.id}
-                        disabled={reviewingId !== null}
-                        onClick={() => decideProposal(proposal, 'approved')}>Approuver</Button>
-                      <Button size="sm" color="primary" variant="outlined" loading={reviewingId === proposal.id}
-                        disabled={reviewingId !== null || !(reviewComments[proposal.id] ?? '').trim()}
-                        onClick={() => decideProposal(proposal, 'changes_requested')}>Demander des corrections</Button>
-                      <Button size="sm" color="danger" variant="outlined" loading={reviewingId === proposal.id}
-                        disabled={reviewingId !== null || !(reviewComments[proposal.id] ?? '').trim()}
-                        onClick={() => decideProposal(proposal, 'rejected')}>Refuser</Button>
-                    </Stack>
+                    {proposal.status === 'submitted' ? (
+                      <>
+                        <Textarea
+                          size="sm"
+                          minRows={2}
+                          value={reviewComments[proposal.id] ?? ''}
+                          onChange={event => setReviewComments(previous => ({ ...previous, [proposal.id]: event.target.value }))}
+                          placeholder="Commentaire du valideur (obligatoire pour demander des corrections ou refuser)…"
+                          sx={{ mt: 1.25 }}
+                        />
+                        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mt: 1 }}>
+                          <Button size="sm" color="success" variant="solid" loading={reviewingId === proposal.id}
+                            disabled={reviewingId !== null}
+                            onClick={() => decideProposal(proposal, 'approved')}>Approuver</Button>
+                          <Button size="sm" color="primary" variant="outlined" loading={reviewingId === proposal.id}
+                            disabled={reviewingId !== null || !(reviewComments[proposal.id] ?? '').trim()}
+                            onClick={() => decideProposal(proposal, 'changes_requested')}>Demander des corrections</Button>
+                          <Button size="sm" color="danger" variant="outlined" loading={reviewingId === proposal.id}
+                            disabled={reviewingId !== null || !(reviewComments[proposal.id] ?? '').trim()}
+                            onClick={() => decideProposal(proposal, 'rejected')}>Refuser</Button>
+                        </Stack>
+                      </>
+                    ) : (
+                      <Stack direction="row" spacing={1} sx={{ mt: 1.25 }}>
+                        <Button size="sm" color="success" variant="solid"
+                          onClick={() => navigate(
+                            `/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}&publishApproved=1&sourceResourceId=${proposal.sourceResourceId}`,
+                          )}>
+                          Publier la version approuvée
+                        </Button>
+                      </Stack>
+                    )}
                   </Box>
                 ))}
               </Stack>
