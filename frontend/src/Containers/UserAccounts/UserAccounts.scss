@@ -1,0 +1,24 @@
+.org-users__create.MuiCard-root,
+.org-users__list.MuiCard-root,
+.org-users__detail.MuiCard-root { gap: 16px; }
+.org-users__create { margin-bottom: 16px; }
+.org-users__form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.org-users__toolbar { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.org-users__stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.org-users__detail { margin-top: 18px; }
+.org-users__detail-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(260px, .8fr); gap: 20px; align-items: start; }
+.org-users__detail-main { display: grid; gap: 16px; min-width: 0; }
+.org-users__detail-side { display: grid; gap: 14px; min-width: 0; }
+.org-users__projects { display: grid; gap: 12px; margin-top: 8px; }
+.org-users__project-row { border-top: 1px solid #e5eaf1; padding-top: 12px; }
+.org-users__security.MuiCard-root { gap: 12px; padding: 16px; border-color: #dce3ec; border-radius: 12px; }
+.org-users__list tbody tr[aria-selected="true"] { background: #eef4ff; }
+@media (max-width: 900px) {
+  .org-users__detail-grid { grid-template-columns: minmax(0, 1fr); }
+  .org-users__stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .org-users__form-grid { grid-template-columns: minmax(0, 1fr); }
+  .org-users__stats { grid-template-columns: minmax(0, 1fr); }
+  .org-users__toolbar { align-items: stretch; }
+}
