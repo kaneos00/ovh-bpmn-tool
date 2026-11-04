@@ -381,6 +381,7 @@ export const Component = () => {
       <Modeler
         diagramContainerRef={diagramContainerRef}
         diagramPropertiesRef={diagramPropertiesRef}
+        reviewOnly={reviewRemarksMode && !approvedProposalMode}
       />
       <Modal
         open={validationModalOpen}
