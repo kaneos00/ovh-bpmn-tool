@@ -48,6 +48,8 @@ export type UnifiedSearchParams = {
   role?: UnifiedSearchRole;
   limit?: number;
   offset?: number;
+  sortBy?: 'relevance' | 'type' | 'label' | 'source' | 'process';
+  sortDirection?: 'asc' | 'desc';
 };
 
 export const unifiedSearchQuery = (params: UnifiedSearchParams) => {
@@ -58,6 +60,8 @@ export const unifiedSearchQuery = (params: UnifiedSearchParams) => {
   if (params.role) query.set('role', params.role);
   query.set('limit', String(params.limit ?? 30));
   query.set('offset', String(params.offset ?? 0));
+  query.set('sortBy', params.sortBy ?? 'relevance');
+  query.set('sortDirection', params.sortDirection ?? 'asc');
 
   return {
     queryKey: ['unified-search', params],
