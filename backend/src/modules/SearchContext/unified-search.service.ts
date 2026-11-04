@@ -21,6 +21,57 @@ export type SearchResultSource =
   | 'bpmn'
   | 'project-raci'
   | 'project-actor';
+
+export type SearchSortBy = 'relevance' | 'type' | 'label' | 'source' | 'process';
+export type SearchSortDirection = 'asc' | 'desc';
+
+export function canReadEmbeddedProjectMetadata(
+  resourceId: string,
+  projectLinks: Array<{ projectId: string; resourceId: string; usage: string }>,
+  allowedProjectIds: string[],
+): boolean {
+  const links = projectLinks.filter((link) => link.resourceId === resourceId);
+  return (
+    links.length === 0 ||
+    links.some(
+      (link) =>
+        link.usage === 'common' || allowedProjectIds.includes(link.projectId),
+    )
+  );
+}
+
+export function sortUnifiedSearchResults(
+  results: UnifiedSearchResult[],
+  sortBy: SearchSortBy = 'relevance',
+  sortDirection: SearchSortDirection = 'asc',
+): UnifiedSearchResult[] {
+  const typeOrder: Record<SearchResultType, number> = {
+    process: 0,
+    bpmn: 1,
+    raci: 2,
+    actor: 3,
+  };
+  const direction = sortDirection === 'desc' ? -1 : 1;
+  return [...results].sort((left, right) => {
+    if (sortBy === 'relevance') {
+      return (
+        (right.matchScore ?? 0) - (left.matchScore ?? 0) ||
+        typeOrder[left.type] - typeOrder[right.type] ||
+        left.label.localeCompare(right.label, 'fr')
+      );
+    }
+    const value = (item: UnifiedSearchResult) => {
+      if (sortBy === 'type') return item.type;
+      if (sortBy === 'source') return item.source ?? '';
+      if (sortBy === 'process') return item.processName ?? '';
+      return item.label;
+    };
+    return (
+      value(left).localeCompare(value(right), 'fr', { sensitivity: 'base' }) *
+      direction
+    );
+  });
+}
 export type UnifiedSearchResult = {
   type: SearchResultType;
   id: string;
@@ -510,8 +561,8 @@ export class UnifiedSearchService {
       role?: ProjectRaciRole;
       limit?: number;
       offset?: number;
-      sortBy?: 'relevance' | 'type' | 'label' | 'source' | 'process';
-      sortDirection?: 'asc' | 'desc';
+      sortBy?: SearchSortBy;
+      sortDirection?: SearchSortDirection;
     } = {},
   ): Promise<UnifiedSearchResponse> {
     if (typeof rawQuery !== 'string' || rawQuery.trim().length < 2) {
@@ -606,24 +657,8 @@ export class UnifiedSearchService {
           select: { projectId: true, resourceId: true, usage: true },
         })
       : [];
-    const resourcesWithProjectLinks = new Set(
-      projectLinks.map((link) => link.resourceId),
-    );
-    const resourcesWithAuthorizedProjectMetadata = new Set(
-      projectLinks
-        .filter(
-          (link) =>
-            link.usage === 'common' || allowedProjectIds.includes(link.projectId),
-        )
-        .map((link) => link.resourceId),
-    );
     // BPMN-embedded actors/RACI are project metadata: do not expose them
     // merely because the underlying process is readable through another path.
-    // Unlinked resources and explicitly common resources remain globally readable.
-    const canReadEmbeddedProjectMetadata = (resourceId: string) =>
-      !resourcesWithProjectLinks.has(resourceId) ||
-      resourcesWithAuthorizedProjectMetadata.has(resourceId);
-
     let bpmnDocumentsAvailable = 0;
     let bpmnDocumentsScanned = 0;
     let bpmnDocumentsSkipped = 0;
@@ -799,41 +834,18 @@ export class UnifiedSearchService {
           matchScore === 100 ? ('exact' as const) : ('approximate' as const),
       };
     });
-    const typeOrder: Record<SearchResultType, number> = {
-      process: 0,
-      bpmn: 1,
-      raci: 2,
-      actor: 3,
-    };
-    const sortBy = options.sortBy ?? 'relevance';
-    const sortDirection = options.sortDirection ?? 'asc';
-    const direction = sortDirection === 'desc' ? -1 : 1;
-    uniqueResults.sort((left, right) => {
-      if (sortBy === 'relevance') {
-        return (
-          (right.matchScore ?? 0) - (left.matchScore ?? 0) ||
-          typeOrder[left.type] - typeOrder[right.type] ||
-          left.label.localeCompare(right.label, 'fr')
-        );
-      }
-      const value = (item: UnifiedSearchResult) => {
-        if (sortBy === 'type') return item.type;
-        if (sortBy === 'source') return item.source ?? '';
-        if (sortBy === 'process') return item.processName ?? '';
-        return item.label;
-      };
-      return (
-        value(left).localeCompare(value(right), 'fr', { sensitivity: 'base' }) *
-        direction
-      );
-    });
+    const sortedResults = sortUnifiedSearchResults(
+      uniqueResults,
+      options.sortBy,
+      options.sortDirection,
+    );
 
     return {
       query,
-      total: uniqueResults.length,
+      total: sortedResults.length,
       offset,
       limit,
-      results: uniqueResults.slice(offset, offset + limit),
+      results: sortedResults.slice(offset, offset + limit),
       coverage: {
         readableProcesses: readableResources.length,
         bpmnDocumentsAvailable,
