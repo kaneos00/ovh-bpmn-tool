@@ -139,7 +139,7 @@ export const SearchResultItem = ({
           {badge.label}
         </Box>
         <Box sx={{ minWidth: 0, flex: 1 }}>
-          {processName && (
+          {processName && processName !== title && (
             <Typography level="title-sm" sx={{ fontWeight: 800 }}>
               {highlightNode(processName, query)}
             </Typography>
