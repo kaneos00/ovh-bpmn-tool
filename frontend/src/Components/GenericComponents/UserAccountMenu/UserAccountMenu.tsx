@@ -20,6 +20,7 @@ type Session = {
   email?: string | null;
   role?: 'admin' | 'modeler' | 'viewer';
   impersonating?: boolean;
+  impersonatorUserId?: string | null;
 };
 
 export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
@@ -65,6 +66,32 @@ export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
     }).catch(() => {
       // Joy UI persists the preference locally.
     });
+  };
+
+  const stopImpersonation = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      const response = await fetch(`${apiBase}/auth/impersonation/stop`, {
+        method: 'POST',
+        credentials: 'same-origin',
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || 'Impossible de reprendre la session administrateur.');
+      setSession({
+        userId: data.userId,
+        email: data.email,
+        role: 'admin',
+        impersonating: false,
+        impersonatorUserId: null,
+      });
+      navigate('/', { replace: true });
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Impossible de reprendre la session administrateur.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const logout = async () => {
@@ -143,13 +170,19 @@ export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
           <Switch size="sm" checked={isDark} readOnly tabIndex={-1} />
         </MenuItem>
         {session?.role === 'admin' && !session.impersonating && (
-          <MenuItem onClick={() => navigate('/organization/accounts')}>
+          <MenuItem onClick={() => navigate('/organization/users')}>
             <AdminPanelSettingsOutlined fontSize="small" />
             Administration du compte
           </MenuItem>
         )}
         {session?.impersonating && (
-          <MenuItem disabled>Simulation d’un autre compte en cours</MenuItem>
+          <MenuItem disabled>Session simulée · administrateur : {session.impersonatorUserId || 'identifié'}</MenuItem>
+        {session?.impersonating && (
+          <MenuItem color="warning" disabled={busy} onClick={stopImpersonation}>
+            <AdminPanelSettingsOutlined fontSize="small" />
+            {busy ? 'Reprise de session…' : 'Revenir à ma session administrateur'}
+          </MenuItem>
+        )}
         )}
         {error && <MenuItem disabled>{error}</MenuItem>}
         <MenuItem color="danger" disabled={busy} onClick={logout}>
