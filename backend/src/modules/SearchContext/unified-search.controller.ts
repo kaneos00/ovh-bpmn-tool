@@ -11,6 +11,8 @@ import { UnifiedSearchService } from './unified-search.service';
 import type {
   SearchResultSource,
   SearchResultType,
+  SearchSortBy,
+  SearchSortDirection,
 } from './unified-search.service';
 
 const SEARCH_TYPES: SearchResultType[] = ['process', 'bpmn', 'raci', 'actor'];
@@ -87,8 +89,8 @@ export class UnifiedSearchController {
       role,
       limit,
       offset,
-      sortBy: rawSortBy as 'relevance' | 'type' | 'label' | 'source' | 'process' | undefined,
-      sortDirection: rawSortDirection as 'asc' | 'desc' | undefined,
+      sortBy: rawSortBy as SearchSortBy | undefined,
+      sortDirection: rawSortDirection as SearchSortDirection | undefined,
     });
   }
 }
