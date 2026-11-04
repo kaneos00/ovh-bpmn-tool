@@ -337,22 +337,30 @@ export const Component = () => {
                   </Typography>
                   {remark.status === 'pending' ? (
                     <>
-                      <Textarea
-                        size="sm"
-                        minRows={1}
-                        value={remarkDecisionComments[remark.id] ?? ''}
-                        onChange={event => setRemarkDecisionComments(previous => ({ ...previous, [remark.id]: event.target.value }))}
-                        placeholder="Commentaire de décision (facultatif)…"
-                      />
-                      <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                        <Button size="sm" variant="outlined" color="neutral" onClick={() => selectRemarkElement(remark.elementId)}>
-                          Localiser dans le diagramme
-                        </Button>
-                        <Button size="sm" color="success" loading={decidingRemarkId === remark.id} disabled={decidingRemarkId !== null}
-                          onClick={() => decideRemark(remark, 'accepted')}>Accepter</Button>
-                        <Button size="sm" color="danger" variant="outlined" loading={decidingRemarkId === remark.id} disabled={decidingRemarkId !== null}
-                          onClick={() => decideRemark(remark, 'rejected')}>Refuser</Button>
-                      </Stack>
+                      <Button size="sm" variant="outlined" color="neutral" onClick={() => selectRemarkElement(remark.elementId)}>
+                        Localiser dans le diagramme
+                      </Button>
+                      {reviewRemarksMode ? (
+                        <>
+                          <Textarea
+                            size="sm"
+                            minRows={1}
+                            value={remarkDecisionComments[remark.id] ?? ''}
+                            onChange={event => setRemarkDecisionComments(previous => ({ ...previous, [remark.id]: event.target.value }))}
+                            placeholder="Commentaire de décision (facultatif)…"
+                          />
+                          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                            <Button size="sm" color="success" loading={decidingRemarkId === remark.id} disabled={decidingRemarkId !== null}
+                              onClick={() => decideRemark(remark, 'accepted')}>Accepter</Button>
+                            <Button size="sm" color="danger" variant="outlined" loading={decidingRemarkId === remark.id} disabled={decidingRemarkId !== null}
+                              onClick={() => decideRemark(remark, 'rejected')}>Refuser</Button>
+                          </Stack>
+                        </>
+                      ) : (
+                        <Typography level="body-xs" textColor="neutral">
+                          En attente de traitement par le validateur.
+                        </Typography>
+                      )}
                     </>
                   ) : (
                     <Typography level="body-xs" textColor="neutral">
