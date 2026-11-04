@@ -151,6 +151,8 @@ const ProcessContentViewer = () => {
     id: string;
     elementId: string;
     authorUserId: string;
+    authorName?: string;
+    decisionByName?: string | null;
     comment: string;
     status: 'pending' | 'accepted' | 'rejected';
     createdAt: string;
@@ -188,6 +190,7 @@ const ProcessContentViewer = () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['active-process-change-proposal', associatedProject.id, resourceId] }),
         queryClient.invalidateQueries({ queryKey: ['process-change-proposals-to-review'] }),
+        queryClient.invalidateQueries({ queryKey: ['process-change-proposal-comments', activeProposal?.id] }),
       ]);
       setRemarkText('');
       setRemarkModalOpen(false);
@@ -205,6 +208,11 @@ const ProcessContentViewer = () => {
       .filter(({ status }) => status === ContentStatusEnum.Published)
       .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0];
   }, [contents]);
+
+  const contextualRemarks = useMemo(
+    () => proposalRemarks.map(({ id, elementId, status }) => ({ id, elementId, status })),
+    [proposalRemarks],
+  );
 
   const { raciMatrix, laneRoleByElement, laneIdByRole } =
     useViewerRaciAnalysis(xmlContent);
@@ -330,7 +338,7 @@ const ProcessContentViewer = () => {
           contentId={contentId}
           selectedElementId={selectedActivityId}
           onElementSelect={setSelectedActivityId}
-          remarks={proposalRemarks.map(({ id, elementId, status }) => ({ id, elementId, status }))}
+          remarks={contextualRemarks}
           onToggleInfoPanel={() => setInfoPanelOpen(value => !value)}
           infoPanelOpen={infoPanelOpen}
           toolbarExtra={<UserAccountMenu dark={false} />}
@@ -454,11 +462,11 @@ const ProcessContentViewer = () => {
                   </Stack>
                   <Typography level="body-sm">{remark.comment}</Typography>
                   <Typography level="body-xs" textColor="neutral">
-                    Déposée le {formatDateTime(remark.createdAt)} · {remark.authorUserId}
+                    Déposée le {formatDateTime(remark.createdAt)} · {remark.authorName || remark.authorUserId}
                   </Typography>
                   {remark.decidedAt && (
                     <Typography level="body-xs" textColor="neutral">
-                      Décision le {formatDateTime(remark.decidedAt)}{remark.decisionBy ? ` · ${remark.decisionBy}` : ''}
+                      Décision le {formatDateTime(remark.decidedAt)}{remark.decisionByName ? ` · ${remark.decisionByName}` : remark.decisionBy ? ` · ${remark.decisionBy}` : ''}
                       {remark.decisionComment ? ` · ${remark.decisionComment}` : ''}
                     </Typography>
                   )}
