@@ -17,6 +17,28 @@ async function requireSession({ request }: { request: Request }) {
   throw redirect(`/login?next=${encodeURIComponent(requestedPath)}`);
 }
 
+async function requireGlobalAdmin({ request }: { request: Request }) {
+  const requestedUrl = new URL(request.url);
+  const requestedPath = requestedUrl.pathname + requestedUrl.search;
+  try {
+    const response = await fetch(`${apiBase}/auth/session`, {
+      credentials: 'same-origin',
+      headers: { accept: 'application/json' },
+    });
+    if (!response.ok) {
+      throw redirect(`/login?next=${encodeURIComponent(requestedPath)}`);
+    }
+    const session = await response.json();
+    if (session.role !== 'admin' || session.impersonating) {
+      throw redirect('/root');
+    }
+    return null;
+  } catch (reason) {
+    if (reason instanceof Response) throw reason;
+    throw redirect(`/login?next=${encodeURIComponent(requestedPath)}`);
+  }
+}
+
 /**
  * V3 initial shell: authentication, process/folder viewer and BPMN modeler.
  * Application management, organization administration, project management,
@@ -27,6 +49,21 @@ export const routes = [
   {
     loader: requireSession,
     children: [
+      {
+        path: '/organization/users',
+        loader: requireGlobalAdmin,
+        lazy: () => import('./Containers/UserAccounts'),
+      },
+      {
+        path: '/organization/accounts',
+        loader: requireGlobalAdmin,
+        lazy: () => import('./Containers/UserAccounts'),
+      },
+      {
+        path: '/organization/:section',
+        loader: requireGlobalAdmin,
+        lazy: () => import('./Containers/OrganizationAdmin'),
+      },
       {
         path: '/',
         loader: () => redirect('/root'),
