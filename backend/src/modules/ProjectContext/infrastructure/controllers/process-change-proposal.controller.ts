@@ -607,6 +607,19 @@ export class ProcessChangeProposalController {
           decisionComment: null,
           createdBy: authorUsername,
         }));
+        await events.save(events.create({
+          proposalId: existingOpenProposal.id,
+          eventType: 'remark_added',
+          actorUserId: authorUserId,
+          validatorUserId,
+          comment: savedRemark.comment,
+          details: {
+            remarkId: savedRemark.id,
+            elementId: savedRemark.elementId,
+            source: 'viewer-remark',
+          },
+          createdBy: authorUsername,
+        }));
         return {
           id: existingOpenProposal.id,
           projectId,
@@ -735,6 +748,19 @@ export class ProcessChangeProposalController {
             source: 'viewer-remark',
             validatorResolution: initialValidatorResolution,
             validatorWarning: initialValidatorWarning,
+          },
+          createdBy: authorUsername,
+        }));
+        await events.save(events.create({
+          proposalId: proposal.id,
+          eventType: 'remark_added',
+          actorUserId: authorUserId,
+          validatorUserId: initialValidatorUserId,
+          comment: initialRemark.comment,
+          details: {
+            remarkId: initialRemark.id,
+            elementId: initialRemark.elementId,
+            source: 'viewer-remark',
           },
           createdBy: authorUsername,
         }));
@@ -1408,7 +1434,7 @@ export class ProcessChangeProposalController {
           createdBy: actorUsername,
         }));
       }
-      return comments.save(comments.create({
+      const savedComment = await comments.save(comments.create({
         proposalId,
         elementId,
         authorUserId,
@@ -1419,6 +1445,20 @@ export class ProcessChangeProposalController {
         decisionComment: null,
         createdBy: actorUsername,
       }));
+      await events.save(events.create({
+        proposalId,
+        eventType: 'remark_added',
+        actorUserId: authorUserId,
+        validatorUserId: lockedProposal.validatorUserId,
+        comment: savedComment.comment,
+        details: {
+          remarkId: savedComment.id,
+          elementId: savedComment.elementId,
+          source: 'modeler-remark',
+        },
+        createdBy: actorUsername,
+      }));
+      return savedComment;
     });
   }
 
