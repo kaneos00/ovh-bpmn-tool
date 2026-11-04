@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import {
   Alert,
-  Box,
   Button,
   Card,
   CircularProgress,
