@@ -1083,6 +1083,23 @@ export class ProcessChangeProposalController {
         where: { proposalId },
         order: { createdAt: 'ASC' },
       });
+      const remarkUserIds = [...new Set(
+        remarks.flatMap(remark => [
+          remark.authorUserId,
+          ...(remark.decisionBy ? [remark.decisionBy] : []),
+        ]),
+      )];
+      const remarkUsers: Array<{ id: string; username: string; email: string | null }> =
+        remarkUserIds.length
+          ? await manager.query(
+              'SELECT id, username, email FROM app_users WHERE id = ANY($1::uuid[])',
+              [remarkUserIds],
+            )
+          : [];
+      const remarkUserNameById = new Map(remarkUsers.map(user => [
+        user.id,
+        user.username || user.email || user.id,
+      ]));
       const pendingRemarks = remarks.filter(
         remark => remark.status === ProcessChangeProposalCommentStatus.Pending,
       );
@@ -1164,7 +1181,7 @@ export class ProcessChangeProposalController {
             summaryComment,
             'Synthèse des remarques contextuelles :',
             ...remarks.map(remark =>
-              `- [${remark.status}] ${remark.createdAt.toISOString()} · auteur ${remark.authorUserId} · élément ${remark.elementId} · ${remark.comment}${remark.decidedAt ? ` · décidé le ${remark.decidedAt.toISOString()} par ${remark.decisionBy}` : ''}${remark.decisionComment ? ` · décision : ${remark.decisionComment}` : ''}`,
+              `- [${remark.status}] ${remark.createdAt.toISOString()} · auteur ${remarkUserNameById.get(remark.authorUserId) ?? remark.authorUserId} · élément ${remark.elementId} · ${remark.comment}${remark.decidedAt ? ` · décidé le ${remark.decidedAt.toISOString()} par ${remarkUserNameById.get(remark.decisionBy!) ?? remark.decisionBy}` : ''}${remark.decisionComment ? ` · décision : ${remark.decisionComment}` : ''}`,
             ),
           ].join('\n'),
           pngContent: Buffer.from(
