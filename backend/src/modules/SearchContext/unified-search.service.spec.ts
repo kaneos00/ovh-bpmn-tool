@@ -128,6 +128,24 @@ describe('BPMN search extraction', () => {
     expect(laneActor.some((result) => result.label === 'Finance')).toBe(true);
   });
 
+  it('returns one BPMN result with its task description when both name and description match', () => {
+    const results = extractBpmnSearchResults(
+      xml,
+      'resource-1',
+      'Order',
+      'invoice',
+      ['bpmn'],
+    );
+    expect(results).toHaveLength(1);
+    expect(results[0]).toMatchObject({
+      type: 'bpmn',
+      id: 'Task_Approve',
+      elementId: 'Task_Approve',
+      field: 'nome',
+      description: 'Check supplier invoice before payment',
+    });
+  });
+
   it('indexes descriptions attached to BPMN element types without a dedicated label', () => {
     const xmlWithGenericElement = `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL">
       <process id="Process_Order" name="Order">
