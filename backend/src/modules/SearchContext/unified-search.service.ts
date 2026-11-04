@@ -742,7 +742,6 @@ export class UnifiedSearchService {
         getSearchSimilarity(result.label, normalizedQuery),
         getSearchSimilarity(result.excerpt, normalizedQuery),
         getSearchSimilarity(result.description ?? '', normalizedQuery),
-        getSearchSimilarity(result.processName ?? '', normalizedQuery),
       );
       return {
         ...result,
