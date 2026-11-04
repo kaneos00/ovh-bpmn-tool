@@ -136,13 +136,9 @@ describe('BPMN search extraction', () => {
 
   it('does not search BPMN elements by their technical identifiers', () => {
     expect(
-      extractBpmnSearchResults(
-        xml,
-        'resource-1',
-        'Order',
-        'Task_Approve',
-        ['bpmn'],
-      ),
+      extractBpmnSearchResults(xml, 'resource-1', 'Order', 'Task_Approve', [
+        'bpmn',
+      ]),
     ).toEqual([]);
   });
 
