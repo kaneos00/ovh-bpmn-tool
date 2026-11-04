@@ -130,7 +130,7 @@ describe('BPMN search extraction', () => {
     });
 
     expect(
-      extractBpmnSearchResults(xml, 'resource-1', 'Order', 'invo', ['bpmn']),
+      extractBpmnSearchResults(xml, 'resource-1', 'Order', 'inov', ['bpmn']),
     ).toEqual([]);
   });
 
