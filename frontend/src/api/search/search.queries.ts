@@ -21,6 +21,7 @@ export type UnifiedSearchResult = {
   projectId?: string;
   role?: UnifiedSearchRole;
   source?: UnifiedSearchSource;
+  matchKind?: 'exact' | 'approximate';
 };
 
 export type UnifiedSearchResponse = {
