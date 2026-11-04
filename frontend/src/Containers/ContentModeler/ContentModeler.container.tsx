@@ -158,6 +158,9 @@ export const Component = () => {
         { elementId: selectedModelerElementId, comment: newRemarkText.trim() },
       );
       setNewRemarkText('');
+      if (approvedProposalMode) {
+        navigate(`/${resourceId}/modeler?proposalId=${proposalId}&reviewRemarks=1`);
+      }
       await Promise.all([
         refetchProposalRemarks(),
         queryClient.invalidateQueries({ queryKey: ['process-change-proposal-comments', proposalId] }),
