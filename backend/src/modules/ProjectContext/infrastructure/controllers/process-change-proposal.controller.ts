@@ -507,41 +507,24 @@ export class ProcessChangeProposalController {
             'Le brouillon associé à la demande ouverte est indisponible',
           );
         }
-        let validatorUserId = existingOpenProposal.validatorUserId;
-        if (!validatorUserId && body.validatorUserId?.trim()) {
-          const candidates: Array<{ id: string; username: string }> = await manager.query(
-            'SELECT id, username FROM app_users WHERE (lower(username) = lower($1) OR lower(email) = lower($1) OR id::text = $1) AND active = TRUE LIMIT 1',
-            [body.validatorUserId.trim()],
-          );
-          const candidate = candidates[0];
-          if (candidate && candidate.id !== authorUserId) {
-            const candidateMembership = await members.findOne({
-              where: { projectId, userId: candidate.username },
-            });
-            if (
-              candidateMembership &&
-              (candidateMembership.role === ProjectMemberRole.Admin ||
-                candidateMembership.role === ProjectMemberRole.Modeler)
-            ) validatorUserId = candidate.id;
-          }
-        }
-        if (!validatorUserId) {
-          const admins = await members.find({
-            where: { projectId, role: ProjectMemberRole.Admin },
-            order: { createdAt: 'ASC' },
-          });
-          for (const admin of admins) {
-            if (admin.userId === authorUsername) continue;
-            const adminRows: Array<{ id: string }> = await manager.query(
-              'SELECT id FROM app_users WHERE lower(username) = lower($1) AND active = TRUE LIMIT 1',
-              [admin.userId],
-            );
-            if (adminRows[0]) {
-              validatorUserId = adminRows[0].id;
-              break;
+        const validatorResolutionResult = existingOpenProposal.validatorUserId
+          ? {
+              validatorUserId: existingOpenProposal.validatorUserId,
+              validatorResolution: 'pilot_assigned' as const,
+              validatorWarning: null,
             }
-          }
-        }
+          : await this.resolveProposalValidator(
+              manager,
+              members,
+              projectId,
+              authorUsername,
+              authorUserId,
+              body.validatorUserId,
+            );
+        const {
+          validatorUserId,
+          validatorWarning,
+        } = validatorResolutionResult;
         const shouldSubmit =
           existingOpenProposal.status !== ProcessChangeProposalStatus.Submitted;
         if (shouldSubmit) {
@@ -567,7 +550,11 @@ export class ProcessChangeProposalController {
             actorUserId: authorUserId,
             validatorUserId,
             comment: 'Remarques déposées depuis le Viewer',
-            details: { submittedContentId: cloneDraft.id, source: 'viewer-remark' },
+            details: {
+              submittedContentId: cloneDraft.id,
+              source: 'viewer-remark',
+              validatorWarning,
+            },
             createdBy: authorUsername,
           }));
         }
@@ -594,6 +581,7 @@ export class ProcessChangeProposalController {
           cloneContentId: cloneDraft.id,
           status: existingOpenProposal.status,
           comment: savedRemark,
+          validatorWarning,
           reused: true,
         };
       }
@@ -632,44 +620,24 @@ export class ProcessChangeProposalController {
         }),
       );
 
-      let initialValidatorUserId: string | null = null;
-      if (isViewerRemark) {
-        const validatorIdentifier = body.validatorUserId?.trim();
-        if (validatorIdentifier) {
-          const validatorRows: Array<{ id: string; username: string }> = await manager.query(
-            'SELECT id, username FROM app_users WHERE (lower(username) = lower($1) OR lower(email) = lower($1) OR id::text = $1) AND active = TRUE LIMIT 1',
-            [validatorIdentifier],
-          );
-          const candidate = validatorRows[0];
-          if (candidate && candidate.id !== authorUserId) {
-            const candidateMembership = await members.findOne({
-              where: { projectId, userId: candidate.username },
-            });
-            if (
-              candidateMembership &&
-              (candidateMembership.role === ProjectMemberRole.Admin ||
-                candidateMembership.role === ProjectMemberRole.Modeler)
-            ) initialValidatorUserId = candidate.id;
-          }
-        }
-        if (!initialValidatorUserId) {
-          const admins = await members.find({
-            where: { projectId, role: ProjectMemberRole.Admin },
-            order: { createdAt: 'ASC' },
-          });
-          for (const admin of admins) {
-            if (admin.userId === authorUsername) continue;
-            const adminRows: Array<{ id: string }> = await manager.query(
-              'SELECT id FROM app_users WHERE lower(username) = lower($1) AND active = TRUE LIMIT 1',
-              [admin.userId],
-            );
-            if (adminRows[0]) {
-              initialValidatorUserId = adminRows[0].id;
-              break;
-            }
-          }
-        }
-      }
+      const {
+        validatorUserId: initialValidatorUserId,
+        validatorResolution: initialValidatorResolution,
+        validatorWarning: initialValidatorWarning,
+      } = isViewerRemark
+        ? await this.resolveProposalValidator(
+            manager,
+            members,
+            projectId,
+            authorUsername,
+            authorUserId,
+            body.validatorUserId,
+          )
+        : {
+            validatorUserId: null,
+            validatorResolution: 'pilot_missing' as const,
+            validatorWarning: null,
+          };
 
       const proposal = await proposals.save(
         proposals.create({
@@ -728,7 +696,12 @@ export class ProcessChangeProposalController {
           actorUserId: authorUserId,
           validatorUserId: initialValidatorUserId,
           comment: 'Remarques déposées depuis le Viewer',
-          details: { submittedContentId: savedCloneContent.id, source: 'viewer-remark' },
+          details: {
+            submittedContentId: savedCloneContent.id,
+            source: 'viewer-remark',
+            validatorResolution: initialValidatorResolution,
+            validatorWarning: initialValidatorWarning,
+          },
           createdBy: authorUsername,
         }));
       }
@@ -741,6 +714,7 @@ export class ProcessChangeProposalController {
         cloneContentId: savedCloneContent.id,
         status: proposal.status,
         comment: initialRemark,
+        validatorWarning: initialValidatorWarning,
         reused: false,
       };
     });
