@@ -132,6 +132,17 @@ function editDistance(left: string, right: string): number {
 }
 
 /** Conservative typo matching used only by the deep-search API. */
+export function isExactSearchTextMatch(value: string, query: string): boolean {
+  const normalizedValue = normalizeSearchText(value);
+  const normalizedQuery = normalizeSearchText(query);
+  if (normalizedValue.includes(normalizedQuery)) return true;
+  const queryWords = normalizedQuery.split(' ').filter(Boolean);
+  const valueWords = normalizedValue.split(/[^a-z0-9]+/).filter(Boolean);
+  return queryWords.length > 0 && queryWords.every((word) =>
+    valueWords.some((valueWord) => valueWord.includes(word)),
+  );
+}
+
 export function isSearchTextMatch(value: string, query: string): boolean {
   const normalizedValue = normalizeSearchText(value);
   const normalizedQuery = normalizeSearchText(query);
@@ -512,7 +523,7 @@ export class UnifiedSearchService {
           { value: resource.id, field: 'identificativo' },
         ];
         const match = fields.find(({ value }) =>
-          normalizeSearchText(value).includes(normalizedQuery),
+          isSearchTextMatch(value, normalizedQuery),
         );
         if (match) {
           results.push({
@@ -702,7 +713,7 @@ export class UnifiedSearchService {
       ].map(normalizeSearchText);
       return {
         ...result,
-        matchKind: searchableText.some((value) => value.includes(normalizedQuery))
+        matchKind: [result.label, result.excerpt, result.description ?? '', result.processName ?? ''].some((value) => isExactSearchTextMatch(value, normalizedQuery))
           ? 'exact' as const
           : 'approximate' as const,
       };
