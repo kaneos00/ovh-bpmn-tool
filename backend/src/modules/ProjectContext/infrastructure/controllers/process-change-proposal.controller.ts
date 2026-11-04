@@ -310,6 +310,56 @@ export class ProcessChangeProposalController {
   }
 
   /**
+   * Resolve the open review proposal for the currently published process version.
+   * This lets every project member see remarks without creating a second workflow.
+   */
+  @Get(':projectId/processes/:resourceId/change-proposals/active')
+  @UseAcl()
+  async getActiveProposalForProcess(
+    @Param('projectId') projectId: string,
+    @Param('resourceId') resourceId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    if (!this.access.hasOrganizationAdminRole(headers)) {
+      await this.access.assertProjectRole(
+        projectId,
+        headers,
+        ProjectMemberRole.Viewer,
+      );
+    }
+    const link = await this.projectProcesses.findOne({
+      where: { projectId, resourceId },
+    });
+    if (!link) throw new NotFoundException('Le processus ne fait pas partie de ce projet');
+    const published = await this.dataSource.getRepository(ContentTypeOrmEntity).findOne({
+      where: { resourceId, status: ContentStatusEnum.Published },
+      order: { version: 'DESC' },
+    });
+    if (!published) return null;
+    const proposal = await this.proposals.findOne({
+      where: {
+        projectId,
+        sourceResourceId: resourceId,
+        sourcePublishedContentId: published.id,
+        status: In([
+          ProcessChangeProposalStatus.Draft,
+          ProcessChangeProposalStatus.Submitted,
+          ProcessChangeProposalStatus.Approved,
+          ProcessChangeProposalStatus.ChangesRequested,
+        ]),
+      },
+      order: { createdAt: 'ASC' },
+    });
+    return proposal
+      ? {
+          id: proposal.id,
+          status: proposal.status,
+          cloneResourceId: proposal.cloneResourceId,
+        }
+      : null;
+  }
+
+  /**
    * Start a proposal by cloning the currently published BPMN inside one
    * transaction. The source remains untouched and the clone is linked only
    * to the project in which the proposal was initiated.
