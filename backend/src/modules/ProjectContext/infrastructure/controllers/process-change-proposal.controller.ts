@@ -142,6 +142,18 @@ export class ProcessChangeProposalController {
         validator.username || validator.email || validator.id,
       ]),
     );
+    const remarkCountsByProposal = new Map<string, { total: number; pending: number }>();
+    for (const remark of remarks) {
+      const counts = remarkCountsByProposal.get(remark.proposalId) ?? {
+        total: 0,
+        pending: 0,
+      };
+      counts.total += 1;
+      if (remark.status === ProcessChangeProposalCommentStatus.Pending) {
+        counts.pending += 1;
+      }
+      remarkCountsByProposal.set(remark.proposalId, counts);
+    }
     const latestEventByProposal = new Map<
       string,
       ProcessChangeProposalEventTypeOrmEntity
@@ -230,7 +242,7 @@ export class ProcessChangeProposalController {
     const sourceIds = [
       ...new Set(visible.map((proposal) => proposal.sourceResourceId)),
     ];
-    const [projects, resources, links, events, authors] = await Promise.all([
+    const [projects, resources, links, events, authors, remarks] = await Promise.all([
       this.projects.find({ where: { id: In(projectIds) } }),
       this.resources.find({
         where: { id: In(sourceIds) },
@@ -246,6 +258,9 @@ export class ProcessChangeProposalController {
         'SELECT id, username, email FROM app_users WHERE id = ANY($1::uuid[])',
         [[...new Set(visible.map((proposal) => proposal.authorUserId))]],
       ),
+      this.proposalComments.find({
+        where: { proposalId: In(proposalIds) },
+      }),
     ]);
     const linked = new Set(
       links.map((link) => `${link.projectId}:${link.resourceId}`),
@@ -302,6 +317,8 @@ export class ProcessChangeProposalController {
           validatorUserId: proposal.validatorUserId,
           status: proposal.status,
           submissionComment: proposal.submissionComment,
+          totalRemarksCount: remarkCountsByProposal.get(proposal.id)?.total ?? 0,
+          pendingRemarksCount: remarkCountsByProposal.get(proposal.id)?.pending ?? 0,
           submittedAt: proposal.submittedAt,
           latestActivityAt: latestEvent?.createdAt ?? proposal.updatedAt,
           latestActivityType: latestEvent?.eventType ?? 'submitted',
