@@ -344,7 +344,9 @@ export class ProcessChangeProposalController {
           ProjectMemberRole.Viewer,
         );
       }
-      await this.access.assertCanReadResource(sourceResourceId, headers);
+      if (!isOrganizationAdmin) {
+        await this.access.assertCanReadResource(sourceResourceId, headers);
+      }
     } else {
       // Keep the existing clone policy for ordinary modeler proposals.
       await this.access.assertCanCloneResource(projectId, sourceResourceId, headers);
@@ -548,6 +550,45 @@ export class ProcessChangeProposalController {
         }),
       );
 
+      let initialValidatorUserId: string | null = null;
+      if (isViewerRemark) {
+        const validatorIdentifier = body.validatorUserId?.trim();
+        if (validatorIdentifier) {
+          const validatorRows: Array<{ id: string; username: string }> = await manager.query(
+            'SELECT id, username FROM app_users WHERE (lower(username) = lower($1) OR lower(email) = lower($1) OR id::text = $1) AND active = TRUE LIMIT 1',
+            [validatorIdentifier],
+          );
+          const candidate = validatorRows[0];
+          if (candidate && candidate.id !== authorUserId) {
+            const candidateMembership = await members.findOne({
+              where: { projectId, userId: candidate.username },
+            });
+            if (
+              candidateMembership &&
+              (candidateMembership.role === ProjectMemberRole.Admin ||
+                candidateMembership.role === ProjectMemberRole.Modeler)
+            ) initialValidatorUserId = candidate.id;
+          }
+        }
+        if (!initialValidatorUserId) {
+          const admins = await members.find({
+            where: { projectId, role: ProjectMemberRole.Admin },
+            order: { createdAt: 'ASC' },
+          });
+          for (const admin of admins) {
+            if (admin.userId === authorUsername) continue;
+            const adminRows: Array<{ id: string }> = await manager.query(
+              'SELECT id FROM app_users WHERE lower(username) = lower($1) AND active = TRUE LIMIT 1',
+              [admin.userId],
+            );
+            if (adminRows[0]) {
+              initialValidatorUserId = adminRows[0].id;
+              break;
+            }
+          }
+        }
+      }
+
       const proposal = await proposals.save(
         proposals.create({
           projectId,
@@ -556,7 +597,7 @@ export class ProcessChangeProposalController {
           sourcePublishedContentId: published.id,
           submittedContentId: isViewerRemark ? savedCloneContent.id : null,
           authorUserId,
-          validatorUserId: null,
+          validatorUserId: initialValidatorUserId,
           status: isViewerRemark
             ? ProcessChangeProposalStatus.Submitted
             : ProcessChangeProposalStatus.Draft,
@@ -574,7 +615,7 @@ export class ProcessChangeProposalController {
           proposalId: proposal.id,
           eventType: 'created',
           actorUserId: authorUserId,
-          validatorUserId: null,
+          validatorUserId: initialValidatorUserId,
           comment: null,
           details: {
             sourcePublishedContentId: published.id,
@@ -603,7 +644,7 @@ export class ProcessChangeProposalController {
           proposalId: proposal.id,
           eventType: 'submitted',
           actorUserId: authorUserId,
-          validatorUserId: null,
+          validatorUserId: initialValidatorUserId,
           comment: 'Remarques déposées depuis le Viewer',
           details: { submittedContentId: savedCloneContent.id, source: 'viewer-remark' },
           createdBy: authorUsername,
