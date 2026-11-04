@@ -43,11 +43,11 @@ describe('ProcessChangeProposalController remark permissions', () => {
     };
     const comments = {
       findOne: jest.fn().mockResolvedValue(remark),
-      save: jest.fn(async (value) => value),
+      save: jest.fn(async (value: any) => value),
     };
     const events = {
-      create: jest.fn((value) => value),
-      save: jest.fn(async (value) => value),
+      create: jest.fn((value: any) => value),
+      save: jest.fn(async (value: any) => value),
     };
     const members = {
       findOne: jest.fn().mockResolvedValue(
@@ -82,7 +82,7 @@ describe('ProcessChangeProposalController remark permissions', () => {
       members as never,
       {} as never,
     );
-    return { controller, events, comments, remark };
+    return { controller, events, comments, proposals, remark };
   };
 
   it.each([
@@ -90,13 +90,13 @@ describe('ProcessChangeProposalController remark permissions', () => {
     ['gestionnaire du projet', ProjectMemberRole.Admin, false, false],
     ['administrateur global', null, true, false],
   ])('allows the %s to decide a remark', async (_label, role, isGlobalAdmin, isAssigned) => {
-    const { controller, events, comments } = makeController(
+    const { controller, events, comments, proposals } = makeController(
       role ? { role } : null,
       isGlobalAdmin,
     );
     const proposalValidator = isAssigned ? actorUserId : '00000000-0000-4000-8000-000000000099';
     // The proposal fixture is updated to exercise both assigned and fallback paths.
-    (controller as any).proposals.findOne.mockResolvedValue({
+    proposals.findOne.mockResolvedValue({
       id: proposalId,
       projectId: 'project-1',
       validatorUserId: proposalValidator,
