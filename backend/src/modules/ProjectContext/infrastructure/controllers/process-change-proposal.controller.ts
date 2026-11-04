@@ -856,57 +856,18 @@ export class ProcessChangeProposalController {
         );
       }
 
-      let validatorUserId: string | null = null;
-      let validatorResolution:
-        | 'pilot_assigned'
-        | 'pilot_missing'
-        | 'pilot_invalid' = body.validatorUserId?.trim()
-        ? 'pilot_invalid'
-        : 'pilot_missing';
-      const pilotIdentifier =
-        body.validatorUserId?.trim() || proposal.validatorUserId || null;
-      let pilotRows: Array<{ id: string; username: string }> = [];
-      if (pilotIdentifier) {
-        pilotRows = await manager.query(
-          'SELECT id, username FROM app_users WHERE (lower(username) = lower($1) OR lower(email) = lower($1) OR id::text = $1) AND active = TRUE LIMIT 1',
-          [pilotIdentifier],
-        );
-      }
-      const pilot = pilotRows[0];
-      if (pilot && pilot.id !== actorUserId) {
-        const pilotMembership = await members.findOne({
-          where: { projectId: proposal.projectId, userId: pilot.username },
-        });
-        if (
-          pilotMembership &&
-          (pilotMembership.role === ProjectMemberRole.Admin ||
-            pilotMembership.role === ProjectMemberRole.Modeler)
-        ) {
-          validatorUserId = pilot.id;
-          validatorResolution = 'pilot_assigned';
-        }
-      }
-
-      if (!validatorUserId) {
-        const admins = await members.find({
-          where: {
-            projectId: proposal.projectId,
-            role: ProjectMemberRole.Admin,
-          },
-          order: { createdAt: 'ASC' },
-        });
-        for (const admin of admins) {
-          if (admin.userId === actorUsername) continue;
-          const adminRows: Array<{ id: string }> = await manager.query(
-            'SELECT id FROM app_users WHERE lower(username) = lower($1) AND active = TRUE LIMIT 1',
-            [admin.userId],
-          );
-          if (adminRows[0]) {
-            validatorUserId = adminRows[0].id;
-            break;
-          }
-        }
-      }
+      const {
+        validatorUserId,
+        validatorResolution,
+        validatorWarning,
+      } = await this.resolveProposalValidator(
+        manager,
+        members,
+        proposal.projectId,
+        actorUsername,
+        actorUserId,
+        body.validatorUserId?.trim() || proposal.validatorUserId || null,
+      );
 
       proposal.validatorUserId = validatorUserId;
       proposal.submittedContentId = submittedContent.id;
@@ -926,10 +887,7 @@ export class ProcessChangeProposalController {
           details: {
             submittedContentId: submittedContent.id,
             validatorResolution,
-            validatorWarning:
-              validatorResolution === 'pilot_assigned'
-                ? null
-                : 'Le pilote du processus est absent ou non reconnu ; une validation administrateur est à prévoir.',
+            validatorWarning,
           },
           createdBy: actorUsername,
         }),
@@ -939,10 +897,7 @@ export class ProcessChangeProposalController {
         id: savedProposal.id,
         status: savedProposal.status,
         validatorUserId,
-        validatorWarning:
-          validatorResolution === 'pilot_assigned'
-            ? null
-            : 'Le pilote du processus est absent ou non reconnu ; une validation administrateur est à prévoir.',
+        validatorWarning,
         submittedContentId: submittedContent.id,
         submittedAt: savedProposal.submittedAt,
       };
