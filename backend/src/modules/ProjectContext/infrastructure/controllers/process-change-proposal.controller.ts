@@ -186,6 +186,8 @@ export class ProcessChangeProposalController {
           : null,
         status: proposal.status,
         submissionComment: proposal.submissionComment,
+        totalRemarksCount: remarkCountsByProposal.get(proposal.id)?.total ?? 0,
+        pendingRemarksCount: remarkCountsByProposal.get(proposal.id)?.pending ?? 0,
         createdAt: proposal.createdAt,
         updatedAt: proposal.updatedAt,
         submittedAt: proposal.submittedAt,
