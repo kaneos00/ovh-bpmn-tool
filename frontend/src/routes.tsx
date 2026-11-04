@@ -40,10 +40,9 @@ async function requireGlobalAdmin({ request }: { request: Request }) {
 }
 
 /**
- * V3 initial shell: authentication, process/folder viewer and BPMN modeler.
- * Application management, organization administration, project management,
- * comparisons and resource CRUD routes are intentionally not exposed here.
- * Their backend APIs and implementation remain untouched for later phases.
+ * V3 application routes: authenticated process workspace plus global-admin
+ * organization administration. Account and project access operations reuse
+ * their existing backend APIs and keep global and project roles distinct.
  */
 export const routes = [
   {
