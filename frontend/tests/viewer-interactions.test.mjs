@@ -391,6 +391,9 @@ test('contextual remark migration is included in every existing Coolify and CI m
   assert.ok(dockerfile.includes('20261104_v3_process_change_proposal_comments.sql'));
   assert.ok(compose.includes('20261104_v3_process_change_proposal_comments.sql'));
   assert.ok(workflow.includes('20261104_v3_process_change_proposal_comments.sql'));
+  assert.ok(dockerfile.includes('20261104_v3_process_change_proposal_remark_events.sql'));
+  assert.ok(compose.includes('20261104_v3_process_change_proposal_remark_events.sql'));
+  assert.ok(workflow.includes('20261104_v3_process_change_proposal_remark_events.sql'));
   assert.ok(workflow.includes("'process_change_proposal_comments'"));
 });
 
