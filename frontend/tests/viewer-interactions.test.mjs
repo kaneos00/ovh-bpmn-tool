@@ -236,6 +236,28 @@ test('explorer search chevrons collapse and reopen branches using the visible ex
   assert.ok(tree.includes('setSearchCollapsedNodes([])'));
 });
 
+test('global BPMN search excludes connecting arrows and their documentation', async () => {
+  const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+
+  assert.match(navigation, /const BPMN_CONNECTION_TYPES = new Set/);
+  assert.match(navigation, /BPMN_CONNECTION_TYPES\.has\(element\.localName\.toLocaleLowerCase\('fr'\)\)/);
+  assert.match(navigation, /BPMN_CONNECTION_TYPES\.has\(bpmnOwner\.localName\.toLocaleLowerCase\('fr'\)\)/);
+});
+
+test('global and full search use the same shared result row component', async () => {
+  const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+  const fullSearch = await read('src/Containers/SearchResults/SearchResults.container.tsx');
+  const shared = await read('src/Components/GenericComponents/SearchResultItem/SearchResultItem.tsx');
+
+  assert.ok(navigation.includes("import { SearchResultItem } from '../SearchResultItem/SearchResultItem'"));
+  assert.ok(fullSearch.includes("import { SearchResultItem } from '../../Components/GenericComponents/SearchResultItem/SearchResultItem'"));
+  assert.ok(navigation.includes('<SearchResultItem'));
+  assert.ok(fullSearch.includes('<SearchResultItem'));
+  assert.ok(shared.includes('badge={badge}') === false);
+  assert.ok(shared.includes('<Typography level="title-sm">{title}</Typography>'));
+  assert.ok(shared.includes('level="body-xs"'));
+});
+
 test('global annotation search labels text annotations as Description and carries the BPMN element ID', async () => {
   const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
 
