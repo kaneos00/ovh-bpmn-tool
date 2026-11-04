@@ -15,6 +15,7 @@ type ReviewProposal = {
   sourcePublishedContentId: string; processName: string; cloneResourceId: string;
   submittedContentId: string | null; authorName: string; submissionComment: string | null;
   submittedAt: string | null; latestActivityAt: string; status: 'submitted' | 'approved';
+  totalRemarksCount?: number; pendingRemarksCount?: number;
 };
 type Proposal = {
   id: string;
@@ -168,6 +169,11 @@ export const Component = () => {
                           </Sheet>
                         )}
                       </Box>
+                      {(proposal.totalRemarksCount ?? 0) > 0 && (
+                        <Typography level="body-xs" color={(proposal.pendingRemarksCount ?? 0) > 0 ? 'warning' : 'success'}>
+                          {proposal.pendingRemarksCount ?? 0} remarque(s) en attente sur {proposal.totalRemarksCount}
+                        </Typography>
+                      )}
                       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                         <Button size="sm" variant="outlined" color="neutral"
                           disabled={!proposal.submittedContentId}
