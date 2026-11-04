@@ -22,7 +22,12 @@ export type SearchResultSource =
   | 'project-raci'
   | 'project-actor';
 
-export type SearchSortBy = 'relevance' | 'type' | 'label' | 'source' | 'process';
+export type SearchSortBy =
+  | 'relevance'
+  | 'type'
+  | 'label'
+  | 'source'
+  | 'process';
 export type SearchSortDirection = 'asc' | 'desc';
 
 export function canReadEmbeddedProjectMetadata(
@@ -651,12 +656,13 @@ export class UnifiedSearchService {
     ];
 
     const resourceIds = [...resourceById.keys()];
-    const projectLinks = needsProjectData && resourceIds.length
-      ? await this.projectProcesses.find({
-          where: { resourceId: In(resourceIds) },
-          select: { projectId: true, resourceId: true, usage: true },
-        })
-      : [];
+    const projectLinks =
+      needsProjectData && resourceIds.length
+        ? await this.projectProcesses.find({
+            where: { resourceId: In(resourceIds) },
+            select: { projectId: true, resourceId: true, usage: true },
+          })
+        : [];
     // BPMN-embedded actors/RACI are project metadata: do not expose them
     // merely because the underlying process is readable through another path.
     let bpmnDocumentsAvailable = 0;
@@ -707,8 +713,7 @@ export class UnifiedSearchService {
           const extractionTypes = options.types?.length
             ? options.types.filter(
                 (type) =>
-                  type !== 'raci' &&
-                  type !== 'actor' ||
+                  (type !== 'raci' && type !== 'actor') ||
                   canReadProjectMetadata,
               )
             : canReadProjectMetadata
