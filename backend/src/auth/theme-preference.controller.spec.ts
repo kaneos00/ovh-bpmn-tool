@@ -83,6 +83,27 @@ describe('ThemePreferenceController', () => {
     );
   });
 
+  it('saves search sorting without assigning a theme to a new preference row', async () => {
+    db.query
+      .mockResolvedValueOnce([{ id: 'user-1' }])
+      .mockResolvedValueOnce([]);
+
+    const result = await controller.saveSearchSortPreference(
+      { headers: { cookie: sessionCookie() } } as never,
+      { sortBy: 'label', sortDirection: 'desc' },
+    );
+
+    expect(result).toEqual({ sortBy: 'label', sortDirection: 'desc' });
+    expect(db.query).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining(
+        'INSERT INTO app_user_preferences (user_id, search_sort, updated_at)',
+      ),
+      ['user-1', JSON.stringify({ sortBy: 'label', sortDirection: 'desc' })],
+    );
+    expect(db.query.mock.calls[1][0]).not.toContain('theme');
+  });
+
   it('rejects unsupported theme values', async () => {
     db.query.mockResolvedValueOnce([{ id: 'user-1' }]);
 

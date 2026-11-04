@@ -1,10 +1,12 @@
 import { ProjectRaciRole } from '../ProjectContext/infrastructure/entities/projectRaciEntry.ormEntity';
 import {
+  canReadEmbeddedProjectMetadata,
   extractBpmnSearchResults,
   getSearchSimilarity,
   isExactSearchTextMatch,
   isSearchTextMatch,
   normalizeSearchText,
+  sortUnifiedSearchResults,
 } from './unified-search.service';
 
 describe('unified search normalization', () => {
@@ -47,6 +49,73 @@ describe('unified search normalization', () => {
     expect(
       isExactSearchTextMatch('Supplier invoice validation', 'invoice supplier'),
     ).toBe(true);
+  });
+});
+
+describe('search access and global ordering', () => {
+  const links = [
+    {
+      resourceId: 'private-process',
+      projectId: 'project-secret',
+      usage: 'project-specific',
+    },
+    {
+      resourceId: 'common-process',
+      projectId: 'project-secret',
+      usage: 'common',
+    },
+  ];
+
+  it('does not expose BPMN-embedded project metadata without linked project membership', () => {
+    expect(canReadEmbeddedProjectMetadata('private-process', links, [])).toBe(
+      false,
+    );
+    expect(
+      canReadEmbeddedProjectMetadata('private-process', links, [
+        'project-secret',
+      ]),
+    ).toBe(true);
+    expect(canReadEmbeddedProjectMetadata('common-process', links, [])).toBe(
+      true,
+    );
+    expect(canReadEmbeddedProjectMetadata('unlinked-process', links, [])).toBe(
+      true,
+    );
+  });
+
+  it('sorts the full result set before a caller slices a page', () => {
+    const results = [
+      {
+        type: 'bpmn' as const,
+        id: '1',
+        label: 'Zulu',
+        excerpt: '',
+        field: 'nome',
+        matchScore: 100,
+      },
+      {
+        type: 'bpmn' as const,
+        id: '2',
+        label: 'Alpha',
+        excerpt: '',
+        field: 'nome',
+        matchScore: 100,
+      },
+      {
+        type: 'bpmn' as const,
+        id: '3',
+        label: 'Beta',
+        excerpt: '',
+        field: 'nome',
+        matchScore: 100,
+      },
+    ];
+    const globallySorted = sortUnifiedSearchResults(results, 'label', 'asc');
+
+    expect(globallySorted.slice(0, 2).map((result) => result.label)).toEqual([
+      'Alpha',
+      'Beta',
+    ]);
   });
 });
 
@@ -139,6 +208,22 @@ describe('BPMN search extraction', () => {
       extractBpmnSearchResults(xml, 'resource-1', 'Order', 'Task_Approve', [
         'bpmn',
       ]),
+    ).toEqual([]);
+  });
+
+  it('does not expose an unnamed activity technical ID through inferred RACI search', () => {
+    const unnamedTaskXml = `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL">
+      <process id="Process_Order" name="Order">
+        <userTask id="Task_Secret" responsible="Finance" />
+      </process></definitions>`;
+    expect(
+      extractBpmnSearchResults(
+        unnamedTaskXml,
+        'resource-1',
+        'Order',
+        'Task_Secret',
+        ['raci'],
+      ),
     ).toEqual([]);
   });
 

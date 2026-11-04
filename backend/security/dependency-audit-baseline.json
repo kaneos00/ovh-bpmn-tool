@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-11-02",
-  "reportedVulnerabilities": 81,
-  "uniqueAdvisoryIds": 65,
+  "generatedAt": "2026-11-04",
+  "reportedVulnerabilities": 80,
+  "uniqueAdvisoryIds": 64,
   "advisories": [
     "GHSA-27R3-JXMH-P828",
     "GHSA-2883-XCG3-V3HH",
@@ -32,7 +32,6 @@
     "GHSA-8R5X-FM3F-WHWJ",
     "GHSA-C2C7-RCM5-VVQJ",
     "GHSA-C83G-RGW3-J3CX",
-    "GHSA-F23M-R3PF-42RH",
     "GHSA-F65P-4M7J-42XC",
     "GHSA-FPH4-WMHF-6FWF",
     "GHSA-G3HV-75WG-M249",
@@ -68,5 +67,653 @@
     "GHSA-XHQ7-XMQJ-769H",
     "GHSA-XW65-4HP5-5HC7",
     "GHSA-XXJR-MMJV-4GPG"
+  ],
+  "severityCounts": {
+    "critical": 3,
+    "high": 44,
+    "moderate": 25,
+    "low": 8
+  },
+  "findings": [
+    {
+      "id": "GHSA-JQCG-44MW-7W3H",
+      "package": "proxy-addr",
+      "severity": "critical",
+      "title": "proxy-addr vulnerable to IP spoofing via IPv4-mapped",
+      "vulnerableVersions": ">=1.1.0 <2.0.8",
+      "patchedVersions": ">=2.0.8"
+    },
+    {
+      "id": "GHSA-8R5X-FM3F-WHWJ",
+      "package": "handlebars",
+      "severity": "critical",
+      "title": "Handlebars: JavaScript Injection via AST Type",
+      "vulnerableVersions": ">=4.0.0 <=4.7.9",
+      "patchedVersions": ">=4.7.10"
+    },
+    {
+      "id": "GHSA-P8WG-VRV2-V86F",
+      "package": "handlebars",
+      "severity": "critical",
+      "title": "Handlebars: JavaScript Injection via Own Property",
+      "vulnerableVersions": ">=3.0.0 <=4.7.9",
+      "patchedVersions": ">=4.7.10"
+    },
+    {
+      "id": "GHSA-5J98-MCP5-4VW2",
+      "package": "glob",
+      "severity": "high",
+      "title": "glob CLI: Command injection via -c/--cmd executes",
+      "vulnerableVersions": ">=10.2.0 <10.5.0",
+      "patchedVersions": ">=10.5.0"
+    },
+    {
+      "id": "GHSA-XF7R-HGR6-V32P",
+      "package": "multer",
+      "severity": "high",
+      "title": "Multer vulnerable to Denial of Service via incomplete",
+      "vulnerableVersions": "<2.1.0",
+      "patchedVersions": ">=2.1.0"
+    },
+    {
+      "id": "GHSA-V52C-386H-88MC",
+      "package": "multer",
+      "severity": "high",
+      "title": "Multer vulnerable to Denial of Service via resource",
+      "vulnerableVersions": "<2.1.0",
+      "patchedVersions": ">=2.1.0"
+    },
+    {
+      "id": "GHSA-5528-5VMV-3XC2",
+      "package": "multer",
+      "severity": "high",
+      "title": "Multer Vulnerable to Denial of Service via",
+      "vulnerableVersions": "<2.1.1",
+      "patchedVersions": ">=2.1.1"
+    },
+    {
+      "id": "GHSA-C2C7-RCM5-VVQJ",
+      "package": "picomatch",
+      "severity": "high",
+      "title": "Picomatch has a ReDoS vulnerability via extglob",
+      "vulnerableVersions": ">=4.0.0 <4.0.4",
+      "patchedVersions": ">=4.0.4"
+    },
+    {
+      "id": "GHSA-R5FR-RJXR-66JC",
+      "package": "lodash",
+      "severity": "high",
+      "title": "lodash vulnerable to Code Injection via `_.template`",
+      "vulnerableVersions": ">=4.0.0 <=4.17.23",
+      "patchedVersions": ">=4.17.24"
+    },
+    {
+      "id": "GHSA-PH9P-34F9-6G65",
+      "package": "tmp",
+      "severity": "high",
+      "title": "tmp has Path Traversal via unsanitized prefix/postfix",
+      "vulnerableVersions": "<0.2.6",
+      "patchedVersions": ">=0.2.6"
+    },
+    {
+      "id": "GHSA-HMW2-7CC7-3QXX",
+      "package": "form-data",
+      "severity": "high",
+      "title": "form-data: CRLF injection in form-data via unescaped",
+      "vulnerableVersions": ">=4.0.0 <4.0.6",
+      "patchedVersions": ">=4.0.6"
+    },
+    {
+      "id": "GHSA-72GW-MP4G-V24J",
+      "package": "multer",
+      "severity": "high",
+      "title": "Multer vulnerable to Denial of Service via deeply",
+      "vulnerableVersions": ">=1.0.0 <2.2.0",
+      "patchedVersions": ">=2.2.0"
+    },
+    {
+      "id": "GHSA-3JXR-9VMJ-R5CP",
+      "package": "brace-expansion",
+      "severity": "high",
+      "title": "brace-expansion: DoS via exponential-time expansion of",
+      "vulnerableVersions": ">=2.0.0 <2.1.2",
+      "patchedVersions": ">=2.1.2"
+    },
+    {
+      "id": "GHSA-3JXR-9VMJ-R5CP",
+      "package": "brace-expansion",
+      "severity": "high",
+      "title": "brace-expansion: DoS via exponential-time expansion of",
+      "vulnerableVersions": "<1.1.16",
+      "patchedVersions": ">=1.1.16"
+    },
+    {
+      "id": "GHSA-3JXR-9VMJ-R5CP",
+      "package": "brace-expansion",
+      "severity": "high",
+      "title": "brace-expansion: DoS via exponential-time expansion of",
+      "vulnerableVersions": ">=3.0.0 <5.0.7",
+      "patchedVersions": ">=5.0.7"
+    },
+    {
+      "id": "GHSA-52CP-R559-CP3M",
+      "package": "js-yaml",
+      "severity": "high",
+      "title": "js-yaml: YAML merge-key chains can force quadratic CPU",
+      "vulnerableVersions": ">=4.0.0 <4.3.0",
+      "patchedVersions": ">=4.3.0"
+    },
+    {
+      "id": "GHSA-52CP-R559-CP3M",
+      "package": "js-yaml",
+      "severity": "high",
+      "title": "js-yaml: YAML merge-key chains can force quadratic CPU",
+      "vulnerableVersions": ">=3.0.0 <3.15.0",
+      "patchedVersions": ">=3.15.0"
+    },
+    {
+      "id": "GHSA-V2HH-GCRM-F6HX",
+      "package": "fast-uri",
+      "severity": "high",
+      "title": "fast-uri vulnerable to host confusion via literal",
+      "vulnerableVersions": ">=3.0.0 <=3.1.3",
+      "patchedVersions": ">=3.1.4"
+    },
+    {
+      "id": "GHSA-MH99-V99M-4GVG",
+      "package": "brace-expansion",
+      "severity": "high",
+      "title": "brace-expansion: DoS via unbounded expansion length",
+      "vulnerableVersions": "<1.1.17",
+      "patchedVersions": ">=1.1.17"
+    },
+    {
+      "id": "GHSA-MH99-V99M-4GVG",
+      "package": "brace-expansion",
+      "severity": "high",
+      "title": "brace-expansion: DoS via unbounded expansion length",
+      "vulnerableVersions": ">=2.0.0 <2.1.3",
+      "patchedVersions": ">=2.1.3"
+    },
+    {
+      "id": "GHSA-MH99-V99M-4GVG",
+      "package": "brace-expansion",
+      "severity": "high",
+      "title": "brace-expansion: DoS via unbounded expansion length",
+      "vulnerableVersions": ">=4.0.0 <5.0.8",
+      "patchedVersions": ">=5.0.8"
+    },
+    {
+      "id": "GHSA-7P8R-X3MC-P8W7",
+      "package": "fast-uri",
+      "severity": "high",
+      "title": "fast-uri vulnerable to host confusion via backslash",
+      "vulnerableVersions": ">=3.0.0 <3.1.5",
+      "patchedVersions": ">=3.1.5"
+    },
+    {
+      "id": "GHSA-RGW5-RVV9-X895",
+      "package": "brace-expansion",
+      "severity": "high",
+      "title": "brace-expansion: DoS via unbounded intermediate",
+      "vulnerableVersions": ">=4.0.0 <5.0.9",
+      "patchedVersions": ">=5.0.9"
+    },
+    {
+      "id": "GHSA-RGW5-RVV9-X895",
+      "package": "brace-expansion",
+      "severity": "high",
+      "title": "brace-expansion: DoS via unbounded intermediate",
+      "vulnerableVersions": ">=2.0.0 <2.1.4",
+      "patchedVersions": ">=2.1.4"
+    },
+    {
+      "id": "GHSA-RGW5-RVV9-X895",
+      "package": "brace-expansion",
+      "severity": "high",
+      "title": "brace-expansion: DoS via unbounded intermediate",
+      "vulnerableVersions": "<1.1.18",
+      "patchedVersions": ">=1.1.18"
+    },
+    {
+      "id": "GHSA-5P4M-2WFM-XMQJ",
+      "package": "js-yaml",
+      "severity": "high",
+      "title": "JS-YAML: Quadratic CPU consumption in !!omap",
+      "vulnerableVersions": ">=3.0.0 <3.15.1",
+      "patchedVersions": ">=3.15.1"
+    },
+    {
+      "id": "GHSA-5P4M-2WFM-XMQJ",
+      "package": "js-yaml",
+      "severity": "high",
+      "title": "JS-YAML: Quadratic CPU consumption in !!omap",
+      "vulnerableVersions": ">=4.0.0 <4.3.1",
+      "patchedVersions": ">=4.3.1"
+    },
+    {
+      "id": "GHSA-C83G-RGW3-J3CX",
+      "package": "browserslist",
+      "severity": "high",
+      "title": "Browserslist: Unbounded memory growth (no cache",
+      "vulnerableVersions": "<=4.28.6",
+      "patchedVersions": ">=4.28.7"
+    },
+    {
+      "id": "GHSA-73WF-GQ98-2V4G",
+      "package": "browserslist",
+      "severity": "high",
+      "title": "Browserslist: Uncaught crash / prototype write via",
+      "vulnerableVersions": "<=4.28.6",
+      "patchedVersions": ">=4.28.7"
+    },
+    {
+      "id": "GHSA-F65P-4M7J-42XC",
+      "package": "fast-uri",
+      "severity": "high",
+      "title": "fast-uri vulnerable to server-side request forgery via",
+      "vulnerableVersions": ">=3.0.0 <3.1.6",
+      "patchedVersions": ">=3.1.6"
+    },
+    {
+      "id": "GHSA-FPH4-WMHF-6FWF",
+      "package": "fast-uri",
+      "severity": "high",
+      "title": "fast-uri vulnerable to server-side request forgery via",
+      "vulnerableVersions": ">=3.1.2 <3.1.6",
+      "patchedVersions": ">=3.1.6"
+    },
+    {
+      "id": "GHSA-JQFF-G426-HQXP",
+      "package": "fast-uri",
+      "severity": "high",
+      "title": "fast-uri vulnerable to host confusion via",
+      "vulnerableVersions": ">=3.0.0 <3.1.6",
+      "patchedVersions": ">=3.1.6"
+    },
+    {
+      "id": "GHSA-2883-XCG3-V3HH",
+      "package": "js-yaml",
+      "severity": "high",
+      "title": "js-yaml: maxTotalMergeKeys does not limit CPU use for",
+      "vulnerableVersions": ">=3.0.0 <3.15.2",
+      "patchedVersions": ">=3.15.2"
+    },
+    {
+      "id": "GHSA-2883-XCG3-V3HH",
+      "package": "js-yaml",
+      "severity": "high",
+      "title": "js-yaml: maxTotalMergeKeys does not limit CPU use for",
+      "vulnerableVersions": ">=4.0.0 <4.3.2",
+      "patchedVersions": ">=4.3.2"
+    },
+    {
+      "id": "GHSA-WC9G-MQFW-JRWM",
+      "package": "multer",
+      "severity": "high",
+      "title": "multer vulnerable to Denial of Service via crafted",
+      "vulnerableVersions": "<2.3.0",
+      "patchedVersions": ">=2.3.0"
+    },
+    {
+      "id": "GHSA-535W-7CP7-47Q4",
+      "package": "multer",
+      "severity": "high",
+      "title": "multer vulnerable to Denial of Service via oversized",
+      "vulnerableVersions": "<2.3.0",
+      "patchedVersions": ">=2.3.0"
+    },
+    {
+      "id": "GHSA-4C8G-83QW-93J6",
+      "package": "fast-uri",
+      "severity": "high",
+      "title": "fast-uri vulnerable to host confusion via failed IDN",
+      "vulnerableVersions": ">=3.0.0 <3.1.3",
+      "patchedVersions": ">=3.1.3"
+    },
+    {
+      "id": "GHSA-QW65-CVWX-89V3",
+      "package": "fast-uri",
+      "severity": "high",
+      "title": "fast-uri vulnerable to authority injection via an",
+      "vulnerableVersions": ">=3.0.0 <3.1.7",
+      "patchedVersions": ">=3.1.7"
+    },
+    {
+      "id": "GHSA-QHR7-859C-M2P7",
+      "package": "brace-expansion",
+      "severity": "high",
+      "title": "brace-expansion: DoS via uncontrolled recursion on",
+      "vulnerableVersions": "<1.1.20",
+      "patchedVersions": ">=1.1.20"
+    },
+    {
+      "id": "GHSA-QHR7-859C-M2P7",
+      "package": "brace-expansion",
+      "severity": "high",
+      "title": "brace-expansion: DoS via uncontrolled recursion on",
+      "vulnerableVersions": ">=2.0.0 <2.1.6",
+      "patchedVersions": ">=2.1.6"
+    },
+    {
+      "id": "GHSA-QHR7-859C-M2P7",
+      "package": "brace-expansion",
+      "severity": "high",
+      "title": "brace-expansion: DoS via uncontrolled recursion on",
+      "vulnerableVersions": ">=4.0.0 <5.0.11",
+      "patchedVersions": ">=5.0.11"
+    },
+    {
+      "id": "GHSA-6J4F-FJ2G-MC7P",
+      "package": "brace-expansion",
+      "severity": "high",
+      "title": "brace-expansion: DoS via uncontrolled recursion in",
+      "vulnerableVersions": "<1.1.19",
+      "patchedVersions": ">=1.1.19"
+    },
+    {
+      "id": "GHSA-6J4F-FJ2G-MC7P",
+      "package": "brace-expansion",
+      "severity": "high",
+      "title": "brace-expansion: DoS via uncontrolled recursion in",
+      "vulnerableVersions": ">=2.0.0 <2.1.5",
+      "patchedVersions": ">=2.1.5"
+    },
+    {
+      "id": "GHSA-6J4F-FJ2G-MC7P",
+      "package": "brace-expansion",
+      "severity": "high",
+      "title": "brace-expansion: DoS via uncontrolled recursion in",
+      "vulnerableVersions": ">=4.0.0 <5.0.10",
+      "patchedVersions": ">=5.0.10"
+    },
+    {
+      "id": "GHSA-MRHX-C7XC-M3W5",
+      "package": "zod",
+      "severity": "high",
+      "title": "Zod can exhaust memory while validating oversized",
+      "vulnerableVersions": "<4.6.6",
+      "patchedVersions": ">=4.6.6"
+    },
+    {
+      "id": "GHSA-27R3-JXMH-P828",
+      "package": "body-parser",
+      "severity": "high",
+      "title": "body-parser vulnerable to Denial of Service via",
+      "vulnerableVersions": "<1.20.9",
+      "patchedVersions": ">=1.20.9"
+    },
+    {
+      "id": "GHSA-Q7QP-RJG7-Q26M",
+      "package": "multer",
+      "severity": "high",
+      "title": "multer vulnerable to Denial of Service via a pending",
+      "vulnerableVersions": ">=2.0.0 <2.5.0",
+      "patchedVersions": ">=2.5.0"
+    },
+    {
+      "id": "GHSA-MH29-5H37-FV8M",
+      "package": "js-yaml",
+      "severity": "moderate",
+      "title": "js-yaml has prototype pollution in merge (<<)",
+      "vulnerableVersions": ">=4.0.0 <4.1.1",
+      "patchedVersions": ">=4.1.1"
+    },
+    {
+      "id": "GHSA-2G4F-4PWH-QVX6",
+      "package": "ajv",
+      "severity": "moderate",
+      "title": "ajv has ReDoS when using `$data` option",
+      "vulnerableVersions": ">=7.0.0-alpha.0 <8.18.0",
+      "patchedVersions": ">=8.18.0"
+    },
+    {
+      "id": "GHSA-5V7R-6R5C-R473",
+      "package": "file-type",
+      "severity": "moderate",
+      "title": "file-type affected by infinite loop in ASF parser on",
+      "vulnerableVersions": ">=13.0.0 <21.3.1",
+      "patchedVersions": ">=21.3.1"
+    },
+    {
+      "id": "GHSA-J47W-4G3G-C36V",
+      "package": "file-type",
+      "severity": "moderate",
+      "title": "file-type: ZIP Decompression Bomb DoS via",
+      "vulnerableVersions": ">=20.0.0 <=21.3.1",
+      "patchedVersions": ">=21.3.2"
+    },
+    {
+      "id": "GHSA-3V7F-55P6-F55P",
+      "package": "picomatch",
+      "severity": "moderate",
+      "title": "Picomatch: Method Injection in POSIX Character Classes",
+      "vulnerableVersions": ">=4.0.0 <4.0.4",
+      "patchedVersions": ">=4.0.4"
+    },
+    {
+      "id": "GHSA-36XV-JGW5-4Q75",
+      "package": "@nestjs/core",
+      "severity": "moderate",
+      "title": "@nestjs/core Improperly Neutralizes Special Elements",
+      "vulnerableVersions": "<=11.1.17",
+      "patchedVersions": ">=11.1.18"
+    },
+    {
+      "id": "GHSA-W5HQ-G745-H8PQ",
+      "package": "uuid",
+      "severity": "moderate",
+      "title": "uuid: Missing buffer bounds check in v3/v5/v6 when buf",
+      "vulnerableVersions": "<11.1.1",
+      "patchedVersions": ">=11.1.1"
+    },
+    {
+      "id": "GHSA-Q8MJ-M7CP-5Q26",
+      "package": "qs",
+      "severity": "moderate",
+      "title": "qs has a remotely triggerable DoS: qs.stringify",
+      "vulnerableVersions": ">=6.11.1 <=6.15.1",
+      "patchedVersions": ">=6.15.2"
+    },
+    {
+      "id": "GHSA-3P4H-7M6X-2HCM",
+      "package": "multer",
+      "severity": "moderate",
+      "title": "Multer vulnerable to Denial of Service via incomplete",
+      "vulnerableVersions": ">=2.0.0-alpha.1 <2.2.0",
+      "patchedVersions": ">=2.2.0"
+    },
+    {
+      "id": "GHSA-H67P-54HQ-RP68",
+      "package": "js-yaml",
+      "severity": "moderate",
+      "title": "JS-YAML: Quadratic-complexity DoS in merge key",
+      "vulnerableVersions": "<3.15.0",
+      "patchedVersions": ">=3.15.0"
+    },
+    {
+      "id": "GHSA-H67P-54HQ-RP68",
+      "package": "js-yaml",
+      "severity": "moderate",
+      "title": "JS-YAML: Quadratic-complexity DoS in merge key",
+      "vulnerableVersions": ">=4.0.0 <=4.1.1",
+      "patchedVersions": ">=4.1.2"
+    },
+    {
+      "id": "GHSA-2RP8-MM9Q-FP49",
+      "package": "typeorm",
+      "severity": "moderate",
+      "title": "TypeORM: migration:generate template-literal cod",
+      "vulnerableVersions": "<0.3.31",
+      "patchedVersions": ">=0.3.31"
+    },
+    {
+      "id": "GHSA-X5FP-WJ9C-MXMX",
+      "package": "qs",
+      "severity": "moderate",
+      "title": "qs array-limit bypass via bracket-key comma parsing",
+      "vulnerableVersions": ">=6.14.2 <=6.15.3",
+      "patchedVersions": ">=6.15.4"
+    },
+    {
+      "id": "GHSA-4MJR-XMP4-GH2G",
+      "package": "qs",
+      "severity": "moderate",
+      "title": "qs: Denial of Service via Attacker Controlled isBuffer",
+      "vulnerableVersions": ">=2.2.5 <6.16.0",
+      "patchedVersions": ">=6.16.0"
+    },
+    {
+      "id": "GHSA-W5VR-8V7Q-W6RV",
+      "package": "baseline-browser-mapping",
+      "severity": "moderate",
+      "title": "baseline-browser-mapping process termination on",
+      "vulnerableVersions": ">=2.0.0 <2.11.0",
+      "patchedVersions": ">=2.11.0"
+    },
+    {
+      "id": "GHSA-HRR3-GC8F-F4QJ",
+      "package": "fast-uri",
+      "severity": "moderate",
+      "title": "fast-uri vulnerable to inconsistent host case",
+      "vulnerableVersions": ">=3.0.0 <3.1.8",
+      "patchedVersions": ">=3.1.8"
+    },
+    {
+      "id": "GHSA-Q2HR-2G5M-VWHR",
+      "package": "brace-expansion",
+      "severity": "moderate",
+      "title": "brace-expansion: Quadratic-time expansion of the",
+      "vulnerableVersions": "<1.1.21",
+      "patchedVersions": ">=1.1.21"
+    },
+    {
+      "id": "GHSA-Q2HR-2G5M-VWHR",
+      "package": "brace-expansion",
+      "severity": "moderate",
+      "title": "brace-expansion: Quadratic-time expansion of the",
+      "vulnerableVersions": ">=2.0.0 <2.1.7",
+      "patchedVersions": ">=2.1.7"
+    },
+    {
+      "id": "GHSA-Q2HR-2G5M-VWHR",
+      "package": "brace-expansion",
+      "severity": "moderate",
+      "title": "brace-expansion: Quadratic-time expansion of the",
+      "vulnerableVersions": ">=4.0.0 <5.0.12",
+      "patchedVersions": ">=5.0.12"
+    },
+    {
+      "id": "GHSA-XW65-4HP5-5HC7",
+      "package": "handlebars",
+      "severity": "moderate",
+      "title": "Handlebars: JavaScript Injection via Unsafe Inline",
+      "vulnerableVersions": ">=4.0.0 <=4.7.9",
+      "patchedVersions": ">=4.7.10"
+    },
+    {
+      "id": "GHSA-W74X-V6F9-J3XG",
+      "package": "fast-uri",
+      "severity": "moderate",
+      "title": "fast-uri vulnerable to URI scheme spoofing via",
+      "vulnerableVersions": ">=3.0.0 <3.1.9",
+      "patchedVersions": ">=3.1.9"
+    },
+    {
+      "id": "GHSA-6PQ8-JHM2-2VCW",
+      "package": "qs",
+      "severity": "moderate",
+      "title": "qs : qs.stringify with arrayFormat 'comma' throws an",
+      "vulnerableVersions": ">=6.7.0 <=6.16.0",
+      "patchedVersions": ">=6.16.1"
+    },
+    {
+      "id": "GHSA-G3HV-75WG-M249",
+      "package": "minimatch",
+      "severity": "moderate",
+      "title": "minimatch has potential denial of service via",
+      "vulnerableVersions": "<11.0.1",
+      "patchedVersions": ">=11.0.1"
+    },
+    {
+      "id": "GHSA-3G3M-2FJR-6PW4",
+      "package": "glob",
+      "severity": "moderate",
+      "title": "Glob: AbortSignal cancellation bypass allows",
+      "vulnerableVersions": ">=9.0.0 <=14.0.1",
+      "patchedVersions": ">=14.0.2"
+    },
+    {
+      "id": "GHSA-XXJR-MMJV-4GPG",
+      "package": "lodash",
+      "severity": "moderate",
+      "title": "Lodash has Prototype Pollution Vulnerability in",
+      "vulnerableVersions": ">=4.0.0 <=4.17.22",
+      "patchedVersions": ">=4.17.23"
+    },
+    {
+      "id": "GHSA-52F5-9888-HMC6",
+      "package": "tmp",
+      "severity": "low",
+      "title": "tmp allows arbitrary temporary file / directory write",
+      "vulnerableVersions": "<=0.2.3",
+      "patchedVersions": ">=0.2.4"
+    },
+    {
+      "id": "GHSA-8FGC-7CC6-RX7X",
+      "package": "webpack",
+      "severity": "low",
+      "title": "webpack buildHttp: allowedUris allow-list bypass via",
+      "vulnerableVersions": ">=5.49.0 <=5.104.0",
+      "patchedVersions": ">=5.104.1"
+    },
+    {
+      "id": "GHSA-38R7-794H-5758",
+      "package": "webpack",
+      "severity": "low",
+      "title": "webpack buildHttp HttpUriPlugin allowedUris bypass via",
+      "vulnerableVersions": ">=5.49.0 <5.104.0",
+      "patchedVersions": ">=5.104.0"
+    },
+    {
+      "id": "GHSA-V422-HMWV-36X6",
+      "package": "body-parser",
+      "severity": "low",
+      "title": "body-parser vulnerable to denial of service when",
+      "vulnerableVersions": "<1.20.6",
+      "patchedVersions": ">=1.20.6"
+    },
+    {
+      "id": "GHSA-QVFW-J98X-7Q72",
+      "package": "multer",
+      "severity": "low",
+      "title": "multer vulnerable to file size limit bypass via async",
+      "vulnerableVersions": "<2.3.0",
+      "patchedVersions": ">=2.3.0"
+    },
+    {
+      "id": "GHSA-XHQ7-XMQJ-769H",
+      "package": "fast-uri",
+      "severity": "low",
+      "title": "fast-uri vulnerable to improper path equivalence in",
+      "vulnerableVersions": ">=3.0.0 <3.1.9",
+      "patchedVersions": ">=3.1.9"
+    },
+    {
+      "id": "GHSA-333X-W4R6-6CRP",
+      "package": "fast-uri",
+      "severity": "low",
+      "title": "fast-uri vulnerable to scheme injection via an",
+      "vulnerableVersions": ">=3.0.0 <3.1.9",
+      "patchedVersions": ">=3.1.9"
+    },
+    {
+      "id": "GHSA-GCQX-W48M-W2H4",
+      "package": "deepmerge",
+      "severity": "low",
+      "title": "deepmerge mergeObject() allows prototype poisoning of",
+      "vulnerableVersions": ">=4.2.0 <=4.3.1",
+      "patchedVersions": ">=4.3.2"
+    }
   ]
 }

@@ -81,8 +81,8 @@ export class ThemePreferenceController {
       sortDirection: body.sortDirection,
     };
     await this.db.query(
-      'INSERT INTO app_user_preferences (user_id, theme, search_sort, updated_at) VALUES ($1, $2, $3::jsonb, NOW()) ON CONFLICT (user_id) DO UPDATE SET search_sort = EXCLUDED.search_sort, updated_at = NOW()',
-      [userId, 'light', JSON.stringify(preference)],
+      'INSERT INTO app_user_preferences (user_id, search_sort, updated_at) VALUES ($1, $2::jsonb, NOW()) ON CONFLICT (user_id) DO UPDATE SET search_sort = EXCLUDED.search_sort, updated_at = NOW()',
+      [userId, JSON.stringify(preference)],
     );
     return preference;
   }

@@ -2,9 +2,45 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
+  isCollapsedLinkedSubProcess,
   resolveLinkedChildren,
   resolveProcessTarget,
 } from '../../.test-dist/Components/BusinessComponents/FolderTree/processLinks.js';
+
+describe('isCollapsedLinkedSubProcess', () => {
+  it('keeps a subprocess with embedded flow elements on the native BPMN drilldown path', () => {
+    const embeddedSubProcess = {
+      businessObject: {
+        $type: 'bpmn:SubProcess',
+        id: 'Activity_07qkpz4',
+        // The Camunda fixture contains nested tasks and events. diagram-js
+        // can expose a default false DI flag even when isExpanded is omitted.
+        di: { isExpanded: false },
+        flowElements: [
+          { $type: 'bpmn:StartEvent', id: 'Event_18n6o4k' },
+          { $type: 'bpmn:Task', id: 'Activity_09fx4q6' },
+          { $type: 'bpmn:Task', id: 'Activity_1druh9w' },
+          { $type: 'bpmn:EndEvent', id: 'Event_1xn4ia1' },
+        ],
+      },
+    };
+
+    assert.equal(isCollapsedLinkedSubProcess(embeddedSubProcess), false);
+  });
+
+  it('still recognizes an empty collapsed subprocess as a possible linked process', () => {
+    const linkedSubProcess = {
+      businessObject: {
+        $type: 'bpmn:SubProcess',
+        id: 'SubProcess_Link',
+        di: { isExpanded: false },
+        flowElements: [],
+      },
+    };
+
+    assert.equal(isCollapsedLinkedSubProcess(linkedSubProcess), true);
+  });
+});
 
 describe('resolveProcessTarget', () => {
   it('prefers an exact resource ID over a BPMN process ID', () => {

@@ -45,6 +45,19 @@ test('viewer selection recognizes collapsed SubProcesses through their BPMN busi
   assert.match(hook, /onElementSelectRef\.current\?\.\(element\.id\)/);
 });
 
+test('embedded Camunda SubProcesses keep native drilldown instead of linked-process navigation', async () => {
+  const navigation = await read('src/shared/hooks/useCallActivityNavigation.ts');
+  const processLinks = await read('src/Components/BusinessComponents/FolderTree/processLinks.ts');
+  const fixture = await read('tests/fixtures/test_sub_process-camunda.bpmn');
+
+  assert.ok(navigation.includes('isCollapsedLinkedSubProcess'));
+  assert.match(processLinks, /const flowElements = element\?\.businessObject\?\.flowElements/);
+  assert.match(processLinks, /flowElements\.length > 0\) return false/);
+  assert.ok(fixture.includes('<bpmn:subProcess id="Activity_07qkpz4" name="Etape 2">'));
+  assert.ok(fixture.includes('bpmnElement="Activity_07qkpz4"'));
+  assert.ok(fixture.includes('bpmnElement="Activity_09fx4q6"'));
+});
+
 test('BPMN connecting arrows are not selectable in the Viewer', async () => {
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
 
@@ -96,8 +109,7 @@ test('linked Call Activity opens its target only on double-click and handles mis
   assert.ok(!navigation.includes("eventBus.on('element.click', 1500"),
     'the shared navigation hook must leave single-click events to the Viewer selection handler');
   assert.match(navigation, /type === 'bpmn:CallActivity'/);
-  assert.match(navigation, /type !== 'bpmn:SubProcess'/);
-  assert.match(navigation, /type !== 'bpmn:Transaction'/);
+  assert.match(navigation, /isCollapsedLinkedSubProcess/);
   assert.match(navigation, /resolveProcessTarget\(targetId, processInfo\)/);
   assert.ok(navigation.includes('const query = explorerQuery()'));
   assert.ok(navigation.includes('queryClient.fetchQuery(\n            query.queryKey,\n            query.queryFn,\n            { staleTime: 30_000 },\n          )'));

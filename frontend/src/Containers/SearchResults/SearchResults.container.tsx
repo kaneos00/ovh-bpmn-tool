@@ -35,20 +35,6 @@ import {
 
 const PAGE_SIZE = 30;
 
-const TYPE_LABELS: Record<UnifiedSearchType, string> = {
-  process: 'Processus',
-  bpmn: 'Élément BPMN',
-  raci: 'Responsabilité RACI',
-  actor: 'Acteur / rôle',
-};
-
-const SOURCE_LABELS: Record<UnifiedSearchSource, string> = {
-  resource: 'Référentiel',
-  bpmn: 'Contenu BPMN',
-  'project-raci': 'RACI du projet',
-  'project-actor': 'Acteurs du projet',
-};
-
 const FIELD_LABELS: Record<string, string> = {
   nome: 'Nom',
   descrizione: 'Description',
@@ -103,8 +89,8 @@ export const Component = () => {
     setRoleFilter(isSearchRole(role) ? role : '');
   }, [searchParams]);
 
-  const [sortBy, setSortBy] = useState('relevance');
-  const [sortDirection, setSortDirection] = useState('asc');
+  const [sortBy, setSortBy] = useState<'relevance' | 'type' | 'label' | 'source' | 'process'>('relevance');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   useEffect(() => {
     const base = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
     let active = true;
@@ -114,7 +100,10 @@ export const Component = () => {
       .catch(() => undefined);
     return () => { active = false; };
   }, []);
-  const saveSort = (field: string, direction: string) => {
+  const saveSort = (
+    field: typeof sortBy,
+    direction: typeof sortDirection,
+  ) => {
     setSortBy(field); setSortDirection(direction);
     const base = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
     fetch(`${base}/auth/preferences/search-sort`, { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sortBy: field, sortDirection: direction }) }).catch(() => undefined);
@@ -138,6 +127,8 @@ export const Component = () => {
     role: roleFilter || undefined,
     limit: PAGE_SIZE,
     offset,
+    sortBy,
+    sortDirection,
   });
   const searchQuery = useQuery(
     searchOptions.queryKey,
@@ -388,22 +379,11 @@ export const Component = () => {
 
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>
               <Typography level="body-sm" color="neutral">Trier par</Typography>
-              <Select size="sm" value={sortBy} onChange={(_, value) => value && saveSort(value, sortDirection)} sx={{ minWidth: 170 }}><Option value="relevance">Pertinence</Option><Option value="type">Type</Option><Option value="label">Nom</Option><Option value="source">Source</Option><Option value="process">Processus</Option></Select>
-              <Select size="sm" value={sortDirection} onChange={(_, value) => value && saveSort(sortBy, value)} sx={{ minWidth: 130 }}><Option value="asc">Croissant</Option><Option value="desc">Décroissant</Option></Select>
+              <Select size="sm" value={sortBy} onChange={(_, value) => value && saveSort(value as typeof sortBy, sortDirection)} sx={{ minWidth: 170 }}><Option value="relevance">Pertinence</Option><Option value="type">Type</Option><Option value="label">Nom</Option><Option value="source">Source</Option><Option value="process">Processus</Option></Select>
+              <Select size="sm" value={sortDirection} onChange={(_, value) => value && saveSort(sortBy, value as typeof sortDirection)} sx={{ minWidth: 130 }}><Option value="asc">Croissant</Option><Option value="desc">Décroissant</Option></Select>
             </Stack>
             <List size="sm" sx={{ '--ListItem-radius': '6px', p: 0.5, border: '1px solid', borderColor: 'divider', borderRadius: 'md' }}>
-              {([...data.results].sort((a, b) => {
-                const get = (item: typeof data.results[number]) => {
-                  if (sortBy === 'type') return TYPE_LABELS[item.type];
-                  if (sortBy === 'source') return item.source ? SOURCE_LABELS[item.source] : '';
-                  if (sortBy === 'process') return item.processName || '';
-                  return item.label;
-                };
-                const quality = (b.matchScore ?? 0) - (a.matchScore ?? 0);
-                if (quality !== 0) return quality;
-                if (sortBy === 'relevance') return 0;
-                return get(a).localeCompare(get(b), 'fr') * (sortDirection === 'asc' ? 1 : -1);
-              })).map((result) => {
+              {data.results.map((result) => {
                 const badge = getResultBadge(result);
                 const detail = [
                   result.matchKind === 'approximate' ? 'Correspondance approchée' : undefined,
