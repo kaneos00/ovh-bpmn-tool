@@ -319,16 +319,36 @@ export class ProcessChangeProposalController {
   async createProposal(
     @Param('projectId') projectId: string,
     @Param('resourceId') sourceResourceId: string,
+    @Body() body: { elementId?: string; comment?: string; validatorUserId?: string },
     @Headers() headers: RequestHeaders,
   ) {
-    const authorUsername = await this.access.assertProjectRole(
-      projectId,
-      headers,
-      ProjectMemberRole.Modeler,
-    );
-    // Proposal creation clones the source; it never edits a common process.
-    // Apply clone permissions separately from generic resource edit permissions.
-    await this.access.assertCanCloneResource(projectId, sourceResourceId, headers);
+    const isViewerRemark = Boolean(body?.elementId?.trim() || body?.comment?.trim());
+    if (isViewerRemark && (!body.elementId?.trim() || !body.comment?.trim())) {
+      throw new BadRequestException(
+        'L’identifiant de l’élément BPMN et le texte de la remarque sont obligatoires',
+      );
+    }
+    const isOrganizationAdmin = this.access.hasOrganizationAdminRole(headers);
+    const authorUsername = isViewerRemark
+      ? this.access.getAuthenticatedUserId(headers)
+      : await this.access.assertProjectRole(
+          projectId,
+          headers,
+          ProjectMemberRole.Modeler,
+        );
+    if (isViewerRemark) {
+      if (!isOrganizationAdmin) {
+        await this.access.assertProjectRole(
+          projectId,
+          headers,
+          ProjectMemberRole.Viewer,
+        );
+      }
+      await this.access.assertCanReadResource(sourceResourceId, headers);
+    } else {
+      // Keep the existing clone policy for ordinary modeler proposals.
+      await this.access.assertCanCloneResource(projectId, sourceResourceId, headers);
+    }
     const authorUserId = await this.resolveAccountId(authorUsername);
 
     return this.dataSource.transaction(async (manager) => {
@@ -346,12 +366,21 @@ export class ProcessChangeProposalController {
         where: { projectId, userId: authorUsername },
       });
       if (
-        !authorMembership ||
-        (authorMembership.role !== ProjectMemberRole.Modeler &&
-          authorMembership.role !== ProjectMemberRole.Admin)
+        !isOrganizationAdmin &&
+        (!authorMembership ||
+          (isViewerRemark
+            ? ![
+                ProjectMemberRole.Viewer,
+                ProjectMemberRole.Modeler,
+                ProjectMemberRole.Admin,
+              ].includes(authorMembership.role)
+            : authorMembership.role !== ProjectMemberRole.Modeler &&
+              authorMembership.role !== ProjectMemberRole.Admin))
       ) {
         throw new ForbiddenException(
-          'Le rôle de modélisateur est requis pour proposer une modification',
+          isViewerRemark
+            ? 'L’accès au projet est requis pour déposer une remarque'
+            : 'Le rôle de modélisateur est requis pour proposer une modification',
         );
       }
 
@@ -387,18 +416,102 @@ export class ProcessChangeProposalController {
         );
       }
 
-      const existingDraft = await proposals.findOne({
+      const existingOpenProposal = await proposals.findOne({
         where: {
           projectId,
           sourceResourceId,
-          authorUserId,
-          status: ProcessChangeProposalStatus.Draft,
+          sourcePublishedContentId: published.id,
+          status: In([
+            ProcessChangeProposalStatus.Draft,
+            ProcessChangeProposalStatus.Submitted,
+            ProcessChangeProposalStatus.Approved,
+            ProcessChangeProposalStatus.ChangesRequested,
+          ]),
         },
+        order: { createdAt: 'ASC' },
       });
-      if (existingDraft) {
-        throw new ConflictException(
-          'Vous avez déjà une demande brouillon pour ce processus',
-        );
+      if (existingOpenProposal) {
+        if (!isViewerRemark) {
+          throw new ConflictException(
+            'Une demande de modification est déjà ouverte pour cette version du processus',
+          );
+        }
+        const cloneDraft = await contents.findOne({
+          where: {
+            resourceId: existingOpenProposal.cloneResourceId,
+            status: ContentStatusEnum.Draft,
+          },
+          order: { version: 'DESC' },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!cloneDraft) {
+          throw new ConflictException(
+            'Le brouillon associé à la demande ouverte est indisponible',
+          );
+        }
+        let validatorUserId = existingOpenProposal.validatorUserId;
+        if (!validatorUserId && body.validatorUserId?.trim()) {
+          const candidates: Array<{ id: string; username: string }> = await manager.query(
+            'SELECT id, username FROM app_users WHERE (lower(username) = lower($1) OR lower(email) = lower($1) OR id::text = $1) AND active = TRUE LIMIT 1',
+            [body.validatorUserId.trim()],
+          );
+          const candidate = candidates[0];
+          if (candidate && candidate.id !== authorUserId) {
+            const candidateMembership = await members.findOne({
+              where: { projectId, userId: candidate.username },
+            });
+            if (
+              candidateMembership &&
+              (candidateMembership.role === ProjectMemberRole.Admin ||
+                candidateMembership.role === ProjectMemberRole.Modeler)
+            ) validatorUserId = candidate.id;
+          }
+        }
+        if (existingOpenProposal.status !== ProcessChangeProposalStatus.Submitted) {
+          existingOpenProposal.status = ProcessChangeProposalStatus.Submitted;
+          existingOpenProposal.submittedContentId = cloneDraft.id;
+          existingOpenProposal.submittedAt = new Date();
+          existingOpenProposal.decidedAt = null;
+          existingOpenProposal.submissionComment =
+            existingOpenProposal.submissionComment ||
+            'Remarques déposées depuis le Viewer';
+          existingOpenProposal.validatorUserId = validatorUserId;
+          await proposals.save(existingOpenProposal);
+          await events.save(events.create({
+            proposalId: existingOpenProposal.id,
+            eventType: 'submitted',
+            actorUserId: authorUserId,
+            validatorUserId,
+            comment: 'Remarques déposées depuis le Viewer',
+            details: { submittedContentId: cloneDraft.id, source: 'viewer-remark' },
+            createdBy: authorUsername,
+          }));
+        }
+        const savedRemark = await manager.getRepository(
+          ProcessChangeProposalCommentTypeOrmEntity,
+        ).save(manager.getRepository(
+          ProcessChangeProposalCommentTypeOrmEntity,
+        ).create({
+          proposalId: existingOpenProposal.id,
+          elementId: body.elementId!.trim(),
+          authorUserId,
+          comment: body.comment!.trim(),
+          status: ProcessChangeProposalCommentStatus.Pending,
+          decisionBy: null,
+          decidedAt: null,
+          decisionComment: null,
+          createdBy: authorUsername,
+        }));
+        return {
+          id: existingOpenProposal.id,
+          projectId,
+          sourceResourceId,
+          cloneResourceId: existingOpenProposal.cloneResourceId,
+          cloneContentId: cloneDraft.id,
+          status: existingOpenProposal.status,
+          comment: savedRemark,
+          reused: true,
+        };
       }
 
       const cloneResource = resources.create({
@@ -441,12 +554,16 @@ export class ProcessChangeProposalController {
           sourceResourceId,
           cloneResourceId: savedClone.id,
           sourcePublishedContentId: published.id,
-          submittedContentId: null,
+          submittedContentId: isViewerRemark ? savedCloneContent.id : null,
           authorUserId,
           validatorUserId: null,
-          status: ProcessChangeProposalStatus.Draft,
-          submissionComment: null,
-          submittedAt: null,
+          status: isViewerRemark
+            ? ProcessChangeProposalStatus.Submitted
+            : ProcessChangeProposalStatus.Draft,
+          submissionComment: isViewerRemark
+            ? 'Remarques déposées depuis le Viewer'
+            : null,
+          submittedAt: isViewerRemark ? new Date() : null,
           decidedAt: null,
           createdBy: authorUsername,
         }),
@@ -468,6 +585,31 @@ export class ProcessChangeProposalController {
         }),
       );
 
+      let initialRemark: ProcessChangeProposalCommentTypeOrmEntity | null = null;
+      if (isViewerRemark) {
+        const comments = manager.getRepository(ProcessChangeProposalCommentTypeOrmEntity);
+        initialRemark = await comments.save(comments.create({
+          proposalId: proposal.id,
+          elementId: body.elementId!.trim(),
+          authorUserId,
+          comment: body.comment!.trim(),
+          status: ProcessChangeProposalCommentStatus.Pending,
+          decisionBy: null,
+          decidedAt: null,
+          decisionComment: null,
+          createdBy: authorUsername,
+        }));
+        await events.save(events.create({
+          proposalId: proposal.id,
+          eventType: 'submitted',
+          actorUserId: authorUserId,
+          validatorUserId: null,
+          comment: 'Remarques déposées depuis le Viewer',
+          details: { submittedContentId: savedCloneContent.id, source: 'viewer-remark' },
+          createdBy: authorUsername,
+        }));
+      }
+
       return {
         id: proposal.id,
         projectId,
@@ -475,6 +617,8 @@ export class ProcessChangeProposalController {
         cloneResourceId: savedClone.id,
         cloneContentId: savedCloneContent.id,
         status: proposal.status,
+        comment: initialRemark,
+        reused: false,
       };
     });
   }
