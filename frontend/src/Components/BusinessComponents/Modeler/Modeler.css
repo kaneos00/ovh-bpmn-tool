@@ -456,3 +456,14 @@
   stroke-width: 4px !important;
   filter: drop-shadow(0 0 2px rgba(25, 118, 210, 0.45));
 }
+
+/* Submitted proposal review keeps the existing modeler canvas for inspection,
+   while removing creation and direct-edit affordances. */
+.modelerContainer.proposalReviewOnly .djs-palette,
+.modelerContainer.proposalReviewOnly .djs-context-pad,
+.modelerContainer.proposalReviewOnly .djs-resizer,
+.modelerContainer.proposalReviewOnly .djs-bendpoint,
+.modelerContainer.proposalReviewOnly .djs-connection-segment-dragger,
+.modelerContainer.proposalReviewOnly .djs-direct-editing-parent {
+  display: none !important;
+}
