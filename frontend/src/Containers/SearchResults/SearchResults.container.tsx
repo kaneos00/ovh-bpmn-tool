@@ -407,7 +407,6 @@ export const Component = () => {
                 const badge = getResultBadge(result);
                 const detail = [
                   result.matchKind === 'approximate' ? 'Correspondance approchée' : undefined,
-                  result.processName,
                   `${FIELD_LABELS[result.field] ?? result.field} : ${result.excerpt}`,
                   result.elementId,
                 ].filter(Boolean).join(' · ');
