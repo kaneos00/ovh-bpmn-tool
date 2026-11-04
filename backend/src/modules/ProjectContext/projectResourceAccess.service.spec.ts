@@ -123,6 +123,24 @@ describe('ProjectResourceAccessService', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
+  it('allows a global administrator to read a project-specific process without project membership', async () => {
+    projectProcesses.find.mockResolvedValue([
+      {
+        projectId: 'project-1',
+        resourceId: 'resource-1',
+        usage: ProjectProcessUsage.ProjectSpecific,
+      },
+    ]);
+
+    await expect(
+      service.assertCanReadResource('resource-1', {
+        ...headers,
+        'x-user-groups': 'bpmn-tool-admin-global',
+      }),
+    ).resolves.toBeUndefined();
+    expect(projectMembers.find).not.toHaveBeenCalled();
+  });
+
   it('denies a viewer from editing a project-specific process', async () => {
     projectProcesses.find.mockResolvedValue([
       {
@@ -219,6 +237,24 @@ describe('ProjectResourceAccessService', () => {
     await expect(
       service.assertCanEditResource('resource-1', headers),
     ).resolves.toBeUndefined();
+  });
+
+  it('allows a global administrator to edit a project-specific proposal clone without project membership', async () => {
+    projectProcesses.find.mockResolvedValue([
+      {
+        projectId: 'project-1',
+        resourceId: 'proposal-clone',
+        usage: ProjectProcessUsage.ProjectSpecific,
+      },
+    ]);
+
+    await expect(
+      service.assertCanEditResource('proposal-clone', {
+        ...headers,
+        'x-user-groups': 'bpmn-tool-admin-global',
+      }),
+    ).resolves.toBeUndefined();
+    expect(projectMembers.find).not.toHaveBeenCalled();
   });
 
   it('denies reading a process linked only to another project', async () => {
