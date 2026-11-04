@@ -212,6 +212,7 @@ export const ProcessDetails = ({
   const { showAlert } = useSnackbar();
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
   const [activeViewerTab, setActiveViewerTab] = useState(0);
+  const [startingProposal, setStartingProposal] = useState(false);
 
   // A deep link may explicitly open the RACI workspace. Otherwise keep the
   // current tab when the user navigates between processes or versions.
@@ -234,6 +235,31 @@ export const ProcessDetails = ({
   const [processMetadata, setProcessMetadata] = useState({ processType: '', pilot: '', surveillance: '', riskPrevention: '' });
   const canEditDescription = !isHistoricalView && (sessionRole === 'admin' || sessionRole === 'modeler');
   const canManageVersions = !isHistoricalView && (sessionRole === 'admin' || sessionRole === 'modeler');
+
+  const navigate = useNavigate();
+
+  const startChangeProposal = async () => {
+    if (!pilotProjectId || startingProposal || isHistoricalView) return;
+    setStartingProposal(true);
+    try {
+      const proposal = await apiClient.post(
+        `/projects/${pilotProjectId}/processes/${resourceId}/change-proposals`,
+        {},
+      );
+      navigate(
+        `/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}`,
+      );
+    } catch (error) {
+      showAlert({
+        message: error instanceof Error
+          ? error.message
+          : 'Impossible de créer la demande de modification.',
+        severity: 'danger',
+      });
+    } finally {
+      setStartingProposal(false);
+    }
+  };
 
   useEffect(() => {
     if (!xmlContent) { setProcessMetadata({ processType: '', pilot: '', surveillance: '', riskPrevention: '' }); return; }
@@ -283,7 +309,6 @@ export const ProcessDetails = ({
     [raciMatrix],
   );
 
-  const navigate = useNavigate();
   const [explorerCollapsed, setExplorerCollapsed] = useState(false);
   const [taskPanelCollapsed, setTaskPanelCollapsed] = useState(true);
   const [explorerWidth, setExplorerWidth] = useState(() => {
@@ -617,6 +642,18 @@ export const ProcessDetails = ({
                     >
                       <FileCopy />
                     </IconButton>
+                    {pilotProjectId && !isHistoricalView && (
+                      <Button
+                        size="sm"
+                        variant="soft"
+                        color="primary"
+                        loading={startingProposal}
+                        disabled={startingProposal}
+                        onClick={startChangeProposal}
+                      >
+                        Proposer une modification
+                      </Button>
+                    )}
                     {canEditDescription && (
                       <IconButton
                         title="Modifier le diagramme BPMN"

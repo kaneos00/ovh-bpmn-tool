@@ -77,7 +77,9 @@ export class ProcessChangeProposalController {
       this.members.find({
         where: { userId: username, projectId: In(projectIds) },
       }),
-      this.projects.find({ where: { id: In(projectIds) } }),
+      this.projects.find({
+        where: { id: In(projectIds) },
+      }),
       this.projectProcesses.find({
         where: { projectId: In(projectIds) },
       }),
@@ -175,6 +177,127 @@ export class ProcessChangeProposalController {
             : null,
       };
     });
+  }
+
+  /**
+   * Cross-project review queue for the authenticated validator.
+   * A designated validator must still be an active project modeler/admin;
+   * project admins and organization admins may review as fallback.
+   */
+  @Get('me/process-change-proposals/to-review')
+  @UseAcl()
+  async listProposalsToReview(@Headers() headers: RequestHeaders) {
+    const username = this.access.getAuthenticatedUserId(headers);
+    const userId = await this.resolveAccountId(username);
+    const isOrganizationAdmin = this.access.hasOrganizationAdminRole(headers);
+    const memberships = await this.members.find({
+      where: { userId: username },
+    });
+    const membershipByProject = new Map(
+      memberships.map((membership) => [membership.projectId, membership]),
+    );
+    if (!isOrganizationAdmin && !memberships.length) return [];
+
+    const submitted = await this.proposals.find({
+      where: { status: ProcessChangeProposalStatus.Submitted },
+      order: { submittedAt: 'DESC', updatedAt: 'DESC' },
+    });
+    const visible = submitted.filter((proposal) => {
+      const membership = membershipByProject.get(proposal.projectId);
+      const canAdminReview = membership?.role === ProjectMemberRole.Admin;
+      const canReviewAssigned =
+        proposal.validatorUserId === userId &&
+        (membership?.role === ProjectMemberRole.Admin ||
+          membership?.role === ProjectMemberRole.Modeler);
+      return isOrganizationAdmin || canAdminReview || canReviewAssigned;
+    });
+    if (!visible.length) return [];
+
+    const projectIds = [
+      ...new Set(visible.map((proposal) => proposal.projectId)),
+    ];
+    const proposalIds = visible.map((proposal) => proposal.id);
+    const sourceIds = [
+      ...new Set(visible.map((proposal) => proposal.sourceResourceId)),
+    ];
+    const [projects, resources, links, events, authors] = await Promise.all([
+      this.projects.find({ where: { id: In(projectIds) } }),
+      this.resources.find({
+        where: { id: In(sourceIds) },
+      }),
+      this.projectProcesses.find({
+        where: { projectId: In(projectIds) },
+      }),
+      this.events.find({
+        where: { proposalId: In(proposalIds) },
+        order: { createdAt: 'DESC' },
+      }),
+      this.dataSource.query(
+        'SELECT id, username, email FROM app_users WHERE id = ANY($1::uuid[])',
+        [[...new Set(visible.map((proposal) => proposal.authorUserId))]],
+      ),
+    ]);
+    const linked = new Set(
+      links.map((link) => `${link.projectId}:${link.resourceId}`),
+    );
+    const projectById = new Map(
+      projects.map((project) => [project.id, project]),
+    );
+    const resourceById = new Map(
+      resources.map((resource) => [resource.id, resource]),
+    );
+    const authorById = new Map(
+      (
+        authors as Array<{
+          id: string;
+          username: string;
+          email: string | null;
+        }>
+      ).map((author) => [
+        author.id,
+        author.username || author.email || author.id,
+      ]),
+    );
+    const latestEventByProposal = new Map<
+      string,
+      ProcessChangeProposalEventTypeOrmEntity
+    >();
+    for (const event of events) {
+      if (!latestEventByProposal.has(event.proposalId)) {
+        latestEventByProposal.set(event.proposalId, event);
+      }
+    }
+
+    return visible
+      .filter((proposal) =>
+        linked.has(`${proposal.projectId}:${proposal.sourceResourceId}`),
+      )
+      .map((proposal) => {
+        const latestEvent = latestEventByProposal.get(proposal.id);
+        return {
+          id: proposal.id,
+          projectId: proposal.projectId,
+          projectName:
+            projectById.get(proposal.projectId)?.name ?? 'Projet indisponible',
+          sourceResourceId: proposal.sourceResourceId,
+          sourcePublishedContentId: proposal.sourcePublishedContentId,
+          processName:
+            resourceById.get(proposal.sourceResourceId)?.name ??
+            'Processus indisponible',
+          cloneResourceId: proposal.cloneResourceId,
+          submittedContentId: proposal.submittedContentId,
+          authorUserId: proposal.authorUserId,
+          authorName:
+            authorById.get(proposal.authorUserId) ?? proposal.authorUserId,
+          validatorUserId: proposal.validatorUserId,
+          status: proposal.status,
+          submissionComment: proposal.submissionComment,
+          submittedAt: proposal.submittedAt,
+          latestActivityAt: latestEvent?.createdAt ?? proposal.updatedAt,
+          latestActivityType: latestEvent?.eventType ?? 'submitted',
+          latestActivityComment: latestEvent?.comment ?? null,
+        };
+      });
   }
 
   /**
