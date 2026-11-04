@@ -141,7 +141,9 @@ export function isExactSearchTextMatch(value: string, query: string): boolean {
   const valueWords = normalizedValue.split(/[^a-z0-9]+/).filter(Boolean);
   return (
     queryWords.length > 0 &&
-    queryWords.every((word) => valueWords.some((valueWord) => valueWord === word))
+    queryWords.every((word) =>
+      valueWords.some((valueWord) => valueWord === word),
+    )
   );
 }
 
@@ -156,7 +158,8 @@ export function isSearchTextMatch(value: string, query: string): boolean {
   if (!queryWords.length) return false;
 
   return queryWords.every((queryWord) => {
-    if (valueWords.some((valueWord) => valueWord.includes(queryWord))) return true;
+    if (valueWords.some((valueWord) => valueWord.includes(queryWord)))
+      return true;
     if (queryWord.length < 5) return false;
     const maxDistance = queryWord.length >= 8 ? 2 : 1;
     return valueWords.some((valueWord) => {
