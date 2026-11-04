@@ -138,6 +138,8 @@ export const Component = () => {
     role: roleFilter || undefined,
     limit: PAGE_SIZE,
     offset,
+    sortBy,
+    sortDirection,
   });
   const searchQuery = useQuery(
     searchOptions.queryKey,
@@ -392,18 +394,7 @@ export const Component = () => {
               <Select size="sm" value={sortDirection} onChange={(_, value) => value && saveSort(sortBy, value)} sx={{ minWidth: 130 }}><Option value="asc">Croissant</Option><Option value="desc">Décroissant</Option></Select>
             </Stack>
             <List size="sm" sx={{ '--ListItem-radius': '6px', p: 0.5, border: '1px solid', borderColor: 'divider', borderRadius: 'md' }}>
-              {([...data.results].sort((a, b) => {
-                const get = (item: typeof data.results[number]) => {
-                  if (sortBy === 'type') return TYPE_LABELS[item.type];
-                  if (sortBy === 'source') return item.source ? SOURCE_LABELS[item.source] : '';
-                  if (sortBy === 'process') return item.processName || '';
-                  return item.label;
-                };
-                const quality = (b.matchScore ?? 0) - (a.matchScore ?? 0);
-                if (quality !== 0) return quality;
-                if (sortBy === 'relevance') return 0;
-                return get(a).localeCompare(get(b), 'fr') * (sortDirection === 'asc' ? 1 : -1);
-              })).map((result) => {
+              {data.results.map((result) => {
                 const badge = getResultBadge(result);
                 const detail = [
                   result.matchKind === 'approximate' ? 'Correspondance approchée' : undefined,
