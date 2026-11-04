@@ -70,9 +70,9 @@ const similarityFor = (value: string, query: string) => {
   const normalizedValue = normalizeSearch(value);
   const normalizedQuery = normalizeSearch(query);
   if (!normalizedQuery) return 0;
-  if (normalizedValue.includes(normalizedQuery)) return 100;
   const queryWords = normalizedQuery.split(/[^a-z0-9]+/).filter(Boolean);
   const valueWords = normalizedValue.split(/[^a-z0-9]+/).filter(Boolean);
+  if (normalizedValue === normalizedQuery || (queryWords.length > 0 && queryWords.every(word => valueWords.includes(word)))) return 100;
   if (!queryWords.length || !valueWords.length) return 0;
   const scores = queryWords.map(word => {
     let best = 0;
@@ -343,6 +343,8 @@ export const WorkspaceNavigation = () => {
                   detail: `Rôle · ${process.name}`,
                   resourceId: process.id,
                   elementId: lane?.getAttribute('id') || undefined,
+                  processName: process.name,
+                  similarity: similarityFor(role, search),
                   openRaci: true,
                 });
               });
@@ -363,6 +365,8 @@ export const WorkspaceNavigation = () => {
                     detail: `RACI · ${process.name} · ${activity.activity} — ${cell.role} (${cell.codes.join('/')})`,
                     resourceId: process.id,
                     elementId: activity.elementId,
+                    processName: process.name,
+                    similarity: similarityFor(`${activity.activity} ${cell.role} ${cell.codes.join(' ')}`, search),
                     openRaci: true,
                   });
                 }
@@ -402,6 +406,7 @@ export const WorkspaceNavigation = () => {
               if (bpmnOwner && BPMN_CONNECTION_TYPES.has(bpmnOwner.localName.toLocaleLowerCase('fr'))) return;
               if (bpmnOwner && bpmnOwner.getAttribute('id') && bpmnOwner.localName.toLocaleLowerCase('fr') !== 'textannotation') return;
               const elementId = bpmnOwner?.getAttribute('id') || undefined;
+              if (bpmnOwner && namedElements.includes(bpmnOwner)) return;
               found.push({
                 key: `${process.id}:ia-comm:${element.localName}:${elementId || index}:${title}`,
                 title,
