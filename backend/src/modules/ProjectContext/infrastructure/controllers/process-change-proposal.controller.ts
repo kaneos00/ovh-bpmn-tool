@@ -1109,6 +1109,12 @@ export class ProcessChangeProposalController {
         'La prévisualisation PNG du processus est obligatoire pour publier',
       );
     }
+    const summaryComment = body.summaryComment?.trim() ?? '';
+    if (!summaryComment) {
+      throw new BadRequestException(
+        'Un commentaire général de validation est obligatoire pour publier',
+      );
+    }
 
     return this.dataSource.transaction(async (manager) => {
       const proposals = manager.getRepository(
@@ -1226,10 +1232,10 @@ export class ProcessChangeProposalController {
           ),
           content: submittedContent.content,
           changeComment: [
-            body.summaryComment?.trim() || proposal.submissionComment || 'Validation de la demande de modification',
+            summaryComment,
             'Synthèse des remarques contextuelles :',
             ...remarks.map(remark =>
-              `- [${remark.status}] ${remark.createdAt.toISOString()} · auteur ${remark.authorUserId} · élément ${remark.elementId} · ${remark.comment}${remark.decisionComment ? ` · décision : ${remark.decisionComment}` : ''}`,
+              `- [${remark.status}] ${remark.createdAt.toISOString()} · auteur ${remark.authorUserId} · élément ${remark.elementId} · ${remark.comment}${remark.decidedAt ? ` · décidé le ${remark.decidedAt.toISOString()} par ${remark.decisionBy}` : ''}${remark.decisionComment ? ` · décision : ${remark.decisionComment}` : ''}`,
             ),
           ].join('\\n'),
           pngContent: Buffer.from(
