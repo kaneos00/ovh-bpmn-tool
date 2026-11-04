@@ -287,6 +287,8 @@ export const WorkspaceNavigation = () => {
               kind = 'Lane BPMN';
             } else if (activityTypes.has(element.localName)) {
               kind = 'Activité BPMN';
+            } else if (element.localName.toLocaleLowerCase('fr') === 'textannotation') {
+              kind = 'Description';
             } else if (element.localName === 'process') {
               kind = 'Processus BPMN';
             } else {
@@ -301,7 +303,7 @@ export const WorkspaceNavigation = () => {
                   : '');
               found.push({
                 key: `${process.id}:bpmn:${id}`,
-                title: name,
+                title: element.localName.toLocaleLowerCase('fr') === 'textannotation' ? (description || name) : name,
                 detail: `${kind} · ${id}`,
                 resourceId: process.id,
                 processName: process.name,
