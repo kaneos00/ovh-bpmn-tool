@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS process_change_proposal_comments (
   comment text NOT NULL CHECK (length(trim(comment)) > 0),
   status varchar(16) NOT NULL DEFAULT 'pending'
     CHECK (status IN ('pending', 'accepted', 'rejected')),
-  "decisionBy" uuid NULL REFERENCES app_users(id) ON DELETE SET NULL,
+  "decisionBy" uuid NULL REFERENCES app_users(id) ON DELETE RESTRICT,
   "decidedAt" timestamptz NULL,
   "decisionComment" text NULL,
   CONSTRAINT process_change_proposal_comments_decision_consistency
