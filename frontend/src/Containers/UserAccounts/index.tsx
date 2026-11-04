@@ -45,11 +45,6 @@ const roleLabels: Record<Role, string> = {
   modeler: 'Modélisateur',
   viewer: 'Lecteur',
 };
-const projectRoleLabels: Record<ProjectRole, string> = {
-  admin: 'Admin projet',
-  modeler: 'Modeler',
-  viewer: 'Viewer',
-};
 const userPath = (id: string) => `/auth/users/${encodeURIComponent(id)}`;
 
 async function call<T = any>(path: string, method = 'GET', body?: unknown): Promise<T> {
@@ -401,7 +396,7 @@ export const Component = () => {
                       <div className="org-users__form-grid">
                         <FormControl><FormLabel>Identifiant de connexion</FormLabel><Input value={selectedDraft.username} onChange={(event) => updateDraft('username', event.target.value)} /></FormControl>
                         <FormControl><FormLabel>Adresse e-mail</FormLabel><Input type="email" value={selectedDraft.email} onChange={(event) => updateDraft('email', event.target.value)} /></FormControl>
-                        <FormControl><FormLabel>Rôle global</FormLabel><Select value={selectedDraft.role} onChange={(_event, value) => value && updateDraft('role', value)}><Option value="viewer">Lecteur</Option><Option value="modeler">Modélisateur</Option><Option value="admin">Administrateur</Option></Select></FormControl>
+                        <FormControl><FormLabel>Rôle global</FormLabel><Select value={selectedDraft.role} onChange={(_event, value) => value && updateDraft('role', value as Role)}><Option value="viewer">Lecteur</Option><Option value="modeler">Modélisateur</Option><Option value="admin">Administrateur</Option></Select></FormControl>
                         <FormControl><FormLabel>État du compte</FormLabel><Select value={selectedDraft.active ? 'active' : 'inactive'} onChange={(_event, value) => value && updateDraft('active', value === 'active')}><Option value="active">Actif</Option><Option value="inactive">Désactivé</Option></Select></FormControl>
                       </div>
                       <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Les protections du dernier administrateur et les contrôles de sécurité restent appliqués par l’API existante.</Typography>
