@@ -8,7 +8,10 @@ import {
   type ExplorerData,
 } from '../../api/resources/resources.queries';
 import { ResourceType } from '../types/BpmnResource';
-import { resolveProcessTarget } from '../../Components/BusinessComponents/FolderTree/processLinks';
+import {
+  isCollapsedLinkedSubProcess,
+  resolveProcessTarget,
+} from '../../Components/BusinessComponents/FolderTree/processLinks';
 import { useSnackbar } from './useSnackbar';
 
 type LinkedElementEvent = {
@@ -23,19 +26,6 @@ type BpmnEventBus = {
 
 type BpmnInstance = {
   get: (serviceName: string) => any;
-};
-
-const isCollapsedLinkedSubProcess = (element: any): boolean => {
-  const type = element?.businessObject?.$type ?? element?.type;
-  if (type !== 'bpmn:SubProcess' && type !== 'bpmn:Transaction') return false;
-
-  // Only collapsed subprocesses can represent links to separately modelled
-  // processes. Intercepting an expanded subprocess prevents normal BPMN drilldown.
-  const expandedState = element?.businessObject?.di?.isExpanded ??
-    element?.di?.isExpanded ??
-    element?.isExpanded ??
-    element?.businessObject?.isExpanded;
-  return expandedState === false || expandedState === 'false';
 };
 
 const getLinkedTargetId = (element: any): string => {
