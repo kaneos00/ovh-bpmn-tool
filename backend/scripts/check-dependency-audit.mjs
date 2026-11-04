@@ -11,6 +11,10 @@ if (!/(?:\d+\s+vulnerabilities found|no known vulnerabilities found)/i.test(repo
   process.exit(2);
 }
 
+const summaryMatch = report.match(/(\\d+)\\s+vulnerabilities found/i);
+const reportedVulnerabilityCount = summaryMatch ? Number(summaryMatch[1]) : 0;
+const baselineVulnerabilityCount = Number(baseline.reportedVulnerabilities ?? 0);
+
 const reported = new Set(
   [...report.matchAll(/GHSA-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}/gi)].map(([id]) =>
     id.toUpperCase(),
@@ -31,4 +35,19 @@ if (newAdvisories.length > 0) {
   process.exit(1);
 }
 
-console.log('No new GHSA advisory identifiers compared with the reviewed baseline.');
+// GHSA identifiers are not present for every registry advisory. Compare the
+// total finding count as a second guard so a newly reported CVE-only advisory
+// cannot silently pass merely because it has no GHSA identifier.
+if (
+  baselineVulnerabilityCount > 0 &&
+  reportedVulnerabilityCount > baselineVulnerabilityCount
+) {
+  console.error(
+    `Dependency findings increased from ${baselineVulnerabilityCount} to ${reportedVulnerabilityCount}; review advisories without a known GHSA identifier.`,
+  );
+  process.exit(1);
+}
+
+console.log(
+  `No new GHSA identifiers or increase in reported findings (${reportedVulnerabilityCount}/${baselineVulnerabilityCount}).`,
+);
