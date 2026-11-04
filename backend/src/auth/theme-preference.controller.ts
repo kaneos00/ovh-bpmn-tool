@@ -48,6 +48,45 @@ export class ThemePreferenceController {
     return { theme: body.theme };
   }
 
+  @Get('search-sort')
+  async getSearchSortPreference(@Req() request: Request) {
+    const userId = await this.getAuthenticatedUserId(request);
+    const rows: Array<{
+      search_sort: { sortBy?: string; sortDirection?: string } | null;
+    }> = await this.db.query(
+      'SELECT search_sort FROM app_user_preferences WHERE user_id = $1',
+      [userId],
+    );
+    return (
+      rows[0]?.search_sort ?? { sortBy: 'relevance', sortDirection: 'asc' }
+    );
+  }
+
+  @Put('search-sort')
+  async saveSearchSortPreference(
+    @Req() request: Request,
+    @Body() body: { sortBy?: unknown; sortDirection?: unknown },
+  ) {
+    const userId = await this.getAuthenticatedUserId(request);
+    const allowedSorts = ['relevance', 'type', 'label', 'source', 'process'];
+    if (
+      typeof body?.sortBy !== 'string' ||
+      !allowedSorts.includes(body.sortBy) ||
+      (body.sortDirection !== 'asc' && body.sortDirection !== 'desc')
+    ) {
+      throw new BadRequestException('Préférence de tri de recherche invalide.');
+    }
+    const preference = {
+      sortBy: body.sortBy,
+      sortDirection: body.sortDirection,
+    };
+    await this.db.query(
+      'INSERT INTO app_user_preferences (user_id, theme, search_sort, updated_at) VALUES ($1, $2, $3::jsonb, NOW()) ON CONFLICT (user_id) DO UPDATE SET search_sort = EXCLUDED.search_sort, updated_at = NOW()',
+      [userId, 'light', JSON.stringify(preference)],
+    );
+    return preference;
+  }
+
   private async getAuthenticatedUserId(request: Request): Promise<string> {
     const payload = this.readSession(request);
     if (!payload) {

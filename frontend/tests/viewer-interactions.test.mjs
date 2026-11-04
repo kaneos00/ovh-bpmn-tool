@@ -45,6 +45,14 @@ test('viewer selection recognizes collapsed SubProcesses through their BPMN busi
   assert.match(hook, /onElementSelectRef\.current\?\.\(element\.id\)/);
 });
 
+test('BPMN connecting arrows are not selectable in the Viewer', async () => {
+  const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+
+  assert.match(hook, /const isConnection = Array\.isArray\(element\.waypoints\)/);
+  assert.match(hook, /sequenceFlow\|messageFlow\|association\|dataInputAssociation\|dataOutputAssociation/);
+  assert.match(hook, /if \(isConnection\) \{[\s\S]*?event\?\.stopPropagation\?\.\(\);[\s\S]*?selection\?\.deselect\?\.\(\[element\]\);[\s\S]*?return;/);
+});
+
 test('selection marker is removed before the next selection is applied', async () => {
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
 
@@ -228,12 +236,64 @@ test('explorer search chevrons collapse and reopen branches using the visible ex
   assert.ok(tree.includes('setSearchCollapsedNodes([])'));
 });
 
+test('global BPMN search excludes connecting arrows and their documentation', async () => {
+  const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+
+  assert.match(navigation, /const BPMN_CONNECTION_TYPES = new Set/);
+  assert.match(navigation, /BPMN_CONNECTION_TYPES\.has\(element\.localName\.toLocaleLowerCase\('fr'\)\)/);
+  assert.match(navigation, /BPMN_CONNECTION_TYPES\.has\(bpmnOwner\.localName\.toLocaleLowerCase\('fr'\)\)/);
+});
+
+test('quick search removes the IA Comm option and excludes technical BPMN identifiers', async () => {
+  const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+
+  assert.doesNotMatch(navigation, /<Option value="iaComm">/);
+  assert.doesNotMatch(navigation, /'iaComm'/);
+  assert.match(navigation, /return id && \(matchesTerm\(name, term\) \|\|[\s\S]*?matchesTerm\(documentation, term\)/);
+  assert.doesNotMatch(navigation, /matchesTerm\(id, term\)/);
+  assert.doesNotMatch(navigation, /matchesTerm\(activity\.elementId, term\)/);
+  assert.match(navigation, /if \(scope === 'all'\) \{/);
+});
+
+test('shared result highlighting marks the matched word for approximate searches', async () => {
+  const shared = await read('src/Components/GenericComponents/SearchResultItem/SearchResultItem.tsx');
+
+  assert.match(shared, /const editDistance =/);
+  assert.match(shared, /queryWord\.length >= 5/);
+  assert.match(shared, /const distance = editDistance\(candidate, queryWord\)/);
+  assert.match(shared, /bgcolor: '#fff1a8'/);
+});
+
+test('global and full search use the same shared result row component', async () => {
+  const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+  const fullSearch = await read('src/Containers/SearchResults/SearchResults.container.tsx');
+  const shared = await read('src/Components/GenericComponents/SearchResultItem/SearchResultItem.tsx');
+
+  assert.ok(navigation.includes("import { SearchResultItem } from '../SearchResultItem/SearchResultItem'"));
+  assert.ok(fullSearch.includes("import { SearchResultItem } from '../../Components/GenericComponents/SearchResultItem/SearchResultItem'"));
+  assert.ok(navigation.includes('<SearchResultItem'));
+  assert.ok(fullSearch.includes('<SearchResultItem'));
+  assert.ok(shared.includes('badge={badge}') === false);
+  assert.ok(shared.includes('highlightNode(title, query)'));
+  assert.ok(shared.includes('processName && processName !== title'));
+  assert.ok(shared.includes('{similarity} %'));
+  assert.ok(shared.includes('bgcolor: \'#fff1a8\''));
+  assert.ok(navigation.includes('query={search}'));
+  assert.ok(fullSearch.includes('query={query}'));
+  assert.ok(shared.includes('level="body-xs"'));
+});
+
 test('global annotation search labels text annotations as Description and carries the BPMN element ID', async () => {
   const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
 
-  assert.match(navigation, /if \(\/annotation BPMN\/i\.test\(detail\)\)[\s\S]*?label: 'Description'/);
-  assert.match(navigation, /const isTextAnnotation = element\.localName\.toLocaleLowerCase\('fr'\) === 'textannotation'/);
-  assert.match(navigation, /const elementId = isTextAnnotation \? element\.getAttribute\('id'\) \|\| undefined : undefined/);
+  assert.match(navigation, /if \(\/annotation BPMN\|Description\/i\.test\(detail\)\)[\s\S]*?label: 'Description'/);
+  assert.match(navigation, /const isTextAnnotation = tag === 'textannotation'/);
+  assert.match(navigation, /let bpmnOwner: Element \| null = element/);
+  assert.match(navigation, /bpmnOwner\.namespaceURI !== BPMN_MODEL_NS/);
+  assert.match(navigation, /const elementId = bpmnOwner\?\.getAttribute\('id'\) \|\| undefined/);
+  assert.match(navigation, /const tag = element\.localName\.toLocaleLowerCase\('fr'\)/);
+  assert.match(navigation, /isTextAnnotation = tag === 'textannotation'/);
+  assert.match(navigation, /isTextAnnotation \|\| tag === 'documentation'/);
   assert.match(navigation, /resourceId: process\.id,[\s\S]*?elementId,/);
   assert.match(navigation, /if \(result\.elementId\) params\.set\('elementId', result\.elementId\)/);
 });
@@ -338,4 +398,39 @@ test('Viewer delegates RACI issue analysis and filtering to a dedicated hook', a
   assert.ok(filters.includes('analyzeRaciMatrix(raciMatrix)'));
   assert.ok(filters.includes('filters.issuesOnly') === false);
   assert.ok(filters.includes('actorFilter, codeFilter, issuesOnly'));
+});
+
+test('search rows show process context, percentage similarity and group BPMN name with description', async () => {
+  const shared = await read('src/Components/GenericComponents/SearchResultItem/SearchResultItem.tsx');
+  const quick = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+  const full = await read('src/Containers/SearchResults/SearchResults.container.tsx');
+  const backend = await read('../backend/src/modules/SearchContext/unified-search.service.ts');
+
+  assert.ok(shared.includes('processName && processName !== title'));
+  assert.ok(shared.includes('{similarity} %'));
+  assert.ok(quick.includes('processName={result.processName}'));
+  assert.ok(quick.includes('similarity={result.similarity}'));
+  assert.ok(quick.includes('matchesTerm(documentation, term)'));
+  assert.ok(quick.includes('namedElements.includes(bpmnOwner)'));
+  assert.ok(full.includes('processName={result.processName}'));
+  assert.ok(full.includes('similarity={result.matchScore}'));
+  assert.ok(backend.includes('getSearchSimilarity'));
+  assert.ok(backend.includes('matchScore'));
+});
+
+test('global and full search share yellow highlighting and direct BPMN element navigation', async () => {
+  const shared = await read('src/Components/GenericComponents/SearchResultItem/SearchResultItem.tsx');
+  const quickSearch = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+  const fullSearch = await read('src/Containers/SearchResults/SearchResults.container.tsx');
+  const routeState = await read('src/shared/hooks/useViewerRouteState.ts');
+
+  assert.match(shared, /bgcolor: '#fff1a8'/);
+  assert.match(shared, /const wordPattern = \/\[a-z0-9\]\+\/g/);
+  assert.match(shared, /searchable\.replace\(wordPattern, \(token, index\) =>/);
+  assert.match(shared, /valueWords\.push\(\{ token, index \}\)/);
+  assert.match(shared, /normalize\(character\)/);
+  assert.match(quickSearch, /query=\{search\}/);
+  assert.match(fullSearch, /query=\{query\}/);
+  assert.match(fullSearch, /if \(result\.elementId\) params\.set\('elementId', result\.elementId\)/);
+  assert.match(routeState, /requestedElementId: searchParams\.get\('elementId'\)/);
 });

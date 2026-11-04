@@ -32,6 +32,10 @@ export const routes = [
         loader: () => redirect('/root'),
       },
       {
+        path: '/search',
+        lazy: () => import('./Containers/SearchResults'),
+      },
+      {
         path: '/:resourceId',
         lazy: () => import('./Containers/BpmnLayout'),
         children: [
