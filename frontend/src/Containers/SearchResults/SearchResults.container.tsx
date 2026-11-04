@@ -193,14 +193,6 @@ export const Component = () => {
     navigate(queryString ? `/${result.resourceId}?${queryString}` : `/${result.resourceId}`);
   };
 
-  const highlight = (value: string) => {
-    const term = query.trim();
-    if (!term) return value;
-    const index = value.toLocaleLowerCase('fr').indexOf(term.toLocaleLowerCase('fr'));
-    if (index < 0) return value;
-    return <>{value.slice(0, index)}<Box component="mark" sx={{ bgcolor: '#fff1a8', color: 'inherit', px: 0.15, borderRadius: '2px' }}>{value.slice(index, index + term.length)}</Box>{value.slice(index + term.length)}</>;
-  };
-
   const getResultBadge = (result: { type: UnifiedSearchType; label: string }) => {
     const label = result.label.toLocaleLowerCase('fr');
     if (result.type === 'raci') return { label: 'RACI', color: '#654c98', background: '#eee8fb', border: '#d5c8f0' };
@@ -421,9 +413,10 @@ export const Component = () => {
                   <SearchResultItem
                     key={`${result.type}:${result.source}:${result.resourceId}:${result.projectId}:${result.id}`}
                     badge={badge}
-                    title={highlight(getResultTitle(result))}
-                    description={result.description ? <><strong>Description :</strong> {highlight(result.description)}</> : undefined}
-                    detail={highlight(detail)}
+                    title={getResultTitle(result)}
+                    description={result.description ? <><strong>Description :</strong> {result.description}</> : undefined}
+                    detail={detail}
+                    query={query}
                     disabled={!result.resourceId && !result.projectId}
                     onClick={() => openResult(result)}
                   />
