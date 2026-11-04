@@ -147,7 +147,7 @@ export function isSearchTextMatch(value: string, query: string): boolean {
   const normalizedValue = normalizeSearchText(value);
   const normalizedQuery = normalizeSearchText(query);
   if (!normalizedQuery) return false;
-  if (normalizedValue.includes(normalizedQuery)) return true;
+  if (isExactSearchTextMatch(normalizedValue, normalizedQuery)) return true;
 
   const queryWords = normalizedQuery.split(' ').filter(Boolean);
   const valueWords = normalizedValue.split(/[^a-z0-9]+/).filter(Boolean);
