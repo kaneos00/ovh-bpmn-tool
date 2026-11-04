@@ -16,21 +16,37 @@ describe('unified search normalization', () => {
   });
 
   it('scores exact, substring and typo matches on a 0-100 scale', () => {
-    expect(getSearchSimilarity('Validation des factures', 'VALIDATION')).toBe(100);
+    expect(getSearchSimilarity('Validation des factures', 'VALIDATION')).toBe(
+      100,
+    );
     expect(getSearchSimilarity('entretien annuel', 'entre')).toBe(56);
-    expect(getSearchSimilarity('Validation des factures', 'validaton')).toBe(90);
+    expect(getSearchSimilarity('Validation des factures', 'validaton')).toBe(
+      90,
+    );
     expect(getSearchSimilarity('Validation des factures', 'livraison')).toBe(0);
   });
 
   it('matches conservative typos only for sufficiently long words', () => {
-    expect(isSearchTextMatch('Validation des factures', 'validaton')).toBe(true);
-    expect(isSearchTextMatch('Validation des factures', 'VALIDATION')).toBe(true);
-    expect(isSearchTextMatch('Validation des factures', 'val')).toBe(true);
-    expect(isSearchTextMatch('Validation des factures', 'vla')).toBe(false);
-    expect(isSearchTextMatch('Validation des factures', 'valdiation')).toBe(true);
+    expect(isSearchTextMatch('Validation des factures', 'validaton')).toBe(
+      true,
+    );
+    expect(isSearchTextMatch('Validation des factures', 'VALIDATION')).toBe(
+      true,
+    );
+    expect(isSearchTextMatch('Validation des factures', 'val')).toBe(
+      true,
+    );
+    expect(isSearchTextMatch('Validation des factures', 'vla')).toBe(
+      false,
+    );
+    expect(isSearchTextMatch('Validation des factures', 'valdiation')).toBe(
+      true,
+    );
     expect(isSearchTextMatch('Validation des factures', 'livraison')).toBe(false);
     expect(isSearchTextMatch('Gestion des commandes', 'gestion comandes')).toBe(true);
-    expect(isExactSearchTextMatch('Supplier invoice validation', 'invoice supplier')).toBe(true);
+    expect(
+      isExactSearchTextMatch('Supplier invoice validation', 'invoice supplier'),
+    ).toBe(true);
   });
 });
 
