@@ -10,7 +10,6 @@ import {
   Divider,
   Input,
   List,
-  ListItem,
   Option,
   Select,
   Sheet,
@@ -24,6 +23,7 @@ import {
 } from '@mui/icons-material';
 
 import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
+import { SearchResultItem } from '../../Components/GenericComponents/SearchResultItem/SearchResultItem';
 import { resourcesQuery } from '../../api/resources/resources.queries';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import type { Resource } from '../../Types';
@@ -418,30 +418,15 @@ export const Component = () => {
                   result.elementId,
                 ].filter(Boolean).join(' · ');
                 return (
-                  <ListItem key={`${result.type}:${result.source}:${result.resourceId}:${result.projectId}:${result.id}`} sx={{ p: 0 }}>
-                    <Button
-                      variant="plain"
-                      color="neutral"
-                      disabled={!result.resourceId && !result.projectId}
-                      onClick={() => openResult(result)}
-                      sx={{ justifyContent: 'flex-start', textAlign: 'left', width: '100%', whiteSpace: 'normal', py: 0.75 }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, minWidth: 0, width: '100%' }}>
-                        <Box component="span" sx={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', mt: '1px', px: 0.75, py: 0.25, borderRadius: '5px', border: '1px solid', borderColor: badge.border, color: badge.color, bgcolor: badge.background, fontSize: 10, fontWeight: 800, lineHeight: 1.4, whiteSpace: 'nowrap' }}>
-                          {badge.label}
-                        </Box>
-                        <Box sx={{ minWidth: 0 }}>
-                          <Typography level="title-sm">{highlight(getResultTitle(result))}</Typography>
-                          {result.description && (
-                            <Typography level="body-sm" sx={{ color: 'text.secondary', mt: 0.25 }}>
-                              <strong>Description :</strong> {highlight(result.description)}
-                            </Typography>
-                          )}
-                          <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>{highlight(detail)}</Typography>
-                        </Box>
-                      </Box>
-                    </Button>
-                  </ListItem>
+                  <SearchResultItem
+                    key={`${result.type}:${result.source}:${result.resourceId}:${result.projectId}:${result.id}`}
+                    badge={badge}
+                    title={highlight(getResultTitle(result))}
+                    description={result.description ? <><strong>Description :</strong> {highlight(result.description)}</> : undefined}
+                    detail={highlight(detail)}
+                    disabled={!result.resourceId && !result.projectId}
+                    onClick={() => openResult(result)}
+                  />
                 );
               })}
             </List>
