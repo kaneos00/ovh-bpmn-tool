@@ -342,7 +342,7 @@ export const WorkspaceNavigation = () => {
                 found.push({
                   key: `${process.id}:role:${role}`,
                   title: role,
-                  detail: `Rôle · ${process.name}`,
+                  detail: 'Rôle',
                   resourceId: process.id,
                   elementId: lane?.getAttribute('id') || undefined,
                   processName: process.name,
@@ -364,7 +364,7 @@ export const WorkspaceNavigation = () => {
                   found.push({
                     key: `${process.id}:raci:${activity.elementId}:${cell.role}`,
                     title: activityMatches ? activity.activity : cell.role,
-                    detail: `RACI · ${process.name} · ${activity.activity} — ${cell.role} (${cell.codes.join('/')})`,
+                    detail: `RACI · ${activity.activity} — ${cell.role} (${cell.codes.join('/')})`,
                     resourceId: process.id,
                     elementId: activity.elementId,
                     processName: process.name,
@@ -413,8 +413,8 @@ export const WorkspaceNavigation = () => {
                 key: `${process.id}:ia-comm:${element.localName}:${elementId || index}:${title}`,
                 title,
                 detail: isTextAnnotation || tag === 'documentation'
-                  ? `Description · ${process.name} · ${elementId || ''}`
-                  : `IA comm. / annotation BPMN · ${process.name} · ${element.localName}`,
+                  ? `Description · ${elementId || ''}`
+                  : `IA comm. / annotation BPMN · ${element.localName}`,
                 resourceId: process.id,
                 processName: process.name,
                 similarity: similarityFor(text, search),
