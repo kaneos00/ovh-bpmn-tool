@@ -289,7 +289,7 @@ test('viewer gets a fresh BPMN instance for the selected published version', asy
   assert.ok(details.includes('content.id === selectedContentId && content.status !== ContentStatusEnum.Draft'));
   assert.ok(details.includes('const isHistoricalView = Boolean('));
   assert.ok(details.includes('selectedContentId && (!viewerContent || viewerContent.id !== publishedContent?.id)'));
-  assert.ok(details.includes('const isCommonProcess = Boolean(resourceShares?.common)'));
+  assert.match(details, /const isCommonProcess = Boolean\([\s\S]*?resourceShares\?\.common[\s\S]*?usage === 'common'[\s\S]*?\);/);
   assert.ok(details.includes('const canEditDescription = Boolean(resourceShares) && !isHistoricalView && !isCommonProcess && (sessionRole === \'admin\' || sessionRole === \'modeler\')'));
   assert.ok(details.includes('Afficher cette version'));
   assert.ok(details.includes('contentId=${encodeURIComponent(content.id)}') || details.includes('contentId=${encodeURIComponent(content.id)}'));
