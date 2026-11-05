@@ -22,7 +22,7 @@ import {
   Table,
   Typography,
 } from '@mui/joy';
-import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
+import { WorkspacePageHeader } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
 import './UserAccounts.scss';
 import '../OrganizationAdmin/OrganizationAdmin.scss';
 
@@ -338,7 +338,7 @@ export const Component = () => {
   return (
     <Sheet className="org-admin-v2__page" sx={{ width: '100%', maxWidth: 'none', boxSizing: 'border-box', p: 0, bgcolor: 'transparent' }}>
       <Stack spacing={2}>
-        <WorkspaceNavigation />
+        <WorkspacePageHeader />
         <div className="org-admin-v2">
           <aside className="org-admin-v2__sidebar">
             <div className="org-admin-v2__brand">
