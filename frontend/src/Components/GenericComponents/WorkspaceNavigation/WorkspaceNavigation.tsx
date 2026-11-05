@@ -35,18 +35,13 @@ const BPMN_CONNECTION_TYPES = new Set([
 const destinations = [
   {
     label: 'Accueil',
-    path: '/home',
-    matches: (path: string) => path === '/home',
-  },
-  {
-    label: 'Référentiel',
     path: '/root',
-    matches: (path: string) => path === '/root' || /^\/[0-9a-f-]+(?:\/|$)/i.test(path),
+    matches: (path: string) => path === '/root' || /^\\/[0-9a-f-]+(?:\\/|$)/i.test(path),
   },
   {
     label: 'Projets',
     path: '/projects',
-    matches: (path: string) => path === '/projects' || /^\/projects\/[^/]+$/.test(path) || path === '/workspace',
+    matches: (path: string) => path === '/projects' || /^\\/projects\\/[^/]+$/.test(path) || path === '/workspace',
   },
   {
     label: 'Administration',
