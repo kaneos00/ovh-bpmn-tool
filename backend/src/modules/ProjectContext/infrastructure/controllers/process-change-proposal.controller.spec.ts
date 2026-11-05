@@ -11,6 +11,7 @@ import {
 import { ProcessChangeProposalEventTypeOrmEntity } from '../entities/processChangeProposalEvent.ormEntity';
 import { ProjectMemberTypeOrmEntity } from '../entities/projectMember.ormEntity';
 import { ProjectProcessUsage } from '../entities/projectProcess.ormEntity';
+import { ResourceTypeEnum } from '../../../ResourceContext/shared/types/Resource';
 import { ProcessChangeProposalController } from './process-change-proposal.controller';
 
 describe('ProcessChangeProposalController remark permissions', () => {
@@ -215,5 +216,141 @@ describe('ProcessChangeProposalController remark permissions', () => {
         { 'x-user': actorUsername },
       ),
     ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+});
+
+
+describe('ProcessChangeProposalController common-process remark creation', () => {
+  it('creates a distinct private proposal workspace without adding a second project link', async () => {
+    const projectId = '10000000-0000-4000-8000-000000000001';
+    const sourceId = '20000000-0000-4000-8000-000000000002';
+    const cloneId = '20000000-0000-4000-8000-000000000003';
+    const publishedId = '30000000-0000-4000-8000-000000000001';
+    const draftId = '30000000-0000-4000-8000-000000000002';
+    const authorId = '4e08285c-d198-407d-b729-6e54b57f9873';
+    const proposalId = '40000000-0000-4000-8000-000000000001';
+    const username = 'auteur-1';
+    const membership = {
+      projectId,
+      userId: username,
+      role: ProjectMemberRole.Viewer,
+      canSubmitRemarks: true,
+    };
+    const source = {
+      id: sourceId,
+      name: 'Processus commun',
+      description: null,
+      depth: 0,
+      parentId: null,
+      type: ResourceTypeEnum.Process,
+      authToken: null,
+    };
+    const resourceRepository = {
+      findOne: jest.fn().mockResolvedValue(source),
+      create: jest.fn((value: unknown) => value),
+      save: jest.fn(async (value: Record<string, unknown>) => ({
+        ...value,
+        id: cloneId,
+      })),
+    };
+    const contentRepository = {
+      findOne: jest.fn().mockResolvedValue({
+        id: publishedId,
+        resourceId: sourceId,
+        content: '<definitions />',
+        version: 1,
+      }),
+      create: jest.fn((value: unknown) => value),
+      save: jest.fn(async (value: Record<string, unknown>) => ({
+        ...value,
+        id: draftId,
+      })),
+    };
+    const linkRepository = {
+      findOne: jest.fn().mockResolvedValue({
+        projectId,
+        resourceId: sourceId,
+        usage: ProjectProcessUsage.Common,
+      }),
+      create: jest.fn((value: unknown) => value),
+      save: jest.fn(),
+    };
+    const memberRepository = {
+      findOne: jest.fn().mockResolvedValue(membership),
+      find: jest.fn().mockResolvedValue([]),
+    };
+    const proposalRepository = {
+      findOne: jest.fn().mockResolvedValue(null),
+      create: jest.fn((value: unknown) => value),
+      save: jest.fn(async (value: Record<string, unknown>) => ({
+        ...value,
+        id: proposalId,
+      })),
+    };
+    const eventRepository = {
+      create: jest.fn((value: unknown) => value),
+      save: jest.fn(async (value: unknown) => value),
+    };
+    const commentRepository = {
+      create: jest.fn((value: unknown) => value),
+      save: jest.fn(async (value: Record<string, unknown>) => ({
+        ...value,
+        id: '50000000-0000-4000-8000-000000000001',
+      })),
+    };
+    const repositories = new Map<unknown, unknown>([
+      [ResourceTypeOrmEntity, resourceRepository],
+      [ContentTypeOrmEntity, contentRepository],
+      [ProjectProcessTypeOrmEntity, linkRepository],
+      [ProjectMemberTypeOrmEntity, memberRepository],
+      [ProcessChangeProposalTypeOrmEntity, proposalRepository],
+      [ProcessChangeProposalEventTypeOrmEntity, eventRepository],
+      [ProcessChangeProposalCommentTypeOrmEntity, commentRepository],
+    ]);
+    const manager = {
+      getRepository: jest.fn((entity: unknown) => repositories.get(entity)),
+      query: jest.fn().mockResolvedValue([]),
+    };
+    const dataSource = {
+      query: jest.fn().mockResolvedValue([{ id: authorId }]),
+      transaction: jest.fn(async (work: (value: unknown) => unknown) =>
+        work(manager),
+      ),
+    };
+    const access = {
+      getAuthenticatedUserId: jest.fn(() => username),
+      hasOrganizationAdminRole: jest.fn(() => false),
+      assertCanReadResource: jest.fn().mockResolvedValue(undefined),
+    };
+    const controller = new ProcessChangeProposalController(
+      dataSource as never,
+      access as never,
+      proposalRepository as never,
+      eventRepository as never,
+      commentRepository as never,
+      {} as never,
+      linkRepository as never,
+      memberRepository as never,
+      resourceRepository as never,
+    );
+
+    const result = await controller.createProposal(
+      projectId,
+      sourceId,
+      { elementId: 'Task_Review', comment: 'Verificare questa attività' },
+      { 'x-user': username },
+    );
+
+    expect(resourceRepository.save).toHaveBeenCalledTimes(1);
+    expect(result.cloneResourceId).toBe(cloneId);
+    expect(result.cloneResourceId).not.toBe(sourceId);
+    expect(proposalRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceResourceId: sourceId,
+        cloneResourceId: cloneId,
+      }),
+    );
+    expect(linkRepository.save).not.toHaveBeenCalled();
+    expect(commentRepository.save).toHaveBeenCalled();
   });
 });
