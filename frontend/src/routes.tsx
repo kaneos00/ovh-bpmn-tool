@@ -30,7 +30,7 @@ async function requireGlobalAdmin({ request }: { request: Request }) {
     }
     const session = await response.json();
     if (session.role !== 'admin' || session.impersonating) {
-      throw redirect('/home');
+      throw redirect('/root');
     }
     return null;
   } catch (reason) {
@@ -70,11 +70,11 @@ export const routes = [
       },
       {
         path: '/',
-        loader: () => redirect('/home'),
+        loader: () => redirect('/root'),
       },
       {
         path: '/home',
-        lazy: () => import('./Containers/Home'),
+        loader: () => redirect('/root'),
       },
       {
         path: '/projects',
@@ -128,7 +128,7 @@ export const routes = [
       },
       {
         path: '/projects/:projectId/viewer',
-        lazy: () => import('./Containers/ProjectViewer'),
+        lazy: () => import('./Containers/ProjectWorkspaceRedirect'),
       },
       {
         path: '/:resourceId/modeler',
