@@ -162,7 +162,8 @@ const ProcessContentViewer = () => {
     process => process.resourceId === resourceId,
   );
   const isCommonProcess =
-    remarkPermission?.usage === 'common' || currentProjectProcess?.usage === 'common';
+    remarkPermission?.usage === 'common' ||
+    currentProjectProcess?.usage === 'common';
   const canSubmitViewerRemark = Boolean(remarkPermission?.canSubmitRemarks);
   const proposalProject =
     associatedProject &&
@@ -528,6 +529,21 @@ const ProcessContentViewer = () => {
             Le bouton de remarque reste masqué tant que cette vérification échoue.
           </Alert>
         )}
+        {routeProjectId && remarkPermission && !remarkPermission.associated && (
+          <Alert color="danger" variant="soft" sx={{ mx: 2, mt: 1 }}>
+            Le processus n’est pas associé au projet sélectionné. Le lien Viewer
+            contient un projectId qui ne correspond pas à son association.
+          </Alert>
+        )}
+        {routeProjectId &&
+          remarkPermission?.associated &&
+          !remarkPermission.canSubmitRemarks && (
+            <Alert color="warning" variant="soft" sx={{ mx: 2, mt: 1 }}>
+              {remarkPermission.isMember
+                ? 'Le compte est membre du projet, mais le droit « Peut déposer des remarques » est désactivé.'
+                : 'Le compte connecté n’est pas membre de ce projet.'}
+            </Alert>
+          )}
         {remarkWarning && (
           <Alert color="warning" variant="soft" sx={{ mx: 2, mt: 1 }}>
             {remarkWarning}
