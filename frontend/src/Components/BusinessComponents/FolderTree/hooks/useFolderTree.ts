@@ -7,7 +7,7 @@ import { useFolders } from '../../../../shared/hooks/useFolders';
 import { useResource } from '../../../../shared/hooks/useResource';
 import { ResourceType } from '../../../../shared/types/BpmnResource';
 import { resolveLinkedChildren } from '../processLinks';
-import { useActiveProject } from '../../../../../shared/hooks/useActiveProject';
+import { useActiveProject } from '../../../../shared/hooks/useActiveProject';
 
 import type { RenderTree } from '..';
 
