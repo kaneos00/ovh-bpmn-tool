@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import {
@@ -34,6 +34,8 @@ type Project = {
   id: string;
   name: string;
   description: string | null;
+  color: string;
+  icon: string;
   createdAt: string;
 };
 
@@ -89,6 +91,8 @@ export const Component = () => {
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [projectColor, setProjectColor] = useState('#2864d7');
+  const [projectIcon, setProjectIcon] = useState('folder');
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
   const [usage, setUsage] = useState<'common' | 'project-specific'>('common');
   const [memberUserId, setMemberUserId] = useState('');
@@ -109,7 +113,7 @@ export const Component = () => {
   const workspaceQuery = useQuery<WorkspaceSummary>(
     ['my-workspace'],
     () => apiClient.get('/projects/me/workspace'),
-    { enabled: !projectId },
+    { enabled: true },
   );
   const workspaceProjects = useMemo(
     () => new Map((workspaceQuery.data?.projects ?? []).map((item) => [item.id, item])),
@@ -120,6 +124,14 @@ export const Component = () => {
     () => apiClient.get(`/projects/${projectId}`),
     { enabled: Boolean(projectId) },
   );
+  useEffect(() => {
+    if (!projectQuery.data) return;
+    setProjectColor(projectQuery.data.color || '#2864d7');
+    setProjectIcon(projectQuery.data.icon || 'folder');
+  }, [projectQuery.data]);
+  const projectMembership = workspaceQuery.data?.projects.find(item => item.id === projectId);
+  const canManageProjectIdentity = projectMembership?.role === 'admin';
+
   const linkedProcessesQuery = useQuery<ProjectProcessLink[]>(
     projectProcessesKey(projectId ?? ''),
     () => apiClient.get(`/projects/${projectId}/processes`),
@@ -135,6 +147,22 @@ export const Component = () => {
     availableResourcesQuery.queryKey,
     availableResourcesQuery.queryFn,
     { enabled: Boolean(projectId) },
+  );
+
+  const updateProjectIdentity = useMutation(
+    () => {
+      if (!projectId) throw new Error('Aucun projet sélectionné.');
+      return apiClient.put(`/projects/${projectId}`, { color: projectColor, icon: projectIcon });
+    },
+    {
+      onSuccess: async () => {
+        setError(null);
+        await queryClient.invalidateQueries(projectKey(projectId ?? ''));
+        await queryClient.invalidateQueries(projectsKey);
+        await queryClient.invalidateQueries(['my-workspace']);
+      },
+      onError: (mutationError: Error) => setError(mutationError.message),
+    },
   );
 
   const createProject = useMutation(
@@ -343,6 +371,31 @@ export const Component = () => {
           <>
             <Typography level="h2">{project.name}</Typography>
             {project.description && <Typography level="body-md">{project.description}</Typography>}
+            {canManageProjectIdentity && (
+              <Card variant="outlined" sx={{ gap: 1.25 }}>
+                <Typography level="title-lg">Identité visuelle du projet</Typography>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'flex-end' }}>
+                  <Stack spacing={0.5} sx={{ minWidth: 180 }}>
+                    <Typography level="body-sm">Couleur du projet</Typography>
+                    <Input type="color" value={projectColor} onChange={event => setProjectColor(event.target.value)} aria-label="Couleur du projet" />
+                  </Stack>
+                  <Stack spacing={0.5} sx={{ minWidth: 220 }}>
+                    <Typography level="body-sm">Pictogramme</Typography>
+                    <Select value={projectIcon} onChange={(_event, value) => value && setProjectIcon(value)} aria-label="Pictogramme du projet">
+                      <Option value="folder">📁 Dossier</Option>
+                      <Option value="briefcase">💼 Mallette</Option>
+                      <Option value="building">🏢 Bâtiment</Option>
+                      <Option value="workflow">🔀 Flux</Option>
+                      <Option value="users">👥 Équipe</Option>
+                      <Option value="chart">📊 Indicateurs</Option>
+                    </Select>
+                  </Stack>
+                  <Button loading={updateProjectIdentity.isLoading} disabled={updateProjectIdentity.isLoading} onClick={() => updateProjectIdentity.mutate()}>
+                    Enregistrer l’identité visuelle
+                  </Button>
+                </Stack>
+              </Card>
+            )}
             <Typography level="body-sm">
               Les processus communs sont référencés, pas copiés. Les retirer du projet ne supprime pas le processus du catalogue.
             </Typography>
