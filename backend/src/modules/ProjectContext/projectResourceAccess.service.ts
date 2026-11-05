@@ -156,34 +156,82 @@ export class ProjectResourceAccessService {
    * modeler/admin rights so a viewer cannot export a private process.
    */
   async assertCanCloneResource(
+    resourceId: string,
+    headers: RequestHeaders,
+  ): Promise<void>;
+  async assertCanCloneResource(
     projectId: string,
     resourceId: string,
     headers: RequestHeaders,
-  ) {
-    const sourceLink = await this.projectProcesses.findOne({
-      where: { projectId, resourceId },
-    });
-    if (!sourceLink) {
-      throw new ForbiddenException(
-        'Cloning requires the source process to belong to the selected project',
-      );
+  ): Promise<void>;
+  async assertCanCloneResource(
+    first: string,
+    second: string | RequestHeaders,
+    third?: RequestHeaders,
+  ): Promise<void> {
+    if (third) {
+      const projectId = first;
+      const resourceId = second as string;
+      const headers = third;
+      const sourceLink = await this.projectProcesses.findOne({
+        where: { projectId, resourceId },
+      });
+      if (!sourceLink) {
+        throw new ForbiddenException(
+          'Cloning requires the source process to belong to the selected project',
+        );
+      }
+
+      // A proposal is scoped to one project. Memberships in other projects
+      // linked to the same resource must not veto an otherwise authorized clone.
+      if (sourceLink.usage === ProjectProcessUsage.Common) return;
+
+      const userId = this.getAuthenticatedUserId(headers);
+      const membership = await this.projectMembers.findOne({
+        where: { projectId, userId },
+      });
+      if (
+        !membership ||
+        (membership.role !== ProjectMemberRole.Modeler &&
+          membership.role !== ProjectMemberRole.Admin)
+      ) {
+        throw new ForbiddenException(
+          'Cloning a project-specific process requires modeler access in the selected project',
+        );
+      }
+      return;
     }
 
-    // A proposal is scoped to one project. Memberships in other projects
-    // linked to the same resource must not veto an otherwise authorized clone.
-    if (sourceLink.usage === ProjectProcessUsage.Common) return;
+    // The generic resource clone endpoint has no project context. For a
+    // project-specific process, require modeler/admin membership in every
+    // linked project rather than inventing a project identifier.
+    const resourceId = first;
+    const headers = second as RequestHeaders;
+    const links = await this.projectProcesses.find({ where: { resourceId } });
+    if (
+      !links.length ||
+      links.some((link) => link.usage === ProjectProcessUsage.Common) ||
+      this.hasOrganizationAdminRole(headers)
+    ) {
+      return;
+    }
 
     const userId = this.getAuthenticatedUserId(headers);
-    const membership = await this.projectMembers.findOne({
-      where: { projectId, userId },
+    const memberships = await this.projectMembers.find({
+      where: links.map((link) => ({ projectId: link.projectId, userId })),
     });
-    if (
-      !membership ||
-      (membership.role !== ProjectMemberRole.Modeler &&
-        membership.role !== ProjectMemberRole.Admin)
-    ) {
+    const roleByProject = new Map(
+      memberships.map((membership) => [membership.projectId, membership.role]),
+    );
+    const canCloneEveryProject = links.every((link) => {
+      const role = roleByProject.get(link.projectId);
+      return (
+        role === ProjectMemberRole.Modeler || role === ProjectMemberRole.Admin
+      );
+    });
+    if (!canCloneEveryProject) {
       throw new ForbiddenException(
-        'Cloning a project-specific process requires modeler access in the selected project',
+        'Cloning a project-specific process requires modeler access to every linked project',
       );
     }
   }

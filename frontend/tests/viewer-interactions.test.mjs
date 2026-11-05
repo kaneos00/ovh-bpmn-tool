@@ -300,7 +300,9 @@ test('global annotation search labels text annotations as Description and carrie
 
 test('authorized roles can edit the central element sheet in the Viewer shell', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
-  assert.ok(details.includes("const canEditDescription = !isHistoricalView && (sessionRole === 'admin' || sessionRole === 'modeler')"));
+  assert.ok(details.includes('const isCommonProcess = Boolean('));
+  assert.ok(details.includes("usage === 'common'"));
+  assert.ok(details.includes("const canEditDescription = Boolean(resourceShares) && !isHistoricalView && !isCommonProcess"));
   assert.ok(details.includes('canEditDescription && !isEditingDescription'));
 });
 
@@ -473,7 +475,7 @@ test('remark decisions reuse the existing validator, project-admin and global-ad
   assert.ok(controller.includes('this.access.hasOrganizationAdminRole(headers)'));
   assert.ok(controller.includes('ProjectMemberRole.Admin'));
   assert.ok(controller.includes('ProjectMemberRole.Modeler'));
-  assert.ok(controller.includes('L’auteur ne peut pas approuver ou refuser sa propre demande'));
+  assert.ok(controller.includes('L’auteur de la dernière soumission ne peut pas approuver ou refuser sa propre demande'));
   assert.ok(controller.includes('L’auteur ne peut pas décider de sa propre remarque'));
 });
 
@@ -501,7 +503,7 @@ test('review queue opens the existing modeler and exposes pending remark counts'
   assert.ok(queue.includes('&reviewRemarks=1'));
   assert.ok(modeler.includes('reviewOnly={reviewRemarksMode && !approvedProposalMode}'));
   assert.ok(modeler.includes('Mode revue : le diagramme soumis est consulté sans modification directe'));
-  assert.ok(actionBar.includes('{!reviewOnly && ('));
+  assert.ok(actionBar.includes('!reviewOnly && <>'));
   assert.ok(actionBar.includes('Retour aux demandes'));
 });
 
