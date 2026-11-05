@@ -21,7 +21,7 @@ import {
   Search,
 } from '@mui/icons-material';
 
-import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
+import { WorkspacePageHeader } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
 import { SearchResultItem } from '../../Components/GenericComponents/SearchResultItem/SearchResultItem';
 import { resourcesQuery } from '../../api/resources/resources.queries';
 import { ResourceType } from '../../shared/types/BpmnResource';
@@ -235,7 +235,7 @@ export const Component = () => {
       }}
     >
       <Stack spacing={2}>
-        <WorkspaceNavigation />
+        <WorkspacePageHeader />
 
         <Stack spacing={0.5}>
           <Typography level="h2">Résultats de recherche</Typography>
