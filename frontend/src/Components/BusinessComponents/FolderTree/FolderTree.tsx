@@ -217,13 +217,13 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
       let projectId = separator > 0 ? entryId.slice(0, separator) : null;
       const resourceId = separator > 0 ? entryId.slice(separator + 2) : entryId;
       const matchingProjects = projects.filter(project => project.processes.some(process => process.resourceId === resourceId));
+      const currentNode = nodeById.get(resourceId) ?? flatNodes.find(node => node.targetId === resourceId);
       if (!projectId) {
-        if (activeProjectId && matchingProjects.some(project => project.id === activeProjectId)) projectId = activeProjectId;
+        if (activeProjectId && (matchingProjects.some(project => project.id === activeProjectId) || currentNode)) projectId = activeProjectId;
         else if (matchingProjects.length === 1) projectId = matchingProjects[0].id;
       }
       const project = projects.find(item => item.id === projectId);
       const process = project?.processes.find(item => item.resourceId === resourceId);
-      const currentNode = nodeById.get(resourceId) ?? flatNodes.find(node => node.targetId === resourceId);
       const node = currentNode ?? (process ? { id: entryId, targetId: resourceId, name: process.name, type: 'process' } as RenderTree : null);
       if (!node || !projectId) return [];
       return [{ ...node, id: entryId, targetId: resourceId, projectId } as RenderTree & { projectId: string; entryId: string }];
