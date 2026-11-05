@@ -26,6 +26,18 @@ import {
 } from '@mui/icons-material';
 import { useQuery } from 'react-query';
 
+const getRemarkStatusColor = (status: string): 'success' | 'danger' | 'warning' => {
+  if (status === 'accepted') return 'success';
+  if (status === 'rejected') return 'danger';
+  return 'warning';
+};
+
+const getRemarkStatusLabel = (status: string): string => {
+  if (status === 'accepted') return 'Acceptée';
+  if (status === 'rejected') return 'Refusée';
+  return 'En attente';
+};
+
 import { ViewerExplorerPanel } from '../../Components/BusinessComponents/ViewerExplorerPanel/ViewerExplorerPanel';
 import { UserAccountMenu } from '../../Components/GenericComponents/UserAccountMenu/UserAccountMenu';
 import { ProcessViewer } from '../../Components/BusinessComponents/ProcessViewer';
@@ -470,12 +482,8 @@ const ProcessContentViewer = () => {
                 <Sheet key={remark.id} variant="outlined" sx={{ p: 1.25, borderRadius: 'sm' }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
                     <Typography level="title-sm">{remark.elementId}</Typography>
-                    <Typography level="body-xs" color={
-                      remark.status === 'accepted' ? 'success' :
-                      remark.status === 'rejected' ? 'danger' : 'warning'
-                    }>
-                      {remark.status === 'accepted' ? 'Acceptée' :
-                       remark.status === 'rejected' ? 'Refusée' : 'En attente'}
+                    <Typography level="body-xs" color={getRemarkStatusColor(remark.status)}>
+                      {getRemarkStatusLabel(remark.status)}
                     </Typography>
                   </Stack>
                   <Typography level="body-sm">{remark.comment}</Typography>

@@ -35,9 +35,11 @@ export const useProcessViewer = (
   const importGenerationRef = useRef(0);
   const importQueueRef = useRef<Promise<unknown>>(Promise.resolve());
   const remarkOverlayIdsRef = useRef<Array<string | number>>([]);
+  const viewerForOverlaysRef = useRef<any>(null);
 
   const applyRemarkOverlays = () => {
-    if (!importedRef.current) return;
+    const viewer = viewerForOverlaysRef.current;
+    if (!viewer || !importedRef.current) return;
     const overlays = viewer.get('overlays') as any;
     const registry = viewer.get('elementRegistry') as any;
     remarkOverlayIdsRef.current.forEach(id => {
@@ -104,6 +106,7 @@ export const useProcessViewer = (
   // Recreate the Viewer when provider extensions/modules change; an empty
   // dependency list would permanently capture the initial provider options.
   const viewer = useMemo(() => getViewerInstance(), [getViewerInstance]);
+  viewerForOverlaysRef.current = viewer;
   const setMinimapVisibility = useCallback((visible: boolean) => {
     setMinimapVisible(visible);
     const minimap = viewer.get('minimap') as { open?: () => void; close?: () => void };
@@ -298,7 +301,6 @@ export const useProcessViewer = (
       // Select BPMN shapes by their business-object type rather than a closed
       // list of diagram-js shape types. This includes labels, collapsed
       // SubProcesses and future BPMN shape types, while excluding connections.
-      const elementType = element.businessObject?.$type ?? element.type;
       const elementType = element.businessObject?.$type ?? element.type;
       const isConnection = Array.isArray(element.waypoints) ||
         /^(?:bpmn:)?(?:sequenceFlow|messageFlow|association|dataInputAssociation|dataOutputAssociation|conversationLink)$/i.test(String(elementType ?? ''));

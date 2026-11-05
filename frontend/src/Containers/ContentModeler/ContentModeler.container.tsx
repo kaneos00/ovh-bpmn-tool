@@ -2,6 +2,18 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, useBlocker, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from 'react-query';
 
+const getRemarkStatusColor = (status: string): 'success' | 'danger' | 'warning' => {
+  if (status === 'accepted') return 'success';
+  if (status === 'rejected') return 'danger';
+  return 'warning';
+};
+
+const getRemarkStatusLabel = (status: string): string => {
+  if (status === 'accepted') return 'Acceptée';
+  if (status === 'rejected') return 'Refusée';
+  return 'En attente';
+};
+
 import { ModelerActionBar } from './components/ModelerActionBar';
 import { Alert, Button, Modal, ModalDialog, DialogTitle, DialogContent, DialogActions, Textarea, Sheet, Stack, Typography } from '@mui/joy';
 import { ModelerShortcuts } from '../../Components/BusinessComponents/ModelerShortcuts/ModelerShortcuts';
@@ -326,12 +338,8 @@ export const Component = () => {
                 <Stack spacing={1}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center" useFlexGap flexWrap="wrap">
                     <Typography level="title-sm">{remark.elementId}</Typography>
-                    <Typography level="body-xs" color={
-                      remark.status === 'accepted' ? 'success' :
-                      remark.status === 'rejected' ? 'danger' : 'warning'
-                    }>
-                      {remark.status === 'accepted' ? 'Acceptée' :
-                       remark.status === 'rejected' ? 'Refusée' : 'En attente'}
+                    <Typography level="body-xs" color={getRemarkStatusColor(remark.status)}>
+                      {getRemarkStatusLabel(remark.status)}
                     </Typography>
                   </Stack>
                   <Typography level="body-sm">{remark.comment}</Typography>
@@ -368,7 +376,7 @@ export const Component = () => {
                   ) : (
                     <Typography level="body-xs" textColor="neutral">
                       Décidée le {remark.decidedAt ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(remark.decidedAt)) : '—'}
-                      {remark.decisionByName ? ` · par ${remark.decisionByName}` : remark.decisionBy ? ` · par ${remark.decisionBy}` : ''}
+                      {(remark.decisionByName || remark.decisionBy) && ` · par ${remark.decisionByName || remark.decisionBy}`}
                       {remark.decisionComment ? ` · ${remark.decisionComment}` : ''}
                     </Typography>
                   )}
