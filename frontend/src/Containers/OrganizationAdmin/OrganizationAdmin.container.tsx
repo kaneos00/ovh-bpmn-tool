@@ -369,6 +369,7 @@ export const Component = () => {
         { resourceId: process.id, usage: bulkProcessUsage },
       )));
       await queryClient.invalidateQueries(queryKey);
+      await queryClient.invalidateQueries(['my-workspace']);
       setSelectedProcessIds([]);
       setProcessBulkAction(false);
       setBulkProcessProjectId('');
