@@ -86,7 +86,7 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
         <Box>
           <Typography level="title-lg">{resource.name}</Typography>
           <Typography level="body-sm" color="neutral" sx={{ whiteSpace: 'pre-wrap' }}>
-            {resource.description?.trim() || 'Aucun descriptif renseigné pour ce répertoire.'}
+            {(resourceId === 'root' ? activeProject?.description : resource.description)?.trim() || (resourceId === 'root' ? 'Espace de travail du projet actif.' : 'Aucun descriptif renseigné pour ce répertoire.')}
           </Typography>
           <Typography level="body-sm" color="neutral">
             Sélectionnez un sous-répertoire ou un processus pour l’ouvrir.
