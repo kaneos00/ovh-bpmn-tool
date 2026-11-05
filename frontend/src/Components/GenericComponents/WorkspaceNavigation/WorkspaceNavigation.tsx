@@ -206,7 +206,7 @@ export const WorkspaceNavigation = () => {
   const [deepSearchLoading, setDeepSearchLoading] = useState(false);
   const searchRef = useRef<HTMLInputElement | null>(null);
   const resources = useQuery<Resource[]>(resourcesQuery());
-  const { projects, activeProjectId, setActiveProject, projectProcessIds, isLoading: projectsLoading } = useActiveProject();
+  const { projects, activeProject, activeProjectId, setActiveProject, projectProcessIds, isLoading: projectsLoading } = useActiveProject();
 
   const resourceResults = useMemo(() => {
     const term = search.trim().toLocaleLowerCase('fr');
@@ -566,9 +566,15 @@ export const WorkspaceNavigation = () => {
           disabled={projectsLoading || projects.length === 0}
           aria-label="Projet actif"
           placeholder="Choisir un projet"
-          sx={{ minWidth: 180, maxWidth: 240, bgcolor: '#263e59', color: '#fff', borderColor: '#40556d', '&:hover': { bgcolor: '#2b4664' } }}
+          sx={{ minWidth: 180, maxWidth: 240, bgcolor: activeProject?.color || '#263e59', color: '#fff', borderColor: '#40556d', '&:hover': { filter: 'brightness(1.08)' } }}
         >
-          {projects.map(project => <Option key={project.id} value={project.id}>{project.name}</Option>)}
+          {projects.map(project => <Option key={project.id} value={project.id}>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Box component="span" sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: project.color || '#2864d7', flexShrink: 0 }} />
+              <Box component="span">{({ folder: '📁', briefcase: '💼', building: '🏢', workflow: '🔀', users: '👥', chart: '📊' } as Record<string, string>)[project.icon || 'folder'] || '📁'}</Box>
+              <Box component="span">{project.name}</Box>
+            </Stack>
+          </Option>)}
         </Select>
 
         <Box sx={{ position: 'relative', flex: 1, minWidth: 220, maxWidth: 620 }}>
