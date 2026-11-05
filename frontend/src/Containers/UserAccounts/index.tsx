@@ -74,7 +74,7 @@ async function call<T = any>(path: string, method = 'GET', body?: unknown): Prom
 
 export const Component = () => {
   const navigate = useNavigate();
-  const { userId } = useParams<{ userId?: string }>();
+  const { username } = useParams<{ username?: string }>();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [overview, setOverview] = useState<AdministrationOverview>({ projects: [], users: [] });
@@ -169,7 +169,7 @@ export const Component = () => {
     });
   }, [accounts, membershipsByUser, search, statusFilter, roleFilter]);
 
-  const selectedAccount = accounts.find((account) => account.id === userId) ?? null;
+  const selectedAccount = accounts.find((account) => account.username === username) ?? null;
   const selectedAccounts = filteredAccounts.filter((account) => selectedAccountIds.includes(account.id));
   const allVisibleSelected = filteredAccounts.length > 0 && filteredAccounts.every((account) => selectedAccountIds.includes(account.id));
   const selectedMembership = selectedAccount
@@ -366,14 +366,14 @@ export const Component = () => {
               <div>
                 <div className="org-admin-v2__crumb" aria-label="Fil d’Ariane">
                   <Button size="sm" variant="plain" color="neutral" sx={{ p: 0, minHeight: 'unset' }} onClick={() => navigate('/organization/users')}>Administration / Utilisateurs</Button>
-                  {userId && <> / {selectedAccount?.username ?? 'Utilisateur'}</>}
+                  {username && <> / {selectedAccount?.username ?? username}</>}
                 </div>
-                <div className="org-admin-v2__top-title">{userId ? 'Fiche utilisateur' : 'Administration des utilisateurs'}</div>
+                <div className="org-admin-v2__top-title">{username ? 'Fiche utilisateur' : 'Administration des utilisateurs'}</div>
               </div>
               <Chip size="sm" color="primary" variant="soft">Accès organisationnel</Chip>
             </header>
             <div className="org-admin-v2__content">
-              {!userId && <>
+              {!username && <>
               <div className="org-admin-v2__page-head">
                 <div>
                   <div className="org-admin-v2__eyebrow">Administration des accès</div>
@@ -435,7 +435,7 @@ export const Component = () => {
                             <td><Chip size="sm" color={roleColors[account.role]} variant="soft">{roleLabels[account.role]}</Chip></td>
                             <td><Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">{(membership?.projects ?? []).slice(0, 2).map((project) => <Chip key={project.projectId} size="sm" variant="soft" color="neutral">{project.projectName}</Chip>)}{(membership?.projects.length ?? 0) > 2 && <Chip size="sm" variant="outlined">+{membership!.projects.length - 2}</Chip>}{!membership?.projects.length && <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Aucun projet</Typography>}</Stack></td>
                             <td><Chip size="sm" color={account.active ? 'success' : 'neutral'} variant="soft">{account.active ? 'Actif' : 'Désactivé'}</Chip></td>
-                            <td><Button size="sm" variant="outlined" onClick={() => { setResetPassword(''); setConfirmImpersonation(false); navigate(`/organization/users/${encodeURIComponent(account.id)}`); }}>Ouvrir la fiche</Button></td>
+                            <td><Button size="sm" variant="outlined" onClick={() => { setResetPassword(''); setConfirmImpersonation(false); navigate(`/organization/users/${encodeURIComponent(account.username)}`); }}>Ouvrir la fiche</Button></td>
                           </tr>
                         );
                       })}
@@ -480,7 +480,7 @@ export const Component = () => {
 
               </>}
 
-              {userId && loaded && !selectedAccount && !error && <Alert color="warning">Utilisateur introuvable. <Button size="sm" variant="plain" onClick={() => navigate('/organization/users')}>Retour à la liste</Button></Alert>}
+              {username && loaded && !selectedAccount && !error && <Alert color="warning">Utilisateur introuvable. <Button size="sm" variant="plain" onClick={() => navigate('/organization/users')}>Retour à la liste</Button></Alert>}
               {selectedAccount && selectedDraft && (
                 <Card className="org-admin-v2__panel org-users__detail" variant="outlined">
                   <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} gap={1}>
