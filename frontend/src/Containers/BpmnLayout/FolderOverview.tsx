@@ -51,7 +51,7 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
   if (resources.isLoading) {
     return (
       <Card variant="outlined" sx={{ flex: 1, minHeight: 220, gap: 1 }}>
-        <Typography level="title-lg">{resourceId === 'root' && activeProject ? activeProject.name : resource.name}</Typography>
+        <Typography level="title-lg">{resourceId === 'root' ? (activeProject?.name ?? 'Référentiel') : resource.name}</Typography>
         <Typography level="body-sm" color="neutral">Chargement du contenu…</Typography>
       </Card>
     );
@@ -60,7 +60,7 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
   if (resources.isError) {
     return (
       <Card variant="outlined" sx={{ flex: 1, minHeight: 220, gap: 1 }}>
-        <Typography level="title-lg">{resourceId === 'root' && activeProject ? activeProject.name : resource.name}</Typography>
+        <Typography level="title-lg">{resourceId === 'root' ? (activeProject?.name ?? 'Référentiel') : resource.name}</Typography>
         <Typography level="body-sm" color="danger">
           Impossible de charger le contenu de ce répertoire.
         </Typography>
@@ -126,9 +126,9 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
         sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
       >
         <Box>
-          <Typography level="title-lg">{resourceId === 'root' && activeProject ? activeProject.name : resource.name}</Typography>
+          <Typography level="title-lg">{resourceId === 'root' ? (activeProject?.name ?? 'Référentiel') : resource.name}</Typography>
           <Typography level="body-sm" color="neutral" sx={{ whiteSpace: 'pre-wrap' }}>
-            {(resourceId === 'root' ? activeProject?.description : resource.description)?.trim() || (resourceId === 'root' ? 'Espace de travail du projet actif.' : 'Aucun descriptif renseigné pour ce répertoire.')}
+            {(resourceId === 'root' ? activeProject?.description : resource.description)?.trim() || (resourceId === 'root' ? 'Sélectionnez un projet pour afficher son espace de travail.' : 'Aucun descriptif renseigné pour ce répertoire.')}
           </Typography>
           <Typography level="body-sm" color="neutral">
             Sélectionnez un sous-répertoire ou un processus pour l’ouvrir.
