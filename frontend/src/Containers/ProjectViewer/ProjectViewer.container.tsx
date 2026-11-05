@@ -10,6 +10,9 @@ import {
   Sheet,
   Stack,
   Textarea,
+  Input,
+  Option,
+  Select,
   Typography,
 } from '@mui/joy';
 import { CloseRounded, EditRounded, SaveRounded } from '@mui/icons-material';
@@ -22,6 +25,8 @@ type Project = {
   id: string;
   name: string;
   description: string | null;
+  color: string;
+  icon: string;
   createdAt: string;
 };
 
@@ -47,6 +52,8 @@ export const Component = () => {
   const queryClient = useQueryClient();
   const [editingDescription, setEditingDescription] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState('');
+  const [colorDraft, setColorDraft] = useState('#2864d7');
+  const [iconDraft, setIconDraft] = useState('folder');
   const [error, setError] = useState<string | null>(null);
 
   const projectQuery = useQuery<Project>(
@@ -70,7 +77,7 @@ export const Component = () => {
   const updateDescription = useMutation(
     () => {
       if (!projectId) throw new Error('Aucun projet sélectionné.');
-      return apiClient.put(`/projects/${projectId}`, { description: descriptionDraft.trim() });
+      return apiClient.put(`/projects/${projectId}`, { description: descriptionDraft.trim(), color: colorDraft, icon: iconDraft });
     },
     {
       onSuccess: async () => {
@@ -118,7 +125,7 @@ export const Component = () => {
             <Typography level="h2">{project.name}</Typography>
             <Card variant="outlined" sx={{ gap: 1.25 }}>
               <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                <Typography level="title-lg">Description du projet</Typography>
+                <Typography level="title-lg">Identité du projet</Typography>
                 {canEditDescription && !editingDescription && (
                   <IconButton
                     size="sm"
@@ -128,6 +135,8 @@ export const Component = () => {
                     title="Modifier la description"
                     onClick={() => {
                       setDescriptionDraft(project.description ?? '');
+                      setColorDraft(project.color || '#2864d7');
+                      setIconDraft(project.icon || 'folder');
                       setEditingDescription(true);
                     }}
                   >
@@ -144,6 +153,23 @@ export const Component = () => {
                     placeholder="Décrivez les objectifs et le périmètre du projet"
                     aria-label="Description du projet"
                   />
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                    <Stack spacing={0.5} sx={{ minWidth: 180 }}>
+                      <Typography level="body-sm">Couleur du projet</Typography>
+                      <Input type="color" value={colorDraft} onChange={(event) => setColorDraft(event.target.value)} slotProps={{ input: { 'aria-label': 'Couleur du projet' } }} />
+                    </Stack>
+                    <Stack spacing={0.5} sx={{ minWidth: 220 }}>
+                      <Typography level="body-sm">Pictogramme</Typography>
+                      <Select value={iconDraft} onChange={(_event, value) => value && setIconDraft(value)} aria-label="Pictogramme du projet">
+                        <Option value="folder">📁 Dossier</Option>
+                        <Option value="briefcase">💼 Mallette</Option>
+                        <Option value="building">🏢 Bâtiment</Option>
+                        <Option value="workflow">🔀 Flux</Option>
+                        <Option value="users">👥 Équipe</Option>
+                        <Option value="chart">📊 Indicateurs</Option>
+                      </Select>
+                    </Stack>
+                  </Stack>
                   <Stack direction="row" spacing={1}>
                     <Button
                       size="sm"
@@ -161,6 +187,8 @@ export const Component = () => {
                       disabled={updateDescription.isLoading}
                       onClick={() => {
                         setDescriptionDraft(project.description ?? '');
+                        setColorDraft(project.color || '#2864d7');
+                        setIconDraft(project.icon || 'folder');
                         setEditingDescription(false);
                       }}
                     >
@@ -169,9 +197,11 @@ export const Component = () => {
                   </Stack>
                 </Stack>
               ) : (
-                <Typography level="body-md" sx={{ whiteSpace: 'pre-wrap' }}>
-                  {project.description?.trim() || 'Aucune description renseignée.'}
-                </Typography>
+                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                  <Box sx={{ width: 18, height: 18, borderRadius: '5px', bgcolor: project.color || '#2864d7', border: '1px solid', borderColor: 'divider' }} />
+                  <Typography level="title-md">{({ folder: '📁', briefcase: '💼', building: '🏢', workflow: '🔀', users: '👥', chart: '📊' } as Record<string, string>)[project.icon || 'folder'] || '📁'}</Typography>
+                  <Typography level="body-md" sx={{ whiteSpace: 'pre-wrap' }}>{project.description?.trim() || 'Aucune description renseignée.'}</Typography>
+                </Stack>
               )}
             </Card>
 
