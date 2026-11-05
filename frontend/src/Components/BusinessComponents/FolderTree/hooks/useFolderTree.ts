@@ -7,6 +7,7 @@ import { useFolders } from '../../../../shared/hooks/useFolders';
 import { useResource } from '../../../../shared/hooks/useResource';
 import { ResourceType } from '../../../../shared/types/BpmnResource';
 import { resolveLinkedChildren } from '../processLinks';
+import { useActiveProject } from '../../../../../shared/hooks/useActiveProject';
 
 import type { RenderTree } from '..';
 
@@ -36,10 +37,25 @@ export const useFolderTree = (selectedResourceId: string) => {
   const { resource } = useResource(selectedResourceId);
   const { data: explorerData, isLoading } = useQuery(explorerQuery());
   const resources = explorerData?.resources;
+  const { activeProjectId, projectProcessIds } = useActiveProject();
+  const scopedResources = useMemo(() => {
+    if (!activeProjectId) return [];
+    const allResources = resources ?? [];
+    const allowedIds = new Set(projectProcessIds);
+    const byId = new Map(allResources.map(item => [item.id, item]));
+    projectProcessIds.forEach(id => {
+      let current = byId.get(id);
+      while (current?.parentId) {
+        allowedIds.add(current.parentId);
+        current = byId.get(current.parentId);
+      }
+    });
+    return allResources.filter(item => allowedIds.has(item.id));
+  }, [resources, activeProjectId, projectProcessIds]);
 
   const processResources = useMemo(
-    () => (resources ?? []).filter(item => item.type === ResourceType.Process),
-    [resources],
+    () => scopedResources.filter(item => item.type === ResourceType.Process),
+    [scopedResources],
   );
   const linkedChildrenByResource = useMemo(() => {
     const linksByResource = new Map(
@@ -62,7 +78,7 @@ export const useFolderTree = (selectedResourceId: string) => {
   );
 
   const dataTree: RenderTree = useMemo(() => {
-    const rootResources = resources ?? [];
+    const rootResources = scopedResources;
 
     const createNode = (
       item: Resource,
@@ -124,10 +140,10 @@ export const useFolderTree = (selectedResourceId: string) => {
       type: 'folder',
       children: createChildren('root'),
     };
-  }, [resources, linkedChildrenByResource, linkedTargetIds]);
+  }, [scopedResources, linkedChildrenByResource, linkedTargetIds]);
 
   useEffect(() => {
-    if (!resources?.length || !resource) return;
+    if (!scopedResources.length || !resource || !scopedResources.some(item => item.id === resource.id)) return;
 
     // Keep the normal folder ancestry open, and also expand the actual tree path.
     // This second path is important for linked processes: their tree IDs differ
@@ -153,7 +169,7 @@ export const useFolderTree = (selectedResourceId: string) => {
       .filter(id => id !== 'root');
 
     setExpandedNodes(current => Array.from(new Set([...current, ...folderAncestors, ...treeAncestors])));
-  }, [selectedResourceId, resources, resource, getFolderHierarchy, dataTree]);
+  }, [selectedResourceId, scopedResources, resource, getFolderHierarchy, dataTree]);
 
   return { dataTree, expandedNodes, setExpandedNodes, isLoading };
 };
