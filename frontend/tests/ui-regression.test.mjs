@@ -690,7 +690,8 @@ test('active project selector is selectable and carries project visual identity'
   const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
   const activeProject = await read('src/shared/hooks/useActiveProject.ts');
 
-  assert.match(navigation, /<Select<string \| null>/);
+  assert.match(navigation, /<Select<string>/);
+  assert.match(navigation, /value=\{activeProjectId \?\? undefined\}/);
   assert.match(navigation, /value=\{activeProjectId\}/);
   assert.match(navigation, /setActiveProject\(value\)/);
   assert.match(navigation, /project\.color/);
