@@ -8,4 +8,10 @@ export class ProjectTypeOrmEntity extends AbstractEntity {
 
   @Column({ type: 'text', nullable: true })
   description: string | null;
+
+  @Column({ length: 7, default: '#2864d7' })
+  color: string;
+
+  @Column({ length: 32, default: 'folder' })
+  icon: string;
 }
