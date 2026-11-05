@@ -13,6 +13,7 @@ import { DescriptionOutlined, FolderOutlined } from '@mui/icons-material';
 
 import { resourcesQuery } from '../../api/resources/resources.queries';
 import { useActiveProject } from '../../shared/hooks/useActiveProject';
+import { ProjectProcessOverview } from '../ProjectViewer/ProjectProcessOverview';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import type { Resource } from '../../Types';
 
@@ -64,6 +65,47 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
           Impossible de charger le contenu de ce répertoire.
         </Typography>
       </Card>
+    );
+  }
+
+  if (resourceId === 'root' && activeProject) {
+    const rootFolders = children.filter(child => child.type === ResourceType.Folder);
+    return (
+      <Stack spacing={1.5} sx={{ minWidth: 0 }}>
+        <Card variant="outlined" sx={{ gap: 0.75 }}>
+          <Typography level="title-lg">{activeProject.name}</Typography>
+          <Typography level="body-sm" color="neutral" sx={{ whiteSpace: 'pre-wrap' }}>
+            {activeProject.description?.trim() || 'Espace de travail du projet actif.'}
+          </Typography>
+          <Chip variant="soft">{activeProject.processes.length} processus associés</Chip>
+        </Card>
+        {activeProject.processes.length > 0 ? (
+          <ProjectProcessOverview
+            processes={activeProject.processes.map(process => ({
+              resourceId: process.resourceId,
+              name: process.name,
+              usage: process.usage,
+            }))}
+          />
+        ) : (
+          <Card variant="outlined">
+            <Typography level="title-md">Aucun processus associé</Typography>
+            <Typography level="body-sm" color="neutral">Ajoutez des processus au projet depuis son administration ou créez-en un depuis le Viewer.</Typography>
+          </Card>
+        )}
+        {rootFolders.length > 0 && (
+          <Card variant="outlined" sx={{ gap: 1 }}>
+            <Typography level="title-lg">Répertoires du projet</Typography>
+            <Stack spacing={0.75}>
+              {rootFolders.map(folder => (
+                <Button key={folder.id} variant="outlined" color="neutral" startDecorator={<FolderOutlined />} onClick={() => navigate(`/${folder.id}`)} sx={{ justifyContent: 'flex-start' }}>
+                  {folder.name}
+                </Button>
+              ))}
+            </Stack>
+          </Card>
+        )}
+      </Stack>
     );
   }
 
