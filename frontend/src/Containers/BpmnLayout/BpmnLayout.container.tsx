@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useNavigate, useParams } from 'react-router-dom';
-import { Box, Sheet, Stack } from '@mui/joy';
+import { Box, Chip, Sheet, Stack } from '@mui/joy';
 
 import { ProcessDetails } from '../../Components/BusinessComponents/ProcessDetails';
 
@@ -82,6 +82,14 @@ export const Component = () => {
 
   const { resource, contents, callbacks } = useBpmnLayout();
   const { projects, activeProject, activeProjectId, setActiveProject, isLoading: projectsLoading } = useActiveProject();
+  const activeProcess = activeProject?.processes.find(process => process.resourceId === resourceId);
+  const processUsageLabel = activeProcess?.usage === 'common'
+    ? 'Commun'
+    : activeProcess?.usage === 'variant'
+      ? 'Variante'
+      : activeProcess?.usage === 'project-specific'
+        ? 'Spécifique'
+        : undefined;
 
   useEffect(() => {
     if (activeProjectId || projectsLoading || !resourceId) return;
@@ -125,7 +133,13 @@ export const Component = () => {
             <WorkspacePageHeader />
                           <Header
                             title={isRoot(resourceId) ? (activeProject?.name ?? 'Référentiel') : resource.name}
-                            description={isRoot(resourceId) ? (activeProject?.description ?? 'Sélectionnez un projet pour afficher son espace de travail.') : resource.description}
+                            description={resource.type === ResourceType.Process ? undefined : (isRoot(resourceId) ? (activeProject?.description ?? 'Sélectionnez un projet pour afficher son espace de travail.') : resource.description)}
+                            titleAdornment={resource.type === ResourceType.Process ? (
+                              <Stack direction="row" spacing={0.75} alignItems="center" useFlexGap flexWrap="wrap">
+                                <Chip size="sm" variant="soft" color="primary">Opérationnel</Chip>
+                                {processUsageLabel && <Chip size="sm" variant="soft" color="neutral">{processUsageLabel}</Chip>}
+                              </Stack>
+                            ) : undefined}
                             breadcrumbs={getBreadCrumbs()}
                             actions={
                               <Stack direction="row" spacing={1} alignItems="center">
