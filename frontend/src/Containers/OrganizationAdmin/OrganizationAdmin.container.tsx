@@ -88,7 +88,6 @@ const sections = [
   { key: 'projects', label: 'Projets', icon: '▣' },
   { key: 'processes', label: 'Processus', icon: '⌘' },
   { key: 'governance', label: 'Acteurs et RACI', icon: '⬡' },
-  { key: 'settings', label: 'Organisation', icon: '⚙' },
 ] as const;
 
 type AdminSection = (typeof sections)[number]['key'];
@@ -429,17 +428,6 @@ export const Component = () => {
                   <Alert color="neutral" variant="soft" sx={{ mb: 2 }}>Le RACI est géré au niveau du projet : cette vue transversale aide à retrouver le bon périmètre, tandis que les modifications restent soumises aux droits du projet.</Alert>
                   <div className="org-admin-v2__governance-list">{overview.projects.map((project) => <Card key={project.id} className="org-admin-v2__governance-card"><div className="org-admin-v2__governance-copy"><Typography level="title-lg">{project.name}</Typography>{project.description && <Typography level="body-sm" sx={{ color: 'text.secondary' }}>{project.description}</Typography>}<div className="org-admin-v2__governance-meta"><Chip size="sm" variant="soft">{project.membersCount} membre(s)</Chip><Chip size="sm" variant="soft">{project.processes.length} processus</Chip><Chip size="sm" variant="soft">RACI du projet</Chip></div></div><Button onClick={() => navigate(`/projects/${project.id}?tab=raci`)}>Gérer le RACI →</Button></Card>)}</div>
                   {overview.projects.length === 0 && <Card className="org-admin-v2__panel"><Typography level="title-md">Aucun projet accessible</Typography><Typography level="body-sm">Créez un projet ou attribuez un accès pour commencer à définir les responsabilités.</Typography></Card>}
-                </section>
-              )}
-
-              {activeSection === 'settings' && (
-                <section aria-labelledby="org-settings-title">
-                  <div className="org-admin-v2__page-head"><div><div className="org-admin-v2__eyebrow">Configuration</div><Typography id="org-settings-title" level="h1">Organisation</Typography><Typography level="body-md" sx={{ color: 'text.secondary', maxWidth: 700, mt: 0.5 }}>Paramètres et gouvernance globale de l’instance.</Typography></div></div>
-                  <div className="org-admin-v2__settings-grid">
-                    <Card className="org-admin-v2__panel"><Typography level="title-lg">Administration organisationnelle</Typography><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Les droits globaux sont attribués par le groupe de confiance <code>bpmn-tool-admin-*</code>. Les rôles de projet viewer, modeler et admin ne confèrent aucun privilège global.</Typography><Chip color="success" variant="soft">Contrôle côté API</Chip></Card>
-                    <Card className="org-admin-v2__panel"><Typography level="title-lg">Source des identités</Typography><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Cette instance utilise actuellement les identifiants transmis par le mécanisme d’authentification configuré. La découverte des comptes sans adhésion nécessite un annuaire global ou un fournisseur d’identité raccordé.</Typography><Chip color="warning" variant="soft">Annuaire global non raccordé</Chip></Card>
-                    <Card className="org-admin-v2__panel"><Typography level="title-lg">Périmètre des données</Typography><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Les utilisateurs, projets et processus affichés proviennent de l’API d’administration. Les réglages non couverts par une API ne sont pas présentés comme modifiables.</Typography></Card>
-                  </div>
                 </section>
               )}
 
