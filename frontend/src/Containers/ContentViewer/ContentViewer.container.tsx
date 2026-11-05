@@ -116,25 +116,36 @@ const ProcessContentViewer = () => {
   const { data: workspace } = useQuery<WorkspaceSummary>(['my-workspace'], () =>
     apiClient.get('/projects/me/workspace'),
   );
-  const associatedProject = workspace?.projects.find(project =>
-    project.processes.some(process => process.resourceId === resourceId),
-  );
-  const canSubmitViewerRemark = Boolean(associatedProject?.canSubmitRemarks);
-  const proposalProject = workspace?.projects.find(
-    project =>
-      (project.role === 'modeler' || project.role === 'admin') &&
+  const processProjects =
+    workspace?.projects.filter(project =>
       project.processes.some(process => process.resourceId === resourceId),
+    ) ?? [];
+  // A process may belong to several projects. Prefer the project in which
+  // the current user can actually act instead of blindly taking the first one.
+  const associatedProject =
+    processProjects.find(project => project.canSubmitRemarks) ??
+    processProjects.find(
+      project => project.role === 'modeler' || project.role === 'admin',
+    ) ??
+    processProjects[0];
+  const canSubmitViewerRemark = Boolean(associatedProject?.canSubmitRemarks);
+  const proposalProject = processProjects.find(
+    project => project.role === 'modeler' || project.role === 'admin',
   );
 
   const startChangeProposal = async () => {
-    if (!proposalProject || startingProposal) return;
+    if (!proposalProject || startingProposal || activeProposalLoading) return;
     setStartingProposal(true);
     setProposalError(null);
     try {
-      const proposal = await apiClient.post(
-        `/projects/${proposalProject.id}/processes/${resourceId}/change-proposals`,
-        {},
-      );
+      // Reuse the existing open proposal. Creating a second one for the same
+      // published version is intentionally rejected by the backend.
+      const proposal =
+        activeProposal ??
+        (await apiClient.post(
+          `/projects/${proposalProject.id}/processes/${resourceId}/change-proposals`,
+          {},
+        ));
       navigate(
         `/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}`,
       );
@@ -142,7 +153,7 @@ const ProcessContentViewer = () => {
       setProposalError(
         error instanceof Error
           ? error.message
-          : 'Impossible de créer la demande de modification.',
+          : 'Impossible d’ouvrir la demande de modification.',
       );
     } finally {
       setStartingProposal(false);
@@ -154,24 +165,27 @@ const ProcessContentViewer = () => {
     getXmlContentQuery(resourceId, contentId),
   );
 
-  const { data: activeProposal } = useQuery<{
+  const {
+    data: activeProposal,
+    isLoading: activeProposalLoading,
+  } = useQuery<{
     id: string;
     status: string;
     cloneResourceId: string;
   } | null>(
     [
       'active-process-change-proposal',
-      associatedProject?.id,
+      proposalProject?.id,
       resourceId,
       contentId,
     ],
     () =>
       apiClient.get(
         `/projects/${
-          associatedProject!.id
+          proposalProject!.id
         }/processes/${resourceId}/change-proposals/active?contentId=${contentId}`,
       ),
-    { enabled: Boolean(associatedProject?.id) },
+    { enabled: Boolean(proposalProject?.id) },
   );
   type ProposalRemark = {
     id: string;
@@ -233,7 +247,7 @@ const ProcessContentViewer = () => {
         queryClient.invalidateQueries({
           queryKey: [
             'active-process-change-proposal',
-            associatedProject.id,
+            proposalProject?.id,
             resourceId,
           ],
         }),
@@ -422,11 +436,13 @@ const ProcessContentViewer = () => {
                   size="sm"
                   variant="soft"
                   color="primary"
-                  loading={startingProposal}
-                  disabled={startingProposal}
+                  loading={startingProposal || activeProposalLoading}
+                  disabled={startingProposal || activeProposalLoading}
                   onClick={startChangeProposal}
                 >
-                  Proposer une modification
+                  {activeProposal
+                    ? 'Ouvrir la demande de modification'
+                    : 'Proposer une modification'}
                 </Button>
               )}
               {associatedProject && (
