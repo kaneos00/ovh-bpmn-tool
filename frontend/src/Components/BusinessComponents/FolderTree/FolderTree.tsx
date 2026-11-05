@@ -162,7 +162,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
     const processId = selectedNode.targetId ?? selectedNode.id;
     if (!activeProjectId || !projects.some(project => project.id === activeProjectId && project.processes.some(process => process.resourceId === processId))) return;
     const entryId = `${activeProjectId}::${processId}`;
-    setRecent(current => [entryId, ...current.filter(id => id !== entryId)].slice(0, 12));
+    setRecent(current => [entryId, ...current.filter(id => id !== entryId && id !== processId)].slice(0, 12));
   }, [selectedId, nodeById, flatNodes, activeProjectId, projects]);
   const selectedTreeNodeId = useMemo(() => {
     if (nodeById.has(selectedId)) return selectedId;
