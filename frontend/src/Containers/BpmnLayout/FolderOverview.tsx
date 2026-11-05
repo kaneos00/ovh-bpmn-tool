@@ -1,17 +1,21 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 import {
+  Alert,
   Box,
   Button,
   Card,
+  IconButton,
   Chip,
   Stack,
+  Textarea,
   Typography,
 } from '@mui/joy';
-import { DescriptionOutlined, FolderOutlined } from '@mui/icons-material';
+import { CloseRounded, DescriptionOutlined, EditRounded, FolderOutlined, SaveRounded } from '@mui/icons-material';
 
 import { resourcesQuery } from '../../api/resources/resources.queries';
+import { apiClient } from '../../queryClient';
 import { useActiveProject } from '../../shared/hooks/useActiveProject';
 import { ProjectProcessOverview } from '../ProjectViewer/ProjectProcessOverview';
 import { ResourceType } from '../../shared/types/BpmnResource';
@@ -26,6 +30,27 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
   const navigate = useNavigate();
   const resources = useQuery<Resource[]>(resourcesQuery());
   const { activeProject, activeProjectId, projectProcessIds } = useActiveProject();
+  const queryClient = useQueryClient();
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [descriptionDraft, setDescriptionDraft] = useState('');
+  const [descriptionError, setDescriptionError] = useState<string | null>(null);
+
+  const updateDescription = useMutation(
+    () => {
+      if (!activeProjectId) throw new Error('Aucun projet actif.');
+      return apiClient.put('/projects/' + activeProjectId, { description: descriptionDraft.trim() });
+    },
+    {
+      onSuccess: async () => {
+        setEditingDescription(false);
+        setDescriptionError(null);
+        await queryClient.invalidateQueries(['my-workspace']);
+        await queryClient.invalidateQueries(['projects']);
+        await queryClient.invalidateQueries(['project', activeProjectId ?? '']);
+      },
+      onError: (error: Error) => setDescriptionError(error.message),
+    },
+  );
 
   const children = useMemo(() => {
     const allResources = resources.data ?? [];
@@ -73,10 +98,64 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
     return (
       <Stack spacing={1.5} sx={{ minWidth: 0 }}>
         <Card variant="outlined" sx={{ gap: 0.75 }}>
-          <Typography level="title-lg">{activeProject.name}</Typography>
-          <Typography level="body-sm" color="neutral" sx={{ whiteSpace: 'pre-wrap' }}>
-            {activeProject.description?.trim() || 'Espace de travail du projet actif.'}
-          </Typography>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+            <Typography level="title-lg">{activeProject.name}</Typography>
+            {activeProject.role === 'admin' && !editingDescription && (
+              <IconButton
+                size="sm"
+                variant="plain"
+                color="neutral"
+                aria-label="Modifier la description du projet"
+                title="Modifier la description"
+                onClick={() => {
+                  setDescriptionDraft(activeProject.description ?? '');
+                  setDescriptionError(null);
+                  setEditingDescription(true);
+                }}
+              >
+                <EditRounded />
+              </IconButton>
+            )}
+          </Stack>
+          {editingDescription ? (
+            <Stack spacing={1}>
+              <Textarea
+                minRows={3}
+                value={descriptionDraft}
+                onChange={event => setDescriptionDraft(event.target.value)}
+                placeholder="Décrivez les objectifs et le périmètre du projet"
+                aria-label="Description du projet"
+              />
+              {descriptionError && <Alert color="danger">{descriptionError}</Alert>}
+              <Stack direction="row" spacing={1}>
+                <Button
+                  size="sm"
+                  startDecorator={<SaveRounded />}
+                  loading={updateDescription.isLoading}
+                  onClick={() => updateDescription.mutate()}
+                >
+                  Enregistrer
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outlined"
+                  color="neutral"
+                  startDecorator={<CloseRounded />}
+                  disabled={updateDescription.isLoading}
+                  onClick={() => {
+                    setDescriptionDraft(activeProject.description ?? '');
+                    setEditingDescription(false);
+                  }}
+                >
+                  Annuler
+                </Button>
+              </Stack>
+            </Stack>
+          ) : (
+            <Typography level="body-sm" color="neutral" sx={{ whiteSpace: 'pre-wrap' }}>
+              {activeProject.description?.trim() || 'Espace de travail du projet actif.'}
+            </Typography>
+          )}
           <Chip variant="soft">{activeProject.processes.length} processus associés</Chip>
         </Card>
         {activeProject.processes.length > 0 ? (
