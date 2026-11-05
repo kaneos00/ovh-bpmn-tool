@@ -748,5 +748,7 @@ test('the root workspace replaces the former home dashboard and project viewer p
   assert.match(breadcrumbs, /label: activeProject\.name/);
   assert.doesNotMatch(breadcrumbs, /id: 'home'/);
   assert.doesNotMatch(breadcrumbs, /label: 'Référentiel'/);
-  assert.match(navigation, /label: 'Accueil'[\s\S]*?path: '\/root'/);
+  assert.doesNotMatch(navigation, /label: 'Accueil'|label: 'Projets'/);
+  assert.match(navigation, /globalRole === 'admin'[\s\S]*?>\s*Administration\s*<\/Button>/);
+  assert.ok(navigation.includes('<UserAccountMenu />'), 'account menu remains available');
 });
