@@ -684,3 +684,50 @@ test('project administration exposes a nested project-process tree and grouped a
   assert.match(admin, /Associer les processus sélectionnés à un projet/);
   assert.doesNotMatch(admin, /activeSection === 'settings'/);
 });
+
+
+test('active project selector is selectable and carries project visual identity', async () => {
+  const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+  const activeProject = await read('src/shared/hooks/useActiveProject.ts');
+
+  assert.match(navigation, /<Select<string \| null>/);
+  assert.match(navigation, /value=\{activeProjectId\}/);
+  assert.match(navigation, /setActiveProject\(value\)/);
+  assert.match(navigation, /project\.color/);
+  assert.match(activeProject, /color: string/);
+  assert.match(activeProject, /icon: string/);
+});
+
+test('project home and central folder overview follow the active project', async () => {
+  const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
+  const overview = await read('src/Containers/BpmnLayout/FolderOverview.tsx');
+
+  assert.match(layout, /isRoot\(resourceId\) && activeProject \? activeProject\.name/);
+  assert.match(overview, /projectProcessIds/);
+  assert.match(overview, /allowedIds\.has\(childResource\.id\)/);
+  assert.match(overview, /Sélectionnez un projet/);
+});
+
+test('recent and favorite resources retain their project context', async () => {
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+
+  assert.match(tree, /\$\{activeProjectId\}::\$\{processId\}/);
+  assert.match(tree, /projects\.filter\(project => project\.processes\.some/);
+  assert.match(tree, /setActiveProject\(projectId\)/);
+  assert.match(tree, /project\.color/);
+  assert.match(tree, /project\.icon/);
+});
+
+test('project administrators can configure the project color and pictogram', async () => {
+  const viewer = await read('src/Containers/ProjectViewer/ProjectViewer.container.tsx');
+  const entity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/project.ormEntity.ts');
+  const migration = await read('../backend/migrations/20261105_v3_project_visual_identity.sql');
+
+  assert.match(viewer, /Input type="color"/);
+  assert.match(viewer, /aria-label="Pictogramme del progetto"/);
+  assert.match(viewer, /color: colorDraft, icon: iconDraft/);
+  assert.match(entity, /color: string/);
+  assert.match(entity, /icon: string/);
+  assert.match(migration, /ADD COLUMN IF NOT EXISTS color/);
+  assert.match(migration, /ADD COLUMN IF NOT EXISTS icon/);
+});
