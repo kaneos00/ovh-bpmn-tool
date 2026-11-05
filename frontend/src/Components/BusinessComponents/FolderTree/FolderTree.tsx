@@ -160,9 +160,10 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
     const selectedNode = nodeById.get(selectedId) ?? flatNodes.find(node => node.targetId === selectedId);
     if (!selectedNode || (selectedNode.type !== 'process' && selectedNode.type !== 'linked-process')) return;
     const processId = selectedNode.targetId ?? selectedNode.id;
-    const entryId = activeProjectId ? `${activeProjectId}::${processId}` : processId;
+    if (!activeProjectId || !projects.some(project => project.id === activeProjectId && project.processes.some(process => process.resourceId === processId))) return;
+    const entryId = `${activeProjectId}::${processId}`;
     setRecent(current => [entryId, ...current.filter(id => id !== entryId)].slice(0, 12));
-  }, [selectedId, nodeById, flatNodes, activeProjectId]);
+  }, [selectedId, nodeById, flatNodes, activeProjectId, projects]);
   const selectedTreeNodeId = useMemo(() => {
     if (nodeById.has(selectedId)) return selectedId;
     return flatNodes.find(node => node.targetId === selectedId)?.id ?? selectedId;
@@ -365,7 +366,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                 const nodeId = String(item.index);
                 const node = nodeById.get(nodeId);
                 const favoriteId = activeProjectId ? `${activeProjectId}::${node?.targetId ?? nodeId}` : (node?.targetId ?? nodeId);
-                const isFavorite = favorites.includes(favoriteId) || favorites.includes(nodeId);
+                const isFavorite = favorites.includes(favoriteId) || favorites.includes(node?.targetId ?? nodeId) || favorites.includes(nodeId);
                 return (
                   <Box
                     component="span"
