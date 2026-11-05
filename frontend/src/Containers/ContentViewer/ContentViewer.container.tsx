@@ -70,6 +70,12 @@ type WorkspaceProjectSummary = {
   }[];
 };
 type WorkspaceSummary = { projects: WorkspaceProjectSummary[] };
+type ViewerRemarkPermission = {
+  associated: boolean;
+  isMember: boolean;
+  canSubmitRemarks: boolean;
+  usage: 'common' | 'variant' | 'project-specific' | null;
+};
 
 const RACICODES: RaciCode[] = ['R', 'A', 'C', 'I'];
 const STATUS_LABELS = {
@@ -123,6 +129,20 @@ const ProcessContentViewer = () => {
   const { data: workspace } = useQuery<WorkspaceSummary>(['my-workspace'], () =>
     apiClient.get('/projects/me/workspace'),
   );
+  // Permission for this exact resource/project pair is fetched independently
+  // from the workspace aggregate so a workspace-loading issue cannot silently
+  // hide the remark action.
+  const {
+    data: remarkPermission,
+    error: remarkPermissionError,
+  } = useQuery<ViewerRemarkPermission>(
+    ['viewer-remark-permission', routeProjectId, resourceId],
+    () =>
+      apiClient.get(
+        `/projects/${routeProjectId}/processes/${resourceId}/remark-permission`,
+      ),
+    { enabled: Boolean(routeProjectId && resourceId) },
+  );
   const processProjects =
     workspace?.projects.filter(project =>
       project.processes.some(process => process.resourceId === resourceId),
@@ -141,8 +161,9 @@ const ProcessContentViewer = () => {
   const currentProjectProcess = associatedProject?.processes.find(
     process => process.resourceId === resourceId,
   );
-  const isCommonProcess = currentProjectProcess?.usage === 'common';
-  const canSubmitViewerRemark = Boolean(associatedProject?.canSubmitRemarks);
+  const isCommonProcess =
+    remarkPermission?.usage === 'common' || currentProjectProcess?.usage === 'common';
+  const canSubmitViewerRemark = Boolean(remarkPermission?.canSubmitRemarks);
   const proposalProject =
     associatedProject &&
     !isCommonProcess &&
@@ -165,17 +186,15 @@ const ProcessContentViewer = () => {
   } | null>(
     [
       'active-process-change-proposal',
-      associatedProject?.id,
+      routeProjectId,
       resourceId,
       contentId,
     ],
     () =>
       apiClient.get(
-        `/projects/${
-          associatedProject!.id
-        }/processes/${resourceId}/change-proposals/active?contentId=${contentId}`,
+        `/projects/${routeProjectId}/processes/${resourceId}/change-proposals/active?contentId=${contentId}`,
       ),
-    { enabled: Boolean(associatedProject?.id) },
+    { enabled: Boolean(routeProjectId) },
   );
   const startChangeProposal = async () => {
     if (!proposalProject || startingProposal || activeProposalLoading) return;
@@ -228,7 +247,7 @@ const ProcessContentViewer = () => {
 
   const submitViewerRemark = async () => {
     if (
-      !associatedProject ||
+      !routeProjectId ||
       !canSubmitViewerRemark ||
       !selectedActivityId ||
       !remarkText.trim() ||
@@ -252,7 +271,7 @@ const ProcessContentViewer = () => {
       const pilotIdentifier =
         processMetadata?.getAttribute('pilot')?.trim() || undefined;
       const submissionResult = await apiClient.post(
-        `/projects/${associatedProject.id}/processes/${resourceId}/change-proposals`,
+        `/projects/${routeProjectId}/processes/${resourceId}/change-proposals`,
         {
           elementId: selectedActivityId,
           comment: remarkText.trim(),
@@ -264,7 +283,7 @@ const ProcessContentViewer = () => {
         queryClient.invalidateQueries({
           queryKey: [
             'active-process-change-proposal',
-            associatedProject?.id,
+            routeProjectId,
             resourceId,
           ],
         }),
@@ -429,7 +448,7 @@ const ProcessContentViewer = () => {
               flexWrap="wrap"
             >
               <Breadcrumbs breadcrumbItems={getBreadCrumbs()} />
-              {associatedProject && canSubmitViewerRemark && (
+              {routeProjectId && canSubmitViewerRemark && (
                 <Button
                   size="sm"
                   variant="soft"
@@ -501,6 +520,12 @@ const ProcessContentViewer = () => {
         {proposalError && (
           <Alert color="danger" variant="soft" sx={{ mx: 2, mt: 1 }}>
             {proposalError}
+          </Alert>
+        )}
+        {remarkPermissionError && routeProjectId && (
+          <Alert color="danger" variant="soft" sx={{ mx: 2, mt: 1 }}>
+            Impossible de vérifier le droit de dépôt pour ce processus dans le projet sélectionné.
+            Le bouton de remarque reste masqué tant que cette vérification échoue.
           </Alert>
         )}
         {remarkWarning && (
