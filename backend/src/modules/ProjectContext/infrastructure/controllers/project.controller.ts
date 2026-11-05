@@ -178,7 +178,13 @@ export class ProjectController {
   @Post()
   @UseAcl([UserGroup.RW, UserGroup.Admin])
   async createProject(
-    @Body() body: { name?: string; description?: string; color?: string; icon?: string },
+    @Body()
+    body: {
+      name?: string;
+      description?: string;
+      color?: string;
+      icon?: string;
+    },
     @Headers() headers: RequestHeaders,
   ) {
     const userId = this.projectResourceAccess.getAuthenticatedUserId(headers);
@@ -359,8 +365,12 @@ export class ProjectController {
     if (body.description !== undefined) {
       project.description = body.description.trim() || null;
     }
-    if (body.color !== undefined) project.color = this.validateProjectColor(body.color);
-    if (body.icon !== undefined) project.icon = this.validateProjectIcon(body.icon);
+    if (body.color !== undefined) {
+      project.color = this.validateProjectColor(body.color);
+    }
+    if (body.icon !== undefined) {
+      project.icon = this.validateProjectIcon(body.icon);
+    }
 
     try {
       return await this.projects.save(project);
@@ -840,15 +850,26 @@ export class ProjectController {
   private validateProjectColor(value?: string) {
     const color = value?.trim() || '#2864d7';
     if (!/^#[0-9a-fA-F]{6}$/.test(color)) {
-      throw new BadRequestException('Project color must be a six-digit hexadecimal value');
+      throw new BadRequestException(
+        'Project color must be a six-digit hexadecimal value',
+      );
     }
     return color.toLowerCase();
   }
 
   private validateProjectIcon(value?: string) {
     const icon = value?.trim() || 'folder';
-    const allowed = ['folder', 'briefcase', 'building', 'workflow', 'users', 'chart'];
-    if (!allowed.includes(icon)) throw new BadRequestException('Unsupported project icon');
+    const allowed = [
+      'folder',
+      'briefcase',
+      'building',
+      'workflow',
+      'users',
+      'chart',
+    ];
+    if (!allowed.includes(icon)) {
+      throw new BadRequestException('Unsupported project icon');
+    }
     return icon;
   }
 
