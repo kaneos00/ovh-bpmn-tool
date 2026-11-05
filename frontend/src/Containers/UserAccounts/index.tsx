@@ -343,7 +343,7 @@ export const Component = () => {
           <aside className="org-admin-v2__sidebar">
             <div className="org-admin-v2__brand">
               <img className="org-admin-v2__brand-logo" src="/bpmn-tool-logo.svg" alt="" />
-              <div><strong>KHI Flows</strong><small>Organisation</small></div>
+              <div><strong>KHI Flows</strong><small>Administration</small></div>
             </div>
             <div className="org-admin-v2__nav-group">
               <div className="org-admin-v2__nav-label">Administration</div>
