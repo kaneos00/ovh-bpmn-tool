@@ -27,7 +27,7 @@ import { ResourceType } from '../../shared/types/BpmnResource';
 import { ProjectRaciPanel } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciPanel';
 import { ProjectRaciManager } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciManager';
 import { ProjectProcessHierarchy } from './ProjectProcessHierarchy';
-import { WorkspacePageHeader } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
+import { WorkspacePageLayout } from '../../Components/GenericComponents/WorkspacePageLayout/WorkspacePageLayout';
 import { useActiveProject } from '../../shared/hooks/useActiveProject';
 
 type Project = {
@@ -279,9 +279,8 @@ export const Component = () => {
 
   if (!projectId) {
     return (
-      <Sheet sx={{ width: '100%', maxWidth: 'none', boxSizing: 'border-box', mx: 'auto', p: 2, bgcolor: 'transparent' }}>
+      <WorkspacePageLayout>
         <Stack spacing={2}>
-          <WorkspacePageHeader />
           <Typography level="h2">Projets</Typography>
           <Button variant="outlined" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/organization/users')}>Administration de l’organisation →</Button>
           <Typography level="body-md">
@@ -350,15 +349,14 @@ export const Component = () => {
           </Stack>
           <Button variant="plain" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/root')}>Retour au référentiel BPMN</Button>
         </Stack>
-      </Sheet>
+      </WorkspacePageLayout>
     );
   }
 
   const project = projectQuery.data;
   return (
-    <Sheet sx={{ width: '100%', maxWidth: 'none', boxSizing: 'border-box', mx: 'auto', p: 2, bgcolor: 'transparent' }}>
+    <WorkspacePageLayout>
       <Stack spacing={2}>
-          <WorkspacePageHeader />
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} useFlexGap flexWrap="wrap" sx={{ alignItems: { sm: 'center' } }}>
           <Button variant="plain" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/projects')}>← Tous les projets</Button>
           {projectId && <Button variant="soft" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate(`/projects/${projectId}/viewer`)}>Ouvrir l’accueil dans le viewer</Button>}
@@ -575,7 +573,7 @@ export const Component = () => {
           </TabPanel>
         </Tabs>
       </Stack>
-    </Sheet>
+    </WorkspacePageLayout>
   );
 };
 
