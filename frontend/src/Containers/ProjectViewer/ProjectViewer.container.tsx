@@ -120,7 +120,7 @@ export const Component = () => {
             <Typography level="h2">{project.name}</Typography>
             <Card variant="outlined" sx={{ gap: 1.25 }}>
               <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                <Typography level="title-lg">Identité du projet</Typography>
+                <Typography level="title-lg">Description du projet</Typography>
                 {canEditDescription && !editingDescription && (
                   <IconButton
                     size="sm"
