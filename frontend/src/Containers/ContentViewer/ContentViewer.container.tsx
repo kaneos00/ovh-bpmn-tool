@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Alert,
   Box,
@@ -83,7 +83,8 @@ const statusMarker = {
 
 const ProcessContentViewer = () => {
   const { resourceId, contentId } = useContentViewer();
-  const { projectId: routeProjectId } = useParams<{ projectId?: string }>();
+  const [searchParams] = useSearchParams();
+  const routeProjectId = searchParams.get('projectId') ?? undefined;
   const navigate = useNavigate();
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
   const { requestedElementId, requestedRaciView } = useViewerRouteState();
@@ -944,15 +945,12 @@ const ProcessContentViewer = () => {
 ProcessContentViewer.displayName = 'ProcessContentViewer';
 
 export const Component = () => {
-  const { projectId, resourceId, contentId } = useParams<{
-    projectId?: string;
+  const { resourceId, contentId } = useParams<{
     resourceId?: string;
     contentId?: string;
   }>();
 
-  if (projectId && !resourceId && !contentId) {
-    return <ProjectHomeComponent />;
-  }
+  if (!resourceId && !contentId) return <ProjectHomeComponent />;
 
   return <ProcessContentViewer />;
 };
