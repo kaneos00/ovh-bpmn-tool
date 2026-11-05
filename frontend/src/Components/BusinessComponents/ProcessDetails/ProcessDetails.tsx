@@ -966,7 +966,7 @@ export const ProcessDetails = ({
           </Sheet>
         </TabPanel>
       </Tabs>
-          {viewerContent && !taskPanelCollapsed && (
+          {activeViewerTab === 0 && viewerContent && !taskPanelCollapsed && (
             <Box
               className="processViewerResizeHandle"
               role="separator"
@@ -975,7 +975,7 @@ export const ProcessDetails = ({
               onMouseDown={event => startPanelResize('task', event)}
             />
           )}
-          {viewerContent && (
+          {activeViewerTab === 0 && viewerContent && (
             <Sheet
               className={`processTaskPanel ${taskPanelCollapsed ? 'collapsed' : ''}`}
               variant="outlined"
