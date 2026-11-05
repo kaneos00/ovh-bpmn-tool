@@ -83,13 +83,20 @@ export const Component = () => {
   const { resource, contents, callbacks } = useBpmnLayout();
   const { projects, activeProject, activeProjectId, setActiveProject, isLoading: projectsLoading } = useActiveProject();
   const activeProcess = activeProject?.processes.find(process => process.resourceId === resourceId);
-  const processUsageLabel = activeProcess?.usage === 'common'
-    ? 'Commun'
-    : activeProcess?.usage === 'variant'
-      ? 'Variante'
-      : activeProcess?.usage === 'project-specific'
-        ? 'Spécifique'
-        : undefined;
+  let processUsageLabel: string | undefined;
+  switch (activeProcess?.usage) {
+    case 'common':
+      processUsageLabel = 'Commun';
+      break;
+    case 'variant':
+      processUsageLabel = 'Variante';
+      break;
+    case 'project-specific':
+      processUsageLabel = 'Spécifique';
+      break;
+    default:
+      processUsageLabel = undefined;
+  }
 
   useEffect(() => {
     if (activeProjectId || projectsLoading || !resourceId) return;
@@ -99,6 +106,15 @@ export const Component = () => {
     if (matchingProjects.length === 1) setActiveProject(matchingProjects[0].id);
   }, [activeProjectId, projectsLoading, projects, resourceId, setActiveProject]);
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
+
+  let headerDescription: string | null | undefined;
+  if (resource?.type === ResourceType.Process) {
+    headerDescription = undefined;
+  } else if (isRoot(resourceId)) {
+    headerDescription = activeProject?.description ?? 'Sélectionnez un projet pour afficher son espace de travail.';
+  } else {
+    headerDescription = resource?.description;
+  }
 
   const actions = useMemo(() => {
     const isRootFolder = isRoot(resourceId);
@@ -133,7 +149,7 @@ export const Component = () => {
             <WorkspacePageHeader />
                           <Header
                             title={isRoot(resourceId) ? (activeProject?.name ?? 'Référentiel') : resource.name}
-                            description={resource.type === ResourceType.Process ? undefined : (isRoot(resourceId) ? (activeProject?.description ?? 'Sélectionnez un projet pour afficher son espace de travail.') : resource.description)}
+                            description={headerDescription}
                             titleAdornment={resource.type === ResourceType.Process ? (
                               <Stack direction="row" spacing={0.75} alignItems="center" useFlexGap flexWrap="wrap">
                                 <Chip size="sm" variant="soft" color="primary">Opérationnel</Chip>
