@@ -63,6 +63,28 @@ export class ProcessChangeProposalController {
   ) {}
 
   /**
+   * Project-level workflow is reserved for project-specific processes and variants.
+   * A common process must be changed through the repository governance workflow,
+   * never by cloning it into an individual project.
+   */
+  private async assertProjectWorkflowScope(
+    projectId: string,
+    resourceId: string,
+  ): Promise<void> {
+    const link = await this.projectProcesses.findOne({
+      where: { projectId, resourceId },
+    });
+    if (!link) {
+      throw new NotFoundException('Le processus ne fait pas partie de ce projet');
+    }
+    if (link.usage === ProjectProcessUsage.Common) {
+      throw new ForbiddenException(
+        'Ce processus est Commun : sa modification relève du circuit de gouvernance du référentiel, pas du circuit projet.',
+      );
+    }
+  }
+
+  /**
    * Personal cross-project view. It deliberately returns only proposals authored
    * by the authenticated user and only while that user retains project access.
    */
@@ -380,6 +402,7 @@ export class ProcessChangeProposalController {
       throw new NotFoundException(
         'Le processus ne fait pas partie de ce projet',
       );
+    if (link.usage === ProjectProcessUsage.Common) return null;
     const published = await this.dataSource
       .getRepository(ContentTypeOrmEntity)
       .findOne({
@@ -499,6 +522,11 @@ export class ProcessChangeProposalController {
       if (!sourceLink) {
         throw new NotFoundException(
           'Le processus ne fait pas partie de ce projet',
+        );
+      }
+      if (sourceLink.usage === ProjectProcessUsage.Common) {
+        throw new ForbiddenException(
+          'Ce processus est Commun : sa modification relève du circuit de gouvernance du référentiel, pas du circuit projet.',
         );
       }
 
@@ -823,6 +851,7 @@ export class ProcessChangeProposalController {
       where: { id: proposalId },
     });
     if (!existing) throw new NotFoundException('Demande introuvable');
+    await this.assertProjectWorkflowScope(existing.projectId, existing.sourceResourceId);
 
     const isOrganizationAdmin = this.access.hasOrganizationAdminRole(headers);
     const actorUsername = isOrganizationAdmin
@@ -982,6 +1011,7 @@ export class ProcessChangeProposalController {
       where: { id: proposalId },
     });
     if (!existing) throw new NotFoundException('Demande introuvable');
+    await this.assertProjectWorkflowScope(existing.projectId, existing.sourceResourceId);
 
     const actorUsername = this.access.getAuthenticatedUserId(headers);
     const isOrganizationAdmin = this.access.hasOrganizationAdminRole(headers);
@@ -1126,6 +1156,7 @@ export class ProcessChangeProposalController {
       where: { id: proposalId },
     });
     if (!existing) throw new NotFoundException('Demande introuvable');
+    await this.assertProjectWorkflowScope(existing.projectId, existing.sourceResourceId);
 
     const actorUsername = this.access.getAuthenticatedUserId(headers);
     const isOrganizationAdmin = this.access.hasOrganizationAdminRole(headers);
@@ -1359,6 +1390,7 @@ export class ProcessChangeProposalController {
       where: { id: proposalId },
     });
     if (!proposal) throw new NotFoundException('Demande introuvable');
+    await this.assertProjectWorkflowScope(proposal.projectId, proposal.sourceResourceId);
     if (!this.access.hasOrganizationAdminRole(headers)) {
       await this.access.assertProjectRole(
         proposal.projectId,
@@ -1412,6 +1444,7 @@ export class ProcessChangeProposalController {
       where: { id: proposalId },
     });
     if (!proposal) throw new NotFoundException('Demande introuvable');
+    await this.assertProjectWorkflowScope(proposal.projectId, proposal.sourceResourceId);
     const isOrganizationAdmin = this.access.hasOrganizationAdminRole(headers);
     if (!isOrganizationAdmin) {
       await this.assertCanSubmitRemarks(proposal.projectId, headers);
@@ -1535,6 +1568,7 @@ export class ProcessChangeProposalController {
       where: { id: proposalId },
     });
     if (!proposal) throw new NotFoundException('Demande introuvable');
+    await this.assertProjectWorkflowScope(proposal.projectId, proposal.sourceResourceId);
     if (
       proposal.status === ProcessChangeProposalStatus.Rejected ||
       proposal.status === ProcessChangeProposalStatus.Published
