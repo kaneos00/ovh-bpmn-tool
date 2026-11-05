@@ -420,6 +420,7 @@ export const Component = () => {
                   <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher un identifiant, un e-mail ou un projet…" sx={{ flex: 1, minWidth: 240 }} />
                   <FormControl sx={{ minWidth: 160 }}><FormLabel>État du compte</FormLabel><Select value={statusFilter} onChange={(_event, value) => setStatusFilter((value ?? 'all') as typeof statusFilter)}><Option value="all">Tous les états</Option><Option value="active">Actif</Option><Option value="inactive">Désactivé</Option></Select></FormControl>
                   <FormControl sx={{ minWidth: 180 }}><FormLabel>Rôle global</FormLabel><Select value={roleFilter} onChange={(_event, value) => setRoleFilter((value ?? 'all') as typeof roleFilter)}><Option value="all">Tous les rôles</Option><Option value="admin">Administrateur</Option><Option value="modeler">Modélisateur</Option><Option value="viewer">Lecteur</Option></Select></FormControl>
+
                 </div>
                 <Box sx={{ overflowX: 'auto' }}>
                   <Table hoverRow stickyHeader>
