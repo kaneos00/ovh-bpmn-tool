@@ -29,6 +29,7 @@ import {
   Star,
   StarBorder,
   Search,
+  MoreVert,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { ControlledTreeEnvironment, Tree } from 'react-complex-tree';
@@ -322,12 +323,15 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                 return (
                   <Box
                     component="span"
-                    onContextMenu={event => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      setContextMenu({ nodeId, anchorEl: event.currentTarget as HTMLElement });
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 0.75,
+                      width: '100%',
+                      minWidth: 0,
+                      '& .folder-tree-actions': { opacity: 0, transition: 'opacity 120ms ease' },
+                      '&:hover .folder-tree-actions, &:focus-within .folder-tree-actions': { opacity: 1 },
                     }}
-                    sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, width: '100%', minWidth: 0 }}
                   >
                     {node?.type === 'folder' ? <FolderOutlined fontSize="small" /> : <DescriptionOutlined fontSize="small" />}
                     <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</Box>
@@ -346,6 +350,24 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                         sx={{ minWidth: 24, minHeight: 24, p: 0.25, flexShrink: 0 }}
                       >
                         {effectiveExpandedNodes.includes(nodeId) ? <ExpandMore fontSize="small" /> : <ChevronRight fontSize="small" />}
+                      </IconButton>
+                    )}
+                    {node && nodeId !== 'root' && (
+                      <IconButton
+                        className="folder-tree-actions"
+                        size="sm"
+                        variant="plain"
+                        color="neutral"
+                        title={`Actions pour ${node.name}`}
+                        aria-label={`Ouvrir les actions de ${node.name}`}
+                        onClick={event => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setContextMenu({ nodeId, anchorEl: event.currentTarget });
+                        }}
+                        sx={{ minWidth: 24, minHeight: 24, p: 0.25, flexShrink: 0 }}
+                      >
+                        <MoreVert fontSize="small" />
                       </IconButton>
                     )}
                     {node && nodeId !== 'root' && (
