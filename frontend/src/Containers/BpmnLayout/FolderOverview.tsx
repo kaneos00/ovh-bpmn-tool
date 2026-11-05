@@ -17,7 +17,7 @@ import { CloseRounded, DescriptionOutlined, EditRounded, FolderOutlined, SaveRou
 import { resourcesQuery } from '../../api/resources/resources.queries';
 import { apiClient } from '../../queryClient';
 import { useActiveProject } from '../../shared/hooks/useActiveProject';
-import { ProjectProcessOverview } from '../ProjectViewer/ProjectProcessOverview';
+import { ProjectProcessOverview } from './ProjectProcessOverview';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import type { Resource } from '../../Types';
 
