@@ -126,6 +126,45 @@ export class ProjectController {
   }
 
   /**
+   * Resolve the remark permission for one process in one explicit project.
+   * The Viewer uses this focused read model instead of inferring the right
+   * from the broader workspace aggregate.
+   */
+  @Get(':projectId/processes/:resourceId/remark-permission')
+  @UseAcl()
+  async getProcessRemarkPermission(
+    @Param('projectId') projectId: string,
+    @Param('resourceId') resourceId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    const link = await this.projectProcesses.findOne({
+      where: { projectId, resourceId },
+    });
+    if (!link) {
+      return {
+        associated: false,
+        isMember: false,
+        canSubmitRemarks: false,
+        usage: null,
+      };
+    }
+
+    const userId = this.projectResourceAccess.getAuthenticatedUserId(headers);
+    const membership = await this.projectMembers.findOne({
+      where: { projectId, userId },
+    });
+    const isOrganizationAdmin =
+      this.projectResourceAccess.hasOrganizationAdminRole(headers);
+
+    return {
+      associated: true,
+      isMember: Boolean(membership),
+      canSubmitRemarks: isOrganizationAdmin || Boolean(membership?.canSubmitRemarks),
+      usage: link.usage,
+    };
+  }
+
+  /**
    * Sharing metadata for the process description page.
    * The shared flag is available to every reader; project names are limited to
    * read-write/admin profiles, and navigation is authorized per project.
