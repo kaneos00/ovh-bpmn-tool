@@ -86,6 +86,10 @@ export const routes = [
         lazy: () => import('./Containers/ContentCompare'),
       },
       {
+        path: '/projects/:projectId/viewer/:resourceId/:contentId',
+        lazy: () => import('./Containers/ContentViewer'),
+      },
+      {
         path: '/projects/:projectId/viewer',
         lazy: () => import('./Containers/ProjectViewer'),
       },
