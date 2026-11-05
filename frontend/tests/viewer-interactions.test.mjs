@@ -809,7 +809,7 @@ test('Viewer remarks are stored outside BPMN XML and displayed only while pendin
   assert.ok(viewer.includes('comment: remarkText.trim()'));
   assert.ok(viewer.includes('Remarques ('));
   assert.ok(hook.includes("overlays.add(elementId, 'contextual-remarks'"));
-  assert.match(hook, /remarks\\s*\\.filter\\(remark\\s*=>\\s*remark\\.status === 'pending'\\)/);
+  assert.ok(hook.includes(".filter(remark => remark.status === 'pending')"));
   assert.ok(entity.includes("@Entity('process_change_proposal_comments')"));
   assert.ok(entity.includes('status: ProcessChangeProposalCommentStatus'));
 });
