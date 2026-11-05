@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Button,
+  Chip,
   Divider,
   IconButton,
   Input,
@@ -235,9 +236,9 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
     event.preventDefault();
     event.stopPropagation();
     const entryId = projectId ? `${projectId}::${nodeId}` : nodeId;
-    setFavorites(current => current.includes(entryId)
-      ? current.filter(id => id !== entryId)
-      : [entryId, ...current]);
+    setFavorites(current => current.includes(entryId) || current.includes(nodeId)
+      ? current.filter(id => id !== entryId && id !== nodeId)
+      : [entryId, ...current.filter(id => id !== nodeId)]);
   };
 
   const treeItems = useMemo(() => {
