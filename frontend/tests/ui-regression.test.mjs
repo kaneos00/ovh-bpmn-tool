@@ -706,6 +706,8 @@ test('project home and central folder overview follow the active project', async
   assert.match(overview, /projectProcessIds/);
   assert.match(overview, /allowedIds\.has\(childResource\.id\)/);
   assert.match(overview, /Sélectionnez un projet/);
+  assert.match(overview, /ProjectProcessOverview/);
+  assert.match(overview, /activeProject\.processes\.map/);
 });
 
 test('recent and favorite resources retain their project context', async () => {
