@@ -124,8 +124,8 @@ export const Component = () => {
           <>
             <WorkspaceNavigation />
                           <Header
-                            title={isRoot(resourceId) && activeProject ? activeProject.name : resource.name}
-                            description={isRoot(resourceId) && activeProject ? (activeProject.description ?? '') : resource.description}
+                            title={isRoot(resourceId) ? (activeProject?.name ?? 'Référentiel') : resource.name}
+                            description={isRoot(resourceId) ? (activeProject?.description ?? 'Sélectionnez un projet pour afficher son espace de travail.') : resource.description}
                             breadcrumbs={getBreadCrumbs()}
                             actions={
                               <Stack direction="row" spacing={1} alignItems="center">
