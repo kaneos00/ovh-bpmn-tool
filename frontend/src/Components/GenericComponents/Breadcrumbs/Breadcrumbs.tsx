@@ -53,9 +53,9 @@ export const Breadcrumbs: FC<BreadcrumbsProps> = ({
                     fontSize="inherit"
                     component={RouterLink}
                     to={breadcrumbItem.to}
-                    aria-label={breadcrumbItem.id === 'root' ? 'Accueil du référentiel' : undefined}
+                    aria-label={breadcrumbItem.id === 'home' ? 'Accueil' : undefined}
                   >
-                    {breadcrumbItem.id === 'root' ? <Home /> : breadcrumbItem.label}
+                    {breadcrumbItem.id === 'home' ? <Home /> : breadcrumbItem.label}
                   </Link>
                 )}
               </React.Fragment>

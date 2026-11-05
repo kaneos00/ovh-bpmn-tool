@@ -6,6 +6,7 @@ import { useResource } from '../../../shared/hooks/useResource';
 import { useFolderTree } from '../../../Components/BusinessComponents/FolderTree/hooks/useFolderTree';
 import type { RenderTree } from '../../../Components/BusinessComponents/FolderTree';
 import { isProcess } from '../../../shared/helpers/resource';
+import { useActiveProject } from '../../../shared/hooks/useActiveProject';
 
 import type { BpmnLayoutRouteParams } from '..';
 
@@ -14,6 +15,7 @@ export const useBpmnLayoutBreadcrumbs = () => {
 
   const { getFolderHierarchy } = useFolders();
   const { resource } = useResource(resourceId);
+  const { activeProject } = useActiveProject();
   // Use the same assembled tree as the Explorer so breadcrumbs also represent
   // linked processes nested beneath their caller, not only physical folder parents.
   const { dataTree } = useFolderTree(resourceId);
@@ -36,11 +38,19 @@ export const useBpmnLayoutBreadcrumbs = () => {
 
     const treePath = findPath(dataTree);
     if (treePath?.length) {
-      return treePath.map(node => ({
-        id: node.id,
-        label: node.id === 'root' ? 'Référentiel' : node.name,
-        to: node.id === 'root' ? '/root' : `/${node.targetId ?? node.id}`,
-      }));
+      return [
+        { id: 'home', label: 'Accueil', to: '/home' },
+        ...(activeProject ? [{
+          id: `project-${activeProject.id}`,
+          label: activeProject.name,
+          to: `/projects/${activeProject.id}`,
+        }] : []),
+        ...treePath.map(node => ({
+          id: node.id,
+          label: node.id === 'root' ? 'Référentiel' : node.name,
+          to: node.id === 'root' ? '/root' : `/${node.targetId ?? node.id}`,
+        })),
+      ];
     }
 
     // Fallback for resources not currently represented in the Explorer tree.
@@ -53,12 +63,18 @@ export const useBpmnLayoutBreadcrumbs = () => {
     }));
 
     return [
+      { id: 'home', label: 'Accueil', to: '/home' },
+      ...(activeProject ? [{
+        id: `project-${activeProject.id}`,
+        label: activeProject.name,
+        to: `/projects/${activeProject.id}`,
+      }] : []),
       ...folderHierarchy,
       ...(isProcess(resource)
         ? [{ id: resource.id, label: resource.name, to: `/${resource.id}` }]
         : []),
     ];
-  }, [resourceId, resource, getFolderHierarchy, dataTree]);
+  }, [resourceId, resource, getFolderHierarchy, dataTree, activeProject]);
 
   return { getBreadCrumbs };
 };
