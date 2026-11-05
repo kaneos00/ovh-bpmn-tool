@@ -83,6 +83,7 @@ const statusMarker = {
 
 const ProcessContentViewer = () => {
   const { resourceId, contentId } = useContentViewer();
+  const { projectId: routeProjectId } = useParams<{ projectId?: string }>();
   const navigate = useNavigate();
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
   const { requestedElementId, requestedRaciView } = useViewerRouteState();
@@ -120,18 +121,22 @@ const ProcessContentViewer = () => {
     workspace?.projects.filter(project =>
       project.processes.some(process => process.resourceId === resourceId),
     ) ?? [];
-  // A process may belong to several projects. Prefer the project in which
-  // the current user can actually act instead of blindly taking the first one.
-  const associatedProject =
-    processProjects.find(project => project.canSubmitRemarks) ??
-    processProjects.find(
-      project => project.role === 'modeler' || project.role === 'admin',
-    ) ??
-    processProjects[0];
+  // The selected project in the route is the Viewer context. A non-shared
+  // process has one project and can retain the legacy direct-entry behavior.
+  // A common process linked to several projects must never guess a context.
+  const associatedProject = routeProjectId
+    ? processProjects.find(project => project.id === routeProjectId)
+    : processProjects.length === 1
+      ? processProjects[0]
+      : undefined;
+  const requiresProjectSelection =
+    !routeProjectId && processProjects.length > 1;
   const canSubmitViewerRemark = Boolean(associatedProject?.canSubmitRemarks);
-  const proposalProject = processProjects.find(
-    project => project.role === 'modeler' || project.role === 'admin',
-  );
+  const proposalProject =
+    associatedProject &&
+    (associatedProject.role === 'modeler' || associatedProject.role === 'admin')
+      ? associatedProject
+      : undefined;
 
   const { data: contents = [] } = useQuery(contentsQuery(resourceId));
   const { data: xmlContent } = useQuery(
@@ -148,17 +153,17 @@ const ProcessContentViewer = () => {
   } | null>(
     [
       'active-process-change-proposal',
-      proposalProject?.id,
+      associatedProject?.id,
       resourceId,
       contentId,
     ],
     () =>
       apiClient.get(
         `/projects/${
-          proposalProject!.id
+          associatedProject!.id
         }/processes/${resourceId}/change-proposals/active?contentId=${contentId}`,
       ),
-    { enabled: Boolean(proposalProject?.id) },
+    { enabled: Boolean(associatedProject?.id) },
   );
   const startChangeProposal = async () => {
     if (!proposalProject || startingProposal || activeProposalLoading) return;
@@ -247,7 +252,7 @@ const ProcessContentViewer = () => {
         queryClient.invalidateQueries({
           queryKey: [
             'active-process-change-proposal',
-            proposalProject?.id,
+            associatedProject?.id,
             resourceId,
           ],
         }),
@@ -430,6 +435,19 @@ const ProcessContentViewer = () => {
                     ? 'Remarques sur la dernière version uniquement'
                     : 'Ajouter une remarque'}
                 </Button>
+              )}
+              {requiresProjectSelection && (
+                <Alert color="warning" variant="soft" sx={{ py: 0.5 }}>
+                  Questo processo è condiviso da più progetti. Seleziona prima
+                  il progetto per aggiungere una remarque o proporre una modifica.
+                  <Button
+                    size="sm"
+                    variant="plain"
+                    onClick={() => navigate('/projects')}
+                  >
+                    Scegli progetto
+                  </Button>
+                </Alert>
               )}
               {proposalProject && (
                 <Button
