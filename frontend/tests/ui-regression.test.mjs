@@ -361,7 +361,7 @@ test('selecting a folder renders its contents instead of an empty folder placeho
   assert.ok(folderOverview.includes('navigate(`/${childResource.id}`)'));
   assert.ok(folderOverview.includes('{childResource.name}'));
   assert.ok(folderOverview.includes('Répertoire vide'));
-  assert.ok(folderOverview.includes("{resourceId === 'root' && activeProject ? activeProject.name : resource.name}"), 'the project root heading should use the active project name');
+  assert.ok(folderOverview.includes("{resourceId === 'root' ? (activeProject?.name ?? 'Référentiel') : resource.name}"), 'the project root heading should use the active project name or a neutral fallback');
   assert.ok(folderOverview.includes('Aucun descriptif renseigné pour ce répertoire.'));
   assert.ok(processDetails.includes('useProcessDetails(resourceId'));
 });
