@@ -703,7 +703,7 @@ test('project home and central folder overview follow the active project', async
   const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
   const overview = await read('src/Containers/BpmnLayout/FolderOverview.tsx');
 
-  assert.match(layout, /isRoot\(resourceId\) && activeProject \? activeProject\.name/);
+  assert.match(layout, /isRoot\(resourceId\) \? \(activeProject\?\.name \?\? 'Référentiel'\)/);
   assert.match(overview, /projectProcessIds/);
   assert.match(overview, /allowedIds\.has\(childResource\.id\)/);
   assert.match(overview, /Sélectionnez un projet/);
