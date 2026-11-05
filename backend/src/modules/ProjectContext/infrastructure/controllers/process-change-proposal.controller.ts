@@ -678,9 +678,6 @@ export class ProcessChangeProposalController {
         };
       }
 
-      // For a Common process, keep the same resource identity: the working
-      // draft is attached to the source resource itself. For project-specific
-      // processes and variants, preserve the existing isolated clone workflow.
       // Every proposal needs its own resource identity: the database
       // deliberately enforces sourceResourceId <> cloneResourceId. For a
       // Common process this workspace stays private to the proposal and is
