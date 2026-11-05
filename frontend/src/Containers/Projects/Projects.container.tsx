@@ -110,12 +110,13 @@ export const Component = () => {
   const workspaceQuery = useQuery<WorkspaceSummary>(
     ['my-workspace'],
     () => apiClient.get('/projects/me/workspace'),
-    { enabled: !projectId },
+    { enabled: true },
   );
   const workspaceProjects = useMemo(
     () => new Map((workspaceQuery.data?.projects ?? []).map((item) => [item.id, item])),
     [workspaceQuery.data],
   );
+  const canManageProjectMembers = workspaceQuery.data?.projects.find((item) => item.id === projectId)?.role === 'admin';
   const projectQuery = useQuery<Project>(
     projectKey(projectId ?? ''),
     () => apiClient.get(`/projects/${projectId}`),
@@ -393,11 +394,11 @@ export const Component = () => {
             <Stack spacing={1.5}>
               <FormControl>
                 <FormLabel>Identifiant utilisateur</FormLabel>
-                <Input value={memberUserId} onChange={(event) => setMemberUserId(event.target.value)} placeholder="Identifiant exact de l’utilisateur" />
+                <Input value={memberUserId} onChange={(event) => setMemberUserId(event.target.value)} placeholder="Identifiant exact de l’utilisateur" disabled={!canManageProjectMembers} />
               </FormControl>
               <FormControl>
                 <FormLabel>Rôle du projet</FormLabel>
-                <Select value={memberRole} onChange={(_event, value) => value && setMemberRole(value as 'viewer' | 'modeler' | 'admin')}>
+                <Select value={memberRole} disabled={!canManageProjectMembers} onChange={(_event, value) => value && setMemberRole(value as 'viewer' | 'modeler' | 'admin')}>
                   <Option value="viewer">Viewer — consultation</Option>
                   <Option value="modeler">Modeler — modification des processus</Option>
                   <Option value="admin">Admin — administration du projet</Option>
@@ -405,11 +406,12 @@ export const Component = () => {
               </FormControl>
               <Checkbox
                 checked={memberCanSubmitRemarks}
+                disabled={!canManageProjectMembers}
                 onChange={(event) => setMemberCanSubmitRemarks(event.target.checked)}
                 label="Autoriser le dépôt de remarques sur les processus"
               />
               <Box>
-                <Button loading={setProjectMember.isLoading} disabled={!memberUserId.trim()} onClick={() => setProjectMember.mutate()}>
+                <Button loading={setProjectMember.isLoading} disabled={!memberUserId.trim() || !canManageProjectMembers} onClick={() => setProjectMember.mutate()}>
                   Enregistrer le rôle
                 </Button>
               </Box>
@@ -425,7 +427,7 @@ export const Component = () => {
                   <Checkbox
                     size="sm"
                     checked={Boolean(member.canSubmitRemarks)}
-                    disabled={updateMemberRemarkPermission.isLoading}
+                    disabled={!canManageProjectMembers || updateMemberRemarkPermission.isLoading}
                     onChange={(event) => updateMemberRemarkPermission.mutate({
                       userId: member.userId,
                       role: member.role,
@@ -434,7 +436,7 @@ export const Component = () => {
                     label="Peut déposer des remarques"
                   />
                 </Box>
-                <Button color="danger" variant="plain" loading={removeProjectMember.isLoading} onClick={() => removeProjectMember.mutate(member.userId)}>Retirer</Button>
+                <Button color="danger" variant="plain" loading={removeProjectMember.isLoading} disabled={!canManageProjectMembers} onClick={() => removeProjectMember.mutate(member.userId)}>Retirer</Button>
               </Card>
             ))}
           </Card>
