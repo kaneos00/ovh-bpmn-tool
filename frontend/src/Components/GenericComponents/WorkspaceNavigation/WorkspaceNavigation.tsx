@@ -36,12 +36,12 @@ const destinations = [
   {
     label: 'Accueil',
     path: '/root',
-    matches: (path: string) => path === '/root' || /^\\/[0-9a-f-]+(?:\\/|$)/i.test(path),
+    matches: (path: string) => path === '/root' || /^\/[0-9a-f-]+(?:\/|$)/i.test(path),
   },
   {
     label: 'Projets',
     path: '/projects',
-    matches: (path: string) => path === '/projects' || /^\\/projects\\/[^/]+$/.test(path) || path === '/workspace',
+    matches: (path: string) => path === '/projects' || /^\/projects\/[^/]+$/.test(path) || path === '/workspace',
   },
   {
     label: 'Administration',
