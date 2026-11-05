@@ -59,7 +59,7 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
   if (resources.isError) {
     return (
       <Card variant="outlined" sx={{ flex: 1, minHeight: 220, gap: 1 }}>
-        <Typography level="title-lg">{resource.name}</Typography>
+        <Typography level="title-lg">{resourceId === 'root' && activeProject ? activeProject.name : resource.name}</Typography>
         <Typography level="body-sm" color="danger">
           Impossible de charger le contenu de ce répertoire.
         </Typography>
@@ -84,7 +84,7 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
         sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
       >
         <Box>
-          <Typography level="title-lg">{resource.name}</Typography>
+          <Typography level="title-lg">{resourceId === 'root' && activeProject ? activeProject.name : resource.name}</Typography>
           <Typography level="body-sm" color="neutral" sx={{ whiteSpace: 'pre-wrap' }}>
             {(resourceId === 'root' ? activeProject?.description : resource.description)?.trim() || (resourceId === 'root' ? 'Espace de travail du projet actif.' : 'Aucun descriptif renseigné pour ce répertoire.')}
           </Typography>
