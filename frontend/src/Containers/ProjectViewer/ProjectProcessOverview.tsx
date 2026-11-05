@@ -109,7 +109,7 @@ export const ProjectProcessOverview = ({ projectId, processes }: ProjectProcessO
                       color="primary"
                       size="sm"
                       sx={{ p: 0, minHeight: 'unset', justifyContent: 'flex-start', textAlign: 'left' }}
-                      onClick={() => row.published && navigate(`/projects/${projectId}/viewer/${row.resourceId}/${row.published.id}`)}
+                      onClick={() => row.published && navigate(`/${row.resourceId}/viewer/${row.published.id}?projectId=${projectId}`)}
                     >
                       {row.name}
                     </Button>
@@ -154,7 +154,7 @@ export const ProjectProcessOverview = ({ projectId, processes }: ProjectProcessO
                         color="primary"
                         size="sm"
                         sx={{ p: 0, minHeight: 'unset', justifyContent: 'flex-start', textAlign: 'left' }}
-                        onClick={() => navigate(`/projects/${projectId}/viewer/${change.resourceId}/${change.id}`)}
+                        onClick={() => navigate(`/${change.resourceId}/viewer/${change.id}?projectId=${projectId}`)}
                       >
                         {change.processName}
                       </Button>
