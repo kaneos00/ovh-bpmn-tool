@@ -681,20 +681,22 @@ export class ProcessChangeProposalController {
       // For a Common process, keep the same resource identity: the working
       // draft is attached to the source resource itself. For project-specific
       // processes and variants, preserve the existing isolated clone workflow.
-      const savedClone = isCommonRemark
-        ? source
-        : await resources.save(
-            resources.create({
-              name: `${source.name.slice(0, 220)} — proposition ${randomUUID().slice(0, 8)}`,
-              description: source.description,
-              depth: source.depth,
-              parentId: source.parentId,
-              sourceResourceId: source.id,
-              type: ResourceTypeEnum.Process,
-              authToken: null,
-              createdBy: authorUsername,
-            }),
-          );
+      // Every proposal needs its own resource identity: the database
+      // deliberately enforces sourceResourceId <> cloneResourceId. For a
+      // Common process this workspace stays private to the proposal and is
+      // not added as a second project-process link below.
+      const savedClone = await resources.save(
+        resources.create({
+          name: `${source.name.slice(0, 220)} — proposition ${randomUUID().slice(0, 8)}`,
+          description: source.description,
+          depth: source.depth,
+          parentId: source.parentId,
+          sourceResourceId: source.id,
+          type: ResourceTypeEnum.Process,
+          authToken: null,
+          createdBy: authorUsername,
+        }),
+      );
 
       const savedCloneContent = await contents.save(
         contents.create({
