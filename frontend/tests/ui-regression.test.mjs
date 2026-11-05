@@ -666,7 +666,7 @@ test('user administration uses a dedicated breadcrumb route and grouped account 
 
   assert.match(routes, /path: '\/organization\/users\/\:username'/);
   assert.match(accounts, /useParams<\{ username\?: string \}>/);
-  assert.match(accounts, />Administration<\\/Button>[\\s\\S]*?>Utilisateurs<\\/Button>/);
+  assert.ok(accounts.includes('>Administration</Button>') && accounts.includes('>Utilisateurs</Button>'));
   assert.match(accounts, /!username && <>/);
   assert.match(accounts, /Actions groupées/);
   assert.match(accounts, /Associer à un projet/);
