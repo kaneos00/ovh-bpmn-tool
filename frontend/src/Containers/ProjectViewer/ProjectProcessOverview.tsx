@@ -13,6 +13,7 @@ export type ProjectOverviewProcess = {
 };
 
 type ProjectProcessOverviewProps = {
+  projectId: string;
   processes: ProjectOverviewProcess[];
 };
 
@@ -57,7 +58,7 @@ const getLatestPublished = (contents: Content[] | undefined) =>
     .sort((left, right) => (right.version ?? 0) - (left.version ?? 0) ||
       new Date(right.updatedAt ?? right.createdAt).getTime() - new Date(left.updatedAt ?? left.createdAt).getTime())[0];
 
-export const ProjectProcessOverview = ({ processes }: ProjectProcessOverviewProps) => {
+export const ProjectProcessOverview = ({ projectId, processes }: ProjectProcessOverviewProps) => {
   const navigate = useNavigate();
   const contentQueries = useQueries(processes.map((process) => contentsQuery(process.resourceId)));
 
@@ -108,7 +109,7 @@ export const ProjectProcessOverview = ({ processes }: ProjectProcessOverviewProp
                       color="primary"
                       size="sm"
                       sx={{ p: 0, minHeight: 'unset', justifyContent: 'flex-start', textAlign: 'left' }}
-                      onClick={() => navigate(`/${row.resourceId}`)}
+                      onClick={() => row.published && navigate(`/projects/${projectId}/viewer/${row.resourceId}/${row.published.id}`)}
                     >
                       {row.name}
                     </Button>
@@ -153,7 +154,7 @@ export const ProjectProcessOverview = ({ processes }: ProjectProcessOverviewProp
                         color="primary"
                         size="sm"
                         sx={{ p: 0, minHeight: 'unset', justifyContent: 'flex-start', textAlign: 'left' }}
-                        onClick={() => navigate(`/${change.resourceId}`)}
+                        onClick={() => navigate(`/projects/${projectId}/viewer/${change.resourceId}/${change.id}`)}
                       >
                         {change.processName}
                       </Button>
