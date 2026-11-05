@@ -741,7 +741,7 @@ test('workspace home dashboard and project-aware breadcrumbs are available', asy
   assert.match(routes, /path: '\/projects'[\s\S]*?import\('\.\/Containers\/Projects'\)/);
   assert.match(routes, /path: '\/projects\/:projectId'[\s\S]*?import\('\.\/Containers\/Projects'\)/);
   assert.match(home, /projects\.flatMap\(project => project\.processes\)/);
-  assert.match(home, /Progetti accessibili/);
+  assert.match(home, /Projets accessibles/);
   assert.match(home, /Paramètres et couleur/);
   assert.match(home, /setActiveProject\(projectId\)/);
   assert.match(breadcrumbs, /id: 'home', label: 'Accueil', to: '\/home'/);
