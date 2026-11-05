@@ -566,7 +566,6 @@ export const WorkspaceNavigation = () => {
           }}
           disabled={projectsLoading || projects.length === 0}
           aria-label="Projet actif"
-          placeholder="Choisir un projet"
           sx={{ minWidth: 180, maxWidth: 240, bgcolor: activeProject?.color || '#263e59', color: '#fff', borderColor: '#40556d', '&:hover': { filter: 'brightness(1.08)' } }}
         >
           {projects.map(project => <Option key={project.id} value={project.id}>
