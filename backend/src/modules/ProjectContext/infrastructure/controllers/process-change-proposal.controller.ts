@@ -75,7 +75,9 @@ export class ProcessChangeProposalController {
       where: { projectId, resourceId },
     });
     if (!link) {
-      throw new NotFoundException('Le processus ne fait pas partie de ce projet');
+      throw new NotFoundException(
+        'Le processus ne fait pas partie de ce projet',
+      );
     }
   }
 
@@ -520,10 +522,7 @@ export class ProcessChangeProposalController {
       }
       const isCommonRemark =
         sourceLink.usage === ProjectProcessUsage.Common && isViewerRemark;
-      if (
-        sourceLink.usage === ProjectProcessUsage.Common &&
-        !isViewerRemark
-      ) {
+      if (sourceLink.usage === ProjectProcessUsage.Common && !isViewerRemark) {
         throw new ForbiddenException(
           'Un processus Commun peut recevoir des remarques, mais ne peut pas être cloné comme processus Spécifique.',
         );
@@ -861,7 +860,10 @@ export class ProcessChangeProposalController {
       where: { id: proposalId },
     });
     if (!existing) throw new NotFoundException('Demande introuvable');
-    await this.assertProjectWorkflowScope(existing.projectId, existing.sourceResourceId);
+    await this.assertProjectWorkflowScope(
+      existing.projectId,
+      existing.sourceResourceId,
+    );
 
     const isOrganizationAdmin = this.access.hasOrganizationAdminRole(headers);
     const actorUsername = isOrganizationAdmin
@@ -1021,7 +1023,10 @@ export class ProcessChangeProposalController {
       where: { id: proposalId },
     });
     if (!existing) throw new NotFoundException('Demande introuvable');
-    await this.assertProjectWorkflowScope(existing.projectId, existing.sourceResourceId);
+    await this.assertProjectWorkflowScope(
+      existing.projectId,
+      existing.sourceResourceId,
+    );
 
     const actorUsername = this.access.getAuthenticatedUserId(headers);
     const isOrganizationAdmin = this.access.hasOrganizationAdminRole(headers);
@@ -1166,7 +1171,10 @@ export class ProcessChangeProposalController {
       where: { id: proposalId },
     });
     if (!existing) throw new NotFoundException('Demande introuvable');
-    await this.assertProjectWorkflowScope(existing.projectId, existing.sourceResourceId);
+    await this.assertProjectWorkflowScope(
+      existing.projectId,
+      existing.sourceResourceId,
+    );
 
     const actorUsername = this.access.getAuthenticatedUserId(headers);
     const isOrganizationAdmin = this.access.hasOrganizationAdminRole(headers);
@@ -1400,7 +1408,10 @@ export class ProcessChangeProposalController {
       where: { id: proposalId },
     });
     if (!proposal) throw new NotFoundException('Demande introuvable');
-    await this.assertProjectWorkflowScope(proposal.projectId, proposal.sourceResourceId);
+    await this.assertProjectWorkflowScope(
+      proposal.projectId,
+      proposal.sourceResourceId,
+    );
     if (!this.access.hasOrganizationAdminRole(headers)) {
       await this.access.assertProjectRole(
         proposal.projectId,
@@ -1454,7 +1465,10 @@ export class ProcessChangeProposalController {
       where: { id: proposalId },
     });
     if (!proposal) throw new NotFoundException('Demande introuvable');
-    await this.assertProjectWorkflowScope(proposal.projectId, proposal.sourceResourceId);
+    await this.assertProjectWorkflowScope(
+      proposal.projectId,
+      proposal.sourceResourceId,
+    );
     const isOrganizationAdmin = this.access.hasOrganizationAdminRole(headers);
     if (!isOrganizationAdmin) {
       await this.assertCanSubmitRemarks(proposal.projectId, headers);
@@ -1578,7 +1592,10 @@ export class ProcessChangeProposalController {
       where: { id: proposalId },
     });
     if (!proposal) throw new NotFoundException('Demande introuvable');
-    await this.assertProjectWorkflowScope(proposal.projectId, proposal.sourceResourceId);
+    await this.assertProjectWorkflowScope(
+      proposal.projectId,
+      proposal.sourceResourceId,
+    );
     if (
       proposal.status === ProcessChangeProposalStatus.Rejected ||
       proposal.status === ProcessChangeProposalStatus.Published
