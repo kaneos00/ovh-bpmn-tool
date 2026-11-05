@@ -183,7 +183,7 @@ test('explorer remembers the selected tab and highlights linked-process resource
   assert.ok(tree.includes("const VIEW_KEY = 'bpmn-tool:explorer-view'"));
   assert.ok(tree.includes('const readView = (): ExplorerView'));
   assert.ok(tree.includes('window.localStorage.setItem(VIEW_KEY, view)'));
-  assert.ok(tree.includes('const isSelected = (node.targetId ?? node.id) === selectedId'));
+  assert.ok(tree.includes('const isSelected = resourceId === selectedId'));
   assert.ok(tree.includes('selectedTreeNodeId'));
 });
 
