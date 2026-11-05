@@ -27,7 +27,7 @@ import { ResourceType } from '../../shared/types/BpmnResource';
 import { ProjectRaciPanel } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciPanel';
 import { ProjectRaciManager } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciManager';
 import { ProjectProcessHierarchy } from './ProjectProcessHierarchy';
-import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
+import { WorkspacePageHeader } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
 import { useActiveProject } from '../../shared/hooks/useActiveProject';
 
 type Project = {
@@ -281,7 +281,7 @@ export const Component = () => {
     return (
       <Sheet sx={{ width: '100%', maxWidth: 'none', boxSizing: 'border-box', mx: 'auto', p: 2, bgcolor: 'transparent' }}>
         <Stack spacing={2}>
-          <WorkspaceNavigation />
+          <WorkspacePageHeader />
           <Typography level="h2">Projets</Typography>
           <Button variant="outlined" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/organization/users')}>Administration de l’organisation →</Button>
           <Typography level="body-md">
@@ -358,7 +358,7 @@ export const Component = () => {
   return (
     <Sheet sx={{ width: '100%', maxWidth: 'none', boxSizing: 'border-box', mx: 'auto', p: 2, bgcolor: 'transparent' }}>
       <Stack spacing={2}>
-          <WorkspaceNavigation />
+          <WorkspacePageHeader />
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} useFlexGap flexWrap="wrap" sx={{ alignItems: { sm: 'center' } }}>
           <Button variant="plain" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/projects')}>← Tous les projets</Button>
           {projectId && <Button variant="soft" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate(`/projects/${projectId}/viewer`)}>Ouvrir l’accueil dans le viewer</Button>}
