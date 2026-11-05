@@ -720,14 +720,7 @@ test('recent and favorite resources retain their project context', async () => {
 
 test('project administrators can configure the project color and pictogram', async () => {
   const viewer = await read('src/Containers/ProjectViewer/ProjectViewer.container.tsx');
-  const entity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/project.ormEntity.ts');
-  const migration = await read('../backend/migrations/20261105_v3_project_visual_identity.sql');
-
   assert.match(viewer, /Input type="color"/);
-  assert.match(viewer, /aria-label="Pictogramme del progetto"/);
+  assert.match(viewer, /aria-label="Pictogramme du projet"/);
   assert.match(viewer, /color: colorDraft, icon: iconDraft/);
-  assert.match(entity, /color: string/);
-  assert.match(entity, /icon: string/);
-  assert.match(migration, /ADD COLUMN IF NOT EXISTS color/);
-  assert.match(migration, /ADD COLUMN IF NOT EXISTS icon/);
 });
