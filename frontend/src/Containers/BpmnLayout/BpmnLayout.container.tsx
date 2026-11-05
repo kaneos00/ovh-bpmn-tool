@@ -21,6 +21,7 @@ import type { BpmnLayoutRouteParams } from '.';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import { useViewerRouteState } from '../../shared/hooks/useViewerRouteState';
 import { useViewerSelectionState } from '../../shared/hooks/useViewerSelectionState';
+import { useActiveProject } from '../../shared/hooks/useActiveProject';
 
 import './BpmnLayoutContainer.scss';
 
@@ -80,6 +81,15 @@ export const Component = () => {
   );
 
   const { resource, contents, callbacks } = useBpmnLayout();
+  const { projects, activeProjectId, setActiveProject, isLoading: projectsLoading } = useActiveProject();
+
+  useEffect(() => {
+    if (activeProjectId || projectsLoading || !resourceId) return;
+    const matchingProjects = projects.filter(project =>
+      project.processes.some(process => process.resourceId === resourceId),
+    );
+    if (matchingProjects.length === 1) setActiveProject(matchingProjects[0].id);
+  }, [activeProjectId, projectsLoading, projects, resourceId, setActiveProject]);
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
 
   const actions = useMemo(() => {
