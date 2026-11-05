@@ -674,3 +674,5 @@ export const WorkspaceNavigation = () => {
     </Box>
   );
 };
+
+export const WorkspacePageHeader = WorkspaceNavigation;
