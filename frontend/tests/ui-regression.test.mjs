@@ -658,3 +658,26 @@ test('description, version history, RACI and documented information stay top-ali
   assert.ok(styles.includes('.processViewerTabPanel:not(.processViewerProcessTab) > .processViewerInfo'));
   assert.ok(styles.includes('.processViewerTabPanel:not(.processViewerProcessTab) > .processViewerInfo.processViewerRaci'));
 });
+
+
+test('user administration uses a dedicated breadcrumb route and grouped account actions', async () => {
+  const accounts = await read('src/Containers/UserAccounts/index.tsx');
+  const routes = await read('src/routes.tsx');
+
+  assert.match(routes, /path: '\/organization\/users\/\:username'/);
+  assert.match(accounts, /useParams<\{ username\?: string \}>/);
+  assert.match(accounts, /Administration \/ Utilisateurs/);
+  assert.match(accounts, /!username && <>/);
+  assert.match(accounts, /Actions groupées/);
+  assert.match(accounts, /Associer à un projet/);
+  assert.match(accounts, /Désactiver les comptes sélectionnés/);
+});
+
+test('project administration exposes a nested project-process tree and grouped actions', async () => {
+  const admin = await read('src/Containers/OrganizationAdmin/OrganizationAdmin.container.tsx');
+
+  assert.match(admin, /Arborescence des projets et processus/);
+  assert.match(admin, /Affecter un utilisateur aux projets sélectionnés/);
+  assert.match(admin, /Associer les processus sélectionnés à un projet/);
+  assert.doesNotMatch(admin, /activeSection === 'settings'/);
+});
