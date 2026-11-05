@@ -8,6 +8,7 @@ import type { BreadcrumbItem } from '../../../Components/GenericComponents/Bread
 type HeaderProps = {
   isLoading?: boolean;
   title?: string;
+  titleAdornment?: ReactElement;
   description?: string;
   breadcrumbs?: BreadcrumbItem[];
   actions?: ReactElement;
@@ -15,6 +16,7 @@ type HeaderProps = {
 
 export const Header: FC<HeaderProps> = ({
   title,
+  titleAdornment,
   description,
   breadcrumbs,
   actions,
@@ -36,21 +38,26 @@ export const Header: FC<HeaderProps> = ({
           },
         }}
       >
-        <Typography level="h1" fontSize="xl4">
-          {isLoading ? (
-            <Skeleton variant="text" level="h1" width={350} />
-          ) : (
-            title
-          )}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', minWidth: 0 }}>
+          <Typography level="h1" fontSize="xl4">
+            {isLoading ? (
+              <Skeleton variant="text" level="h1" width={350} />
+            ) : (
+              title
+            )}
+          </Typography>
+          {titleAdornment}
+        </Box>
         <Box sx={{ flex: 999 }} />
         <Box sx={{ display: 'flex', gap: 1, '& > *': { flexGrow: 1 } }}>
           {actions}
         </Box>
       </Box>
-      <Typography level="body-sm" sx={{ overflowWrap: 'break-word' }}>
-        {isLoading ? <Skeleton variant="text" level="body-sm" /> : description}
-      </Typography>
+      {(isLoading || description) && (
+        <Typography level="body-sm" sx={{ overflowWrap: 'break-word' }}>
+          {isLoading ? <Skeleton variant="text" level="body-sm" /> : description}
+        </Typography>
+      )}
     </>
   );
 };
