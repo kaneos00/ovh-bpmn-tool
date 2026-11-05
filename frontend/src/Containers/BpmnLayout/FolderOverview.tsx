@@ -42,7 +42,7 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
   const updateDescription = useMutation(
     () => {
       if (!activeProjectId) throw new Error('Aucun projet actif.');
-      return apiClient.put('/projects/' + activeProjectId, { description: descriptionDraft.trim() });
+      return apiClient.put(`/projects/${activeProjectId}`, { description: descriptionDraft.trim() });
     },
     {
       onSuccess: async () => {
@@ -109,7 +109,7 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
                 size="sm"
                 variant="outlined"
                 color="neutral"
-                onClick={() => navigate('/projects/' + activeProjectId)}
+                onClick={() => navigate(`/projects/${activeProjectId}`)}
               >
                 Paramètres du projet
               </Button>
