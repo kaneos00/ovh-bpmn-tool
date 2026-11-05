@@ -332,6 +332,7 @@ export const Component = () => {
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} useFlexGap flexWrap="wrap" sx={{ alignItems: { sm: 'center' } }}>
           <Button variant="plain" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/projects')}>← Tous les projets</Button>
           {projectId && <Button variant="soft" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate(`/projects/${projectId}/viewer`)}>Ouvrir l’accueil dans le viewer</Button>}
+          {projectId && <Button variant="solid" sx={{ alignSelf: 'flex-start' }} onClick={() => { setActiveProject(projectId); navigate('/root'); }}>Ouvrir le référentiel de ce projet</Button>}
         </Stack>
         <Button variant="outlined" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/organization/projects')}>Administration de l’organisation →</Button>
         {projectQuery.isLoading && <Typography>Chargement du projet…</Typography>}
