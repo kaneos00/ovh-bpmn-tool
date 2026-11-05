@@ -237,7 +237,12 @@ const ProcessContentViewer = () => {
     decidedAt: string | null;
     decisionComment: string | null;
   };
-  const { data: proposalRemarks = [] } = useQuery<ProposalRemark[]>(
+  const {
+    data: proposalRemarks = [],
+    isLoading: proposalRemarksLoading,
+    isError: proposalRemarksError,
+    error: proposalRemarksLoadError,
+  } = useQuery<ProposalRemark[]>(
     ['process-change-proposal-comments', activeProposal?.id],
     () =>
       apiClient.get(
@@ -280,21 +285,42 @@ const ProcessContentViewer = () => {
         },
       );
       setRemarkWarning(submissionResult?.validatorWarning ?? null);
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: [
+
+      // The API returns the persisted proposal and remark. Populate both
+      // Viewer queries immediately so the text is visible even before the
+      // dependent active-proposal/comments requests complete.
+      const savedProposalId = submissionResult?.id as string | undefined;
+      const savedRemark = submissionResult?.comment as ProposalRemark | undefined;
+      if (savedProposalId) {
+        queryClient.setQueryData(
+          [
             'active-process-change-proposal',
             routeProjectId,
             resourceId,
+            contentId,
           ],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ['process-change-proposals-to-review'],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ['process-change-proposal-comments', activeProposal?.id],
-        }),
-      ]);
+          {
+            id: savedProposalId,
+            status: submissionResult.status ?? 'submitted',
+            cloneResourceId: submissionResult.cloneResourceId,
+          },
+        );
+        if (savedRemark?.id) {
+          queryClient.setQueryData<ProposalRemark[]>(
+            ['process-change-proposal-comments', savedProposalId],
+            previous => {
+              const current = previous ?? [];
+              return current.some(remark => remark.id === savedRemark.id)
+                ? current
+                : [...current, savedRemark];
+            },
+          );
+        }
+      }
+
+      await queryClient.invalidateQueries({
+        queryKey: ['process-change-proposals-to-review'],
+      });
       setRemarkText('');
       setRemarkModalOpen(false);
       setInfoPanelOpen(true);
@@ -706,12 +732,30 @@ const ProcessContentViewer = () => {
                   seront reprises lors de la prochaine soumission du brouillon.
                 </Alert>
               )}
-              {proposalRemarks.length === 0 ? (
+              {proposalRemarksLoading && (
                 <Typography level="body-sm" textColor="neutral">
-                  Aucune remarque pour cette version publiée.
+                  Chargement des remarques…
                 </Typography>
-              ) : (
-                proposalRemarks.map(remark => (
+              )}
+              {proposalRemarksError && (
+                <Alert color="danger" variant="soft">
+                  Impossible de charger les remarques :
+                  {' '}
+                  {proposalRemarksLoadError instanceof Error
+                    ? proposalRemarksLoadError.message
+                    : 'erreur inconnue'}
+                </Alert>
+              )}
+              {!proposalRemarksLoading &&
+                !proposalRemarksError &&
+                proposalRemarks.length === 0 && (
+                  <Typography level="body-sm" textColor="neutral">
+                    Aucune remarque pour cette version publiée.
+                  </Typography>
+                )}
+              {!proposalRemarksLoading &&
+                !proposalRemarksError &&
+                proposalRemarks.map((remark, index) => (
                   <Sheet
                     key={remark.id}
                     variant="outlined"
@@ -724,7 +768,7 @@ const ProcessContentViewer = () => {
                       spacing={1}
                     >
                       <Typography level="title-sm">
-                        {remark.elementId}
+                        Remarque {index + 1} — {remark.elementId}
                       </Typography>
                       <Typography
                         level="body-xs"
@@ -733,7 +777,9 @@ const ProcessContentViewer = () => {
                         {getRemarkStatusLabel(remark.status)}
                       </Typography>
                     </Stack>
-                    <Typography level="body-sm">{remark.comment}</Typography>
+                    <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {remark.comment}
+                    </Typography>
                     <Typography level="body-xs" textColor="neutral">
                       Déposée le {formatDateTime(remark.createdAt)} ·{' '}
                       {remark.authorName || remark.authorUserId}
@@ -749,8 +795,7 @@ const ProcessContentViewer = () => {
                       </Typography>
                     )}
                   </Sheet>
-                ))
-              )}
+                ))}
             </Stack>
           </TabPanel>
 
