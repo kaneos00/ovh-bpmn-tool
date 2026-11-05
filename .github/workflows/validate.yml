@@ -153,6 +153,7 @@ jobs:
             < backend/tests/sql/content-publication-transaction.integration.sql
           test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.columns WHERE table_name='resources' AND column_name='sourceResourceId'")" = "1"
           test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.tables WHERE table_name='app_user_preferences'")" = "1"
+          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.columns WHERE table_name='projects' AND column_name IN ('color', 'icon')")" = "2"
 
           docker run --detach --name bpmn-v2-demo-backend-ci --network bpmn-v2-ci --network-alias backend \
             --env NODE_ENV=production --env NODE_PORT=3000 \
