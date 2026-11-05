@@ -19,7 +19,9 @@ test('the project workspace is the only project landing page and Viewer shell', 
   assert.doesNotMatch(routes, /import\('\.\/Containers\/Home'\)/);
   assert.doesNotMatch(routes, /import\('\.\/Containers\/ProjectViewer'\)/);
 
-  assert.match(navigation, /label: 'Accueil',[\s\S]*?path: '\/root'/);
+  assert.doesNotMatch(navigation, /label: 'Accueil'|label: 'Projets'/);
+  assert.match(navigation, /globalRole === 'admin'[\s\S]*?>\s*Administration\s*<\/Button>/);
+  assert.ok(navigation.includes('<UserAccountMenu />'), 'account menu remains available');
   assert.doesNotMatch(navigation, /label: 'Référentiel'/);
   assert.match(redirect, /setActiveProject\(projectId\)/);
   assert.match(redirect, /navigate\('\/root', \{ replace: true \}\)/);
