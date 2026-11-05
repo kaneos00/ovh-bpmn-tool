@@ -188,7 +188,7 @@ export const Component = () => {
   const section = location.pathname.split('/').filter(Boolean)[1] ?? 'users';
   const activeSection: AdminSection = sections.some((item) => item.key === section)
     ? (section as AdminSection)
-    : 'users';
+    : 'overview';
 
   const overviewQuery = useQuery<AdministrationOverview>(
     queryKey,
@@ -511,7 +511,7 @@ export const Component = () => {
                         <Button disabled={!bulkProcessProjectId || bulkBusy} loading={bulkBusy} onClick={() => void applyBulkProcessLink()}>Associer {selectedProcesses.length} processus</Button>
                         <Button variant="plain" color="neutral" onClick={() => setProcessBulkAction(false)}>Annuler</Button>
                       </Stack>
-                      <Typography level="body-xs" sx={{ mt: 1 }}>Les droits de gestion du projet et les règles d’association restent contrôlés par l’API.</Typography>
+                      <Typography level="body-xs" sx={{ mt: 1 }}>Cette opération nécessite le rôle Modélisateur ou Admin sur le projet cible et l’accès à chaque processus ; l’API vérifie ces droits.</Typography>
                     </Alert>
                   )}
                 </section>
