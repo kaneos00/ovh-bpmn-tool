@@ -171,5 +171,5 @@ export const useFolderTree = (selectedResourceId: string) => {
     setExpandedNodes(current => Array.from(new Set([...current, ...folderAncestors, ...treeAncestors])));
   }, [selectedResourceId, scopedResources, resource, getFolderHierarchy, dataTree]);
 
-  return { dataTree, expandedNodes, setExpandedNodes, isLoading };
+  return { dataTree, expandedNodes, setExpandedNodes, isLoading, activeProjectId };
 };
