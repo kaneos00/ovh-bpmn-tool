@@ -422,7 +422,16 @@ export const Component = () => {
           </aside>
           <main className="org-admin-v2__main">
             <header className="org-admin-v2__topbar">
-              <div><div className="org-admin-v2__crumb">Administration / {title}</div><div className="org-admin-v2__top-title">Administration de l’organisation</div></div>
+              <div>
+                <div className="org-admin-v2__crumb" aria-label="Fil d’Ariane">
+                  <Button size="sm" variant="plain" color="neutral" sx={{ p: 0, minHeight: 'unset' }} onClick={() => navigate('/organization/overview')}>Administration</Button>
+                  <span>/</span>
+                  <span>{title}</span>
+                  {selectedProject && <> / {selectedProject.name}</>}
+                  {selectedProcess && <> / {selectedProcess.name}</>}
+                </div>
+                <div className="org-admin-v2__top-title">Gestion des projets et du référentiel</div>
+              </div>
               <Chip size="sm" color="primary" variant="soft">Accès organisationnel</Chip>
             </header>
             <div className="org-admin-v2__content">
