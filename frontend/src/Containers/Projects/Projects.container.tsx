@@ -500,9 +500,10 @@ export const Component = () => {
             </Typography>
             <ProjectRaciManager
               projectId={projectId}
-              onActivityClick={(targetResourceId, elementId) =>
-                (projectId && setActiveProject(projectId), navigate(`/${targetResourceId}?elementId=${encodeURIComponent(elementId)}`))
-              }
+              onActivityClick={(targetResourceId, elementId) => {
+                if (projectId) setActiveProject(projectId);
+                navigate(`/${targetResourceId}?elementId=${encodeURIComponent(elementId)}`);
+              }}
             />
           </Card>
           <Card variant="outlined">
