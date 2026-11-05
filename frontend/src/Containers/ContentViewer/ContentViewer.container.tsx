@@ -141,9 +141,7 @@ const ProcessContentViewer = () => {
     process => process.resourceId === resourceId,
   );
   const isCommonProcess = currentProjectProcess?.usage === 'common';
-  const canSubmitViewerRemark = Boolean(
-    associatedProject?.canSubmitRemarks && !isCommonProcess,
-  );
+  const canSubmitViewerRemark = Boolean(associatedProject?.canSubmitRemarks);
   const proposalProject =
     associatedProject &&
     !isCommonProcess &&
@@ -463,10 +461,11 @@ const ProcessContentViewer = () => {
                 </Alert>
               )}
               {isCommonProcess && (
-                <Alert color="warning" variant="soft" sx={{ py: 0.5 }}>
-                  Ce processus est Commun. Son évolution doit être soumise au
-                  circuit de gouvernance du référentiel, et non publiée directement
-                  dans un projet.
+                <Alert color="info" variant="soft" sx={{ py: 0.5 }}>
+                  Ce processus est Commun : vous pouvez déposer des remarques.
+                  Elles seront regroupées pour qu’un utilisateur habilité puisse
+                  préparer et publier une nouvelle version du même processus,
+                  sans créer de copie dans le projet.
                 </Alert>
               )}
               {proposalProject && (
