@@ -39,16 +39,15 @@ export const useBpmnLayoutBreadcrumbs = () => {
     const treePath = findPath(dataTree);
     if (treePath?.length) {
       return [
-        { id: 'home', label: 'Accueil', to: '/home' },
         ...(activeProject ? [{
           id: `project-${activeProject.id}`,
           label: activeProject.name,
-          to: `/projects/${activeProject.id}`,
+          to: '/root',
         }] : []),
-        ...treePath.map(node => ({
+        ...treePath.filter(node => node.id !== 'root').map(node => ({
           id: node.id,
-          label: node.id === 'root' ? 'Référentiel' : node.name,
-          to: node.id === 'root' ? '/root' : `/${node.targetId ?? node.id}`,
+          label: node.name,
+          to: `/${node.targetId ?? node.id}`,
         })),
       ];
     }
@@ -56,18 +55,17 @@ export const useBpmnLayoutBreadcrumbs = () => {
     // Fallback for resources not currently represented in the Explorer tree.
     const folderHierarchy = getFolderHierarchy(
       isProcess(resource) ? (resource.parentId ?? 'root') : resourceId,
-    ).map(({ id, name }) => ({
+    ).filter(({ id }) => id !== 'root').map(({ id, name }) => ({
       id,
-      label: id === 'root' ? 'Référentiel' : name,
-      to: id === 'root' ? '/root' : `/${id}`,
+      label: name,
+      to: `/${id}`,
     }));
 
     return [
-      { id: 'home', label: 'Accueil', to: '/home' },
       ...(activeProject ? [{
         id: `project-${activeProject.id}`,
         label: activeProject.name,
-        to: `/projects/${activeProject.id}`,
+        to: '/root',
       }] : []),
       ...folderHierarchy,
       ...(isProcess(resource)
