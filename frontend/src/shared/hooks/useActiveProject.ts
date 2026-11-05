@@ -9,6 +9,8 @@ export type WorkspaceProject = {
   id: string;
   name: string;
   description?: string | null;
+  color: string;
+  icon: string;
   role: 'viewer' | 'modeler' | 'admin';
   processes: Array<{
     resourceId: string;
