@@ -81,7 +81,7 @@ export const Component = () => {
   );
 
   const { resource, contents, callbacks } = useBpmnLayout();
-  const { projects, activeProjectId, setActiveProject, isLoading: projectsLoading } = useActiveProject();
+  const { projects, activeProject, activeProjectId, setActiveProject, isLoading: projectsLoading } = useActiveProject();
 
   useEffect(() => {
     if (activeProjectId || projectsLoading || !resourceId) return;
