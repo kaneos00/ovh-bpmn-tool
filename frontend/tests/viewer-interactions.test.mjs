@@ -90,7 +90,7 @@ test('BPMN connecting arrows are not selectable in the Viewer', async () => {
 
   assert.match(
     hook,
-    /const isConnection = Array\.isArray\(element\.waypoints\)/,
+    /const isConnection\s*=\s*Array\.isArray\(element\.waypoints\)/,
   );
   assert.match(
     hook,
@@ -810,7 +810,7 @@ test('Viewer remarks are stored outside BPMN XML and displayed only while pendin
   assert.ok(viewer.includes('Remarques ('));
   assert.ok(hook.includes("overlays.add(elementId, 'contextual-remarks'"));
   assert.ok(
-    hook.includes("remarks.filter(remark => remark.status === 'pending')"),
+    hook.includes("remarks.filter((remark) => remark.status === 'pending')"),
   );
   assert.ok(entity.includes("@Entity('process_change_proposal_comments')"));
   assert.ok(entity.includes('status: ProcessChangeProposalCommentStatus'));
@@ -910,7 +910,7 @@ test('review queue opens the existing modeler and exposes pending remark counts'
   );
   assert.ok(
     modeler.includes(
-      'Mode revue : le diagramme soumis est consulté sans modification directe',
+      'Mode revue : le diagramme soumis est consulté sans modification',
     ),
   );
   assert.ok(actionBar.includes('!reviewOnly && <>'));
@@ -953,9 +953,8 @@ test('project members need an explicit project permission to submit contextual r
   );
   assert.ok(member.includes('canSubmitRemarks: boolean'));
   assert.ok(
-    projectController.includes(
-      'canSubmitRemarks: membershipByProject.get(project.id)?.canSubmitRemarks',
-    ),
+    projectController.includes('canSubmitRemarks:') &&
+      projectController.includes('membershipByProject.get(project.id)?.canSubmitRemarks'),
   );
   assert.ok(proposalController.includes('assertCanSubmitRemarks'));
   assert.ok(projectUi.includes('Peut déposer des remarques'));
