@@ -63,9 +63,9 @@ export class ProcessChangeProposalController {
   ) {}
 
   /**
-   * Project-level workflow is reserved for project-specific processes and variants.
-   * A common process must be changed through the repository governance workflow,
-   * never by cloning it into an individual project.
+   * Ensure that the process is used in the selected project.
+   * The contribution workflow may collect remarks on common processes too;
+   * cloning or changing their project classification remains forbidden.
    */
   private async assertProjectWorkflowScope(
     projectId: string,
@@ -76,11 +76,6 @@ export class ProcessChangeProposalController {
     });
     if (!link) {
       throw new NotFoundException('Le processus ne fait pas partie de ce projet');
-    }
-    if (link.usage === ProjectProcessUsage.Common) {
-      throw new ForbiddenException(
-        'Ce processus est Commun : sa modification relève du circuit de gouvernance du référentiel, pas du circuit projet.',
-      );
     }
   }
 
@@ -402,7 +397,6 @@ export class ProcessChangeProposalController {
       throw new NotFoundException(
         'Le processus ne fait pas partie de ce projet',
       );
-    if (link.usage === ProjectProcessUsage.Common) return null;
     const published = await this.dataSource
       .getRepository(ContentTypeOrmEntity)
       .findOne({
@@ -524,9 +518,14 @@ export class ProcessChangeProposalController {
           'Le processus ne fait pas partie de ce projet',
         );
       }
-      if (sourceLink.usage === ProjectProcessUsage.Common) {
+      const isCommonRemark =
+        sourceLink.usage === ProjectProcessUsage.Common && isViewerRemark;
+      if (
+        sourceLink.usage === ProjectProcessUsage.Common &&
+        !isViewerRemark
+      ) {
         throw new ForbiddenException(
-          'Ce processus est Commun : sa modification relève du circuit de gouvernance du référentiel, pas du circuit projet.',
+          'Un processus Commun peut recevoir des remarques, mais ne peut pas être cloné comme processus Spécifique.',
         );
       }
 
@@ -680,39 +679,50 @@ export class ProcessChangeProposalController {
         };
       }
 
-      const cloneResource = resources.create({
-        name: `${source.name.slice(0, 220)} — proposition ${randomUUID().slice(0, 8)}`,
-        description: source.description,
-        depth: source.depth,
-        parentId: source.parentId,
-        sourceResourceId: source.id,
-        type: ResourceTypeEnum.Process,
-        authToken: null,
-        createdBy: authorUsername,
-      });
-      const savedClone = await resources.save(cloneResource);
+      // For a Common process, keep the same resource identity: the working
+      // draft is attached to the source resource itself. For project-specific
+      // processes and variants, preserve the existing isolated clone workflow.
+      const savedClone = isCommonRemark
+        ? source
+        : await resources.save(
+            resources.create({
+              name: `${source.name.slice(0, 220)} — proposition ${randomUUID().slice(0, 8)}`,
+              description: source.description,
+              depth: source.depth,
+              parentId: source.parentId,
+              sourceResourceId: source.id,
+              type: ResourceTypeEnum.Process,
+              authToken: null,
+              createdBy: authorUsername,
+            }),
+          );
 
-      const cloneContent = contents.create({
-        resourceId: savedClone.id,
-        status: ContentStatusEnum.Draft,
-        version: 1,
-        content: published.content,
-        changeComment: null,
-        pngContent: null,
-        updatedBy: authorUsername,
-        createdBy: authorUsername,
-      });
-      const savedCloneContent = await contents.save(cloneContent);
-
-      await links.save(
-        links.create({
-          projectId,
+      const savedCloneContent = await contents.save(
+        contents.create({
           resourceId: savedClone.id,
-          usage: ProjectProcessUsage.ProjectSpecific,
-          sourceResourceId,
+          status: ContentStatusEnum.Draft,
+          version: 1,
+          content: published.content,
+          changeComment: null,
+          pngContent: null,
+          updatedBy: authorUsername,
           createdBy: authorUsername,
         }),
       );
+
+      // A Common process is already associated with the project as a shared
+      // usage. Never create a second project-process link for its working copy.
+      if (!isCommonRemark) {
+        await links.save(
+          links.create({
+            projectId,
+            resourceId: savedClone.id,
+            usage: ProjectProcessUsage.ProjectSpecific,
+            sourceResourceId,
+            createdBy: authorUsername,
+          }),
+        );
+      }
 
       const {
         validatorUserId: initialValidatorUserId,
