@@ -44,7 +44,7 @@ export const Breadcrumbs: FC<BreadcrumbsProps> = ({
           >
             {breadcrumbItems.map((breadcrumbItem, index) => (
               <React.Fragment key={breadcrumbItem.id}>
-                {index === breadcrumbItems.length - 1 && breadcrumbItem.id !== 'root' ? (
+                {index === breadcrumbItems.length - 1 && breadcrumbItem.id !== 'home' ? (
                   <Typography fontSize="inherit">{breadcrumbItem.label}</Typography>
                 ) : (
                   <Link
