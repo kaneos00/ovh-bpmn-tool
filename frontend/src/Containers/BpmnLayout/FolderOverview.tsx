@@ -104,32 +104,32 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
         <Card variant="outlined" sx={{ gap: 0.75 }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
             <Typography level="title-lg">{activeProject.name}</Typography>
-            {activeProject.role === 'admin' && (
-              <Stack direction="row" spacing={0.75} alignItems="center">
-                <Button
-                  size="sm"
-                  variant="outlined"
-                  color="neutral"
-                  onClick={() => navigate('/projects/' + activeProjectId)}
-                >
-                  Paramètres du projet
-                </Button>
-                {!editingDescription && <IconButton
+            <Stack direction="row" spacing={0.75} alignItems="center">
+              <Button
                 size="sm"
-                variant="plain"
+                variant="outlined"
                 color="neutral"
-                aria-label="Modifier la description du projet"
-                title="Modifier la description"
-                onClick={() => {
-                  setDescriptionDraft(activeProject.description ?? '');
-                  setDescriptionError(null);
-                  setEditingDescription(true);
-                }}
+                onClick={() => navigate('/projects/' + activeProjectId)}
+              >
+                Paramètres du projet
+              </Button>
+              {activeProject.role === 'admin' && !editingDescription && (
+                <IconButton
+                  size="sm"
+                  variant="plain"
+                  color="neutral"
+                  aria-label="Modifier la description du projet"
+                  title="Modifier la description"
+                  onClick={() => {
+                    setDescriptionDraft(activeProject.description ?? '');
+                    setDescriptionError(null);
+                    setEditingDescription(true);
+                  }}
                 >
                   <EditRounded />
-                </IconButton>}
-              </Stack>
-            )}
+                </IconButton>
+              )}
+            </Stack>
           </Stack>
           {editingDescription ? (
             <Stack spacing={1}>
