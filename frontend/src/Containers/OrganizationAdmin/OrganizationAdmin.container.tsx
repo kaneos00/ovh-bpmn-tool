@@ -97,6 +97,13 @@ const sections = [
 
 type AdminSection = (typeof sections)[number]['key'];
 
+const updateSelection = <T,>(current: T[], value: T, checked: boolean): T[] => {
+  if (checked) {
+    return current.includes(value) ? current : [...current, value];
+  }
+  return current.filter((item) => item !== value);
+};
+
 const roleLabel: Record<MembershipView['role'], string> = {
   viewer: 'Viewer',
   modeler: 'Modeler',
@@ -775,7 +782,7 @@ export const Component = () => {
             {projects.map(project => (
               <Box key={project.id} sx={{ borderBottom: '1px solid', borderColor: 'divider', pb: 1.25 }}>
                 <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'center' }} gap={1}>
-                  <Checkbox checked={selectedProjectIds.includes(project.id)} onChange={event => setSelectedProjectIds(current => event.target.checked ? (current.includes(project.id) ? current : [...current, project.id]) : current.filter(id => id !== project.id))} aria-label={`Sélectionner le projet ${project.name}`} />
+                  <Checkbox checked={selectedProjectIds.includes(project.id)} onChange={event => setSelectedProjectIds(current => updateSelection(current, project.id, event.target.checked))} aria-label={`Sélectionner le projet ${project.name}`} />
                   <Box sx={{ flex: 1, minWidth: 180 }}>
                     <Typography level="title-md">▣ {project.name}</Typography>
                     {project.description && <Typography level="body-xs" sx={{ color: 'text.secondary' }}>{project.description}</Typography>}
@@ -789,7 +796,7 @@ export const Component = () => {
                 <Box sx={{ ml: { xs: 2, md: 5 }, mt: 1, pl: 2, borderLeft: '2px solid', borderColor: 'divider', display: 'grid', gap: 0.5 }}>
                   {project.processes.map(process => (
                     <Stack key={process.resourceId} direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} gap={0.75} sx={{ minHeight: 34 }}>
-                      <Checkbox checked={selectedProcessIds.includes(process.resourceId)} onChange={event => setSelectedProcessIds(current => event.target.checked ? (current.includes(process.resourceId) ? current : [...current, process.resourceId]) : current.filter(id => id !== process.resourceId))} aria-label={`Sélectionner le processus ${process.name}`} />
+                      <Checkbox checked={selectedProcessIds.includes(process.resourceId)} onChange={event => setSelectedProcessIds(current => updateSelection(current, process.resourceId, event.target.checked))} aria-label={`Sélectionner le processus ${process.name}`} />
                       <Typography level="body-sm" sx={{ flex: 1, minWidth: 0 }}>⌁ {process.name}</Typography>
                       <Chip size="sm" variant="soft" color={usageColor[process.usage]}>{usageLabel[process.usage]}</Chip>
                       <Button size="sm" variant="plain" onClick={() => navigate(`/${process.resourceId}`)}>Ouvrir</Button>
@@ -805,7 +812,7 @@ export const Component = () => {
                 <Box sx={{ ml: { xs: 2, md: 5 }, mt: 1, pl: 2, borderLeft: '2px solid', borderColor: 'divider', display: 'grid', gap: 0.5 }}>
                   {unassociatedProcesses.map(process => (
                     <Stack key={process.id} direction="row" alignItems="center" gap={0.75}>
-                      <Checkbox checked={selectedProcessIds.includes(process.id)} onChange={event => setSelectedProcessIds(current => event.target.checked ? (current.includes(process.id) ? current : [...current, process.id]) : current.filter(id => id !== process.id))} aria-label={`Sélectionner le processus ${process.name}`} />
+                      <Checkbox checked={selectedProcessIds.includes(process.id)} onChange={event => setSelectedProcessIds(current => updateSelection(current, process.id, event.target.checked))} aria-label={`Sélectionner le processus ${process.name}`} />
                       <Typography level="body-sm" sx={{ flex: 1 }}>{process.name}</Typography>
                       <Chip size="sm" variant="outlined">Non associé</Chip>
                       <Button size="sm" variant="plain" onClick={() => navigate(`/${process.id}`)}>Ouvrir</Button>
@@ -855,7 +862,7 @@ export const Component = () => {
               <tbody>
                 {processes.map((process) => (
                   <tr key={process.id}>
-                    <td><Checkbox checked={selectedProcessIds.includes(process.id)} onChange={event => setSelectedProcessIds(current => event.target.checked ? (current.includes(process.id) ? current : [...current, process.id]) : current.filter(id => id !== process.id))} aria-label={`Sélectionner le processus ${process.name}`} /></td>
+                    <td><Checkbox checked={selectedProcessIds.includes(process.id)} onChange={event => setSelectedProcessIds(current => updateSelection(current, process.id, event.target.checked))} aria-label={`Sélectionner le processus ${process.name}`} /></td>
                     <td><Typography level="title-sm">{process.name}</Typography>{process.description && <Typography level="body-xs" sx={{ color: 'text.secondary' }}>{process.description}</Typography>}</td>
                     <td>
                       <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">
