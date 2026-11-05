@@ -90,7 +90,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
   }, []);
   useEffect(() => {
     let mounted = true;
-    const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\\/+$/, '');
+    const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
     fetch(`${apiBase}/projects/me/workspace`, {
       credentials: 'same-origin',
       headers: { accept: 'application/json' },
