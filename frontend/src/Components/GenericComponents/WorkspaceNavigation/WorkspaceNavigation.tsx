@@ -552,12 +552,12 @@ export const WorkspaceNavigation = () => {
           </Box>
         </Stack>
 
-        <Select<string>
+        <Select<string | null>
           size="sm"
-          value={activeProjectId ?? ''}
+          value={activeProjectId}
           onChange={(_, value) => {
-            if (value === undefined) return;
-            setActiveProject(value || null);
+            if (!value) return;
+            setActiveProject(value);
             setSearch('');
             setDeepResults([]);
             setSearchOpen(false);
@@ -568,7 +568,6 @@ export const WorkspaceNavigation = () => {
           placeholder="Choisir un projet"
           sx={{ minWidth: 180, maxWidth: 240, bgcolor: '#263e59', color: '#fff', borderColor: '#40556d', '&:hover': { bgcolor: '#2b4664' } }}
         >
-          <Option value="">Choisir un projet…</Option>
           {projects.map(project => <Option key={project.id} value={project.id}>{project.name}</Option>)}
         </Select>
 
