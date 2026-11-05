@@ -69,12 +69,14 @@ const readView = (): ExplorerView => {
 };
 
 export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
-  const { dataTree, expandedNodes, setExpandedNodes, isLoading } = useFolderTree(selectedId);
+  const { dataTree, expandedNodes, setExpandedNodes, isLoading, activeProjectId } = useFolderTree(selectedId);
   const navigate = useNavigate();
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
   const [projectModelerResourceIds, setProjectModelerResourceIds] = useState<string[]>([]);
   const [contextMenu, setContextMenu] = useState<{ nodeId: string; anchorEl: HTMLElement } | null>(null);
   const canModifyBpmn = (resourceId: string) => sessionRole === 'admin' || sessionRole === 'modeler' || projectModelerResourceIds.includes(resourceId);
+
+  useEffect(() => { setContextMenu(null); }, [activeProjectId]);
 
   useEffect(() => {
     let mounted = true;
@@ -280,6 +282,11 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
         minWidth: 0,
       }}
     >
+      {!activeProjectId && (
+        <Typography level="body-sm" sx={{ px: 1, pb: 1, color: 'warning.700' }}>
+          Sélectionnez un projet dans le bandeau pour afficher ses processus.
+        </Typography>
+      )}
       <Input
         size="sm"
         value={search}
