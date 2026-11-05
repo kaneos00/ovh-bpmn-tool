@@ -353,6 +353,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                       minWidth: 0,
                       '& .folder-tree-actions': { opacity: 0, transition: 'opacity 120ms ease' },
                       '&:hover .folder-tree-actions, &:focus-within .folder-tree-actions': { opacity: 1 },
+                      '@media (hover: none)': { '& .folder-tree-actions': { opacity: 1 } },
                     }}
                   >
                     {node?.type === 'folder' ? <FolderOutlined fontSize="small" /> : <DescriptionOutlined fontSize="small" />}
@@ -447,6 +448,22 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                   sx={{ flexShrink: 0 }}
                 >
                   {isFavorite ? <Star fontSize="small" /> : <StarBorder fontSize="small" />}
+                </IconButton>
+                <IconButton
+                  className="folder-tree-actions"
+                  size="sm"
+                  variant="plain"
+                  color="neutral"
+                  title={`Actions pour ${node.name}`}
+                  aria-label={`Ouvrir les actions de ${node.name}`}
+                  onClick={event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setContextMenu({ nodeId: node.id, anchorEl: event.currentTarget });
+                  }}
+                  sx={{ flexShrink: 0 }}
+                >
+                  <MoreVert fontSize="small" />
                 </IconButton>
               </Box>
             );
