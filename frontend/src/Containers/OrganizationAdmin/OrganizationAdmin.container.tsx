@@ -322,6 +322,7 @@ export const Component = () => {
   const selectedProcess = overview?.processes.find((process) => process.id === selectedProcessId);
   const selectedProjects = projects.filter(project => selectedProjectIds.includes(project.id));
   const selectedProcesses = processes.filter(process => selectedProcessIds.includes(process.id));
+  const unassociatedProcesses = processes.filter(process => process.projects.length === 0);
   const allVisibleProjectsSelected = projects.length > 0 && projects.every(project => selectedProjectIds.includes(project.id));
   const allVisibleProcessesSelected = processes.length > 0 && processes.every(process => selectedProcessIds.includes(process.id));
 
@@ -466,7 +467,7 @@ export const Component = () => {
                     <div><div className="org-admin-v2__eyebrow">{sectionEyebrow[activeSection]}</div><Typography id="org-section-title" level="h1">{title}</Typography><Typography level="body-md" sx={{ color: 'text.secondary', maxWidth: 700, mt: 0.5 }}>{sectionDescription[activeSection]}</Typography></div>
                     <div className="org-admin-v2__actions">
                       {activeSection === 'users' && <><Button variant="outlined" onClick={() => exportCsv('utilisateurs-khi-flows.csv', [['Identifiant', 'Projet', 'Rôle'], ...users.flatMap((user) => user.projects.map((project) => [user.userId, project.projectName, roleLabel[project.role]]))])}>Exporter la vue</Button><Button onClick={() => document.getElementById('org-add-access')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>＋ Ajouter un accès</Button></>}
-                      {activeSection === 'projects' && <><Dropdown><MenuButton size="sm" variant="outlined" color="neutral" disabled={selectedProjects.length === 0}>☰ Actions groupées ({selectedProjects.length})</MenuButton><Menu placement="bottom-end"><MenuItem onClick={() => setProjectBulkAction(true)}>Affecter un utilisateur aux projets sélectionnés…</MenuItem><MenuItem onClick={() => setSelectedProjectIds([])}>Effacer la sélection</MenuItem></Menu></Dropdown><Button variant="outlined" onClick={() => exportCsv('projets-khi-flows.csv', [['Projet', 'Description', 'Membres', 'Processus communs', 'Spécifiques', 'Variantes'], ...projects.map((project) => [project.name, project.description ?? '', project.membersCount, project.processes.filter((process) => process.usage === 'common').length, project.processes.filter((process) => process.usage === 'project-specific').length, project.processes.filter((process) => process.usage === 'variant').length])])}>Exporter la vue</Button><Button onClick={() => document.getElementById('org-create-project')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>＋ Créer un projet</Button></>}
+                      {activeSection === 'projects' && <><Dropdown><MenuButton size="sm" variant="outlined" color="neutral" disabled={selectedProjects.length === 0}>☰ Projets ({selectedProjects.length})</MenuButton><Menu placement="bottom-end"><MenuItem onClick={() => setProjectBulkAction(true)}>Affecter un utilisateur aux projets sélectionnés…</MenuItem><MenuItem onClick={() => setSelectedProjectIds([])}>Effacer la sélection</MenuItem></Menu></Dropdown><Dropdown><MenuButton size="sm" variant="outlined" color="neutral" disabled={selectedProcesses.length === 0}>☰ Processus ({selectedProcesses.length})</MenuButton><Menu placement="bottom-end"><MenuItem onClick={() => setProcessBulkAction(true)}>Associer les processus sélectionnés à un projet…</MenuItem><MenuItem onClick={() => setSelectedProcessIds([])}>Effacer la sélection</MenuItem></Menu></Dropdown><Button variant="outlined" onClick={() => exportCsv('projets-khi-flows.csv', [['Projet', 'Description', 'Membres', 'Processus communs', 'Spécifiques', 'Variantes'], ...projects.map((project) => [project.name, project.description ?? '', project.membersCount, project.processes.filter((process) => process.usage === 'common').length, project.processes.filter((process) => process.usage === 'project-specific').length, project.processes.filter((process) => process.usage === 'variant').length])])}>Exporter la vue</Button><Button onClick={() => document.getElementById('org-create-project')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>＋ Créer un projet</Button></>}
                       {activeSection === 'processes' && <><Dropdown><MenuButton size="sm" variant="outlined" color="neutral" disabled={selectedProcesses.length === 0}>☰ Actions groupées ({selectedProcesses.length})</MenuButton><Menu placement="bottom-end"><MenuItem onClick={() => setProcessBulkAction(true)}>Associer les processus à un projet…</MenuItem><MenuItem onClick={() => setSelectedProcessIds([])}>Effacer la sélection</MenuItem></Menu></Dropdown><Button variant="outlined" onClick={() => exportCsv('processus-khi-flows.csv', [['Processus', 'Description', 'Projet', 'Usage', 'Source'], ...processes.flatMap((process) => process.projects.length ? process.projects.map((project) => [process.name, process.description ?? '', project.projectName, usageLabel[project.usage], project.sourceResourceId ?? '']) : [[process.name, process.description ?? '', '', 'Non associé', '']])])}>Exporter la vue</Button><Button onClick={() => navigate('/root')}>＋ Créer dans le référentiel</Button></>}
                     </div>
                   </div>
@@ -493,7 +494,7 @@ export const Component = () => {
                       </Stack>
                     </Alert>
                   )}
-                  {activeSection === 'processes' && processBulkAction && (
+                  {(activeSection === 'processes' || activeSection === 'projects') && processBulkAction && (
                     <Alert color="primary" variant="soft" sx={{ mb: 2 }}>
                       <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'flex-end' }} gap={1}>
                         <FormControl sx={{ flex: 1 }}><FormLabel>Projet cible</FormLabel><Select value={bulkProcessProjectId || null} placeholder="Choisir un projet" onChange={(_event, value) => setBulkProcessProjectId(value ?? '')}>{(overview?.projects ?? []).map(project => <Option key={project.id} value={project.id}>{project.name}</Option>)}</Select></FormControl>
@@ -749,27 +750,62 @@ export const Component = () => {
         )}
 
         {activeSection === 'projects' && overview && (
-          <Card variant="outlined" sx={{ p: 0, overflow: 'auto' }}>
-            <Table hoverRow stickyHeader>
-              <thead>
-                <tr><th><Checkbox checked={allVisibleProjectsSelected} indeterminate={selectedProjectIds.length > 0 && !allVisibleProjectsSelected} onChange={event => setSelectedProjectIds(event.target.checked ? projects.map(project => project.id) : [])} aria-label="Sélectionner tous les projets affichés" /></th><th>Projet</th><th>Description</th><th>Membres</th><th>Processus communs</th><th>Spécifiques</th><th>Variantes</th><th>Gestion</th></tr>
-              </thead>
-              <tbody>
-                {projects.map((project) => (
-                  <tr key={project.id}>
-                    <td><Checkbox checked={selectedProjectIds.includes(project.id)} onChange={event => setSelectedProjectIds(current => event.target.checked ? [...new Set([...current, project.id])] : current.filter(id => id !== project.id))} aria-label={`Sélectionner le projet ${project.name}`} /></td>
-                    <td><Typography level="title-sm">{project.name}</Typography></td>
-                    <td>{project.description || '—'}</td>
-                    <td>{project.membersCount}</td>
-                    <td>{project.processes.filter((process) => process.usage === 'common').length}</td>
-                    <td>{project.processes.filter((process) => process.usage === 'project-specific').length}</td>
-                    <td>{project.processes.filter((process) => process.usage === 'variant').length}</td>
-                    <td><Button size="sm" variant="outlined" onClick={() => { setSelectedProjectId(project.id); setConfirmProjectDelete(false); setProjectNameDraft(project.name); setProjectDescriptionDraft(project.description ?? ''); }}>Gérer</Button></td>
-                  </tr>
-                ))}
-                {projects.length === 0 && <tr><td colSpan={8}>Aucun projet correspondant.</td></tr>}
-              </tbody>
-            </Table>
+          <Card variant="outlined" sx={{ gap: 1.25 }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" gap={1}>
+              <Box>
+                <Typography level="title-lg">Arborescence des projets et processus</Typography>
+                <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Les processus sont regroupés sous chaque projet. Un même processus peut apparaître dans plusieurs projets.</Typography>
+              </Box>
+              <Chip size="sm" variant="soft">{projects.length} projet(s) · {processes.length} processus</Chip>
+            </Stack>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.75, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+              <Checkbox checked={allVisibleProjectsSelected} indeterminate={selectedProjectIds.length > 0 && !allVisibleProjectsSelected} onChange={event => setSelectedProjectIds(event.target.checked ? projects.map(project => project.id) : [])} aria-label="Sélectionner tous les projets affichés" />
+              <Typography level="title-sm">Projets</Typography>
+              <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Sélectionner les projets pour les actions groupées</Typography>
+            </Box>
+            {projects.map(project => (
+              <Box key={project.id} sx={{ borderBottom: '1px solid', borderColor: 'divider', pb: 1.25 }}>
+                <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'center' }} gap={1}>
+                  <Checkbox checked={selectedProjectIds.includes(project.id)} onChange={event => setSelectedProjectIds(current => event.target.checked ? [...new Set([...current, project.id])] : current.filter(id => id !== project.id))} aria-label={`Sélectionner le projet ${project.name}`} />
+                  <Box sx={{ flex: 1, minWidth: 180 }}>
+                    <Typography level="title-md">▣ {project.name}</Typography>
+                    {project.description && <Typography level="body-xs" sx={{ color: 'text.secondary' }}>{project.description}</Typography>}
+                  </Box>
+                  <Stack direction="row" gap={0.75} useFlexGap flexWrap="wrap">
+                    <Chip size="sm" variant="soft">{project.membersCount} membre(s)</Chip>
+                    <Chip size="sm" variant="soft">{project.processes.length} processus</Chip>
+                  </Stack>
+                  <Button size="sm" variant="outlined" onClick={() => { setSelectedProjectId(project.id); setConfirmProjectDelete(false); setProjectNameDraft(project.name); setProjectDescriptionDraft(project.description ?? ''); }}>Gérer le projet</Button>
+                </Stack>
+                <Box sx={{ ml: { xs: 2, md: 5 }, mt: 1, pl: 2, borderLeft: '2px solid', borderColor: 'divider', display: 'grid', gap: 0.5 }}>
+                  {project.processes.map(process => (
+                    <Stack key={process.resourceId} direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} gap={0.75} sx={{ minHeight: 34 }}>
+                      <Checkbox checked={selectedProcessIds.includes(process.resourceId)} onChange={event => setSelectedProcessIds(current => event.target.checked ? [...new Set([...current, process.resourceId])] : current.filter(id => id !== process.resourceId))} aria-label={`Sélectionner le processus ${process.name}`} />
+                      <Typography level="body-sm" sx={{ flex: 1, minWidth: 0 }}>⌁ {process.name}</Typography>
+                      <Chip size="sm" variant="soft" color={usageColor[process.usage]}>{usageLabel[process.usage]}</Chip>
+                      <Button size="sm" variant="plain" onClick={() => navigate(`/${process.resourceId}`)}>Ouvrir</Button>
+                    </Stack>
+                  ))}
+                  {project.processes.length === 0 && <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Aucun processus associé à ce projet.</Typography>}
+                </Box>
+              </Box>
+            ))}
+            {unassociatedProcesses.length > 0 && (
+              <Box sx={{ mt: 1 }}>
+                <Typography level="title-sm">Processus non associés</Typography>
+                <Box sx={{ ml: { xs: 2, md: 5 }, mt: 1, pl: 2, borderLeft: '2px solid', borderColor: 'divider', display: 'grid', gap: 0.5 }}>
+                  {unassociatedProcesses.map(process => (
+                    <Stack key={process.id} direction="row" alignItems="center" gap={0.75}>
+                      <Checkbox checked={selectedProcessIds.includes(process.id)} onChange={event => setSelectedProcessIds(current => event.target.checked ? [...new Set([...current, process.id])] : current.filter(id => id !== process.id))} aria-label={`Sélectionner le processus ${process.name}`} />
+                      <Typography level="body-sm" sx={{ flex: 1 }}>{process.name}</Typography>
+                      <Chip size="sm" variant="outlined">Non associé</Chip>
+                      <Button size="sm" variant="plain" onClick={() => navigate(`/${process.id}`)}>Ouvrir</Button>
+                    </Stack>
+                  ))}
+                </Box>
+              </Box>
+            )}
+            {projects.length === 0 && <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Aucun projet correspondant aux filtres.</Typography>}
           </Card>
         )}
 
