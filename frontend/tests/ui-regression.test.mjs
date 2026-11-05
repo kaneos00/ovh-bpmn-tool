@@ -719,8 +719,9 @@ test('recent and favorite resources retain their project context', async () => {
 });
 
 test('project administrators can configure the project color and pictogram', async () => {
-  const viewer = await read('src/Containers/ProjectViewer/ProjectViewer.container.tsx');
-  assert.match(viewer, /Input type="color"/);
-  assert.match(viewer, /aria-label="Pictogramme du projet"/);
-  assert.match(viewer, /color: colorDraft, icon: iconDraft/);
+  const admin = await read('src/Containers/Projects/Projects.container.tsx');
+  assert.match(admin, /Input type="color"/);
+  assert.match(admin, /aria-label="Pictogramme du projet"/);
+  assert.match(admin, /color: projectColor, icon: projectIcon/);
+  assert.match(admin, /canManageProjectIdentity/);
 });
