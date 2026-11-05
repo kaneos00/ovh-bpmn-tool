@@ -446,3 +446,13 @@ test('explorer actions use an accessible three-dot menu and project roles', asyn
   assert.match(tree, /projects\/me\/workspace/);
   assert.match(tree, /projectModelerResourceIds\.includes\(resourceId\)/);
 });
+
+test('the right element-details panel and its resize handle exist only on the BPMN diagram tab', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.match(details, /activeViewerTab === 0 && viewerContent && !taskPanelCollapsed && \([\s\S]*?aria-label="Redimensionner le panneau de tâche"/);
+  assert.match(details, /activeViewerTab === 0 && viewerContent && \([\s\S]*?className=\{\`processTaskPanel/);
+  assert.match(details, /<Tab value=\{2\}>Historique des versions<\/Tab>/);
+  assert.match(details, /<Tab value=\{3\}>RACI<\/Tab>/);
+  assert.match(details, /<Tab value=\{4\}>Informations documentées<\/Tab>/);
+});
