@@ -435,7 +435,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
             const isFavorite = favorites.includes(node.id);
             const isSelected = (node.targetId ?? node.id) === selectedId;
             return (
-              <Box key={node.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, borderRadius: '8px', bgcolor: isSelected ? '#eaf1ff' : 'transparent', '&:hover': { bgcolor: isSelected ? '#eaf1ff' : 'background.level1' } }}>
+              <Box key={node.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, borderRadius: '8px', bgcolor: isSelected ? '#eaf1ff' : 'transparent', '&:hover': { bgcolor: isSelected ? '#eaf1ff' : 'background.level1' }, '& .folder-tree-actions': { opacity: 0, transition: 'opacity 120ms ease' }, '&:hover .folder-tree-actions, &:focus-within .folder-tree-actions': { opacity: 1 }, '@media (hover: none)': { '& .folder-tree-actions': { opacity: 1 } } }}>
                 <Button
                   variant="plain"
                   color={isSelected ? 'primary' : 'neutral'}
