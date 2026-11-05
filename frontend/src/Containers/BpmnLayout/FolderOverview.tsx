@@ -12,6 +12,7 @@ import {
 import { DescriptionOutlined, FolderOutlined } from '@mui/icons-material';
 
 import { resourcesQuery } from '../../api/resources/resources.queries';
+import { useActiveProject } from '../../shared/hooks/useActiveProject';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import type { Resource } from '../../Types';
 
@@ -23,22 +24,33 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
   const { id: resourceId } = resource;
   const navigate = useNavigate();
   const resources = useQuery<Resource[]>(resourcesQuery());
+  const { activeProject, activeProjectId, projectProcessIds } = useActiveProject();
 
   const children = useMemo(() => {
-    return (resources.data ?? [])
-      .filter(childResource => (childResource.parentId ?? 'root') === resourceId)
+    const allResources = resources.data ?? [];
+    const allowedIds = new Set(projectProcessIds);
+    const byId = new Map(allResources.map(item => [item.id, item]));
+    projectProcessIds.forEach(id => {
+      let current = byId.get(id);
+      while (current?.parentId) {
+        allowedIds.add(current.parentId);
+        current = byId.get(current.parentId);
+      }
+    });
+    return allResources
+      .filter(childResource => allowedIds.has(childResource.id) && (childResource.parentId ?? 'root') === resourceId)
       .sort((left, right) => {
         if (left.type !== right.type) {
           return left.type === ResourceType.Folder ? -1 : 1;
         }
         return left.name.localeCompare(right.name, 'fr');
       });
-  }, [resources.data, resourceId]);
+  }, [resources.data, resourceId, projectProcessIds]);
 
   if (resources.isLoading) {
     return (
       <Card variant="outlined" sx={{ flex: 1, minHeight: 220, gap: 1 }}>
-        <Typography level="title-lg">{resource.name}</Typography>
+        <Typography level="title-lg">{resourceId === 'root' && activeProject ? activeProject.name : resource.name}</Typography>
         <Typography level="body-sm" color="neutral">Chargement du contenu…</Typography>
       </Card>
     );
@@ -83,7 +95,11 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
         <Chip variant="soft">{children.length} élément(s)</Chip>
       </Stack>
 
-      {children.length === 0 ? (
+      {!activeProjectId ? (
+        <Box sx={{ flex: 1, minHeight: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', p: 3 }}>
+          <Typography level="body-sm" color="neutral">Sélectionnez un projet pour afficher ses processus.</Typography>
+        </Box>
+      ) : children.length === 0 ? (
         <Box
           sx={{
             flex: 1,
