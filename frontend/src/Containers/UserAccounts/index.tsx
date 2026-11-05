@@ -76,6 +76,7 @@ export const Component = () => {
   const navigate = useNavigate();
   const { userId } = useParams<{ userId?: string }>();
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [overview, setOverview] = useState<AdministrationOverview>({ projects: [], users: [] });
   const [me, setMe] = useState('');
   const [search, setSearch] = useState('');
@@ -126,7 +127,8 @@ export const Component = () => {
       })
       .catch((reason) => {
         if (mounted) setError(reason instanceof Error ? reason.message : 'Impossible de charger les comptes.');
-      });
+      })
+      .finally(() => { if (mounted) setLoaded(true); });
     return () => { mounted = false; };
   }, []);
 
@@ -478,7 +480,7 @@ export const Component = () => {
 
               </>}
 
-              {userId && !selectedAccount && !error && <Alert color="warning">Utilisateur introuvable. <Button size="sm" variant="plain" onClick={() => navigate('/organization/users')}>Retour à la liste</Button></Alert>}
+              {userId && loaded && !selectedAccount && !error && <Alert color="warning">Utilisateur introuvable. <Button size="sm" variant="plain" onClick={() => navigate('/organization/users')}>Retour à la liste</Button></Alert>}
               {selectedAccount && selectedDraft && (
                 <Card className="org-admin-v2__panel org-users__detail" variant="outlined">
                   <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} gap={1}>
