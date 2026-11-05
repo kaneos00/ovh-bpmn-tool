@@ -54,7 +54,7 @@ export const routes = [
         lazy: () => import('./Containers/UserAccounts'),
       },
       {
-        path: '/organization/users/:userId',
+        path: '/organization/users/:username',
         loader: requireGlobalAdmin,
         lazy: () => import('./Containers/UserAccounts'),
       },
