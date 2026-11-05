@@ -946,6 +946,9 @@ test('project members need an explicit project permission to submit contextual r
   const projectUi = await read(
     'src/Containers/Projects/Projects.container.tsx',
   );
+  const contentViewer = await read(
+    'src/Containers/ContentViewer/ContentViewer.container.tsx',
+  );
   const migration = await read(
     '../backend/migrations/20261105_v3_project_member_remark_permission.sql',
   );
