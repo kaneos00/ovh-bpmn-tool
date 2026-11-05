@@ -11,6 +11,9 @@ import {
 import { ProcessChangeProposalEventTypeOrmEntity } from '../entities/processChangeProposalEvent.ormEntity';
 import { ProjectMemberTypeOrmEntity } from '../entities/projectMember.ormEntity';
 import { ProjectProcessUsage } from '../entities/projectProcess.ormEntity';
+import { ContentTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/content.ormEntity';
+import { ResourceTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/resource.ormEntity';
+import { ProjectProcessTypeOrmEntity } from '../entities/projectProcess.ormEntity';
 import { ResourceTypeEnum } from '../../../ResourceContext/shared/types/Resource';
 import { ProcessChangeProposalController } from './process-change-proposal.controller';
 
