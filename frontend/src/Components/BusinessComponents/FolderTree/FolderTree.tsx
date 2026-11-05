@@ -72,8 +72,9 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
   const { dataTree, expandedNodes, setExpandedNodes, isLoading } = useFolderTree(selectedId);
   const navigate = useNavigate();
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
+  const [projectModelerResourceIds, setProjectModelerResourceIds] = useState<string[]>([]);
   const [contextMenu, setContextMenu] = useState<{ nodeId: string; anchorEl: HTMLElement } | null>(null);
-  const canModifyBpmn = sessionRole === 'admin' || sessionRole === 'modeler';
+  const canModifyBpmn = (resourceId: string) => sessionRole === 'admin' || sessionRole === 'modeler' || projectModelerResourceIds.includes(resourceId);
 
   useEffect(() => {
     let mounted = true;
@@ -87,6 +88,27 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
       .catch(() => { if (mounted) setSessionRole(null); });
     return () => { mounted = false; };
   }, []);
+  useEffect(() => {
+    let mounted = true;
+    const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\\/+$/, '');
+    fetch(`${apiBase}/projects/me/workspace`, {
+      credentials: 'same-origin',
+      headers: { accept: 'application/json' },
+    })
+      .then(async response => response.ok
+        ? response.json() as Promise<{ projects?: Array<{ role?: string; processes?: Array<{ resourceId: string }> }> }>
+        : null)
+      .then(workspace => {
+        if (!mounted) return;
+        const resourceIds = (workspace?.projects ?? [])
+          .filter(project => project.role === 'admin' || project.role === 'modeler')
+          .flatMap(project => (project.processes ?? []).map(process => process.resourceId));
+        setProjectModelerResourceIds(Array.from(new Set(resourceIds)));
+      })
+      .catch(() => { if (mounted) setProjectModelerResourceIds([]); });
+    return () => { mounted = false; };
+  }, []);
+
   const [view, setView] = useState<ExplorerView>(readView);
   const [search, setSearch] = useState('');
   const [searchCollapsedNodes, setSearchCollapsedNodes] = useState<string[]>([]);
@@ -476,7 +498,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
               <OpenInNew fontSize="small" />
               Ouvrir
             </MenuItem>
-            {isBpmn && canModifyBpmn && (
+            {isBpmn && canModifyBpmn(resourceId) && (
               <MenuItem sx={{ ...menuItemSx, '& > svg': { color: 'primary.600', fontSize: 18 } }} onClick={() => {
                 setContextMenu(null);
                 navigate(`/${resourceId}/modeler`);
