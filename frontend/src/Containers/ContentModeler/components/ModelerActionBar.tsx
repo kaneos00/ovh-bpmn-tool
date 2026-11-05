@@ -40,6 +40,12 @@ type ModelerActionBarProps = {
   onRaciOpen: () => void;
   onRolesOpen: () => void;
   onCompareWithSource?: () => void;
+  proposalMode?: boolean;
+  reviewOnly?: boolean;
+  approvedProposalMode?: boolean;
+  onPublishApprovedProposal?: () => void;
+  publishApprovedDisabled?: boolean;
+  publishApprovedLoading?: boolean;
 };
 
 export const ModelerActionBar = ({
@@ -56,8 +62,17 @@ export const ModelerActionBar = ({
   onRaciOpen,
   onRolesOpen,
   onCompareWithSource,
+  proposalMode = false,
+  reviewOnly = false,
+  approvedProposalMode = false,
+  onPublishApprovedProposal,
+  publishApprovedDisabled = false,
+  publishApprovedLoading = false,
 }: ModelerActionBarProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  let publishButtonLabel = 'Publish';
+  if (proposalMode) publishButtonLabel = 'Demander en validation';
+  if (approvedProposalMode) publishButtonLabel = 'Publier la version approuvée';
 
   return (
     <ActionBar>
@@ -82,14 +97,14 @@ export const ModelerActionBar = ({
           </Button>
         )}
 
-        <Button
+        {!reviewOnly && <Button
           onClick={() => fileInputRef.current?.click()}
           variant="outlined"
           color="neutral"
           startDecorator={<UploadFile fontSize="small" />}
         >
           Upload
-        </Button>
+        </Button>}
 
         <input
           ref={fileInputRef}
@@ -136,8 +151,10 @@ export const ModelerActionBar = ({
             </MenuItem>
           </Menu>
         </Dropdown>
-        <Button variant="outlined" color="neutral" onClick={onUndo} disabled={!canUndo} title="Annuler (Ctrl+Z)" aria-label="Annuler la dernière modification"><Undo fontSize="small" /></Button>
-        <Button variant="outlined" color="neutral" onClick={onRedo} disabled={!canRedo} title="Rétablir (Ctrl+Maj+Z)" aria-label="Rétablir la dernière modification"><Redo fontSize="small" /></Button>
+        {!reviewOnly && <>
+          <Button variant="outlined" color="neutral" onClick={onUndo} disabled={!canUndo} title="Annuler (Ctrl+Z)" aria-label="Annuler la dernière modification"><Undo fontSize="small" /></Button>
+          <Button variant="outlined" color="neutral" onClick={onRedo} disabled={!canRedo} title="Rétablir (Ctrl+Maj+Z)" aria-label="Rétablir la dernière modification"><Redo fontSize="small" /></Button>
+        </>}
         <Button variant="outlined" color="neutral" onClick={onRaciOpen}>
           RACI
         </Button>
@@ -150,24 +167,33 @@ export const ModelerActionBar = ({
           <Info fontSize="small" />
         </Button>
 
-        <Button
-          variant="outlined"
-          color="neutral"
-          startDecorator={<Save fontSize="small" />}
-          onClick={onDiagramSave}
-        >
-          Save
-        </Button>
+        {reviewOnly && (
+          <Button component={Link} to="/mes-demandes" variant="outlined" color="neutral">
+            Retour aux demandes
+          </Button>
+        )}
+        {!proposalMode && !reviewOnly && (
+          <Button
+            variant="outlined"
+            color="neutral"
+            startDecorator={<Save fontSize="small" />}
+            onClick={onDiagramSave}
+          >
+            Save
+          </Button>
+        )}
 
-        <Button
-          onClick={onDiagramPublish}
+        {!reviewOnly && <Button
+          onClick={approvedProposalMode ? onPublishApprovedProposal : onDiagramPublish}
+          disabled={approvedProposalMode && publishApprovedDisabled}
+          loading={approvedProposalMode && publishApprovedLoading}
           variant="outlined"
           // disabled={hasLintError}
           color="success"
           endDecorator={<Done fontSize="small" />}
         >
-          Publish
-        </Button>
+          {publishButtonLabel}
+        </Button>}
         <UserAccountMenu dark={false} />
       </Stack>
     </ActionBar>

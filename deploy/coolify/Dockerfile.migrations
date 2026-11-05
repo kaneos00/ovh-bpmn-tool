@@ -3,3 +3,6 @@ COPY backend/migrations/20261014_v2_1_process_provenance.sql /opt/migrations/202
 COPY backend/migrations/20261029_v3_user_theme_preference.sql /opt/migrations/20261029_v3_user_theme_preference.sql
 
 COPY backend/migrations/20261029_v3_content_change_comments.sql /opt/migrations/20261029_v3_content_change_comments.sql
+COPY backend/migrations/20261102_v3_process_change_proposals.sql /opt/migrations/20261102_v3_process_change_proposals.sql
+COPY backend/migrations/20261104_v3_process_change_proposal_comments.sql /opt/migrations/20261104_v3_process_change_proposal_comments.sql
+COPY backend/migrations/20261104_v3_process_change_proposal_remark_events.sql /opt/migrations/20261104_v3_process_change_proposal_remark_events.sql

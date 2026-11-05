@@ -98,6 +98,7 @@ export type ResourceShareProject = {
 
 export type ResourceShares = {
   shared: boolean;
+  common: boolean;
   projects: ResourceShareProject[];
 };
 

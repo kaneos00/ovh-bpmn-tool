@@ -8,11 +8,20 @@ import { useCallActivityNavigation } from '../../../../shared/hooks/useCallActiv
 const ZOOM_STEP = 1.2;
 const DIAGRAM_PADDING = 24;
 
+export type ContextualRemark = {
+  id: string;
+  elementId: string;
+  status: 'pending' | 'accepted' | 'rejected';
+};
+
+const EMPTY_REMARKS: ContextualRemark[] = [];
+
 export const useProcessViewer = (
   resourceId: string,
   contentId: string,
   selectedElementId?: string | null,
   onElementSelect?: (elementId: string) => void,
+  remarks: ContextualRemark[] = EMPTY_REMARKS,
 ) => {
   const { getViewerInstance } = useBpmnViewerInstance();
   const viewerRef = useRef<HTMLDivElement>(null);
@@ -25,6 +34,65 @@ export const useProcessViewer = (
   const [minimapVisible, setMinimapVisible] = useState(false);
   const importGenerationRef = useRef(0);
   const importQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+  const remarkOverlayIdsRef = useRef<Array<string | number>>([]);
+
+  const applyRemarkOverlays = () => {
+    if (!importedRef.current) return;
+    const overlays = viewer.get('overlays') as any;
+    const registry = viewer.get('elementRegistry') as any;
+    remarkOverlayIdsRef.current.forEach(id => {
+      try { overlays.remove(id); } catch { /* The Viewer may already have cleared the overlay. */ }
+    });
+    remarkOverlayIdsRef.current = [];
+
+    const countByElement = new Map<string, number>();
+    remarks.filter(remark => remark.status === 'pending').forEach(remark => {
+      if (registry.get(remark.elementId)) {
+        countByElement.set(
+          remark.elementId,
+          (countByElement.get(remark.elementId) ?? 0) + 1,
+        );
+      }
+    });
+
+    countByElement.forEach((count, elementId) => {
+      const badge = document.createElement('span');
+      badge.textContent = String(count);
+      badge.title = count === 1
+        ? '1 remarque associée à cet élément'
+        : `${count} remarques associées à cet élément`;
+      badge.setAttribute('aria-label', badge.title);
+      badge.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        onElementSelectRef.current?.(elementId);
+      });
+      Object.assign(badge.style, {
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: '19px',
+        height: '19px',
+        padding: '0 5px',
+        borderRadius: '10px',
+        background: '#2459a6',
+        color: '#fff',
+        border: '2px solid #fff',
+        boxShadow: '0 1px 4px rgba(0,0,0,.25)',
+        fontSize: '11px',
+        fontWeight: '700',
+        lineHeight: '15px',
+        cursor: 'pointer',
+      });
+      const overlayId = overlays.add(elementId, 'contextual-remarks', {
+        position: { top: -9, right: -9 },
+        html: badge,
+      });
+      if (overlayId !== undefined && overlayId !== null) remarkOverlayIdsRef.current.push(overlayId);
+    });
+  };
+  const applyRemarkOverlaysRef = useRef(applyRemarkOverlays);
+  applyRemarkOverlaysRef.current = applyRemarkOverlays;
 
   selectedIdRef.current = selectedElementId;
   onElementSelectRef.current = onElementSelect;
@@ -231,6 +299,7 @@ export const useProcessViewer = (
       // list of diagram-js shape types. This includes labels, collapsed
       // SubProcesses and future BPMN shape types, while excluding connections.
       const elementType = element.businessObject?.$type ?? element.type;
+      const elementType = element.businessObject?.$type ?? element.type;
       const isConnection = Array.isArray(element.waypoints) ||
         /^(?:bpmn:)?(?:sequenceFlow|messageFlow|association|dataInputAssociation|dataOutputAssociation|conversationLink)$/i.test(String(elementType ?? ''));
       if (isConnection) {
@@ -330,6 +399,7 @@ export const useProcessViewer = (
         });
         fitDiagramToWidth();
         importedRef.current = true;
+        applyRemarkOverlaysRef.current();
         setIsImporting(false);
         // Keep the minimap closed on import; users can open it manually from the viewer controls.
         applySelectionRef.current();
@@ -362,6 +432,10 @@ export const useProcessViewer = (
   useEffect(() => {
     applySelectionRef.current();
   }, [selectedElementId]);
+
+  useEffect(() => {
+    applyRemarkOverlaysRef.current();
+  }, [remarks]);
 
   useEffect(() => () => {
     try {

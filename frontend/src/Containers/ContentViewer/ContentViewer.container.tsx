@@ -1,10 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
+  Alert,
   Box,
   Button,
   Divider,
   IconButton,
+  Modal,
+  ModalDialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Textarea,
   Sheet,
   Stack,
   Tab,
@@ -33,7 +40,7 @@ import {
   getXmlContentQuery,
 } from '../../api/contents/contents.queries';
 import { ContentStatusEnum, type Content } from '../../Types';
-import { apiClient } from '../../queryClient';
+import queryClient, { apiClient } from '../../queryClient';
 import { formatDateTime } from '../../shared/helpers/date';
 import { useViewerRaciAnalysis } from './hooks/useViewerRaciAnalysis';
 import { getRaciIssueLabel } from '../../extensions/raci-engine';
@@ -68,11 +75,18 @@ const ProcessContentViewer = () => {
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
   const { requestedElementId, requestedRaciView } = useViewerRouteState();
   const [folderOpen, setFolderOpen] = useState(true);
-  const [infoTab, setInfoTab] = useState<0 | 1>(0);
+  const [infoTab, setInfoTab] = useState<0 | 1 | 2>(0);
   const [infoPanelOpen, setInfoPanelOpen] = useState(false);
   const [actorFilter, setActorFilter] = useState('');
   const [codeFilter, setCodeFilter] = useState<RaciCode | ''>('');
   const [issuesOnly, setIssuesOnly] = useState(false);
+  const [startingProposal, setStartingProposal] = useState(false);
+  const [proposalError, setProposalError] = useState<string | null>(null);
+  const [remarkModalOpen, setRemarkModalOpen] = useState(false);
+  const [remarkText, setRemarkText] = useState('');
+  const [remarkError, setRemarkError] = useState<string | null>(null);
+  const [remarkWarning, setRemarkWarning] = useState<string | null>(null);
+  const [submittingRemark, setSubmittingRemark] = useState(false);
   const {
     selectedElementId: selectedActivityId,
     setSelectedElementId: setSelectedActivityId,
@@ -94,17 +108,114 @@ const ProcessContentViewer = () => {
   const associatedProject = workspace?.projects.find(project =>
     project.processes.some(process => process.resourceId === resourceId),
   );
+  const proposalProject = workspace?.projects.find(project =>
+    (project.role === 'modeler' || project.role === 'admin') &&
+    project.processes.some(process => process.resourceId === resourceId),
+  );
+
+  const startChangeProposal = async () => {
+    if (!proposalProject || startingProposal) return;
+    setStartingProposal(true);
+    setProposalError(null);
+    try {
+      const proposal = await apiClient.post(
+        `/projects/${proposalProject.id}/processes/${resourceId}/change-proposals`,
+        {},
+      );
+      navigate(
+        `/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}`,
+      );
+    } catch (error) {
+      setProposalError(
+        error instanceof Error
+          ? error.message
+          : 'Impossible de créer la demande de modification.',
+      );
+    } finally {
+      setStartingProposal(false);
+    }
+  };
 
   const { data: contents = [] } = useQuery(contentsQuery(resourceId));
   const { data: xmlContent } = useQuery(
     getXmlContentQuery(resourceId, contentId),
   );
 
+  const { data: activeProposal } = useQuery<{ id: string; status: string; cloneResourceId: string } | null>(
+    ['active-process-change-proposal', associatedProject?.id, resourceId, contentId],
+    () => apiClient.get(
+      `/projects/${associatedProject!.id}/processes/${resourceId}/change-proposals/active?contentId=${contentId}`,
+    ),
+    { enabled: Boolean(associatedProject?.id) },
+  );
+  type ProposalRemark = {
+    id: string;
+    elementId: string;
+    authorUserId: string;
+    authorName?: string;
+    decisionByName?: string | null;
+    comment: string;
+    status: 'pending' | 'accepted' | 'rejected';
+    createdAt: string;
+    decisionBy: string | null;
+    decidedAt: string | null;
+    decisionComment: string | null;
+  };
+  const { data: proposalRemarks = [] } = useQuery<ProposalRemark[]>(
+    ['process-change-proposal-comments', activeProposal?.id],
+    () => apiClient.get(`/projects/process-change-proposals/${activeProposal!.id}/comments`),
+    { enabled: Boolean(activeProposal?.id) },
+  );
+
+  const submitViewerRemark = async () => {
+    if (!associatedProject || !selectedActivityId || !remarkText.trim() || submittingRemark) return;
+    setSubmittingRemark(true);
+    setRemarkError(null);
+    setRemarkWarning(null);
+    try {
+      const metadataDocument = new DOMParser().parseFromString(xmlContent ?? '', 'application/xml');
+      const processMetadata = Array.from(
+        metadataDocument.getElementsByTagNameNS(
+          'https://ovh-bpmn-tool.local/schema/process-metadata',
+          'processMetadata',
+        ),
+      )[0];
+      const pilotIdentifier = processMetadata?.getAttribute('pilot')?.trim() || undefined;
+      const submissionResult = await apiClient.post(
+        `/projects/${associatedProject.id}/processes/${resourceId}/change-proposals`,
+        {
+          elementId: selectedActivityId,
+          comment: remarkText.trim(),
+          validatorUserId: pilotIdentifier,
+        },
+      );
+      setRemarkWarning(submissionResult?.validatorWarning ?? null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['active-process-change-proposal', associatedProject.id, resourceId] }),
+        queryClient.invalidateQueries({ queryKey: ['process-change-proposals-to-review'] }),
+        queryClient.invalidateQueries({ queryKey: ['process-change-proposal-comments', activeProposal?.id] }),
+      ]);
+      setRemarkText('');
+      setRemarkModalOpen(false);
+      setInfoPanelOpen(true);
+      setInfoTab(2);
+    } catch (error) {
+      setRemarkError(error instanceof Error ? error.message : 'Impossible de déposer la remarque.');
+    } finally {
+      setSubmittingRemark(false);
+    }
+  };
+
   const lastPublishedContent = useMemo(() => {
     return contents
       .filter(({ status }) => status === ContentStatusEnum.Published)
       .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0];
   }, [contents]);
+
+  const contextualRemarks = useMemo(
+    () => proposalRemarks.map(({ id, elementId, status }) => ({ id, elementId, status })),
+    [proposalRemarks],
+  );
 
   const { raciMatrix, laneRoleByElement, laneIdByRole } =
     useViewerRaciAnalysis(xmlContent);
@@ -185,6 +296,32 @@ const ProcessContentViewer = () => {
                 <Button
                   size="sm"
                   variant="soft"
+                  color="warning"
+                  disabled={!selectedActivityId || contentId !== lastPublishedContent?.id}
+                  onClick={() => {
+                    setRemarkError(null);
+                    setRemarkModalOpen(true);
+                  }}
+                >
+                  {contentId !== lastPublishedContent?.id ? 'Remarques sur la dernière version uniquement' : 'Ajouter une remarque'}
+                </Button>
+              )}
+              {proposalProject && (
+                <Button
+                  size="sm"
+                  variant="soft"
+                  color="primary"
+                  loading={startingProposal}
+                  disabled={startingProposal}
+                  onClick={startChangeProposal}
+                >
+                  Proposer une modification
+                </Button>
+              )}
+              {associatedProject && (
+                <Button
+                  size="sm"
+                  variant="soft"
                   color="neutral"
                   onClick={() => navigate(`/projects/${associatedProject.id}/viewer`)}
                 >
@@ -194,16 +331,54 @@ const ProcessContentViewer = () => {
             </Stack>
           </Stack>
         </Box>
+        {proposalError && (
+          <Alert color="danger" variant="soft" sx={{ mx: 2, mt: 1 }}>
+            {proposalError}
+          </Alert>
+        )}
+        {remarkWarning && (
+          <Alert color="warning" variant="soft" sx={{ mx: 2, mt: 1 }}>
+            {remarkWarning}
+          </Alert>
+        )}
         <ProcessViewer
           resourceId={resourceId}
           contentId={contentId}
           selectedElementId={selectedActivityId}
           onElementSelect={setSelectedActivityId}
+          remarks={contextualRemarks}
           onToggleInfoPanel={() => setInfoPanelOpen(value => !value)}
           infoPanelOpen={infoPanelOpen}
           toolbarExtra={<UserAccountMenu dark={false} />}
         />
       </Box>
+
+      <Modal
+        open={remarkModalOpen}
+        onClose={() => { if (!submittingRemark) setRemarkModalOpen(false); }}
+      >
+        <ModalDialog>
+          <DialogTitle>Déposer une remarque</DialogTitle>
+          <DialogContent>
+            Élément BPMN sélectionné : {selectedActivityId || 'aucun'}
+          </DialogContent>
+          <Textarea
+            minRows={3}
+            value={remarkText}
+            onChange={event => setRemarkText(event.target.value)}
+            placeholder="Décrivez le point à examiner ou la modification souhaitée…"
+          />
+          {remarkError && <Alert color="danger">{remarkError}</Alert>}
+          <DialogActions>
+            <Button variant="plain" color="neutral" disabled={submittingRemark} onClick={() => setRemarkModalOpen(false)}>
+              Annuler
+            </Button>
+            <Button variant="solid" loading={submittingRemark} disabled={!selectedActivityId || !remarkText.trim() || submittingRemark} onClick={submitViewerRemark}>
+              Envoyer la remarque
+            </Button>
+          </DialogActions>
+        </ModalDialog>
+      </Modal>
 
       <Sheet className={`processTaskPanel viewerInfoPanel ${infoPanelOpen ? 'open mobile-visible' : ''}`} variant="outlined">
         <Stack spacing={1.5} className="viewerInfoHeader">
@@ -240,13 +415,14 @@ const ProcessContentViewer = () => {
 
         <Divider />
 
-        <Tabs value={infoTab} onChange={(_, value) => setInfoTab(value as 0 | 1)} className="viewerTabs">
+        <Tabs value={infoTab} onChange={(_, value) => setInfoTab(value as 0 | 1 | 2)} className="viewerTabs">
           <TabList sticky="top" variant="plain">
             <Tab value={0}>Historique des versions</Tab>
             <Tab value={1} sx={{ flexDirection: 'row', gap: 0.75, alignItems: 'center' }}>
               <GroupsOutlined fontSize="small" />
               <span>RACI ({raciMatrix.activities.length})</span>
             </Tab>
+            <Tab value={2}>Remarques ({proposalRemarks.length})</Tab>
           </TabList>
 
           <TabPanel value={0} className="viewerTabPanel">
@@ -266,6 +442,52 @@ const ProcessContentViewer = () => {
                     {content.updatedBy}
                   </Typography>
 
+                </Sheet>
+              ))}
+            </Stack>
+          </TabPanel>
+
+          <TabPanel value={2} className="viewerTabPanel">
+            <Stack spacing={1.25}>
+              <Typography level="body-sm" textColor="neutral">
+                Les remarques sont rattachées aux éléments BPMN et restent visibles aux membres du projet jusqu’à leur traitement.
+              </Typography>
+              {activeProposal?.status === 'draft' && (
+                <Alert color="info" variant="soft">
+                  Une demande est en préparation. Les remarques seront transmises au validateur lorsque le brouillon sera soumis.
+                </Alert>
+              )}
+              {activeProposal?.status === 'changes_requested' && (
+                <Alert color="warning" variant="soft">
+                  Des corrections ont été demandées. Les nouvelles remarques seront reprises lors de la prochaine soumission du brouillon.
+                </Alert>
+              )}
+              {proposalRemarks.length === 0 ? (
+                <Typography level="body-sm" textColor="neutral">
+                  Aucune remarque pour cette version publiée.
+                </Typography>
+              ) : proposalRemarks.map(remark => (
+                <Sheet key={remark.id} variant="outlined" sx={{ p: 1.25, borderRadius: 'sm' }}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
+                    <Typography level="title-sm">{remark.elementId}</Typography>
+                    <Typography level="body-xs" color={
+                      remark.status === 'accepted' ? 'success' :
+                      remark.status === 'rejected' ? 'danger' : 'warning'
+                    }>
+                      {remark.status === 'accepted' ? 'Acceptée' :
+                       remark.status === 'rejected' ? 'Refusée' : 'En attente'}
+                    </Typography>
+                  </Stack>
+                  <Typography level="body-sm">{remark.comment}</Typography>
+                  <Typography level="body-xs" textColor="neutral">
+                    Déposée le {formatDateTime(remark.createdAt)} · {remark.authorName || remark.authorUserId}
+                  </Typography>
+                  {remark.decidedAt && (
+                    <Typography level="body-xs" textColor="neutral">
+                      Décision le {formatDateTime(remark.decidedAt)}{remark.decisionByName ? ` · ${remark.decisionByName}` : remark.decisionBy ? ` · ${remark.decisionBy}` : ''}
+                      {remark.decisionComment ? ` · ${remark.decisionComment}` : ''}
+                    </Typography>
+                  )}
                 </Sheet>
               ))}
             </Stack>

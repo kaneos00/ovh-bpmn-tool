@@ -45,6 +45,7 @@ describe('ContentTypeOrmRepository.publishAtomically', () => {
     getRepository: jest.fn((entity) =>
       entity === ResourceTypeOrmEntity ? resources : contents,
     ),
+    query: jest.fn().mockResolvedValue([]),
   };
   const dataSource = {
     transaction: jest.fn((callback) => callback(manager)),
@@ -77,6 +78,10 @@ describe('ContentTypeOrmRepository.publishAtomically', () => {
     });
 
     expect(dataSource.transaction).toHaveBeenCalledTimes(1);
+    expect(manager.query).toHaveBeenCalledWith(
+      'SELECT id FROM process_change_proposals WHERE "cloneResourceId" = $1 LIMIT 1',
+      ['resource-1'],
+    );
     expect(resources.findOne).toHaveBeenCalledWith({
       where: { id: 'resource-1' },
       lock: { mode: 'pessimistic_write' },
@@ -164,6 +169,25 @@ describe('ContentTypeOrmRepository.publishAtomically', () => {
         updatedBy: 'publisher',
       }),
     );
+  });
+
+  it('blocks generic publication of a proposal clone workspace', async () => {
+    manager.query.mockResolvedValueOnce([{ id: 'proposal-1' }]);
+
+    const result = await repository.publishAtomically({
+      resourceId: 'resource-1',
+      contentId: 'content-2',
+      updatedBy: 'publisher',
+      pngContent: 'data:image/png;base64,cG5n',
+      authToken: 'generated-token',
+    });
+
+    expect(result.ok).toBeNull();
+    expect(result.fail?.message).toContain(
+      'proposal workspace cannot be published',
+    );
+    expect(contents.findOne).not.toHaveBeenCalled();
+    expect(contents.save).not.toHaveBeenCalled();
   });
 
   it('returns a failure and lets the transaction roll back when a write fails', async () => {

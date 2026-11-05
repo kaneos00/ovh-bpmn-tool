@@ -123,6 +123,24 @@ describe('ProjectResourceAccessService', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
+  it('allows a global administrator to read a project-specific process without project membership', async () => {
+    projectProcesses.find.mockResolvedValue([
+      {
+        projectId: 'project-1',
+        resourceId: 'resource-1',
+        usage: ProjectProcessUsage.ProjectSpecific,
+      },
+    ]);
+
+    await expect(
+      service.assertCanReadResource('resource-1', {
+        ...headers,
+        'x-user-groups': 'bpmn-tool-admin-global',
+      }),
+    ).resolves.toBeUndefined();
+    expect(projectMembers.find).not.toHaveBeenCalled();
+  });
+
   it('denies a viewer from editing a project-specific process', async () => {
     projectProcesses.find.mockResolvedValue([
       {
@@ -221,6 +239,24 @@ describe('ProjectResourceAccessService', () => {
     ).resolves.toBeUndefined();
   });
 
+  it('allows a global administrator to edit a project-specific proposal clone without project membership', async () => {
+    projectProcesses.find.mockResolvedValue([
+      {
+        projectId: 'project-1',
+        resourceId: 'proposal-clone',
+        usage: ProjectProcessUsage.ProjectSpecific,
+      },
+    ]);
+
+    await expect(
+      service.assertCanEditResource('proposal-clone', {
+        ...headers,
+        'x-user-groups': 'bpmn-tool-admin-global',
+      }),
+    ).resolves.toBeUndefined();
+    expect(projectMembers.find).not.toHaveBeenCalled();
+  });
+
   it('denies reading a process linked only to another project', async () => {
     projectProcesses.find.mockResolvedValue([
       {
@@ -260,6 +296,60 @@ describe('ProjectResourceAccessService', () => {
     await expect(
       service.assertCanEditResource('resource-1', headers),
     ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('allows cloning a shared source when the user is a modeler in the selected project only', async () => {
+    projectProcesses.findOne.mockResolvedValue({
+      projectId: 'project-1',
+      resourceId: 'shared-process',
+      usage: ProjectProcessUsage.ProjectSpecific,
+    });
+    projectMembers.findOne.mockResolvedValue({
+      projectId: 'project-1',
+      userId: 'alice',
+      role: ProjectMemberRole.Modeler,
+    });
+
+    await expect(
+      service.assertCanCloneResource('project-1', 'shared-process', headers),
+    ).resolves.toBeUndefined();
+
+    expect(projectProcesses.findOne).toHaveBeenCalledWith({
+      where: { projectId: 'project-1', resourceId: 'shared-process' },
+    });
+    expect(projectMembers.findOne).toHaveBeenCalledWith({
+      where: { projectId: 'project-1', userId: 'alice' },
+    });
+  });
+
+  it('does not allow cloning a project-specific source without modeler access in the selected project', async () => {
+    projectProcesses.findOne.mockResolvedValue({
+      projectId: 'project-1',
+      resourceId: 'private-process',
+      usage: ProjectProcessUsage.ProjectSpecific,
+    });
+    projectMembers.findOne.mockResolvedValue({
+      projectId: 'project-1',
+      userId: 'alice',
+      role: ProjectMemberRole.Viewer,
+    });
+
+    await expect(
+      service.assertCanCloneResource('project-1', 'private-process', headers),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('allows cloning a common process after the project membership check is handled by the caller', async () => {
+    projectProcesses.findOne.mockResolvedValue({
+      projectId: 'project-1',
+      resourceId: 'common-process',
+      usage: ProjectProcessUsage.Common,
+    });
+
+    await expect(
+      service.assertCanCloneResource('project-1', 'common-process', headers),
+    ).resolves.toBeUndefined();
+    expect(projectMembers.findOne).not.toHaveBeenCalled();
   });
 
   it('blocks deletion of a source process while variants depend on it', async () => {
