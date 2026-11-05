@@ -340,7 +340,6 @@ export const Component = () => {
                   ['projects', 'Projets', '▣'],
                   ['processes', 'Processus', '⌘'],
                   ['governance', 'Acteurs et RACI', '⬡'],
-                  ['settings', 'Organisation', '⚙'],
                 ].map(([key, label, icon]) => (
                   <button
                     type="button"
