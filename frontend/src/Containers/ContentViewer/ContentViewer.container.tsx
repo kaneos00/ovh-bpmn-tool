@@ -64,7 +64,10 @@ type WorkspaceProjectSummary = {
   id: string;
   role: 'viewer' | 'modeler' | 'admin';
   canSubmitRemarks: boolean;
-  processes: { resourceId: string }[];
+  processes: {
+    resourceId: string;
+    usage: 'common' | 'variant' | 'project-specific';
+  }[];
 };
 type WorkspaceSummary = { projects: WorkspaceProjectSummary[] };
 
@@ -134,9 +137,16 @@ const ProcessContentViewer = () => {
       : undefined;
   const requiresProjectSelection =
     !routeProjectId && processProjects.length > 1;
-  const canSubmitViewerRemark = Boolean(associatedProject?.canSubmitRemarks);
+  const currentProjectProcess = associatedProject?.processes.find(
+    process => process.resourceId === resourceId,
+  );
+  const isCommonProcess = currentProjectProcess?.usage === 'common';
+  const canSubmitViewerRemark = Boolean(
+    associatedProject?.canSubmitRemarks && !isCommonProcess,
+  );
   const proposalProject =
     associatedProject &&
+    !isCommonProcess &&
     (associatedProject.role === 'modeler' || associatedProject.role === 'admin')
       ? associatedProject
       : undefined;
@@ -441,8 +451,8 @@ const ProcessContentViewer = () => {
               )}
               {requiresProjectSelection && (
                 <Alert color="warning" variant="soft" sx={{ py: 0.5 }}>
-                  Questo processo è condiviso da più progetti. Seleziona prima
-                  il progetto per aggiungere una remarque o proporre una modifica.
+                  Ce processus est utilisé par plusieurs projets. Sélectionnez
+                  d’abord le projet pour déposer une remarque ou proposer une modification.
                   <Button
                     size="sm"
                     variant="plain"
@@ -450,6 +460,13 @@ const ProcessContentViewer = () => {
                   >
                     Scegli progetto
                   </Button>
+                </Alert>
+              )}
+              {isCommonProcess && (
+                <Alert color="warning" variant="soft" sx={{ py: 0.5 }}>
+                  Ce processus est Commun. Son évolution doit être soumise au
+                  circuit de gouvernance du référentiel, et non publiée directement
+                  dans un projet.
                 </Alert>
               )}
               {proposalProject && (
