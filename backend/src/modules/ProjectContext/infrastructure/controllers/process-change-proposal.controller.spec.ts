@@ -4,7 +4,10 @@ import {
   ProcessChangeProposalStatus,
   ProcessChangeProposalTypeOrmEntity,
 } from '../entities/processChangeProposal.ormEntity';
-import { ProcessChangeProposalCommentStatus, ProcessChangeProposalCommentTypeOrmEntity } from '../entities/processChangeProposalComment.ormEntity';
+import {
+  ProcessChangeProposalCommentStatus,
+  ProcessChangeProposalCommentTypeOrmEntity,
+} from '../entities/processChangeProposalComment.ormEntity';
 import { ProcessChangeProposalEventTypeOrmEntity } from '../entities/processChangeProposalEvent.ormEntity';
 import { ProjectMemberTypeOrmEntity } from '../entities/projectMember.ormEntity';
 import { ProcessChangeProposalController } from './process-change-proposal.controller';
@@ -50,9 +53,13 @@ describe('ProcessChangeProposalController remark permissions', () => {
       save: jest.fn(async (value: unknown) => value),
     };
     const members = {
-      findOne: jest.fn().mockResolvedValue(
-        membership ? { projectId: 'project-1', userId: actorUsername, ...membership } : null,
-      ),
+      findOne: jest
+        .fn()
+        .mockResolvedValue(
+          membership
+            ? { projectId: 'project-1', userId: actorUsername, ...membership }
+            : null,
+        ),
     };
     const repositories = new Map<unknown, unknown>([
       [ProcessChangeProposalTypeOrmEntity, proposals],
@@ -65,7 +72,9 @@ describe('ProcessChangeProposalController remark permissions', () => {
     };
     const dataSource = {
       query: jest.fn().mockResolvedValue([{ id: actorUserId }]),
-      transaction: jest.fn(async (work: (value: unknown) => unknown) => work(manager)),
+      transaction: jest.fn(async (work: (value: unknown) => unknown) =>
+        work(manager),
+      ),
     };
     const access = {
       getAuthenticatedUserId: jest.fn(() => actorUsername),

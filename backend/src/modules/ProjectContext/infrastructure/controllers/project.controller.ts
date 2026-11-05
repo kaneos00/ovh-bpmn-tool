@@ -113,7 +113,8 @@ export class ProjectController {
         name: project.name,
         description: project.description,
         role: membershipByProject.get(project.id)?.role,
-        canSubmitRemarks: membershipByProject.get(project.id)?.canSubmitRemarks ?? false,
+        canSubmitRemarks:
+          membershipByProject.get(project.id)?.canSubmitRemarks ?? false,
         processes: (linksByProject.get(project.id) ?? []).map((link) => ({
           resourceId: link.resourceId,
           name: resourceById.get(link.resourceId)?.name ?? link.resourceId,
@@ -728,10 +729,20 @@ export class ProjectController {
     const actorId = this.projectResourceAccess.getAuthenticatedUserId(headers);
     const userId = this.validateUserId(userIdParam);
     const role = this.validateMemberRole(body.role);
-    if (body.canSubmitRemarks !== undefined && typeof body.canSubmitRemarks !== 'boolean') {
+    if (
+      body.canSubmitRemarks !== undefined &&
+      typeof body.canSubmitRemarks !== 'boolean'
+    ) {
       throw new BadRequestException('canSubmitRemarks must be a boolean');
     }
-    return this.changeProjectMember(projectId, userId, role, actorId, headers, body.canSubmitRemarks);
+    return this.changeProjectMember(
+      projectId,
+      userId,
+      role,
+      actorId,
+      headers,
+      body.canSubmitRemarks,
+    );
   }
 
   @Delete(':projectId/members/:userId')

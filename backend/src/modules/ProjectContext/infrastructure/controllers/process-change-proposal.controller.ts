@@ -145,7 +145,10 @@ export class ProcessChangeProposalController {
         validator.username || validator.email || validator.id,
       ]),
     );
-    const remarkCountsByProposal = new Map<string, { total: number; pending: number }>();
+    const remarkCountsByProposal = new Map<
+      string,
+      { total: number; pending: number }
+    >();
     for (const remark of remarks) {
       const counts = remarkCountsByProposal.get(remark.proposalId) ?? {
         total: 0,
@@ -187,7 +190,8 @@ export class ProcessChangeProposalController {
         status: proposal.status,
         submissionComment: proposal.submissionComment,
         totalRemarksCount: remarkCountsByProposal.get(proposal.id)?.total ?? 0,
-        pendingRemarksCount: remarkCountsByProposal.get(proposal.id)?.pending ?? 0,
+        pendingRemarksCount:
+          remarkCountsByProposal.get(proposal.id)?.pending ?? 0,
         createdAt: proposal.createdAt,
         updatedAt: proposal.updatedAt,
         submittedAt: proposal.submittedAt,
@@ -247,26 +251,27 @@ export class ProcessChangeProposalController {
     const sourceIds = [
       ...new Set(visible.map((proposal) => proposal.sourceResourceId)),
     ];
-    const [projects, resources, links, events, authors, remarks] = await Promise.all([
-      this.projects.find({ where: { id: In(projectIds) } }),
-      this.resources.find({
-        where: { id: In(sourceIds) },
-      }),
-      this.projectProcesses.find({
-        where: { projectId: In(projectIds) },
-      }),
-      this.events.find({
-        where: { proposalId: In(proposalIds) },
-        order: { createdAt: 'DESC' },
-      }),
-      this.dataSource.query(
-        'SELECT id, username, email FROM app_users WHERE id = ANY($1::uuid[])',
-        [[...new Set(visible.map((proposal) => proposal.authorUserId))]],
-      ),
-      this.proposalComments.find({
-        where: { proposalId: In(proposalIds) },
-      }),
-    ]);
+    const [projects, resources, links, events, authors, remarks] =
+      await Promise.all([
+        this.projects.find({ where: { id: In(projectIds) } }),
+        this.resources.find({
+          where: { id: In(sourceIds) },
+        }),
+        this.projectProcesses.find({
+          where: { projectId: In(projectIds) },
+        }),
+        this.events.find({
+          where: { proposalId: In(proposalIds) },
+          order: { createdAt: 'DESC' },
+        }),
+        this.dataSource.query(
+          'SELECT id, username, email FROM app_users WHERE id = ANY($1::uuid[])',
+          [[...new Set(visible.map((proposal) => proposal.authorUserId))]],
+        ),
+        this.proposalComments.find({
+          where: { proposalId: In(proposalIds) },
+        }),
+      ]);
     const linked = new Set(
       links.map((link) => `${link.projectId}:${link.resourceId}`),
     );
@@ -288,7 +293,10 @@ export class ProcessChangeProposalController {
         author.username || author.email || author.id,
       ]),
     );
-    const remarkCountsByProposal = new Map<string, { total: number; pending: number }>();
+    const remarkCountsByProposal = new Map<
+      string,
+      { total: number; pending: number }
+    >();
     for (const remark of remarks) {
       const counts = remarkCountsByProposal.get(remark.proposalId) ?? {
         total: 0,
@@ -334,8 +342,10 @@ export class ProcessChangeProposalController {
           validatorUserId: proposal.validatorUserId,
           status: proposal.status,
           submissionComment: proposal.submissionComment,
-          totalRemarksCount: remarkCountsByProposal.get(proposal.id)?.total ?? 0,
-          pendingRemarksCount: remarkCountsByProposal.get(proposal.id)?.pending ?? 0,
+          totalRemarksCount:
+            remarkCountsByProposal.get(proposal.id)?.total ?? 0,
+          pendingRemarksCount:
+            remarkCountsByProposal.get(proposal.id)?.pending ?? 0,
           submittedAt: proposal.submittedAt,
           latestActivityAt: latestEvent?.createdAt ?? proposal.updatedAt,
           latestActivityType: latestEvent?.eventType ?? 'submitted',
@@ -366,15 +376,20 @@ export class ProcessChangeProposalController {
     const link = await this.projectProcesses.findOne({
       where: { projectId, resourceId },
     });
-    if (!link) throw new NotFoundException('Le processus ne fait pas partie de ce projet');
-    const published = await this.dataSource.getRepository(ContentTypeOrmEntity).findOne({
-      where: {
-        resourceId,
-        status: ContentStatusEnum.Published,
-        ...(contentId ? { id: contentId } : {}),
-      },
-      order: { version: 'DESC' },
-    });
+    if (!link)
+      throw new NotFoundException(
+        'Le processus ne fait pas partie de ce projet',
+      );
+    const published = await this.dataSource
+      .getRepository(ContentTypeOrmEntity)
+      .findOne({
+        where: {
+          resourceId,
+          status: ContentStatusEnum.Published,
+          ...(contentId ? { id: contentId } : {}),
+        },
+        order: { version: 'DESC' },
+      });
     if (!published) return null;
     const proposal = await this.proposals.findOne({
       where: {
@@ -409,10 +424,13 @@ export class ProcessChangeProposalController {
   async createProposal(
     @Param('projectId') projectId: string,
     @Param('resourceId') sourceResourceId: string,
-    @Body() body: { elementId?: string; comment?: string; validatorUserId?: string },
+    @Body()
+    body: { elementId?: string; comment?: string; validatorUserId?: string },
     @Headers() headers: RequestHeaders,
   ) {
-    const isViewerRemark = Boolean(body?.elementId?.trim() || body?.comment?.trim());
+    const isViewerRemark = Boolean(
+      body?.elementId?.trim() || body?.comment?.trim(),
+    );
     if (isViewerRemark && (!body.elementId?.trim() || !body.comment?.trim())) {
       throw new BadRequestException(
         'L’identifiant de l’élément BPMN et le texte de la remarque sont obligatoires',
@@ -432,7 +450,11 @@ export class ProcessChangeProposalController {
       }
     } else {
       // Keep the existing clone policy for ordinary modeler proposals.
-      await this.access.assertCanCloneResource(projectId, sourceResourceId, headers);
+      await this.access.assertCanCloneResource(
+        projectId,
+        sourceResourceId,
+        headers,
+      );
     }
     const authorUserId = await this.resolveAccountId(authorUsername);
 
@@ -548,10 +570,7 @@ export class ProcessChangeProposalController {
               authorUserId,
               body.validatorUserId,
             );
-        const {
-          validatorUserId,
-          validatorWarning,
-        } = validatorResolutionResult;
+        const { validatorUserId, validatorWarning } = validatorResolutionResult;
         const shouldReopenApproved =
           existingOpenProposal.status === ProcessChangeProposalStatus.Approved;
         if (shouldReopenApproved) {
@@ -571,48 +590,54 @@ export class ProcessChangeProposalController {
           await proposals.save(existingOpenProposal);
         }
         if (shouldReopenApproved) {
-          await events.save(events.create({
+          await events.save(
+            events.create({
+              proposalId: existingOpenProposal.id,
+              eventType: 'submitted',
+              actorUserId: authorUserId,
+              validatorUserId,
+              comment: 'Remarques déposées depuis le Viewer',
+              details: {
+                submittedContentId: cloneDraft.id,
+                source: 'viewer-remark',
+                validatorWarning,
+              },
+              createdBy: authorUsername,
+            }),
+          );
+        }
+        const savedRemark = await manager
+          .getRepository(ProcessChangeProposalCommentTypeOrmEntity)
+          .save(
+            manager
+              .getRepository(ProcessChangeProposalCommentTypeOrmEntity)
+              .create({
+                proposalId: existingOpenProposal.id,
+                elementId: body.elementId!.trim(),
+                authorUserId,
+                comment: body.comment!.trim(),
+                status: ProcessChangeProposalCommentStatus.Pending,
+                decisionBy: null,
+                decidedAt: null,
+                decisionComment: null,
+                createdBy: authorUsername,
+              }),
+          );
+        await events.save(
+          events.create({
             proposalId: existingOpenProposal.id,
-            eventType: 'submitted',
+            eventType: 'remark_added',
             actorUserId: authorUserId,
             validatorUserId,
-            comment: 'Remarques déposées depuis le Viewer',
+            comment: savedRemark.comment,
             details: {
-              submittedContentId: cloneDraft.id,
+              remarkId: savedRemark.id,
+              elementId: savedRemark.elementId,
               source: 'viewer-remark',
-              validatorWarning,
             },
             createdBy: authorUsername,
-          }));
-        }
-        const savedRemark = await manager.getRepository(
-          ProcessChangeProposalCommentTypeOrmEntity,
-        ).save(manager.getRepository(
-          ProcessChangeProposalCommentTypeOrmEntity,
-        ).create({
-          proposalId: existingOpenProposal.id,
-          elementId: body.elementId!.trim(),
-          authorUserId,
-          comment: body.comment!.trim(),
-          status: ProcessChangeProposalCommentStatus.Pending,
-          decisionBy: null,
-          decidedAt: null,
-          decisionComment: null,
-          createdBy: authorUsername,
-        }));
-        await events.save(events.create({
-          proposalId: existingOpenProposal.id,
-          eventType: 'remark_added',
-          actorUserId: authorUserId,
-          validatorUserId,
-          comment: savedRemark.comment,
-          details: {
-            remarkId: savedRemark.id,
-            elementId: savedRemark.elementId,
-            source: 'viewer-remark',
-          },
-          createdBy: authorUsername,
-        }));
+          }),
+        );
         return {
           id: existingOpenProposal.id,
           projectId,
@@ -716,47 +741,56 @@ export class ProcessChangeProposalController {
         }),
       );
 
-      let initialRemark: ProcessChangeProposalCommentTypeOrmEntity | null = null;
+      let initialRemark: ProcessChangeProposalCommentTypeOrmEntity | null =
+        null;
       if (isViewerRemark) {
-        const comments = manager.getRepository(ProcessChangeProposalCommentTypeOrmEntity);
-        initialRemark = await comments.save(comments.create({
-          proposalId: proposal.id,
-          elementId: body.elementId!.trim(),
-          authorUserId,
-          comment: body.comment!.trim(),
-          status: ProcessChangeProposalCommentStatus.Pending,
-          decisionBy: null,
-          decidedAt: null,
-          decisionComment: null,
-          createdBy: authorUsername,
-        }));
-        await events.save(events.create({
-          proposalId: proposal.id,
-          eventType: 'submitted',
-          actorUserId: authorUserId,
-          validatorUserId: initialValidatorUserId,
-          comment: 'Remarques déposées depuis le Viewer',
-          details: {
-            submittedContentId: savedCloneContent.id,
-            source: 'viewer-remark',
-            validatorResolution: initialValidatorResolution,
-            validatorWarning: initialValidatorWarning,
-          },
-          createdBy: authorUsername,
-        }));
-        await events.save(events.create({
-          proposalId: proposal.id,
-          eventType: 'remark_added',
-          actorUserId: authorUserId,
-          validatorUserId: initialValidatorUserId,
-          comment: initialRemark.comment,
-          details: {
-            remarkId: initialRemark.id,
-            elementId: initialRemark.elementId,
-            source: 'viewer-remark',
-          },
-          createdBy: authorUsername,
-        }));
+        const comments = manager.getRepository(
+          ProcessChangeProposalCommentTypeOrmEntity,
+        );
+        initialRemark = await comments.save(
+          comments.create({
+            proposalId: proposal.id,
+            elementId: body.elementId!.trim(),
+            authorUserId,
+            comment: body.comment!.trim(),
+            status: ProcessChangeProposalCommentStatus.Pending,
+            decisionBy: null,
+            decidedAt: null,
+            decisionComment: null,
+            createdBy: authorUsername,
+          }),
+        );
+        await events.save(
+          events.create({
+            proposalId: proposal.id,
+            eventType: 'submitted',
+            actorUserId: authorUserId,
+            validatorUserId: initialValidatorUserId,
+            comment: 'Remarques déposées depuis le Viewer',
+            details: {
+              submittedContentId: savedCloneContent.id,
+              source: 'viewer-remark',
+              validatorResolution: initialValidatorResolution,
+              validatorWarning: initialValidatorWarning,
+            },
+            createdBy: authorUsername,
+          }),
+        );
+        await events.save(
+          events.create({
+            proposalId: proposal.id,
+            eventType: 'remark_added',
+            actorUserId: authorUserId,
+            validatorUserId: initialValidatorUserId,
+            comment: initialRemark.comment,
+            details: {
+              remarkId: initialRemark.id,
+              elementId: initialRemark.elementId,
+              source: 'viewer-remark',
+            },
+            createdBy: authorUsername,
+          }),
+        );
       }
 
       return {
@@ -883,18 +917,15 @@ export class ProcessChangeProposalController {
         );
       }
 
-      const {
-        validatorUserId,
-        validatorResolution,
-        validatorWarning,
-      } = await this.resolveProposalValidator(
-        manager,
-        members,
-        proposal.projectId,
-        actorUsername,
-        actorUserId,
-        body.validatorUserId?.trim() || proposal.validatorUserId || null,
-      );
+      const { validatorUserId, validatorResolution, validatorWarning } =
+        await this.resolveProposalValidator(
+          manager,
+          members,
+          proposal.projectId,
+          actorUsername,
+          actorUserId,
+          body.validatorUserId?.trim() || proposal.validatorUserId || null,
+        );
 
       proposal.validatorUserId = validatorUserId;
       proposal.submittedContentId = submittedContent.id;
@@ -1128,7 +1159,9 @@ export class ProcessChangeProposalController {
         ProcessChangeProposalEventTypeOrmEntity,
       );
       const members = manager.getRepository(ProjectMemberTypeOrmEntity);
-      const proposalComments = manager.getRepository(ProcessChangeProposalCommentTypeOrmEntity);
+      const proposalComments = manager.getRepository(
+        ProcessChangeProposalCommentTypeOrmEntity,
+      );
 
       const proposal = await proposals.findOne({
         where: { id: proposalId },
@@ -1156,25 +1189,33 @@ export class ProcessChangeProposalController {
         where: { proposalId },
         order: { createdAt: 'ASC' },
       });
-      const remarkUserIds = [...new Set(
-        remarks.flatMap(remark => [
-          remark.authorUserId,
-          ...(remark.decisionBy ? [remark.decisionBy] : []),
+      const remarkUserIds = [
+        ...new Set(
+          remarks.flatMap((remark) => [
+            remark.authorUserId,
+            ...(remark.decisionBy ? [remark.decisionBy] : []),
+          ]),
+        ),
+      ];
+      const remarkUsers: Array<{
+        id: string;
+        username: string;
+        email: string | null;
+      }> = remarkUserIds.length
+        ? await manager.query(
+            'SELECT id, username, email FROM app_users WHERE id = ANY($1::uuid[])',
+            [remarkUserIds],
+          )
+        : [];
+      const remarkUserNameById = new Map(
+        remarkUsers.map((user) => [
+          user.id,
+          user.username || user.email || user.id,
         ]),
-      )];
-      const remarkUsers: Array<{ id: string; username: string; email: string | null }> =
-        remarkUserIds.length
-          ? await manager.query(
-              'SELECT id, username, email FROM app_users WHERE id = ANY($1::uuid[])',
-              [remarkUserIds],
-            )
-          : [];
-      const remarkUserNameById = new Map(remarkUsers.map(user => [
-        user.id,
-        user.username || user.email || user.id,
-      ]));
+      );
       const pendingRemarks = remarks.filter(
-        remark => remark.status === ProcessChangeProposalCommentStatus.Pending,
+        (remark) =>
+          remark.status === ProcessChangeProposalCommentStatus.Pending,
       );
       if (pendingRemarks.length) {
         throw new ConflictException(
@@ -1253,8 +1294,9 @@ export class ProcessChangeProposalController {
           changeComment: [
             summaryComment,
             'Synthèse des remarques contextuelles :',
-            ...remarks.map(remark =>
-              `- [${remark.status}] ${remark.createdAt.toISOString()} · auteur ${remarkUserNameById.get(remark.authorUserId) ?? remark.authorUserId} · élément ${remark.elementId} · ${remark.comment}${remark.decidedAt ? ` · décidé le ${remark.decidedAt.toISOString()} par ${remarkUserNameById.get(remark.decisionBy!) ?? remark.decisionBy}` : ''}${remark.decisionComment ? ` · décision : ${remark.decisionComment}` : ''}`,
+            ...remarks.map(
+              (remark) =>
+                `- [${remark.status}] ${remark.createdAt.toISOString()} · auteur ${remarkUserNameById.get(remark.authorUserId) ?? remark.authorUserId} · élément ${remark.elementId} · ${remark.comment}${remark.decidedAt ? ` · décidé le ${remark.decidedAt.toISOString()} par ${remarkUserNameById.get(remark.decisionBy!) ?? remark.decisionBy}` : ''}${remark.decisionComment ? ` · décision : ${remark.decisionComment}` : ''}`,
             ),
           ].join('\n'),
           pngContent: Buffer.from(
@@ -1312,7 +1354,9 @@ export class ProcessChangeProposalController {
     @Param('proposalId') proposalId: string,
     @Headers() headers: RequestHeaders,
   ) {
-    const proposal = await this.proposals.findOne({ where: { id: proposalId } });
+    const proposal = await this.proposals.findOne({
+      where: { id: proposalId },
+    });
     if (!proposal) throw new NotFoundException('Demande introuvable');
     if (!this.access.hasOrganizationAdminRole(headers)) {
       await this.access.assertProjectRole(
@@ -1326,26 +1370,28 @@ export class ProcessChangeProposalController {
       order: { createdAt: 'ASC' },
     });
     if (!comments.length) return [];
-    const userIds = [...new Set(
-      comments.flatMap(comment => [
-        comment.authorUserId,
-        ...(comment.decisionBy ? [comment.decisionBy] : []),
-      ]),
-    )];
+    const userIds = [
+      ...new Set(
+        comments.flatMap((comment) => [
+          comment.authorUserId,
+          ...(comment.decisionBy ? [comment.decisionBy] : []),
+        ]),
+      ),
+    ];
     const users: Array<{ id: string; username: string; email: string | null }> =
       await this.dataSource.query(
         'SELECT id, username, email FROM app_users WHERE id = ANY($1::uuid[])',
         [userIds],
       );
-    const userNameById = new Map(users.map(user => [
-      user.id,
-      user.username || user.email || user.id,
-    ]));
-    return comments.map(comment => ({
+    const userNameById = new Map(
+      users.map((user) => [user.id, user.username || user.email || user.id]),
+    );
+    return comments.map((comment) => ({
       ...comment,
-      authorName: userNameById.get(comment.authorUserId) ?? comment.authorUserId,
+      authorName:
+        userNameById.get(comment.authorUserId) ?? comment.authorUserId,
       decisionByName: comment.decisionBy
-        ? userNameById.get(comment.decisionBy) ?? comment.decisionBy
+        ? (userNameById.get(comment.decisionBy) ?? comment.decisionBy)
         : null,
     }));
   }
@@ -1361,7 +1407,9 @@ export class ProcessChangeProposalController {
     @Body() body: { elementId?: string; comment?: string },
     @Headers() headers: RequestHeaders,
   ) {
-    const proposal = await this.proposals.findOne({ where: { id: proposalId } });
+    const proposal = await this.proposals.findOne({
+      where: { id: proposalId },
+    });
     if (!proposal) throw new NotFoundException('Demande introuvable');
     const isOrganizationAdmin = this.access.hasOrganizationAdminRole(headers);
     if (!isOrganizationAdmin) {
@@ -1388,9 +1436,15 @@ export class ProcessChangeProposalController {
     const actorUsername = this.access.getAuthenticatedUserId(headers);
     const authorUserId = await this.resolveAccountId(actorUsername);
     return this.dataSource.transaction(async (manager) => {
-      const proposals = manager.getRepository(ProcessChangeProposalTypeOrmEntity);
-      const comments = manager.getRepository(ProcessChangeProposalCommentTypeOrmEntity);
-      const events = manager.getRepository(ProcessChangeProposalEventTypeOrmEntity);
+      const proposals = manager.getRepository(
+        ProcessChangeProposalTypeOrmEntity,
+      );
+      const comments = manager.getRepository(
+        ProcessChangeProposalCommentTypeOrmEntity,
+      );
+      const events = manager.getRepository(
+        ProcessChangeProposalEventTypeOrmEntity,
+      );
       const lockedProposal = await proposals.findOne({
         where: { id: proposalId },
         lock: { mode: 'pessimistic_write' },
@@ -1398,9 +1452,13 @@ export class ProcessChangeProposalController {
       if (!lockedProposal) throw new NotFoundException('Demande introuvable');
       const currentMembership = await manager
         .getRepository(ProjectMemberTypeOrmEntity)
-        .findOne({ where: { projectId: lockedProposal.projectId, userId: actorUsername } });
+        .findOne({
+          where: { projectId: lockedProposal.projectId, userId: actorUsername },
+        });
       if (!isOrganizationAdmin && !currentMembership) {
-        throw new ForbiddenException('L’accès au projet a été retiré ; la remarque ne peut pas être ajoutée');
+        throw new ForbiddenException(
+          'L’accès au projet a été retiré ; la remarque ne peut pas être ajoutée',
+        );
       }
       if (
         lockedProposal.status === ProcessChangeProposalStatus.Rejected ||
@@ -1413,40 +1471,46 @@ export class ProcessChangeProposalController {
         lockedProposal.decidedAt = null;
         lockedProposal.submittedAt = new Date();
         await proposals.save(lockedProposal);
-        await events.save(events.create({
+        await events.save(
+          events.create({
+            proposalId,
+            eventType: 'submitted',
+            actorUserId: authorUserId,
+            validatorUserId: lockedProposal.validatorUserId,
+            comment: 'Nouvelle remarque ajoutée après approbation',
+            details: { reopenedByRemark: true },
+            createdBy: actorUsername,
+          }),
+        );
+      }
+      const savedComment = await comments.save(
+        comments.create({
           proposalId,
-          eventType: 'submitted',
+          elementId,
+          authorUserId,
+          comment,
+          status: ProcessChangeProposalCommentStatus.Pending,
+          decisionBy: null,
+          decidedAt: null,
+          decisionComment: null,
+          createdBy: actorUsername,
+        }),
+      );
+      await events.save(
+        events.create({
+          proposalId,
+          eventType: 'remark_added',
           actorUserId: authorUserId,
           validatorUserId: lockedProposal.validatorUserId,
-          comment: 'Nouvelle remarque ajoutée après approbation',
-          details: { reopenedByRemark: true },
+          comment: savedComment.comment,
+          details: {
+            remarkId: savedComment.id,
+            elementId: savedComment.elementId,
+            source: 'modeler-remark',
+          },
           createdBy: actorUsername,
-        }));
-      }
-      const savedComment = await comments.save(comments.create({
-        proposalId,
-        elementId,
-        authorUserId,
-        comment,
-        status: ProcessChangeProposalCommentStatus.Pending,
-        decisionBy: null,
-        decidedAt: null,
-        decisionComment: null,
-        createdBy: actorUsername,
-      }));
-      await events.save(events.create({
-        proposalId,
-        eventType: 'remark_added',
-        actorUserId: authorUserId,
-        validatorUserId: lockedProposal.validatorUserId,
-        comment: savedComment.comment,
-        details: {
-          remarkId: savedComment.id,
-          elementId: savedComment.elementId,
-          source: 'modeler-remark',
-        },
-        createdBy: actorUsername,
-      }));
+        }),
+      );
       return savedComment;
     });
   }
@@ -1463,7 +1527,9 @@ export class ProcessChangeProposalController {
     @Body() body: { decision?: 'accepted' | 'rejected'; comment?: string },
     @Headers() headers: RequestHeaders,
   ) {
-    const proposal = await this.proposals.findOne({ where: { id: proposalId } });
+    const proposal = await this.proposals.findOne({
+      where: { id: proposalId },
+    });
     if (!proposal) throw new NotFoundException('Demande introuvable');
     if (
       proposal.status === ProcessChangeProposalStatus.Rejected ||
@@ -1477,7 +1543,8 @@ export class ProcessChangeProposalController {
     const membership = await this.members.findOne({
       where: { projectId: proposal.projectId, userId: actorUsername },
     });
-    const canReviewAsProjectAdmin = membership?.role === ProjectMemberRole.Admin;
+    const canReviewAsProjectAdmin =
+      membership?.role === ProjectMemberRole.Admin;
     const canReviewAsAssignedValidator =
       proposal.validatorUserId === actorUserId &&
       (membership?.role === ProjectMemberRole.Admin ||
@@ -1511,7 +1578,9 @@ export class ProcessChangeProposalController {
       }
       const currentMembership = await manager
         .getRepository(ProjectMemberTypeOrmEntity)
-        .findOne({ where: { projectId: lockedProposal.projectId, userId: actorUsername } });
+        .findOne({
+          where: { projectId: lockedProposal.projectId, userId: actorUsername },
+        });
       const canStillReviewAsProjectAdmin =
         currentMembership?.role === ProjectMemberRole.Admin;
       const canStillReviewAsAssignedValidator =
@@ -1527,7 +1596,9 @@ export class ProcessChangeProposalController {
           'Vos droits de traitement ont changé ; cette remarque ne peut plus être décidée',
         );
       }
-      const comments = manager.getRepository(ProcessChangeProposalCommentTypeOrmEntity);
+      const comments = manager.getRepository(
+        ProcessChangeProposalCommentTypeOrmEntity,
+      );
       const current = await comments.findOne({
         where: { id: commentId, proposalId },
         lock: { mode: 'pessimistic_write' },
@@ -1543,9 +1614,10 @@ export class ProcessChangeProposalController {
           'Cette remarque a déjà fait l’objet d’une décision',
         );
       }
-      current.status = body.decision === 'accepted'
-        ? ProcessChangeProposalCommentStatus.Accepted
-        : ProcessChangeProposalCommentStatus.Rejected;
+      current.status =
+        body.decision === 'accepted'
+          ? ProcessChangeProposalCommentStatus.Accepted
+          : ProcessChangeProposalCommentStatus.Rejected;
       current.decisionBy = actorUserId;
       current.decidedAt = new Date();
       current.decisionComment = decisionComment || null;
@@ -1553,7 +1625,10 @@ export class ProcessChangeProposalController {
       await manager.getRepository(ProcessChangeProposalEventTypeOrmEntity).save(
         manager.getRepository(ProcessChangeProposalEventTypeOrmEntity).create({
           proposalId,
-          eventType: body.decision === 'accepted' ? 'remark_accepted' : 'remark_rejected',
+          eventType:
+            body.decision === 'accepted'
+              ? 'remark_accepted'
+              : 'remark_rejected',
           actorUserId,
           validatorUserId: lockedProposal.validatorUserId,
           comment: decisionComment || null,
@@ -1595,10 +1670,11 @@ export class ProcessChangeProposalController {
       : 'pilot_missing';
 
     if (pilotIdentifier?.trim()) {
-      const pilotRows: Array<{ id: string; username: string }> = await manager.query(
-        'SELECT id, username FROM app_users WHERE (lower(username) = lower($1) OR lower(email) = lower($1) OR id::text = $1) AND active = TRUE LIMIT 1',
-        [pilotIdentifier.trim()],
-      );
+      const pilotRows: Array<{ id: string; username: string }> =
+        await manager.query(
+          'SELECT id, username FROM app_users WHERE (lower(username) = lower($1) OR lower(email) = lower($1) OR id::text = $1) AND active = TRUE LIMIT 1',
+          [pilotIdentifier.trim()],
+        );
       const pilot = pilotRows[0];
       if (pilot && pilot.id !== actorUserId) {
         const pilotMembership = await members.findOne({
@@ -1636,9 +1712,10 @@ export class ProcessChangeProposalController {
     return {
       validatorUserId,
       validatorResolution,
-      validatorWarning: validatorResolution === 'pilot_assigned'
-        ? null
-        : 'Le pilote du processus est absent ou non reconnu ; une validation administrateur est à prévoir.',
+      validatorWarning:
+        validatorResolution === 'pilot_assigned'
+          ? null
+          : 'Le pilote du processus est absent ou non reconnu ; une validation administrateur est à prévoir.',
     };
   }
 
