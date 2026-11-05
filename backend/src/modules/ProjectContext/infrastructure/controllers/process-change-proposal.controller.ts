@@ -420,20 +420,13 @@ export class ProcessChangeProposalController {
     }
     const isOrganizationAdmin = this.access.hasOrganizationAdminRole(headers);
     const authorUsername = isViewerRemark
-      ? this.access.getAuthenticatedUserId(headers)
+      ? await this.assertCanSubmitRemarks(projectId, headers)
       : await this.access.assertProjectRole(
           projectId,
           headers,
           ProjectMemberRole.Modeler,
         );
     if (isViewerRemark) {
-      if (!isOrganizationAdmin) {
-        await this.access.assertProjectRole(
-          projectId,
-          headers,
-          ProjectMemberRole.Viewer,
-        );
-      }
       if (!isOrganizationAdmin) {
         await this.access.assertCanReadResource(sourceResourceId, headers);
       }
@@ -1372,11 +1365,7 @@ export class ProcessChangeProposalController {
     if (!proposal) throw new NotFoundException('Demande introuvable');
     const isOrganizationAdmin = this.access.hasOrganizationAdminRole(headers);
     if (!isOrganizationAdmin) {
-      await this.access.assertProjectRole(
-        proposal.projectId,
-        headers,
-        ProjectMemberRole.Viewer,
-      );
+      await this.assertCanSubmitRemarks(proposal.projectId, headers);
     }
     if (
       proposal.status === ProcessChangeProposalStatus.Rejected ||
@@ -1651,6 +1640,23 @@ export class ProcessChangeProposalController {
         ? null
         : 'Le pilote du processus est absent ou non reconnu ; une validation administrateur est à prévoir.',
     };
+  }
+
+  private async assertCanSubmitRemarks(
+    projectId: string,
+    headers: RequestHeaders,
+  ): Promise<string> {
+    const username = this.access.getAuthenticatedUserId(headers);
+    if (this.access.hasOrganizationAdminRole(headers)) return username;
+    const membership = await this.members.findOne({
+      where: { projectId, userId: username },
+    });
+    if (!membership?.canSubmitRemarks) {
+      throw new ForbiddenException(
+        'Le droit de déposer des remarques n’est pas activé pour ce membre du projet',
+      );
+    }
+    return username;
   }
 
   private async resolveAccountId(username: string): Promise<string> {

@@ -102,8 +102,8 @@ export class ProjectController {
       projectLinks.push(link);
       linksByProject.set(link.projectId, projectLinks);
     }
-    const roleByProject = new Map(
-      memberships.map(({ projectId, role }) => [projectId, role]),
+    const membershipByProject = new Map(
+      memberships.map((membership) => [membership.projectId, membership]),
     );
 
     return {
@@ -112,7 +112,8 @@ export class ProjectController {
         id: project.id,
         name: project.name,
         description: project.description,
-        role: roleByProject.get(project.id),
+        role: membershipByProject.get(project.id)?.role,
+        canSubmitRemarks: membershipByProject.get(project.id)?.canSubmitRemarks ?? false,
         processes: (linksByProject.get(project.id) ?? []).map((link) => ({
           resourceId: link.resourceId,
           name: resourceById.get(link.resourceId)?.name ?? link.resourceId,
@@ -721,13 +722,16 @@ export class ProjectController {
   async setProjectMember(
     @Param('projectId') projectId: string,
     @Param('userId') userIdParam: string,
-    @Body() body: { role?: ProjectMemberRole },
+    @Body() body: { role?: ProjectMemberRole; canSubmitRemarks?: boolean },
     @Headers() headers: RequestHeaders,
   ) {
     const actorId = this.projectResourceAccess.getAuthenticatedUserId(headers);
     const userId = this.validateUserId(userIdParam);
     const role = this.validateMemberRole(body.role);
-    return this.changeProjectMember(projectId, userId, role, actorId, headers);
+    if (body.canSubmitRemarks !== undefined && typeof body.canSubmitRemarks !== 'boolean') {
+      throw new BadRequestException('canSubmitRemarks must be a boolean');
+    }
+    return this.changeProjectMember(projectId, userId, role, actorId, headers, body.canSubmitRemarks);
   }
 
   @Delete(':projectId/members/:userId')
@@ -773,6 +777,7 @@ export class ProjectController {
     role: ProjectMemberRole | null,
     actorId?: string,
     headers?: RequestHeaders,
+    canSubmitRemarks?: boolean,
   ) {
     return this.dataSource.transaction(async (manager) => {
       const projectRepository = manager.getRepository(ProjectTypeOrmEntity);
@@ -827,6 +832,9 @@ export class ProjectController {
           createdBy: actorId,
         });
       member.role = role;
+      if (canSubmitRemarks !== undefined) {
+        member.canSubmitRemarks = canSubmitRemarks;
+      }
       return members.save(member);
     });
   }

@@ -517,3 +517,17 @@ test('a project modeler can take over corrections for a Viewer-originated propos
   assert.ok(!submitMethod.includes('proposal.authorUserId !== actorUserId'));
   assert.ok(controller.includes('const lastSubmitterUserId'));
 });
+
+
+test('project members need an explicit project permission to submit contextual remarks', async () => {
+  const member = await read('../backend/src/modules/ProjectContext/infrastructure/entities/projectMember.ormEntity.ts');
+  const projectController = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project.controller.ts');
+  const proposalController = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/process-change-proposal.controller.ts');
+  const projectUi = await read('src/Containers/Projects/Projects.container.tsx');
+  const migration = await read('../backend/migrations/20261105_v3_project_member_remark_permission.sql');
+  assert.ok(member.includes('canSubmitRemarks: boolean'));
+  assert.ok(projectController.includes('canSubmitRemarks: membershipByProject.get(project.id)?.canSubmitRemarks'));
+  assert.ok(proposalController.includes('assertCanSubmitRemarks'));
+  assert.ok(projectUi.includes('Peut déposer des remarques'));
+  assert.ok(migration.includes('ADD COLUMN IF NOT EXISTS "canSubmitRemarks"'));
+});
