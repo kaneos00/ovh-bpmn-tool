@@ -1,8 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Alert,
   Box,
+  Checkbox,
+  Dropdown,
+  Menu,
+  MenuButton,
+  MenuItem,
   Button,
   Card,
   Chip,
@@ -69,13 +74,17 @@ async function call<T = any>(path: string, method = 'GET', body?: unknown): Prom
 
 export const Component = () => {
   const navigate = useNavigate();
+  const { userId } = useParams<{ userId?: string }>();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [overview, setOverview] = useState<AdministrationOverview>({ projects: [], users: [] });
   const [me, setMe] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [roleFilter, setRoleFilter] = useState<'all' | Role>('all');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
+  const [bulkAction, setBulkAction] = useState<'activate' | 'deactivate' | 'assign' | null>(null);
+  const [bulkProjectId, setBulkProjectId] = useState('');
+  const [bulkProjectRole, setBulkProjectRole] = useState<ProjectRole>('viewer');
   const [drafts, setDrafts] = useState<Record<string, AccountDraft>>({});
   const [resetPassword, setResetPassword] = useState('');
   const [newUsername, setNewUsername] = useState('');
@@ -158,7 +167,9 @@ export const Component = () => {
     });
   }, [accounts, membershipsByUser, search, statusFilter, roleFilter]);
 
-  const selectedAccount = accounts.find((account) => account.id === selectedId) ?? null;
+  const selectedAccount = accounts.find((account) => account.id === userId) ?? null;
+  const selectedAccounts = filteredAccounts.filter((account) => selectedAccountIds.includes(account.id));
+  const allVisibleSelected = filteredAccounts.length > 0 && filteredAccounts.every((account) => selectedAccountIds.includes(account.id));
   const selectedMembership = selectedAccount
     ? membershipsByUser.get(selectedAccount.username.toLocaleLowerCase())
     : undefined;
@@ -171,6 +182,42 @@ export const Component = () => {
     }
     : null;
   const activeCount = accounts.filter((account) => account.active).length;
+
+  const toggleAccountSelection = (accountId: string, checked: boolean) => {
+    setSelectedAccountIds(current => checked
+      ? Array.from(new Set([...current, accountId]))
+      : current.filter(id => id !== accountId));
+  };
+
+  const applyBulkStatus = async (active: boolean) => {
+    const targets = selectedAccounts.filter(account => account.username !== me && account.active !== active);
+    if (!targets.length) {
+      setNotice('Aucun compte éligible dans la sélection.');
+      setBulkAction(null);
+      return;
+    }
+    await runAction(
+      () => Promise.all(targets.map(account => call(userPath(account.id), 'PATCH', { active }))),
+      `${targets.length} compte(s) ${active ? 'activé(s)' : 'désactivé(s)'}.`,
+    );
+    setSelectedAccountIds([]);
+    setBulkAction(null);
+  };
+
+  const applyBulkProject = async () => {
+    if (!bulkProjectId || !selectedAccounts.length) return;
+    await runAction(
+      () => Promise.all(selectedAccounts.map(account => call(
+        `/projects/administration/projects/${encodeURIComponent(bulkProjectId)}/members/${encodeURIComponent(account.username)}`,
+        'PUT',
+        { role: bulkProjectRole },
+      ))),
+      `Accès au projet ajouté ou mis à jour pour ${selectedAccounts.length} compte(s).`,
+    );
+    setSelectedAccountIds([]);
+    setBulkAction(null);
+    setBulkProjectId('');
+  };
 
   const updateDraft = <K extends keyof AccountDraft>(field: K, value: AccountDraft[K]) => {
     if (!selectedAccount || !selectedDraft) return;
@@ -275,7 +322,7 @@ export const Component = () => {
   };
 
   return (
-    <Sheet className="org-admin-v2__page" sx={{ width: '100%', maxWidth: 1440, boxSizing: 'border-box', mx: 'auto', p: { xs: 1, md: 2 }, bgcolor: 'transparent' }}>
+    <Sheet className="org-admin-v2__page" sx={{ width: '100%', maxWidth: 'none', boxSizing: 'border-box', p: 0, bgcolor: 'transparent' }}>
       <Stack spacing={2}>
         <WorkspaceNavigation />
         <div className="org-admin-v2">
@@ -315,10 +362,17 @@ export const Component = () => {
           </aside>
           <main className="org-admin-v2__main">
             <header className="org-admin-v2__topbar">
-              <div><div className="org-admin-v2__crumb">Administration / Utilisateurs</div><div className="org-admin-v2__top-title">Administration de l’organisation</div></div>
+              <div>
+                <div className="org-admin-v2__crumb" aria-label="Fil d’Ariane">
+                  <Button size="sm" variant="plain" color="neutral" sx={{ p: 0, minHeight: 'unset' }} onClick={() => navigate('/organization/users')}>Administration / Utilisateurs</Button>
+                  {userId && <> / {selectedAccount?.username ?? 'Utilisateur'}</>}
+                </div>
+                <div className="org-admin-v2__top-title">{userId ? 'Fiche utilisateur' : 'Administration des utilisateurs'}</div>
+              </div>
               <Chip size="sm" color="primary" variant="soft">Accès organisationnel</Chip>
             </header>
             <div className="org-admin-v2__content">
+              {!userId && <>
               <div className="org-admin-v2__page-head">
                 <div>
                   <div className="org-admin-v2__eyebrow">Administration des accès</div>
@@ -366,28 +420,66 @@ export const Component = () => {
                 </div>
                 <Box sx={{ overflowX: 'auto' }}>
                   <Table hoverRow stickyHeader>
-                    <thead><tr><th>Utilisateur</th><th>Rôle global</th><th>Projets associés</th><th>Statut</th><th>Fiche</th></tr></thead>
+                    <thead><tr>
+                      <th><Checkbox checked={allVisibleSelected} indeterminate={selectedAccountIds.length > 0 && !allVisibleSelected} onChange={event => setSelectedAccountIds(event.target.checked ? filteredAccounts.map(account => account.id) : [])} aria-label="Sélectionner tous les utilisateurs affichés" /></th>
+                      <th>Utilisateur</th><th>Rôle global</th><th>Projets associés</th><th>Statut</th><th>Fiche</th>
+                    </tr></thead>
                     <tbody>
                       {filteredAccounts.map((account) => {
                         const membership = membershipsByUser.get(account.username.toLocaleLowerCase());
-                        const isSelected = selectedId === account.id;
                         return (
-                          <tr key={account.id} aria-selected={isSelected}>
+                          <tr key={account.id}>
+                            <td><Checkbox checked={selectedAccountIds.includes(account.id)} onChange={event => toggleAccountSelection(account.id, event.target.checked)} aria-label={`Sélectionner ${account.username}`} /></td>
                             <td><Stack spacing={0.25}><Typography level="title-sm">{account.username}</Typography><Typography level="body-xs" sx={{ color: 'text.secondary' }}>{account.email || 'Aucune adresse e-mail'}{account.username === me ? ' · Votre compte' : ''}</Typography></Stack></td>
                             <td><Chip size="sm" color={roleColors[account.role]} variant="soft">{roleLabels[account.role]}</Chip></td>
                             <td><Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">{(membership?.projects ?? []).slice(0, 2).map((project) => <Chip key={project.projectId} size="sm" variant="soft" color="neutral">{project.projectName}</Chip>)}{(membership?.projects.length ?? 0) > 2 && <Chip size="sm" variant="outlined">+{membership!.projects.length - 2}</Chip>}{!membership?.projects.length && <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Aucun projet</Typography>}</Stack></td>
                             <td><Chip size="sm" color={account.active ? 'success' : 'neutral'} variant="soft">{account.active ? 'Actif' : 'Désactivé'}</Chip></td>
-                            <td><Button size="sm" variant={isSelected ? 'solid' : 'outlined'} onClick={() => { setSelectedId(isSelected ? null : account.id); setResetPassword(''); }}>{isSelected ? 'Fermer' : 'Ouvrir'}</Button></td>
+                            <td><Button size="sm" variant="outlined" onClick={() => { setResetPassword(''); setConfirmImpersonation(false); navigate(`/organization/users/${encodeURIComponent(account.id)}`); }}>Ouvrir la fiche</Button></td>
                           </tr>
                         );
                       })}
-                      {filteredAccounts.length === 0 && <tr><td colSpan={5}><Typography level="body-sm" sx={{ color: 'text.secondary', py: 2 }}>Aucun compte ne correspond aux filtres.</Typography></td></tr>}
+                      {filteredAccounts.length === 0 && <tr><td colSpan={6}><Typography level="body-sm" sx={{ color: 'text.secondary', py: 2 }}>Aucun compte ne correspond aux filtres.</Typography></td></tr>}
                     </tbody>
                   </Table>
                 </Box>
-                <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>{filteredAccounts.length} compte(s) affiché(s) · les rôles globaux proviennent de l’annuaire des comptes ; les rôles projet des adhésions existantes.</Typography>
+                <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" gap={1}>
+                  <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>{filteredAccounts.length} compte(s) affiché(s) · les rôles globaux proviennent de l’annuaire des comptes ; les rôles projet des adhésions existantes.</Typography>
+                  <Dropdown>
+                    <MenuButton size="sm" variant="outlined" color="neutral" disabled={selectedAccounts.length === 0}>☰ Actions groupées ({selectedAccounts.length})</MenuButton>
+                    <Menu placement="bottom-end">
+                      <MenuItem onClick={() => setBulkAction('assign')}>Associer à un projet…</MenuItem>
+                      <MenuItem onClick={() => setBulkAction('activate')}>Activer les comptes sélectionnés</MenuItem>
+                      <MenuItem color="danger" onClick={() => setBulkAction('deactivate')}>Désactiver les comptes sélectionnés</MenuItem>
+                      <MenuItem onClick={() => setSelectedAccountIds([])}>Effacer la sélection</MenuItem>
+                    </Menu>
+                  </Dropdown>
+                </Stack>
+                {bulkAction === 'assign' && (
+                  <Alert color="primary" variant="soft">
+                    <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'flex-end' }} gap={1}>
+                      <FormControl sx={{ flex: 1 }}><FormLabel>Projet</FormLabel><Select value={bulkProjectId || null} placeholder="Choisir un projet" onChange={(_event, value) => setBulkProjectId(value ?? '')}>{overview.projects.map(project => <Option key={project.id} value={project.id}>{project.name}</Option>)}</Select></FormControl>
+                      <FormControl sx={{ minWidth: 170 }}><FormLabel>Rôle projet</FormLabel><Select value={bulkProjectRole} onChange={(_event, value) => value && setBulkProjectRole(value as ProjectRole)}><Option value="viewer">Viewer</Option><Option value="modeler">Modeler</Option><Option value="admin">Admin projet</Option></Select></FormControl>
+                      <Button disabled={!bulkProjectId || busy} loading={busy} onClick={() => void applyBulkProject()}>Appliquer</Button>
+                      <Button variant="plain" color="neutral" onClick={() => setBulkAction(null)}>Annuler</Button>
+                    </Stack>
+                  </Alert>
+                )}
+                {(bulkAction === 'activate' || bulkAction === 'deactivate') && (
+                  <Alert color="warning" variant="soft">
+                    <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" gap={1}>
+                      <Typography level="body-sm">Confirmer l’action sur {selectedAccounts.length} compte(s) sélectionné(s) ? Votre propre compte ne sera pas désactivé.</Typography>
+                      <Stack direction="row" gap={1}>
+                        <Button size="sm" variant="plain" color="neutral" onClick={() => setBulkAction(null)}>Annuler</Button>
+                        <Button size="sm" color={bulkAction === 'deactivate' ? 'danger' : 'primary'} disabled={busy} loading={busy} onClick={() => void applyBulkStatus(bulkAction === 'activate')}>Confirmer</Button>
+                      </Stack>
+                    </Stack>
+                  </Alert>
+                )}
               </Card>
 
+              </>}
+
+              {userId && !selectedAccount && !error && <Alert color="warning">Utilisateur introuvable. <Button size="sm" variant="plain" onClick={() => navigate('/organization/users')}>Retour à la liste</Button></Alert>}
               {selectedAccount && selectedDraft && (
                 <Card className="org-admin-v2__panel org-users__detail" variant="outlined">
                   <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'center' }} gap={1}>
