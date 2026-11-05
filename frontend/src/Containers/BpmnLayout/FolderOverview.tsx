@@ -137,11 +137,12 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
         <Chip variant="soft">{children.length} élément(s)</Chip>
       </Stack>
 
-      {!activeProjectId ? (
+      {!activeProjectId && (
         <Box sx={{ flex: 1, minHeight: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', p: 3 }}>
           <Typography level="body-sm" color="neutral">Sélectionnez un projet pour afficher ses processus.</Typography>
         </Box>
-      ) : children.length === 0 ? (
+      )}
+      {activeProjectId && children.length === 0 && (
         <Box
           sx={{
             flex: 1,
@@ -161,7 +162,8 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
             </Typography>
           </Stack>
         </Box>
-      ) : (
+      )}
+      {activeProjectId && children.length > 0 && (
         <Stack spacing={0.75}>
           {children.map((childResource: Resource) => {
             const isFolder = childResource.type === ResourceType.Folder;
@@ -171,9 +173,7 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
                 variant="outlined"
                 color="neutral"
                 onClick={() => navigate(`/${childResource.id}`)}
-                startDecorator={isFolder
-                  ? <FolderOutlined />
-                  : <DescriptionOutlined />}
+                startDecorator={isFolder ? <FolderOutlined /> : <DescriptionOutlined />}
                 sx={{
                   justifyContent: 'flex-start',
                   textAlign: 'left',
