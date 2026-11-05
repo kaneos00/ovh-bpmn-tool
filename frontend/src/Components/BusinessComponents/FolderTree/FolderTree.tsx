@@ -468,7 +468,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                   {node.name}
                 </Button>
                 {project && (
-                  <Chip size="sm" variant="soft" title={project.name} sx={{ bgcolor: project.color || '#2864d7', color: '#fff', minWidth: 28, fontWeight: 700 }}>
+                  <Chip size="sm" variant="soft" title={project.name} sx={{ bgcolor: project.color || '#2864d7', color: '#fff', maxWidth: 160, minWidth: 28, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {({ folder: '📁', briefcase: '💼', building: '🏢', workflow: '🔀', users: '👥', chart: '📊' } as Record<string, string>)[project.icon || 'folder'] || '📁'}
                   </Chip>
                 )}
