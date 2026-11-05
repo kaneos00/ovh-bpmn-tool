@@ -54,8 +54,8 @@ export const useFolderTree = (selectedResourceId: string) => {
   }, [resources, activeProjectId, projectProcessIds]);
 
   const processResources = useMemo(
-    () => scopedResources.filter(item => item.type === ResourceType.Process),
-    [scopedResources],
+    () => (resources ?? []).filter(item => item.type === ResourceType.Process),
+    [resources],
   );
   const linkedChildrenByResource = useMemo(() => {
     const linksByResource = new Map(
