@@ -10,6 +10,7 @@ import {
 } from '../entities/processChangeProposalComment.ormEntity';
 import { ProcessChangeProposalEventTypeOrmEntity } from '../entities/processChangeProposalEvent.ormEntity';
 import { ProjectMemberTypeOrmEntity } from '../entities/projectMember.ormEntity';
+import { ProjectProcessUsage } from '../entities/projectProcess.ormEntity';
 import { ProcessChangeProposalController } from './process-change-proposal.controller';
 
 describe('ProcessChangeProposalController remark permissions', () => {
@@ -23,6 +24,7 @@ describe('ProcessChangeProposalController remark permissions', () => {
     membership: { role: ProjectMemberRole } | null,
     isOrganizationAdmin = false,
     remarkAuthorUserId = authorUserId,
+    usage: ProjectProcessUsage = ProjectProcessUsage.Variant,
   ) => {
     const proposal = {
       id: proposalId,
@@ -51,6 +53,13 @@ describe('ProcessChangeProposalController remark permissions', () => {
     const events = {
       create: jest.fn((value: unknown) => value),
       save: jest.fn(async (value: unknown) => value),
+    };
+    const projectProcesses = {
+      findOne: jest.fn().mockResolvedValue({
+        projectId: 'project-1',
+        resourceId: 'resource-1',
+        usage,
+      }),
     };
     const members = {
       findOne: jest
@@ -87,7 +96,7 @@ describe('ProcessChangeProposalController remark permissions', () => {
       events as never,
       comments as never,
       {} as never,
-      {} as never,
+      projectProcesses as never,
       members as never,
       {} as never,
     );
@@ -162,6 +171,23 @@ describe('ProcessChangeProposalController remark permissions', () => {
 
   it('does not allow a viewer to decide a remark', async () => {
     const { controller } = makeController({ role: ProjectMemberRole.Viewer });
+    await expect(
+      controller.decideProposalComment(
+        proposalId,
+        commentId,
+        { decision: 'accepted' },
+        { 'x-user': actorUsername },
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('does not allow the project workflow to process a common process', async () => {
+    const { controller } = makeController(
+      { role: ProjectMemberRole.Admin },
+      false,
+      authorUserId,
+      ProjectProcessUsage.Common,
+    );
     await expect(
       controller.decideProposalComment(
         proposalId,
