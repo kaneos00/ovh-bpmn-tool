@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, Button, Input, List, Option, Select, Sheet, Stack, Typography } from '@mui/joy';
 import { Search } from '@mui/icons-material';
+import { useActiveProject } from '../../../shared/hooks/useActiveProject';
 import { useQuery } from 'react-query';
 
 import { resourcesQuery } from '../../../api/resources/resources.queries';
@@ -205,12 +206,23 @@ export const WorkspaceNavigation = () => {
   const [deepSearchLoading, setDeepSearchLoading] = useState(false);
   const searchRef = useRef<HTMLInputElement | null>(null);
   const resources = useQuery<Resource[]>(resourcesQuery());
+  const { projects, activeProjectId, setActiveProject, projectProcessIds, isLoading: projectsLoading } = useActiveProject();
 
   const resourceResults = useMemo(() => {
     const term = search.trim().toLocaleLowerCase('fr');
     if (!term || (scope !== 'all' && scope !== 'processes')) return [];
-    return (resources.data ?? [])
-      .filter(resource =>
+    const allResources = resources.data ?? [];
+    const allowedIds = new Set(projectProcessIds);
+    const byId = new Map(allResources.map(resource => [resource.id, resource]));
+    projectProcessIds.forEach(id => {
+      let current = byId.get(id);
+      while (current?.parentId) {
+        allowedIds.add(current.parentId);
+        current = byId.get(current.parentId);
+      }
+    });
+    return allResources
+      .filter(resource => allowedIds.has(resource.id) &&
         (resource.type === ResourceType.Process || resource.type === ResourceType.Folder) &&
         (matchesTerm(resource.name, term) || matchesTerm(resource.description ?? '', term)),
       )
@@ -225,7 +237,7 @@ export const WorkspaceNavigation = () => {
         description: resource.description || undefined,
         similarity: similarityFor(`${resource.name} ${resource.description ?? ''}`, search),
       }));
-  }, [resources.data, search, scope]);
+  }, [resources.data, search, scope, projectProcessIds]);
 
   useEffect(() => {
     const term = search.trim().toLocaleLowerCase('fr');
@@ -238,7 +250,7 @@ export const WorkspaceNavigation = () => {
     let cancelled = false;
     const timer = window.setTimeout(async () => {
       setDeepSearchLoading(true);
-      const processes = resources.data!.filter(resource => resource.type === ResourceType.Process);
+      const processes = resources.data!.filter(resource => resource.type === ResourceType.Process && projectProcessIds.has(resource.id));
       const found: SearchResult[] = [];
 
       await Promise.all(processes.map(async process => {
@@ -437,7 +449,7 @@ export const WorkspaceNavigation = () => {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [search, scope, resources.data]);
+  }, [search, scope, resources.data, projectProcessIds]);
 
   const results = useMemo(() => {
     const combined = scope === 'all' || scope === 'processes' ? [...resourceResults, ...deepResults] : deepResults;
@@ -484,6 +496,7 @@ export const WorkspaceNavigation = () => {
     const type = typeByScope[scope];
     if (type) params.set('types', type);
     setSearchOpen(false);
+    if (activeProjectId) params.set('projectId', activeProjectId);
     navigate(`/search?${params.toString()}`);
   };
 
@@ -538,6 +551,26 @@ export const WorkspaceNavigation = () => {
             </Typography>
           </Box>
         </Stack>
+
+        <Select<string>
+          size="sm"
+          value={activeProjectId ?? ''}
+          onChange={(_, value) => {
+            if (value === undefined) return;
+            setActiveProject(value || null);
+            setSearch('');
+            setDeepResults([]);
+            setSearchOpen(false);
+            navigate('/root');
+          }}
+          disabled={projectsLoading || projects.length === 0}
+          aria-label="Projet actif"
+          placeholder="Choisir un projet"
+          sx={{ minWidth: 180, maxWidth: 240, bgcolor: '#263e59', color: '#fff', borderColor: '#40556d', '&:hover': { bgcolor: '#2b4664' } }}
+        >
+          <Option value="">Choisir un projet…</Option>
+          {projects.map(project => <Option key={project.id} value={project.id}>{project.name}</Option>)}
+        </Select>
 
         <Box sx={{ position: 'relative', flex: 1, minWidth: 220, maxWidth: 620 }}>
           <Stack direction="row" spacing={0.75} alignItems="center">
