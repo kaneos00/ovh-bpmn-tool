@@ -130,11 +130,12 @@ const ProcessContentViewer = () => {
   // The selected project in the route is the Viewer context. A non-shared
   // process has one project and can retain the legacy direct-entry behavior.
   // A common process linked to several projects must never guess a context.
-  const associatedProject = routeProjectId
-    ? processProjects.find(project => project.id === routeProjectId)
-    : processProjects.length === 1
-      ? processProjects[0]
-      : undefined;
+  const associatedProject = (() => {
+    if (routeProjectId) {
+      return processProjects.find(project => project.id === routeProjectId);
+    }
+    return processProjects.length === 1 ? processProjects[0] : undefined;
+  })();
   const requiresProjectSelection =
     !routeProjectId && processProjects.length > 1;
   const currentProjectProcess = associatedProject?.processes.find(
@@ -461,7 +462,7 @@ const ProcessContentViewer = () => {
                 </Alert>
               )}
               {isCommonProcess && (
-                <Alert color="info" variant="soft" sx={{ py: 0.5 }}>
+                <Alert color="primary" variant="soft" sx={{ py: 0.5 }}>
                   Ce processus est Commun : vous pouvez déposer des remarques.
                   Elles seront regroupées pour qu’un utilisateur habilité puisse
                   préparer et publier une nouvelle version du même processus,
