@@ -349,7 +349,13 @@ export class ProjectController {
   @UseAcl([UserGroup.Admin])
   async updateOrganizationProject(
     @Param('projectId') projectId: string,
-    @Body() body: { name?: string; description?: string; color?: string; icon?: string },
+    @Body()
+    body: {
+      name?: string;
+      description?: string;
+      color?: string;
+      icon?: string;
+    },
   ) {
     const project = await this.assertProjectExists(projectId);
 
@@ -413,7 +419,13 @@ export class ProjectController {
   @UseAcl([UserGroup.RW])
   async updateProject(
     @Param('projectId') projectId: string,
-    @Body() body: { name?: string; description?: string; color?: string; icon?: string },
+    @Body()
+    body: {
+      name?: string;
+      description?: string;
+      color?: string;
+      icon?: string;
+    },
     @Headers() headers: RequestHeaders,
   ) {
     await this.assertProjectRole(projectId, headers, ProjectMemberRole.Admin);
@@ -431,8 +443,12 @@ export class ProjectController {
     if (body.description !== undefined) {
       project.description = body.description.trim() || null;
     }
-    if (body.color !== undefined) project.color = this.validateProjectColor(body.color);
-    if (body.icon !== undefined) project.icon = this.validateProjectIcon(body.icon);
+    if (body.color !== undefined) {
+      project.color = this.validateProjectColor(body.color);
+    }
+    if (body.icon !== undefined) {
+      project.icon = this.validateProjectIcon(body.icon);
+    }
 
     try {
       return await this.projects.save(project);
