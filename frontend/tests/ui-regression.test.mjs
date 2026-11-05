@@ -167,7 +167,8 @@ test('breadcrumb ancestry shares the tree resource snapshot and detects broken p
   assert.ok(folders.includes('inspectFolderHierarchy'));
   assert.ok(breadcrumbs.includes('useFolderTree(resourceId)'));
   assert.ok(breadcrumbs.includes('const treePath = findPath(dataTree)'));
-  assert.ok(breadcrumbs.includes('to: node.id === \'root\' ? \'/root\' : `/${node.targetId ?? node.id}`'));
+  assert.ok(breadcrumbs.includes("treePath.filter(node => node.id !== 'root').map(node => ({"));
+  assert.ok(breadcrumbs.includes('to: `/${node.targetId ?? node.id}`'));
   assert.ok(breadcrumbs.includes("resource.parentId ?? 'root'"), 'keep a fallback for resources missing from the tree');
   assert.ok(hierarchy.includes("code: 'missing-parent'"));
   assert.ok(hierarchy.includes("code: 'cycle'"));
@@ -730,22 +731,22 @@ test('project administrators can configure the project color and pictogram', asy
 });
 
 
-test('workspace home dashboard and project-aware breadcrumbs are available', async () => {
+test('the root workspace replaces the former home dashboard and project viewer page', async () => {
   const routes = await read('src/routes.tsx');
-  const home = await read('src/Containers/Home/Home.container.tsx');
   const breadcrumbs = await read('src/Containers/BpmnLayout/hooks/useBpmnLayoutBreadcrumbs.ts');
-  const breadcrumbComponent = await read('src/Components/GenericComponents/Breadcrumbs/Breadcrumbs.tsx');
   const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+  const overview = await read('src/Containers/BpmnLayout/FolderOverview.tsx');
+  const legacyRedirect = await read('src/Containers/ProjectWorkspaceRedirect/index.tsx');
 
-  assert.match(routes, /path: '\/home'[\s\S]*?import\('\.\/Containers\/Home'\)/);
+  assert.match(routes, /path: '\/home'\s*,\s*loader: \(\) => redirect\('\/root'\)/);
+  assert.match(routes, /path: '\/projects\/:projectId\/viewer'[\s\S]*?ProjectWorkspaceRedirect/);
   assert.match(routes, /path: '\/projects'[\s\S]*?import\('\.\/Containers\/Projects'\)/);
   assert.match(routes, /path: '\/projects\/:projectId'[\s\S]*?import\('\.\/Containers\/Projects'\)/);
-  assert.match(home, /projects\.flatMap\(project => project\.processes\)/);
-  assert.match(home, /Projets accessibles/);
-  assert.match(home, /Paramètres et couleur/);
-  assert.match(home, /setActiveProject\(projectId\)/);
-  assert.match(breadcrumbs, /id: 'home', label: 'Accueil', to: '\/home'/);
+  assert.match(overview, /ProjectProcessOverview/);
+  assert.match(overview, /activeProject\.description/);
+  assert.match(legacyRedirect, /setActiveProject\(projectId\)/);
   assert.match(breadcrumbs, /label: activeProject\.name/);
-  assert.match(breadcrumbComponent, /breadcrumbItem\.id === 'home' \? <Home \/>/);
-  assert.match(navigation, /label: 'Accueil'[\s\S]*?path: '\/home'/);
+  assert.doesNotMatch(breadcrumbs, /id: 'home'/);
+  assert.doesNotMatch(breadcrumbs, /label: 'Référentiel'/);
+  assert.match(navigation, /label: 'Accueil'[\s\S]*?path: '\/root'/);
 });
