@@ -365,7 +365,9 @@ export const Component = () => {
             <header className="org-admin-v2__topbar">
               <div>
                 <div className="org-admin-v2__crumb" aria-label="Fil d’Ariane">
-                  <Button size="sm" variant="plain" color="neutral" sx={{ p: 0, minHeight: 'unset' }} onClick={() => navigate('/organization/users')}>Administration / Utilisateurs</Button>
+                  <Button size="sm" variant="plain" color="neutral" sx={{ p: 0, minHeight: 'unset' }} onClick={() => navigate('/organization/overview')}>Administration</Button>
+                  <span>/</span>
+                  <Button size="sm" variant="plain" color="neutral" sx={{ p: 0, minHeight: 'unset' }} onClick={() => navigate('/organization/users')}>Utilisateurs</Button>
                   {username && <> / {selectedAccount?.username ?? username}</>}
                 </div>
                 <div className="org-admin-v2__top-title">{username ? 'Fiche utilisateur' : 'Administration des utilisateurs'}</div>
