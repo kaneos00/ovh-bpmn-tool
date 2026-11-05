@@ -124,8 +124,8 @@ export const Component = () => {
           <>
             <WorkspaceNavigation />
                           <Header
-                            title={resource.name}
-                            description={resource.description}
+                            title={isRoot(resourceId) && activeProject ? activeProject.name : resource.name}
+                            description={isRoot(resourceId) && activeProject ? (activeProject.description ?? '') : resource.description}
                             breadcrumbs={getBreadCrumbs()}
                             actions={
                               <Stack direction="row" spacing={1} alignItems="center">
