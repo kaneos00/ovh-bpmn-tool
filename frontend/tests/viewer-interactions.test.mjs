@@ -434,3 +434,15 @@ test('global and full search share yellow highlighting and direct BPMN element n
   assert.match(fullSearch, /if \(result\.elementId\) params\.set\('elementId', result\.elementId\)/);
   assert.match(routeState, /requestedElementId: searchParams\.get\('elementId'\)/);
 });
+
+
+test('explorer actions use an accessible three-dot menu and project roles', async () => {
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+
+  assert.doesNotMatch(tree, /onContextMenu/);
+  assert.match(tree, /folder-tree-actions/);
+  assert.match(tree, /<MoreVert fontSize="small" \/>/);
+  assert.match(tree, /setContextMenu\(\{ nodeId, anchorEl: event\.currentTarget \}\)/);
+  assert.match(tree, /projects\/me\/workspace/);
+  assert.match(tree, /projectModelerResourceIds\.includes\(resourceId\)/);
+});
