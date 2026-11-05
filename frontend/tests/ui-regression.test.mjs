@@ -250,21 +250,24 @@ test('deployed frontend exposes a build identifier with a source-derived fallbac
   assert.ok(compose.includes('VITE_BUILD_BRANCH: ${VITE_BUILD_BRANCH:-${SOURCE_BRANCH:-unknown}}'));
 });
 
-test('V3 viewer context menu exposes role-appropriate resource management actions', async () => {
+test('V3 viewer three-dot menu exposes role-appropriate resource management actions', async () => {
   const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
   const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
   const menuStart = tree.indexOf('<Menu\n      open={Boolean(contextMenu)}');
   const menu = tree.slice(menuStart);
 
-  assert.ok(tree.includes('onContextMenu={event =>'));
-  assert.ok(tree.includes('setContextMenu({ nodeId, anchorEl: event.currentTarget as HTMLElement })'));
+  assert.ok(!tree.includes('onContextMenu'), 'right-click handling is replaced by the explicit menu button');
+  assert.ok(tree.includes('folder-tree-actions'));
+  assert.ok(tree.includes('setContextMenu({ nodeId, anchorEl: event.currentTarget })'));
+  assert.ok(tree.includes('projects/me/workspace'));
+  assert.ok(tree.includes('projectModelerResourceIds.includes(resourceId)'));
   assert.ok(tree.includes("borderRadius: '12px'"));
   assert.ok(tree.includes('boxShadow:'));
   assert.ok(tree.includes('background.level1'));
   assert.ok(!menu.includes('Ajouter aux favoris'));
   assert.ok(!menu.includes('Retirer des favoris'));
   assert.ok(tree.includes("sessionRole === 'admin' || sessionRole === 'modeler'"));
-  assert.ok(tree.includes('isBpmn && canModifyBpmn'));
+  assert.ok(tree.includes('isBpmn && canModifyBpmn(resourceId)'));
   assert.ok(tree.includes('navigate(`/${resourceId}/modeler`)'));
   assert.ok(tree.includes('Modifier dans le modeleur'));
   assert.ok(tree.includes('Partager'));
