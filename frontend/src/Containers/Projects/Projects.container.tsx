@@ -164,6 +164,7 @@ export const Component = () => {
         setSelectedProcessId(null);
         setError(null);
         await queryClient.invalidateQueries(projectProcessesKey(projectId ?? ''));
+        await queryClient.invalidateQueries(['my-workspace']);
       },
       onError: (mutationError: Error) => setError(mutationError.message),
     },
@@ -174,6 +175,7 @@ export const Component = () => {
     {
       onSuccess: async () => {
         await queryClient.invalidateQueries(projectProcessesKey(projectId ?? ''));
+        await queryClient.invalidateQueries(['my-workspace']);
       },
       onError: (mutationError: Error) => setError(mutationError.message),
     },
