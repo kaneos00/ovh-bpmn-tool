@@ -64,11 +64,13 @@ export const Component = () => {
 
         <Box>
           <Typography level="title-lg" sx={{ mb: 1.25 }}>Vue d’ensemble</Typography>
-          {isLoading ? (
+          {isLoading && (
             <Typography level="body-sm" color="neutral">Chargement de vos projets…</Typography>
-          ) : isError ? (
+          )}
+          {isError && (
             <Alert color="danger">Impossible de charger votre espace de travail. Réessayez dans quelques instants.</Alert>
-          ) : (
+          )}
+          {!isLoading && !isError && (
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' }, gap: 1.25 }}>
               {[
                 { label: 'Projets accessibles', value: summary.projects },
