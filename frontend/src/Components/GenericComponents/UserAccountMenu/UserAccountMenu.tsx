@@ -11,7 +11,7 @@ import {
   Switch,
 } from '@mui/joy';
 import { useColorScheme } from '@mui/joy/styles';
-import { AdminPanelSettingsOutlined, AssignmentOutlined, DarkModeOutlined, LightModeOutlined, LogoutOutlined, PersonOutline } from '@mui/icons-material';
+import { AdminPanelSettingsOutlined, DarkModeOutlined, LightModeOutlined, LogoutOutlined, PersonOutline } from '@mui/icons-material';
 
 const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
 
@@ -134,10 +134,6 @@ export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
             <Typography level="title-sm">{username}</Typography>
             {session?.email && <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>{session.email}</Typography>}
           </Box>
-        </MenuItem>
-        <MenuItem onClick={() => navigate('/mes-demandes')}>
-          <AssignmentOutlined fontSize="small" />
-          Mes demandes de modification
         </MenuItem>
         <MenuItem onClick={toggleTheme} sx={{ justifyContent: 'space-between', gap: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
