@@ -523,7 +523,7 @@ const ProcessContentViewer = () => {
             {proposalError}
           </Alert>
         )}
-        {remarkPermissionError && routeProjectId && (
+        {Boolean(remarkPermissionError) && routeProjectId && (
           <Alert color="danger" variant="soft" sx={{ mx: 2, mt: 1 }}>
             Impossible de vérifier le droit de dépôt pour ce processus dans le projet sélectionné.
             Le bouton de remarque reste masqué tant que cette vérification échoue.
