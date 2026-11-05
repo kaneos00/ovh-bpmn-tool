@@ -28,6 +28,7 @@ import { ProjectRaciPanel } from '../../Components/BusinessComponents/ProjectRac
 import { ProjectRaciManager } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciManager';
 import { ProjectProcessHierarchy } from './ProjectProcessHierarchy';
 import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
+import { useActiveProject } from '../../shared/hooks/useActiveProject';
 
 type Project = {
   id: string;
@@ -82,6 +83,7 @@ const PROCESS_USAGE_LABELS: Record<ProjectProcessLink['usage'], string> = {
 
 export const Component = () => {
   const { projectId } = useParams<{ projectId: string }>();
+  const { setActiveProject } = useActiveProject();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -465,7 +467,7 @@ export const Component = () => {
                   </Typography>
                 </Box>
                 <Stack direction="row" spacing={1}>
-                  {link.resource && <Button variant="soft" onClick={() => navigate(`/${link.resourceId}`)}>Ouvrir</Button>}
+                  {link.resource && <Button variant="soft" onClick={() => { if (projectId) setActiveProject(projectId); navigate(`/${link.resourceId}`); }}>Ouvrir</Button>}
                   {link.usage === 'common' && (
                     <Button
                       variant="solid"
@@ -499,7 +501,7 @@ export const Component = () => {
             <ProjectRaciManager
               projectId={projectId}
               onActivityClick={(targetResourceId, elementId) =>
-                navigate(`/${targetResourceId}?elementId=${encodeURIComponent(elementId)}`)
+                (projectId && setActiveProject(projectId), navigate(`/${targetResourceId}?elementId=${encodeURIComponent(elementId)}`))
               }
             />
           </Card>
