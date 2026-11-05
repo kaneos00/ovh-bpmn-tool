@@ -552,9 +552,10 @@ export const WorkspaceNavigation = () => {
           </Box>
         </Stack>
 
-        <Select<string | null>
+        <Select<string>
           size="sm"
-          value={activeProjectId}
+          value={activeProjectId ?? undefined}
+          placeholder="Choisir un projet…"
           onChange={(_, value) => {
             if (!value) return;
             setActiveProject(value);
