@@ -133,33 +133,6 @@ const ProcessContentViewer = () => {
     project => project.role === 'modeler' || project.role === 'admin',
   );
 
-  const startChangeProposal = async () => {
-    if (!proposalProject || startingProposal || activeProposalLoading) return;
-    setStartingProposal(true);
-    setProposalError(null);
-    try {
-      // Reuse the existing open proposal. Creating a second one for the same
-      // published version is intentionally rejected by the backend.
-      const proposal =
-        activeProposal ??
-        (await apiClient.post(
-          `/projects/${proposalProject.id}/processes/${resourceId}/change-proposals`,
-          {},
-        ));
-      navigate(
-        `/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}`,
-      );
-    } catch (error) {
-      setProposalError(
-        error instanceof Error
-          ? error.message
-          : 'Impossible d’ouvrir la demande de modification.',
-      );
-    } finally {
-      setStartingProposal(false);
-    }
-  };
-
   const { data: contents = [] } = useQuery(contentsQuery(resourceId));
   const { data: xmlContent } = useQuery(
     getXmlContentQuery(resourceId, contentId),
@@ -187,6 +160,33 @@ const ProcessContentViewer = () => {
       ),
     { enabled: Boolean(proposalProject?.id) },
   );
+  const startChangeProposal = async () => {
+    if (!proposalProject || startingProposal || activeProposalLoading) return;
+    setStartingProposal(true);
+    setProposalError(null);
+    try {
+      // Reuse the existing open proposal. Creating a second one for the same
+      // published version is intentionally rejected by the backend.
+      const proposal =
+        activeProposal ??
+        (await apiClient.post(
+          `/projects/${proposalProject.id}/processes/${resourceId}/change-proposals`,
+          {},
+        ));
+      navigate(
+        `/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}`,
+      );
+    } catch (error) {
+      setProposalError(
+        error instanceof Error
+          ? error.message
+          : 'Impossible d’ouvrir la demande de modification.',
+      );
+    } finally {
+      setStartingProposal(false);
+    }
+  };
+
   type ProposalRemark = {
     id: string;
     elementId: string;
