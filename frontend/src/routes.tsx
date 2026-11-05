@@ -36,10 +36,6 @@ export const routes = [
         lazy: () => import('./Containers/SearchResults'),
       },
       {
-        path: '/mes-demandes',
-        lazy: () => import('./Containers/MyProcessChangeProposals/MyProcessChangeProposals.container'),
-      },
-      {
         path: '/projects',
         lazy: () => import('./Containers/Projects'),
       },
@@ -84,10 +80,6 @@ export const routes = [
         // inside BpmnLayout would also render the process workspace behind it.
         path: '/:resourceId/compare/:leftContentId/:rightContentId',
         lazy: () => import('./Containers/ContentCompare'),
-      },
-      {
-        path: '/projects/:projectId/viewer/:resourceId/:contentId',
-        lazy: () => import('./Containers/ContentViewer'),
       },
       {
         path: '/projects/:projectId/viewer',
