@@ -4,6 +4,11 @@ import { useMutation, useQuery, useQueryClient } from 'react-query';
 import {
   Alert,
   Box,
+  Checkbox,
+  Dropdown,
+  Menu,
+  MenuButton,
+  MenuItem,
   Button,
   Card,
   Chip,
@@ -165,6 +170,15 @@ export const Component = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [confirmProjectDelete, setConfirmProjectDelete] = useState(false);
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
+  const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
+  const [selectedProcessIds, setSelectedProcessIds] = useState<string[]>([]);
+  const [projectBulkAction, setProjectBulkAction] = useState(false);
+  const [processBulkAction, setProcessBulkAction] = useState(false);
+  const [bulkMemberUserId, setBulkMemberUserId] = useState('');
+  const [bulkMemberRole, setBulkMemberRole] = useState<MembershipView['role']>('viewer');
+  const [bulkProcessProjectId, setBulkProcessProjectId] = useState('');
+  const [bulkProcessUsage, setBulkProcessUsage] = useState<'common' | 'project-specific'>('project-specific');
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [projectNameDraft, setProjectNameDraft] = useState('');
   const [projectDescriptionDraft, setProjectDescriptionDraft] = useState('');
   const [newProjectName, setNewProjectName] = useState('');
@@ -306,6 +320,56 @@ export const Component = () => {
   const selectedUser = overview?.users.find((user) => user.userId === selectedUserId);
   const selectedProject = overview?.projects.find((project) => project.id === selectedProjectId);
   const selectedProcess = overview?.processes.find((process) => process.id === selectedProcessId);
+  const selectedProjects = projects.filter(project => selectedProjectIds.includes(project.id));
+  const selectedProcesses = processes.filter(process => selectedProcessIds.includes(process.id));
+  const allVisibleProjectsSelected = projects.length > 0 && projects.every(project => selectedProjectIds.includes(project.id));
+  const allVisibleProcessesSelected = processes.length > 0 && processes.every(process => selectedProcessIds.includes(process.id));
+
+  const applyBulkProjectMember = async () => {
+    if (!bulkMemberUserId.trim() || !selectedProjects.length) return;
+    setBulkBusy(true);
+    setActionError(null);
+    try {
+      await Promise.all(selectedProjects.map(project => apiClient.put(
+        `/projects/administration/projects/${project.id}/members/${encodeURIComponent(bulkMemberUserId.trim())}`,
+        { role: bulkMemberRole },
+      )));
+      await queryClient.invalidateQueries(queryKey);
+      setSelectedProjectIds([]);
+      setProjectBulkAction(false);
+      setBulkMemberUserId('');
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Impossible d’affecter cet utilisateur aux projets sélectionnés.');
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const applyBulkProcessLink = async () => {
+    if (!bulkProcessProjectId || !selectedProcesses.length) return;
+    const eligible = selectedProcesses.filter(process => !process.projects.some(project => project.projectId === bulkProcessProjectId));
+    if (!eligible.length) {
+      setActionError('Tous les processus sélectionnés sont déjà associés à ce projet.');
+      setProcessBulkAction(false);
+      return;
+    }
+    setBulkBusy(true);
+    setActionError(null);
+    try {
+      await Promise.all(eligible.map(process => apiClient.post(
+        `/projects/${bulkProcessProjectId}/processes`,
+        { resourceId: process.id, usage: bulkProcessUsage },
+      )));
+      await queryClient.invalidateQueries(queryKey);
+      setSelectedProcessIds([]);
+      setProcessBulkAction(false);
+      setBulkProcessProjectId('');
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Impossible d’associer les processus sélectionnés.');
+    } finally {
+      setBulkBusy(false);
+    }
+  };
 
   const title = sections.find((item) => item.key === activeSection)?.label ?? 'Vue d’ensemble';
   const isDataSection = activeSection === 'users' || activeSection === 'projects' || activeSection === 'processes';
@@ -402,8 +466,8 @@ export const Component = () => {
                     <div><div className="org-admin-v2__eyebrow">{sectionEyebrow[activeSection]}</div><Typography id="org-section-title" level="h1">{title}</Typography><Typography level="body-md" sx={{ color: 'text.secondary', maxWidth: 700, mt: 0.5 }}>{sectionDescription[activeSection]}</Typography></div>
                     <div className="org-admin-v2__actions">
                       {activeSection === 'users' && <><Button variant="outlined" onClick={() => exportCsv('utilisateurs-khi-flows.csv', [['Identifiant', 'Projet', 'Rôle'], ...users.flatMap((user) => user.projects.map((project) => [user.userId, project.projectName, roleLabel[project.role]]))])}>Exporter la vue</Button><Button onClick={() => document.getElementById('org-add-access')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>＋ Ajouter un accès</Button></>}
-                      {activeSection === 'projects' && <><Button variant="outlined" onClick={() => exportCsv('projets-khi-flows.csv', [['Projet', 'Description', 'Membres', 'Processus communs', 'Spécifiques', 'Variantes'], ...projects.map((project) => [project.name, project.description ?? '', project.membersCount, project.processes.filter((process) => process.usage === 'common').length, project.processes.filter((process) => process.usage === 'project-specific').length, project.processes.filter((process) => process.usage === 'variant').length])])}>Exporter la vue</Button><Button onClick={() => document.getElementById('org-create-project')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>＋ Créer un projet</Button></>}
-                      {activeSection === 'processes' && <><Button variant="outlined" onClick={() => exportCsv('processus-khi-flows.csv', [['Processus', 'Description', 'Projet', 'Usage', 'Source'], ...processes.flatMap((process) => process.projects.length ? process.projects.map((project) => [process.name, process.description ?? '', project.projectName, usageLabel[project.usage], project.sourceResourceId ?? '']) : [[process.name, process.description ?? '', '', 'Non associé', '']])])}>Exporter la vue</Button><Button onClick={() => navigate('/root')}>＋ Créer dans le référentiel</Button></>}
+                      {activeSection === 'projects' && <><Dropdown><MenuButton size="sm" variant="outlined" color="neutral" disabled={selectedProjects.length === 0}>☰ Actions groupées ({selectedProjects.length})</MenuButton><Menu placement="bottom-end"><MenuItem onClick={() => setProjectBulkAction(true)}>Affecter un utilisateur aux projets sélectionnés…</MenuItem><MenuItem onClick={() => setSelectedProjectIds([])}>Effacer la sélection</MenuItem></Menu></Dropdown><Button variant="outlined" onClick={() => exportCsv('projets-khi-flows.csv', [['Projet', 'Description', 'Membres', 'Processus communs', 'Spécifiques', 'Variantes'], ...projects.map((project) => [project.name, project.description ?? '', project.membersCount, project.processes.filter((process) => process.usage === 'common').length, project.processes.filter((process) => process.usage === 'project-specific').length, project.processes.filter((process) => process.usage === 'variant').length])])}>Exporter la vue</Button><Button onClick={() => document.getElementById('org-create-project')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>＋ Créer un projet</Button></>}
+                      {activeSection === 'processes' && <><Dropdown><MenuButton size="sm" variant="outlined" color="neutral" disabled={selectedProcesses.length === 0}>☰ Actions groupées ({selectedProcesses.length})</MenuButton><Menu placement="bottom-end"><MenuItem onClick={() => setProcessBulkAction(true)}>Associer les processus à un projet…</MenuItem><MenuItem onClick={() => setSelectedProcessIds([])}>Effacer la sélection</MenuItem></Menu></Dropdown><Button variant="outlined" onClick={() => exportCsv('processus-khi-flows.csv', [['Processus', 'Description', 'Projet', 'Usage', 'Source'], ...processes.flatMap((process) => process.projects.length ? process.projects.map((project) => [process.name, process.description ?? '', project.projectName, usageLabel[project.usage], project.sourceResourceId ?? '']) : [[process.name, process.description ?? '', '', 'Non associé', '']])])}>Exporter la vue</Button><Button onClick={() => navigate('/root')}>＋ Créer dans le référentiel</Button></>}
                     </div>
                   </div>
                   {activeSection === 'users' && <Alert color="neutral" variant="soft" sx={{ mb: 2 }}>Les rôles affichés sont des rôles de projet. Les identifiants proviennent des adhésions enregistrées ; les comptes sans adhésion ne sont pas encore fournis par un annuaire d’identité global.</Alert>}
@@ -419,6 +483,27 @@ export const Component = () => {
                       <FormControl sx={{ minWidth: 190 }}><FormLabel>Projet utilisateur</FormLabel><Select value={processProjectFilter} onChange={(_event, value) => setProcessProjectFilter(value ?? 'all')}><Option value="all">Tous les projets</Option>{(overview?.projects ?? []).map((project) => <Option key={project.id} value={project.id}>{project.name}</Option>)}</Select></FormControl>
                     </>}
                   </div>
+                  {activeSection === 'projects' && projectBulkAction && (
+                    <Alert color="primary" variant="soft" sx={{ mb: 2 }}>
+                      <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'flex-end' }} gap={1}>
+                        <FormControl sx={{ flex: 1 }}><FormLabel>Identifiant utilisateur</FormLabel><Input value={bulkMemberUserId} onChange={event => setBulkMemberUserId(event.target.value)} placeholder="Identifiant exact" /></FormControl>
+                        <FormControl sx={{ minWidth: 180 }}><FormLabel>Rôle dans les projets</FormLabel><Select value={bulkMemberRole} onChange={(_event, value) => value && setBulkMemberRole(value as MembershipView['role'])}><Option value="viewer">Viewer</Option><Option value="modeler">Modeler</Option><Option value="admin">Admin</Option></Select></FormControl>
+                        <Button disabled={!bulkMemberUserId.trim() || bulkBusy} loading={bulkBusy} onClick={() => void applyBulkProjectMember()}>Affecter à {selectedProjects.length} projet(s)</Button>
+                        <Button variant="plain" color="neutral" onClick={() => setProjectBulkAction(false)}>Annuler</Button>
+                      </Stack>
+                    </Alert>
+                  )}
+                  {activeSection === 'processes' && processBulkAction && (
+                    <Alert color="primary" variant="soft" sx={{ mb: 2 }}>
+                      <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'flex-end' }} gap={1}>
+                        <FormControl sx={{ flex: 1 }}><FormLabel>Projet cible</FormLabel><Select value={bulkProcessProjectId || null} placeholder="Choisir un projet" onChange={(_event, value) => setBulkProcessProjectId(value ?? '')}>{(overview?.projects ?? []).map(project => <Option key={project.id} value={project.id}>{project.name}</Option>)}</Select></FormControl>
+                        <FormControl sx={{ minWidth: 190 }}><FormLabel>Type d’association</FormLabel><Select value={bulkProcessUsage} onChange={(_event, value) => value && setBulkProcessUsage(value as typeof bulkProcessUsage)}><Option value="project-specific">Spécifique au projet</Option><Option value="common">Commun</Option></Select></FormControl>
+                        <Button disabled={!bulkProcessProjectId || bulkBusy} loading={bulkBusy} onClick={() => void applyBulkProcessLink()}>Associer {selectedProcesses.length} processus</Button>
+                        <Button variant="plain" color="neutral" onClick={() => setProcessBulkAction(false)}>Annuler</Button>
+                      </Stack>
+                      <Typography level="body-xs" sx={{ mt: 1 }}>Les droits de gestion du projet et les règles d’association restent contrôlés par l’API.</Typography>
+                    </Alert>
+                  )}
                 </section>
               )}
 
@@ -667,11 +752,12 @@ export const Component = () => {
           <Card variant="outlined" sx={{ p: 0, overflow: 'auto' }}>
             <Table hoverRow stickyHeader>
               <thead>
-                <tr><th>Projet</th><th>Description</th><th>Membres</th><th>Processus communs</th><th>Spécifiques</th><th>Variantes</th><th>Gestion</th></tr>
+                <tr><th><Checkbox checked={allVisibleProjectsSelected} indeterminate={selectedProjectIds.length > 0 && !allVisibleProjectsSelected} onChange={event => setSelectedProjectIds(event.target.checked ? projects.map(project => project.id) : [])} aria-label="Sélectionner tous les projets affichés" /></th><th>Projet</th><th>Description</th><th>Membres</th><th>Processus communs</th><th>Spécifiques</th><th>Variantes</th><th>Gestion</th></tr>
               </thead>
               <tbody>
                 {projects.map((project) => (
                   <tr key={project.id}>
+                    <td><Checkbox checked={selectedProjectIds.includes(project.id)} onChange={event => setSelectedProjectIds(current => event.target.checked ? [...new Set([...current, project.id])] : current.filter(id => id !== project.id))} aria-label={`Sélectionner le projet ${project.name}`} /></td>
                     <td><Typography level="title-sm">{project.name}</Typography></td>
                     <td>{project.description || '—'}</td>
                     <td>{project.membersCount}</td>
@@ -681,7 +767,7 @@ export const Component = () => {
                     <td><Button size="sm" variant="outlined" onClick={() => { setSelectedProjectId(project.id); setConfirmProjectDelete(false); setProjectNameDraft(project.name); setProjectDescriptionDraft(project.description ?? ''); }}>Gérer</Button></td>
                   </tr>
                 ))}
-                {projects.length === 0 && <tr><td colSpan={7}>Aucun projet correspondant.</td></tr>}
+                {projects.length === 0 && <tr><td colSpan={8}>Aucun projet correspondant.</td></tr>}
               </tbody>
             </Table>
           </Card>
@@ -719,11 +805,12 @@ export const Component = () => {
           <Card variant="outlined" sx={{ p: 0, overflow: 'auto' }}>
             <Table hoverRow stickyHeader>
               <thead>
-                <tr><th>Processus</th><th>Type d’utilisation</th><th>Projets utilisateurs</th><th>Source</th><th>Ouvrir</th></tr>
+                <tr><th><Checkbox checked={allVisibleProcessesSelected} indeterminate={selectedProcessIds.length > 0 && !allVisibleProcessesSelected} onChange={event => setSelectedProcessIds(event.target.checked ? processes.map(process => process.id) : [])} aria-label="Sélectionner tous les processus affichés" /></th><th>Processus</th><th>Type d’utilisation</th><th>Projets utilisateurs</th><th>Source</th><th>Ouvrir</th></tr>
               </thead>
               <tbody>
                 {processes.map((process) => (
                   <tr key={process.id}>
+                    <td><Checkbox checked={selectedProcessIds.includes(process.id)} onChange={event => setSelectedProcessIds(current => event.target.checked ? [...new Set([...current, process.id])] : current.filter(id => id !== process.id))} aria-label={`Sélectionner le processus ${process.name}`} /></td>
                     <td><Typography level="title-sm">{process.name}</Typography>{process.description && <Typography level="body-xs" sx={{ color: 'text.secondary' }}>{process.description}</Typography>}</td>
                     <td>
                       <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">
@@ -744,7 +831,7 @@ export const Component = () => {
                     <td><Button size="sm" variant="outlined" onClick={() => setSelectedProcessId(process.id)}>Détails</Button></td>
                   </tr>
                 ))}
-                {processes.length === 0 && <tr><td colSpan={5}>Aucun processus correspondant.</td></tr>}
+                {processes.length === 0 && <tr><td colSpan={6}>Aucun processus correspondant.</td></tr>}
               </tbody>
             </Table>
           </Card>
