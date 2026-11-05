@@ -132,7 +132,7 @@ export const Component = () => {
     return () => { mounted = false; };
   }, []);
 
-  const runAction = async (fn: () => Promise<unknown>, success: string) => {
+  const runAction = async (fn: () => Promise<unknown>, success: string): Promise<boolean> => {
     setBusy(true);
     setError('');
     setNotice('');
@@ -140,8 +140,10 @@ export const Component = () => {
       await fn();
       await refresh();
       setNotice(success);
+      return true;
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Erreur');
+      return false;
     } finally {
       setBusy(false);
     }
@@ -198,17 +200,19 @@ export const Component = () => {
       setBulkAction(null);
       return;
     }
-    await runAction(
+    const succeeded = await runAction(
       () => Promise.all(targets.map(account => call(userPath(account.id), 'PATCH', { active }))),
       `${targets.length} compte(s) ${active ? 'activé(s)' : 'désactivé(s)'}.`,
     );
-    setSelectedAccountIds([]);
-    setBulkAction(null);
+    if (succeeded) {
+      setSelectedAccountIds([]);
+      setBulkAction(null);
+    }
   };
 
   const applyBulkProject = async () => {
     if (!bulkProjectId || !selectedAccounts.length) return;
-    await runAction(
+    const succeeded = await runAction(
       () => Promise.all(selectedAccounts.map(account => call(
         `/projects/administration/projects/${encodeURIComponent(bulkProjectId)}/members/${encodeURIComponent(account.username)}`,
         'PUT',
@@ -216,9 +220,11 @@ export const Component = () => {
       ))),
       `Accès au projet ajouté ou mis à jour pour ${selectedAccounts.length} compte(s).`,
     );
-    setSelectedAccountIds([]);
-    setBulkAction(null);
-    setBulkProjectId('');
+    if (succeeded) {
+      setSelectedAccountIds([]);
+      setBulkAction(null);
+      setBulkProjectId('');
+    }
   };
 
   const updateDraft = <K extends keyof AccountDraft>(field: K, value: AccountDraft[K]) => {
@@ -239,11 +245,17 @@ export const Component = () => {
         active: selectedDraft.active,
       }),
       'Compte utilisateur mis à jour.',
-    ).then(() => setDrafts((current) => {
-      const next = { ...current };
-      delete next[selectedAccount.id];
-      return next;
-    }));
+    ).then((saved) => {
+      if (!saved) return;
+      setDrafts((current) => {
+        const next = { ...current };
+        delete next[selectedAccount.id];
+        return next;
+      });
+      if (selectedDraft.username !== selectedAccount.username) {
+        navigate(`/organization/users/${encodeURIComponent(selectedDraft.username)}`, { replace: true });
+      }
+    });
   };
 
   const createAccount = async () => {
