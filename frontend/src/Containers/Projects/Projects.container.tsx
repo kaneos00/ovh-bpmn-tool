@@ -279,7 +279,7 @@ export const Component = () => {
 
   if (!projectId) {
     return (
-      <Sheet sx={{ width: '100%', maxWidth: 1440, boxSizing: 'border-box', mx: 'auto', p: { xs: 1, md: 2 }, bgcolor: 'transparent' }}>
+      <Sheet sx={{ width: '100%', maxWidth: 'none', boxSizing: 'border-box', mx: 'auto', p: 2, bgcolor: 'transparent' }}>
         <Stack spacing={2}>
           <WorkspaceNavigation />
           <Typography level="h2">Projets</Typography>
@@ -356,7 +356,7 @@ export const Component = () => {
 
   const project = projectQuery.data;
   return (
-    <Sheet sx={{ width: '100%', maxWidth: 1440, boxSizing: 'border-box', mx: 'auto', p: { xs: 1, md: 2 }, bgcolor: 'transparent' }}>
+    <Sheet sx={{ width: '100%', maxWidth: 'none', boxSizing: 'border-box', mx: 'auto', p: 2, bgcolor: 'transparent' }}>
       <Stack spacing={2}>
           <WorkspaceNavigation />
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} useFlexGap flexWrap="wrap" sx={{ alignItems: { sm: 'center' } }}>
