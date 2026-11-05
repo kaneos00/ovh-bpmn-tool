@@ -728,3 +728,24 @@ test('project administrators can configure the project color and pictogram', asy
   assert.match(admin, /color: projectColor, icon: projectIcon/);
   assert.match(admin, /canManageProjectIdentity/);
 });
+
+
+test('workspace home dashboard and project-aware breadcrumbs are available', async () => {
+  const routes = await read('src/routes.tsx');
+  const home = await read('src/Containers/Home/Home.container.tsx');
+  const breadcrumbs = await read('src/Containers/BpmnLayout/hooks/useBpmnLayoutBreadcrumbs.ts');
+  const breadcrumbComponent = await read('src/Components/GenericComponents/Breadcrumbs/Breadcrumbs.tsx');
+  const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+
+  assert.match(routes, /path: '\/home'[\s\S]*?import\('\.\/Containers\/Home'\)/);
+  assert.match(routes, /path: '\/projects'[\s\S]*?import\('\.\/Containers\/Projects'\)/);
+  assert.match(routes, /path: '\/projects\/:projectId'[\s\S]*?import\('\.\/Containers\/Projects'\)/);
+  assert.match(home, /projects\.flatMap\(project => project\.processes\)/);
+  assert.match(home, /Progetti accessibili/);
+  assert.match(home, /Paramètres et couleur/);
+  assert.match(home, /setActiveProject\(projectId\)/);
+  assert.match(breadcrumbs, /id: 'home', label: 'Accueil', to: '\/home'/);
+  assert.match(breadcrumbs, /label: activeProject\.name/);
+  assert.match(breadcrumbComponent, /breadcrumbItem\.id === 'home' \? <Home \/>/);
+  assert.match(navigation, /label: 'Accueil'[\s\S]*?path: '\/home'/);
+});
