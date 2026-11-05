@@ -387,6 +387,8 @@ export const Component = () => {
               <Chip size="sm" color="primary" variant="soft">Accès organisationnel</Chip>
             </header>
             <div className="org-admin-v2__content">
+              {error && <Alert color="danger" sx={{ mb: 2 }}>{error}</Alert>}
+              {notice && <Alert color="success" sx={{ mb: 2 }}>{notice}</Alert>}
               {!username && <>
               <div className="org-admin-v2__page-head">
                 <div>
@@ -400,9 +402,6 @@ export const Component = () => {
                   <Button onClick={() => setShowCreate((value) => !value)}>＋ Créer un compte</Button>
                 </div>
               </div>
-
-              {error && <Alert color="danger" sx={{ mb: 2 }}>{error}</Alert>}
-              {notice && <Alert color="success" sx={{ mb: 2 }}>{notice}</Alert>}
 
               {showCreate && (
                 <Card className="org-admin-v2__panel org-users__create" variant="outlined">
