@@ -18,13 +18,12 @@ import {
   Input,
   Option,
   Select,
-  Sheet,
   Stack,
   Table,
   Typography,
 } from '@mui/joy';
 import { apiClient } from '../../queryClient';
-import { WorkspacePageHeader } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
+import { WorkspacePageLayout } from '../../Components/GenericComponents/WorkspacePageLayout/WorkspacePageLayout';
 import './OrganizationAdmin.scss';
 
 type MembershipView = {
@@ -391,9 +390,8 @@ export const Component = () => {
   ).length;
 
   return (
-    <Sheet className="org-admin-v2__page" sx={{ width: '100%', maxWidth: 'none', boxSizing: 'border-box', p: 0, bgcolor: 'transparent' }}>
+    <WorkspacePageLayout className="org-admin-v2__page">
       <Stack spacing={2}>
-        <WorkspacePageHeader />
         <div className="org-admin-v2">
           <aside className="org-admin-v2__sidebar">
             <div className="org-admin-v2__brand">
@@ -899,7 +897,7 @@ export const Component = () => {
           </main>
         </div>
       </Stack>
-    </Sheet>
+    </WorkspacePageLayout>
   );
 };
 
