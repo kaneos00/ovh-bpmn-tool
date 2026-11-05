@@ -692,7 +692,7 @@ test('active project selector is selectable and carries project visual identity'
 
   assert.match(navigation, /<Select<string>/);
   assert.match(navigation, /value=\{activeProjectId \?\? undefined\}/);
-  assert.match(navigation, /value=\{activeProjectId \?\? undefined\}/);
+  assert.match(navigation, /placeholder="Choisir un projet…"/);
   assert.match(navigation, /setActiveProject\(value\)/);
   assert.match(navigation, /project\.color/);
   assert.match(activeProject, /color: string/);
