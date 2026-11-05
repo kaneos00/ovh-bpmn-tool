@@ -476,7 +476,8 @@ export class ProcessChangeProposalController {
         !isOrganizationAdmin &&
         (!authorMembership ||
           (isViewerRemark
-            ? ![
+            ? !authorMembership.canSubmitRemarks ||
+              ![
                 ProjectMemberRole.Viewer,
                 ProjectMemberRole.Modeler,
                 ProjectMemberRole.Admin,
@@ -1455,9 +1456,12 @@ export class ProcessChangeProposalController {
         .findOne({
           where: { projectId: lockedProposal.projectId, userId: actorUsername },
         });
-      if (!isOrganizationAdmin && !currentMembership) {
+      if (
+        !isOrganizationAdmin &&
+        (!currentMembership || !currentMembership.canSubmitRemarks)
+      ) {
         throw new ForbiddenException(
-          'L’accès au projet a été retiré ; la remarque ne peut pas être ajoutée',
+          'Le droit de déposer des remarques a été retiré ; la remarque ne peut pas être ajoutée',
         );
       }
       if (
