@@ -956,5 +956,8 @@ test('project members need an explicit project permission to submit contextual r
   );
   assert.ok(proposalController.includes('assertCanSubmitRemarks'));
   assert.ok(projectUi.includes('Peut déposer des remarques'));
+  assert.ok(contentViewer.includes('canSubmitViewerRemark'));
+  assert.ok(proposalController.includes('!authorMembership.canSubmitRemarks'));
+  assert.ok(proposalController.includes('!currentMembership.canSubmitRemarks'));
   assert.ok(migration.includes('ADD COLUMN IF NOT EXISTS "canSubmitRemarks"'));
 });

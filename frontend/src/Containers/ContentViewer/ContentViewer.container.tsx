@@ -63,6 +63,7 @@ import './ContentViewerContainer.scss';
 type WorkspaceProjectSummary = {
   id: string;
   role: 'viewer' | 'modeler' | 'admin';
+  canSubmitRemarks: boolean;
   processes: { resourceId: string }[];
 };
 type WorkspaceSummary = { projects: WorkspaceProjectSummary[] };
@@ -118,6 +119,7 @@ const ProcessContentViewer = () => {
   const associatedProject = workspace?.projects.find(project =>
     project.processes.some(process => process.resourceId === resourceId),
   );
+  const canSubmitViewerRemark = Boolean(associatedProject?.canSubmitRemarks);
   const proposalProject = workspace?.projects.find(
     project =>
       (project.role === 'modeler' || project.role === 'admin') &&
@@ -196,6 +198,7 @@ const ProcessContentViewer = () => {
   const submitViewerRemark = async () => {
     if (
       !associatedProject ||
+      !canSubmitViewerRemark ||
       !selectedActivityId ||
       !remarkText.trim() ||
       submittingRemark
@@ -395,7 +398,7 @@ const ProcessContentViewer = () => {
               flexWrap="wrap"
             >
               <Breadcrumbs breadcrumbItems={getBreadCrumbs()} />
-              {associatedProject && (
+              {associatedProject && canSubmitViewerRemark && (
                 <Button
                   size="sm"
                   variant="soft"
@@ -494,7 +497,10 @@ const ProcessContentViewer = () => {
               variant="solid"
               loading={submittingRemark}
               disabled={
-                !selectedActivityId || !remarkText.trim() || submittingRemark
+                !canSubmitViewerRemark ||
+                !selectedActivityId ||
+                !remarkText.trim() ||
+                submittingRemark
               }
               onClick={submitViewerRemark}
             >
