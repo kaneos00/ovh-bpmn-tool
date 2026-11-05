@@ -21,6 +21,10 @@ import { ProjectProcessOverview } from './ProjectProcessOverview';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import type { Resource } from '../../Types';
 
+const projectIconLabels: Record<string, string> = {
+  folder: '📁', briefcase: '💼', building: '🏢', workflow: '🔀', users: '👥', chart: '📊',
+};
+
 type FolderOverviewProps = {
   resource: Resource;
 };
@@ -100,8 +104,17 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
         <Card variant="outlined" sx={{ gap: 0.75 }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
             <Typography level="title-lg">{activeProject.name}</Typography>
-            {activeProject.role === 'admin' && !editingDescription && (
-              <IconButton
+            {activeProject.role === 'admin' && (
+              <Stack direction="row" spacing={0.75} alignItems="center">
+                <Button
+                  size="sm"
+                  variant="outlined"
+                  color="neutral"
+                  onClick={() => navigate('/projects/' + activeProjectId)}
+                >
+                  Paramètres du projet
+                </Button>
+                {!editingDescription && <IconButton
                 size="sm"
                 variant="plain"
                 color="neutral"
@@ -112,9 +125,10 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
                   setDescriptionError(null);
                   setEditingDescription(true);
                 }}
-              >
-                <EditRounded />
-              </IconButton>
+                >
+                  <EditRounded />
+                </IconButton>}
+              </Stack>
             )}
           </Stack>
           {editingDescription ? (
@@ -152,9 +166,23 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
               </Stack>
             </Stack>
           ) : (
-            <Typography level="body-sm" color="neutral" sx={{ whiteSpace: 'pre-wrap' }}>
-              {activeProject.description?.trim() || 'Espace de travail du projet actif.'}
-            </Typography>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Box
+                sx={{
+                  width: 16,
+                  height: 16,
+                  flexShrink: 0,
+                  borderRadius: '5px',
+                  bgcolor: activeProject.color || '#2864d7',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                }}
+              />
+              <Typography level="title-md">{projectIconLabels[activeProject.icon] || '📁'}</Typography>
+              <Typography level="body-sm" color="neutral" sx={{ whiteSpace: 'pre-wrap' }}>
+                {activeProject.description?.trim() || 'Espace de travail du projet actif.'}
+              </Typography>
+            </Stack>
           )}
           <Chip variant="soft">{activeProject.processes.length} processus associés</Chip>
         </Card>
