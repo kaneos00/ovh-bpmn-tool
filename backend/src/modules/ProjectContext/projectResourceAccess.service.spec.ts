@@ -11,6 +11,7 @@ describe('ProjectResourceAccessService', () => {
   };
   const projectProcesses = {
     find: jest.fn(),
+    findOne: jest.fn(),
     count: jest.fn(),
   };
   const projectMembers = {

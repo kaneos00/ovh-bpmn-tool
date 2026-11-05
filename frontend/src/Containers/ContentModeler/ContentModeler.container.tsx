@@ -411,7 +411,7 @@ export const Component = () => {
         >
           <Stack spacing={1.5}>
             {reviewRemarksMode && (
-              <Alert color="info" variant="soft">
+              <Alert color="primary" variant="soft">
                 Mode revue : le diagramme soumis est consulté sans modification
                 directe. Si une correction BPMN est nécessaire, utilisez la
                 décision de demande de corrections pour laisser l’auteur

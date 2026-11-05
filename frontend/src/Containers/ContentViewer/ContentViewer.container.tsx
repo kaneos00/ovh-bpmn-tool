@@ -600,7 +600,7 @@ const ProcessContentViewer = () => {
                 visibles aux membres du projet jusqu’à leur traitement.
               </Typography>
               {activeProposal?.status === 'draft' && (
-                <Alert color="info" variant="soft">
+                <Alert color="primary" variant="soft">
                   Une demande est en préparation. Les remarques seront
                   transmises au validateur lorsque le brouillon sera soumis.
                 </Alert>
@@ -646,11 +646,8 @@ const ProcessContentViewer = () => {
                     {remark.decidedAt && (
                       <Typography level="body-xs" textColor="neutral">
                         Décision le {formatDateTime(remark.decidedAt)}
-                        {remark.decisionByName
-                          ? ` · ${remark.decisionByName}`
-                          : remark.decisionBy
-                          ? ` · ${remark.decisionBy}`
-                          : ''}
+                        {(remark.decisionByName || remark.decisionBy) &&
+                          ` · ${remark.decisionByName || remark.decisionBy}`}
                         {remark.decisionComment
                           ? ` · ${remark.decisionComment}`
                           : ''}
