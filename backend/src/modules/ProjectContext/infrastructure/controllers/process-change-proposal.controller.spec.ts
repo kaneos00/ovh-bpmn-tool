@@ -181,8 +181,8 @@ describe('ProcessChangeProposalController remark permissions', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('does not allow the project workflow to process a common process', async () => {
-    const { controller } = makeController(
+  it('allows the contribution workflow to process remarks on a common process without changing its project usage', async () => {
+    const { controller, comments, events } = makeController(
       { role: ProjectMemberRole.Admin },
       false,
       authorUserId,
@@ -195,7 +195,14 @@ describe('ProcessChangeProposalController remark permissions', () => {
         { decision: 'accepted' },
         { 'x-user': actorUsername },
       ),
-    ).rejects.toBeInstanceOf(ForbiddenException);
+    ).resolves.toMatchObject({
+      id: commentId,
+      status: ProcessChangeProposalCommentStatus.Accepted,
+    });
+    expect(comments.save).toHaveBeenCalled();
+    expect(events.save).toHaveBeenCalledWith(
+      expect.objectContaining({ eventType: 'remark_accepted' }),
+    );
   });
 
   it('does not allow even a global administrator to decide their own remark', async () => {
