@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Box, Button, Input, List, Option, Select, Sheet, Stack, Typography } from '@mui/joy';
 import { Search } from '@mui/icons-material';
 import { useActiveProject } from '../../../shared/hooks/useActiveProject';
@@ -31,24 +31,6 @@ const BPMN_CONNECTION_TYPES = new Set([
   'sequenceflow', 'messageflow', 'association', 'datainputassociation',
   'dataoutputassociation', 'conversationlink',
 ]);
-
-const destinations = [
-  {
-    label: 'Accueil',
-    path: '/root',
-    matches: (path: string) => path === '/root' || /^\/[0-9a-f-]+(?:\/|$)/i.test(path),
-  },
-  {
-    label: 'Projets',
-    path: '/projects',
-    matches: (path: string) => path === '/projects' || /^\/projects\/[^/]+$/.test(path) || path === '/workspace',
-  },
-  {
-    label: 'Administration',
-    path: '/organization/overview',
-    matches: (path: string) => path.startsWith('/organization'),
-  }
-];
 
 const normalizeSearch = (value: string) =>
   value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr').trim();
@@ -182,7 +164,6 @@ const resultBadge = (detail: string) => {
 };
 
 export const WorkspaceNavigation = () => {
-  const location = useLocation();
   const [globalRole, setGlobalRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
 
   useEffect(() => {
@@ -651,23 +632,17 @@ export const WorkspaceNavigation = () => {
         </Box>
 
         <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-          {destinations
-            .filter(destination => {
-              if (destination.label === 'Administration') return globalRole === 'admin';
-              if (destination.label === 'Projets') return globalRole === 'admin' || globalRole === 'modeler';
-              return true;
-            })
-            .map(destination => {
-            const active = destination.matches(location.pathname);
-            return (
-              <Button key={destination.path} size="sm" variant={active ? 'solid' : 'plain'}
-                color={active ? 'primary' : 'neutral'} aria-current={active ? 'page' : undefined}
-                onClick={() => navigate(destination.path)}
-                sx={active ? { bgcolor: '#2864d7', color: '#fff', fontWeight: 700 } : { color: '#e6edf7', '&:hover': { bgcolor: '#263e59', color: '#fff' } }}>
-                {destination.label}
-              </Button>
-            );
-          })}
+          {globalRole === 'admin' && (
+            <Button
+              size="sm"
+              variant="plain"
+              color="neutral"
+              onClick={() => navigate('/organization/overview')}
+              sx={{ color: '#e6edf7', '&:hover': { bgcolor: '#263e59', color: '#fff' } }}
+            >
+              Administration
+            </Button>
+          )}
           <UserAccountMenu />
         </Stack>
       </Stack>
