@@ -10,9 +10,6 @@ import {
   Sheet,
   Stack,
   Textarea,
-  Input,
-  Option,
-  Select,
   Typography,
 } from '@mui/joy';
 import { CloseRounded, EditRounded, SaveRounded } from '@mui/icons-material';
@@ -52,8 +49,6 @@ export const Component = () => {
   const queryClient = useQueryClient();
   const [editingDescription, setEditingDescription] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState('');
-  const [colorDraft, setColorDraft] = useState('#2864d7');
-  const [iconDraft, setIconDraft] = useState('folder');
   const [error, setError] = useState<string | null>(null);
 
   const projectQuery = useQuery<Project>(
@@ -77,7 +72,7 @@ export const Component = () => {
   const updateDescription = useMutation(
     () => {
       if (!projectId) throw new Error('Aucun projet sélectionné.');
-      return apiClient.put(`/projects/${projectId}`, { description: descriptionDraft.trim(), color: colorDraft, icon: iconDraft });
+      return apiClient.put(`/projects/${projectId}`, { description: descriptionDraft.trim() });
     },
     {
       onSuccess: async () => {
@@ -135,8 +130,6 @@ export const Component = () => {
                     title="Modifier la description"
                     onClick={() => {
                       setDescriptionDraft(project.description ?? '');
-                      setColorDraft(project.color || '#2864d7');
-                      setIconDraft(project.icon || 'folder');
                       setEditingDescription(true);
                     }}
                   >
@@ -153,23 +146,6 @@ export const Component = () => {
                     placeholder="Décrivez les objectifs et le périmètre du projet"
                     aria-label="Description du projet"
                   />
-                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-                    <Stack spacing={0.5} sx={{ minWidth: 180 }}>
-                      <Typography level="body-sm">Couleur du projet</Typography>
-                      <Input type="color" value={colorDraft} onChange={(event) => setColorDraft(event.target.value)} slotProps={{ input: { 'aria-label': 'Couleur du projet' } }} />
-                    </Stack>
-                    <Stack spacing={0.5} sx={{ minWidth: 220 }}>
-                      <Typography level="body-sm">Pictogramme</Typography>
-                      <Select value={iconDraft} onChange={(_event, value) => value && setIconDraft(value)} aria-label="Pictogramme du projet">
-                        <Option value="folder">📁 Dossier</Option>
-                        <Option value="briefcase">💼 Mallette</Option>
-                        <Option value="building">🏢 Bâtiment</Option>
-                        <Option value="workflow">🔀 Flux</Option>
-                        <Option value="users">👥 Équipe</Option>
-                        <Option value="chart">📊 Indicateurs</Option>
-                      </Select>
-                    </Stack>
-                  </Stack>
                   <Stack direction="row" spacing={1}>
                     <Button
                       size="sm"
@@ -187,8 +163,6 @@ export const Component = () => {
                       disabled={updateDescription.isLoading}
                       onClick={() => {
                         setDescriptionDraft(project.description ?? '');
-                        setColorDraft(project.color || '#2864d7');
-                        setIconDraft(project.icon || 'folder');
                         setEditingDescription(false);
                       }}
                     >
