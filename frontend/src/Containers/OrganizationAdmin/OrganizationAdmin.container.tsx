@@ -318,7 +318,7 @@ export const Component = () => {
   ).length;
 
   return (
-    <Sheet className="org-admin-v2__page" sx={{ width: '100%', maxWidth: 1440, boxSizing: 'border-box', mx: 'auto', p: { xs: 1, md: 2 }, bgcolor: 'transparent' }}>
+    <Sheet className="org-admin-v2__page" sx={{ width: '100%', maxWidth: 'none', boxSizing: 'border-box', p: 0, bgcolor: 'transparent' }}>
       <Stack spacing={2}>
         <WorkspaceNavigation />
         <div className="org-admin-v2">
