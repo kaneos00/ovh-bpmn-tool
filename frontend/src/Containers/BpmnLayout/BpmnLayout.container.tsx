@@ -7,7 +7,7 @@ import { ProcessDetails } from '../../Components/BusinessComponents/ProcessDetai
 import { useBpmnLayout } from './hooks/useBpmnLayout';
 import { useBpmnLayoutBreadcrumbs } from './hooks/useBpmnLayoutBreadcrumbs';
 import { Header } from '../../Components/GenericComponents/Header/Header';
-import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
+import { WorkspacePageHeader } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
 import { ViewerExplorerPanel } from '../../Components/BusinessComponents/ViewerExplorerPanel/ViewerExplorerPanel';
 import { FolderOverview } from './FolderOverview';
 import {
@@ -122,7 +122,7 @@ export const Component = () => {
       <Sheet className="innerContent">
         {resource ? (
           <>
-            <WorkspaceNavigation />
+            <WorkspacePageHeader />
                           <Header
                             title={isRoot(resourceId) ? (activeProject?.name ?? 'Référentiel') : resource.name}
                             description={isRoot(resourceId) ? (activeProject?.description ?? 'Sélectionnez un projet pour afficher son espace de travail.') : resource.description}
