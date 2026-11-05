@@ -159,7 +159,8 @@ export class ProjectController {
     return {
       associated: true,
       isMember: Boolean(membership),
-      canSubmitRemarks: isOrganizationAdmin || Boolean(membership?.canSubmitRemarks),
+      canSubmitRemarks:
+        isOrganizationAdmin || Boolean(membership?.canSubmitRemarks),
       usage: link.usage,
     };
   }
