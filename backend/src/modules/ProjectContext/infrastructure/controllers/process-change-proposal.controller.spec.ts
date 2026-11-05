@@ -219,7 +219,6 @@ describe('ProcessChangeProposalController remark permissions', () => {
   });
 });
 
-
 describe('ProcessChangeProposalController common-process remark creation', () => {
   it('creates a distinct private proposal workspace without adding a second project link', async () => {
     const projectId = '10000000-0000-4000-8000-000000000001';
