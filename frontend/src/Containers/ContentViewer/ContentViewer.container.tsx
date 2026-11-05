@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Alert,
   Box,
@@ -83,11 +83,13 @@ const statusMarker = {
 
 const ProcessContentViewer = () => {
   const { resourceId, contentId } = useContentViewer();
-  const [searchParams] = useSearchParams();
-  const routeProjectId = searchParams.get('projectId') ?? undefined;
   const navigate = useNavigate();
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
-  const { requestedElementId, requestedRaciView } = useViewerRouteState();
+  const {
+    requestedElementId,
+    requestedRaciView,
+    projectId: routeProjectId,
+  } = useViewerRouteState();
   const [folderOpen, setFolderOpen] = useState(true);
   const [infoTab, setInfoTab] = useState<0 | 1 | 2>(0);
   const [infoPanelOpen, setInfoPanelOpen] = useState(false);
