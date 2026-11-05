@@ -340,7 +340,7 @@ export const Component = () => {
                   )}
                   <Box>
                     <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                    <Button variant="soft" onClick={() => navigate(`/projects/${project.id}/viewer`)}>Ouvrir dans le viewer</Button>
+                    <Button variant="soft" onClick={() => { setActiveProject(project.id); navigate("/root"); }}>Ouvrir le projet</Button>
                     <Button variant="outlined" color="neutral" onClick={() => navigate(`/projects/${project.id}`)}>Administration</Button>
                   </Stack>
                   </Box>
