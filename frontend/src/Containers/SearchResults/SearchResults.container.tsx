@@ -21,7 +21,7 @@ import {
   Search,
 } from '@mui/icons-material';
 
-import { WorkspacePageHeader } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
+import { WorkspacePageLayout } from '../../Components/GenericComponents/WorkspacePageLayout/WorkspacePageLayout';
 import { SearchResultItem } from '../../Components/GenericComponents/SearchResultItem/SearchResultItem';
 import { resourcesQuery } from '../../api/resources/resources.queries';
 import { ResourceType } from '../../shared/types/BpmnResource';
@@ -224,19 +224,7 @@ export const Component = () => {
   const hasNext = offset + PAGE_SIZE < total;
 
   return (
-    <Sheet
-      sx={{
-        width: '100%',
-        maxWidth: 'none',
-        boxSizing: 'border-box',
-        mx: 0,
-        p: { xs: 1, md: 2 },
-        bgcolor: 'transparent',
-      }}
-    >
-      <Stack spacing={2}>
-        <WorkspacePageHeader />
-
+    <WorkspacePageLayout>     <Stack spacing={2}>
         <Stack spacing={0.5}>
           <Typography level="h2">Résultats de recherche</Typography>
           <Typography level="body-sm" color="neutral">
@@ -469,7 +457,7 @@ export const Component = () => {
           </Stack>
         )}
       </Stack>
-    </Sheet>
+    </WorkspacePageLayout>
   );
 };
 
