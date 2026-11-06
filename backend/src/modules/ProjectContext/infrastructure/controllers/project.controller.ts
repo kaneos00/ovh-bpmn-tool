@@ -399,6 +399,35 @@ export class ProjectController {
     if (body.description !== undefined) {
       project.description = body.description.trim() || null;
     }
+    if (body.defaultValidatorUserId !== undefined) {
+      const requestedValidator = body.defaultValidatorUserId?.trim() || null;
+      if (requestedValidator) {
+        const membership = await this.projectMembers.findOne({
+          where: { projectId, userId: requestedValidator },
+        });
+        if (
+          !membership ||
+          (membership.role !== ProjectMemberRole.Admin &&
+            membership.role !== ProjectMemberRole.Modeler)
+        ) {
+          throw new BadRequestException(
+            'Le valideur par défaut doit être un membro attivo del progetto con ruolo Admin o Modeler',
+          );
+        }
+        const activeUsers: Array<{ id: string }> = await this.dataSource.query(
+          'SELECT id FROM app_users WHERE lower(username) = lower($1) AND active = TRUE LIMIT 1',
+          [membership.userId],
+        );
+        if (!activeUsers.length) {
+          throw new BadRequestException(
+            'Le compte du valideur par défaut est introuvable ou désactivé',
+          );
+        }
+        project.defaultValidatorUserId = membership.userId;
+      } else {
+        project.defaultValidatorUserId = null;
+      }
+    }
 
     try {
       return await this.projects.save(project);
@@ -441,7 +470,11 @@ export class ProjectController {
   @UseAcl([UserGroup.RW])
   async updateProject(
     @Param('projectId') projectId: string,
-    @Body() body: { name?: string; description?: string },
+    @Body() body: {
+      name?: string;
+      description?: string;
+      defaultValidatorUserId?: string | null;
+    },
     @Headers() headers: RequestHeaders,
   ) {
     await this.assertProjectRole(projectId, headers, ProjectMemberRole.Admin);
@@ -871,8 +904,20 @@ export class ProjectController {
       }
 
       if (role === null) {
+        if (project.defaultValidatorUserId === userId) {
+          project.defaultValidatorUserId = null;
+          await projectRepository.save(project);
+        }
         await members.delete({ projectId, userId });
         return { deleted: true, projectId, userId };
+      }
+      if (
+        project.defaultValidatorUserId === userId &&
+        role !== ProjectMemberRole.Admin &&
+        role !== ProjectMemberRole.Modeler
+      ) {
+        project.defaultValidatorUserId = null;
+        await projectRepository.save(project);
       }
 
       const member =
