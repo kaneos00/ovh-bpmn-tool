@@ -73,7 +73,7 @@ export const ProcessViewer = ({
   };
 
   return (
-    <Box className={`process-viewer-shell${isFullscreen ? ' is-fullscreen' : ''}`} ref={viewerShellRef}>
+    <Box className={`process-viewer-shell${isShellFullscreen ? ' is-fullscreen' : ''}`} ref={viewerShellRef}>
       <Stack
         direction="row"
         alignItems="center"
