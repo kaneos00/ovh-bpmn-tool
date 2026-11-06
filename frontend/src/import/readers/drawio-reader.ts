@@ -27,7 +27,8 @@ const inflateRaw = async (value: string): Promise<string> => {
     bytes = Uint8Array.from(decoded, character => character.charCodeAt(0));
   }
 
-  const stream = new Blob([bytes])
+  const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  const stream = new Blob([buffer])
     .stream()
     .pipeThrough(new DecompressionStream('deflate-raw'));
   const inflated = new TextDecoder().decode(await new Response(stream).arrayBuffer());
