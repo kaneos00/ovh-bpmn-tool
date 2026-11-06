@@ -68,11 +68,11 @@ test('viewer delegates called-process navigation to the shared hook', async () =
   assert.match(hook, /useCallActivityNavigation\(viewer, true\)/);
 });
 
-test('detail panel starts collapsed and opens when an element is selected', async () => {
+test('detail panel starts collapsed and follows the selected BPMN element', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
 
   assert.match(details, /const \[taskPanelCollapsed, setTaskPanelCollapsed\] = useState\(true\)/);
-  assert.match(details, /if \(selectedElementId\) setTaskPanelCollapsed\(false\)/);
+  assert.match(details, /setTaskPanelCollapsed\(!selectedElementId\)/);
   assert.match(details, /externalUrl:\s*Array\.from\(element\.attributes\)[\s\S]*?attribute\.localName === 'link'/);
 });
 
