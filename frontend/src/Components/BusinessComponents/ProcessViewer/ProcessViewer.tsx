@@ -1,4 +1,4 @@
-import React from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Alert, Box, Button, Stack, Typography } from '@mui/joy';
 import { useProcessViewer } from './hooks/useProcessViewer';
 import 'diagram-js-minimap/assets/diagram-js-minimap.css';
@@ -11,7 +11,7 @@ type ProcessViewerProps = {
   onElementSelect?: (elementId: string) => void;
   onToggleInfoPanel?: () => void;
   infoPanelOpen?: boolean;
-  toolbarExtra?: React.ReactNode;
+  toolbarExtra?: ReactNode;
 };
 
 export const ProcessViewer = ({
@@ -23,10 +23,10 @@ export const ProcessViewer = ({
   infoPanelOpen = false,
   toolbarExtra,
 }: ProcessViewerProps) => {
-  const viewerShellRef = React.useRef<HTMLDivElement>(null);
-  const [isFullscreen, setIsFullscreen] = React.useState(false);
+  const viewerShellRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const syncFullscreenState = () => {
       setIsFullscreen(document.fullscreenElement === viewerShellRef.current);
     };
