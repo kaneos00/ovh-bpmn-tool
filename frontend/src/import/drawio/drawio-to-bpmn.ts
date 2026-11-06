@@ -27,9 +27,9 @@ const DC_NS = 'http://www.omg.org/spec/DD/20100524/DC';
 const DI_NS = 'http://www.omg.org/spec/DD/20100524/DI';
 
 const escapeXml = (value: string) =>
-  value.replaceAll('&', '&amp;').replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;').replaceAll('"', '&quot;')
-    .replaceAll("'", '&apos;');
+  value.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
 
 const attr = (element: Element, name: string) => element.getAttribute(name) ?? '';
 const numberAttr = (element: Element, name: string, fallback = 0) => {
