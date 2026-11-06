@@ -2,8 +2,13 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 
-import { DocumentReaderEngine } from '../../.test-dist/import/reader/reader-engine.js';
-import { drawioReader } from '../../.test-dist/import/readers/drawio-reader.js';
+import '../helpers/dom-parser.mjs';
+
+const { DocumentReaderEngine } = await import('../../.test-dist/import/reader/reader-engine.js');
+const { drawioReader } = await import('../../.test-dist/import/readers/drawio-reader.js');
+
+
+
 
 const fixture = readFileSync(new URL('../fixtures/drawio-multipage-reference.drawio', import.meta.url), 'utf8');
 const engine = new DocumentReaderEngine([drawioReader]);
