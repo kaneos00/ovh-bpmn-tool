@@ -20,10 +20,7 @@ import { useActiveProject } from '../../shared/hooks/useActiveProject';
 import { ProjectProcessOverview } from './ProjectProcessOverview';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import type { Resource } from '../../Types';
-
-const projectIconLabels: Record<string, string> = {
-  folder: '📁', briefcase: '💼', building: '🏢', workflow: '🔀', users: '👥', chart: '📊',
-};
+import { getProjectTrigram } from '../../shared/helpers/projectTrigram';
 
 type FolderOverviewProps = {
   resource: Resource;
@@ -168,17 +165,26 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
           ) : (
             <Stack direction="row" spacing={1} alignItems="center">
               <Box
+                component="span"
+                title={activeProject.name}
                 sx={{
-                  width: 16,
-                  height: 16,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: 38,
+                  height: 26,
+                  px: 0.75,
                   flexShrink: 0,
-                  borderRadius: '5px',
+                  borderRadius: '6px',
                   bgcolor: activeProject.color || '#2864d7',
-                  border: '1px solid',
-                  borderColor: 'divider',
+                  color: '#fff',
+                  fontSize: 11,
+                  fontWeight: 800,
+                  letterSpacing: '0.04em',
                 }}
-              />
-              <Typography level="title-md">{projectIconLabels[activeProject.icon] || '📁'}</Typography>
+              >
+                {getProjectTrigram(activeProject.name)}
+              </Box>
               <Typography level="body-sm" color="neutral" sx={{ whiteSpace: 'pre-wrap' }}>
                 {activeProject.description?.trim() || 'Espace de travail du projet actif.'}
               </Typography>
