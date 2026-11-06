@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_Drawio" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:dataStore id="Page1_DBjHF1c5Az_Vu1PidTVV-3_store" name="database" />
+  <bpmn:process id="Process_Page_1" name="Page-1" isExecutable="false">
+    <bpmn:startEvent id="Page1_DBjHF1c5Az_Vu1PidTVV-1" name="Start" />
+    <bpmn:endEvent id="Page1_DBjHF1c5Az_Vu1PidTVV-2" name="End" />
+    <bpmn:dataStoreReference id="Page1_DBjHF1c5Az_Vu1PidTVV-3" dataStoreRef="Page1_DBjHF1c5Az_Vu1PidTVV-3_store" name="database" />
+    <bpmn:task id="Page1_DBjHF1c5Az_Vu1PidTVV-4" name="Etape 1">
+      <bpmn:property id="Page1_DBjHF1c5Az_Vu1PidTVV-12_property" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="Page1_DBjHF1c5Az_Vu1PidTVV-12">
+        <bpmn:sourceRef>Page1_DBjHF1c5Az_Vu1PidTVV-11</bpmn:sourceRef>
+        <bpmn:targetRef>Page1_DBjHF1c5Az_Vu1PidTVV-12_property</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:task id="Page1_DBjHF1c5Az_Vu1PidTVV-7" name="Etape 2">
+      <bpmn:dataOutputAssociation id="Page1_DBjHF1c5Az_Vu1PidTVV-9">
+        <bpmn:targetRef>Page1_DBjHF1c5Az_Vu1PidTVV-3</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:dataObject id="Page1_DBjHF1c5Az_Vu1PidTVV-11_data" />
+    <bpmn:dataObjectReference id="Page1_DBjHF1c5Az_Vu1PidTVV-11" dataObjectRef="Page1_DBjHF1c5Az_Vu1PidTVV-11_data" name="file" />
+    <bpmn:sequenceFlow id="Page1_DBjHF1c5Az_Vu1PidTVV-5" sourceRef="Page1_DBjHF1c5Az_Vu1PidTVV-1" targetRef="Page1_DBjHF1c5Az_Vu1PidTVV-4" />
+    <bpmn:sequenceFlow id="Page1_DBjHF1c5Az_Vu1PidTVV-8" sourceRef="Page1_DBjHF1c5Az_Vu1PidTVV-4" targetRef="Page1_DBjHF1c5Az_Vu1PidTVV-7" />
+    <bpmn:sequenceFlow id="Page1_DBjHF1c5Az_Vu1PidTVV-10" sourceRef="Page1_DBjHF1c5Az_Vu1PidTVV-7" targetRef="Page1_DBjHF1c5Az_Vu1PidTVV-2" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_Page_1" name="Page-1">
+    <bpmndi:BPMNPlane id="Plane_Page_1" bpmnElement="Process_Page_1">
+      <bpmndi:BPMNShape id="Page1_DBjHF1c5Az_Vu1PidTVV-1_di" bpmnElement="Page1_DBjHF1c5Az_Vu1PidTVV-1"><dc:Bounds x="130" y="160" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Page1_DBjHF1c5Az_Vu1PidTVV-2_di" bpmnElement="Page1_DBjHF1c5Az_Vu1PidTVV-2"><dc:Bounds x="810" y="160" width="50" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Page1_DBjHF1c5Az_Vu1PidTVV-3_di" bpmnElement="Page1_DBjHF1c5Az_Vu1PidTVV-3"><dc:Bounds x="440" y="290" width="100" height="100" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Page1_DBjHF1c5Az_Vu1PidTVV-4_di" bpmnElement="Page1_DBjHF1c5Az_Vu1PidTVV-4"><dc:Bounds x="230" y="145" width="120" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Page1_DBjHF1c5Az_Vu1PidTVV-7_di" bpmnElement="Page1_DBjHF1c5Az_Vu1PidTVV-7"><dc:Bounds x="430" y="145" width="120" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Page1_DBjHF1c5Az_Vu1PidTVV-11_di" bpmnElement="Page1_DBjHF1c5Az_Vu1PidTVV-11"><dc:Bounds x="270" y="310" width="40" height="60" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Page1_DBjHF1c5Az_Vu1PidTVV-5_di" bpmnElement="Page1_DBjHF1c5Az_Vu1PidTVV-5"><di:waypoint x="155" y="185" /><di:waypoint x="290" y="185" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Page1_DBjHF1c5Az_Vu1PidTVV-8_di" bpmnElement="Page1_DBjHF1c5Az_Vu1PidTVV-8"><di:waypoint x="290" y="185" /><di:waypoint x="490" y="185" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Page1_DBjHF1c5Az_Vu1PidTVV-9_di" bpmnElement="Page1_DBjHF1c5Az_Vu1PidTVV-9"><di:waypoint x="490" y="185" /><di:waypoint x="490" y="340" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Page1_DBjHF1c5Az_Vu1PidTVV-10_di" bpmnElement="Page1_DBjHF1c5Az_Vu1PidTVV-10"><di:waypoint x="490" y="185" /><di:waypoint x="835" y="185" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Page1_DBjHF1c5Az_Vu1PidTVV-12_di" bpmnElement="Page1_DBjHF1c5Az_Vu1PidTVV-12"><di:waypoint x="290" y="340" /><di:waypoint x="290" y="185" /></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
