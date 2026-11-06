@@ -967,7 +967,8 @@ export class ProcessChangeProposalController {
           'Le processus ne fait plus partie du projet de la demande',
         );
       }
-      const isCommonProcess = governanceLink.usage === ProjectProcessUsage.Common;
+      const isCommonProcess =
+        governanceLink.usage === ProjectProcessUsage.Common;
 
       const submittedContent = await contents.findOne({
         where: {
