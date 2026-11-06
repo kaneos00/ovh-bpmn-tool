@@ -109,7 +109,7 @@ class TestDocument {
 }
 
 const parseXml = source => {
-  const documentNode = { children: [] };
+  const documentNode = new TestElement('#document');
   const stack = [documentNode];
   const tokens = source.match(/<!--[\s\S]*?-->|<\?[\s\S]*?\?>|<[^>]+>|[^<]+/g) ?? [];
 
