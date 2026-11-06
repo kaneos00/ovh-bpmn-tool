@@ -15,8 +15,9 @@ import { useResource } from '../../../shared/hooks/useResource';
 import Modeler from 'camunda-bpmn-js/lib/base/Modeler';
 import { paginateBpmnSvg } from '../../../shared/utils/paginatedBpmnSvg';
 import { HttpError } from '../../../shared/api/httpError';
+import { drawioToBpmn, isDrawioXml } from '../../../import/drawio/drawio-to-bpmn';
 
-export const useContentModeler = (bpmnModelerInstance: Modeler) => {
+type ModelerDiagramOption = { id: string; name: string };\n\nexport const useContentModeler = (bpmnModelerInstance: Modeler) => {
   const { resourceId } = useParams() as ContentModelerRouteParams;
   const actionData = useActionData() as Content & ActionResponse;
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   const submit = useSubmit();
   const { showAlert } = useSnackbar();
 
-  const [isShortcurtModalOpen, setIsShortcurtModalOpen] = useState(false);
+  const [isShortcurtModalOpen, setIsShortcurtModalOpen] = useState(false);\n  const [diagramOptions, setDiagramOptions] = useState<ModelerDiagramOption[]>([]);\n  const [activeDiagramId, setActiveDiagramId] = useState<string>('');\n\n  const refreshModelerDiagrams = useCallback(() => {\n    const definitions = (bpmnModelerInstance as any).getDefinitions?.();\n    const diagrams = Array.isArray(definitions?.diagrams) ? definitions.diagrams : [];\n    const options = diagrams.map((diagram: any, index: number) => ({\n      id: String(diagram.id ?? `Diagram_${index + 1}`),\n      name: String(diagram.name ?? `Page-${index + 1}`),\n    }));\n    setDiagramOptions(options);\n    setActiveDiagramId(options[0]?.id ?? '');\n  }, [bpmnModelerInstance]);\n\n  const onDiagramSelect = useCallback(async (diagramId: string) => {\n    const definitions = (bpmnModelerInstance as any).getDefinitions?.();\n    const diagram = definitions?.diagrams?.find((item: any, index: number) =>\n      String(item.id ?? `Diagram_${index + 1}`) === diagramId,\n    );\n    if (!diagram) return;\n    try {\n      await (bpmnModelerInstance as any).open(diagram);\n      setActiveDiagramId(diagramId);\n    } catch (error) {\n      showAlert({\n        message: error instanceof Error ? `Impossible d'ouvrir cette page : ${error.message}` : 'Impossible d’ouvrir cette page BPMN.',\n        severity: 'danger',\n      });\n    }\n  }, [bpmnModelerInstance, showAlert]);
 
   const { data: contents } = useQuery(contentsQuery(resourceId));
   const { resource } = useResource(resourceId);
@@ -86,17 +87,35 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
 
   const onFileUpload = useCallback(
     async (files: FileList) => {
+      const file = files[0];
+      if (!file) return;
       try {
-        const processContent = await files[0].text();
+        const sourceContent = await file.text();
+        let processContent = sourceContent;
+        let warnings: string[] = [];
+        if (file.name.toLowerCase().endsWith('.drawio') || isDrawioXml(sourceContent)) {
+          const converted = await drawioToBpmn(sourceContent);
+          processContent = converted.xml;
+          warnings = converted.warnings;
+        }
         await bpmnModelerInstance.importXML(processContent);
-      } catch {
+        refreshModelerDiagrams();
+        if (warnings.length) {
+          showAlert({
+            message: warnings.join(' '),
+            severity: 'warning',
+          });
+        }
+      } catch (error) {
         showAlert({
-          message: 'An error occurs during file upload.',
+          message: error instanceof Error
+            ? `Échec de l’import : ${error.message}`
+            : 'Échec de l’import du fichier.',
           severity: 'danger',
         });
       }
     },
-    [bpmnModelerInstance, showAlert],
+    [bpmnModelerInstance, refreshModelerDiagrams, showAlert],
   );
 
   /**
