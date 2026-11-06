@@ -282,14 +282,14 @@ const buildPage = (page: PageInfo, pageIndex: number, warnings: string[]) => {
   };
 };
 
-export async function drawioToBpmn(xml: string): Promise<DrawioImportResult> {
+export async function drawioToBpmn(xml: string, pageName = 'Page-1'): Promise<DrawioImportResult> {
   const pages = await readPages(xml);
   if (pages.length !== 1) {
     throw new Error('Le convertisseur BPMN traite une page à la fois. Utilisez le moteur de lecture pour découper le document source.');
   }
 
   const warnings: string[] = [];
-  const converted = buildPage(pages[0], 0, warnings);
+  const converted = buildPage({ ...pages[0], name: pageName }, 0, warnings);
   const resultXml = `<?xml version="1.0" encoding="UTF-8"?>\n<bpmn:definitions xmlns:bpmn="${BPMN_NS}" xmlns:bpmndi="${BPMNDI_NS}" xmlns:dc="${DC_NS}" xmlns:di="${DI_NS}" id="Definitions_Drawio" targetNamespace="http://bpmn.io/schema/bpmn">\n${converted.dataStores}\n${converted.process}\n${converted.diagram}\n</bpmn:definitions>`;
   return { xml: resultXml, warnings };
 }
