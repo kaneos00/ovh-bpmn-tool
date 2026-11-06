@@ -14,4 +14,7 @@ export class ProjectTypeOrmEntity extends AbstractEntity {
 
   @Column({ length: 32, default: 'folder' })
   icon: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  defaultValidatorUserId: string | null;
 }
