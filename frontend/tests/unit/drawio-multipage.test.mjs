@@ -22,7 +22,7 @@ const convertFixturePages = async () => {
   const source = await engine.read({ fileName: 'reference.drawio', content: fixture });
   return Promise.all(source.pages.map(async page => ({
     name: page.name,
-    ...(await drawioToBpmn(page.content)),
+    ...(await drawioToBpmn(page.content, page.name)),
   })));
 };
 
@@ -35,6 +35,8 @@ describe('Draw.io page extraction and independent BPMN conversion', () => {
       const document = parse(page.xml);
       assert.equal(document.getElementsByTagNameNS(BPMN_NS, 'process').length, 1);
       assert.equal(document.getElementsByTagNameNS(BPMNDI_NS, 'BPMNDiagram').length, 1);
+      assert.equal(document.getElementsByTagNameNS(BPMN_NS, 'process')[0].getAttribute('name'), page.name);
+      assert.equal(document.getElementsByTagNameNS(BPMNDI_NS, 'BPMNDiagram')[0].getAttribute('name'), page.name);
       assert.equal(document.getElementsByTagNameNS(BPMN_NS, 'collaboration').length, 0);
       assert.equal(document.getElementsByTagNameNS(BPMN_NS, 'participant').length, 0);
       assert.deepEqual(page.warnings, []);
