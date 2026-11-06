@@ -400,3 +400,11 @@
     inset -2px 0 0 var(--joy-palette-primary-500, #2864d7),
     inset 0 -2px 0 var(--joy-palette-primary-500, #2864d7);
 }
+
+
+.processViewerWorkspace.viewerLayout:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+  background: var(--bpmn-page, #eef2f6);
+}
