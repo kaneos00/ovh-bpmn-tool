@@ -49,6 +49,7 @@ import { useCallActivityNavigation } from '../../shared/hooks/useCallActivityNav
 import { ImpersonationBanner } from '../../Components/GenericComponents/ImpersonationBanner/ImpersonationBanner';
 import queryClient, { apiClient } from '../../queryClient';
 import { generatePngFromSvg } from '../../shared/utils/generatePngFromSvg';
+import { contentsQuery } from '../../api/contents/contents.queries';
 
 export const Component = () => {
   // share modeler instance in order to avoid create instance in useContentModeler and useModeler
@@ -314,6 +315,9 @@ export const Component = () => {
         queryClient.invalidateQueries({
           queryKey: ['process-change-proposals-to-review'],
         }),
+        ...(sourceResourceId
+          ? [queryClient.invalidateQueries({ queryKey: contentsQuery(sourceResourceId).queryKey })]
+          : []),
       ]);
       navigate(sourceResourceId ? `/${sourceResourceId}` : `/${resourceId}`);
     } catch (error) {
