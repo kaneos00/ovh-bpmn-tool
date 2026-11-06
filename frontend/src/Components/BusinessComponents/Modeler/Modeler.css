@@ -457,6 +457,29 @@
   filter: drop-shadow(0 0 2px rgba(25, 118, 210, 0.45));
 }
 
+
+/* The BPMN viewer can occupy the browser's native fullscreen surface. */
+.process-viewer-shell:fullscreen,
+.process-viewer-shell.is-fullscreen {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  background: var(--joy-palette-background-surface, #fff);
+}
+
+.process-viewer-shell:fullscreen .processViewerDiagramContent {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.process-viewer-shell:fullscreen .process-viewer-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+
 /* Submitted proposal review keeps the existing modeler canvas for inspection,
    while removing creation and direct-edit affordances. */
 .modelerContainer.proposalReviewOnly .djs-palette,
