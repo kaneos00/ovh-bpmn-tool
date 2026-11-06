@@ -1,4 +1,3 @@
-import { randomBytes, randomUUID } from 'crypto';
 import {
   BadRequestException,
   Body,
@@ -20,6 +19,10 @@ import { ResourceTypeEnum } from '../../../ResourceContext/shared/types/Resource
 import { ContentTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/content.ormEntity';
 import { ResourceTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/resource.ormEntity';
 import { ProjectResourceAccessService } from '../../projectResourceAccess.service';
+import {
+  createProposalWorkspace,
+  publishProposalWorkspace,
+} from '../services/process-change-proposal-content.service';
 import {
   ProjectMemberRole,
   ProjectMemberTypeOrmEntity,
@@ -699,31 +702,14 @@ export class ProcessChangeProposalController {
       // deliberately enforces sourceResourceId <> cloneResourceId. For a
       // Common process this workspace stays private to the proposal and is
       // not added as a second project-process link below.
-      const savedClone = await resources.save(
-        resources.create({
-          name: `${source.name.slice(0, 220)} — proposition ${randomUUID().slice(0, 8)}`,
-          description: source.description,
-          depth: source.depth,
-          parentId: source.parentId,
-          sourceResourceId: source.id,
-          type: ResourceTypeEnum.Process,
-          authToken: null,
-          createdBy: authorUsername,
-        }),
-      );
-
-      const savedCloneContent = await contents.save(
-        contents.create({
-          resourceId: savedClone.id,
-          status: ContentStatusEnum.Draft,
-          version: 1,
-          content: published.content,
-          changeComment: null,
-          pngContent: null,
-          updatedBy: authorUsername,
-          createdBy: authorUsername,
-        }),
-      );
+      const {
+        resource: savedClone,
+        content: savedCloneContent,
+      } = await createProposalWorkspace(manager, {
+        source,
+        publishedContent: published,
+        createdBy: authorUsername,
+      });
 
       // A Common process is already associated with the project as a shared
       // usage. Never create a second project-process link for its working copy.
@@ -1267,8 +1253,6 @@ export class ProcessChangeProposalController {
       const proposals = manager.getRepository(
         ProcessChangeProposalTypeOrmEntity,
       );
-      const resources = manager.getRepository(ResourceTypeOrmEntity);
-      const contents = manager.getRepository(ContentTypeOrmEntity);
       const events = manager.getRepository(
         ProcessChangeProposalEventTypeOrmEntity,
       );
@@ -1364,90 +1348,23 @@ export class ProcessChangeProposalController {
         );
       }
 
-      const source = await resources.findOne({
-        where: { id: proposal.sourceResourceId },
-        lock: { mode: 'pessimistic_write' },
+      const changeComment = [
+        summaryComment,
+        'Synthèse des remarques contextuelles :',
+        ...remarks.map(
+          (remark) =>
+            `- [${remark.status}] ${remark.createdAt.toISOString()} · auteur ${remarkUserNameById.get(remark.authorUserId) ?? remark.authorUserId} · élément ${remark.elementId} · ${remark.comment}${remark.decidedAt ? ` · décidé le ${remark.decidedAt.toISOString()} par ${remarkUserNameById.get(remark.decisionBy!) ?? remark.decisionBy}` : ''}${remark.decisionComment ? ` · décision : ${remark.decisionComment}` : ''}`,
+        ),
+      ].join('\\n');
+      const newPublished = await publishProposalWorkspace(manager, {
+        sourceResourceId: proposal.sourceResourceId,
+        workspaceResourceId: proposal.cloneResourceId,
+        submittedContentId: proposal.submittedContentId,
+        expectedSourceContentId: proposal.sourcePublishedContentId,
+        updatedBy: actorUsername,
+        pngContent,
+        changeComment,
       });
-      if (!source) throw new NotFoundException('Processus source introuvable');
-
-      const submittedContent = await contents.findOne({
-        where: {
-          id: proposal.submittedContentId,
-          resourceId: proposal.cloneResourceId,
-          status: ContentStatusEnum.Draft,
-        },
-        lock: { mode: 'pessimistic_write' },
-      });
-      if (!submittedContent) {
-        throw new ConflictException(
-          'La version soumise n’est plus disponible comme brouillon',
-        );
-      }
-
-      const currentPublished = await contents.findOne({
-        where: {
-          resourceId: proposal.sourceResourceId,
-          status: ContentStatusEnum.Published,
-        },
-        order: { version: 'DESC' },
-        lock: { mode: 'pessimistic_write' },
-      });
-      if (
-        !currentPublished ||
-        currentPublished.id !== proposal.sourcePublishedContentId
-      ) {
-        throw new ConflictException(
-          'Le processus source a changé depuis la soumission. La publication est bloquée.',
-        );
-      }
-
-      const latestVersion = await contents
-        .createQueryBuilder('content')
-        .setLock('pessimistic_write')
-        .where('content."resourceId" = :resourceId', {
-          resourceId: proposal.sourceResourceId,
-        })
-        .andWhere('content.status IN (:...statuses)', {
-          statuses: [ContentStatusEnum.Published, ContentStatusEnum.Obsolete],
-        })
-        .orderBy('content.version', 'DESC', 'NULLS LAST')
-        .getOne();
-
-      currentPublished.status = ContentStatusEnum.Obsolete;
-      currentPublished.updatedBy = actorUsername;
-      currentPublished.pngContent = null;
-      await contents.save(currentPublished);
-
-      const newPublished = await contents.save(
-        contents.create({
-          resourceId: proposal.sourceResourceId,
-          status: ContentStatusEnum.Published,
-          version: Math.max(
-            (latestVersion?.version ?? 0) + 1,
-            submittedContent.version ?? 1,
-          ),
-          content: submittedContent.content,
-          changeComment: [
-            summaryComment,
-            'Synthèse des remarques contextuelles :',
-            ...remarks.map(
-              (remark) =>
-                `- [${remark.status}] ${remark.createdAt.toISOString()} · auteur ${remarkUserNameById.get(remark.authorUserId) ?? remark.authorUserId} · élément ${remark.elementId} · ${remark.comment}${remark.decidedAt ? ` · décidé le ${remark.decidedAt.toISOString()} par ${remarkUserNameById.get(remark.decisionBy!) ?? remark.decisionBy}` : ''}${remark.decisionComment ? ` · décision : ${remark.decisionComment}` : ''}`,
-            ),
-          ].join('\n'),
-          pngContent: Buffer.from(
-            pngContent.replace(/^data:image\/png;base64,/, ''),
-            'base64',
-          ),
-          updatedBy: actorUsername,
-          createdBy: actorUsername,
-        }),
-      );
-
-      if (!source.authToken) {
-        source.authToken = randomBytes(32).toString('hex');
-        await resources.save(source);
-      }
 
       proposal.status = ProcessChangeProposalStatus.Published;
       proposal.decidedAt = new Date();
