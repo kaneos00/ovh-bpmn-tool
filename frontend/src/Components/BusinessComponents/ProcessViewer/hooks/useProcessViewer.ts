@@ -122,16 +122,40 @@ export const useProcessViewer = (
     // the complete BPMN geometry while preserving its aspect ratio.
     // The smaller of the width and height scales is the limiting dimension.
     const bounds = elementRegistry.getAll()
-      .filter((element: any) =>
-        element &&
-        !element.labelTarget &&
-        !element.waypoints &&
-        Number.isFinite(element.x) &&
-        Number.isFinite(element.y) &&
-        element.width > 0 &&
-        element.height > 0,
-      )
-      .map((element: any) => canvas.getAbsoluteBBox(element))
+      .flatMap((element: any) => {
+        if (!element) return [];
+
+        // Connections can be horizontal or vertical (zero width/height), so
+        // include their waypoints directly instead of relying on their bbox.
+        if (Array.isArray(element.waypoints) && element.waypoints.length > 0) {
+          const points = element.waypoints.filter((point: any) =>
+            Number.isFinite(point.x) && Number.isFinite(point.y),
+          );
+          if (points.length > 0) {
+            const xs = points.map((point: any) => point.x);
+            const ys = points.map((point: any) => point.y);
+            const minX = Math.min(...xs);
+            const minY = Math.min(...ys);
+            const maxX = Math.max(...xs);
+            const maxY = Math.max(...ys);
+            return [{
+              x: minX,
+              y: minY,
+              width: Math.max(1, maxX - minX),
+              height: Math.max(1, maxY - minY),
+            }];
+          }
+        }
+
+        if (
+          !Number.isFinite(element.x) ||
+          !Number.isFinite(element.y) ||
+          element.width <= 0 ||
+          element.height <= 0
+        ) return [];
+
+        return [canvas.getAbsoluteBBox(element)];
+      })
       .filter((bbox: any) =>
         bbox &&
         Number.isFinite(bbox.x) &&
