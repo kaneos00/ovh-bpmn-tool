@@ -12,6 +12,7 @@ type ProcessViewerProps = {
   onToggleInfoPanel?: () => void;
   infoPanelOpen?: boolean;
   toolbarExtra?: ReactNode;
+  fullscreenTargetRef?: React.RefObject<HTMLElement>;
 };
 
 export const ProcessViewer = ({
@@ -22,25 +23,29 @@ export const ProcessViewer = ({
   onToggleInfoPanel,
   infoPanelOpen = false,
   toolbarExtra,
+  fullscreenTargetRef,
 }: ProcessViewerProps) => {
   const viewerShellRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     const syncFullscreenState = () => {
-      setIsFullscreen(document.fullscreenElement === viewerShellRef.current);
+      const target = fullscreenTargetRef?.current ?? viewerShellRef.current;
+      const active = document.fullscreenElement === target;
+      setIsFullscreen(active);
+      if (active) window.requestAnimationFrame(resizeDiagram);
     };
     document.addEventListener('fullscreenchange', syncFullscreenState);
     return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
-  }, []);
+  }, [fullscreenTargetRef, resizeDiagram]);
 
   const toggleFullscreen = async () => {
-    const shell = viewerShellRef.current;
-    if (!shell) return;
-    if (document.fullscreenElement === shell) {
+    const target = fullscreenTargetRef?.current ?? viewerShellRef.current;
+    if (!target) return;
+    if (document.fullscreenElement === target) {
       await document.exitFullscreen();
     } else {
-      await shell.requestFullscreen();
+      await target.requestFullscreen();
     }
   };
 
@@ -54,6 +59,7 @@ export const ProcessViewer = ({
     zoomOut,
     resetZoom,
     fitDiagram,
+    resizeDiagram,
   } = useProcessViewer(
     resourceId,
     contentId,
