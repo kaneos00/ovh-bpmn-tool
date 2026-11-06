@@ -19,7 +19,6 @@ import { ContentTypeOrmEntity } from '../../entities/content.ormEntity';
 import { ResourceTypeOrmEntity } from '../../entities/resource.ormEntity';
 import { ContentStatusEnum } from '../../../../../modules/ResourceContext/shared/types/Content';
 import { publishDraftContentWithinTransaction } from './content-publication-transaction';
-import { ResourceTypeEnum } from '../../../../../modules/ResourceContext/shared/types/Resource';
 
 import type { Maybe } from '../../../../../shared-kernel/utils/Maybe';
 import { SortCommand } from '../../../../../shared-kernel/utils/SortCommand';
