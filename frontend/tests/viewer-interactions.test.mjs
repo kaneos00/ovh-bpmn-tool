@@ -465,6 +465,8 @@ test('BPMN element selection opens and closes the right-hand element panel', asy
   assert.match(details, /setTaskPanelCollapsed\(!selectedElementId\)/);
   assert.ok(hook.includes("onElementSelectRef.current?.(element.id)"));
   assert.ok(hook.includes("onElementSelectRef.current?.('')"));
+  assert.match(hook, /if \(selectedIdRef\.current === element\.id\) \{[\s\S]*?onElementSelectRef\.current\?\.\(''\)/);
+  assert.doesNotMatch(hook, /pendingSelectionTimer|isRapidSecondClick/);
   assert.ok(hook.includes("canvas.addMarker(targetId, 'task-selected')"));
   assert.ok(hook.includes("canvas.removeMarker(previousId, 'task-selected')"));
 });
