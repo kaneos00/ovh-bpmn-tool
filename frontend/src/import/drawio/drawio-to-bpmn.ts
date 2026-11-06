@@ -19,7 +19,7 @@ type EdgeInfo = {
   kind: 'sequenceFlow' | 'dataInputAssociation' | 'dataOutputAssociation';
   waypoints: Point[];
 };
-type PageInfo = { id: string; name: string; model: Element };
+type PageInfo = { name: string; model: Element };
 
 const BPMN_NS = 'http://www.omg.org/spec/BPMN/20100524/MODEL';
 const BPMNDI_NS = 'http://www.omg.org/spec/BPMN/20100524/DI';
@@ -39,30 +39,6 @@ const numberAttr = (element: Element, name: string, fallback = 0) => {
 const safeId = (value: string) => value.replace(/[^A-Za-z0-9_.-]/g, '_');
 const pagePrefix = (index: number) => `Page${index + 1}_`;
 
-const decodeBase64 = (value: string): Uint8Array => {
-  const binary = atob(value);
-  return Uint8Array.from(binary, char => char.charCodeAt(0));
-};
-
-const inflateRaw = async (value: string): Promise<string> => {
-  let bytes: Uint8Array;
-  try {
-    bytes = decodeBase64(value.trim());
-  } catch {
-    const decoded = decodeURIComponent(value);
-    bytes = Uint8Array.from(decoded, char => char.charCodeAt(0));
-  }
-  const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
-  const stream = new Blob([buffer]).stream()
-    .pipeThrough(new DecompressionStream('deflate-raw'));
-  const inflated = new TextDecoder().decode(await new Response(stream).arrayBuffer());
-  try {
-    return decodeURIComponent(inflated);
-  } catch {
-    return inflated;
-  }
-};
-
 const parseXml = (xml: string, description: string): Document => {
   const document = new DOMParser().parseFromString(xml, 'application/xml');
   if (document.querySelector('parsererror')) {
@@ -70,34 +46,6 @@ const parseXml = (xml: string, description: string): Document => {
     throw new Error(`Le XML ${description} est invalide${detail ? ` : ${detail}` : '.'}`);
   }
   return document;
-};
-
-const readPages = async (xml: string): Promise<PageInfo[]> => {
-  const document = parseXml(xml, 'Draw.io');
-  const directModel = document.querySelector('mxGraphModel');
-  if (directModel) return [{ id: 'Page_1', name: 'Page-1', model: directModel }];
-
-  const diagrams = Array.from(document.querySelectorAll('mxfile > diagram'));
-  if (!diagrams.length) throw new Error('Le fichier ne contient aucun diagramme Draw.io.');
-
-  const pages: PageInfo[] = [];
-  for (let index = 0; index < diagrams.length; index += 1) {
-    const diagram = diagrams[index];
-    const content = diagram.textContent?.trim() ?? '';
-    if (!content) throw new Error(`La page Draw.io ${index + 1} est vide.`);
-    const decoded = content.startsWith('<mxGraphModel')
-      ? content
-      : await inflateRaw(content);
-    const modelDocument = parseXml(decoded, `Draw.io de la page ${index + 1}`);
-    const model = modelDocument.querySelector('mxGraphModel');
-    if (!model) throw new Error(`Impossible de lire le modèle de la page ${index + 1}.`);
-    pages.push({
-      id: attr(diagram, 'id') || `Page_${index + 1}`,
-      name: attr(diagram, 'name') || `Page-${index + 1}`,
-      model,
-    });
-  }
-  return pages;
 };
 
 const absoluteBounds = (cell: Element, cells: Map<string, Element>): Bounds => {
@@ -290,13 +238,16 @@ const buildPage = (page: PageInfo, pageIndex: number, warnings: string[]) => {
 };
 
 export async function drawioToBpmn(xml: string, pageName = 'Page-1'): Promise<DrawioImportResult> {
-  const pages = await readPages(xml);
-  if (pages.length !== 1) {
-    throw new Error('Le convertisseur BPMN traite une page à la fois. Utilisez le moteur de lecture pour découper le document source.');
+  const pageDocument = parseXml(xml, 'modèle de page Draw.io');
+  const model = pageDocument.documentElement.localName === 'mxGraphModel'
+    ? pageDocument.documentElement
+    : pageDocument.querySelector('mxGraphModel');
+  if (!model) {
+    throw new Error('Le convertisseur BPMN attend le modèle XML d’une page Draw.io. Le découpage du document multi-pages relève du moteur de lecture.');
   }
 
   const warnings: string[] = [];
-  const converted = buildPage({ ...pages[0], name: pageName }, 0, warnings);
+  const converted = buildPage({ name: pageName, model }, 0, warnings);
   const resultXml = `<?xml version="1.0" encoding="UTF-8"?>\n<bpmn:definitions xmlns:bpmn="${BPMN_NS}" xmlns:bpmndi="${BPMNDI_NS}" xmlns:dc="${DC_NS}" xmlns:di="${DI_NS}" id="Definitions_Drawio" targetNamespace="http://bpmn.io/schema/bpmn">\n${converted.dataStores}\n${converted.process}\n${converted.diagram}\n</bpmn:definitions>`;
   return { xml: resultXml, warnings };
 }
