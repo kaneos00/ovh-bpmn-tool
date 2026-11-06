@@ -79,6 +79,7 @@ export const Component = () => {
   const [approvingProposal, setApprovingProposal] = useState(false);
   const [publishingApprovedProposal, setPublishingApprovedProposal] =
     useState(false);
+  const [savingApprovedDraft, setSavingApprovedDraft] = useState(false);
   const [publicationError, setPublicationError] = useState<string | null>(null);
   const [publicationSummaryComment, setPublicationSummaryComment] =
     useState('');
@@ -301,6 +302,7 @@ export const Component = () => {
     setPublicationError(null);
     if (isDirty && !skipDraftSave) {
       pendingApprovedPublishRef.current = true;
+      setSavingApprovedDraft(true);
       onDiagramSave();
       return;
     }
@@ -344,6 +346,7 @@ export const Component = () => {
       pendingPublishExitRef.current = false;
       if (pendingApprovedPublishRef.current) {
         pendingApprovedPublishRef.current = false;
+        setSavingApprovedDraft(false);
         setPublicationError('Le brouillon n’a pas pu être enregistré ; la publication a été annulée.');
       }
       return;
@@ -363,6 +366,7 @@ export const Component = () => {
       if (actionData.formAction === 'saveContent') {
         if (pendingApprovedPublishRef.current) {
           pendingApprovedPublishRef.current = false;
+          setSavingApprovedDraft(false);
           void publishApprovedProposal(true);
           return;
         }
@@ -418,10 +422,11 @@ export const Component = () => {
         publishApprovedDisabled={
           !isModelerReady ||
           publishingApprovedProposal ||
+          savingApprovedDraft ||
           !proposalId ||
           !publicationSummaryComment.trim()
         }
-        publishApprovedLoading={publishingApprovedProposal}
+        publishApprovedLoading={publishingApprovedProposal || savingApprovedDraft}
       />
       {publicationError && (
         <Alert color="danger" sx={{ mx: 2, my: 1 }}>
