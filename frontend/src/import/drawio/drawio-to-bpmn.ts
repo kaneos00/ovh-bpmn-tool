@@ -274,7 +274,8 @@ const buildPage = (page: PageInfo, pageIndex: number, warnings: string[]) => {
   ).join('\n');
 
   return {
-    dataStores: dataStoreDefinitions,\n    process: `  <bpmn:process id="${processId}" name="${escapeXml(page.name)}" isExecutable="false">\n${nodeElements}\n${flowXml}\n  </bpmn:process>`,
+    dataStores: dataStoreDefinitions,
+    process: `  <bpmn:process id="${processId}" name="${escapeXml(page.name)}" isExecutable="false">\n${nodeElements}\n${flowXml}\n  </bpmn:process>`,
     diagram: `  <bpmndi:BPMNDiagram id="${diagramId}" name="${escapeXml(page.name)}">\n    <bpmndi:BPMNPlane id="${planeId}" bpmnElement="${processId}">\n${shapes}\n${diEdges}\n    </bpmndi:BPMNPlane>\n  </bpmndi:BPMNDiagram>`,
     dataObjectCount: dataObjects.length,
     dataStoreCount: dataStores.length,
