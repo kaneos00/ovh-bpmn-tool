@@ -69,7 +69,6 @@ type ProcessDetailsProps = {
   readOnlyShell?: boolean;
   requestedRaciView?: boolean;
   projectId?: string | null;
-  projectRole?: 'viewer' | 'modeler' | 'admin' | null;
 };
 
 const PROCESS_METADATA_NS = 'https://ovh-bpmn-tool.local/schema/process-metadata';
@@ -167,7 +166,6 @@ export const ProcessDetails = ({
   readOnlyShell = false,
   requestedRaciView = false,
   projectId = null,
-  projectRole = null,
 }: ProcessDetailsProps) => {
   const {
     contents,
@@ -281,6 +279,7 @@ export const ProcessDetails = ({
         queryClient.invalidateQueries({ queryKey: ['process-change-proposals-to-review'] }),
         queryClient.invalidateQueries(contentsQuery(resourceId).queryKey),
       ]);
+      setRemarkText('');
       setRemarkModalOpen(false);
       setActiveViewerTab(5);
     } catch (error) {
@@ -295,6 +294,7 @@ export const ProcessDetails = ({
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
   const [activeViewerTab, setActiveViewerTab] = useState(0);
   const [remarkModalOpen, setRemarkModalOpen] = useState(false);
+  const [remarkText, setRemarkText] = useState('');
   const [submittingRemark, setSubmittingRemark] = useState(false);
   const [remarkError, setRemarkError] = useState<string | null>(null);
   const [remarkWarning, setRemarkWarning] = useState<string | null>(null);
@@ -1388,13 +1388,14 @@ export const ProcessDetails = ({
           <DialogContent>Élément BPMN sélectionné : {selectedElementId || 'aucun'}</DialogContent>
           <Textarea
             minRows={3}
-            value={undefined}
+            value={remarkText}
             placeholder="Décrivez le point à examiner ou la modification souhaitée…"
-            onChange={() => undefined}
+            onChange={event => setRemarkText(event.target.value)}
           />
           {remarkError && <Alert color="danger">{remarkError}</Alert>}
           <DialogActions>
             <Button variant="plain" color="neutral" disabled={submittingRemark} onClick={() => setRemarkModalOpen(false)}>Annuler</Button>
+            <Button variant="solid" color="primary" loading={submittingRemark} disabled={!selectedElementId || !remarkText.trim() || submittingRemark} onClick={() => submitProcessRemark(remarkText)}>Envoyer la remarque</Button>
           </DialogActions>
         </ModalDialog>
       </Modal>
