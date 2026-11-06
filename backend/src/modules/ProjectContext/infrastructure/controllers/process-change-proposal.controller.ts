@@ -618,9 +618,12 @@ export class ProcessChangeProposalController {
                 body.validatorUserId,
               );
         const { validatorUserId, validatorWarning } = validatorResolutionResult;
-        const shouldReopenApproved =
-          existingOpenProposal.status === ProcessChangeProposalStatus.Approved;
-        if (shouldReopenApproved) {
+        const shouldSubmitForReview = [
+          ProcessChangeProposalStatus.Draft,
+          ProcessChangeProposalStatus.ChangesRequested,
+          ProcessChangeProposalStatus.Approved,
+        ].includes(existingOpenProposal.status);
+        if (shouldSubmitForReview) {
           existingOpenProposal.status = ProcessChangeProposalStatus.Submitted;
           existingOpenProposal.submittedContentId = cloneDraft.id;
           existingOpenProposal.submittedAt = new Date();
@@ -631,12 +634,12 @@ export class ProcessChangeProposalController {
         }
         if (
           existingOpenProposal.validatorUserId !== validatorUserId ||
-          shouldReopenApproved
+          shouldSubmitForReview
         ) {
           existingOpenProposal.validatorUserId = validatorUserId;
           await proposals.save(existingOpenProposal);
         }
-        if (shouldReopenApproved) {
+        if (shouldSubmitForReview) {
           await events.save(
             events.create({
               proposalId: existingOpenProposal.id,
