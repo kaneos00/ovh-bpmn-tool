@@ -12,7 +12,7 @@ import {
   Textarea,
   Typography,
 } from '@mui/joy';
-import { CloseRounded, DescriptionOutlined, EditRounded, FolderOutlined, SaveRounded } from '@mui/icons-material';
+import { CloseRounded, EditRounded, FolderOutlined, SaveRounded } from '@mui/icons-material';
 
 import { resourcesQuery } from '../../api/resources/resources.queries';
 import { apiClient } from '../../queryClient';
