@@ -767,6 +767,7 @@ export const Component = () => {
                   </Button>
                 </Card>
               ))}
+              </Stack>
             </Card>
           </TabPanel>
           <TabPanel value={1} sx={{ px: 0, py: 2 }}>
