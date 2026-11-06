@@ -210,7 +210,7 @@ export const ProcessDetails = ({
     () => apiClient.get(`/projects/${projectId}/processes/${resourceId}/remark-permission`),
     { enabled: Boolean(projectId && viewerContent) },
   );
-  const { data: activeProposal } = useQuery<{
+  const { data: activeProposal, isLoading: activeProposalLoading } = useQuery<{
     id: string;
     status: string;
     cloneResourceId: string;
@@ -733,14 +733,14 @@ export const ProcessDetails = ({
                       <FileCopy />
                     </IconButton>
                     {projectId && (projectRole === 'modeler' || projectRole === 'admin') &&
-                      (!activeProposal || ['draft', 'changes_requested'].includes(activeProposal.status)) &&
+                      !activeProposalLoading && (!activeProposal || ['draft', 'changes_requested'].includes(activeProposal.status)) &&
                       remarkPermission?.associated && remarkPermission.usage !== 'common' && !isHistoricalView && (
                         <Button
                           size="sm"
                           variant="soft"
                           color="primary"
                           loading={startingProposal}
-                          disabled={startingProposal}
+                          disabled={startingProposal || activeProposalLoading}
                           onClick={startChangeProposal}
                         >
                           {activeProposal ? 'Reprendre la modification' : 'Proposer une modification'}
