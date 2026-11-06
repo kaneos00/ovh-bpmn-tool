@@ -248,9 +248,11 @@ export const ProcessDetails = ({
     projectId && remarkPermission?.associated && remarkPermission.canSubmitRemarks &&
     viewerContent && publishedContent?.id === viewerContent.id && !isHistoricalView,
   );
-  const canReviewActiveProposal = Boolean(
-    activeProposal && proposalsToReview.some(proposal => proposal.id === activeProposal.id),
-  );
+  const reviewableProposal = activeProposal
+    ? proposalsToReview.find(proposal => proposal.id === activeProposal.id)
+    : undefined;
+  const canReviewActiveProposal = Boolean(reviewableProposal);
+  const reviewProposalStatus = reviewableProposal?.status ?? activeProposal?.status;
   const submitProcessRemark = async (comment: string) => {
     if (!projectId || !canSubmitProcessRemark || !selectedElementId || !comment.trim() || submittingRemark) return;
     setSubmittingRemark(true);
@@ -761,10 +763,10 @@ export const ProcessDetails = ({
                         variant="soft"
                         color="primary"
                         onClick={() => navigate(
-                          `/${activeProposal.cloneResourceId}/modeler?proposalId=${activeProposal.id}&${activeProposal.status === 'approved' ? 'publishApproved=1' : 'reviewRemarks=1'}&sourceResourceId=${resourceId}`,
+                          `/${activeProposal.cloneResourceId}/modeler?proposalId=${activeProposal.id}&${reviewProposalStatus === 'approved' ? 'publishApproved=1' : 'reviewRemarks=1'}&sourceResourceId=${resourceId}`,
                         )}
                       >
-                        {activeProposal.status === 'approved' ? 'Préparer la publication' : 'Traiter les remarques'}
+                        {reviewProposalStatus === 'approved' ? 'Préparer la publication' : 'Traiter les remarques'}
                       </Button>
                     )}
                     {canEditDescription && (
