@@ -61,11 +61,16 @@ export class DrawioReader implements DocumentReaderPlugin {
   readonly id = 'drawio';
 
   supports(input: ReaderInput): boolean {
-    return /\.drawio$/i.test(input.fileName ?? '') ||
-      /<(?:mxfile|mxGraphModel)\b/i.test(input.content);
+    return typeof input.content === 'string' && (
+      /\.drawio$/i.test(input.fileName ?? '') ||
+      /<(?:mxfile|mxGraphModel)\b/i.test(input.content)
+    );
   }
 
   async read(input: ReaderInput): Promise<ReaderDocument> {
+    if (typeof input.content !== 'string') {
+      throw new Error('Le lecteur Draw.io attend un contenu XML texte.');
+    }
     const source = parseXml(input.content, 'Draw.io');
     const directModel = source.querySelector('mxGraphModel');
 
