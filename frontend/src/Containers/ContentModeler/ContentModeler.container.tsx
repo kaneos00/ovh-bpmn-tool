@@ -67,6 +67,7 @@ export const Component = () => {
   const sourceResourceId = searchParams.get('sourceResourceId');
   const pendingSaveExitRef = useRef(false);
   const pendingPublishExitRef = useRef(false);
+  const pendingApprovedPublishRef = useRef(false);
   const handledActionDataRef = useRef<typeof actionData>(undefined);
   const { resource } = useResource(routeResourceId);
   const [raciView, setRaciView] = useState<'matrix' | 'actors' | null>(null);
@@ -294,9 +295,15 @@ export const Component = () => {
   };
 
   const blocker = useBlocker(({ nextLocation }) => isDirty && nextLocation.pathname === `/${resourceId}`);
-  const publishApprovedProposal = async () => {
+  const publishApprovedProposal = async (skipDraftSave = false) => {
     if (!proposalId || !approvedProposalMode || publishingApprovedProposal)
       return;
+    setPublicationError(null);
+    if (isDirty && !skipDraftSave) {
+      pendingApprovedPublishRef.current = true;
+      onDiagramSave();
+      return;
+    }
     setPublishingApprovedProposal(true);
     setPublicationError(null);
     try {
@@ -335,6 +342,10 @@ export const Component = () => {
     if (actionData.error) {
       pendingSaveExitRef.current = false;
       pendingPublishExitRef.current = false;
+      if (pendingApprovedPublishRef.current) {
+        pendingApprovedPublishRef.current = false;
+        setPublicationError('Le brouillon n’a pas pu être enregistré ; la publication a été annulée.');
+      }
       return;
     }
     if (actionData.formAction === 'saveContentBeforeSubmit') {
@@ -350,6 +361,11 @@ export const Component = () => {
       markSaved();
 
       if (actionData.formAction === 'saveContent') {
+        if (pendingApprovedPublishRef.current) {
+          pendingApprovedPublishRef.current = false;
+          void publishApprovedProposal(true);
+          return;
+        }
         if (pendingSaveExitRef.current && blocker.state === 'blocked') {
           pendingSaveExitRef.current = false;
           blocker.proceed?.();
@@ -363,7 +379,7 @@ export const Component = () => {
       if (blocker.state === 'blocked') blocker.reset?.();
       navigate(`/${resourceId}/modeler/publish`);
     }
-  }, [actionData, markSaved, blocker, navigate, resourceId]);
+  }, [actionData, markSaved, blocker, navigate, resourceId, publishApprovedProposal]);
 
   useEffect(() => {
     if (!isDirty) return undefined;
