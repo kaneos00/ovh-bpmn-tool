@@ -1355,7 +1355,7 @@ export class ProcessChangeProposalController {
           (remark) =>
             `- [${remark.status}] ${remark.createdAt.toISOString()} · auteur ${remarkUserNameById.get(remark.authorUserId) ?? remark.authorUserId} · élément ${remark.elementId} · ${remark.comment}${remark.decidedAt ? ` · décidé le ${remark.decidedAt.toISOString()} par ${remarkUserNameById.get(remark.decisionBy!) ?? remark.decisionBy}` : ''}${remark.decisionComment ? ` · décision : ${remark.decisionComment}` : ''}`,
         ),
-      ].join('\\n');
+      ].join('\n');
       const newPublished = await publishProposalWorkspace(manager, {
         sourceResourceId: proposal.sourceResourceId,
         workspaceResourceId: proposal.cloneResourceId,
