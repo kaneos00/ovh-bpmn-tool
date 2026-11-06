@@ -806,7 +806,11 @@ test('Viewer remarks are stored outside BPMN XML and displayed only while pendin
 
   assert.ok(viewer.includes('change-proposals/active?contentId='));
   assert.ok(viewer.includes('elementId: selectedActivityId'));
-  assert.ok(viewer.includes('comment: remarkText.trim()'));
+  assert.ok(viewer.includes('comment: submittedText.trim()'));
+  assert.ok(viewer.includes("import { CommentCard } from '../Comments/components/CommentCard'"));
+  assert.ok(viewer.includes("import { AddCommentForm } from '../Comments/components/AddCommentForm'"));
+  assert.ok(viewer.includes('<CommentCard'));
+  assert.ok(viewer.includes('<AddCommentForm'));
   assert.ok(viewer.includes('Remarques ('));
   assert.ok(viewer.includes('queryClient.setQueryData'));
   assert.ok(viewer.includes("['process-change-proposal-comments', savedProposalId]"));
