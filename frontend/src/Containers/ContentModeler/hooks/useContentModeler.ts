@@ -21,6 +21,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   const { resourceId } = useParams() as ContentModelerRouteParams;
   const [searchParams] = useSearchParams();
   const requestedContentId = searchParams.get('contentId');
+  const proposalId = searchParams.get('proposalId');
   const actionData = useActionData() as Content & ActionResponse;
   const navigate = useNavigate();
 
@@ -220,17 +221,21 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     }
 
     try {
-      await saveDiagram('saveContentBeforePublish', draftContent);
+      await saveDiagram(
+        proposalId ? 'saveContentBeforeSubmit' : 'saveContentBeforePublish',
+        draftContent,
+      );
     } catch {
       showAlert({
         message: 'An error occur during saving content.',
         severity: 'danger',
       });
     }
-  }, [draftContent, saveDiagram, showAlert]);
+  }, [draftContent, saveDiagram, showAlert, proposalId]);
 
   const processActionMessages: Record<string, string> = {
     saveContent: 'Content has been saved successfully.',
+    saveContentBeforeSubmit: 'Brouillon enregistré. Vous pouvez maintenant soumettre la demande.',
   };
 
   const getSaveErrorMessage = (error: unknown, formAction: string) => {
