@@ -398,6 +398,14 @@ export const Component = () => {
               <img className="org-admin-v2__brand-logo" src="/bpmn-tool-logo.svg" alt="" />
               <div><strong>KHI Flows</strong><small>Organisation</small></div>
             </div>
+            <button
+              type="button"
+              className="org-admin-v2__nav-item org-admin-v2__repository-link"
+              onClick={() => navigate('/projects')}
+            >
+              <span className="org-admin-v2__nav-icon" aria-hidden="true">⌂</span>
+              <span>Référentiel</span>
+            </button>
             <div className="org-admin-v2__nav-group">
               <div className="org-admin-v2__nav-label">Administration</div>
               <nav className="org-admin-v2__nav" aria-label="Navigation de l’administration">
