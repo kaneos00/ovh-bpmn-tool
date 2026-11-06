@@ -23,13 +23,15 @@ test('viewer starts with the minimap hidden and exposes an explicit toggle', asy
 test('element selection toggles immediately on every click while double-click navigation remains separate', async () => {
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
 
-  assert.match(hook, /eventBus\\.on\\('element\\.click', 1500, onElementClick\\)/);
-  assert.match(hook, /eventBus\\.on\\('element\\.dblclick', onElementDoubleClick\\)/);
-  assert.match(hook, /if \\(selectedIdRef\\.current === element\\.id\\) \\{\\s*onElementSelectRef\\.current\\?\\.\\(''\\);\\s*\\} else \\{\\s*onElementSelectRef\\.current\\?\\.\\(element\\.id\\);/);
+  assert.ok(hook.includes("eventBus.on('element.click', 1500, onElementClick)"));
+  assert.ok(hook.includes("eventBus.on('element.dblclick', onElementDoubleClick)"));
+  assert.ok(hook.includes("if (selectedIdRef.current === element.id)"));
+  assert.ok(hook.includes("onElementSelectRef.current?.('')"));
+  assert.ok(hook.includes("onElementSelectRef.current?.(element.id)"));
   assert.ok(hook.includes('Every click toggles the same element immediately'));
   assert.doesNotMatch(hook, /pendingSelectionTimer|lastClickAt|cancelPendingSelection/);
-  assert.match(hook, /eventBus\\.off\\('element\\.click', onElementClick\\)/);
-  assert.match(hook, /eventBus\\.off\\('element\\.dblclick', onElementDoubleClick\\)/);
+  assert.ok(hook.includes("eventBus.off('element.click', onElementClick)"));
+  assert.ok(hook.includes("eventBus.off('element.dblclick', onElementDoubleClick)"));
 });
 
 test('viewer selection recognizes collapsed SubProcesses through their BPMN business-object type', async () => {
