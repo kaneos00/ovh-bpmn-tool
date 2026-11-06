@@ -284,7 +284,7 @@ export const Component = () => {
           queryKey: ['process-change-proposals-to-review'],
         }),
       ]);
-      navigate(sourceResourceId ? `/${sourceResourceId}` : '/mes-demandes');
+      navigate(sourceResourceId ? `/${sourceResourceId}` : `/${resourceId}`);
     } catch (error) {
       setPublicationError(
         error instanceof Error
@@ -438,6 +438,22 @@ export const Component = () => {
             {remarkDecisionError && (
               <Alert color="danger">{remarkDecisionError}</Alert>
             )}
+            {reviewRemarksMode &&
+              proposalRemarks.length > 0 &&
+              proposalRemarks.every(remark => remark.status !== 'pending') && (
+                <Button
+                  color="success"
+                  variant="solid"
+                  onClick={() => {
+                    const sourceParam = sourceResourceId
+                      ? `&sourceResourceId=${encodeURIComponent(sourceResourceId)}`
+                      : '';
+                    navigate(`/${resourceId}/modeler?proposalId=${proposalId}&publishApproved=1${sourceParam}`);
+                  }}
+                >
+                  Préparer la publication de la nouvelle version
+                </Button>
+              )}
             <Stack spacing={1}>
               <Typography level="title-sm">
                 Ajouter une remarque sur le diagramme
