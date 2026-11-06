@@ -59,7 +59,7 @@ describe('Draw.io page extraction and independent BPMN conversion', () => {
   it('refuses to create a multi-process BPMN from the original multi-page file', async () => {
     await assert.rejects(
       () => drawioToBpmn(fixture),
-      /une page à la fois/,
+      /une seule page Draw.io/,
     );
   });
 
