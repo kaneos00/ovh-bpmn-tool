@@ -4,6 +4,11 @@ import { useMutation, useQuery, useQueryClient } from 'react-query';
 import {
   Alert,
   Box,
+  Checkbox,
+  Dropdown,
+  Menu,
+  MenuButton,
+  MenuItem,
   Button,
   Card,
   Chip,
@@ -13,13 +18,13 @@ import {
   Input,
   Option,
   Select,
-  Sheet,
   Stack,
   Table,
   Typography,
 } from '@mui/joy';
 import { apiClient } from '../../queryClient';
-import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
+import { WorkspacePageLayout } from '../../Components/GenericComponents/WorkspacePageLayout/WorkspacePageLayout';
+import { Breadcrumbs } from '../../Components/GenericComponents/Breadcrumbs/Breadcrumbs';
 import './OrganizationAdmin.scss';
 
 type MembershipView = {
@@ -88,10 +93,16 @@ const sections = [
   { key: 'projects', label: 'Projets', icon: '▣' },
   { key: 'processes', label: 'Processus', icon: '⌘' },
   { key: 'governance', label: 'Acteurs et RACI', icon: '⬡' },
-  { key: 'settings', label: 'Organisation', icon: '⚙' },
 ] as const;
 
 type AdminSection = (typeof sections)[number]['key'];
+
+const updateSelection = <T,>(current: T[], value: T, checked: boolean): T[] => {
+  if (checked) {
+    return current.includes(value) ? current : [...current, value];
+  }
+  return current.filter((item) => item !== value);
+};
 
 const roleLabel: Record<MembershipView['role'], string> = {
   viewer: 'Viewer',
@@ -166,6 +177,15 @@ export const Component = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [confirmProjectDelete, setConfirmProjectDelete] = useState(false);
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
+  const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
+  const [selectedProcessIds, setSelectedProcessIds] = useState<string[]>([]);
+  const [projectBulkAction, setProjectBulkAction] = useState(false);
+  const [processBulkAction, setProcessBulkAction] = useState(false);
+  const [bulkMemberUserId, setBulkMemberUserId] = useState('');
+  const [bulkMemberRole, setBulkMemberRole] = useState<MembershipView['role']>('viewer');
+  const [bulkProcessProjectId, setBulkProcessProjectId] = useState('');
+  const [bulkProcessUsage, setBulkProcessUsage] = useState<'common' | 'project-specific'>('project-specific');
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [projectNameDraft, setProjectNameDraft] = useState('');
   const [projectDescriptionDraft, setProjectDescriptionDraft] = useState('');
   const [newProjectName, setNewProjectName] = useState('');
@@ -175,7 +195,7 @@ export const Component = () => {
   const section = location.pathname.split('/').filter(Boolean)[1] ?? 'users';
   const activeSection: AdminSection = sections.some((item) => item.key === section)
     ? (section as AdminSection)
-    : 'users';
+    : 'overview';
 
   const overviewQuery = useQuery<AdministrationOverview>(
     queryKey,
@@ -307,6 +327,58 @@ export const Component = () => {
   const selectedUser = overview?.users.find((user) => user.userId === selectedUserId);
   const selectedProject = overview?.projects.find((project) => project.id === selectedProjectId);
   const selectedProcess = overview?.processes.find((process) => process.id === selectedProcessId);
+  const selectedProjects = projects.filter(project => selectedProjectIds.includes(project.id));
+  const selectedProcesses = processes.filter(process => selectedProcessIds.includes(process.id));
+  const unassociatedProcesses = processes.filter(process => process.projects.length === 0);
+  const allVisibleProjectsSelected = projects.length > 0 && projects.every(project => selectedProjectIds.includes(project.id));
+  const allVisibleProcessesSelected = processes.length > 0 && processes.every(process => selectedProcessIds.includes(process.id));
+
+  const applyBulkProjectMember = async () => {
+    if (!bulkMemberUserId.trim() || !selectedProjects.length) return;
+    setBulkBusy(true);
+    setActionError(null);
+    try {
+      await Promise.all(selectedProjects.map(project => apiClient.put(
+        `/projects/administration/projects/${project.id}/members/${encodeURIComponent(bulkMemberUserId.trim())}`,
+        { role: bulkMemberRole },
+      )));
+      await queryClient.invalidateQueries(queryKey);
+      setSelectedProjectIds([]);
+      setProjectBulkAction(false);
+      setBulkMemberUserId('');
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Impossible d’affecter cet utilisateur aux projets sélectionnés.');
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const applyBulkProcessLink = async () => {
+    if (!bulkProcessProjectId || !selectedProcesses.length) return;
+    const eligible = selectedProcesses.filter(process => !process.projects.some(project => project.projectId === bulkProcessProjectId));
+    if (!eligible.length) {
+      setActionError('Tous les processus sélectionnés sont déjà associés à ce projet.');
+      setProcessBulkAction(false);
+      return;
+    }
+    setBulkBusy(true);
+    setActionError(null);
+    try {
+      await Promise.all(eligible.map(process => apiClient.post(
+        `/projects/${bulkProcessProjectId}/processes`,
+        { resourceId: process.id, usage: bulkProcessUsage },
+      )));
+      await queryClient.invalidateQueries(queryKey);
+      await queryClient.invalidateQueries(['my-workspace']);
+      setSelectedProcessIds([]);
+      setProcessBulkAction(false);
+      setBulkProcessProjectId('');
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Impossible d’associer les processus sélectionnés.');
+    } finally {
+      setBulkBusy(false);
+    }
+  };
 
   const title = sections.find((item) => item.key === activeSection)?.label ?? 'Vue d’ensemble';
   const isDataSection = activeSection === 'users' || activeSection === 'projects' || activeSection === 'processes';
@@ -319,15 +391,22 @@ export const Component = () => {
   ).length;
 
   return (
-    <Sheet className="org-admin-v2__page" sx={{ width: '100%', maxWidth: 1440, boxSizing: 'border-box', mx: 'auto', p: { xs: 1, md: 2 }, bgcolor: 'transparent' }}>
+    <WorkspacePageLayout className="org-admin-v2__page">
       <Stack spacing={2}>
-        <WorkspaceNavigation />
         <div className="org-admin-v2">
           <aside className="org-admin-v2__sidebar">
             <div className="org-admin-v2__brand">
               <img className="org-admin-v2__brand-logo" src="/bpmn-tool-logo.svg" alt="" />
               <div><strong>KHI Flows</strong><small>Organisation</small></div>
             </div>
+            <button
+              type="button"
+              className="org-admin-v2__nav-item org-admin-v2__repository-link"
+              onClick={() => navigate('/projects')}
+            >
+              <span className="org-admin-v2__nav-icon" aria-hidden="true">⌂</span>
+              <span>Référentiel</span>
+            </button>
             <div className="org-admin-v2__nav-group">
               <div className="org-admin-v2__nav-label">Administration</div>
               <nav className="org-admin-v2__nav" aria-label="Navigation de l’administration">
@@ -358,7 +437,20 @@ export const Component = () => {
           </aside>
           <main className="org-admin-v2__main">
             <header className="org-admin-v2__topbar">
-              <div><div className="org-admin-v2__crumb">Administration / {title}</div><div className="org-admin-v2__top-title">Administration de l’organisation</div></div>
+              <div>
+                <div className="org-admin-v2__crumb">
+                  <Breadcrumbs
+                    breadcrumbItems={[
+                      { id: 'home', label: 'Tous les projets', to: '/projects' },
+                      { id: 'administration', label: 'Administration', to: '/organization/overview' },
+                      { id: 'section', label: title, to: location.pathname },
+                      ...(selectedProject ? [{ id: 'selected-project', label: selectedProject.name, to: location.pathname }] : []),
+                      ...(selectedProcess ? [{ id: 'selected-process', label: selectedProcess.name, to: location.pathname }] : []),
+                    ]}
+                  />
+                </div>
+                <div className="org-admin-v2__top-title">Gestion des projets et du référentiel</div>
+              </div>
               <Chip size="sm" color="primary" variant="soft">Accès organisationnel</Chip>
             </header>
             <div className="org-admin-v2__content">
@@ -403,8 +495,8 @@ export const Component = () => {
                     <div><div className="org-admin-v2__eyebrow">{sectionEyebrow[activeSection]}</div><Typography id="org-section-title" level="h1">{title}</Typography><Typography level="body-md" sx={{ color: 'text.secondary', maxWidth: 700, mt: 0.5 }}>{sectionDescription[activeSection]}</Typography></div>
                     <div className="org-admin-v2__actions">
                       {activeSection === 'users' && <><Button variant="outlined" onClick={() => exportCsv('utilisateurs-khi-flows.csv', [['Identifiant', 'Projet', 'Rôle'], ...users.flatMap((user) => user.projects.map((project) => [user.userId, project.projectName, roleLabel[project.role]]))])}>Exporter la vue</Button><Button onClick={() => document.getElementById('org-add-access')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>＋ Ajouter un accès</Button></>}
-                      {activeSection === 'projects' && <><Button variant="outlined" onClick={() => exportCsv('projets-khi-flows.csv', [['Projet', 'Description', 'Membres', 'Processus communs', 'Spécifiques', 'Variantes'], ...projects.map((project) => [project.name, project.description ?? '', project.membersCount, project.processes.filter((process) => process.usage === 'common').length, project.processes.filter((process) => process.usage === 'project-specific').length, project.processes.filter((process) => process.usage === 'variant').length])])}>Exporter la vue</Button><Button onClick={() => document.getElementById('org-create-project')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>＋ Créer un projet</Button></>}
-                      {activeSection === 'processes' && <><Button variant="outlined" onClick={() => exportCsv('processus-khi-flows.csv', [['Processus', 'Description', 'Projet', 'Usage', 'Source'], ...processes.flatMap((process) => process.projects.length ? process.projects.map((project) => [process.name, process.description ?? '', project.projectName, usageLabel[project.usage], project.sourceResourceId ?? '']) : [[process.name, process.description ?? '', '', 'Non associé', '']])])}>Exporter la vue</Button><Button onClick={() => navigate('/root')}>＋ Créer dans le référentiel</Button></>}
+                      {activeSection === 'projects' && <><Dropdown><MenuButton size="sm" variant="outlined" color="neutral" disabled={selectedProjects.length === 0}>☰ Projets ({selectedProjects.length})</MenuButton><Menu placement="bottom-end"><MenuItem onClick={() => setProjectBulkAction(true)}>Affecter un utilisateur aux projets sélectionnés…</MenuItem><MenuItem onClick={() => setSelectedProjectIds([])}>Effacer la sélection</MenuItem></Menu></Dropdown><Dropdown><MenuButton size="sm" variant="outlined" color="neutral" disabled={selectedProcesses.length === 0}>☰ Processus ({selectedProcesses.length})</MenuButton><Menu placement="bottom-end"><MenuItem onClick={() => setProcessBulkAction(true)}>Associer les processus sélectionnés à un projet…</MenuItem><MenuItem onClick={() => setSelectedProcessIds([])}>Effacer la sélection</MenuItem></Menu></Dropdown><Button variant="outlined" onClick={() => exportCsv('projets-khi-flows.csv', [['Projet', 'Description', 'Membres', 'Processus communs', 'Spécifiques', 'Variantes'], ...projects.map((project) => [project.name, project.description ?? '', project.membersCount, project.processes.filter((process) => process.usage === 'common').length, project.processes.filter((process) => process.usage === 'project-specific').length, project.processes.filter((process) => process.usage === 'variant').length])])}>Exporter la vue</Button><Button onClick={() => document.getElementById('org-create-project')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>＋ Créer un projet</Button></>}
+                      {activeSection === 'processes' && <><Dropdown><MenuButton size="sm" variant="outlined" color="neutral" disabled={selectedProcesses.length === 0}>☰ Actions groupées ({selectedProcesses.length})</MenuButton><Menu placement="bottom-end"><MenuItem onClick={() => setProcessBulkAction(true)}>Associer les processus à un projet…</MenuItem><MenuItem onClick={() => setSelectedProcessIds([])}>Effacer la sélection</MenuItem></Menu></Dropdown><Button variant="outlined" onClick={() => exportCsv('processus-khi-flows.csv', [['Processus', 'Description', 'Projet', 'Usage', 'Source'], ...processes.flatMap((process) => process.projects.length ? process.projects.map((project) => [process.name, process.description ?? '', project.projectName, usageLabel[project.usage], project.sourceResourceId ?? '']) : [[process.name, process.description ?? '', '', 'Non associé', '']])])}>Exporter la vue</Button><Button onClick={() => navigate('/root')}>＋ Créer dans le référentiel</Button></>}
                     </div>
                   </div>
                   {activeSection === 'users' && <Alert color="neutral" variant="soft" sx={{ mb: 2 }}>Les rôles affichés sont des rôles de projet. Les identifiants proviennent des adhésions enregistrées ; les comptes sans adhésion ne sont pas encore fournis par un annuaire d’identité global.</Alert>}
@@ -420,6 +512,27 @@ export const Component = () => {
                       <FormControl sx={{ minWidth: 190 }}><FormLabel>Projet utilisateur</FormLabel><Select value={processProjectFilter} onChange={(_event, value) => setProcessProjectFilter(value ?? 'all')}><Option value="all">Tous les projets</Option>{(overview?.projects ?? []).map((project) => <Option key={project.id} value={project.id}>{project.name}</Option>)}</Select></FormControl>
                     </>}
                   </div>
+                  {activeSection === 'projects' && projectBulkAction && (
+                    <Alert color="primary" variant="soft" sx={{ mb: 2 }}>
+                      <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'flex-end' }} gap={1}>
+                        <FormControl sx={{ flex: 1 }}><FormLabel>Identifiant utilisateur</FormLabel><Input value={bulkMemberUserId} onChange={event => setBulkMemberUserId(event.target.value)} placeholder="Identifiant exact" /></FormControl>
+                        <FormControl sx={{ minWidth: 180 }}><FormLabel>Rôle dans les projets</FormLabel><Select value={bulkMemberRole} onChange={(_event, value) => value && setBulkMemberRole(value as MembershipView['role'])}><Option value="viewer">Viewer</Option><Option value="modeler">Modeler</Option><Option value="admin">Admin</Option></Select></FormControl>
+                        <Button disabled={!bulkMemberUserId.trim() || bulkBusy} loading={bulkBusy} onClick={() => void applyBulkProjectMember()}>Affecter à {selectedProjects.length} projet(s)</Button>
+                        <Button variant="plain" color="neutral" onClick={() => setProjectBulkAction(false)}>Annuler</Button>
+                      </Stack>
+                    </Alert>
+                  )}
+                  {(activeSection === 'processes' || activeSection === 'projects') && processBulkAction && (
+                    <Alert color="primary" variant="soft" sx={{ mb: 2 }}>
+                      <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'flex-end' }} gap={1}>
+                        <FormControl sx={{ flex: 1 }}><FormLabel>Projet cible</FormLabel><Select value={bulkProcessProjectId || null} placeholder="Choisir un projet" onChange={(_event, value) => setBulkProcessProjectId(value ?? '')}>{(overview?.projects ?? []).map(project => <Option key={project.id} value={project.id}>{project.name}</Option>)}</Select></FormControl>
+                        <FormControl sx={{ minWidth: 190 }}><FormLabel>Type d’association</FormLabel><Select value={bulkProcessUsage} onChange={(_event, value) => value && setBulkProcessUsage(value as typeof bulkProcessUsage)}><Option value="project-specific">Spécifique au projet</Option><Option value="common">Commun</Option></Select></FormControl>
+                        <Button disabled={!bulkProcessProjectId || bulkBusy} loading={bulkBusy} onClick={() => void applyBulkProcessLink()}>Associer {selectedProcesses.length} processus</Button>
+                        <Button variant="plain" color="neutral" onClick={() => setProcessBulkAction(false)}>Annuler</Button>
+                      </Stack>
+                      <Typography level="body-xs" sx={{ mt: 1 }}>Cette opération nécessite le rôle Modélisateur ou Admin sur le projet cible et l’accès à chaque processus ; l’API vérifie ces droits.</Typography>
+                    </Alert>
+                  )}
                 </section>
               )}
 
@@ -429,17 +542,6 @@ export const Component = () => {
                   <Alert color="neutral" variant="soft" sx={{ mb: 2 }}>Le RACI est géré au niveau du projet : cette vue transversale aide à retrouver le bon périmètre, tandis que les modifications restent soumises aux droits du projet.</Alert>
                   <div className="org-admin-v2__governance-list">{overview.projects.map((project) => <Card key={project.id} className="org-admin-v2__governance-card"><div className="org-admin-v2__governance-copy"><Typography level="title-lg">{project.name}</Typography>{project.description && <Typography level="body-sm" sx={{ color: 'text.secondary' }}>{project.description}</Typography>}<div className="org-admin-v2__governance-meta"><Chip size="sm" variant="soft">{project.membersCount} membre(s)</Chip><Chip size="sm" variant="soft">{project.processes.length} processus</Chip><Chip size="sm" variant="soft">RACI du projet</Chip></div></div><Button onClick={() => navigate(`/projects/${project.id}?tab=raci`)}>Gérer le RACI →</Button></Card>)}</div>
                   {overview.projects.length === 0 && <Card className="org-admin-v2__panel"><Typography level="title-md">Aucun projet accessible</Typography><Typography level="body-sm">Créez un projet ou attribuez un accès pour commencer à définir les responsabilités.</Typography></Card>}
-                </section>
-              )}
-
-              {activeSection === 'settings' && (
-                <section aria-labelledby="org-settings-title">
-                  <div className="org-admin-v2__page-head"><div><div className="org-admin-v2__eyebrow">Configuration</div><Typography id="org-settings-title" level="h1">Organisation</Typography><Typography level="body-md" sx={{ color: 'text.secondary', maxWidth: 700, mt: 0.5 }}>Paramètres et gouvernance globale de l’instance.</Typography></div></div>
-                  <div className="org-admin-v2__settings-grid">
-                    <Card className="org-admin-v2__panel"><Typography level="title-lg">Administration organisationnelle</Typography><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Les droits globaux sont attribués par le groupe de confiance <code>bpmn-tool-admin-*</code>. Les rôles de projet viewer, modeler et admin ne confèrent aucun privilège global.</Typography><Chip color="success" variant="soft">Contrôle côté API</Chip></Card>
-                    <Card className="org-admin-v2__panel"><Typography level="title-lg">Source des identités</Typography><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Cette instance utilise actuellement les identifiants transmis par le mécanisme d’authentification configuré. La découverte des comptes sans adhésion nécessite un annuaire global ou un fournisseur d’identité raccordé.</Typography><Chip color="warning" variant="soft">Annuaire global non raccordé</Chip></Card>
-                    <Card className="org-admin-v2__panel"><Typography level="title-lg">Périmètre des données</Typography><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Les utilisateurs, projets et processus affichés proviennent de l’API d’administration. Les réglages non couverts par une API ne sont pas présentés comme modifiables.</Typography></Card>
-                  </div>
                 </section>
               )}
 
@@ -676,26 +778,62 @@ export const Component = () => {
         )}
 
         {activeSection === 'projects' && overview && (
-          <Card variant="outlined" sx={{ p: 0, overflow: 'auto' }}>
-            <Table hoverRow stickyHeader>
-              <thead>
-                <tr><th>Projet</th><th>Description</th><th>Membres</th><th>Processus communs</th><th>Spécifiques</th><th>Variantes</th><th>Gestion</th></tr>
-              </thead>
-              <tbody>
-                {projects.map((project) => (
-                  <tr key={project.id}>
-                    <td><Typography level="title-sm">{project.name}</Typography></td>
-                    <td>{project.description || '—'}</td>
-                    <td>{project.membersCount}</td>
-                    <td>{project.processes.filter((process) => process.usage === 'common').length}</td>
-                    <td>{project.processes.filter((process) => process.usage === 'project-specific').length}</td>
-                    <td>{project.processes.filter((process) => process.usage === 'variant').length}</td>
-                    <td><Button size="sm" variant="outlined" onClick={() => { setSelectedProjectId(project.id); setConfirmProjectDelete(false); setProjectNameDraft(project.name); setProjectDescriptionDraft(project.description ?? ''); }}>Gérer</Button></td>
-                  </tr>
-                ))}
-                {projects.length === 0 && <tr><td colSpan={7}>Aucun projet correspondant.</td></tr>}
-              </tbody>
-            </Table>
+          <Card variant="outlined" sx={{ gap: 1.25 }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" gap={1}>
+              <Box>
+                <Typography level="title-lg">Arborescence des projets et processus</Typography>
+                <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Les processus sont regroupés sous chaque projet. Un même processus peut apparaître dans plusieurs projets.</Typography>
+              </Box>
+              <Chip size="sm" variant="soft">{projects.length} projet(s) · {processes.length} processus</Chip>
+            </Stack>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.75, bgcolor: 'background.level1', borderRadius: 'sm' }}>
+              <Checkbox checked={allVisibleProjectsSelected} indeterminate={selectedProjectIds.length > 0 && !allVisibleProjectsSelected} onChange={event => setSelectedProjectIds(event.target.checked ? projects.map(project => project.id) : [])} aria-label="Sélectionner tous les projets affichés" />
+              <Typography level="title-sm">Projets</Typography>
+              <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Sélectionner les projets pour les actions groupées</Typography>
+            </Box>
+            {projects.map(project => (
+              <Box key={project.id} sx={{ borderBottom: '1px solid', borderColor: 'divider', pb: 1.25 }}>
+                <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'center' }} gap={1}>
+                  <Checkbox checked={selectedProjectIds.includes(project.id)} onChange={event => setSelectedProjectIds(current => updateSelection(current, project.id, event.target.checked))} aria-label={`Sélectionner le projet ${project.name}`} />
+                  <Box sx={{ flex: 1, minWidth: 180 }}>
+                    <Typography level="title-md">▣ {project.name}</Typography>
+                    {project.description && <Typography level="body-xs" sx={{ color: 'text.secondary' }}>{project.description}</Typography>}
+                  </Box>
+                  <Stack direction="row" gap={0.75} useFlexGap flexWrap="wrap">
+                    <Chip size="sm" variant="soft">{project.membersCount} membre(s)</Chip>
+                    <Chip size="sm" variant="soft">{project.processes.length} processus</Chip>
+                  </Stack>
+                  <Button size="sm" variant="outlined" onClick={() => { setSelectedProjectId(project.id); setConfirmProjectDelete(false); setProjectNameDraft(project.name); setProjectDescriptionDraft(project.description ?? ''); }}>Gérer le projet</Button>
+                </Stack>
+                <Box sx={{ ml: { xs: 2, md: 5 }, mt: 1, pl: 2, borderLeft: '2px solid', borderColor: 'divider', display: 'grid', gap: 0.5 }}>
+                  {project.processes.map(process => (
+                    <Stack key={process.resourceId} direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} gap={0.75} sx={{ minHeight: 34 }}>
+                      <Checkbox checked={selectedProcessIds.includes(process.resourceId)} onChange={event => setSelectedProcessIds(current => updateSelection(current, process.resourceId, event.target.checked))} aria-label={`Sélectionner le processus ${process.name}`} />
+                      <Typography level="body-sm" sx={{ flex: 1, minWidth: 0 }}>⌁ {process.name}</Typography>
+                      <Chip size="sm" variant="soft" color={usageColor[process.usage]}>{usageLabel[process.usage]}</Chip>
+                      <Button size="sm" variant="plain" onClick={() => navigate(`/${process.resourceId}`)}>Ouvrir</Button>
+                    </Stack>
+                  ))}
+                  {project.processes.length === 0 && <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Aucun processus associé à ce projet.</Typography>}
+                </Box>
+              </Box>
+            ))}
+            {unassociatedProcesses.length > 0 && (
+              <Box sx={{ mt: 1 }}>
+                <Typography level="title-sm">Processus non associés</Typography>
+                <Box sx={{ ml: { xs: 2, md: 5 }, mt: 1, pl: 2, borderLeft: '2px solid', borderColor: 'divider', display: 'grid', gap: 0.5 }}>
+                  {unassociatedProcesses.map(process => (
+                    <Stack key={process.id} direction="row" alignItems="center" gap={0.75}>
+                      <Checkbox checked={selectedProcessIds.includes(process.id)} onChange={event => setSelectedProcessIds(current => updateSelection(current, process.id, event.target.checked))} aria-label={`Sélectionner le processus ${process.name}`} />
+                      <Typography level="body-sm" sx={{ flex: 1 }}>{process.name}</Typography>
+                      <Chip size="sm" variant="outlined">Non associé</Chip>
+                      <Button size="sm" variant="plain" onClick={() => navigate(`/${process.id}`)}>Ouvrir</Button>
+                    </Stack>
+                  ))}
+                </Box>
+              </Box>
+            )}
+            {projects.length === 0 && <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Aucun projet correspondant aux filtres.</Typography>}
           </Card>
         )}
 
@@ -731,11 +869,12 @@ export const Component = () => {
           <Card variant="outlined" sx={{ p: 0, overflow: 'auto' }}>
             <Table hoverRow stickyHeader>
               <thead>
-                <tr><th>Processus</th><th>Type d’utilisation</th><th>Projets utilisateurs</th><th>Source</th><th>Ouvrir</th></tr>
+                <tr><th><Checkbox checked={allVisibleProcessesSelected} indeterminate={selectedProcessIds.length > 0 && !allVisibleProcessesSelected} onChange={event => setSelectedProcessIds(event.target.checked ? processes.map(process => process.id) : [])} aria-label="Sélectionner tous les processus affichés" /></th><th>Processus</th><th>Type d’utilisation</th><th>Projets utilisateurs</th><th>Source</th><th>Ouvrir</th></tr>
               </thead>
               <tbody>
                 {processes.map((process) => (
                   <tr key={process.id}>
+                    <td><Checkbox checked={selectedProcessIds.includes(process.id)} onChange={event => setSelectedProcessIds(current => updateSelection(current, process.id, event.target.checked))} aria-label={`Sélectionner le processus ${process.name}`} /></td>
                     <td><Typography level="title-sm">{process.name}</Typography>{process.description && <Typography level="body-xs" sx={{ color: 'text.secondary' }}>{process.description}</Typography>}</td>
                     <td>
                       <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap">
@@ -756,7 +895,7 @@ export const Component = () => {
                     <td><Button size="sm" variant="outlined" onClick={() => setSelectedProcessId(process.id)}>Détails</Button></td>
                   </tr>
                 ))}
-                {processes.length === 0 && <tr><td colSpan={5}>Aucun processus correspondant.</td></tr>}
+                {processes.length === 0 && <tr><td colSpan={6}>Aucun processus correspondant.</td></tr>}
               </tbody>
             </Table>
           </Card>
@@ -771,7 +910,7 @@ export const Component = () => {
           </main>
         </div>
       </Stack>
-    </Sheet>
+    </WorkspacePageLayout>
   );
 };
 

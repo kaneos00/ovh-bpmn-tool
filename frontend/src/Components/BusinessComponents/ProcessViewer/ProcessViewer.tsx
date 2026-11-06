@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Alert, Box, Button, Stack, Typography } from '@mui/joy';
 import { useProcessViewer } from './hooks/useProcessViewer';
 import 'diagram-js-minimap/assets/diagram-js-minimap.css';
@@ -11,7 +11,7 @@ type ProcessViewerProps = {
   onElementSelect?: (elementId: string) => void;
   onToggleInfoPanel?: () => void;
   infoPanelOpen?: boolean;
-  toolbarExtra?: React.ReactNode;
+  toolbarExtra?: ReactNode;
 };
 
 export const ProcessViewer = ({
@@ -23,6 +23,27 @@ export const ProcessViewer = ({
   infoPanelOpen = false,
   toolbarExtra,
 }: ProcessViewerProps) => {
+  const viewerShellRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const syncFullscreenState = () => {
+      setIsFullscreen(document.fullscreenElement === viewerShellRef.current);
+    };
+    document.addEventListener('fullscreenchange', syncFullscreenState);
+    return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    const shell = viewerShellRef.current;
+    if (!shell) return;
+    if (document.fullscreenElement === shell) {
+      await document.exitFullscreen();
+    } else {
+      await shell.requestFullscreen();
+    }
+  };
+
   const {
     viewerRef,
     importError,
@@ -41,7 +62,7 @@ export const ProcessViewer = ({
   );
 
   return (
-    <Box className="process-viewer-shell">
+    <Box className={`process-viewer-shell${isFullscreen ? ' is-fullscreen' : ''}`} ref={viewerShellRef}>
       <Stack
         direction="row"
         alignItems="center"
@@ -61,6 +82,7 @@ export const ProcessViewer = ({
           <Button size="sm" variant="soft" color="neutral" onClick={resetZoom} aria-label="Zoom 1:1" title="Afficher à l’échelle 1:1">1:1</Button>
           <Button size="sm" variant={minimapVisible ? 'soft' : 'plain'} color="neutral" onClick={() => setMinimapVisible(!minimapVisible)} aria-label={minimapVisible ? 'Masquer la mini-carte' : 'Afficher la mini-carte'} title={minimapVisible ? 'Masquer la mini-carte' : 'Afficher la mini-carte'}>Mini-carte</Button>
           <Button size="sm" variant="plain" color="neutral" onClick={fitDiagram} aria-label="Ajuster à la fenêtre" title="Ajuster le diagramme à la fenêtre">Ajuster</Button>
+          <Button size="sm" variant={isFullscreen ? 'soft' : 'outlined'} color="neutral" onClick={toggleFullscreen} aria-label={isFullscreen ? 'Quitter le plein écran' : 'Afficher le BPMN en plein écran'} title={isFullscreen ? 'Quitter le plein écran (Échap)' : 'Afficher le BPMN en plein écran'}>{isFullscreen ? 'Quitter plein écran' : 'Plein écran'}</Button>
           {toolbarExtra}
         </Stack>
       </Stack>

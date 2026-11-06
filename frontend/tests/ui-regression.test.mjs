@@ -167,7 +167,8 @@ test('breadcrumb ancestry shares the tree resource snapshot and detects broken p
   assert.ok(folders.includes('inspectFolderHierarchy'));
   assert.ok(breadcrumbs.includes('useFolderTree(resourceId)'));
   assert.ok(breadcrumbs.includes('const treePath = findPath(dataTree)'));
-  assert.ok(breadcrumbs.includes('to: node.id === \'root\' ? \'/root\' : `/${node.targetId ?? node.id}`'));
+  assert.ok(breadcrumbs.includes("treePath.filter(node => node.id !== 'root').map(node => ({"));
+  assert.ok(breadcrumbs.includes('to: `/${node.targetId ?? node.id}`'));
   assert.ok(breadcrumbs.includes("resource.parentId ?? 'root'"), 'keep a fallback for resources missing from the tree');
   assert.ok(hierarchy.includes("code: 'missing-parent'"));
   assert.ok(hierarchy.includes("code: 'cycle'"));
@@ -213,7 +214,7 @@ test('detail panel starts collapsed, opens on element selection and exposes task
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
 
   assert.match(details, /useState\(true\);[\s\S]*?taskPanelCollapsed/);
-  assert.match(details, /if \(selectedElementId\) setTaskPanelCollapsed\(false\)/);
+  assert.match(details, /setTaskPanelCollapsed\(!selectedElementId\)/);
   assert.match(details, /className="viewerPanelHeader processTaskPanelHeader"[\s\S]*?onClick=\{\(\) => setTaskPanelCollapsed\(value => !value\)\}/);
   assert.match(details, /aria-label=\{taskPanelCollapsed \? 'Développer le panneau de tâche' : 'Replier le panneau de tâche'\}/);
   const taskInfo = details.indexOf('1. Description de la tâche');
@@ -250,21 +251,24 @@ test('deployed frontend exposes a build identifier with a source-derived fallbac
   assert.ok(compose.includes('VITE_BUILD_BRANCH: ${VITE_BUILD_BRANCH:-${SOURCE_BRANCH:-unknown}}'));
 });
 
-test('V3 viewer context menu exposes role-appropriate resource management actions', async () => {
+test('V3 viewer three-dot menu exposes role-appropriate resource management actions', async () => {
   const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
   const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
   const menuStart = tree.indexOf('<Menu\n      open={Boolean(contextMenu)}');
   const menu = tree.slice(menuStart);
 
-  assert.ok(tree.includes('onContextMenu={event =>'));
-  assert.ok(tree.includes('setContextMenu({ nodeId, anchorEl: event.currentTarget as HTMLElement })'));
+  assert.ok(!tree.includes('onContextMenu'), 'right-click handling is replaced by the explicit menu button');
+  assert.ok(tree.includes('folder-tree-actions'));
+  assert.ok(tree.includes('setContextMenu({ nodeId, anchorEl: event.currentTarget })'));
+  assert.ok(tree.includes('projects/me/workspace'));
+  assert.ok(tree.includes('projectModelerResourceIds.includes(resourceId)'));
   assert.ok(tree.includes("borderRadius: '12px'"));
   assert.ok(tree.includes('boxShadow:'));
   assert.ok(tree.includes('background.level1'));
   assert.ok(!menu.includes('Ajouter aux favoris'));
   assert.ok(!menu.includes('Retirer des favoris'));
   assert.ok(tree.includes("sessionRole === 'admin' || sessionRole === 'modeler'"));
-  assert.ok(tree.includes('isBpmn && canModifyBpmn'));
+  assert.ok(tree.includes('isBpmn && canModifyBpmn(resourceId)'));
   assert.ok(tree.includes('navigate(`/${resourceId}/modeler`)'));
   assert.ok(tree.includes('Modifier dans le modeleur'));
   assert.ok(tree.includes('Partager'));
@@ -354,16 +358,18 @@ test('selecting a folder renders its contents instead of an empty folder placeho
   assert.ok(layout.includes("import { FolderOverview } from './FolderOverview'"));
   assert.ok(layout.includes('<FolderOverview resource={resource} />'));
   assert.ok(folderOverview.includes('useQuery<Resource[]>(resourcesQuery())'));
-  assert.ok(folderOverview.includes(".filter(childResource => (childResource.parentId ?? 'root') === resourceId)"));
-  assert.ok(folderOverview.includes('navigate(`/${childResource.id}`)'));
-  assert.ok(folderOverview.includes('{childResource.name}'));
+  assert.ok(folderOverview.includes(".filter(childResource => allowedIds.has(childResource.id) && (childResource.parentId ?? 'root') === resourceId)"));
+  assert.ok(folderOverview.includes('navigate(`/${folder.id}`)'));
+  assert.ok(folderOverview.includes('<ProjectProcessOverview'));
+  assert.ok(folderOverview.includes("?? 'project-specific'"));
+  assert.ok(folderOverview.includes('{folder.name}'));
   assert.ok(folderOverview.includes('Répertoire vide'));
-  assert.ok(folderOverview.includes('{resource.name}'), 'folder heading should display the selected folder name');
+  assert.ok(folderOverview.includes("{resourceId === 'root' ? (activeProject?.name ?? 'Référentiel') : resource.name}"), 'the project root heading should use the active project name or a neutral fallback');
   assert.ok(folderOverview.includes('Aucun descriptif renseigné pour ce répertoire.'));
   assert.ok(processDetails.includes('useProcessDetails(resourceId'));
 });
 
-test('viewer keeps the explorer and task details in side panels while all central tabs stay grouped', async () => {
+test('viewer keeps the explorer left of the tabs and the element sheet beside the BPMN inside the process tab', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const layoutStart = details.indexOf('className="processViewerLayout processViewerWorkspace"');
   const explorer = details.indexOf('<ViewerExplorerPanel');
@@ -373,19 +379,32 @@ test('viewer keeps the explorer and task details in side panels while all centra
   const historyTab = details.indexOf('value={2} className="processViewerTabPanel"');
   const raciTab = details.indexOf('value={3} className="processViewerTabPanel"');
   const inventoryTab = details.indexOf('value={4} className="processViewerTabPanel"');
+  const processWorkspace = details.indexOf('className="processViewerProcessWorkspace"', processTab);
+  const diagram = details.indexOf('className="processViewerDiagram"', processWorkspace);
+  const taskPanel = details.indexOf('className={`processTaskPanel', processWorkspace);
+  const workspaceClose = details.indexOf('</Box>\n        </TabPanel>', processWorkspace);
+  const processTabClose = details.indexOf('</TabPanel>', processTab);
   const tabsClose = details.indexOf('</Tabs>', inventoryTab);
-  const taskPanel = details.indexOf('className={`processTaskPanel', tabsClose);
 
-  assert.ok(layoutStart >= 0, 'viewer workspace should own the three-column layout');
+  assert.ok(layoutStart >= 0, 'viewer workspace should own the explorer and central tabs');
   assert.ok(explorer > layoutStart && explorer < tabs, 'explorer must remain to the left of central tabs');
-  assert.ok(tabs < processTab && processTab < descriptionTab && descriptionTab < historyTab && historyTab < raciTab && raciTab < inventoryTab, 'diagram, description, history, RACI and inventory must be ordered in the central panel');
-  assert.ok(tabsClose > inventoryTab && taskPanel > tabsClose, 'task details must remain in the right-side panel outside the tabs');
-  assert.ok(details.slice(processTab, descriptionTab).includes('className="processViewerDiagram"'), 'process diagram belongs to the process tab');
+  // RACI stays a top-level tab; only the element sheet moves beside the BPMN diagram.
+  assert.ok(tabs < processTab && processTab < descriptionTab && descriptionTab < historyTab && historyTab < raciTab && raciTab < inventoryTab && tabsClose > inventoryTab, 'diagram, description, history, RACI and inventory must remain ordered in the top-level tabs');
+  assert.ok(processWorkspace > processTab && diagram > processWorkspace && taskPanel > diagram && workspaceClose > taskPanel && processTabClose > workspaceClose, 'the BPMN diagram and element sheet must be siblings inside the Vue du processus tab');
+  assert.ok(details.slice(processTab, processTabClose).includes('className="processViewerResizeHandle"'), 'the element sheet resize handle must stay with the process workspace');
+  assert.ok(details.includes('const [taskPanelCollapsed, setTaskPanelCollapsed] = useState(true)'), 'element sheet must start collapsed');
+  assert.ok(details.includes('setTaskPanelCollapsed(!selectedElementId)'), 'element sheet must open for a selected BPMN element and close when selection clears');
   const styles = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.scss');
-  assert.match(styles, /\.processViewerTabs\s*\{[^}]*flex:\s*1 1 0;[^}]*width:\s*0;/s);
-  assert.match(styles, /\.processViewerDiagram\s*\{[^}]*width:\s*100%;/s);
-  assert.match(styles, /\.processViewerCanvas\s*\{[^}]*display:\s*flex;[^}]*flex:\s*1 1 0;[^}]*min-height:\s*0;/s);
-  assert.match(details, /<Stack direction="row" spacing=\{0\.5\} alignItems="center">[\s\S]*?aria-label="Copier le lien du processus"[\s\S]*?aria-label="Modifier le diagramme BPMN"/);
+  const processWorkspaceStyles = styles.slice(styles.indexOf('.processViewerProcessWorkspace {'), styles.indexOf('.processViewerDiagram {'));
+  const diagramStyles = styles.slice(styles.indexOf('.processViewerDiagram {'), styles.indexOf('.processViewerDiagramHeader {'));
+  const taskPanelStyles = styles.slice(styles.indexOf('.processTaskPanel {'), styles.indexOf('.processTaskPanel.collapsed {'));
+  const canvasStart = styles.indexOf('.processViewerCanvas {');
+  const canvasStyles = styles.slice(canvasStart, canvasStart + 500);
+  assert.ok(processWorkspaceStyles.includes('display: flex;') && processWorkspaceStyles.includes('width: 100%;'), 'BPMN and element sheet must share a horizontal flex workspace');
+  assert.ok(diagramStyles.includes('min-width: 0;') && diagramStyles.includes('display: flex;'), 'diagram must flex beside the element sheet');
+  assert.ok(taskPanelStyles.includes('flex: 0 0 var(--task-panel-width, 320px)'), 'element sheet must retain its resizable side-panel width');
+  assert.ok(canvasStyles.includes('display: flex;') && canvasStyles.includes('flex: 1 1 0;') && canvasStyles.includes('min-height: 0;'), 'BPMN canvas must fill the available diagram area');
+  assert.ok(details.includes('aria-label="Copier le lien du processus"') && details.includes('aria-label="Modifier le diagramme BPMN"'));
   assert.ok(details.includes("import '../../../raci.css'"), 'Viewer should reuse the Modeler RACI design system');
   assert.ok(details.includes('className="raci-table"'));
   assert.ok(details.includes('raci-code-badge raci-code-'));
@@ -657,4 +676,94 @@ test('description, version history, RACI and documented information stay top-ali
   assert.ok(styles.includes('margin-block: 0 auto;'));
   assert.ok(styles.includes('.processViewerTabPanel:not(.processViewerProcessTab) > .processViewerInfo'));
   assert.ok(styles.includes('.processViewerTabPanel:not(.processViewerProcessTab) > .processViewerInfo.processViewerRaci'));
+});
+
+
+test('user administration uses a dedicated breadcrumb route and grouped account actions', async () => {
+  const accounts = await read('src/Containers/UserAccounts/index.tsx');
+  const routes = await read('src/routes.tsx');
+
+  assert.match(routes, /path: '\/organization\/users\/\:username'/);
+  assert.match(accounts, /useParams<\{ username\?: string \}>/);
+  assert.ok(accounts.includes('>Administration</Button>') && accounts.includes('>Utilisateurs</Button>'));
+  assert.match(accounts, /!username && <>/);
+  assert.match(accounts, /Actions groupées/);
+  assert.match(accounts, /Associer à un projet/);
+  assert.match(accounts, /Désactiver les comptes sélectionnés/);
+});
+
+test('project administration exposes a nested project-process tree and grouped actions', async () => {
+  const admin = await read('src/Containers/OrganizationAdmin/OrganizationAdmin.container.tsx');
+
+  assert.match(admin, /Arborescence des projets et processus/);
+  assert.match(admin, /Affecter un utilisateur aux projets sélectionnés/);
+  assert.match(admin, /Associer les processus sélectionnés à un projet/);
+  assert.doesNotMatch(admin, /activeSection === 'settings'/);
+});
+
+
+test('active project selector is selectable and carries project visual identity', async () => {
+  const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+  const activeProject = await read('src/shared/hooks/useActiveProject.ts');
+
+  assert.match(navigation, /<Select<string>/);
+  assert.match(navigation, /value=\{activeProjectId \?\? undefined\}/);
+  assert.match(navigation, /placeholder="Choisir un projet…"/);
+  assert.match(navigation, /setActiveProject\(value\)/);
+  assert.match(navigation, /project\.color/);
+  assert.match(activeProject, /color: string/);
+  assert.match(activeProject, /icon: string/);
+});
+
+test('project home and central folder overview follow the active project', async () => {
+  const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
+  const overview = await read('src/Containers/BpmnLayout/FolderOverview.tsx');
+
+  assert.match(layout, /isRoot\(resourceId\) \? \(activeProject\?\.name \?\? 'Référentiel'\)/);
+  assert.match(overview, /projectProcessIds/);
+  assert.match(overview, /allowedIds\.has\(childResource\.id\)/);
+  assert.match(overview, /Sélectionnez un projet/);
+  assert.match(overview, /ProjectProcessOverview/);
+  assert.match(overview, /activeProject\.processes\.map/);
+});
+
+test('recent and favorite resources retain their project context', async () => {
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+
+  assert.match(tree, /\$\{activeProjectId\}::\$\{processId\}/);
+  assert.match(tree, /projects\.filter\(project => project\.processes\.some/);
+  assert.match(tree, /setActiveProject\(projectId\)/);
+  assert.match(tree, /project\.color/);
+  assert.match(tree, /project\.icon/);
+});
+
+test('project administrators can configure the project color and pictogram', async () => {
+  const admin = await read('src/Containers/Projects/Projects.container.tsx');
+  assert.match(admin, /Input type="color"/);
+  assert.match(admin, /aria-label="Pictogramme du projet"/);
+  assert.match(admin, /color: projectColor, icon: projectIcon/);
+  assert.match(admin, /canManageProjectIdentity/);
+});
+
+
+test('the root workspace replaces the former home dashboard and project viewer page', async () => {
+  const routes = await read('src/routes.tsx');
+  const breadcrumbs = await read('src/Containers/BpmnLayout/hooks/useBpmnLayoutBreadcrumbs.ts');
+  const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+  const overview = await read('src/Containers/BpmnLayout/FolderOverview.tsx');
+  const legacyRedirect = await read('src/Containers/ProjectWorkspaceRedirect/index.tsx');
+
+  assert.match(routes, /path: '\/home'\s*,\s*loader: \(\) => redirect\('\/root'\)/);
+  assert.match(routes, /path: '\/projects\/:projectId\/viewer'[\s\S]*?ProjectWorkspaceRedirect/);
+  assert.match(routes, /path: '\/projects'[\s\S]*?import\('\.\/Containers\/Projects'\)/);
+  assert.match(routes, /path: '\/projects\/:projectId'[\s\S]*?import\('\.\/Containers\/Projects'\)/);
+  assert.match(overview, /ProjectProcessOverview/);
+  assert.match(overview, /activeProject\.description/);
+  assert.match(legacyRedirect, /setActiveProject\(projectId\)/);
+  assert.match(breadcrumbs, /label: activeProject\.name/);
+  assert.match(breadcrumbs, /id: 'home'.*label: 'Tous les projets'/);
+  assert.doesNotMatch(breadcrumbs, /label: 'Référentiel'/);
+  assert.doesNotMatch(navigation, /label: 'Accueil'|label: 'Projets'/);
+  assert.match(navigation, /globalRole === 'admin'[\s\S]*?>\s*Administration\s*<\/Button>/);
+  assert.ok(navigation.includes('<UserAccountMenu />'), 'account menu remains available');
 });

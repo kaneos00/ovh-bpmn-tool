@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useNavigate, useParams } from 'react-router-dom';
-import { Box, Sheet, Stack } from '@mui/joy';
+import { Box, Chip, Sheet, Stack } from '@mui/joy';
 
 import { ProcessDetails } from '../../Components/BusinessComponents/ProcessDetails';
 
 import { useBpmnLayout } from './hooks/useBpmnLayout';
 import { useBpmnLayoutBreadcrumbs } from './hooks/useBpmnLayoutBreadcrumbs';
 import { Header } from '../../Components/GenericComponents/Header/Header';
-import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
+import { WorkspacePageHeader } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
 import { ViewerExplorerPanel } from '../../Components/BusinessComponents/ViewerExplorerPanel/ViewerExplorerPanel';
 import { FolderOverview } from './FolderOverview';
 import {
@@ -21,6 +21,7 @@ import type { BpmnLayoutRouteParams } from '.';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import { useViewerRouteState } from '../../shared/hooks/useViewerRouteState';
 import { useViewerSelectionState } from '../../shared/hooks/useViewerSelectionState';
+import { useActiveProject } from '../../shared/hooks/useActiveProject';
 
 import './BpmnLayoutContainer.scss';
 
@@ -80,7 +81,40 @@ export const Component = () => {
   );
 
   const { resource, contents, callbacks } = useBpmnLayout();
+  const { projects, activeProject, activeProjectId, setActiveProject, isLoading: projectsLoading } = useActiveProject();
+  const activeProcess = activeProject?.processes.find(process => process.resourceId === resourceId);
+  let processUsageLabel: string | undefined;
+  switch (activeProcess?.usage) {
+    case 'common':
+      processUsageLabel = 'Commun';
+      break;
+    case 'variant':
+      processUsageLabel = 'Variante';
+      break;
+    case 'project-specific':
+      processUsageLabel = 'Spécifique';
+      break;
+    default:
+      processUsageLabel = undefined;
+  }
+
+  useEffect(() => {
+    if (activeProjectId || projectsLoading || !resourceId) return;
+    const matchingProjects = projects.filter(project =>
+      project.processes.some(process => process.resourceId === resourceId),
+    );
+    if (matchingProjects.length === 1) setActiveProject(matchingProjects[0].id);
+  }, [activeProjectId, projectsLoading, projects, resourceId, setActiveProject]);
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
+
+  let headerDescription: string | null | undefined;
+  if (resource?.type === ResourceType.Process) {
+    headerDescription = undefined;
+  } else if (isRoot(resourceId)) {
+    headerDescription = activeProject?.description ?? 'Sélectionnez un projet pour afficher son espace de travail.';
+  } else {
+    headerDescription = resource?.description;
+  }
 
   const actions = useMemo(() => {
     const isRootFolder = isRoot(resourceId);
@@ -112,10 +146,16 @@ export const Component = () => {
       <Sheet className="innerContent">
         {resource ? (
           <>
-            <WorkspaceNavigation />
+            <WorkspacePageHeader />
                           <Header
-                            title={resource.name}
-                            description={resource.description}
+                            title={isRoot(resourceId) ? (activeProject?.name ?? 'Référentiel') : resource.name}
+                            description={headerDescription}
+                            titleAdornment={resource.type === ResourceType.Process ? (
+                              <Stack direction="row" spacing={0.75} alignItems="center" useFlexGap flexWrap="wrap">
+                                <Chip size="sm" variant="soft" color="primary">Opérationnel</Chip>
+                                {processUsageLabel && <Chip size="sm" variant="soft" color="neutral">{processUsageLabel}</Chip>}
+                              </Stack>
+                            ) : undefined}
                             breadcrumbs={getBreadCrumbs()}
                             actions={
                               <Stack direction="row" spacing={1} alignItems="center">

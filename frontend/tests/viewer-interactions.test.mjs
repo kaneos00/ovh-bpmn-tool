@@ -20,18 +20,18 @@ test('viewer starts with the minimap hidden and exposes an explicit toggle', asy
   assert.match(component, /aria-label=\{minimapVisible \? 'Masquer la mini-carte' : 'Afficher la mini-carte'\}/);
 });
 
-test('new element selection is immediate; rapid double-click cancels deselection', async () => {
+test('element selection toggles immediately on every click while double-click navigation remains separate', async () => {
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
 
-  assert.match(hook, /eventBus\.on\('element\.click', 1500, onElementClick\)/);
-  assert.match(hook, /eventBus\.on\('element\.dblclick', onElementDoubleClick\)/);
-  assert.match(hook, /now - lastClickAt < 280/);
-  assert.match(hook, /if \(currentlySelected !== element\.id\) \{\s*onElementSelectRef\.current\?\.\(element\.id\);\s*return;\s*\}/);
-  assert.match(hook, /Only delay deselection of an already-selected element/);
-  assert.match(hook, /if \(selectedIdRef\.current === element\.id\) \{\s*onElementSelectRef\.current\?\.\(''\);\s*\}\s*\}, 220\)/);
-  assert.match(hook, /const onElementDoubleClick = \(event: any\) => \{\s*cancelPendingSelection\(\)/);
-  assert.match(hook, /eventBus\.off\('element\.click', onElementClick\)/);
-  assert.match(hook, /eventBus\.off\('element\.dblclick', onElementDoubleClick\)/);
+  assert.ok(hook.includes("eventBus.on('element.click', 1500, onElementClick)"));
+  assert.ok(hook.includes("eventBus.on('element.dblclick', onElementDoubleClick)"));
+  assert.ok(hook.includes("if (selectedIdRef.current === element.id)"));
+  assert.ok(hook.includes("onElementSelectRef.current?.('')"));
+  assert.ok(hook.includes("onElementSelectRef.current?.(element.id)"));
+  assert.ok(hook.includes('Every click toggles the same element immediately'));
+  assert.doesNotMatch(hook, /pendingSelectionTimer|lastClickAt|cancelPendingSelection/);
+  assert.ok(hook.includes("eventBus.off('element.click', onElementClick)"));
+  assert.ok(hook.includes("eventBus.off('element.dblclick', onElementDoubleClick)"));
 });
 
 test('viewer selection recognizes collapsed SubProcesses through their BPMN business-object type', async () => {
@@ -68,11 +68,11 @@ test('viewer delegates called-process navigation to the shared hook', async () =
   assert.match(hook, /useCallActivityNavigation\(viewer, true\)/);
 });
 
-test('detail panel starts collapsed and opens when an element is selected', async () => {
+test('detail panel starts collapsed and follows the selected BPMN element', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
 
   assert.match(details, /const \[taskPanelCollapsed, setTaskPanelCollapsed\] = useState\(true\)/);
-  assert.match(details, /if \(selectedElementId\) setTaskPanelCollapsed\(false\)/);
+  assert.match(details, /setTaskPanelCollapsed\(!selectedElementId\)/);
   assert.match(details, /externalUrl:\s*Array\.from\(element\.attributes\)[\s\S]*?attribute\.localName === 'link'/);
 });
 
@@ -183,7 +183,7 @@ test('explorer remembers the selected tab and highlights linked-process resource
   assert.ok(tree.includes("const VIEW_KEY = 'bpmn-tool:explorer-view'"));
   assert.ok(tree.includes('const readView = (): ExplorerView'));
   assert.ok(tree.includes('window.localStorage.setItem(VIEW_KEY, view)'));
-  assert.ok(tree.includes('const isSelected = (node.targetId ?? node.id) === selectedId'));
+  assert.ok(tree.includes('const isSelected = resourceId === selectedId'));
   assert.ok(tree.includes('selectedTreeNodeId'));
 });
 
@@ -433,4 +433,52 @@ test('global and full search share yellow highlighting and direct BPMN element n
   assert.match(fullSearch, /query=\{query\}/);
   assert.match(fullSearch, /if \(result\.elementId\) params\.set\('elementId', result\.elementId\)/);
   assert.match(routeState, /requestedElementId: searchParams\.get\('elementId'\)/);
+});
+
+
+test('explorer actions use an accessible three-dot menu and project roles', async () => {
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+
+  assert.doesNotMatch(tree, /onContextMenu/);
+  assert.match(tree, /folder-tree-actions/);
+  assert.match(tree, /<MoreVert fontSize="small" \/>/);
+  assert.match(tree, /setContextMenu\(\{ nodeId, anchorEl: event\.currentTarget \}\)/);
+  assert.match(tree, /projects\/me\/workspace/);
+  assert.match(tree, /projectModelerResourceIds\.includes\(resourceId\)/);
+});
+
+test('the right element-details panel and its resize handle exist only on the BPMN diagram tab', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.match(details, /activeViewerTab === 0 && viewerContent && !taskPanelCollapsed && \([\s\S]*?aria-label="Redimensionner le panneau de tâche"/);
+  assert.match(details, /activeViewerTab === 0 && viewerContent && \([\s\S]*?className=\{\`processTaskPanel/);
+  assert.match(details, /<Tab value=\{2\}>Historique des versions<\/Tab>/);
+  assert.match(details, /<Tab value=\{3\}>RACI<\/Tab>/);
+  assert.match(details, /<Tab value=\{4\}>Informations documentées<\/Tab>/);
+});
+
+
+test('BPMN element selection opens and closes the right-hand element panel', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+
+  assert.match(details, /setTaskPanelCollapsed\(!selectedElementId\)/);
+  assert.ok(hook.includes("onElementSelectRef.current?.(element.id)"));
+  assert.ok(hook.includes("onElementSelectRef.current?.('')"));
+  assert.match(hook, /if \(selectedIdRef\.current === element\.id\) \{[\s\S]*?onElementSelectRef\.current\?\.\(''\)/);
+  assert.doesNotMatch(hook, /pendingSelectionTimer|isRapidSecondClick/);
+  assert.ok(hook.includes("canvas.addMarker(targetId, 'task-selected')"));
+  assert.ok(hook.includes("canvas.removeMarker(previousId, 'task-selected')"));
+});
+
+test('BPMN viewer exposes native fullscreen controls and browser Escape exit', async () => {
+  const viewer = await read('src/Components/BusinessComponents/ProcessViewer/ProcessViewer.tsx');
+  const css = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
+
+  assert.ok(viewer.includes('requestFullscreen()'));
+  assert.ok(viewer.includes('document.exitFullscreen()'));
+  assert.ok(viewer.includes("document.addEventListener('fullscreenchange'"));
+  assert.ok(viewer.includes('Afficher le BPMN en plein écran'));
+  assert.ok(viewer.includes('Quitter le plein écran (Échap)'));
+  assert.ok(css.includes('.process-viewer-shell:fullscreen'));
 });

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import {
@@ -12,7 +12,6 @@ import {
   Input,
   Option,
   Select,
-  Sheet,
   Stack,
   Tab,
   TabList,
@@ -27,12 +26,15 @@ import { ResourceType } from '../../shared/types/BpmnResource';
 import { ProjectRaciPanel } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciPanel';
 import { ProjectRaciManager } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciManager';
 import { ProjectProcessHierarchy } from './ProjectProcessHierarchy';
-import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
+import { WorkspacePageLayout } from '../../Components/GenericComponents/WorkspacePageLayout/WorkspacePageLayout';
+import { useActiveProject } from '../../shared/hooks/useActiveProject';
 
 type Project = {
   id: string;
   name: string;
   description: string | null;
+  color: string;
+  icon: string;
   createdAt: string;
 };
 
@@ -82,11 +84,14 @@ const PROCESS_USAGE_LABELS: Record<ProjectProcessLink['usage'], string> = {
 
 export const Component = () => {
   const { projectId } = useParams<{ projectId: string }>();
+  const { setActiveProject } = useActiveProject();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [projectColor, setProjectColor] = useState('#2864d7');
+  const [projectIcon, setProjectIcon] = useState('folder');
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
   const [usage, setUsage] = useState<'common' | 'project-specific'>('common');
   const [memberUserId, setMemberUserId] = useState('');
@@ -107,7 +112,7 @@ export const Component = () => {
   const workspaceQuery = useQuery<WorkspaceSummary>(
     ['my-workspace'],
     () => apiClient.get('/projects/me/workspace'),
-    { enabled: !projectId },
+    { enabled: true },
   );
   const workspaceProjects = useMemo(
     () => new Map((workspaceQuery.data?.projects ?? []).map((item) => [item.id, item])),
@@ -118,6 +123,14 @@ export const Component = () => {
     () => apiClient.get(`/projects/${projectId}`),
     { enabled: Boolean(projectId) },
   );
+  useEffect(() => {
+    if (!projectQuery.data) return;
+    setProjectColor(projectQuery.data.color || '#2864d7');
+    setProjectIcon(projectQuery.data.icon || 'folder');
+  }, [projectQuery.data]);
+  const projectMembership = workspaceQuery.data?.projects.find(item => item.id === projectId);
+  const canManageProjectIdentity = projectMembership?.role === 'admin';
+
   const linkedProcessesQuery = useQuery<ProjectProcessLink[]>(
     projectProcessesKey(projectId ?? ''),
     () => apiClient.get(`/projects/${projectId}/processes`),
@@ -133,6 +146,22 @@ export const Component = () => {
     availableResourcesQuery.queryKey,
     availableResourcesQuery.queryFn,
     { enabled: Boolean(projectId) },
+  );
+
+  const updateProjectIdentity = useMutation(
+    () => {
+      if (!projectId) throw new Error('Aucun projet sélectionné.');
+      return apiClient.put(`/projects/${projectId}`, { color: projectColor, icon: projectIcon });
+    },
+    {
+      onSuccess: async () => {
+        setError(null);
+        await queryClient.invalidateQueries(projectKey(projectId ?? ''));
+        await queryClient.invalidateQueries(projectsKey);
+        await queryClient.invalidateQueries(['my-workspace']);
+      },
+      onError: (mutationError: Error) => setError(mutationError.message),
+    },
   );
 
   const createProject = useMutation(
@@ -162,6 +191,7 @@ export const Component = () => {
         setSelectedProcessId(null);
         setError(null);
         await queryClient.invalidateQueries(projectProcessesKey(projectId ?? ''));
+        await queryClient.invalidateQueries(['my-workspace']);
       },
       onError: (mutationError: Error) => setError(mutationError.message),
     },
@@ -172,6 +202,7 @@ export const Component = () => {
     {
       onSuccess: async () => {
         await queryClient.invalidateQueries(projectProcessesKey(projectId ?? ''));
+        await queryClient.invalidateQueries(['my-workspace']);
       },
       onError: (mutationError: Error) => setError(mutationError.message),
     },
@@ -247,9 +278,8 @@ export const Component = () => {
 
   if (!projectId) {
     return (
-      <Sheet sx={{ width: '100%', maxWidth: 1440, boxSizing: 'border-box', mx: 'auto', p: { xs: 1, md: 2 }, bgcolor: 'transparent' }}>
+      <WorkspacePageLayout>
         <Stack spacing={2}>
-          <WorkspaceNavigation />
           <Typography level="h2">Projets</Typography>
           <Button variant="outlined" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/organization/users')}>Administration de l’organisation →</Button>
           <Typography level="body-md">
@@ -308,7 +338,7 @@ export const Component = () => {
                   )}
                   <Box>
                     <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                    <Button variant="soft" onClick={() => navigate(`/projects/${project.id}/viewer`)}>Ouvrir dans le viewer</Button>
+                    <Button variant="soft" onClick={() => { setActiveProject(project.id); navigate("/root"); }}>Ouvrir le projet</Button>
                     <Button variant="outlined" color="neutral" onClick={() => navigate(`/projects/${project.id}`)}>Administration</Button>
                   </Stack>
                   </Box>
@@ -318,18 +348,18 @@ export const Component = () => {
           </Stack>
           <Button variant="plain" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/root')}>Retour au référentiel BPMN</Button>
         </Stack>
-      </Sheet>
+      </WorkspacePageLayout>
     );
   }
 
   const project = projectQuery.data;
   return (
-    <Sheet sx={{ width: '100%', maxWidth: 1440, boxSizing: 'border-box', mx: 'auto', p: { xs: 1, md: 2 }, bgcolor: 'transparent' }}>
+    <WorkspacePageLayout>
       <Stack spacing={2}>
-          <WorkspaceNavigation />
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} useFlexGap flexWrap="wrap" sx={{ alignItems: { sm: 'center' } }}>
           <Button variant="plain" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/projects')}>← Tous les projets</Button>
           {projectId && <Button variant="soft" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate(`/projects/${projectId}/viewer`)}>Ouvrir l’accueil dans le viewer</Button>}
+          {projectId && <Button variant="solid" sx={{ alignSelf: 'flex-start' }} onClick={() => { setActiveProject(projectId); navigate('/root'); }}>Ouvrir le référentiel de ce projet</Button>}
         </Stack>
         <Button variant="outlined" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/organization/projects')}>Administration de l’organisation →</Button>
         {projectQuery.isLoading && <Typography>Chargement du projet…</Typography>}
@@ -338,6 +368,31 @@ export const Component = () => {
           <>
             <Typography level="h2">{project.name}</Typography>
             {project.description && <Typography level="body-md">{project.description}</Typography>}
+            {canManageProjectIdentity && (
+              <Card variant="outlined" sx={{ gap: 1.25 }}>
+                <Typography level="title-lg">Identité visuelle du projet</Typography>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'flex-end' }}>
+                  <Stack spacing={0.5} sx={{ minWidth: 180 }}>
+                    <Typography level="body-sm">Couleur du projet</Typography>
+                    <Input type="color" value={projectColor} onChange={event => setProjectColor(event.target.value)} aria-label="Couleur du projet" />
+                  </Stack>
+                  <Stack spacing={0.5} sx={{ minWidth: 220 }}>
+                    <Typography level="body-sm">Pictogramme</Typography>
+                    <Select value={projectIcon} onChange={(_event, value) => value && setProjectIcon(value)} aria-label="Pictogramme du projet">
+                      <Option value="folder">📁 Dossier</Option>
+                      <Option value="briefcase">💼 Mallette</Option>
+                      <Option value="building">🏢 Bâtiment</Option>
+                      <Option value="workflow">🔀 Flux</Option>
+                      <Option value="users">👥 Équipe</Option>
+                      <Option value="chart">📊 Indicateurs</Option>
+                    </Select>
+                  </Stack>
+                  <Button loading={updateProjectIdentity.isLoading} disabled={updateProjectIdentity.isLoading} onClick={() => updateProjectIdentity.mutate()}>
+                    Enregistrer l’identité visuelle
+                  </Button>
+                </Stack>
+              </Card>
+            )}
             <Typography level="body-sm">
               Les processus communs sont référencés, pas copiés. Les retirer du projet ne supprime pas le processus du catalogue.
             </Typography>
@@ -465,7 +520,7 @@ export const Component = () => {
                   </Typography>
                 </Box>
                 <Stack direction="row" spacing={1}>
-                  {link.resource && <Button variant="soft" onClick={() => navigate(`/${link.resourceId}`)}>Ouvrir</Button>}
+                  {link.resource && <Button variant="soft" onClick={() => { if (projectId) setActiveProject(projectId); navigate(`/${link.resourceId}`); }}>Ouvrir</Button>}
                   {link.usage === 'common' && (
                     <Button
                       variant="solid"
@@ -498,9 +553,10 @@ export const Component = () => {
             </Typography>
             <ProjectRaciManager
               projectId={projectId}
-              onActivityClick={(targetResourceId, elementId) =>
-                navigate(`/${targetResourceId}?elementId=${encodeURIComponent(elementId)}`)
-              }
+              onActivityClick={(targetResourceId, elementId) => {
+                if (projectId) setActiveProject(projectId);
+                navigate(`/${targetResourceId}?elementId=${encodeURIComponent(elementId)}`);
+              }}
             />
           </Card>
           <Card variant="outlined">
@@ -516,7 +572,7 @@ export const Component = () => {
           </TabPanel>
         </Tabs>
       </Stack>
-    </Sheet>
+    </WorkspacePageLayout>
   );
 };
 

@@ -112,6 +112,8 @@ export class ProjectController {
         id: project.id,
         name: project.name,
         description: project.description,
+        color: project.color,
+        icon: project.icon,
         role: roleByProject.get(project.id),
         processes: (linksByProject.get(project.id) ?? []).map((link) => ({
           resourceId: link.resourceId,
@@ -176,7 +178,13 @@ export class ProjectController {
   @Post()
   @UseAcl([UserGroup.RW, UserGroup.Admin])
   async createProject(
-    @Body() body: { name?: string; description?: string },
+    @Body()
+    body: {
+      name?: string;
+      description?: string;
+      color?: string;
+      icon?: string;
+    },
     @Headers() headers: RequestHeaders,
   ) {
     const userId = this.projectResourceAccess.getAuthenticatedUserId(headers);
@@ -191,6 +199,8 @@ export class ProjectController {
     const project = this.projects.create({
       name,
       description: body.description?.trim() || null,
+      color: this.validateProjectColor(body.color),
+      icon: this.validateProjectIcon(body.icon),
       createdBy: userId,
     });
 
@@ -339,7 +349,13 @@ export class ProjectController {
   @UseAcl([UserGroup.Admin])
   async updateOrganizationProject(
     @Param('projectId') projectId: string,
-    @Body() body: { name?: string; description?: string },
+    @Body()
+    body: {
+      name?: string;
+      description?: string;
+      color?: string;
+      icon?: string;
+    },
   ) {
     const project = await this.assertProjectExists(projectId);
 
@@ -354,6 +370,12 @@ export class ProjectController {
     }
     if (body.description !== undefined) {
       project.description = body.description.trim() || null;
+    }
+    if (body.color !== undefined) {
+      project.color = this.validateProjectColor(body.color);
+    }
+    if (body.icon !== undefined) {
+      project.icon = this.validateProjectIcon(body.icon);
     }
 
     try {
@@ -397,7 +419,13 @@ export class ProjectController {
   @UseAcl([UserGroup.RW])
   async updateProject(
     @Param('projectId') projectId: string,
-    @Body() body: { name?: string; description?: string },
+    @Body()
+    body: {
+      name?: string;
+      description?: string;
+      color?: string;
+      icon?: string;
+    },
     @Headers() headers: RequestHeaders,
   ) {
     await this.assertProjectRole(projectId, headers, ProjectMemberRole.Admin);
@@ -414,6 +442,12 @@ export class ProjectController {
     }
     if (body.description !== undefined) {
       project.description = body.description.trim() || null;
+    }
+    if (body.color !== undefined) {
+      project.color = this.validateProjectColor(body.color);
+    }
+    if (body.icon !== undefined) {
+      project.icon = this.validateProjectIcon(body.icon);
     }
 
     try {
@@ -827,6 +861,32 @@ export class ProjectController {
       member.role = role;
       return members.save(member);
     });
+  }
+
+  private validateProjectColor(value?: string) {
+    const color = value?.trim() || '#2864d7';
+    if (!/^#[0-9a-fA-F]{6}$/.test(color)) {
+      throw new BadRequestException(
+        'Project color must be a six-digit hexadecimal value',
+      );
+    }
+    return color.toLowerCase();
+  }
+
+  private validateProjectIcon(value?: string) {
+    const icon = value?.trim() || 'folder';
+    const allowed = [
+      'folder',
+      'briefcase',
+      'building',
+      'workflow',
+      'users',
+      'chart',
+    ];
+    if (!allowed.includes(icon)) {
+      throw new BadRequestException('Unsupported project icon');
+    }
+    return icon;
   }
 
   private async assertProjectReadRole(

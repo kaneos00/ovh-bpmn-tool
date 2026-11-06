@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { XMLParser } from 'fast-xml-parser';
 import { In, Repository } from 'typeorm';
@@ -507,6 +511,7 @@ export class UnifiedSearchService {
       types?: SearchResultType[];
       source?: SearchResultSource;
       resourceId?: string;
+      projectId?: string;
       role?: ProjectRaciRole;
       limit?: number;
       offset?: number;
@@ -550,11 +555,31 @@ export class UnifiedSearchService {
     });
     const allReadableResources =
       await this.resourceAccess.filterReadableResources(allResources, headers);
-    const readableResources = options.resourceId
-      ? allReadableResources.filter(
-          (resource) => resource.id === options.resourceId,
+    let projectResourceIds: Set<string> | null = null;
+    if (options.projectId) {
+      const userId = this.resourceAccess.getAuthenticatedUserId(headers);
+      const membership = await this.projectMembers.findOne({
+        where: { projectId: options.projectId, userId },
+      });
+      if (!membership) {
+        throw new ForbiddenException('You do not have access to this project');
+      }
+      const projectLinks = await this.projectProcesses.find({
+        where: { projectId: options.projectId },
+        select: { resourceId: true },
+      });
+      projectResourceIds = new Set(projectLinks.map((link) => link.resourceId));
+    }
+    const projectReadableResources = projectResourceIds
+      ? allReadableResources.filter((resource) =>
+          projectResourceIds?.has(resource.id),
         )
       : allReadableResources;
+    const readableResources = options.resourceId
+      ? projectReadableResources.filter(
+          (resource) => resource.id === options.resourceId,
+        )
+      : projectReadableResources;
     const resourceById = new Map(
       readableResources.map((resource) => [resource.id, resource]),
     );
@@ -593,9 +618,9 @@ export class UnifiedSearchService {
           select: { projectId: true },
         })
       : [];
-    const allowedProjectIds = [
-      ...new Set(memberships.map((membership) => membership.projectId)),
-    ];
+    const allowedProjectIds = options.projectId
+      ? [options.projectId]
+      : [...new Set(memberships.map((membership) => membership.projectId))];
 
     let bpmnDocumentsAvailable = 0;
     let bpmnDocumentsScanned = 0;

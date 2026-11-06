@@ -11,7 +11,6 @@ import {
   List,
   Option,
   Select,
-  Sheet,
   Stack,
   Typography,
 } from '@mui/joy';
@@ -21,10 +20,11 @@ import {
   Search,
 } from '@mui/icons-material';
 
-import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
+import { WorkspacePageLayout } from '../../Components/GenericComponents/WorkspacePageLayout/WorkspacePageLayout';
 import { SearchResultItem } from '../../Components/GenericComponents/SearchResultItem/SearchResultItem';
 import { resourcesQuery } from '../../api/resources/resources.queries';
 import { ResourceType } from '../../shared/types/BpmnResource';
+import { useActiveProject } from '../../shared/hooks/useActiveProject';
 import type { Resource } from '../../Types';
 import {
   unifiedSearchQuery,
@@ -72,6 +72,7 @@ const isSearchRole = (value: string): value is UnifiedSearchRole =>
 export const Component = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { activeProjectId, projectProcessIds } = useActiveProject();
   const query = searchParams.get('q') ?? '';
   const [draftQuery, setDraftQuery] = useState(query);
   const [typeFilter, setTypeFilter] = useState<UnifiedSearchType | ''>(() => {
@@ -135,6 +136,7 @@ export const Component = () => {
     types: selectedTypes,
     source: sourceFilter || undefined,
     resourceId: processFilter || undefined,
+    projectId: activeProjectId ?? undefined,
     role: roleFilter || undefined,
     limit: PAGE_SIZE,
     offset,
@@ -143,14 +145,14 @@ export const Component = () => {
     searchOptions.queryKey,
     searchOptions.queryFn,
     {
-      enabled: query.trim().length >= 2,
+      enabled: query.trim().length >= 2 && Boolean(activeProjectId),
       keepPreviousData: true,
     },
   );
 
   const processes = useMemo(
-    () => [...(processesQuery.data ?? [])].sort((a, b) => a.name.localeCompare(b.name, 'fr')),
-    [processesQuery.data],
+    () => [...(processesQuery.data ?? [])].filter(process => projectProcessIds.has(process.id)).sort((a, b) => a.name.localeCompare(b.name, 'fr')),
+    [processesQuery.data, projectProcessIds],
   );
 
   const applySearch = () => {
@@ -159,6 +161,7 @@ export const Component = () => {
     if (typeFilter) next.set('types', typeFilter);
     if (sourceFilter) next.set('source', sourceFilter);
     if (processFilter) next.set('resourceId', processFilter);
+    if (activeProjectId) next.set('projectId', activeProjectId);
     if (roleFilter) {
       next.set('role', roleFilter);
       next.set('types', 'raci');
@@ -186,6 +189,7 @@ export const Component = () => {
     if (!result.resourceId) return;
 
     const params = new URLSearchParams();
+    if (activeProjectId) params.set('projectId', activeProjectId);
     if (result.elementId) params.set('elementId', result.elementId);
     if (result.type === 'raci') params.set('raci', '1');
     const queryString = params.toString();
@@ -219,19 +223,7 @@ export const Component = () => {
   const hasNext = offset + PAGE_SIZE < total;
 
   return (
-    <Sheet
-      sx={{
-        width: '100%',
-        maxWidth: 'none',
-        boxSizing: 'border-box',
-        mx: 0,
-        p: { xs: 1, md: 2 },
-        bgcolor: 'transparent',
-      }}
-    >
-      <Stack spacing={2}>
-        <WorkspaceNavigation />
-
+    <WorkspacePageLayout>     <Stack spacing={2}>
         <Stack spacing={0.5}>
           <Typography level="h2">Résultats de recherche</Typography>
           <Typography level="body-sm" color="neutral">
@@ -335,6 +327,10 @@ export const Component = () => {
             <Button size="sm" variant="outlined" color="neutral" onClick={applySearch}>Appliquer les filtres</Button>
           </Stack>
         </Card>
+
+        {!activeProjectId && (
+          <Alert color="warning">Choisissez d’abord un projet actif dans le bandeau pour limiter la recherche à son périmètre.</Alert>
+        )}
 
         {query.trim().length < 2 && (
           <Alert color="neutral">
@@ -460,7 +456,7 @@ export const Component = () => {
           </Stack>
         )}
       </Stack>
-    </Sheet>
+    </WorkspacePageLayout>
   );
 };
 

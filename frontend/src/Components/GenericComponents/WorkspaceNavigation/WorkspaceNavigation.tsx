@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Box, Button, Input, List, Option, Select, Sheet, Stack, Typography } from '@mui/joy';
 import { Search } from '@mui/icons-material';
+import { useActiveProject } from '../../../shared/hooks/useActiveProject';
 import { useQuery } from 'react-query';
 
 import { resourcesQuery } from '../../../api/resources/resources.queries';
@@ -30,24 +31,6 @@ const BPMN_CONNECTION_TYPES = new Set([
   'sequenceflow', 'messageflow', 'association', 'datainputassociation',
   'dataoutputassociation', 'conversationlink',
 ]);
-
-const destinations = [
-  {
-    label: 'Référentiel',
-    path: '/root',
-    matches: (path: string) => path === '/root' || /^\/[0-9a-f-]+(?:\/|$)/i.test(path),
-  },
-  {
-    label: 'Projets',
-    path: '/projects',
-    matches: (path: string) => path.startsWith('/projects') || path === '/workspace',
-  },
-  {
-    label: 'Administration',
-    path: '/organization/overview',
-    matches: (path: string) => path.startsWith('/organization'),
-  },
-];
 
 const normalizeSearch = (value: string) =>
   value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr').trim();
@@ -181,7 +164,6 @@ const resultBadge = (detail: string) => {
 };
 
 export const WorkspaceNavigation = () => {
-  const location = useLocation();
   const [globalRole, setGlobalRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
 
   useEffect(() => {
@@ -205,12 +187,23 @@ export const WorkspaceNavigation = () => {
   const [deepSearchLoading, setDeepSearchLoading] = useState(false);
   const searchRef = useRef<HTMLInputElement | null>(null);
   const resources = useQuery<Resource[]>(resourcesQuery());
+  const { projects, activeProject, activeProjectId, setActiveProject, projectProcessIds, isLoading: projectsLoading } = useActiveProject();
 
   const resourceResults = useMemo(() => {
     const term = search.trim().toLocaleLowerCase('fr');
     if (!term || (scope !== 'all' && scope !== 'processes')) return [];
-    return (resources.data ?? [])
-      .filter(resource =>
+    const allResources = resources.data ?? [];
+    const allowedIds = new Set(projectProcessIds);
+    const byId = new Map(allResources.map(resource => [resource.id, resource]));
+    projectProcessIds.forEach(id => {
+      let current = byId.get(id);
+      while (current?.parentId) {
+        allowedIds.add(current.parentId);
+        current = byId.get(current.parentId);
+      }
+    });
+    return allResources
+      .filter(resource => allowedIds.has(resource.id) &&
         (resource.type === ResourceType.Process || resource.type === ResourceType.Folder) &&
         (matchesTerm(resource.name, term) || matchesTerm(resource.description ?? '', term)),
       )
@@ -225,7 +218,7 @@ export const WorkspaceNavigation = () => {
         description: resource.description || undefined,
         similarity: similarityFor(`${resource.name} ${resource.description ?? ''}`, search),
       }));
-  }, [resources.data, search, scope]);
+  }, [resources.data, search, scope, projectProcessIds]);
 
   useEffect(() => {
     const term = search.trim().toLocaleLowerCase('fr');
@@ -238,7 +231,7 @@ export const WorkspaceNavigation = () => {
     let cancelled = false;
     const timer = window.setTimeout(async () => {
       setDeepSearchLoading(true);
-      const processes = resources.data!.filter(resource => resource.type === ResourceType.Process);
+      const processes = resources.data!.filter(resource => resource.type === ResourceType.Process && projectProcessIds.has(resource.id));
       const found: SearchResult[] = [];
 
       await Promise.all(processes.map(async process => {
@@ -437,7 +430,7 @@ export const WorkspaceNavigation = () => {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [search, scope, resources.data]);
+  }, [search, scope, resources.data, projectProcessIds]);
 
   const results = useMemo(() => {
     const combined = scope === 'all' || scope === 'processes' ? [...resourceResults, ...deepResults] : deepResults;
@@ -484,6 +477,7 @@ export const WorkspaceNavigation = () => {
     const type = typeByScope[scope];
     if (type) params.set('types', type);
     setSearchOpen(false);
+    if (activeProjectId) params.set('projectId', activeProjectId);
     navigate(`/search?${params.toString()}`);
   };
 
@@ -538,6 +532,31 @@ export const WorkspaceNavigation = () => {
             </Typography>
           </Box>
         </Stack>
+
+        <Select<string>
+          size="sm"
+          value={activeProjectId ?? undefined}
+          placeholder="Choisir un projet…"
+          onChange={(_, value) => {
+            if (!value) return;
+            setActiveProject(value);
+            setSearch('');
+            setDeepResults([]);
+            setSearchOpen(false);
+            navigate('/root');
+          }}
+          disabled={projectsLoading || projects.length === 0}
+          aria-label="Projet actif"
+          sx={{ minWidth: 180, maxWidth: 240, bgcolor: activeProject?.color || '#263e59', color: '#fff', borderColor: '#40556d', '&:hover': { filter: 'brightness(1.08)' } }}
+        >
+          {projects.map(project => <Option key={project.id} value={project.id}>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Box component="span" sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: project.color || '#2864d7', flexShrink: 0 }} />
+              <Box component="span">{({ folder: '📁', briefcase: '💼', building: '🏢', workflow: '🔀', users: '👥', chart: '📊' } as Record<string, string>)[project.icon || 'folder'] || '📁'}</Box>
+              <Box component="span">{project.name}</Box>
+            </Stack>
+          </Option>)}
+        </Select>
 
         <Box sx={{ position: 'relative', flex: 1, minWidth: 220, maxWidth: 620 }}>
           <Stack direction="row" spacing={0.75} alignItems="center">
@@ -613,26 +632,22 @@ export const WorkspaceNavigation = () => {
         </Box>
 
         <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-          {destinations
-            .filter(destination => {
-              if (destination.label === 'Administration') return globalRole === 'admin';
-              if (destination.label === 'Projets') return globalRole === 'admin' || globalRole === 'modeler';
-              return true;
-            })
-            .map(destination => {
-            const active = destination.matches(location.pathname);
-            return (
-              <Button key={destination.path} size="sm" variant={active ? 'solid' : 'plain'}
-                color={active ? 'primary' : 'neutral'} aria-current={active ? 'page' : undefined}
-                onClick={() => navigate(destination.path)}
-                sx={active ? { bgcolor: '#2864d7', color: '#fff', fontWeight: 700 } : { color: '#e6edf7', '&:hover': { bgcolor: '#263e59', color: '#fff' } }}>
-                {destination.label}
-              </Button>
-            );
-          })}
+          {globalRole === 'admin' && (
+            <Button
+              size="sm"
+              variant="plain"
+              color="neutral"
+              onClick={() => navigate('/organization/overview')}
+              sx={{ color: '#e6edf7', '&:hover': { bgcolor: '#263e59', color: '#fff' } }}
+            >
+              Administration
+            </Button>
+          )}
           <UserAccountMenu />
         </Stack>
       </Stack>
     </Box>
   );
 };
+
+export const WorkspacePageHeader = WorkspaceNavigation;

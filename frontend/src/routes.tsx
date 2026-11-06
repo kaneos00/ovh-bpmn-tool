@@ -17,19 +17,72 @@ async function requireSession({ request }: { request: Request }) {
   throw redirect(`/login?next=${encodeURIComponent(requestedPath)}`);
 }
 
+async function requireGlobalAdmin({ request }: { request: Request }) {
+  const requestedUrl = new URL(request.url);
+  const requestedPath = requestedUrl.pathname + requestedUrl.search;
+  try {
+    const response = await fetch(`${apiBase}/auth/session`, {
+      credentials: 'same-origin',
+      headers: { accept: 'application/json' },
+    });
+    if (!response.ok) {
+      throw redirect(`/login?next=${encodeURIComponent(requestedPath)}`);
+    }
+    const session = await response.json();
+    if (session.role !== 'admin' || session.impersonating) {
+      throw redirect('/root');
+    }
+    return null;
+  } catch (reason) {
+    if (reason instanceof Response) throw reason;
+    throw redirect(`/login?next=${encodeURIComponent(requestedPath)}`);
+  }
+}
+
 /**
- * V3 initial shell: authentication, process/folder viewer and BPMN modeler.
- * Application management, organization administration, project management,
- * comparisons and resource CRUD routes are intentionally not exposed here.
- * Their backend APIs and implementation remain untouched for later phases.
+ * V3 application routes: authenticated process workspace plus global-admin
+ * organization administration. Account and project access operations reuse
+ * their existing backend APIs and keep global and project roles distinct.
  */
 export const routes = [
   {
     loader: requireSession,
     children: [
       {
+        path: '/organization/users',
+        loader: requireGlobalAdmin,
+        lazy: () => import('./Containers/UserAccounts'),
+      },
+      {
+        path: '/organization/users/:username',
+        loader: requireGlobalAdmin,
+        lazy: () => import('./Containers/UserAccounts'),
+      },
+      {
+        path: '/organization/accounts',
+        loader: requireGlobalAdmin,
+        lazy: () => import('./Containers/UserAccounts'),
+      },
+      {
+        path: '/organization/:section',
+        loader: requireGlobalAdmin,
+        lazy: () => import('./Containers/OrganizationAdmin'),
+      },
+      {
         path: '/',
         loader: () => redirect('/root'),
+      },
+      {
+        path: '/home',
+        loader: () => redirect('/root'),
+      },
+      {
+        path: '/projects',
+        lazy: () => import('./Containers/Projects'),
+      },
+      {
+        path: '/projects/:projectId',
+        lazy: () => import('./Containers/Projects'),
       },
       {
         path: '/search',
@@ -75,7 +128,7 @@ export const routes = [
       },
       {
         path: '/projects/:projectId/viewer',
-        lazy: () => import('./Containers/ProjectViewer'),
+        lazy: () => import('./Containers/ProjectWorkspaceRedirect'),
       },
       {
         path: '/:resourceId/modeler',

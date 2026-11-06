@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Button,
+  Chip,
   Divider,
   IconButton,
   Input,
@@ -29,12 +30,15 @@ import {
   Star,
   StarBorder,
   Search,
+  MoreVert,
+  HomeRounded,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { ControlledTreeEnvironment, Tree } from 'react-complex-tree';
 import 'react-complex-tree/lib/style-modern.css';
 
 import { useFolderTree } from './hooks/useFolderTree';
+import { useActiveProject } from '../../../shared/hooks/useActiveProject';
 
 import type { RenderTree } from '.';
 
@@ -68,11 +72,15 @@ const readView = (): ExplorerView => {
 };
 
 export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
-  const { dataTree, expandedNodes, setExpandedNodes, isLoading } = useFolderTree(selectedId);
+  const { dataTree, expandedNodes, setExpandedNodes, isLoading, activeProjectId } = useFolderTree(selectedId);
+  const { projects, setActiveProject } = useActiveProject();
   const navigate = useNavigate();
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
+  const [projectModelerResourceIds, setProjectModelerResourceIds] = useState<string[]>([]);
   const [contextMenu, setContextMenu] = useState<{ nodeId: string; anchorEl: HTMLElement } | null>(null);
-  const canModifyBpmn = sessionRole === 'admin' || sessionRole === 'modeler';
+  const canModifyBpmn = (resourceId: string) => sessionRole === 'admin' || sessionRole === 'modeler' || projectModelerResourceIds.includes(resourceId);
+
+  useEffect(() => { setContextMenu(null); }, [activeProjectId]);
 
   useEffect(() => {
     let mounted = true;
@@ -86,6 +94,27 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
       .catch(() => { if (mounted) setSessionRole(null); });
     return () => { mounted = false; };
   }, []);
+  useEffect(() => {
+    let mounted = true;
+    const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
+    fetch(`${apiBase}/projects/me/workspace`, {
+      credentials: 'same-origin',
+      headers: { accept: 'application/json' },
+    })
+      .then(async response => response.ok
+        ? response.json() as Promise<{ projects?: Array<{ role?: string; processes?: Array<{ resourceId: string }> }> }>
+        : null)
+      .then(workspace => {
+        if (!mounted) return;
+        const resourceIds = (workspace?.projects ?? [])
+          .filter(project => project.role === 'admin' || project.role === 'modeler')
+          .flatMap(project => (project.processes ?? []).map(process => process.resourceId));
+        setProjectModelerResourceIds(Array.from(new Set(resourceIds)));
+      })
+      .catch(() => { if (mounted) setProjectModelerResourceIds([]); });
+    return () => { mounted = false; };
+  }, []);
+
   const [view, setView] = useState<ExplorerView>(readView);
   const [search, setSearch] = useState('');
   const [searchCollapsedNodes, setSearchCollapsedNodes] = useState<string[]>([]);
@@ -132,8 +161,10 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
     const selectedNode = nodeById.get(selectedId) ?? flatNodes.find(node => node.targetId === selectedId);
     if (!selectedNode || (selectedNode.type !== 'process' && selectedNode.type !== 'linked-process')) return;
     const processId = selectedNode.targetId ?? selectedNode.id;
-    setRecent(current => [processId, ...current.filter(id => id !== processId)].slice(0, 12));
-  }, [selectedId, nodeById, flatNodes]);
+    if (!activeProjectId || !projects.some(project => project.id === activeProjectId && project.processes.some(process => process.resourceId === processId))) return;
+    const entryId = `${activeProjectId}::${processId}`;
+    setRecent(current => [entryId, ...current.filter(id => id !== entryId && id !== processId)].slice(0, 12));
+  }, [selectedId, nodeById, flatNodes, activeProjectId, projects]);
   const selectedTreeNodeId = useMemo(() => {
     if (nodeById.has(selectedId)) return selectedId;
     return flatNodes.find(node => node.targetId === selectedId)?.id ?? selectedId;
@@ -182,22 +213,34 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
   const visibleNodes = useMemo(() => {
     const ids = view === 'favorites' ? favorites : recent;
     const term = search.trim().toLocaleLowerCase('fr');
-    return ids
-      .map(id => nodeById.get(id) ?? flatNodes.find(node => node.targetId === id))
-      .filter((node): node is RenderTree => Boolean(node))
+    return ids.flatMap(entryId => {
+      const separator = entryId.indexOf('::');
+      let projectId = separator > 0 ? entryId.slice(0, separator) : null;
+      const resourceId = separator > 0 ? entryId.slice(separator + 2) : entryId;
+      const matchingProjects = projects.filter(project => project.processes.some(process => process.resourceId === resourceId));
+      const currentNode = nodeById.get(resourceId) ?? flatNodes.find(node => node.targetId === resourceId);
+      if (!projectId) {
+        if (activeProjectId && (matchingProjects.some(project => project.id === activeProjectId) || currentNode)) projectId = activeProjectId;
+        else if (matchingProjects.length === 1) projectId = matchingProjects[0].id;
+      }
+      const project = projects.find(item => item.id === projectId);
+      const process = project?.processes.find(item => item.resourceId === resourceId);
+      const node = currentNode ?? (process ? { id: entryId, targetId: resourceId, name: process.name, type: 'process' } as RenderTree : null);
+      if (!node || !projectId) return [];
+      return [{ ...node, id: entryId, targetId: resourceId, projectId } as RenderTree & { projectId: string; entryId: string }];
+    })
       .filter((node, index, all) => all.findIndex(candidate => candidate.id === node.id) === index)
       .filter(node => view !== 'recent' || node.type === 'process' || node.type === 'linked-process')
       .filter(node => !term || node.name.toLocaleLowerCase('fr').includes(term));
-  }, [view, favorites, recent, nodeById, flatNodes, search]);
+  }, [view, favorites, recent, nodeById, flatNodes, search, projects, activeProjectId]);
 
-  const toggleFavorite = (event: React.MouseEvent, nodeId: string) => {
+  const toggleFavorite = (event: React.MouseEvent, nodeId: string, projectId = activeProjectId) => {
     event.preventDefault();
     event.stopPropagation();
-    setFavorites(current =>
-      current.includes(nodeId)
-        ? current.filter(id => id !== nodeId)
-        : [nodeId, ...current],
-    );
+    const entryId = projectId ? `${projectId}::${nodeId}` : nodeId;
+    setFavorites(current => current.includes(entryId) || current.includes(nodeId)
+      ? current.filter(id => id !== entryId && id !== nodeId)
+      : [entryId, ...current.filter(id => id !== nodeId)]);
   };
 
   const treeItems = useMemo(() => {
@@ -257,6 +300,23 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
         minWidth: 0,
       }}
     >
+      {!activeProjectId && (
+        <Typography level="body-sm" sx={{ px: 1, pb: 1, color: 'warning.700' }}>
+          Sélectionnez un projet dans le bandeau pour afficher ses processus.
+        </Typography>
+      )}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 0.75 }}>
+        <Button
+          size="sm"
+          variant="plain"
+          color="neutral"
+          startDecorator={<HomeRounded fontSize="small" />}
+          onClick={() => navigate('/projects')}
+          sx={{ justifyContent: 'flex-start', fontWeight: 650 }}
+        >
+          Tous les projets
+        </Button>
+      </Box>
       <Input
         size="sm"
         value={search}
@@ -318,16 +378,21 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
               renderItemTitle={({ item, title }) => {
                 const nodeId = String(item.index);
                 const node = nodeById.get(nodeId);
-                const isFavorite = favorites.includes(nodeId);
+                const favoriteId = activeProjectId ? `${activeProjectId}::${node?.targetId ?? nodeId}` : (node?.targetId ?? nodeId);
+                const isFavorite = favorites.includes(favoriteId) || favorites.includes(node?.targetId ?? nodeId) || favorites.includes(nodeId);
                 return (
                   <Box
                     component="span"
-                    onContextMenu={event => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      setContextMenu({ nodeId, anchorEl: event.currentTarget as HTMLElement });
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 0.75,
+                      width: '100%',
+                      minWidth: 0,
+                      '& .folder-tree-actions': { opacity: 0, transition: 'opacity 120ms ease' },
+                      '&:hover .folder-tree-actions, &:focus-within .folder-tree-actions': { opacity: 1 },
+                      '@media (hover: none)': { '& .folder-tree-actions': { opacity: 1 } },
                     }}
-                    sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, width: '100%', minWidth: 0 }}
                   >
                     {node?.type === 'folder' ? <FolderOutlined fontSize="small" /> : <DescriptionOutlined fontSize="small" />}
                     <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</Box>
@@ -350,12 +415,30 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                     )}
                     {node && nodeId !== 'root' && (
                       <IconButton
+                        className="folder-tree-actions"
+                        size="sm"
+                        variant="plain"
+                        color="neutral"
+                        title={`Actions pour ${node.name}`}
+                        aria-label={`Ouvrir les actions de ${node.name}`}
+                        onClick={event => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setContextMenu({ nodeId, anchorEl: event.currentTarget });
+                        }}
+                        sx={{ minWidth: 24, minHeight: 24, p: 0.25, flexShrink: 0 }}
+                      >
+                        <MoreVert fontSize="small" />
+                      </IconButton>
+                    )}
+                    {node && nodeId !== 'root' && (
+                      <IconButton
                         size="sm"
                         variant="plain"
                         color={isFavorite ? 'warning' : 'neutral'}
                         title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
                         aria-label={isFavorite ? `Retirer ${node.name} des favoris` : `Ajouter ${node.name} aux favoris`}
-                        onClick={event => toggleFavorite(event, nodeId)}
+                        onClick={event => toggleFavorite(event, node?.targetId ?? nodeId)}
                         sx={{ minWidth: 24, minHeight: 24, p: 0.25, flexShrink: 0, opacity: isFavorite ? 1 : 0.55 }}
                       >
                         {isFavorite ? <Star fontSize="inherit" /> : <StarBorder fontSize="inherit" />}
@@ -380,29 +463,54 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
               {view === 'recent' ? 'Les ressources ouvertes apparaîtront ici.' : 'Ajoutez des ressources avec l’étoile pour les retrouver ici.'}
             </Typography>
           ) : visibleNodes.map(node => {
-            const isFavorite = favorites.includes(node.id);
-            const isSelected = (node.targetId ?? node.id) === selectedId;
+            const projectId = (node as RenderTree & { projectId?: string }).projectId ?? activeProjectId;
+            const project = projects.find(item => item.id === projectId);
+            const resourceId = node.targetId ?? node.id;
+            const entryId = projectId ? `${projectId}::${resourceId}` : resourceId;
+            const isFavorite = favorites.includes(entryId) || favorites.includes(resourceId);
+            const isSelected = resourceId === selectedId;
             return (
-              <Box key={node.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, borderRadius: '8px', bgcolor: isSelected ? '#eaf1ff' : 'transparent', '&:hover': { bgcolor: isSelected ? '#eaf1ff' : 'background.level1' } }}>
+              <Box key={node.id} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, borderRadius: '8px', bgcolor: isSelected ? '#eaf1ff' : 'transparent', '&:hover': { bgcolor: isSelected ? '#eaf1ff' : 'background.level1' }, '& .folder-tree-actions': { opacity: 0, transition: 'opacity 120ms ease' }, '&:hover .folder-tree-actions, &:focus-within .folder-tree-actions': { opacity: 1 }, '@media (hover: none)': { '& .folder-tree-actions': { opacity: 1 } } }}>
                 <Button
                   variant="plain"
                   color={isSelected ? 'primary' : 'neutral'}
-                  onClick={() => onNodeClick(node.targetId ?? node.id)}
+                  onClick={() => { if (projectId && projectId !== activeProjectId) setActiveProject(projectId); onNodeClick(resourceId); }}
                   startDecorator={view === 'recent' ? <AccessTime fontSize="small" /> : node.type === 'folder' ? <FolderOutlined fontSize="small" /> : <DescriptionOutlined fontSize="small" />}
                   sx={{ flex: 1, minWidth: 0, justifyContent: 'flex-start', textAlign: 'left', fontWeight: isSelected ? 700 : 500, overflow: 'hidden', '& .MuiButton-startDecorator': { flexShrink: 0 }, '& > span:last-of-type': { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }}
                 >
                   {node.name}
                 </Button>
+                {project && (
+                  <Chip size="sm" variant="soft" title={project.name} sx={{ bgcolor: project.color || '#2864d7', color: '#fff', maxWidth: 160, minWidth: 28, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {({ folder: '📁', briefcase: '💼', building: '🏢', workflow: '🔀', users: '👥', chart: '📊' } as Record<string, string>)[project.icon || 'folder'] || '📁'}
+                  </Chip>
+                )}
                 <IconButton
                   size="sm"
                   variant="plain"
                   color={isFavorite ? 'warning' : 'neutral'}
                   title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
                   aria-label={isFavorite ? `Retirer ${node.name} des favoris` : `Ajouter ${node.name} aux favoris`}
-                  onClick={event => toggleFavorite(event, node.id)}
+                  onClick={event => toggleFavorite(event, resourceId, projectId)}
                   sx={{ flexShrink: 0 }}
                 >
                   {isFavorite ? <Star fontSize="small" /> : <StarBorder fontSize="small" />}
+                </IconButton>
+                <IconButton
+                  className="folder-tree-actions"
+                  size="sm"
+                  variant="plain"
+                  color="neutral"
+                  title={`Actions pour ${node.name}`}
+                  aria-label={`Ouvrir les actions de ${node.name}`}
+                  onClick={event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setContextMenu({ nodeId: node.id, anchorEl: event.currentTarget });
+                  }}
+                  sx={{ flexShrink: 0 }}
+                >
+                  <MoreVert fontSize="small" />
                 </IconButton>
               </Box>
             );
@@ -428,8 +536,8 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
         zIndex: 1500,
       }}
     >
-      {contextMenu && nodeById.get(contextMenu.nodeId) && (() => {
-        const node = nodeById.get(contextMenu.nodeId)!;
+      {contextMenu && (visibleNodes.find(item => item.id === contextMenu.nodeId) ?? nodeById.get(contextMenu.nodeId)) && (() => {
+        const node = (visibleNodes.find(item => item.id === contextMenu.nodeId) ?? nodeById.get(contextMenu.nodeId))!;
         const resourceId = node.targetId ?? node.id;
         const isBpmn = node.type === 'process' || node.type === 'linked-process';
         const isFolder = node.type === 'folder';
@@ -449,12 +557,14 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
           <>
             <MenuItem sx={menuItemSx} onClick={() => {
               setContextMenu(null);
+              const projectId = (node as RenderTree & { projectId?: string }).projectId;
+              if (projectId && projectId !== activeProjectId) setActiveProject(projectId);
               onNodeClick(resourceId);
             }}>
               <OpenInNew fontSize="small" />
               Ouvrir
             </MenuItem>
-            {isBpmn && canModifyBpmn && (
+            {isBpmn && canModifyBpmn(resourceId) && (
               <MenuItem sx={{ ...menuItemSx, '& > svg': { color: 'primary.600', fontSize: 18 } }} onClick={() => {
                 setContextMenu(null);
                 navigate(`/${resourceId}/modeler`);

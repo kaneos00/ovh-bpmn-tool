@@ -45,6 +45,7 @@ export type UnifiedSearchParams = {
   types?: UnifiedSearchType[];
   source?: UnifiedSearchSource;
   resourceId?: string;
+  projectId?: string;
   role?: UnifiedSearchRole;
   limit?: number;
   offset?: number;
@@ -55,6 +56,7 @@ export const unifiedSearchQuery = (params: UnifiedSearchParams) => {
   if (params.types?.length) query.set('types', params.types.join(','));
   if (params.source) query.set('source', params.source);
   if (params.resourceId) query.set('resourceId', params.resourceId);
+  if (params.projectId) query.set('projectId', params.projectId);
   if (params.role) query.set('role', params.role);
   query.set('limit', String(params.limit ?? 30));
   query.set('offset', String(params.offset ?? 0));

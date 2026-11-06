@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -27,7 +27,6 @@ import { useBpmnLayoutBreadcrumbs } from '../BpmnLayout/hooks/useBpmnLayoutBread
 import { useContentViewer } from './hooks/useContentViewer';
 import { useViewerRouteState } from '../../shared/hooks/useViewerRouteState';
 import { useViewerSelectionState } from '../../shared/hooks/useViewerSelectionState';
-import { Component as ProjectHomeComponent } from '../ProjectViewer/ProjectViewer.container';
 import {
   contentsQuery,
   getXmlContentQuery,
@@ -504,18 +503,6 @@ const ProcessContentViewer = () => {
 
 ProcessContentViewer.displayName = 'ProcessContentViewer';
 
-export const Component = () => {
-  const { projectId, resourceId, contentId } = useParams<{
-    projectId?: string;
-    resourceId?: string;
-    contentId?: string;
-  }>();
-
-  if (projectId && !resourceId && !contentId) {
-    return <ProjectHomeComponent />;
-  }
-
-  return <ProcessContentViewer />;
-};
+export const Component = () => <ProcessContentViewer />;
 
 Component.displayName = 'ContentViewerContainer';

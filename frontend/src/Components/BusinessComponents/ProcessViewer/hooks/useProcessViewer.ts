@@ -212,13 +212,6 @@ export const useProcessViewer = (
       off: (event: string, listener: (event: any) => void) => void;
     };
     let clickListenerAttached = false;
-    let pendingSelectionTimer: ReturnType<typeof setTimeout> | null = null;
-    let lastClickedElementId: string | null = null;
-    let lastClickAt = 0;
-    const cancelPendingSelection = () => {
-      if (pendingSelectionTimer) clearTimeout(pendingSelectionTimer);
-      pendingSelectionTimer = null;
-    };
     const onElementClick = (event: any) => {
       const clickedElement = event?.element;
       // diagram-js emits clicks on BPMN labels as separate elements. Resolve
@@ -246,40 +239,16 @@ export const useProcessViewer = (
         !Array.isArray(element.waypoints);
       if (!isSelectableElement) return;
 
-      const now = Date.now();
-      const isRapidSecondClick =
-        lastClickedElementId === element.id && now - lastClickAt < 280;
-      lastClickedElementId = element.id;
-      lastClickAt = now;
-
-      // A rapid second click belongs to the double-click gesture. Cancel a
-      // pending deselection, but never delay selecting a new element.
-      if (isRapidSecondClick) {
-        cancelPendingSelection();
-        return;
-      }
-
-      cancelPendingSelection();
-      const currentlySelected = selectedIdRef.current;
-      if (currentlySelected !== element.id) {
+      // Every click toggles the same element immediately. Do not interpret a
+      // second click as a double-click exception: users expect it to deselect
+      // the element and close its information panel.
+      if (selectedIdRef.current === element.id) {
+        onElementSelectRef.current?.('');
+      } else {
         onElementSelectRef.current?.(element.id);
-        return;
       }
-
-      // Only delay deselection of an already-selected element so a double-click
-      // can cancel it. New selections are applied immediately.
-      pendingSelectionTimer = setTimeout(() => {
-        pendingSelectionTimer = null;
-        if (selectedIdRef.current === element.id) {
-          onElementSelectRef.current?.('');
-        }
-      }, 220);
     };
     const onElementDoubleClick = (event: any) => {
-      cancelPendingSelection();
-      lastClickedElementId = null;
-      lastClickAt = 0;
-
       const clickedElement = event?.element;
       const element = clickedElement?.labelTarget ?? clickedElement;
       const elementType = element?.businessObject?.$type ?? element?.type;
@@ -351,7 +320,6 @@ export const useProcessViewer = (
     return () => {
       cancelled = true;
       if (importGenerationRef.current === generation) importGenerationRef.current += 1;
-      cancelPendingSelection();
       if (clickListenerAttached) {
         eventBus.off('element.click', onElementClick);
         eventBus.off('element.dblclick', onElementDoubleClick);
