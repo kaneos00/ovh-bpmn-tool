@@ -28,6 +28,16 @@ describe('Generic document reader', () => {
     assert.match(document.pages[0].content, /^<mxGraphModel\b/);
   });
 
+  it('decodes a compressed Draw.io page payload', async () => {
+    const compressed = 'UzV2zq1wL0osyPDNT0nNUTV2VTV2LsrPL4GwciucU3NyVI0MMlNUjV1UjYwMgFjVyA2HrCFY1qAgsSg1rwSLBiADYTaQg2Y1AA==';
+    const source = `<mxfile><diagram id="compressed" name="Compressed">${compressed}</diagram></mxfile>`;
+    const document = await engine.read({ fileName: 'compressed.drawio', content: source });
+
+    assert.equal(document.pages.length, 1);
+    assert.equal(document.pages[0].name, 'Compressed');
+    assert.match(document.pages[0].content, /^<mxGraphModel\\b/);
+  });
+
   it('rejects unsupported input and malformed XML explicitly', async () => {
     await assert.rejects(
       () => engine.read({ fileName: 'notes.txt', content: 'plain text' }),
