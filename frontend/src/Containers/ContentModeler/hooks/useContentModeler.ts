@@ -17,7 +17,9 @@ import { paginateBpmnSvg } from '../../../shared/utils/paginatedBpmnSvg';
 import { HttpError } from '../../../shared/api/httpError';
 import { drawioToBpmn, isDrawioXml } from '../../../import/drawio/drawio-to-bpmn';
 
-type ModelerDiagramOption = { id: string; name: string };\n\nexport const useContentModeler = (bpmnModelerInstance: Modeler) => {
+type ModelerDiagramOption = { id: string; name: string };
+
+export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   const { resourceId } = useParams() as ContentModelerRouteParams;
   const actionData = useActionData() as Content & ActionResponse;
   const navigate = useNavigate();
@@ -25,7 +27,37 @@ type ModelerDiagramOption = { id: string; name: string };\n\nexport const useCon
   const submit = useSubmit();
   const { showAlert } = useSnackbar();
 
-  const [isShortcurtModalOpen, setIsShortcurtModalOpen] = useState(false);\n  const [diagramOptions, setDiagramOptions] = useState<ModelerDiagramOption[]>([]);\n  const [activeDiagramId, setActiveDiagramId] = useState<string>('');\n\n  const refreshModelerDiagrams = useCallback(() => {\n    const definitions = (bpmnModelerInstance as any).getDefinitions?.();\n    const diagrams = Array.isArray(definitions?.diagrams) ? definitions.diagrams : [];\n    const options = diagrams.map((diagram: any, index: number) => ({\n      id: String(diagram.id ?? `Diagram_${index + 1}`),\n      name: String(diagram.name ?? `Page-${index + 1}`),\n    }));\n    setDiagramOptions(options);\n    setActiveDiagramId(options[0]?.id ?? '');\n  }, [bpmnModelerInstance]);\n\n  const onDiagramSelect = useCallback(async (diagramId: string) => {\n    const definitions = (bpmnModelerInstance as any).getDefinitions?.();\n    const diagram = definitions?.diagrams?.find((item: any, index: number) =>\n      String(item.id ?? `Diagram_${index + 1}`) === diagramId,\n    );\n    if (!diagram) return;\n    try {\n      await (bpmnModelerInstance as any).open(diagram);\n      setActiveDiagramId(diagramId);\n    } catch (error) {\n      showAlert({\n        message: error instanceof Error ? `Impossible d'ouvrir cette page : ${error.message}` : 'Impossible d’ouvrir cette page BPMN.',\n        severity: 'danger',\n      });\n    }\n  }, [bpmnModelerInstance, showAlert]);
+  const [isShortcurtModalOpen, setIsShortcurtModalOpen] = useState(false);
+  const [diagramOptions, setDiagramOptions] = useState<ModelerDiagramOption[]>([]);
+  const [activeDiagramId, setActiveDiagramId] = useState<string>('');
+
+  const refreshModelerDiagrams = useCallback(() => {
+    const definitions = (bpmnModelerInstance as any).getDefinitions?.();
+    const diagrams = Array.isArray(definitions?.diagrams) ? definitions.diagrams : [];
+    const options = diagrams.map((diagram: any, index: number) => ({
+      id: String(diagram.id ?? `Diagram_${index + 1}`),
+      name: String(diagram.name ?? `Page-${index + 1}`),
+    }));
+    setDiagramOptions(options);
+    setActiveDiagramId(options[0]?.id ?? '');
+  }, [bpmnModelerInstance]);
+
+  const onDiagramSelect = useCallback(async (diagramId: string) => {
+    const definitions = (bpmnModelerInstance as any).getDefinitions?.();
+    const diagram = definitions?.diagrams?.find((item: any, index: number) =>
+      String(item.id ?? `Diagram_${index + 1}`) === diagramId,
+    );
+    if (!diagram) return;
+    try {
+      await (bpmnModelerInstance as any).open(diagram);
+      setActiveDiagramId(diagramId);
+    } catch (error) {
+      showAlert({
+        message: error instanceof Error ? `Impossible d'ouvrir cette page : ${error.message}` : 'Impossible d’ouvrir cette page BPMN.',
+        severity: 'danger',
+      });
+    }
+  }, [bpmnModelerInstance, showAlert]);
 
   const { data: contents } = useQuery(contentsQuery(resourceId));
   const { resource } = useResource(resourceId);
@@ -298,6 +330,10 @@ type ModelerDiagramOption = { id: string; name: string };\n\nexport const useCon
     actionData,
     setIsShortcurtModalOpen,
     onFileUpload,
+    diagramOptions,
+    activeDiagramId,
+    onDiagramSelect,
+    refreshModelerDiagrams,
     onFileExport,
     onDiagramSave,
     onDiagramPublish,
