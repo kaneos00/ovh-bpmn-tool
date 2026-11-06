@@ -455,7 +455,6 @@ describe('ProcessChangeProposalController common-process remark creation', () =>
   });
 });
 
-
 describe('ProcessChangeProposalController validator resolution', () => {
   const projectId = 'project-1';
   const actorUsername = 'author';
@@ -486,9 +485,11 @@ describe('ProcessChangeProposalController validator resolution', () => {
       }),
     };
     const manager = {
-      query: jest.fn().mockResolvedValue([
-        { id: 'pilot-account-id', username: 'process-pilot' },
-      ]),
+      query: jest
+        .fn()
+        .mockResolvedValue([
+          { id: 'pilot-account-id', username: 'process-pilot' },
+        ]),
       getRepository: jest.fn().mockReturnValue(projects),
     };
     const members = {
@@ -576,8 +577,6 @@ describe('ProcessChangeProposalController validator resolution', () => {
 
     expect(result.validatorUserId).toBeNull();
     expect(result.validatorResolution).toBe('project_default_invalid');
-    expect(result.validatorWarning).toContain(
-      'Aucun pilote n’est renseigné',
-    );
+    expect(result.validatorWarning).toContain('Aucun pilote n’est renseigné');
   });
 });
