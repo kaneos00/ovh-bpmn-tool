@@ -18,6 +18,7 @@ import { ContentMapper } from '../../mappers/content.mapper';
 import { ContentTypeOrmEntity } from '../../entities/content.ormEntity';
 import { ResourceTypeOrmEntity } from '../../entities/resource.ormEntity';
 import { ContentStatusEnum } from '../../../../../modules/ResourceContext/shared/types/Content';
+import { publishDraftContentWithinTransaction } from './content-publication-transaction';
 import { ResourceTypeEnum } from '../../../../../modules/ResourceContext/shared/types/Resource';
 
 import type { Maybe } from '../../../../../shared-kernel/utils/Maybe';
@@ -51,19 +52,13 @@ export class ContentTypeOrmRepository implements ContentRepository {
     try {
       return await this.dataSource.transaction(async (manager) => {
         const resources = manager.getRepository(ResourceTypeOrmEntity);
-        const contents = manager.getRepository(ContentTypeOrmEntity);
-
-        // Lock the resource first: concurrent publications for the same
-        // resource are serialized, including the lookup of the prior version.
         const resource = await resources.findOne({
           where: { id: params.resourceId },
           lock: { mode: 'pessimistic_write' },
         });
         if (!resource) throw new Error('Resource no longer exists');
-        if (resource.type === ResourceTypeEnum.Folder) {
-          throw new Error('A folder cannot receive published content');
-        }
 
+        // Proposal workspaces must be promoted only through their workflow.
         const proposalRows: Array<{ id: string }> = await manager.query(
           'SELECT id FROM process_change_proposals WHERE "cloneResourceId" = $1 LIMIT 1',
           [params.resourceId],
@@ -74,65 +69,18 @@ export class ContentTypeOrmRepository implements ContentRepository {
           );
         }
 
-        const contentEntity = await contents.findOne({
-          where: { id: params.contentId, resourceId: params.resourceId },
-          lock: { mode: 'pessimistic_write' },
-        });
-        if (!contentEntity) throw new Error('Draft content no longer exists');
-        if (
-          contentEntity.status &&
-          contentEntity.status !== ContentStatusEnum.Draft
-        ) {
-          throw new Error('Content is no longer a draft');
-        }
-
-        // Drafts can be created concurrently and may initially receive the
-        // same next version. Recalculate the published sequence while holding
-        // the resource lock so each successful publication gets a new version.
-        const latestVersion = await contents
-          .createQueryBuilder('content')
-          .setLock('pessimistic_write')
-          .where('content."resourceId" = :resourceId', {
-            resourceId: params.resourceId,
-          })
-          .andWhere('content.status IN (:...statuses)', {
-            statuses: [ContentStatusEnum.Published, ContentStatusEnum.Obsolete],
-          })
-          .orderBy('content.version', 'DESC', 'NULLS LAST')
-          .getOne();
-        contentEntity.version = Math.max(
-          contentEntity.version ?? 1,
-          (latestVersion?.version ?? 0) + 1,
-        );
-
-        const previousPublished = await contents.findOne({
-          where: {
-            resourceId: params.resourceId,
-            status: ContentStatusEnum.Published,
+        const savedContent = await publishDraftContentWithinTransaction(
+          manager,
+          {
+            targetResourceId: params.resourceId,
+            draftResourceId: params.resourceId,
+            draftContentId: params.contentId,
+            updatedBy: params.updatedBy,
+            pngContent: params.pngContent,
+            authToken: params.authToken,
           },
-          order: { version: 'DESC' },
-          lock: { mode: 'pessimistic_write' },
-        });
-
-        if (previousPublished && previousPublished.id !== contentEntity.id) {
-          const previous = ContentMapper.fromPersistence(previousPublished);
-          if (previous.fail) throw previous.fail;
-          previous.ok.makeObsolete(params.updatedBy);
-          await contents.save(ContentMapper.toPersistence(previous.ok));
-        }
-
-        const contentResult = ContentMapper.fromPersistence(contentEntity);
-        if (contentResult.fail) throw contentResult.fail;
-        contentResult.ok.publish(params.updatedBy, params.pngContent);
-        const savedContent = await contents.save(
-          ContentMapper.toPersistence(contentResult.ok),
+          resource,
         );
-
-        if (!resource.authToken) {
-          resource.authToken = params.authToken;
-          await resources.save(resource);
-        }
-
         const mapped = ContentMapper.fromPersistence(savedContent);
         if (mapped.fail) throw mapped.fail;
         return ok(mapped.ok);
