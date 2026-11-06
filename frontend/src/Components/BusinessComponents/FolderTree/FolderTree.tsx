@@ -31,6 +31,7 @@ import {
   StarBorder,
   Search,
   MoreVert,
+  HomeRounded,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { ControlledTreeEnvironment, Tree } from 'react-complex-tree';
@@ -304,6 +305,18 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
           Sélectionnez un projet dans le bandeau pour afficher ses processus.
         </Typography>
       )}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 0.75 }}>
+        <Button
+          size="sm"
+          variant="plain"
+          color="neutral"
+          startDecorator={<HomeRounded fontSize="small" />}
+          onClick={() => navigate('/projects')}
+          sx={{ justifyContent: 'flex-start', fontWeight: 650 }}
+        >
+          Tous les projets
+        </Button>
+      </Box>
       <Input
         size="sm"
         value={search}
