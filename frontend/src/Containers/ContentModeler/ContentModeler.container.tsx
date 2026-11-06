@@ -293,9 +293,7 @@ export const Component = () => {
     }
   };
 
-  const blocker = useBlocker(
-    ({ nextLocation }) => isDirty && nextLocation.pathname === `/${resourceId}`,
-  );
+  const blocker = useBlocker(({ nextLocation }) => isDirty && nextLocation.pathname === `/${resourceId}`);
   const publishApprovedProposal = async () => {
     if (!proposalId || !approvedProposalMode || publishingApprovedProposal)
       return;
