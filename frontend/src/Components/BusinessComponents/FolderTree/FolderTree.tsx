@@ -39,6 +39,7 @@ import 'react-complex-tree/lib/style-modern.css';
 
 import { useFolderTree } from './hooks/useFolderTree';
 import { useActiveProject } from '../../../shared/hooks/useActiveProject';
+import { getProjectTrigram } from '../../../shared/helpers/projectTrigram';
 
 import type { RenderTree } from '.';
 
@@ -305,6 +306,15 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
           Sélectionnez un projet dans le bandeau pour afficher ses processus.
         </Typography>
       )}
+      <Input
+        size="sm"
+        value={search}
+        onChange={event => setSearch(event.target.value)}
+        placeholder="Rechercher une ressource…"
+        startDecorator={<Search fontSize="small" />}
+        sx={{ mb: 1, borderRadius: '7px', bgcolor: 'background.surface' }}
+        slotProps={{ input: { 'aria-label': 'Rechercher dans l’arborescence, les récents et les favoris' } }}
+      />
       <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 0.75 }}>
         <Button
           size="sm"
@@ -317,15 +327,6 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
           Tous les projets
         </Button>
       </Box>
-      <Input
-        size="sm"
-        value={search}
-        onChange={event => setSearch(event.target.value)}
-        placeholder="Rechercher une ressource…"
-        startDecorator={<Search fontSize="small" />}
-        sx={{ mb: 1, borderRadius: '7px', bgcolor: 'background.surface' }}
-        slotProps={{ input: { 'aria-label': 'Rechercher dans l’arborescence, les récents et les favoris' } }}
-      />
 
       <Box sx={{ display: 'flex', gap: 0.5, p: 0.5, mb: 1, bgcolor: 'background.level1', borderRadius: '8px' }}>
         {([
@@ -481,8 +482,8 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                   {node.name}
                 </Button>
                 {project && (
-                  <Chip size="sm" variant="soft" title={project.name} sx={{ bgcolor: project.color || '#2864d7', color: '#fff', maxWidth: 160, minWidth: 28, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {({ folder: '📁', briefcase: '💼', building: '🏢', workflow: '🔀', users: '👥', chart: '📊' } as Record<string, string>)[project.icon || 'folder'] || '📁'}
+                  <Chip size="sm" variant="solid" title={project.name} sx={{ bgcolor: project.color || '#2864d7', color: '#fff', maxWidth: 160, minWidth: 36, fontWeight: 800, letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {getProjectTrigram(project.name)}
                   </Chip>
                 )}
                 <IconButton

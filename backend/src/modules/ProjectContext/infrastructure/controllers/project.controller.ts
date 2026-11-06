@@ -355,6 +355,7 @@ export class ProjectController {
       description?: string;
       color?: string;
       icon?: string;
+      defaultValidatorUserId?: string | null;
     },
   ) {
     const project = await this.assertProjectExists(projectId);
@@ -376,6 +377,9 @@ export class ProjectController {
     }
     if (body.icon !== undefined) {
       project.icon = this.validateProjectIcon(body.icon);
+    }
+    if (body.defaultValidatorUserId !== undefined) {
+      await this.assignDefaultValidator(project, body.defaultValidatorUserId);
     }
 
     try {
@@ -425,6 +429,7 @@ export class ProjectController {
       description?: string;
       color?: string;
       icon?: string;
+      defaultValidatorUserId?: string | null;
     },
     @Headers() headers: RequestHeaders,
   ) {
@@ -448,6 +453,9 @@ export class ProjectController {
     }
     if (body.icon !== undefined) {
       project.icon = this.validateProjectIcon(body.icon);
+    }
+    if (body.defaultValidatorUserId !== undefined) {
+      await this.assignDefaultValidator(project, body.defaultValidatorUserId);
     }
 
     try {
@@ -847,6 +855,10 @@ export class ProjectController {
       }
 
       if (role === null) {
+        if (project.defaultValidatorUserId === userId) {
+          project.defaultValidatorUserId = null;
+          await projectRepository.save(project);
+        }
         await members.delete({ projectId, userId });
         return { deleted: true, projectId, userId };
       }
@@ -861,6 +873,28 @@ export class ProjectController {
       member.role = role;
       return members.save(member);
     });
+  }
+
+  private async assignDefaultValidator(
+    project: ProjectTypeOrmEntity,
+    requestedUserId: string | null,
+  ) {
+    if (requestedUserId === null || requestedUserId.trim() === '') {
+      project.defaultValidatorUserId = null;
+      return;
+    }
+
+    const userId = this.validateUserId(requestedUserId);
+    const membership = await this.projectMembers.findOneBy({
+      projectId: project.id,
+      userId,
+    });
+    if (!membership) {
+      throw new BadRequestException(
+        'The default validator must be a member of this project',
+      );
+    }
+    project.defaultValidatorUserId = userId;
   }
 
   private validateProjectColor(value?: string) {

@@ -40,7 +40,7 @@ test('viewer selection recognizes collapsed SubProcesses through their BPMN busi
   assert.match(hook, /const elementType = element\.businessObject\?\.\$type \?\? element\.type/);
   assert.match(hook, /eventBus\.on\('element\.click', 1500, onElementClick\)/);
   assert.match(hook, /elementType\.startsWith\('bpmn:'\)/);
-  assert.match(hook, /!element\.labelTarget/);
+  assert.match(hook, /const element = clickedElement\?\.labelTarget \?\? clickedElement/);
   assert.match(hook, /!Array\.isArray\(element\.waypoints\)/);
   assert.match(hook, /onElementSelectRef\.current\?\.\(element\.id\)/);
 });

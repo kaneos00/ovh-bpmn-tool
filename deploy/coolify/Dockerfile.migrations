@@ -4,3 +4,4 @@ COPY backend/migrations/20261029_v3_user_theme_preference.sql /opt/migrations/20
 
 COPY backend/migrations/20261029_v3_content_change_comments.sql /opt/migrations/20261029_v3_content_change_comments.sql
 COPY backend/migrations/20261105_v3_project_visual_identity.sql /opt/migrations/20261105_v3_project_visual_identity.sql
+COPY backend/migrations/20261106_add_project_default_validator.sql /opt/migrations/20261106_add_project_default_validator.sql

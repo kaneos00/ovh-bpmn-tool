@@ -12,6 +12,7 @@ import { ResourceType } from '../../../shared/types/BpmnResource';
 import { deriveRaciMatrixFromXml } from '../../../extensions/raci-viewer';
 import { UserAccountMenu } from '../UserAccountMenu/UserAccountMenu';
 import { SearchResultItem } from '../SearchResultItem/SearchResultItem';
+import { getProjectTrigram } from '../../../shared/helpers/projectTrigram';
 
 type SearchScope = 'all' | 'processes' | 'bpmn' | 'roles' | 'raci';
 type SearchResult = {
@@ -547,12 +548,23 @@ export const WorkspaceNavigation = () => {
           }}
           disabled={projectsLoading || projects.length === 0}
           aria-label="Projet actif"
-          sx={{ minWidth: 180, maxWidth: 240, bgcolor: activeProject?.color || '#263e59', color: '#fff', borderColor: '#40556d', '&:hover': { filter: 'brightness(1.08)' } }}
+          renderValue={() => activeProject ? (
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+              <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 34, height: 24, px: 0.5, borderRadius: '6px', bgcolor: activeProject.color || '#2864d7', color: '#fff', fontSize: 11, fontWeight: 800, letterSpacing: '0.04em', flexShrink: 0 }}>
+                {getProjectTrigram(activeProject.name)}
+              </Box>
+              <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {activeProject.name}
+              </Box>
+            </Stack>
+          ) : null}
+          sx={{ minWidth: 180, maxWidth: 280, bgcolor: 'background.surface', color: 'text.primary', borderColor: 'divider', '&:hover': { bgcolor: 'background.level1' }, '& .MuiSelect-indicator': { color: 'text.secondary' } }}
         >
           {projects.map(project => <Option key={project.id} value={project.id}>
             <Stack direction="row" spacing={1} alignItems="center">
-              <Box component="span" sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: project.color || '#2864d7', flexShrink: 0 }} />
-              <Box component="span">{({ folder: '📁', briefcase: '💼', building: '🏢', workflow: '🔀', users: '👥', chart: '📊' } as Record<string, string>)[project.icon || 'folder'] || '📁'}</Box>
+              <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 34, height: 24, px: 0.5, borderRadius: '6px', bgcolor: project.color || '#2864d7', color: '#fff', fontSize: 11, fontWeight: 800, letterSpacing: '0.04em', flexShrink: 0 }}>
+                {getProjectTrigram(project.name)}
+              </Box>
               <Box component="span">{project.name}</Box>
             </Stack>
           </Option>)}

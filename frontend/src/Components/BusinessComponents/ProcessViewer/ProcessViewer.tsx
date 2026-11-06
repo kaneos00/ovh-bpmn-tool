@@ -12,6 +12,7 @@ type ProcessViewerProps = {
   onToggleInfoPanel?: () => void;
   infoPanelOpen?: boolean;
   toolbarExtra?: ReactNode;
+  fullscreenTargetRef?: React.RefObject<HTMLElement>;
 };
 
 export const ProcessViewer = ({
@@ -22,27 +23,11 @@ export const ProcessViewer = ({
   onToggleInfoPanel,
   infoPanelOpen = false,
   toolbarExtra,
+  fullscreenTargetRef,
 }: ProcessViewerProps) => {
   const viewerShellRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-
-  useEffect(() => {
-    const syncFullscreenState = () => {
-      setIsFullscreen(document.fullscreenElement === viewerShellRef.current);
-    };
-    document.addEventListener('fullscreenchange', syncFullscreenState);
-    return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
-  }, []);
-
-  const toggleFullscreen = async () => {
-    const shell = viewerShellRef.current;
-    if (!shell) return;
-    if (document.fullscreenElement === shell) {
-      await document.exitFullscreen();
-    } else {
-      await shell.requestFullscreen();
-    }
-  };
+  const [isShellFullscreen, setIsShellFullscreen] = useState(false);
 
   const {
     viewerRef,
@@ -54,6 +39,7 @@ export const ProcessViewer = ({
     zoomOut,
     resetZoom,
     fitDiagram,
+    resizeDiagram,
   } = useProcessViewer(
     resourceId,
     contentId,
@@ -61,8 +47,33 @@ export const ProcessViewer = ({
     onElementSelect,
   );
 
+  useEffect(() => {
+    const syncFullscreenState = () => {
+      const target = fullscreenTargetRef?.current ?? viewerShellRef.current;
+      const active = document.fullscreenElement === target;
+      setIsFullscreen(active);
+      setIsShellFullscreen(document.fullscreenElement === viewerShellRef.current);
+      // Refit on entry and exit: both transitions change the available canvas size.
+      if (active || document.fullscreenElement === null) {
+        window.requestAnimationFrame(resizeDiagram);
+      }
+    };
+    document.addEventListener('fullscreenchange', syncFullscreenState);
+    return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
+  }, [fullscreenTargetRef, resizeDiagram]);
+
+  const toggleFullscreen = async () => {
+    const target = fullscreenTargetRef?.current ?? viewerShellRef.current;
+    if (!target) return;
+    if (document.fullscreenElement === target) {
+      await document.exitFullscreen();
+    } else {
+      await target.requestFullscreen();
+    }
+  };
+
   return (
-    <Box className={`process-viewer-shell${isFullscreen ? ' is-fullscreen' : ''}`} ref={viewerShellRef}>
+    <Box className={`process-viewer-shell${isShellFullscreen ? ' is-fullscreen' : ''}`} ref={viewerShellRef}>
       <Stack
         direction="row"
         alignItems="center"

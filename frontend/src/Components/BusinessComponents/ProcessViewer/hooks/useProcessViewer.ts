@@ -54,8 +54,6 @@ export const useProcessViewer = (
       .getAll()
       .filter((element: any) =>
         element &&
-        !element.labelTarget &&
-        !element.waypoints &&
         Number.isFinite(element.x) &&
         Number.isFinite(element.y) &&
         element.width > 0 &&
@@ -109,8 +107,94 @@ export const useProcessViewer = (
 
   const fitDiagram = () => {
     if (!importedRef.current) return;
-    (viewer.get('canvas') as any).zoom('fit-viewport');
-    alignDiagramTopLeft();
+
+    const canvas = viewer.get('canvas') as any;
+    const elementRegistry = viewer.get('elementRegistry') as any;
+    canvas.resized?.();
+
+    const container = canvas.getContainer();
+    const { width: containerWidth, height: containerHeight } = container.getBoundingClientRect();
+    const availableWidth = containerWidth - DIAGRAM_PADDING * 2;
+    const availableHeight = containerHeight - DIAGRAM_PADDING * 2;
+    if (availableWidth <= 0 || availableHeight <= 0) return;
+
+    // Include shapes, labels and connections in the visual bounds, then fit
+    // the complete BPMN geometry while preserving its aspect ratio.
+    // The smaller of the width and height scales is the limiting dimension.
+    const bounds = elementRegistry.getAll()
+      .flatMap((element: any) => {
+        if (!element) return [];
+
+        // Connections can be horizontal or vertical (zero width/height), so
+        // include their waypoints directly instead of relying on their bbox.
+        if (Array.isArray(element.waypoints) && element.waypoints.length > 0) {
+          const points = element.waypoints.filter((point: any) =>
+            Number.isFinite(point.x) && Number.isFinite(point.y),
+          );
+          if (points.length > 0) {
+            const xs = points.map((point: any) => point.x);
+            const ys = points.map((point: any) => point.y);
+            const minX = Math.min(...xs);
+            const minY = Math.min(...ys);
+            const maxX = Math.max(...xs);
+            const maxY = Math.max(...ys);
+            return [{
+              x: minX,
+              y: minY,
+              width: Math.max(1, maxX - minX),
+              height: Math.max(1, maxY - minY),
+            }];
+          }
+        }
+
+        if (
+          !Number.isFinite(element.x) ||
+          !Number.isFinite(element.y) ||
+          element.width <= 0 ||
+          element.height <= 0
+        ) return [];
+
+        return [canvas.getAbsoluteBBox(element)];
+      })
+      .filter((bbox: any) =>
+        bbox &&
+        Number.isFinite(bbox.x) &&
+        Number.isFinite(bbox.y) &&
+        Number.isFinite(bbox.width) &&
+        Number.isFinite(bbox.height) &&
+        bbox.width > 0 &&
+        bbox.height > 0,
+      );
+
+    if (!bounds.length) return;
+
+    const minX = Math.min(...bounds.map((bbox: any) => bbox.x));
+    const minY = Math.min(...bounds.map((bbox: any) => bbox.y));
+    const maxX = Math.max(...bounds.map((bbox: any) => bbox.x + bbox.width));
+    const maxY = Math.max(...bounds.map((bbox: any) => bbox.y + bbox.height));
+    const diagramWidth = maxX - minX;
+    const diagramHeight = maxY - minY;
+    if (diagramWidth <= 0 || diagramHeight <= 0) return;
+
+    const scale = Math.min(
+      availableWidth / diagramWidth,
+      availableHeight / diagramHeight,
+    );
+    if (!Number.isFinite(scale) || scale <= 0) return;
+
+    // canvas.viewbox works in diagram coordinates. Convert the screen-space
+    // padding back through the selected scale so neither edge is clipped.
+    canvas.viewbox({
+      x: minX - DIAGRAM_PADDING / scale,
+      y: minY - DIAGRAM_PADDING / scale,
+      width: containerWidth / scale,
+      height: containerHeight / scale,
+    });
+  };
+
+  const resizeDiagram = () => {
+    if (!importedRef.current) return;
+    fitDiagram();
   };
 
   const applySelection = () => {
@@ -352,5 +436,6 @@ export const useProcessViewer = (
     zoomOut,
     resetZoom,
     fitDiagram,
+    resizeDiagram,
   };
 };

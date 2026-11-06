@@ -734,15 +734,17 @@ test('recent and favorite resources retain their project context', async () => {
   assert.match(tree, /projects\.filter\(project => project\.processes\.some/);
   assert.match(tree, /setActiveProject\(projectId\)/);
   assert.match(tree, /project\.color/);
-  assert.match(tree, /project\.icon/);
+  assert.match(tree, /getProjectTrigram\(project\.name\)/);
 });
 
-test('project administrators can configure the project color and pictogram', async () => {
+test('project administrators can configure the color of the generated trigram badge', async () => {
   const admin = await read('src/Containers/Projects/Projects.container.tsx');
   assert.match(admin, /Input type="color"/);
-  assert.match(admin, /aria-label="Pictogramme du projet"/);
-  assert.match(admin, /color: projectColor, icon: projectIcon/);
+  assert.match(admin, /Aperçu du badge/);
+  assert.ok(admin.includes('getProjectTrigram(project.name)'));
+  assert.match(admin, /color: projectColor/);
   assert.match(admin, /canManageProjectIdentity/);
+  assert.doesNotMatch(admin, /Pictogramme/);
 });
 
 
@@ -766,4 +768,122 @@ test('the root workspace replaces the former home dashboard and project viewer p
   assert.doesNotMatch(navigation, /label: 'Accueil'|label: 'Projets'/);
   assert.match(navigation, /globalRole === 'admin'[\s\S]*?>\s*Administration\s*<\/Button>/);
   assert.ok(navigation.includes('<UserAccountMenu />'), 'account menu remains available');
+});
+
+
+test('Viewer fit uses the first limiting dimension and includes the complete BPMN bounds', async () => {
+  const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+  assert.ok(hook.includes('const scale = Math.min('));
+  assert.ok(hook.includes('availableWidth / diagramWidth'));
+  assert.ok(hook.includes('availableHeight / diagramHeight'));
+  assert.ok(hook.includes('canvas.viewbox({'));
+  assert.ok(hook.includes('width: containerWidth / scale'));
+  assert.ok(hook.includes('height: containerHeight / scale'));
+  assert.ok(!hook.includes("zoom('fit-viewport')"));
+});
+
+test('fullscreen targets the complete process workspace and refits after both transitions', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const viewer = await read('src/Components/BusinessComponents/ProcessViewer/ProcessViewer.tsx');
+  const styles = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.scss');
+  assert.ok(details.includes('const processWorkspaceRef = useRef<HTMLDivElement>(null)'));
+  assert.ok(details.includes('fullscreenTargetRef={processWorkspaceRef}'));
+  assert.ok(viewer.includes('fullscreenTargetRef?: React.RefObject<HTMLElement>'));
+  assert.ok(viewer.includes('fullscreenTargetRef?.current ?? viewerShellRef.current'));
+  assert.ok(viewer.includes('active || document.fullscreenElement === null'));
+  assert.ok(viewer.includes("isShellFullscreen ? ' is-fullscreen' : ''"));
+  assert.ok(styles.includes('.processViewerProcessWorkspace:fullscreen'));
+  assert.ok(styles.includes(':fullscreen .processTaskPanel'));
+});
+
+test('project home action is positioned below the explorer search field', async () => {
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+  const searchIndex = tree.indexOf('placeholder="Rechercher une ressource…"', tree.indexOf('return ('));
+  const homeIndex = tree.indexOf('Tous les projets', searchIndex);
+  assert.ok(searchIndex >= 0);
+  assert.ok(homeIndex > searchIndex);
+});
+
+test('project identities use generated trigrams and retain configurable colors', async () => {
+  const helper = await read('src/shared/helpers/projectTrigram.ts');
+  const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+  const projects = await read('src/Containers/Projects/Projects.container.tsx');
+  assert.ok(helper.includes('export const getProjectTrigram'));
+  assert.ok(navigation.includes('getProjectTrigram(project.name)'));
+  assert.ok(tree.includes('getProjectTrigram(project.name)'));
+  assert.ok(projects.includes('getProjectTrigram(project.name)'));
+  assert.ok(projects.includes('color: projectColor'));
+});
+
+test('all-projects home reuses the Viewer workspace layout and shows four useful indicators', async () => {
+  const projects = await read('src/Containers/Projects/Projects.container.tsx');
+  const explorer = await read('src/Components/BusinessComponents/ViewerExplorerPanel/ViewerExplorerPanel.tsx');
+  assert.ok(projects.includes('variant="projects-overview"'));
+  assert.ok(projects.includes('className="processViewerLayout processViewerWorkspace"'));
+  assert.ok(projects.includes('className="processViewerResizeHandle"'));
+  assert.ok(projects.includes('Projets accessibles'));
+  assert.ok(projects.includes('Processus distincts'));
+  assert.ok(projects.includes('Processus publiés'));
+  assert.ok(projects.includes('Modifiés sur 30 jours'));
+  assert.ok(projects.includes('className="processViewerDiagram processViewerInfo projectsOverviewPanel"'));
+  assert.ok(explorer.includes("variant: 'process-details' | 'content-viewer' | 'projects-overview'"));
+});
+
+
+test('full-screen version viewer opens a read-only element sheet on BPMN selection', async () => {
+  const contentViewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+  const styles = await read('src/Containers/ContentViewer/ContentViewerContainer.scss');
+  assert.ok(contentViewer.includes('const workspaceRef = useRef<HTMLDivElement>(null)'));
+  assert.ok(contentViewer.includes('fullscreenTargetRef={workspaceRef}'));
+  assert.ok(contentViewer.includes('onElementSelect={handleElementSelect}'));
+  assert.ok(contentViewer.includes('setInfoTab(2)'));
+  assert.ok(contentViewer.includes('Fiche de l’élément'));
+  assert.ok(contentViewer.includes('selectedElementDetails'));
+  assert.ok(contentViewer.includes('Sélectionnez un élément BPMN pour afficher sa fiche.'));
+  assert.ok(styles.includes('.processViewerWorkspace.viewerLayout:fullscreen'));
+});
+
+test('all-projects workspace reuses the shared Viewer breadcrumb header', async () => {
+  const projects = await read('src/Containers/Projects/Projects.container.tsx');
+  const sharedHeader = await read('src/Components/GenericComponents/Header/Header.tsx');
+  const breadcrumbs = await read('src/Components/GenericComponents/Breadcrumbs/Breadcrumbs.tsx');
+
+  assert.ok(projects.includes("import { Header } from '../../Components/GenericComponents/Header/Header'"));
+  assert.ok(projects.includes('<Header'));
+  assert.ok(projects.includes('title="Tous les projets"'));
+  assert.ok(projects.includes("breadcrumbs={[{ id: 'home', label: 'Tous les projets', to: '/projects' }]}"));
+  assert.ok(sharedHeader.includes('<Breadcrumbs isLoading={isLoading} breadcrumbItems={breadcrumbs || []} />'));
+  assert.ok(breadcrumbs.includes('aria-label="breadcrumbs"'));
+});
+
+test('project administration persists a member-backed default validator and documents process-pilot precedence', async () => {
+  const page = await read('src/Containers/Projects/Projects.container.tsx');
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project.controller.ts');
+  const entity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/project.ormEntity.ts');
+  const migration = await read('../backend/migrations/20261106_add_project_default_validator.sql');
+  const migrationDockerfile = await read('../deploy/coolify/Dockerfile.migrations');
+  const compose = await read('../deploy/coolify/compose.yaml');
+
+  assert.ok(page.includes('defaultValidatorUserId: string | null'));
+  assert.ok(page.includes('Validateur par défaut du projet'));
+  assert.ok(page.includes('Le pilote indiqué dans le processus reste prioritaire.'));
+  assert.ok(page.includes('apiClient.put(`/projects/${projectId}`, {'));
+  assert.ok(controller.includes('The default validator must be a member of this project'));
+  assert.ok(controller.includes('project.defaultValidatorUserId === userId'));
+  assert.ok(entity.includes('defaultValidatorUserId: string | null'));
+  assert.ok(migration.includes('ADD COLUMN IF NOT EXISTS "defaultValidatorUserId"'));
+  assert.ok(migrationDockerfile.includes('20261106_add_project_default_validator.sql'));
+  assert.ok(compose.includes('/opt/migrations/20261106_add_project_default_validator.sql'));
+  assert.ok(page.includes('<Tab value={3}>Validation</Tab>'));
+});
+
+test('project administration uses the shared breadcrumb header and Viewer-aligned surface', async () => {
+  const page = await read('src/Containers/Projects/Projects.container.tsx');
+
+  assert.ok(page.includes('<Header'));
+  assert.ok(page.includes("{ id: 'home', label: 'Tous les projets', to: '/projects' }"));
+  assert.ok(page.includes("bgcolor: 'background.surface'"));
+  assert.ok(page.includes("borderColor: 'neutral.outlinedBorder'"));
+  assert.ok(page.includes('borderRadius: 0'));
 });
