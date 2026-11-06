@@ -479,7 +479,6 @@ export class ProcessChangeProposalController {
     } else {
       // Keep the existing clone policy for ordinary modeler proposals.
       await this.access.assertCanCloneResource(
-        projectId,
         sourceResourceId,
         headers,
       );
