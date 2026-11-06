@@ -27,6 +27,7 @@ export const ProcessViewer = ({
 }: ProcessViewerProps) => {
   const viewerShellRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isShellFullscreen, setIsShellFullscreen] = useState(false);
 
   const {
     viewerRef,
@@ -51,6 +52,7 @@ export const ProcessViewer = ({
       const target = fullscreenTargetRef?.current ?? viewerShellRef.current;
       const active = document.fullscreenElement === target;
       setIsFullscreen(active);
+      setIsShellFullscreen(document.fullscreenElement === viewerShellRef.current);
       // Refit on entry and exit: both transitions change the available canvas size.
       if (active || document.fullscreenElement === null) {
         window.requestAnimationFrame(resizeDiagram);
