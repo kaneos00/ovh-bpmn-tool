@@ -21,7 +21,7 @@ export const useBpmnLayoutBreadcrumbs = () => {
   const { dataTree } = useFolderTree(resourceId);
 
   const getBreadCrumbs = useCallback(() => {
-    if (!resource) return [];
+    if (!resource) return [{ id: 'home', label: 'Tous les projets', to: '/projects' }];
 
     const findPath = (
       node: RenderTree,
@@ -39,6 +39,7 @@ export const useBpmnLayoutBreadcrumbs = () => {
     const treePath = findPath(dataTree);
     if (treePath?.length) {
       return [
+        { id: 'home', label: 'Tous les projets', to: '/projects' },
         ...(activeProject ? [{
           id: `project-${activeProject.id}`,
           label: activeProject.name,
@@ -62,6 +63,7 @@ export const useBpmnLayoutBreadcrumbs = () => {
     }));
 
     return [
+      { id: 'home', label: 'Tous les projets', to: '/projects' },
       ...(activeProject ? [{
         id: `project-${activeProject.id}`,
         label: activeProject.name,
