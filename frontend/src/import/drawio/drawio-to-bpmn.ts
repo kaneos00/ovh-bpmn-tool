@@ -52,7 +52,8 @@ const inflateRaw = async (value: string): Promise<string> => {
     const decoded = decodeURIComponent(value);
     bytes = Uint8Array.from(decoded, char => char.charCodeAt(0));
   }
-  const stream = new Blob([bytes]).stream()
+  const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  const stream = new Blob([buffer]).stream()
     .pipeThrough(new DecompressionStream('deflate-raw'));
   return new TextDecoder().decode(await new Response(stream).arrayBuffer());
 };
