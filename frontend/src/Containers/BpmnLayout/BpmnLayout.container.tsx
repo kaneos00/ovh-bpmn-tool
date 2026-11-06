@@ -193,6 +193,7 @@ export const Component = () => {
                           ) : (
                             <ProcessDetails
                               resourceId={resourceId}
+                              projectId={activeProjectId}
                               onContentUpload={callbacks.processDetails.onContentUpload}
                               onContentPublish={callbacks.processDetails.onContentPublish}
                               onContentErase={callbacks.processDetails.onContentErase}
