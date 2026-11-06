@@ -15,9 +15,9 @@ import { useResource } from '../../../shared/hooks/useResource';
 import Modeler from 'camunda-bpmn-js/lib/base/Modeler';
 import { paginateBpmnSvg } from '../../../shared/utils/paginatedBpmnSvg';
 import { HttpError } from '../../../shared/api/httpError';
-import { drawioToBpmn, isDrawioXml } from '../../../import/drawio/drawio-to-bpmn';
-
-type ModelerDiagramOption = { id: string; name: string };
+import { drawioToBpmn } from '../../../import/drawio/drawio-to-bpmn';
+import { DocumentReaderEngine } from '../../../import/reader/reader-engine';
+import { drawioReader } from '../../../import/readers/drawio-reader';
 
 export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   const { resourceId } = useParams() as ContentModelerRouteParams;
@@ -28,36 +28,6 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   const { showAlert } = useSnackbar();
 
   const [isShortcurtModalOpen, setIsShortcurtModalOpen] = useState(false);
-  const [diagramOptions, setDiagramOptions] = useState<ModelerDiagramOption[]>([]);
-  const [activeDiagramId, setActiveDiagramId] = useState<string>('');
-
-  const refreshModelerDiagrams = useCallback(() => {
-    const definitions = (bpmnModelerInstance as any).getDefinitions?.();
-    const diagrams = Array.isArray(definitions?.diagrams) ? definitions.diagrams : [];
-    const options = diagrams.map((diagram: any, index: number) => ({
-      id: String(diagram.id ?? `Diagram_${index + 1}`),
-      name: String(diagram.name ?? `Page-${index + 1}`),
-    }));
-    setDiagramOptions(options);
-    setActiveDiagramId(options[0]?.id ?? '');
-  }, [bpmnModelerInstance]);
-
-  const onDiagramSelect = useCallback(async (diagramId: string) => {
-    const definitions = (bpmnModelerInstance as any).getDefinitions?.();
-    const diagram = definitions?.diagrams?.find((item: any, index: number) =>
-      String(item.id ?? `Diagram_${index + 1}`) === diagramId,
-    );
-    if (!diagram) return;
-    try {
-      await (bpmnModelerInstance as any).open(diagram);
-      setActiveDiagramId(diagramId);
-    } catch (error) {
-      showAlert({
-        message: error instanceof Error ? `Impossible d'ouvrir cette page : ${error.message}` : 'Impossible d’ouvrir cette page BPMN.',
-        severity: 'danger',
-      });
-    }
-  }, [bpmnModelerInstance, showAlert]);
 
   const { data: contents } = useQuery(contentsQuery(resourceId));
   const { resource } = useResource(resourceId);
@@ -121,23 +91,48 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     async (files: FileList) => {
       const file = files[0];
       if (!file) return;
+
       try {
         const sourceContent = await file.text();
-        let processContent = sourceContent;
-        let warnings: string[] = [];
-        if (file.name.toLowerCase().endsWith('.drawio') || isDrawioXml(sourceContent)) {
-          const converted = await drawioToBpmn(sourceContent);
-          processContent = converted.xml;
-          warnings = converted.warnings;
-        }
-        await bpmnModelerInstance.importXML(processContent);
-        refreshModelerDiagrams();
-        if (warnings.length) {
-          showAlert({
-            message: warnings.join(' '),
-            severity: 'warning',
+        const readerEngine = new DocumentReaderEngine([drawioReader]);
+
+        if (drawioReader.supports({ fileName: file.name, content: sourceContent })) {
+          const sourceDocument = await readerEngine.read({
+            fileName: file.name,
+            content: sourceContent,
           });
+          const convertedPages = await Promise.all(sourceDocument.pages.map(async page => ({
+            name: page.name,
+            result: await drawioToBpmn(page.content),
+          })));
+
+          convertedPages.forEach(({ name, result }, index) => {
+            const safeName = name.replace(/[^a-z0-9._-]+/gi, '_') || `Page-${index + 1}`;
+            const anchor = document.createElement('a');
+            const objectUrl = window.URL.createObjectURL(
+              new Blob([result.xml], { type: 'application/xml' }),
+            );
+            anchor.href = objectUrl;
+            anchor.download = `${file.name.replace(/\\.[^.]+$/, '')}_${safeName}.bpmn`;
+            anchor.style.display = 'none';
+            document.body.appendChild(anchor);
+            anchor.click();
+            document.body.removeChild(anchor);
+            window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000);
+          });
+
+          await bpmnModelerInstance.importXML(convertedPages[0].result.xml);
+          const warnings = convertedPages.flatMap(page => page.result.warnings);
+          showAlert({
+            message: warnings.length
+              ? `${convertedPages.length} fichier(s) BPMN généré(s). ${warnings.join(' ')}`
+              : `${convertedPages.length} fichier(s) BPMN indépendant(s) généré(s). La première page est ouverte dans le modeleur. Autorisez les téléchargements multiples si le navigateur les bloque.`,
+            severity: warnings.length ? 'warning' : 'success',
+          });
+          return;
         }
+
+        await bpmnModelerInstance.importXML(sourceContent);
       } catch (error) {
         showAlert({
           message: error instanceof Error
@@ -147,7 +142,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
         });
       }
     },
-    [bpmnModelerInstance, refreshModelerDiagrams, showAlert],
+    [bpmnModelerInstance, showAlert],
   );
 
   /**
@@ -330,10 +325,6 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     actionData,
     setIsShortcurtModalOpen,
     onFileUpload,
-    diagramOptions,
-    activeDiagramId,
-    onDiagramSelect,
-    refreshModelerDiagrams,
     onFileExport,
     onDiagramSave,
     onDiagramPublish,
