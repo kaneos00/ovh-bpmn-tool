@@ -375,6 +375,7 @@ export const ProcessDetails = ({
   const navigate = useNavigate();
   const startChangeProposal = async () => {
     if (!projectId || startingProposal || isHistoricalView || remarkPermission?.usage === 'common') return;
+    if (activeProposal && !['draft', 'changes_requested'].includes(activeProposal.status)) return;
     setStartingProposal(true);
     try {
       const proposal = activeProposal ?? await apiClient.post(
@@ -730,6 +731,7 @@ export const ProcessDetails = ({
                       <FileCopy />
                     </IconButton>
                     {projectId && (projectRole === 'modeler' || projectRole === 'admin') &&
+                      (!activeProposal || ['draft', 'changes_requested'].includes(activeProposal.status)) &&
                       remarkPermission?.associated && remarkPermission.usage !== 'common' && !isHistoricalView && (
                         <Button
                           size="sm"
