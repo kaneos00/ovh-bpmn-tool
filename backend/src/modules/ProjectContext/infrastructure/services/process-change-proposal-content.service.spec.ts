@@ -69,6 +69,10 @@ describe('process change proposal content lifecycle', () => {
       resourceId: 'source-1',
       status: ContentStatusEnum.Published,
       version: 4,
+      content: '<definitions />',
+      changeComment: null,
+      createdBy: 'old-author',
+      updatedBy: 'old-author',
       pngContent: Buffer.from('old'),
     };
     const queryBuilder = {
@@ -108,8 +112,15 @@ describe('process change proposal content lifecycle', () => {
     });
 
     expect(contents.save).toHaveBeenCalledTimes(2);
-    expect(previous.status).toBe(ContentStatusEnum.Obsolete);
-    expect(previous.pngContent).toBeNull();
+    expect(contents.save).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        id: 'published-1',
+        status: ContentStatusEnum.Obsolete,
+        updatedBy: 'referentiel-admin',
+        pngContent: null,
+      }),
+    );
     expect(result).toMatchObject({
       resourceId: 'source-1',
       status: ContentStatusEnum.Published,
