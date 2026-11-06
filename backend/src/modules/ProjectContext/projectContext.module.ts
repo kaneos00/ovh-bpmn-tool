@@ -30,7 +30,11 @@ import { ProjectResourceAccessService } from './projectResourceAccess.service';
       ProcessChangeProposalCommentTypeOrmEntity,
     ]),
   ],
-  controllers: [ProjectController, ProjectRaciController, ProcessChangeProposalController],
+  controllers: [
+    ProjectController,
+    ProjectRaciController,
+    ProcessChangeProposalController,
+  ],
   providers: [ProjectResourceAccessService],
   exports: [ProjectResourceAccessService],
 })
