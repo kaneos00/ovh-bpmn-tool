@@ -99,7 +99,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
         if (drawioReader.supports({ fileName: file.name, content: sourceXml })) {
           const sourceDocument = await readerEngine.read({
             fileName: file.name,
-            content: sourceContent,
+            content: sourceXml,
           });
           const convertedPages = await Promise.all(sourceDocument.pages.map(async page => {
             if (typeof page.content !== 'string') {
