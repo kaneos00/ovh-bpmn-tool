@@ -440,7 +440,8 @@ export class ProjectController {
   @UseAcl([UserGroup.RW])
   async updateProject(
     @Param('projectId') projectId: string,
-    @Body() body: {
+    @Body()
+    body: {
       name?: string;
       description?: string;
       defaultValidatorUserId?: string | null;
