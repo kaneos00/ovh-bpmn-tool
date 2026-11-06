@@ -169,7 +169,7 @@ export const ModelerActionBar = ({
           <Info fontSize="small" />
         </Button>
 
-        {reviewOnly && (
+        {proposalMode && (
           <Button component={Link} to={returnToUrl} variant="outlined" color="neutral">
             Retour au processus
           </Button>
