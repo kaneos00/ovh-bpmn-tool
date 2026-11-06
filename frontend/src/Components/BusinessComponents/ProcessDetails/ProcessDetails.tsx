@@ -266,6 +266,7 @@ export const ProcessDetails = ({
   );
 
   const navigate = useNavigate();
+  const processWorkspaceRef = useRef<HTMLDivElement>(null);
   const [explorerCollapsed, setExplorerCollapsed] = useState(false);
   const [taskPanelCollapsed, setTaskPanelCollapsed] = useState(true);
   const [explorerWidth, setExplorerWidth] = useState(() => {
@@ -570,7 +571,7 @@ export const ProcessDetails = ({
 
 
         <TabPanel value={0} className="processViewerTabPanel processViewerProcessTab">
-          <Box className="processViewerProcessWorkspace">
+          <Box className="processViewerProcessWorkspace" ref={processWorkspaceRef}>
           <Sheet className="processViewerDiagram" variant="outlined">
             {isLoading && (
               <Stack gap={2} padding={2}>
@@ -624,6 +625,7 @@ export const ProcessDetails = ({
                     contentId={viewerContent.id}
                     selectedElementId={selectedElementId}
                     onElementSelect={onElementSelect}
+                    fullscreenTargetRef={processWorkspaceRef}
                   />
                 </Box>
               </>
