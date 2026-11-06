@@ -7,22 +7,23 @@
     </linearGradient>
   </defs>
   <rect x="1" y="1" width="94" height="94" rx="20" fill="url(#bg)"/>
-  <!-- The two right-hand tasks are brought closer to the central gateway. -->
-  <g fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- The four nodes retain their square alignment; the tasks move slightly left. -->
+  <g fill="none" stroke="#fff" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round">
     <path d="M16 24 V38"/>
     <path d="M16 72 V58"/>
-    <path d="M26 48 C41 48 47 16 66 16"/>
-    <path d="M26 48 C41 48 47 80 66 80"/>
+    <path d="M26 48 C40 48 45 16 65 16"/>
+    <path d="M26 48 C40 48 45 80 65 80"/>
   </g>
   <g fill="#1769e0" stroke="#fff" stroke-width="3.5">
     <circle cx="16" cy="16" r="8"/>
     <circle cx="16" cy="80" r="8"/>
-    <rect x="66" y="8" width="18" height="16" rx="4"/>
-    <rect x="66" y="72" width="18" height="16" rx="4"/>
+    <rect x="63" y="8" width="18" height="16" rx="4"/>
+    <rect x="63" y="72" width="18" height="16" rx="4"/>
   </g>
   <path d="M16 38 L26 48 L16 58 L6 48 Z" fill="#fff"/>
-  <g fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M61 16l5-3-1 6"/>
-    <path d="M61 80l5 3-1-6"/>
+  <!-- Arrowheads point right and enter the task boxes. -->
+  <g fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M60 13 L65 16 L60 19"/>
+    <path d="M60 77 L65 80 L60 83"/>
   </g>
 </svg>
