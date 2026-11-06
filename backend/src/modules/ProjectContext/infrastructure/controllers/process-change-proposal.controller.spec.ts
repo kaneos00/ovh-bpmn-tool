@@ -454,3 +454,130 @@ describe('ProcessChangeProposalController common-process remark creation', () =>
     expect(resourceRepository.save).toHaveBeenCalledTimes(2);
   });
 });
+
+
+describe('ProcessChangeProposalController validator resolution', () => {
+  const projectId = 'project-1';
+  const actorUsername = 'author';
+  const actorUserId = 'actor-account-id';
+
+  const getResolver = () => {
+    const controller = Object.create(
+      ProcessChangeProposalController.prototype,
+    ) as ProcessChangeProposalController;
+    return Reflect.get(controller, 'resolveProposalValidator') as (
+      manager: unknown,
+      members: unknown,
+      projectId: string,
+      actorUsername: string,
+      actorUserId: string,
+      pilotIdentifier?: string | null,
+    ) => Promise<{
+      validatorUserId: string | null;
+      validatorResolution: string;
+      validatorWarning: string | null;
+    }>;
+  };
+
+  it('assigns the BPMN process pilot before the project default', async () => {
+    const projects = {
+      findOneBy: jest.fn().mockResolvedValue({
+        defaultValidatorUserId: 'project-default',
+      }),
+    };
+    const manager = {
+      query: jest.fn().mockResolvedValue([
+        { id: 'pilot-account-id', username: 'process-pilot' },
+      ]),
+      getRepository: jest.fn().mockReturnValue(projects),
+    };
+    const members = {
+      findOne: jest.fn().mockResolvedValue({
+        role: ProjectMemberRole.Modeler,
+        userId: 'process-pilot',
+      }),
+    };
+
+    const result = await getResolver()(
+      manager,
+      members,
+      projectId,
+      actorUsername,
+      actorUserId,
+      'process-pilot',
+    );
+
+    expect(result).toEqual({
+      validatorUserId: 'pilot-account-id',
+      validatorResolution: 'pilot_assigned',
+      validatorWarning: null,
+    });
+    expect(projects.findOneBy).not.toHaveBeenCalled();
+  });
+
+  it('uses the configured project default when no process pilot is supplied', async () => {
+    const projects = {
+      findOneBy: jest.fn().mockResolvedValue({
+        defaultValidatorUserId: 'project-default',
+      }),
+    };
+    const manager = {
+      query: jest.fn().mockResolvedValue([{ id: 'default-account-id' }]),
+      getRepository: jest.fn().mockReturnValue(projects),
+    };
+    const members = {
+      findOne: jest.fn().mockResolvedValue({
+        role: ProjectMemberRole.Admin,
+        userId: 'project-default',
+      }),
+    };
+
+    const result = await getResolver()(
+      manager,
+      members,
+      projectId,
+      actorUsername,
+      actorUserId,
+      null,
+    );
+
+    expect(result).toEqual({
+      validatorUserId: 'default-account-id',
+      validatorResolution: 'project_default_assigned',
+      validatorWarning: null,
+    });
+  });
+
+  it('does not assign the author as their own project default validator', async () => {
+    const projects = {
+      findOneBy: jest.fn().mockResolvedValue({
+        defaultValidatorUserId: actorUsername,
+      }),
+    };
+    const manager = {
+      query: jest.fn().mockResolvedValue([{ id: actorUserId }]),
+      getRepository: jest.fn().mockReturnValue(projects),
+    };
+    const members = {
+      findOne: jest.fn().mockResolvedValue({
+        role: ProjectMemberRole.Modeler,
+        userId: actorUsername,
+      }),
+    };
+
+    const result = await getResolver()(
+      manager,
+      members,
+      projectId,
+      actorUsername,
+      actorUserId,
+      null,
+    );
+
+    expect(result.validatorUserId).toBeNull();
+    expect(result.validatorResolution).toBe('project_default_invalid');
+    expect(result.validatorWarning).toContain(
+      'Aucun pilote n’est renseigné',
+    );
+  });
+});
