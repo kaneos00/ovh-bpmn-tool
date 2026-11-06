@@ -29,6 +29,7 @@ import { ProjectRaciPanel } from '../../Components/BusinessComponents/ProjectRac
 import { ProjectRaciManager } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciManager';
 import { ProjectProcessHierarchy } from './ProjectProcessHierarchy';
 import { WorkspacePageLayout } from '../../Components/GenericComponents/WorkspacePageLayout/WorkspacePageLayout';
+import { Header } from '../../Components/GenericComponents/Header/Header';
 import { useActiveProject } from '../../shared/hooks/useActiveProject';
 import { ViewerExplorerPanel } from '../../Components/BusinessComponents/ViewerExplorerPanel/ViewerExplorerPanel';
 import { getProjectTrigram } from '../../shared/helpers/projectTrigram';
@@ -347,6 +348,16 @@ export const Component = () => {
   if (!projectId) {
     return (
       <WorkspacePageLayout>
+        <Header
+          title="Tous les projets"
+          description="Vos espaces de travail et les processus auxquels vous avez accès."
+          breadcrumbs={[{ id: 'home', label: 'Tous les projets', to: '/projects' }]}
+          actions={(
+            <Button variant="outlined" color="neutral" onClick={() => navigate('/organization/users')}>
+              Administration de l’organisation →
+            </Button>
+          )}
+        />
         <Box
           className="processViewerLayout processViewerWorkspace"
           style={{ "--explorer-width": `${explorerWidth}px` } as React.CSSProperties}
@@ -389,18 +400,6 @@ export const Component = () => {
             }}
           >
             <Stack spacing={2}>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography level="h2">Tous les projets</Typography>
-                  <Typography level="body-sm" color="neutral">
-                    Vos espaces de travail et les processus auxquels vous avez accès.
-                  </Typography>
-                </Box>
-                <Button variant="outlined" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/organization/users')}>
-                  Administration de l’organisation →
-                </Button>
-              </Stack>
-
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', xl: 'repeat(4, minmax(0, 1fr))' }, gap: 1.25 }}>
                 <Card variant="outlined" sx={{ gap: 0.5 }}>
                   <Typography level="body-sm" color="neutral">Projets accessibles</Typography>
