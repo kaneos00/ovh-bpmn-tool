@@ -101,10 +101,15 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
             fileName: file.name,
             content: sourceContent,
           });
-          const convertedPages = await Promise.all(sourceDocument.pages.map(async page => ({
-            name: page.name,
-            result: await drawioToBpmn(page.content),
-          })));
+          const convertedPages = await Promise.all(sourceDocument.pages.map(async page => {
+            if (typeof page.content !== 'string') {
+              throw new Error('Le lecteur Draw.io a retourné un contenu de page non textuel.');
+            }
+            return {
+              name: page.name,
+              result: await drawioToBpmn(page.content),
+            };
+          }));
 
           convertedPages.forEach(({ name, result }, index) => {
             const safeName = name.replace(/[^a-z0-9._-]+/gi, '_') || `Page-${index + 1}`;
