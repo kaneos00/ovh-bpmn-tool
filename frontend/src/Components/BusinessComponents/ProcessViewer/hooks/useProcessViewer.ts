@@ -54,8 +54,6 @@ export const useProcessViewer = (
       .getAll()
       .filter((element: any) =>
         element &&
-        !element.labelTarget &&
-        !element.waypoints &&
         Number.isFinite(element.x) &&
         Number.isFinite(element.y) &&
         element.width > 0 &&
@@ -120,7 +118,8 @@ export const useProcessViewer = (
     const availableHeight = containerHeight - DIAGRAM_PADDING * 2;
     if (availableWidth <= 0 || availableHeight <= 0) return;
 
-    // Fit the complete BPMN geometry while preserving its aspect ratio.
+    // Include shapes, labels and connections in the visual bounds, then fit
+    // the complete BPMN geometry while preserving its aspect ratio.
     // The smaller of the width and height scales is the limiting dimension.
     const bounds = elementRegistry.getAll()
       .filter((element: any) =>
