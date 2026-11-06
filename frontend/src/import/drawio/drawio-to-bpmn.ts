@@ -55,7 +55,12 @@ const inflateRaw = async (value: string): Promise<string> => {
   const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
   const stream = new Blob([buffer]).stream()
     .pipeThrough(new DecompressionStream('deflate-raw'));
-  return new TextDecoder().decode(await new Response(stream).arrayBuffer());
+  const inflated = new TextDecoder().decode(await new Response(stream).arrayBuffer());
+  try {
+    return decodeURIComponent(inflated);
+  } catch {
+    return inflated;
+  }
 };
 
 const parseXml = (xml: string, description: string): Document => {
