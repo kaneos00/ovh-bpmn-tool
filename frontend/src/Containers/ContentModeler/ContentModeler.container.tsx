@@ -706,11 +706,12 @@ export const Component = () => {
                       validatorUserId: pilotIdentifier,
                     },
                   );
-                  await queryClient.invalidateQueries({
-                    queryKey: ['my-process-change-proposals'],
-                  });
+                  await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ['my-process-change-proposals'] }),
+                    queryClient.invalidateQueries({ queryKey: ['process-change-proposals-to-review'] }),
+                  ]);
                   setValidationModalOpen(false);
-                  navigate('/mes-demandes');
+                  navigate(sourceResourceId ? `/${sourceResourceId}` : `/${resourceId}`);
                 } catch (error) {
                   setSubmissionError(
                     error instanceof Error
