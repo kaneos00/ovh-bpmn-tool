@@ -741,7 +741,7 @@ test('project administrators can configure the color of the generated trigram ba
   const admin = await read('src/Containers/Projects/Projects.container.tsx');
   assert.match(admin, /Input type="color"/);
   assert.match(admin, /Aperçu du badge/);
-  assert.match(admin, /getProjectTrigram\\(project\\.name\\)/);
+  assert.ok(admin.includes('getProjectTrigram(project.name)'));
   assert.match(admin, /color: projectColor/);
   assert.match(admin, /canManageProjectIdentity/);
   assert.doesNotMatch(admin, /Pictogramme/);
