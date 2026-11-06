@@ -123,7 +123,7 @@ const parseXml = source => {
     }
     if (token.startsWith('<')) {
       const selfClosing = /\/\s*>$/.test(token);
-      const inside = token.slice(1, selfClosing ? token.lastIndexOf('/') : -1).trim();
+      const inside = token.slice(1, selfClosing ? -2 : -1).trim();
       const name = inside.match(/^([^\s/>]+)/)?.[1];
       if (!name) throw new Error('Invalid XML element');
       const attributes = {};
