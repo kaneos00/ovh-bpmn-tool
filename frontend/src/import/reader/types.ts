@@ -1,13 +1,15 @@
+export type ReaderContent = string | ArrayBuffer;
+
 export type ReaderInput = {
   fileName?: string;
-  content: string;
+  content: ReaderContent;
 };
 
 export type ReaderPage = {
   index: number;
   name: string;
-  content: string;
-  mediaType: 'application/xml';
+  content: ReaderContent;
+  mediaType: string;
 };
 
 export type ReaderDocument = {
