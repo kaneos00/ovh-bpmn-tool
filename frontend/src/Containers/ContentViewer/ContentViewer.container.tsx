@@ -114,7 +114,6 @@ const ProcessContentViewer = () => {
   const [codeFilter, setCodeFilter] = useState<RaciCode | ''>('');
   const [issuesOnly, setIssuesOnly] = useState(false);
   const [remarkModalOpen, setRemarkModalOpen] = useState(false);
-  const [remarkText, setRemarkText] = useState('');
   const [remarkError, setRemarkError] = useState<string | null>(null);
   const [remarkWarning, setRemarkWarning] = useState<string | null>(null);
   const [submittingRemark, setSubmittingRemark] = useState(false);
@@ -144,7 +143,6 @@ const ProcessContentViewer = () => {
     return processProjects.length === 1 ? processProjects[0] : undefined;
   })();
   const requiresProjectSelection = !routeProjectId && processProjects.length > 1;
-  const currentProjectProcess = associatedProject?.processes.find(process => process.resourceId === resourceId);
   const {
     data: remarkPermission,
     error: remarkPermissionError,
@@ -162,7 +160,6 @@ const ProcessContentViewer = () => {
 
   const {
     data: activeProposal,
-    isLoading: activeProposalLoading,
   } = useQuery<{ id: string; status: string; cloneResourceId: string } | null>(
     ['active-process-change-proposal', routeProjectId, resourceId, contentId],
     () => apiClient.get(`/projects/${routeProjectId}/processes/${resourceId}/change-proposals/active?contentId=${contentId}`),
@@ -179,7 +176,7 @@ const ProcessContentViewer = () => {
     { enabled: Boolean(activeProposal?.id) },
   );
 
-  const submitViewerRemark = async (submittedText = remarkText) => {
+  const submitViewerRemark = async (submittedText: string) => {
     if (!routeProjectId || !canSubmitViewerRemark || !selectedActivityId || !submittedText.trim() || submittingRemark) return;
     setSubmittingRemark(true);
     setRemarkError(null);
@@ -214,7 +211,6 @@ const ProcessContentViewer = () => {
         }
       }
       await queryClient.invalidateQueries({ queryKey: ['process-change-proposals-to-review'] });
-      setRemarkText('');
       setRemarkModalOpen(false);
       setInfoPanelOpen(true);
       setInfoTab(3);
@@ -405,6 +401,11 @@ const ProcessContentViewer = () => {
       {routeProjectId && remarkPermission && !remarkPermission.associated && (
         <Alert color="danger" variant="soft" sx={{ mx: 2, mt: 1 }}>
           Le processus n’est pas associé au projet sélectionné.
+        </Alert>
+      )}
+      {routeProjectId && remarkPermission?.associated && !remarkPermission.canSubmitRemarks && (
+        <Alert color="warning" variant="soft" sx={{ mx: 2, mt: 1 }}>
+          Le compte connecté n’est pas autorisé à déposer des remarques dans ce projet.
         </Alert>
       )}
       {remarkWarning && <Alert color="warning" variant="soft" sx={{ mx: 2, mt: 1 }}>{remarkWarning}</Alert>}
