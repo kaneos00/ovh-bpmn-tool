@@ -214,7 +214,7 @@ test('detail panel starts collapsed, opens on element selection and exposes task
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
 
   assert.match(details, /useState\(true\);[\s\S]*?taskPanelCollapsed/);
-  assert.match(details, /if \(selectedElementId\) setTaskPanelCollapsed\(false\)/);
+  assert.match(details, /setTaskPanelCollapsed\(!selectedElementId\)/);
   assert.match(details, /className="viewerPanelHeader processTaskPanelHeader"[\s\S]*?onClick=\{\(\) => setTaskPanelCollapsed\(value => !value\)\}/);
   assert.match(details, /aria-label=\{taskPanelCollapsed \? 'Développer le panneau de tâche' : 'Replier le panneau de tâche'\}/);
   const taskInfo = details.indexOf('1. Description de la tâche');
@@ -359,7 +359,9 @@ test('selecting a folder renders its contents instead of an empty folder placeho
   assert.ok(layout.includes('<FolderOverview resource={resource} />'));
   assert.ok(folderOverview.includes('useQuery<Resource[]>(resourcesQuery())'));
   assert.ok(folderOverview.includes(".filter(childResource => allowedIds.has(childResource.id) && (childResource.parentId ?? 'root') === resourceId)"));
-  assert.ok(folderOverview.includes('navigate(`/${childResource.id}`)'));
+  assert.ok(folderOverview.includes('navigate(`/${folder.id}`)'));
+  assert.ok(folderOverview.includes('<ProjectProcessOverview'));
+  assert.ok(folderOverview.includes('Spécifique au projet'));
   assert.ok(folderOverview.includes('{childResource.name}'));
   assert.ok(folderOverview.includes('Répertoire vide'));
   assert.ok(folderOverview.includes("{resourceId === 'root' ? (activeProject?.name ?? 'Référentiel') : resource.name}"), 'the project root heading should use the active project name or a neutral fallback');
