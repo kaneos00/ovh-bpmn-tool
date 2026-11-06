@@ -115,7 +115,9 @@ export class ProjectController {
         color: project.color,
         icon: project.icon,
         role: roleByProject.get(project.id),
-        canSubmitRemarks: memberships.find(membership => membership.projectId === project.id)?.canSubmitRemarks ?? false,
+        canSubmitRemarks:
+          memberships.find((membership) => membership.projectId === project.id)
+            ?.canSubmitRemarks ?? false,
         processes: (linksByProject.get(project.id) ?? []).map((link) => ({
           resourceId: link.resourceId,
           name: resourceById.get(link.resourceId)?.name ?? link.resourceId,
@@ -137,13 +139,23 @@ export class ProjectController {
     @Param('resourceId') resourceId: string,
     @Headers() headers: RequestHeaders,
   ) {
-    const link = await this.projectProcesses.findOne({ where: { projectId, resourceId } });
+    const link = await this.projectProcesses.findOne({
+      where: { projectId, resourceId },
+    });
     if (!link) {
-      return { associated: false, isMember: false, canSubmitRemarks: false, usage: null };
+      return {
+        associated: false,
+        isMember: false,
+        canSubmitRemarks: false,
+        usage: null,
+      };
     }
     const userId = this.projectResourceAccess.getAuthenticatedUserId(headers);
-    const membership = await this.projectMembers.findOne({ where: { projectId, userId } });
-    const isOrganizationAdmin = this.projectResourceAccess.hasOrganizationAdminRole(headers);
+    const membership = await this.projectMembers.findOne({
+      where: { projectId, userId },
+    });
+    const isOrganizationAdmin =
+      this.projectResourceAccess.hasOrganizationAdminRole(headers);
     return {
       associated: true,
       isMember: Boolean(membership),
@@ -785,12 +797,15 @@ export class ProjectController {
     const activeAccounts: Array<{ username: string; active: boolean }> =
       await this.dataSource.query(
         'SELECT username, active FROM app_users WHERE lower(username) = ANY($1::text[])',
-        [memberships.map(member => member.userId.toLowerCase())],
+        [memberships.map((member) => member.userId.toLowerCase())],
       );
     const activeByUsername = new Map(
-      activeAccounts.map(account => [account.username.toLowerCase(), account.active]),
+      activeAccounts.map((account) => [
+        account.username.toLowerCase(),
+        account.active,
+      ]),
     );
-    return memberships.map(member => ({
+    return memberships.map((member) => ({
       ...member,
       active: activeByUsername.get(member.userId.toLowerCase()) === true,
     }));
@@ -807,10 +822,20 @@ export class ProjectController {
     const actorId = this.projectResourceAccess.getAuthenticatedUserId(headers);
     const userId = this.validateUserId(userIdParam);
     const role = this.validateMemberRole(body.role);
-    if (body.canSubmitRemarks !== undefined && typeof body.canSubmitRemarks !== 'boolean') {
+    if (
+      body.canSubmitRemarks !== undefined &&
+      typeof body.canSubmitRemarks !== 'boolean'
+    ) {
       throw new BadRequestException('canSubmitRemarks must be a boolean');
     }
-    return this.changeProjectMember(projectId, userId, role, actorId, headers, body.canSubmitRemarks);
+    return this.changeProjectMember(
+      projectId,
+      userId,
+      role,
+      actorId,
+      headers,
+      body.canSubmitRemarks,
+    );
   }
 
   @Delete(':projectId/members/:userId')
@@ -924,7 +949,9 @@ export class ProjectController {
           createdBy: actorId,
         });
       member.role = role;
-      if (canSubmitRemarks !== undefined) member.canSubmitRemarks = canSubmitRemarks;
+      if (canSubmitRemarks !== undefined) {
+        member.canSubmitRemarks = canSubmitRemarks;
+      }
       return members.save(member);
     });
   }
