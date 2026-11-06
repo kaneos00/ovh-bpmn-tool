@@ -8,4 +8,7 @@ export class ProjectTypeOrmEntity extends AbstractEntity {
 
   @Column({ type: 'text', nullable: true })
   description: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  defaultValidatorUserId: string | null;
 }
