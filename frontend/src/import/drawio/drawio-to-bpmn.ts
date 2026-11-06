@@ -1,0 +1,303 @@
+export type DrawioImportResult = {
+  xml: string;
+  warnings: string[];
+};
+
+type Bounds = { x: number; y: number; width: number; height: number };
+type Point = { x: number; y: number };
+type NodeInfo = {
+  sourceId: string;
+  id: string;
+  type: 'startEvent' | 'endEvent' | 'intermediateCatchEvent' | 'task' | 'exclusiveGateway' | 'dataObjectReference' | 'dataStoreReference';
+  name: string;
+  bounds: Bounds;
+};
+type EdgeInfo = {
+  id: string;
+  sourceId: string;
+  targetId: string;
+  kind: 'sequenceFlow' | 'dataInputAssociation' | 'dataOutputAssociation';
+  waypoints: Point[];
+};
+type PageInfo = { id: string; name: string; model: Element };
+
+const BPMN_NS = 'http://www.omg.org/spec/BPMN/20100524/MODEL';
+const BPMNDI_NS = 'http://www.omg.org/spec/BPMN/20100524/DI';
+const DC_NS = 'http://www.omg.org/spec/DD/20100524/DC';
+const DI_NS = 'http://www.omg.org/spec/DD/20100524/DI';
+
+const escapeXml = (value: string) =>
+  value.replaceAll('&', '&amp;').replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;').replaceAll('"', '&quot;')
+    .replaceAll("'", '&apos;');
+
+const attr = (element: Element, name: string) => element.getAttribute(name) ?? '';
+const numberAttr = (element: Element, name: string, fallback = 0) => {
+  const value = Number.parseFloat(attr(element, name));
+  return Number.isFinite(value) ? value : fallback;
+};
+const safeId = (value: string) => value.replace(/[^A-Za-z0-9_.-]/g, '_');
+const pagePrefix = (index: number) => `Page${index + 1}_`;
+
+const decodeBase64 = (value: string): Uint8Array => {
+  const binary = atob(value);
+  return Uint8Array.from(binary, char => char.charCodeAt(0));
+};
+
+const inflateRaw = async (value: string): Promise<string> => {
+  let bytes: Uint8Array;
+  try {
+    bytes = decodeBase64(value.trim());
+  } catch {
+    const decoded = decodeURIComponent(value);
+    bytes = Uint8Array.from(decoded, char => char.charCodeAt(0));
+  }
+  const stream = new Blob([bytes]).stream()
+    .pipeThrough(new DecompressionStream('deflate-raw'));
+  return new TextDecoder().decode(await new Response(stream).arrayBuffer());
+};
+
+const parseXml = (xml: string, description: string): Document => {
+  const document = new DOMParser().parseFromString(xml, 'application/xml');
+  if (document.querySelector('parsererror')) {
+    throw new Error(`Le XML ${description} est invalide.`);
+  }
+  return document;
+};
+
+const readPages = async (xml: string): Promise<PageInfo[]> => {
+  const document = parseXml(xml, 'Draw.io');
+  const directModel = document.querySelector('mxGraphModel');
+  if (directModel) return [{ id: 'Page_1', name: 'Page-1', model: directModel }];
+
+  const diagrams = Array.from(document.querySelectorAll('mxfile > diagram'));
+  if (!diagrams.length) throw new Error('Le fichier ne contient aucun diagramme Draw.io.');
+
+  const pages: PageInfo[] = [];
+  for (let index = 0; index < diagrams.length; index += 1) {
+    const diagram = diagrams[index];
+    const content = diagram.textContent?.trim() ?? '';
+    if (!content) throw new Error(`La page Draw.io ${index + 1} est vide.`);
+    const decoded = content.startsWith('<mxGraphModel')
+      ? content
+      : await inflateRaw(content);
+    const modelDocument = parseXml(decoded, `Draw.io de la page ${index + 1}`);
+    const model = modelDocument.querySelector('mxGraphModel');
+    if (!model) throw new Error(`Impossible de lire le modèle de la page ${index + 1}.`);
+    pages.push({
+      id: attr(diagram, 'id') || `Page_${index + 1}`,
+      name: attr(diagram, 'name') || `Page-${index + 1}`,
+      model,
+    });
+  }
+  return pages;
+};
+
+const absoluteBounds = (cell: Element, cells: Map<string, Element>): Bounds => {
+  let x = 0;
+  let y = 0;
+  let width = 100;
+  let height = 80;
+  let current: Element | undefined = cell;
+  const visited = new Set<string>();
+  while (current) {
+    const currentId = attr(current, 'id');
+    if (currentId && visited.has(currentId)) break;
+    if (currentId) visited.add(currentId);
+    const geometry = Array.from(current.children).find(child => child.localName === 'mxGeometry');
+    if (geometry) {
+      x += numberAttr(geometry, 'x');
+      y += numberAttr(geometry, 'y');
+      width = numberAttr(geometry, 'width', width);
+      height = numberAttr(geometry, 'height', height);
+    }
+    const parentId = attr(current, 'parent');
+    current = parentId ? cells.get(parentId) : undefined;
+  }
+  return { x, y, width, height };
+};
+
+const classifyNode = (style: string): NodeInfo['type'] | undefined => {
+  const normalized = style.toLowerCase();
+  // Only the explicit Draw.io data-store symbol is a BPMN data store.
+  // "dataStorage" is intentionally not treated as a data object: the
+  // corrected reference file identifies that shape as a regular task.
+  if (/shape=datastore(?:;|$)/.test(normalized)) return 'dataStoreReference';
+  if (normalized.includes('shape=mxgraph.bpmn.data2') || /shape=data2(?:;|$)/.test(normalized)) {
+    return 'dataObjectReference';
+  }
+  if (normalized.includes('mxgraph.bpmn.event')) {
+    if (normalized.includes('outline=end') || normalized.includes('symbol=terminate')) return 'endEvent';
+    if (normalized.includes('outline=catching') || normalized.includes('outline=throwing') ||
+        normalized.includes('intermediate')) return 'intermediateCatchEvent';
+    return 'startEvent';
+  }
+  if (normalized.includes('doubleellipse') || normalized.includes('shape=ellipse')) return 'startEvent';
+  if (normalized.includes('rhombus') || normalized.includes('gateway')) return 'exclusiveGateway';
+  // The supplied corrected BPMN keeps generic rectangles, document shapes,
+  // and the Draw.io dataStorage shape as tasks.
+  if (normalized.includes('task') || normalized.includes('rounded=') ||
+      normalized.includes('shape=document') || normalized.includes('shape=datastorage') ||
+      normalized.includes('shape=rect') || normalized.includes('rectstyle=')) return 'task';
+  return undefined;
+};
+
+const center = (bounds: Bounds): Point => ({
+  x: bounds.x + bounds.width / 2,
+  y: bounds.y + bounds.height / 2,
+});
+
+const buildPage = (page: PageInfo, pageIndex: number, warnings: string[]) => {
+  const prefix = pagePrefix(pageIndex);
+  const cells = new Map<string, Element>();
+  page.model.querySelectorAll('mxCell').forEach(cell => {
+    const id = attr(cell, 'id');
+    if (id) cells.set(id, cell);
+  });
+
+  const nodes: NodeInfo[] = [];
+  cells.forEach(cell => {
+    if (attr(cell, 'vertex') !== '1') return;
+    const style = attr(cell, 'style');
+    if (style.toLowerCase().includes('shape=lane') || style.toLowerCase().includes('shape=swimlane')) {
+      warnings.push(`Page ${pageIndex + 1} : les lanes ne sont pas encore traitées et seront ignorées.`);
+      return;
+    }
+    const type = classifyNode(style);
+    if (!type) return;
+    const sourceId = attr(cell, 'id');
+    if (!sourceId) return;
+    nodes.push({
+      sourceId,
+      id: `${prefix}${safeId(sourceId)}`,
+      type,
+      name: attr(cell, 'value').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(),
+      bounds: absoluteBounds(cell, cells),
+    });
+  });
+  if (!nodes.length) throw new Error(`Aucun élément reconnu sur la page Draw.io ${pageIndex + 1}.`);
+
+  const bySourceId = new Map(nodes.map(node => [node.sourceId, node]));
+  const edges: EdgeInfo[] = [];
+  cells.forEach(cell => {
+    if (attr(cell, 'edge') !== '1') return;
+    const sourceId = attr(cell, 'source');
+    const targetId = attr(cell, 'target');
+    const source = bySourceId.get(sourceId);
+    const target = bySourceId.get(targetId);
+    if (!source || !target) return;
+
+    let kind: EdgeInfo['kind'];
+    const sourceIsData = source.type === 'dataObjectReference' || source.type === 'dataStoreReference';
+    const targetIsData = target.type === 'dataObjectReference' || target.type === 'dataStoreReference';
+    if (sourceIsData && !targetIsData) kind = 'dataInputAssociation';
+    else if (!sourceIsData && targetIsData) kind = 'dataOutputAssociation';
+    else if (!sourceIsData && !targetIsData) kind = 'sequenceFlow';
+    else {
+      warnings.push(`Page ${pageIndex + 1} : connexion ignorée entre deux objets de données.`);
+      return;
+    }
+
+    const geometry = Array.from(cell.children).find(child => child.localName === 'mxGeometry');
+    const intermediate: Point[] = [];
+    if (geometry) {
+      geometry.querySelectorAll('Array > mxPoint').forEach(point => {
+        intermediate.push({ x: numberAttr(point, 'x'), y: numberAttr(point, 'y') });
+      });
+      geometry.querySelectorAll(':scope > mxPoint').forEach(point => {
+        intermediate.push({ x: numberAttr(point, 'x'), y: numberAttr(point, 'y') });
+      });
+    }
+    const waypoints = [center(source.bounds), ...intermediate, center(target.bounds)];
+    edges.push({
+      id: `${prefix}${safeId(attr(cell, 'id') || `Edge_${edges.length + 1}`)}`,
+      sourceId,
+      targetId,
+      kind,
+      waypoints,
+    });
+  });
+
+  const dataObjects = nodes.filter(node => node.type === 'dataObjectReference');
+  const dataStores = nodes.filter(node => node.type === 'dataStoreReference');
+  const processId = `Process_Page_${pageIndex + 1}`;
+  const diagramId = `Diagram_Page_${pageIndex + 1}`;
+  const planeId = `Plane_Page_${pageIndex + 1}`;
+
+  const nodeXml = nodes.map(node => {
+    const name = node.name ? ` name="${escapeXml(node.name)}"` : '';
+    if (node.type === 'dataObjectReference') {
+      const objectId = `${node.id}_data`;
+      return `    <bpmn:dataObject id="${objectId}" />\n    <bpmn:dataObjectReference id="${node.id}"${name} dataObjectRef="${objectId}" />`;
+    }
+    if (node.type === 'dataStoreReference') {
+      const storeId = `${node.id}_store`;
+      return `    <bpmn:dataStore id="${storeId}" name="${escapeXml(node.name || 'Data store')}" />\n    <bpmn:dataStoreReference id="${node.id}"${name} dataStoreRef="${storeId}" />`;
+    }
+    return `    <bpmn:${node.type} id="${node.id}"${name} />`;
+  }).join('\n');
+
+  const associationsByTask = new Map<string, EdgeInfo[]>();
+  edges.filter(edge => edge.kind !== 'sequenceFlow').forEach(edge => {
+    const taskId = edge.kind === 'dataInputAssociation' ? edge.targetId : edge.sourceId;
+    const current = associationsByTask.get(taskId) ?? [];
+    current.push(edge);
+    associationsByTask.set(taskId, current);
+  });
+
+  const associationXml = Array.from(associationsByTask.entries()).map(([sourceId, taskEdges]) => {
+    const node = bySourceId.get(sourceId);
+    if (!node) return '';
+    const associations = taskEdges.map(edge => {
+      const dataId = edge.kind === 'dataInputAssociation' ? edge.sourceId : edge.targetId;
+      const dataNode = bySourceId.get(dataId)!;
+      if (edge.kind === 'dataInputAssociation') {
+        const propertyId = `${edge.id}_property`;
+        return `      <bpmn:property id="${propertyId}" name="__targetRef_placeholder" />\n      <bpmn:dataInputAssociation id="${edge.id}">\n        <bpmn:sourceRef>${dataNode.id}</bpmn:sourceRef>\n        <bpmn:targetRef>${propertyId}</bpmn:targetRef>\n      </bpmn:dataInputAssociation>`;
+      }
+      return `      <bpmn:dataOutputAssociation id="${edge.id}">\n        <bpmn:targetRef>${dataNode.id}</bpmn:targetRef>\n      </bpmn:dataOutputAssociation>`;
+    }).join('\n');
+    return { nodeId: node.id, xml: associations };
+  });
+
+  const flowXml = edges.filter(edge => edge.kind === 'sequenceFlow').map(edge => {
+    const source = bySourceId.get(edge.sourceId)!;
+    const target = bySourceId.get(edge.targetId)!;
+    return `    <bpmn:sequenceFlow id="${edge.id}" sourceRef="${source.id}" targetRef="${target.id}" />`;
+  }).join('\n');
+
+  const processes = nodes.map(node => {
+    const attached = associationXml.find(item => item.nodeId === node.id)?.xml;
+    if (!attached) return nodeXml.split('\n').filter(line => line.includes(`id="${node.id}"`)).join('\n');
+    const tag = node.type;
+    const name = node.name ? ` name="${escapeXml(node.name)}"` : '';
+    return `    <bpmn:${tag} id="${node.id}"${name}>\n${attached}\n    </bpmn:${tag}>`;
+  }).join('\n');
+
+  const shapes = nodes.map(node =>
+    `      <bpmndi:BPMNShape id="${node.id}_di" bpmnElement="${node.id}">\n        <dc:Bounds x="${node.bounds.x}" y="${node.bounds.y}" width="${node.bounds.width}" height="${node.bounds.height}" />\n      </bpmndi:BPMNShape>`
+  ).join('\n');
+
+  const diEdges = edges.map(edge =>
+    `      <bpmndi:BPMNEdge id="${edge.id}_di" bpmnElement="${edge.id}">\n${edge.waypoints.map(point => `        <di:waypoint x="${point.x}" y="${point.y}" />`).join('\n')}\n      </bpmndi:BPMNEdge>`
+  ).join('\n');
+
+  return {
+    process: `  <bpmn:process id="${processId}" name="${escapeXml(page.name)}" isExecutable="false">\n${processes}\n${flowXml}\n  </bpmn:process>`,
+    diagram: `  <bpmndi:BPMNDiagram id="${diagramId}" name="${escapeXml(page.name)}">\n    <bpmndi:BPMNPlane id="${planeId}" bpmnElement="${processId}">\n${shapes}\n${diEdges}\n    </bpmndi:BPMNPlane>\n  </bpmndi:BPMNDiagram>`,
+    dataObjectCount: dataObjects.length,
+    dataStoreCount: dataStores.length,
+  };
+};
+
+export async function drawioToBpmn(xml: string): Promise<DrawioImportResult> {
+  const pages = await readPages(xml);
+  const warnings: string[] = [];
+  const converted = pages.map((page, index) => buildPage(page, index, warnings));
+  const resultXml = `<?xml version="1.0" encoding="UTF-8"?>\n<bpmn:definitions xmlns:bpmn="${BPMN_NS}" xmlns:bpmndi="${BPMNDI_NS}" xmlns:dc="${DC_NS}" xmlns:di="${DI_NS}" id="Definitions_Drawio" targetNamespace="http://bpmn.io/schema/bpmn">\n${converted.map(item => item.process).join('\n')}\n${converted.map(item => item.diagram).join('\n')}\n</bpmn:definitions>`;
+  return { xml: resultXml, warnings };
+}
+
+export function isDrawioXml(xml: string): boolean {
+  return /<mx(GraphModel|file|Cell)\b/i.test(xml);
+}
