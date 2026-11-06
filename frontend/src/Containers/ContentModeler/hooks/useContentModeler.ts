@@ -107,7 +107,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
             }
             return {
               name: page.name,
-              result: await drawioToBpmn(page.content),
+              result: await drawioToBpmn(page.content, page.name),
             };
           }));
 
