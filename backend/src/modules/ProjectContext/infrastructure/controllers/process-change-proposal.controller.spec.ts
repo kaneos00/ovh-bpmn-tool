@@ -49,6 +49,7 @@ describe('ProcessChangeProposalController remark permissions', () => {
     };
     const proposals = {
       findOne: jest.fn().mockResolvedValue(proposal),
+      save: jest.fn(async (value: unknown) => value),
     };
     const comments = {
       findOne: jest.fn().mockResolvedValue(remark),
@@ -56,6 +57,7 @@ describe('ProcessChangeProposalController remark permissions', () => {
     };
     const events = {
       create: jest.fn((value: unknown) => value),
+      findOne: jest.fn().mockResolvedValue({ actorUserId: authorUserId }),
       save: jest.fn(async (value: unknown) => value),
     };
     const projectProcesses = {
@@ -93,6 +95,7 @@ describe('ProcessChangeProposalController remark permissions', () => {
     const access = {
       getAuthenticatedUserId: jest.fn(() => actorUsername),
       hasOrganizationAdminRole: jest.fn(() => isOrganizationAdmin),
+      assertProjectRole: jest.fn().mockResolvedValue(actorUsername),
     };
     const controller = new ProcessChangeProposalController(
       dataSource as never,
@@ -227,6 +230,54 @@ describe('ProcessChangeProposalController remark permissions', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
+  it('does not allow a project administrator to decide a common-process proposal', async () => {
+    const { controller } = makeController(
+      { role: ProjectMemberRole.Admin },
+      false,
+      authorUserId,
+      ProjectProcessUsage.Common,
+    );
+    await expect(
+      controller.decideProposal(
+        proposalId,
+        {
+          decision: ProcessChangeProposalStatus.Rejected,
+          comment: 'Proposition non retenue',
+        },
+        { 'x-user': actorUsername },
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('does not allow a project administrator to publish an approved common-process proposal', async () => {
+    const { controller, proposals } = makeController(
+      { role: ProjectMemberRole.Admin },
+      false,
+      authorUserId,
+      ProjectProcessUsage.Common,
+    );
+    proposals.findOne.mockResolvedValue({
+      id: proposalId,
+      projectId: 'project-1',
+      sourceResourceId: 'resource-1',
+      cloneResourceId: 'clone-1',
+      sourcePublishedContentId: 'published-1',
+      submittedContentId: 'submitted-1',
+      validatorUserId: actorUserId,
+      status: ProcessChangeProposalStatus.Approved,
+    });
+    await expect(
+      controller.publishApprovedProposal(
+        proposalId,
+        {
+          pngContent: 'data:image/png;base64,AA==',
+          summaryComment: 'Publication demandée',
+        },
+        { 'x-user': actorUsername },
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
   it('does not allow even a global administrator to decide their own remark', async () => {
     const { controller } = makeController(null, true, actorUserId);
     await expect(
@@ -341,6 +392,8 @@ describe('ProcessChangeProposalController common-process remark creation', () =>
       getAuthenticatedUserId: jest.fn(() => username),
       hasOrganizationAdminRole: jest.fn(() => false),
       assertCanReadResource: jest.fn().mockResolvedValue(undefined),
+      assertCanCloneResource: jest.fn().mockResolvedValue(undefined),
+      assertProjectRole: jest.fn().mockResolvedValue(username),
     };
     const controller = new ProcessChangeProposalController(
       dataSource as never,
@@ -372,5 +425,18 @@ describe('ProcessChangeProposalController common-process remark creation', () =>
     );
     expect(linkRepository.save).not.toHaveBeenCalled();
     expect(commentRepository.save).toHaveBeenCalled();
+    memberRepository.findOne.mockResolvedValue({
+      ...membership,
+      role: ProjectMemberRole.Modeler,
+    });
+    const directProposal = await controller.createProposal(
+      projectId,
+      sourceId,
+      {},
+      { 'x-user': username },
+    );
+    expect(directProposal.status).toBe('draft');
+    expect(resourceRepository.save).toHaveBeenCalledTimes(2);
+    expect(linkRepository.save).not.toHaveBeenCalled();
   });
 });
