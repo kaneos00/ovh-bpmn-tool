@@ -69,6 +69,7 @@ type ProcessDetailsProps = {
   readOnlyShell?: boolean;
   requestedRaciView?: boolean;
   projectId?: string | null;
+  projectRole?: 'viewer' | 'modeler' | 'admin' | null;
 };
 
 const PROCESS_METADATA_NS = 'https://ovh-bpmn-tool.local/schema/process-metadata';
@@ -166,6 +167,7 @@ export const ProcessDetails = ({
   readOnlyShell = false,
   requestedRaciView = false,
   projectId = null,
+  projectRole = null,
 }: ProcessDetailsProps) => {
   const {
     contents,
@@ -294,6 +296,7 @@ export const ProcessDetails = ({
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
   const [activeViewerTab, setActiveViewerTab] = useState(0);
   const [remarkModalOpen, setRemarkModalOpen] = useState(false);
+  const [startingProposal, setStartingProposal] = useState(false);
   const [remarkText, setRemarkText] = useState('');
   const [submittingRemark, setSubmittingRemark] = useState(false);
   const [remarkError, setRemarkError] = useState<string | null>(null);
@@ -370,6 +373,24 @@ export const ProcessDetails = ({
   );
 
   const navigate = useNavigate();
+  const startChangeProposal = async () => {
+    if (!projectId || startingProposal || isHistoricalView || remarkPermission?.usage === 'common') return;
+    setStartingProposal(true);
+    try {
+      const proposal = activeProposal ?? await apiClient.post(
+        `/projects/${projectId}/processes/${resourceId}/change-proposals`,
+        {},
+      );
+      navigate(`/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}&sourceResourceId=${resourceId}`);
+    } catch (error) {
+      showAlert({
+        message: error instanceof Error ? error.message : 'Impossible de créer la demande de modification.',
+        severity: 'danger',
+      });
+    } finally {
+      setStartingProposal(false);
+    }
+  };
   const processWorkspaceRef = useRef<HTMLDivElement>(null);
   const [explorerCollapsed, setExplorerCollapsed] = useState(false);
   const [taskPanelCollapsed, setTaskPanelCollapsed] = useState(true);
@@ -708,6 +729,19 @@ export const ProcessDetails = ({
                     >
                       <FileCopy />
                     </IconButton>
+                    {projectId && (projectRole === 'modeler' || projectRole === 'admin') &&
+                      remarkPermission?.associated && remarkPermission.usage !== 'common' && !isHistoricalView && (
+                        <Button
+                          size="sm"
+                          variant="soft"
+                          color="primary"
+                          loading={startingProposal}
+                          disabled={startingProposal}
+                          onClick={startChangeProposal}
+                        >
+                          {activeProposal ? 'Reprendre la modification' : 'Proposer une modification'}
+                        </Button>
+                      )}
                     {canSubmitProcessRemark && (
                       <Button
                         size="sm"
@@ -725,7 +759,7 @@ export const ProcessDetails = ({
                         variant="soft"
                         color="primary"
                         onClick={() => navigate(
-                          `/${activeProposal.cloneResourceId}/modeler?proposalId=${activeProposal.id}&${activeProposal.status === 'approved' ? 'publishApproved=1' : 'reviewRemarks=1'}`,
+                          `/${activeProposal.cloneResourceId}/modeler?proposalId=${activeProposal.id}&${activeProposal.status === 'approved' ? 'publishApproved=1' : 'reviewRemarks=1'}&sourceResourceId=${resourceId}`,
                         )}
                       >
                         {activeProposal.status === 'approved' ? 'Préparer la publication' : 'Traiter les remarques'}
