@@ -34,9 +34,6 @@ type ModelerActionBarProps = {
   onRaciOpen: () => void;
   onRolesOpen: () => void;
   onCompareWithSource?: () => void;
-  diagramOptions: Array<{ id: string; name: string }>;
-  activeDiagramId: string;
-  onDiagramSelect: (diagramId: string) => void;
 };
 
 export const ModelerActionBar = ({
@@ -50,9 +47,6 @@ export const ModelerActionBar = ({
   onRaciOpen,
   onRolesOpen,
   onCompareWithSource,
-  diagramOptions,
-  activeDiagramId,
-  onDiagramSelect,
 }: ModelerActionBarProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -88,31 +82,12 @@ export const ModelerActionBar = ({
           Upload
         </Button>
 
-        {diagramOptions.length > 1 && (
-          <Dropdown>
-            <MenuButton variant="outlined" color="neutral">
-              Page : {diagramOptions.find(diagram => diagram.id === activeDiagramId)?.name ?? 'Sélectionner'}
-            </MenuButton>
-            <Menu>
-              {diagramOptions.map(diagram => (
-                <MenuItem
-                  key={diagram.id}
-                  selected={diagram.id === activeDiagramId}
-                  onClick={() => onDiagramSelect(diagram.id)}
-                >
-                  {diagram.name}
-                </MenuItem>
-              ))}
-            </Menu>
-          </Dropdown>
-        )}
-
         <input
           ref={fileInputRef}
           type="file"
           style={{ display: 'none' }}
           multiple={false}
-          accept=".bpmn,.drawio,.xml"
+          accept=".bpmn"
           onChange={event => {
             event.preventDefault();
             if (event.target.files && event.target.files[0]) {
