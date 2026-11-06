@@ -8,9 +8,15 @@ export type AddCommentFormFields = {
 
 export type AddCommentFormProps = {
   onFormSubmit: (props: AddCommentFormFields) => void;
+  placeholder?: string;
+  submitLabel?: string;
 };
 
-export const AddCommentForm = ({ onFormSubmit }: AddCommentFormProps) => {
+export const AddCommentForm = ({
+  onFormSubmit,
+  placeholder = 'Add a comment...',
+  submitLabel = 'Comment',
+}: AddCommentFormProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const { register, handleSubmit } = useForm<AddCommentFormFields>({});
 
@@ -40,8 +46,8 @@ export const AddCommentForm = ({ onFormSubmit }: AddCommentFormProps) => {
             '--Input-minHeight': '54px',
             '--Input-decoratorChildHeight': '42px',
           }}
-          placeholder="Add a comment..."
-          endDecorator={<Button type="submit">Comment</Button>}
+          placeholder={placeholder}
+          endDecorator={<Button type="submit">{submitLabel}</Button>}
         />
       </form>
     </Stack>
