@@ -151,8 +151,10 @@ globalThis.DOMParser = class {
   parseFromString(source) {
     try {
       return parseXml(source);
-    } catch {
-      return new TestDocument(new TestElement('parsererror'));
+    } catch (error) {
+      const parserError = new TestElement('parsererror');
+      parserError._text = error instanceof Error ? error.message : String(error);
+      return new TestDocument(parserError);
     }
   }
 };
