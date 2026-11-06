@@ -35,7 +35,7 @@ describe('Generic document reader', () => {
 
     assert.equal(document.pages.length, 1);
     assert.equal(document.pages[0].name, 'Compressed');
-    assert.match(document.pages[0].content, /^<mxGraphModel\\b/);
+    assert.match(document.pages[0].content, /^<mxGraphModel\b/);
   });
 
   it('rejects unsupported input and malformed XML explicitly', async () => {
