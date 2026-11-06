@@ -614,16 +614,16 @@ export const Component = () => {
           <Card variant="outlined" sx={{ gap: 1.25 }}>
             <Typography level="title-lg">Validation des processus</Typography>
             <Typography level="body-sm" color="neutral">
-              Il validatore predefinito viene utilizzato quando il processo non indica un proprio pilota/validatore. Il pilota indicato nel processo mantiene la precedenza.
+              Le validateur par défaut est utilisé lorsque le processus ne désigne pas son propre pilote ou validateur. Le pilote indiqué dans le processus reste prioritaire.
             </Typography>
             <FormControl>
-              <FormLabel>Validatore predefinito del progetto</FormLabel>
+              <FormLabel>Validateur par défaut du projet</FormLabel>
               <Select
                 value={defaultValidatorUserId ?? ''}
                 onChange={(_event, value) => setDefaultValidatorUserId(value || null)}
-                placeholder="Selezionare un membro del progetto"
+                placeholder="Choisir un membre du projet"
               >
-                <Option value="">Nessun validatore predefinito</Option>
+                <Option value="">Aucun validateur par défaut</Option>
                 {(membersQuery.data ?? []).map(member => (
                   <Option key={member.userId} value={member.userId}>{member.userId}</Option>
                 ))}
