@@ -15,7 +15,7 @@ describe('Generic document reader', () => {
     assert.equal(document.format, 'drawio');
     assert.equal(document.pages.length, 2);
     assert.deepEqual(document.pages.map(page => page.name), ['Page-1', 'Page-2']);
-    assert.ok(document.pages.every(page => /^<mxGraphModel\\b/.test(page.content)));
+    assert.ok(document.pages.every(page => /^<mxGraphModel\b/.test(page.content)));
     assert.ok(document.pages.every(page => page.mediaType === 'application/xml'));
   });
 
@@ -25,7 +25,7 @@ describe('Generic document reader', () => {
 
     assert.equal(document.pages.length, 1);
     assert.equal(document.pages[0].name, 'Page-1');
-    assert.match(document.pages[0].content, /^<mxGraphModel\\b/);
+    assert.match(document.pages[0].content, /^<mxGraphModel\b/);
   });
 
   it('rejects unsupported input and malformed XML explicitly', async () => {
