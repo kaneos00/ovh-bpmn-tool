@@ -117,7 +117,7 @@ const absoluteBounds = (cell: Element, cells: Map<string, Element>): Bounds => {
   return { x, y, width, height };
 };
 
-const classifyNode = (style: string): NodeInfo['type'] | undefined => {
+const classifyNode = (style: string, label = ''): NodeInfo['type'] | undefined => {
   const normalized = style.toLowerCase();
   // Only the explicit Draw.io data-store symbol is a BPMN data store.
   // "dataStorage" is intentionally not treated as a data object: the
@@ -127,7 +127,7 @@ const classifyNode = (style: string): NodeInfo['type'] | undefined => {
     return 'dataObjectReference';
   }
   if (normalized.includes('mxgraph.bpmn.event')) {
-    if (normalized.includes('outline=end') || normalized.includes('symbol=terminate')) return 'endEvent';
+    if (normalized.includes('outline=end') || normalized.includes('symbol=terminate') || /^(end|fin)$/i.test(label.trim())) return 'endEvent';
     if (normalized.includes('outline=catching') || normalized.includes('outline=throwing') ||
         normalized.includes('intermediate')) return 'intermediateCatchEvent';
     return 'startEvent';
@@ -163,7 +163,7 @@ const buildPage = (page: PageInfo, pageIndex: number, warnings: string[]) => {
       warnings.push(`Page ${pageIndex + 1} : les lanes ne sont pas encore traitées et seront ignorées.`);
       return;
     }
-    const type = classifyNode(style);
+    const type = classifyNode(style, attr(cell, 'value'));
     if (!type) return;
     const sourceId = attr(cell, 'id');
     if (!sourceId) return;
@@ -224,19 +224,6 @@ const buildPage = (page: PageInfo, pageIndex: number, warnings: string[]) => {
   const diagramId = `Diagram_Page_${pageIndex + 1}`;
   const planeId = `Plane_Page_${pageIndex + 1}`;
 
-  const nodeXml = nodes.map(node => {
-    const name = node.name ? ` name="${escapeXml(node.name)}"` : '';
-    if (node.type === 'dataObjectReference') {
-      const objectId = `${node.id}_data`;
-      return `    <bpmn:dataObject id="${objectId}" />\n    <bpmn:dataObjectReference id="${node.id}"${name} dataObjectRef="${objectId}" />`;
-    }
-    if (node.type === 'dataStoreReference') {
-      const storeId = `${node.id}_store`;
-      return `    <bpmn:dataStore id="${storeId}" name="${escapeXml(node.name || 'Data store')}" />\n    <bpmn:dataStoreReference id="${node.id}"${name} dataStoreRef="${storeId}" />`;
-    }
-    return `    <bpmn:${node.type} id="${node.id}"${name} />`;
-  }).join('\n');
-
   const associationsByTask = new Map<string, EdgeInfo[]>();
   edges.filter(edge => edge.kind !== 'sequenceFlow').forEach(edge => {
     const taskId = edge.kind === 'dataInputAssociation' ? edge.targetId : edge.sourceId;
@@ -245,34 +232,38 @@ const buildPage = (page: PageInfo, pageIndex: number, warnings: string[]) => {
     associationsByTask.set(taskId, current);
   });
 
-  const associationXml = Array.from(associationsByTask.entries()).map(([sourceId, taskEdges]) => {
-    const node = bySourceId.get(sourceId);
-    if (!node) return '';
-    const associations = taskEdges.map(edge => {
+  const dataStoreDefinitions = dataStores.map(node =>
+    `  <bpmn:dataStore id="${node.id}_store" name="${escapeXml(node.name || 'Data store')}" />`
+  ).join('\\n');
+
+  const nodeElements = nodes.map(node => {
+    const name = node.name ? ` name="${escapeXml(node.name)}"` : '';
+    if (node.type === 'dataObjectReference') {
+      return `    <bpmn:dataObject id="${node.id}_data" />\\n    <bpmn:dataObjectReference id="${node.id}"${name} dataObjectRef="${node.id}_data" />`;
+    }
+    if (node.type === 'dataStoreReference') {
+      return `    <bpmn:dataStoreReference id="${node.id}"${name} dataStoreRef="${node.id}_store" />`;
+    }
+    const attached = associationsByTask.get(node.sourceId) ?? [];
+    const associationXml = attached.map(edge => {
       const dataId = edge.kind === 'dataInputAssociation' ? edge.sourceId : edge.targetId;
       const dataNode = bySourceId.get(dataId)!;
       if (edge.kind === 'dataInputAssociation') {
         const propertyId = `${edge.id}_property`;
-        return `      <bpmn:property id="${propertyId}" name="__targetRef_placeholder" />\n      <bpmn:dataInputAssociation id="${edge.id}">\n        <bpmn:sourceRef>${dataNode.id}</bpmn:sourceRef>\n        <bpmn:targetRef>${propertyId}</bpmn:targetRef>\n      </bpmn:dataInputAssociation>`;
+        return `      <bpmn:property id="${propertyId}" name="__targetRef_placeholder" />\\n      <bpmn:dataInputAssociation id="${edge.id}">\\n        <bpmn:sourceRef>${dataNode.id}</bpmn:sourceRef>\\n        <bpmn:targetRef>${propertyId}</bpmn:targetRef>\\n      </bpmn:dataInputAssociation>`;
       }
-      return `      <bpmn:dataOutputAssociation id="${edge.id}">\n        <bpmn:targetRef>${dataNode.id}</bpmn:targetRef>\n      </bpmn:dataOutputAssociation>`;
-    }).join('\n');
-    return { nodeId: node.id, xml: associations };
-  });
+      return `      <bpmn:dataOutputAssociation id="${edge.id}">\\n        <bpmn:targetRef>${dataNode.id}</bpmn:targetRef>\\n      </bpmn:dataOutputAssociation>`;
+    }).join('\\n');
+    return associationXml
+      ? `    <bpmn:${node.type} id="${node.id}"${name}>\\n${associationXml}\\n    </bpmn:${node.type}>`
+      : `    <bpmn:${node.type} id="${node.id}"${name} />`;
+  }).join('\\n');
 
   const flowXml = edges.filter(edge => edge.kind === 'sequenceFlow').map(edge => {
     const source = bySourceId.get(edge.sourceId)!;
     const target = bySourceId.get(edge.targetId)!;
     return `    <bpmn:sequenceFlow id="${edge.id}" sourceRef="${source.id}" targetRef="${target.id}" />`;
-  }).join('\n');
-
-  const processes = nodes.map(node => {
-    const attached = associationXml.find(item => item.nodeId === node.id)?.xml;
-    if (!attached) return nodeXml.split('\n').filter(line => line.includes(`id="${node.id}"`)).join('\n');
-    const tag = node.type;
-    const name = node.name ? ` name="${escapeXml(node.name)}"` : '';
-    return `    <bpmn:${tag} id="${node.id}"${name}>\n${attached}\n    </bpmn:${tag}>`;
-  }).join('\n');
+  }).join('\\n');
 
   const shapes = nodes.map(node =>
     `      <bpmndi:BPMNShape id="${node.id}_di" bpmnElement="${node.id}">\n        <dc:Bounds x="${node.bounds.x}" y="${node.bounds.y}" width="${node.bounds.width}" height="${node.bounds.height}" />\n      </bpmndi:BPMNShape>`
