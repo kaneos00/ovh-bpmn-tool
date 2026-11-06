@@ -8,12 +8,12 @@
   </defs>
   <rect x="4" y="4" width="88" height="88" rx="24" fill="url(#bg)"/>
   <g fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
-    <!-- Two independent incoming flows from the start/end events to the gateway -->
-    <path d="M25 27 C25 35 32 40 41 45"/>
-    <path d="M25 69 C25 61 32 56 41 51"/>
-    <!-- Smooth outgoing branches to the two tasks -->
-    <path d="M55 44 C63 39 63 29 70 27"/>
-    <path d="M55 52 C63 57 63 67 70 69"/>
+    <!-- Vertical alignment: both events connect directly to the gateway -->
+    <path d="M23 27 V38"/>
+    <path d="M23 69 V58"/>
+    <!-- Smooth outgoing branches from the gateway to the two tasks -->
+    <path d="M33 45 C47 41 52 27 68 27"/>
+    <path d="M33 51 C47 55 52 69 68 69"/>
   </g>
   <g fill="#1769e0" stroke="#fff" stroke-width="3.5">
     <circle cx="23" cy="19" r="8"/>
@@ -21,10 +21,10 @@
     <rect x="68" y="18" width="21" height="17" rx="4"/>
     <rect x="68" y="61" width="21" height="17" rx="4"/>
   </g>
-  <!-- Filled BPMN gateway at the junction of the four flows -->
-  <path d="M48 38 L58 48 L48 58 L38 48 Z" fill="#fff"/>
+  <!-- Filled BPMN gateway, centered on the same vertical axis as both events -->
+  <path d="M23 38 L33 48 L23 58 L13 48 Z" fill="#fff"/>
   <g fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M64 27l5-3-1 6"/>
-    <path d="M64 69l5 3-1-6"/>
+    <path d="M63 27l5-3-1 6"/>
+    <path d="M63 69l5 3-1-6"/>
   </g>
 </svg>
