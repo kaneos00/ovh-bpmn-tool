@@ -16,6 +16,7 @@ test('Viewer fit uses the first limiting dimension and preserves the complete BP
   assert.ok(hook.includes('canvas.viewbox({'));
   assert.ok(hook.includes('width: containerWidth / scale'));
   assert.ok(hook.includes('height: containerHeight / scale'));
+  assert.doesNotMatch(hook, /!element\.labelTarget|!element\.waypoints/);
   assert.doesNotMatch(hook, /zoom\('fit-viewport'\)/);
 });
 
