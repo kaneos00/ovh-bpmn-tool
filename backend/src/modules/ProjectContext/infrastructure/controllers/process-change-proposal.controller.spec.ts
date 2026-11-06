@@ -427,7 +427,7 @@ describe('ProcessChangeProposalController common-process remark creation', () =>
     expect(commentRepository.save).toHaveBeenCalled();
     memberRepository.findOne.mockResolvedValue({
       ...membership,
-      role: ProjectMemberRole.Modeler,
+      role: ProjectMemberRole.Admin,
     });
     const directProposal = await controller.createProposal(
       projectId,
@@ -438,5 +438,19 @@ describe('ProcessChangeProposalController common-process remark creation', () =>
     expect(directProposal.status).toBe('draft');
     expect(resourceRepository.save).toHaveBeenCalledTimes(2);
     expect(linkRepository.save).not.toHaveBeenCalled();
+
+    memberRepository.findOne.mockResolvedValue({
+      ...membership,
+      role: ProjectMemberRole.Modeler,
+    });
+    await expect(
+      controller.createProposal(
+        projectId,
+        sourceId,
+        {},
+        { 'x-user': username },
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(resourceRepository.save).toHaveBeenCalledTimes(2);
   });
 });
