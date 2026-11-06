@@ -111,6 +111,17 @@ const ProcessContentViewer = () => {
 
   const selectedRole = selectedActivityId ? laneRoleByElement.get(selectedActivityId) ?? '' : '';
 
+  const handleElementSelect = (elementId: string | null) => {
+    setSelectedActivityId(elementId);
+    if (elementId) {
+      setInfoTab(2);
+      setInfoPanelOpen(true);
+    } else if (infoTab === 2) {
+      setInfoTab(0);
+      setInfoPanelOpen(false);
+    }
+  };
+
   const selectedElementDetails = useMemo(() => {
     if (!xmlContent || !selectedActivityId) return null;
     const document = new DOMParser().parseFromString(xmlContent, 'application/xml');
@@ -129,12 +140,6 @@ const ProcessContentViewer = () => {
       documentation,
     };
   }, [xmlContent, selectedActivityId]);
-
-  useEffect(() => {
-    if (!selectedActivityId) return;
-    setInfoTab(2);
-    setInfoPanelOpen(true);
-  }, [selectedActivityId]);
 
   const { raciAnalysis, issueByActivity, filteredActivities } =
     useViewerRaciFilters(raciMatrix, {
@@ -223,7 +228,7 @@ const ProcessContentViewer = () => {
           resourceId={resourceId}
           contentId={contentId}
           selectedElementId={selectedActivityId}
-          onElementSelect={setSelectedActivityId}
+          onElementSelect={handleElementSelect}
           onToggleInfoPanel={() => setInfoPanelOpen(value => !value)}
           infoPanelOpen={infoPanelOpen}
           fullscreenTargetRef={workspaceRef}
