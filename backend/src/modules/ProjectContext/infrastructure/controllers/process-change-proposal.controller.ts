@@ -527,6 +527,16 @@ export class ProcessChangeProposalController {
         );
       }
       const isCommonProcess = sourceLink.usage === ProjectProcessUsage.Common;
+      if (
+        isCommonProcess &&
+        !isViewerRemark &&
+        !isOrganizationAdmin &&
+        authorMembership?.role !== ProjectMemberRole.Admin
+      ) {
+        throw new ForbiddenException(
+          'Seul le gestionnaire du projet peut soumettre une évolution d’un processus Commun',
+        );
+      }
 
       const source = await resources.findOne({
         where: { id: sourceResourceId },
