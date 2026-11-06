@@ -83,6 +83,7 @@ export class ProjectResourceAccessService {
 
   async assertCanReadResource(resourceId: string, headers: RequestHeaders) {
     const userId = this.getAuthenticatedUserId(headers);
+    if (this.hasOrganizationAdminRole(headers)) return;
     const links = await this.projectProcesses.find({ where: { resourceId } });
     if (
       !links.length ||
@@ -154,30 +155,81 @@ export class ProjectResourceAccessService {
    * still gates the endpoint; project-specific sources additionally require
    * modeler/admin rights so a viewer cannot export a private process.
    */
-  async assertCanCloneResource(resourceId: string, headers: RequestHeaders) {
+  async assertCanCloneResource(
+    resourceId: string,
+    headers: RequestHeaders,
+  ): Promise<void>;
+  async assertCanCloneResource(
+    projectId: string,
+    resourceId: string,
+    headers: RequestHeaders,
+  ): Promise<void>;
+  async assertCanCloneResource(
+    first: string,
+    second: string | RequestHeaders,
+    third?: RequestHeaders,
+  ): Promise<void> {
+    if (third) {
+      const projectId = first;
+      const resourceId = second as string;
+      const headers = third;
+      const sourceLink = await this.projectProcesses.findOne({
+        where: { projectId, resourceId },
+      });
+      if (!sourceLink) {
+        throw new ForbiddenException(
+          'Cloning requires the source process to belong to the selected project',
+        );
+      }
+
+      // A proposal is scoped to one project. Memberships in other projects
+      // linked to the same resource must not veto an otherwise authorized clone.
+      if (sourceLink.usage === ProjectProcessUsage.Common) return;
+
+      const userId = this.getAuthenticatedUserId(headers);
+      const membership = await this.projectMembers.findOne({
+        where: { projectId, userId },
+      });
+      if (
+        !membership ||
+        (membership.role !== ProjectMemberRole.Modeler &&
+          membership.role !== ProjectMemberRole.Admin)
+      ) {
+        throw new ForbiddenException(
+          'Cloning a project-specific process requires modeler access in the selected project',
+        );
+      }
+      return;
+    }
+
+    // The generic resource clone endpoint has no project context. For a
+    // project-specific process, require modeler/admin membership in every
+    // linked project rather than inventing a project identifier.
+    const resourceId = first;
+    const headers = second as RequestHeaders;
     const links = await this.projectProcesses.find({ where: { resourceId } });
-    const restrictedLinks = links.filter(
-      (link) => link.usage !== ProjectProcessUsage.Common,
-    );
-    if (!restrictedLinks.length) return;
+    if (
+      !links.length ||
+      links.some((link) => link.usage === ProjectProcessUsage.Common) ||
+      this.hasOrganizationAdminRole(headers)
+    ) {
+      return;
+    }
 
     const userId = this.getAuthenticatedUserId(headers);
     const memberships = await this.projectMembers.find({
-      where: restrictedLinks.map((link) => ({
-        projectId: link.projectId,
-        userId,
-      })),
+      where: links.map((link) => ({ projectId: link.projectId, userId })),
     });
     const roleByProject = new Map(
       memberships.map((membership) => [membership.projectId, membership.role]),
     );
-    const canClone = restrictedLinks.every((link) => {
+    const canCloneEveryProject = links.every((link) => {
       const role = roleByProject.get(link.projectId);
       return (
         role === ProjectMemberRole.Modeler || role === ProjectMemberRole.Admin
       );
     });
-    if (!canClone) {
+    if (!canCloneEveryProject) {
       throw new ForbiddenException(
         'Cloning a project-specific process requires modeler access to every linked project',
       );
@@ -206,6 +258,10 @@ export class ProjectResourceAccessService {
         'Common processes are read-only through resource endpoints',
       );
     }
+
+    // Organization administrators can review and edit project-specific
+    // proposal clones without being added as members to every project.
+    if (this.hasOrganizationAdminRole(headers)) return;
 
     const memberships = await this.projectMembers.find({
       where: links.map((link) => ({ projectId: link.projectId, userId })),

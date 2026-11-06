@@ -102,8 +102,8 @@ export class ProjectController {
       projectLinks.push(link);
       linksByProject.set(link.projectId, projectLinks);
     }
-    const roleByProject = new Map(
-      memberships.map(({ projectId, role }) => [projectId, role]),
+    const membershipByProject = new Map(
+      memberships.map((membership) => [membership.projectId, membership]),
     );
 
     return {
@@ -112,7 +112,9 @@ export class ProjectController {
         id: project.id,
         name: project.name,
         description: project.description,
-        role: roleByProject.get(project.id),
+        role: membershipByProject.get(project.id)?.role,
+        canSubmitRemarks:
+          membershipByProject.get(project.id)?.canSubmitRemarks ?? false,
         processes: (linksByProject.get(project.id) ?? []).map((link) => ({
           resourceId: link.resourceId,
           name: resourceById.get(link.resourceId)?.name ?? link.resourceId,
@@ -120,6 +122,46 @@ export class ProjectController {
           sourceResourceId: link.sourceResourceId,
         })),
       })),
+    };
+  }
+
+  /**
+   * Resolve the remark permission for one process in one explicit project.
+   * The Viewer uses this focused read model instead of inferring the right
+   * from the broader workspace aggregate.
+   */
+  @Get(':projectId/processes/:resourceId/remark-permission')
+  @UseAcl()
+  async getProcessRemarkPermission(
+    @Param('projectId') projectId: string,
+    @Param('resourceId') resourceId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    const link = await this.projectProcesses.findOne({
+      where: { projectId, resourceId },
+    });
+    if (!link) {
+      return {
+        associated: false,
+        isMember: false,
+        canSubmitRemarks: false,
+        usage: null,
+      };
+    }
+
+    const userId = this.projectResourceAccess.getAuthenticatedUserId(headers);
+    const membership = await this.projectMembers.findOne({
+      where: { projectId, userId },
+    });
+    const isOrganizationAdmin =
+      this.projectResourceAccess.hasOrganizationAdminRole(headers);
+
+    return {
+      associated: true,
+      isMember: Boolean(membership),
+      canSubmitRemarks:
+        isOrganizationAdmin || Boolean(membership?.canSubmitRemarks),
+      usage: link.usage,
     };
   }
 
@@ -140,7 +182,8 @@ export class ProjectController {
       order: { createdAt: 'ASC' },
     });
     const projectIds = [...new Set(links.map((link) => link.projectId))];
-    if (!projectIds.length) return { shared: false, projects: [] };
+    if (!projectIds.length)
+      return { shared: false, common: false, projects: [] };
 
     const userId = this.projectResourceAccess.getAuthenticatedUserId(headers);
     const isOrganizationAdmin =
@@ -163,6 +206,7 @@ export class ProjectController {
 
     return {
       shared: projectIds.length > 1,
+      common: links.some((link) => link.usage === ProjectProcessUsage.Common),
       projects: projects.map((project) => ({
         id: project.id,
         name: project.name,
@@ -355,7 +399,6 @@ export class ProjectController {
     if (body.description !== undefined) {
       project.description = body.description.trim() || null;
     }
-
     try {
       return await this.projects.save(project);
     } catch (error) {
@@ -397,7 +440,12 @@ export class ProjectController {
   @UseAcl([UserGroup.RW])
   async updateProject(
     @Param('projectId') projectId: string,
-    @Body() body: { name?: string; description?: string },
+    @Body()
+    body: {
+      name?: string;
+      description?: string;
+      defaultValidatorUserId?: string | null;
+    },
     @Headers() headers: RequestHeaders,
   ) {
     await this.assertProjectRole(projectId, headers, ProjectMemberRole.Admin);
@@ -414,6 +462,43 @@ export class ProjectController {
     }
     if (body.description !== undefined) {
       project.description = body.description.trim() || null;
+    }
+    if (body.defaultValidatorUserId !== undefined) {
+      if (
+        body.defaultValidatorUserId !== null &&
+        typeof body.defaultValidatorUserId !== 'string'
+      ) {
+        throw new BadRequestException(
+          'defaultValidatorUserId must be a member username or null',
+        );
+      }
+      const requestedValidator = body.defaultValidatorUserId?.trim() || null;
+      if (requestedValidator) {
+        const membership = await this.projectMembers.findOne({
+          where: { projectId, userId: requestedValidator },
+        });
+        if (
+          !membership ||
+          (membership.role !== ProjectMemberRole.Admin &&
+            membership.role !== ProjectMemberRole.Modeler)
+        ) {
+          throw new BadRequestException(
+            'Le valideur par défaut doit être un membre actif du projet avec le rôle Admin ou Modeler',
+          );
+        }
+        const activeUsers: Array<{ id: string }> = await this.dataSource.query(
+          'SELECT id FROM app_users WHERE lower(username) = lower($1) AND active = TRUE LIMIT 1',
+          [membership.userId],
+        );
+        if (!activeUsers.length) {
+          throw new BadRequestException(
+            'Le compte du valideur par défaut est introuvable ou désactivé',
+          );
+        }
+        project.defaultValidatorUserId = membership.userId;
+      } else {
+        project.defaultValidatorUserId = null;
+      }
     }
 
     try {
@@ -708,10 +793,26 @@ export class ProjectController {
     @Headers() headers: RequestHeaders,
   ) {
     await this.assertProjectRole(projectId, headers, ProjectMemberRole.Viewer);
-    return this.projectMembers.find({
+    const memberships = await this.projectMembers.find({
       where: { projectId },
       order: { userId: 'ASC' },
     });
+    if (!memberships.length) return [];
+    const activeAccounts: Array<{ username: string; active: boolean }> =
+      await this.dataSource.query(
+        'SELECT username, active FROM app_users WHERE lower(username) = ANY($1::text[])',
+        [memberships.map((member) => member.userId.toLowerCase())],
+      );
+    const activeByUsername = new Map(
+      activeAccounts.map((account) => [
+        account.username.toLowerCase(),
+        account.active,
+      ]),
+    );
+    return memberships.map((member) => ({
+      ...member,
+      active: activeByUsername.get(member.userId.toLowerCase()) === true,
+    }));
   }
 
   @Put(':projectId/members/:userId')
@@ -719,13 +820,26 @@ export class ProjectController {
   async setProjectMember(
     @Param('projectId') projectId: string,
     @Param('userId') userIdParam: string,
-    @Body() body: { role?: ProjectMemberRole },
+    @Body() body: { role?: ProjectMemberRole; canSubmitRemarks?: boolean },
     @Headers() headers: RequestHeaders,
   ) {
     const actorId = this.projectResourceAccess.getAuthenticatedUserId(headers);
     const userId = this.validateUserId(userIdParam);
     const role = this.validateMemberRole(body.role);
-    return this.changeProjectMember(projectId, userId, role, actorId, headers);
+    if (
+      body.canSubmitRemarks !== undefined &&
+      typeof body.canSubmitRemarks !== 'boolean'
+    ) {
+      throw new BadRequestException('canSubmitRemarks must be a boolean');
+    }
+    return this.changeProjectMember(
+      projectId,
+      userId,
+      role,
+      actorId,
+      headers,
+      body.canSubmitRemarks,
+    );
   }
 
   @Delete(':projectId/members/:userId')
@@ -771,6 +885,7 @@ export class ProjectController {
     role: ProjectMemberRole | null,
     actorId?: string,
     headers?: RequestHeaders,
+    canSubmitRemarks?: boolean,
   ) {
     return this.dataSource.transaction(async (manager) => {
       const projectRepository = manager.getRepository(ProjectTypeOrmEntity);
@@ -813,8 +928,20 @@ export class ProjectController {
       }
 
       if (role === null) {
+        if (project.defaultValidatorUserId === userId) {
+          project.defaultValidatorUserId = null;
+          await projectRepository.save(project);
+        }
         await members.delete({ projectId, userId });
         return { deleted: true, projectId, userId };
+      }
+      if (
+        project.defaultValidatorUserId === userId &&
+        role !== ProjectMemberRole.Admin &&
+        role !== ProjectMemberRole.Modeler
+      ) {
+        project.defaultValidatorUserId = null;
+        await projectRepository.save(project);
       }
 
       const member =
@@ -825,6 +952,9 @@ export class ProjectController {
           createdBy: actorId,
         });
       member.role = role;
+      if (canSubmitRemarks !== undefined) {
+        member.canSubmitRemarks = canSubmitRemarks;
+      }
       return members.save(member);
     });
   }

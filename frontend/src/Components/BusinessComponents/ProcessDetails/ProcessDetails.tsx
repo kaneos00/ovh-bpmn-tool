@@ -42,6 +42,7 @@ import { analyzeRaciMatrix, type RaciCode } from '../../../extensions/raci-engin
 import { ConditionalRender } from '../../../Components/GenericComponents/ConditionalRender/ConditionalRender';
 import { DropZone } from '../../../Components/GenericComponents/DropZone/DropZone';
 import { ContentStatusEnum } from '../../../Types';
+import { apiClient } from '../../../queryClient';
 
 import '../../../raci.css';
 import { DataInventory } from './DataInventory';
@@ -191,9 +192,27 @@ export const ProcessDetails = ({
   const queryClient = useQueryClient();
   const { resource: processResource } = useResource(resourceId);
   const { data: resourceShares } = useQuery(resourceSharesQuery(resourceId));
+  const { data: myWorkspace } = useQuery(
+    ['my-workspace'],
+    () => apiClient.get('/projects/me/workspace'),
+  );
+  const pilotProjectId = myWorkspace?.projects.find((project: {
+    id: string;
+    role: 'viewer' | 'modeler' | 'admin';
+    processes: { resourceId: string }[];
+  }) =>
+    (project.role === 'modeler' || project.role === 'admin') &&
+    project.processes.some(process => process.resourceId === resourceId),
+  )?.id;
+  const { data: pilotCandidates = [] } = useQuery(
+    ['project-members', pilotProjectId],
+    () => apiClient.get(`/projects/${pilotProjectId}/members`),
+    { enabled: Boolean(pilotProjectId) },
+  );
   const { showAlert } = useSnackbar();
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
   const [activeViewerTab, setActiveViewerTab] = useState(0);
+  const [startingProposal, setStartingProposal] = useState(false);
 
   // A deep link may explicitly open the RACI workspace. Otherwise keep the
   // current tab when the user navigates between processes or versions.
@@ -214,8 +233,58 @@ export const ProcessDetails = ({
   const [editingChangeCommentId, setEditingChangeCommentId] = useState<string | null>(null);
   const [savingChangeCommentId, setSavingChangeCommentId] = useState<string | null>(null);
   const [processMetadata, setProcessMetadata] = useState({ processType: '', pilot: '', surveillance: '', riskPrevention: '' });
-  const canEditDescription = !isHistoricalView && (sessionRole === 'admin' || sessionRole === 'modeler');
-  const canManageVersions = !isHistoricalView && (sessionRole === 'admin' || sessionRole === 'modeler');
+  // A process can be marked common in the project workspace even while the
+  // shares read-model is still loading or stale. Use both sources so the UI
+  // never exposes generic edit controls that the backend must reject.
+  const isCommonProcess = Boolean(
+    resourceShares?.common ||
+    myWorkspace?.projects.some((project: {
+      processes: { resourceId: string; usage?: string }[];
+    }) =>
+      project.processes.some(
+        process => process.resourceId === resourceId && process.usage === 'common',
+      ),
+    ),
+  );
+  const canEditDescription = Boolean(resourceShares) && !isHistoricalView && !isCommonProcess && (sessionRole === 'admin' || sessionRole === 'modeler');
+  const canManageVersions = Boolean(resourceShares) && !isHistoricalView && !isCommonProcess && (sessionRole === 'admin' || sessionRole === 'modeler');
+
+  const navigate = useNavigate();
+
+  const startChangeProposal = async () => {
+    if (!pilotProjectId || startingProposal || isHistoricalView) return;
+    setStartingProposal(true);
+    try {
+      const proposal = await apiClient.post(
+        `/projects/${pilotProjectId}/processes/${resourceId}/change-proposals`,
+        {},
+      );
+      navigate(
+        `/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}`,
+      );
+    } catch (error) {
+      const apiError = error as {
+        message?: string;
+        response?: {
+          status?: number;
+          data?: { message?: string | string[]; error?: string };
+        };
+      };
+      const backendMessage = apiError.response?.data?.message;
+      const readableMessage = Array.isArray(backendMessage)
+        ? backendMessage.join(' — ')
+        : backendMessage;
+      const status = apiError.response?.status;
+      showAlert({
+        message: readableMessage ||
+          (status ? `Erreur serveur (HTTP ${status}). ` : '') +
+          (apiError.message || 'Impossible de créer la demande de modification.'),
+        severity: 'danger',
+      });
+    } finally {
+      setStartingProposal(false);
+    }
+  };
 
   useEffect(() => {
     if (!xmlContent) { setProcessMetadata({ processType: '', pilot: '', surveillance: '', riskPrevention: '' }); return; }
@@ -265,7 +334,6 @@ export const ProcessDetails = ({
     [raciMatrix],
   );
 
-  const navigate = useNavigate();
   const [explorerCollapsed, setExplorerCollapsed] = useState(false);
   const [taskPanelCollapsed, setTaskPanelCollapsed] = useState(true);
   const [explorerWidth, setExplorerWidth] = useState(() => {
@@ -599,6 +667,19 @@ export const ProcessDetails = ({
                     >
                       <FileCopy />
                     </IconButton>
+                    {pilotProjectId && !isHistoricalView && (
+                      <Button
+                        size="sm"
+                        variant="soft"
+                        color="primary"
+                        loading={startingProposal}
+                        disabled={startingProposal}
+                        onClick={startChangeProposal}
+                      >
+                        <EditOutlined sx={{ fontSize: 16, mr: 0.5 }} />
+                        Proposer une modification
+                      </Button>
+                    )}
                     {canEditDescription && (
                       <IconButton
                         title="Modifier le diagramme BPMN"
@@ -700,7 +781,42 @@ export const ProcessDetails = ({
                       {PROCESS_TYPES.map(type => <Option key={type.value} value={type.value}><Chip size="sm" variant="soft" color={type.color}>{type.label}</Chip></Option>)}
                     </Select>
                   </Stack>
-                  <Input value={processMetadata.pilot} onChange={event => setProcessMetadata(current => ({ ...current, pilot: event.target.value }))} placeholder="Pilote du processus" aria-label="Pilote du processus" disabled={isSavingProcessDescription} />
+                  <Stack spacing={0.5}>
+                    <Typography level="title-sm">Pilote du processus</Typography>
+                    <Select
+                      value={processMetadata.pilot || null}
+                      placeholder="Sélectionner un compte du projet"
+                      onChange={(_, value) =>
+                        setProcessMetadata(current => ({
+                          ...current,
+                          pilot: value ?? '',
+                        }))
+                      }
+                      disabled={isSavingProcessDescription || !pilotProjectId}
+                    >
+                      {processMetadata.pilot &&
+                        !pilotCandidates.some(
+                          (member: { userId: string }) =>
+                            member.userId === processMetadata.pilot,
+                        ) && (
+                          <Option value={processMetadata.pilot}>
+                            Valeur actuelle à vérifier : {processMetadata.pilot}
+                          </Option>
+                        )}
+                      {pilotCandidates.map(
+                        (member: { userId: string; role: string }) => (
+                          <Option key={member.userId} value={member.userId}>
+                            {member.userId} — {member.role}
+                          </Option>
+                        ),
+                      )}
+                    </Select>
+                    <Typography level="body-xs" color="neutral">
+                      Identifiant du compte utilisateur. Si le pilote est absent
+                      ou n’est plus membre du projet, la demande sera signalée
+                      et un administrateur pourra reprendre l’affectation.
+                    </Typography>
+                  </Stack>
                   <Stack spacing={0.5}>
                     <Typography level="title-sm">Surveillance</Typography>
                     <Textarea value={processMetadata.surveillance} onChange={event => setProcessMetadata(current => ({ ...current, surveillance: event.target.value }))} minRows={2} placeholder="Indicateurs, fréquence et modalités de surveillance…" aria-label="Surveillance du processus" disabled={isSavingProcessDescription} />

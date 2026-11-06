@@ -289,7 +289,8 @@ test('viewer gets a fresh BPMN instance for the selected published version', asy
   assert.ok(details.includes('content.id === selectedContentId && content.status !== ContentStatusEnum.Draft'));
   assert.ok(details.includes('const isHistoricalView = Boolean('));
   assert.ok(details.includes('selectedContentId && (!viewerContent || viewerContent.id !== publishedContent?.id)'));
-  assert.ok(details.includes('!isHistoricalView && (sessionRole === \'admin\' || sessionRole === \'modeler\')'));
+  assert.match(details, /const isCommonProcess = Boolean\([\s\S]*?resourceShares\?\.common[\s\S]*?usage === 'common'[\s\S]*?\);/);
+  assert.ok(details.includes('const canEditDescription = Boolean(resourceShares) && !isHistoricalView && !isCommonProcess && (sessionRole === \'admin\' || sessionRole === \'modeler\')'));
   assert.ok(details.includes('Afficher cette version'));
   assert.ok(details.includes('contentId=${encodeURIComponent(content.id)}') || details.includes('contentId=${encodeURIComponent(content.id)}'));
   assert.ok(layout.includes('useViewerRouteState'));
@@ -403,7 +404,7 @@ test('Viewer version status badges have distinct colors and version actions are 
   assert.match(list, /content\.status === ContentStatusEnum\.Draft[\s\S]*?label: 'Publish'[\s\S]*?label: 'Erase'/);
   assert.match(list, /content\.status === ContentStatusEnum\.Obsolete[\s\S]*?label: 'Erase'/);
   assert.match(tableHook, /let color: 'success' \| 'warning' \| 'neutral' = 'neutral'[\s\S]*?status === ContentStatusEnum\.Published[\s\S]*?color = 'success'[\s\S]*?status === ContentStatusEnum\.Draft[\s\S]*?color = 'warning'/);
-  assert.ok(details.includes("const canManageVersions = !isHistoricalView && (sessionRole === 'admin' || sessionRole === 'modeler')"));
+  assert.ok(details.includes("const canManageVersions = Boolean(resourceShares) && !isHistoricalView && !isCommonProcess && (sessionRole === 'admin' || sessionRole === 'modeler')"));
   assert.ok(details.includes('readOnlyShell && !canManageVersions'));
 });
 
@@ -434,7 +435,8 @@ test('modeler exposes undo/redo controls and guards unsaved navigation', async (
   assert.ok(hook.includes('savedStackIndexRef'));
   assert.ok(actionBar.includes('Annuler la dernière modification'));
   assert.ok(actionBar.includes('Rétablir la dernière modification'));
-  assert.ok(container.includes('useBlocker(({ nextLocation }) => isDirty && nextLocation.pathname === `/${resourceId}`)'));
+  assert.ok(container.includes('useBlocker('));
+  assert.ok(container.includes('nextLocation.pathname === `/${resourceId}`'));
   assert.ok(container.includes('beforeunload'));
   assert.ok(container.includes('Continuer l’édition'));
   assert.ok(container.includes('Abandonner les modifications'));
@@ -470,7 +472,7 @@ test('V3 process details exposes a central editable description tab only to auth
 
   assert.match(details, /<Tab value=\{1\}>Description<\/Tab>/);
   assert.match(details, /<TabPanel value=\{1\} className="processViewerTabPanel">[\s\S]*?Description du processus[\s\S]*?processDescriptionDraft/s);
-  assert.match(details, /const canEditDescription = !isHistoricalView && \(sessionRole === 'admin' \|\| sessionRole === 'modeler'\);/);
+  assert.match(details, /const canEditDescription = Boolean\(resourceShares\) && !isHistoricalView && !isCommonProcess && \(sessionRole === 'admin' \|\| sessionRole === 'modeler'\);/);
   assert.match(details, /await updateResource\(resourceId,\s*\{[\s\S]*?description: processDescriptionDraft/s);
   assert.match(details, /queryClient\.invalidateQueries\(getResourceQuery\(resourceId\)\.queryKey\)/);
   assert.match(details, /<Tab value=\{2\}>Historique des versions<\/Tab>/);

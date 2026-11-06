@@ -8,11 +8,20 @@ import { useCallActivityNavigation } from '../../../../shared/hooks/useCallActiv
 const ZOOM_STEP = 1.2;
 const DIAGRAM_PADDING = 24;
 
+export type ContextualRemark = {
+  id: string;
+  elementId: string;
+  status: 'pending' | 'accepted' | 'rejected';
+};
+
+const EMPTY_REMARKS: ContextualRemark[] = [];
+
 export const useProcessViewer = (
   resourceId: string,
   contentId: string,
   selectedElementId?: string | null,
   onElementSelect?: (elementId: string) => void,
+  remarks: ContextualRemark[] = EMPTY_REMARKS,
 ) => {
   const { getViewerInstance } = useBpmnViewerInstance();
   const viewerRef = useRef<HTMLDivElement>(null);
@@ -25,23 +34,101 @@ export const useProcessViewer = (
   const [minimapVisible, setMinimapVisible] = useState(false);
   const importGenerationRef = useRef(0);
   const importQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+  const remarkOverlayIdsRef = useRef<Array<string | number>>([]);
+  const viewerForOverlaysRef = useRef<any>(null);
+
+  const applyRemarkOverlays = () => {
+    const viewer = viewerForOverlaysRef.current;
+    if (!viewer || !importedRef.current) return;
+    const overlays = viewer.get('overlays') as any;
+    const registry = viewer.get('elementRegistry') as any;
+    remarkOverlayIdsRef.current.forEach(id => {
+      try {
+        overlays.remove(id);
+      } catch {
+        /* The Viewer may already have cleared the overlay. */
+      }
+    });
+    remarkOverlayIdsRef.current = [];
+
+    const countByElement = new Map<string, number>();
+    remarks
+      .filter(remark => remark.status === 'pending')
+      .forEach(remark => {
+        if (registry.get(remark.elementId)) {
+          countByElement.set(
+            remark.elementId,
+            (countByElement.get(remark.elementId) ?? 0) + 1,
+          );
+        }
+      });
+
+    countByElement.forEach((count, elementId) => {
+      const badge = document.createElement('span');
+      badge.textContent = String(count);
+      badge.title =
+        count === 1
+          ? '1 remarque associée à cet élément'
+          : `${count} remarques associées à cet élément`;
+      badge.setAttribute('aria-label', badge.title);
+      badge.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        onElementSelectRef.current?.(elementId);
+      });
+      Object.assign(badge.style, {
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: '19px',
+        height: '19px',
+        padding: '0 5px',
+        borderRadius: '10px',
+        background: '#2459a6',
+        color: '#fff',
+        border: '2px solid #fff',
+        boxShadow: '0 1px 4px rgba(0,0,0,.25)',
+        fontSize: '11px',
+        fontWeight: '700',
+        lineHeight: '15px',
+        cursor: 'pointer',
+      });
+      const overlayId = overlays.add(elementId, 'contextual-remarks', {
+        position: { top: -9, right: -9 },
+        html: badge,
+      });
+      if (overlayId !== undefined && overlayId !== null)
+        remarkOverlayIdsRef.current.push(overlayId);
+    });
+  };
+  const applyRemarkOverlaysRef = useRef(applyRemarkOverlays);
+  applyRemarkOverlaysRef.current = applyRemarkOverlays;
 
   selectedIdRef.current = selectedElementId;
   onElementSelectRef.current = onElementSelect;
 
-  const { data: xmlContent, isLoading: isXmlLoading, isError: isXmlError } = useQuery(
-    getXmlContentQuery(resourceId, contentId),
-  );
+  const {
+    data: xmlContent,
+    isLoading: isXmlLoading,
+    isError: isXmlError,
+  } = useQuery(getXmlContentQuery(resourceId, contentId));
 
   // Recreate the Viewer when provider extensions/modules change; an empty
   // dependency list would permanently capture the initial provider options.
   const viewer = useMemo(() => getViewerInstance(), [getViewerInstance]);
-  const setMinimapVisibility = useCallback((visible: boolean) => {
-    setMinimapVisible(visible);
-    const minimap = viewer.get('minimap') as { open?: () => void; close?: () => void };
-    if (visible) minimap?.open?.();
-    else minimap?.close?.();
-  }, [viewer]);
+  viewerForOverlaysRef.current = viewer;
+  const setMinimapVisibility = useCallback(
+    (visible: boolean) => {
+      setMinimapVisible(visible);
+      const minimap = viewer.get('minimap') as {
+        open?: () => void;
+        close?: () => void;
+      };
+      if (visible) minimap?.open?.();
+      else minimap?.close?.();
+    },
+    [viewer],
+  );
   useCallActivityNavigation(viewer, true);
 
   const alignDiagramTopLeft = () => {
@@ -52,17 +139,21 @@ export const useProcessViewer = (
 
     const bounds = elementRegistry
       .getAll()
-      .filter((element: any) =>
-        element &&
-        !element.labelTarget &&
-        !element.waypoints &&
-        Number.isFinite(element.x) &&
-        Number.isFinite(element.y) &&
-        element.width > 0 &&
-        element.height > 0,
+      .filter(
+        (element: any) =>
+          element &&
+          !element.labelTarget &&
+          !element.waypoints &&
+          Number.isFinite(element.x) &&
+          Number.isFinite(element.y) &&
+          element.width > 0 &&
+          element.height > 0,
       )
       .map((element: any) => canvas.getAbsoluteBBox(element))
-      .filter((bbox: any) => bbox && Number.isFinite(bbox.x) && Number.isFinite(bbox.y));
+      .filter(
+        (bbox: any) =>
+          bbox && Number.isFinite(bbox.x) && Number.isFinite(bbox.y),
+      );
 
     if (!bounds.length) return;
 
@@ -91,7 +182,10 @@ export const useProcessViewer = (
     const canvas = viewer.get('canvas') as any;
     const container = canvas.getContainer();
     const rect = container.getBoundingClientRect();
-    canvas.zoom(canvas.zoom() * ZOOM_STEP, { x: rect.width / 2, y: rect.height / 2 });
+    canvas.zoom(canvas.zoom() * ZOOM_STEP, {
+      x: rect.width / 2,
+      y: rect.height / 2,
+    });
   };
 
   const zoomOut = () => {
@@ -99,7 +193,10 @@ export const useProcessViewer = (
     const canvas = viewer.get('canvas') as any;
     const container = canvas.getContainer();
     const rect = container.getBoundingClientRect();
-    canvas.zoom(canvas.zoom() / ZOOM_STEP, { x: rect.width / 2, y: rect.height / 2 });
+    canvas.zoom(canvas.zoom() / ZOOM_STEP, {
+      x: rect.width / 2,
+      y: rect.height / 2,
+    });
   };
 
   const resetZoom = () => {
@@ -178,7 +275,8 @@ export const useProcessViewer = (
       clearViewerAfterQueuedImports();
       return () => {
         cancelled = true;
-        if (importGenerationRef.current === generation) importGenerationRef.current += 1;
+        if (importGenerationRef.current === generation)
+          importGenerationRef.current += 1;
       };
     }
 
@@ -192,13 +290,16 @@ export const useProcessViewer = (
       } else {
         importedRef.current = false;
         highlightedIdRef.current = null;
-        setImportError('Le processus ne contient pas de diagramme XML exploitable.');
+        setImportError(
+          'Le processus ne contient pas de diagramme XML exploitable.',
+        );
         setIsImporting(false);
         clearViewerAfterQueuedImports();
       }
       return () => {
         cancelled = true;
-        if (importGenerationRef.current === generation) importGenerationRef.current += 1;
+        if (importGenerationRef.current === generation)
+          importGenerationRef.current += 1;
       };
     }
 
@@ -208,7 +309,11 @@ export const useProcessViewer = (
     setImportError(null);
     viewer.attachTo(viewerRef.current);
     const eventBus = viewer.get('eventBus') as {
-      on: (event: string, listenerOrPriority: number | ((event: any) => void), listener?: (event: any) => void) => void;
+      on: (
+        event: string,
+        listenerOrPriority: number | ((event: any) => void),
+        listener?: (event: any) => void,
+      ) => void;
       off: (event: string, listener: (event: any) => void) => void;
     };
     let clickListenerAttached = false;
@@ -231,8 +336,11 @@ export const useProcessViewer = (
       // list of diagram-js shape types. This includes labels, collapsed
       // SubProcesses and future BPMN shape types, while excluding connections.
       const elementType = element.businessObject?.$type ?? element.type;
-      const isConnection = Array.isArray(element.waypoints) ||
-        /^(?:bpmn:)?(?:sequenceFlow|messageFlow|association|dataInputAssociation|dataOutputAssociation|conversationLink)$/i.test(String(elementType ?? ''));
+      const isConnection =
+        Array.isArray(element.waypoints) ||
+        /^(?:bpmn:)?(?:sequenceFlow|messageFlow|association|dataInputAssociation|dataOutputAssociation|conversationLink)$/i.test(
+          String(elementType ?? ''),
+        );
       if (isConnection) {
         // Prevent diagram-js' default click handler from selecting a BPMN flow.
         event?.stopPropagation?.();
@@ -284,7 +392,8 @@ export const useProcessViewer = (
       const element = clickedElement?.labelTarget ?? clickedElement;
       const elementType = element?.businessObject?.$type ?? element?.type;
       const isTaskWithUrl =
-        (elementType === 'bpmn:Task' || String(elementType ?? '').endsWith('Task')) &&
+        (elementType === 'bpmn:Task' ||
+          String(elementType ?? '').endsWith('Task')) &&
         elementType !== 'bpmn:CallActivity';
       const url = String(element?.businessObject?.link ?? '').trim();
       if (!isTaskWithUrl || !url) return;
@@ -330,6 +439,7 @@ export const useProcessViewer = (
         });
         fitDiagramToWidth();
         importedRef.current = true;
+        applyRemarkOverlaysRef.current();
         setIsImporting(false);
         // Keep the minimap closed on import; users can open it manually from the viewer controls.
         applySelectionRef.current();
@@ -350,26 +460,42 @@ export const useProcessViewer = (
 
     return () => {
       cancelled = true;
-      if (importGenerationRef.current === generation) importGenerationRef.current += 1;
+      if (importGenerationRef.current === generation)
+        importGenerationRef.current += 1;
       cancelPendingSelection();
       if (clickListenerAttached) {
         eventBus.off('element.click', onElementClick);
         eventBus.off('element.dblclick', onElementDoubleClick);
       }
     };
-  }, [xmlContent, resourceId, contentId, viewer, isXmlLoading, isXmlError, setMinimapVisibility]);
+  }, [
+    xmlContent,
+    resourceId,
+    contentId,
+    viewer,
+    isXmlLoading,
+    isXmlError,
+    setMinimapVisibility,
+  ]);
 
   useEffect(() => {
     applySelectionRef.current();
   }, [selectedElementId]);
 
-  useEffect(() => () => {
-    try {
-      viewer.destroy();
-    } catch {
-      // The viewer may already have been destroyed by its parent.
-    }
-  }, [viewer]);
+  useEffect(() => {
+    applyRemarkOverlaysRef.current();
+  }, [remarks]);
+
+  useEffect(
+    () => () => {
+      try {
+        viewer.destroy();
+      } catch {
+        // The viewer may already have been destroyed by its parent.
+      }
+    },
+    [viewer],
+  );
 
   return {
     viewerRef,

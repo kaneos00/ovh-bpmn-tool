@@ -8,9 +8,19 @@ export type AddCommentFormFields = {
 
 export type AddCommentFormProps = {
   onFormSubmit: (props: AddCommentFormFields) => void;
+  placeholder?: string;
+  submitLabel?: string;
+  disabled?: boolean;
+  loading?: boolean;
 };
 
-export const AddCommentForm = ({ onFormSubmit }: AddCommentFormProps) => {
+export const AddCommentForm = ({
+  onFormSubmit,
+  placeholder = 'Add a comment...',
+  submitLabel = 'Comment',
+  disabled = false,
+  loading = false,
+}: AddCommentFormProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const { register, handleSubmit } = useForm<AddCommentFormFields>({});
 
@@ -23,6 +33,7 @@ export const AddCommentForm = ({ onFormSubmit }: AddCommentFormProps) => {
       >
         <Input
           {...register('comment')}
+          disabled={disabled || loading}
           required
           onKeyDown={event => {
             if (event.key !== 'Enter') {
@@ -40,8 +51,8 @@ export const AddCommentForm = ({ onFormSubmit }: AddCommentFormProps) => {
             '--Input-minHeight': '54px',
             '--Input-decoratorChildHeight': '42px',
           }}
-          placeholder="Add a comment..."
-          endDecorator={<Button type="submit">Comment</Button>}
+          placeholder={placeholder}
+          endDecorator={<Button type="submit" disabled={disabled || loading} loading={loading}>{submitLabel}</Button>}
         />
       </form>
     </Stack>

@@ -184,7 +184,7 @@ export const Component = () => {
               </Card>
             )}
             {!processesQuery.isError && processes.length > 0 && (
-              <ProjectProcessOverview processes={processes} />
+              <ProjectProcessOverview projectId={projectId ?? ''} processes={processes} />
             )}
             <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
               <Typography level="body-xs" color="neutral">

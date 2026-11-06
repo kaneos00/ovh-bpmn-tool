@@ -1,8 +1,10 @@
 import React from 'react';
 import { Alert, Box, Button, Stack, Typography } from '@mui/joy';
-import { useProcessViewer } from './hooks/useProcessViewer';
+import { useProcessViewer, type ContextualRemark } from './hooks/useProcessViewer';
 import 'diagram-js-minimap/assets/diagram-js-minimap.css';
 import '../Modeler/Modeler.css';
+
+const EMPTY_CONTEXTUAL_REMARKS: ContextualRemark[] = [];
 
 type ProcessViewerProps = {
   resourceId: string;
@@ -12,6 +14,7 @@ type ProcessViewerProps = {
   onToggleInfoPanel?: () => void;
   infoPanelOpen?: boolean;
   toolbarExtra?: React.ReactNode;
+  remarks?: ContextualRemark[];
 };
 
 export const ProcessViewer = ({
@@ -22,6 +25,7 @@ export const ProcessViewer = ({
   onToggleInfoPanel,
   infoPanelOpen = false,
   toolbarExtra,
+  remarks = EMPTY_CONTEXTUAL_REMARKS,
 }: ProcessViewerProps) => {
   const {
     viewerRef,
@@ -38,6 +42,7 @@ export const ProcessViewer = ({
     contentId,
     selectedElementId,
     onElementSelect,
+    remarks,
   );
 
   return (
