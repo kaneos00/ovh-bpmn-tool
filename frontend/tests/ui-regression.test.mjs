@@ -834,6 +834,7 @@ test('full-screen version viewer opens a read-only element sheet on BPMN selecti
   const styles = await read('src/Containers/ContentViewer/ContentViewerContainer.scss');
   assert.ok(contentViewer.includes('const workspaceRef = useRef<HTMLDivElement>(null)'));
   assert.ok(contentViewer.includes('fullscreenTargetRef={workspaceRef}'));
+  assert.ok(contentViewer.includes('onElementSelect={handleElementSelect}'));
   assert.ok(contentViewer.includes('setInfoTab(2)'));
   assert.ok(contentViewer.includes('Fiche de l’élément'));
   assert.ok(contentViewer.includes('selectedElementDetails'));
