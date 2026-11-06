@@ -79,6 +79,7 @@ describe('ProcessChangeProposalController remark permissions', () => {
       [ProcessChangeProposalCommentTypeOrmEntity, comments],
       [ProcessChangeProposalEventTypeOrmEntity, events],
       [ProjectMemberTypeOrmEntity, members],
+      [ProjectProcessTypeOrmEntity, projectProcesses],
     ]);
     const manager = {
       getRepository: jest.fn((entity: unknown) => repositories.get(entity)),
@@ -185,10 +186,10 @@ describe('ProcessChangeProposalController remark permissions', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('allows the contribution workflow to process remarks on a common process without changing its project usage', async () => {
+  it('allows only an organization administrator to decide remarks on a common process', async () => {
     const { controller, comments, events } = makeController(
-      { role: ProjectMemberRole.Admin },
-      false,
+      null,
+      true,
       authorUserId,
       ProjectProcessUsage.Common,
     );
@@ -207,6 +208,23 @@ describe('ProcessChangeProposalController remark permissions', () => {
     expect(events.save).toHaveBeenCalledWith(
       expect.objectContaining({ eventType: 'remark_accepted' }),
     );
+  });
+
+  it('does not allow a project administrator to decide remarks on a common process', async () => {
+    const { controller } = makeController(
+      { role: ProjectMemberRole.Admin },
+      false,
+      authorUserId,
+      ProjectProcessUsage.Common,
+    );
+    await expect(
+      controller.decideProposalComment(
+        proposalId,
+        commentId,
+        { decision: 'accepted' },
+        { 'x-user': actorUsername },
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('does not allow even a global administrator to decide their own remark', async () => {
