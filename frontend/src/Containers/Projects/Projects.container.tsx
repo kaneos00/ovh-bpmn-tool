@@ -767,6 +767,8 @@ export const Component = () => {
             <Typography level="body-sm" color="neutral">
               Le validateur par défaut est utilisé lorsque le processus ne désigne pas son propre pilote ou validateur. Le pilote indiqué dans le processus reste prioritaire.
             </Typography>
+            {membersQuery.isLoading && <Typography level="body-sm" color="neutral">Chargement des membres du projet…</Typography>}
+            {membersQuery.isError && <Alert color="danger">Impossible de charger les membres du projet : sélection du validateur indisponible.</Alert>}
             <FormControl>
               <FormLabel>Validateur par défaut du projet</FormLabel>
               <Select
