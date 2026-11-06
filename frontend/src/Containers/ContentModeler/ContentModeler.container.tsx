@@ -42,6 +42,10 @@ export const Component = () => {
     isShortcurtModalOpen,
     setIsShortcurtModalOpen,
     onFileUpload,
+    diagramOptions,
+    activeDiagramId,
+    onDiagramSelect,
+    refreshModelerDiagrams,
     onFileExport,
     onDiagramSave,
     onDiagramPublish,
@@ -50,7 +54,7 @@ export const Component = () => {
   } = useContentModeler(bpmnModelerInstance);
 
   const { diagramContainerRef, diagramPropertiesRef, hasLintError } =
-    useModeler(bpmnModelerInstance, draftXmlContent);
+    useModeler(bpmnModelerInstance, draftXmlContent, refreshModelerDiagrams);
 
   return (
     <>
@@ -62,6 +66,9 @@ export const Component = () => {
         resourceId={resourceId}
         hasLintError={hasLintError}
         onFileUpload={onFileUpload}
+        diagramOptions={diagramOptions}
+        activeDiagramId={activeDiagramId}
+        onDiagramSelect={onDiagramSelect}
         onFileExport={onFileExport}
         onDiagramSave={onDiagramSave}
         onDiagramPublish={onDiagramPublish}
