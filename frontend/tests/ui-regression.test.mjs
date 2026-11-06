@@ -856,3 +856,29 @@ test('all-projects workspace reuses the shared Viewer breadcrumb header', async 
   assert.ok(sharedHeader.includes('<Breadcrumbs isLoading={isLoading} breadcrumbItems={breadcrumbs || []} />'));
   assert.ok(breadcrumbs.includes('aria-label="breadcrumbs"'));
 });
+
+test('project administration persists a member-backed default validator and documents process-pilot precedence', async () => {
+  const page = await read('src/Containers/Projects/Projects.container.tsx');
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project.controller.ts');
+  const entity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/project.ormEntity.ts');
+  const migration = await read('../backend/migrations/20261106_add_project_default_validator.sql');
+
+  assert.ok(page.includes('defaultValidatorUserId: string | null'));
+  assert.ok(page.includes('Validatore predefinito del progetto'));
+  assert.ok(page.includes('Il pilota indicato nel processo mantiene la precedenza.'));
+  assert.ok(page.includes('apiClient.put(`/projects/${projectId}`, {'));
+  assert.ok(controller.includes('The default validator must be a member of this project'));
+  assert.ok(controller.includes('project.defaultValidatorUserId === userId'));
+  assert.ok(entity.includes('defaultValidatorUserId: string | null'));
+  assert.ok(migration.includes('ADD COLUMN IF NOT EXISTS "defaultValidatorUserId"'));
+});
+
+test('project administration uses the shared breadcrumb header and Viewer-aligned surface', async () => {
+  const page = await read('src/Containers/Projects/Projects.container.tsx');
+
+  assert.ok(page.includes('<Header'));
+  assert.ok(page.includes("{ id: 'home', label: 'Tous les projets', to: '/projects' }"));
+  assert.ok(page.includes("bgcolor: 'background.surface'"));
+  assert.ok(page.includes("borderColor: 'neutral.outlinedBorder'"));
+  assert.ok(page.includes('borderRadius: 0'));
+});
