@@ -73,6 +73,8 @@ export const Component = () => {
   const [submissionComment, setSubmissionComment] = useState('');
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submittingProposal, setSubmittingProposal] = useState(false);
+  const [proposalDecisionComment, setProposalDecisionComment] = useState('');
+  const [approvingProposal, setApprovingProposal] = useState(false);
   const [publishingApprovedProposal, setPublishingApprovedProposal] =
     useState(false);
   const [publicationError, setPublicationError] = useState<string | null>(null);
@@ -261,6 +263,35 @@ export const Component = () => {
     }
   };
 
+  const approveProposalAndContinue = async () => {
+    if (!proposalId || !reviewRemarksMode || approvingProposal) return;
+    if (proposalRemarks.some(remark => remark.status === 'pending')) {
+      setRemarkDecisionError('Toutes les remarques doivent être traitées avant de valider la demande.');
+      return;
+    }
+    setApprovingProposal(true);
+    setRemarkDecisionError(null);
+    try {
+      await apiClient.post(
+        `/projects/process-change-proposals/${proposalId}/decision`,
+        { decision: 'approved', comment: proposalDecisionComment.trim() || undefined },
+      );
+      await queryClient.invalidateQueries({
+        queryKey: ['process-change-proposals-to-review'],
+      });
+      const sourceParam = sourceResourceId
+        ? `&sourceResourceId=${encodeURIComponent(sourceResourceId)}`
+        : '';
+      navigate(`/${resourceId}/modeler?proposalId=${proposalId}&publishApproved=1${sourceParam}`);
+    } catch (error) {
+      setRemarkDecisionError(
+        error instanceof Error ? error.message : 'Impossible de valider la demande.',
+      );
+    } finally {
+      setApprovingProposal(false);
+    }
+  };
+
   const blocker = useBlocker(
     ({ nextLocation }) => isDirty && nextLocation.pathname === `/${resourceId}`,
   );
@@ -438,22 +469,26 @@ export const Component = () => {
             {remarkDecisionError && (
               <Alert color="danger">{remarkDecisionError}</Alert>
             )}
-            {reviewRemarksMode &&
-              proposalRemarks.length > 0 &&
-              proposalRemarks.every(remark => remark.status !== 'pending') && (
+            {reviewRemarksMode && !proposalRemarks.some(remark => remark.status === 'pending') && (
+              <Stack spacing={1}>
+                <Typography level="title-sm">Décision sur la demande</Typography>
+                <Textarea
+                  minRows={2}
+                  value={proposalDecisionComment}
+                  onChange={event => setProposalDecisionComment(event.target.value)}
+                  placeholder="Commentaire général de validation (facultatif)…"
+                />
                 <Button
                   color="success"
                   variant="solid"
-                  onClick={() => {
-                    const sourceParam = sourceResourceId
-                      ? `&sourceResourceId=${encodeURIComponent(sourceResourceId)}`
-                      : '';
-                    navigate(`/${resourceId}/modeler?proposalId=${proposalId}&publishApproved=1${sourceParam}`);
-                  }}
+                  loading={approvingProposal}
+                  disabled={approvingProposal}
+                  onClick={approveProposalAndContinue}
                 >
-                  Préparer la publication de la nouvelle version
+                  Valider la demande et préparer la publication
                 </Button>
-              )}
+              </Stack>
+            )}
             <Stack spacing={1}>
               <Typography level="title-sm">
                 Ajouter une remarque sur le diagramme
