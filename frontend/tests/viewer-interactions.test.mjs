@@ -20,18 +20,16 @@ test('viewer starts with the minimap hidden and exposes an explicit toggle', asy
   assert.match(component, /aria-label=\{minimapVisible \? 'Masquer la mini-carte' : 'Afficher la mini-carte'\}/);
 });
 
-test('new element selection is immediate; rapid double-click cancels deselection', async () => {
+test('element selection toggles immediately on every click while double-click navigation remains separate', async () => {
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
 
-  assert.match(hook, /eventBus\.on\('element\.click', 1500, onElementClick\)/);
-  assert.match(hook, /eventBus\.on\('element\.dblclick', onElementDoubleClick\)/);
-  assert.match(hook, /now - lastClickAt < 280/);
-  assert.match(hook, /if \(currentlySelected !== element\.id\) \{\s*onElementSelectRef\.current\?\.\(element\.id\);\s*return;\s*\}/);
-  assert.match(hook, /Only delay deselection of an already-selected element/);
-  assert.match(hook, /if \(selectedIdRef\.current === element\.id\) \{\s*onElementSelectRef\.current\?\.\(''\);\s*\}\s*\}, 220\)/);
-  assert.match(hook, /const onElementDoubleClick = \(event: any\) => \{\s*cancelPendingSelection\(\)/);
-  assert.match(hook, /eventBus\.off\('element\.click', onElementClick\)/);
-  assert.match(hook, /eventBus\.off\('element\.dblclick', onElementDoubleClick\)/);
+  assert.match(hook, /eventBus\\.on\\('element\\.click', 1500, onElementClick\\)/);
+  assert.match(hook, /eventBus\\.on\\('element\\.dblclick', onElementDoubleClick\\)/);
+  assert.match(hook, /if \\(selectedIdRef\\.current === element\\.id\\) \\{\\s*onElementSelectRef\\.current\\?\\.\\(''\\);\\s*\\} else \\{\\s*onElementSelectRef\\.current\\?\\.\\(element\\.id\\);/);
+  assert.ok(hook.includes('Every click toggles the same element immediately'));
+  assert.doesNotMatch(hook, /pendingSelectionTimer|lastClickAt|cancelPendingSelection/);
+  assert.match(hook, /eventBus\\.off\\('element\\.click', onElementClick\\)/);
+  assert.match(hook, /eventBus\\.off\\('element\\.dblclick', onElementDoubleClick\\)/);
 });
 
 test('viewer selection recognizes collapsed SubProcesses through their BPMN business-object type', async () => {
