@@ -57,6 +57,8 @@ import { useViewerRaciAnalysis } from './hooks/useViewerRaciAnalysis';
 import { getRaciIssueLabel } from '../../extensions/raci-engine';
 import type { RaciCode } from '../../extensions/raci-engine';
 import { useViewerRaciFilters } from './hooks/useViewerRaciFilters';
+import { AddCommentForm } from '../Comments/components/AddCommentForm';
+import { CommentCard } from '../Comments/components/CommentCard';
 
 import './ContentViewerContainer.scss';
 
@@ -251,12 +253,12 @@ const ProcessContentViewer = () => {
     { enabled: Boolean(activeProposal?.id) },
   );
 
-  const submitViewerRemark = async () => {
+  const submitViewerRemark = async (submittedText = remarkText) => {
     if (
       !routeProjectId ||
       !canSubmitViewerRemark ||
       !selectedActivityId ||
-      !remarkText.trim() ||
+      !submittedText.trim() ||
       submittingRemark
     )
       return;
@@ -280,7 +282,7 @@ const ProcessContentViewer = () => {
         `/projects/${routeProjectId}/processes/${resourceId}/change-proposals`,
         {
           elementId: selectedActivityId,
-          comment: remarkText.trim(),
+          comment: submittedText.trim(),
           validatorUserId: pilotIdentifier,
         },
       );
@@ -598,11 +600,10 @@ const ProcessContentViewer = () => {
           <DialogContent>
             Élément BPMN sélectionné : {selectedActivityId || 'aucun'}
           </DialogContent>
-          <Textarea
-            minRows={3}
-            value={remarkText}
-            onChange={event => setRemarkText(event.target.value)}
+          <AddCommentForm
             placeholder="Décrivez le point à examiner ou la modification souhaitée…"
+            submitLabel="Envoyer la remarque"
+            onFormSubmit={({ comment }) => submitViewerRemark(comment)}
           />
           {remarkError && <Alert color="danger">{remarkError}</Alert>}
           <DialogActions>
@@ -613,19 +614,6 @@ const ProcessContentViewer = () => {
               onClick={() => setRemarkModalOpen(false)}
             >
               Annuler
-            </Button>
-            <Button
-              variant="solid"
-              loading={submittingRemark}
-              disabled={
-                !canSubmitViewerRemark ||
-                !selectedActivityId ||
-                !remarkText.trim() ||
-                submittingRemark
-              }
-              onClick={submitViewerRemark}
-            >
-              Envoyer la remarque
             </Button>
           </DialogActions>
         </ModalDialog>
@@ -777,13 +765,15 @@ const ProcessContentViewer = () => {
                         {getRemarkStatusLabel(remark.status)}
                       </Typography>
                     </Stack>
-                    <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>
-                      {remark.comment}
-                    </Typography>
-                    <Typography level="body-xs" textColor="neutral">
-                      Déposée le {formatDateTime(remark.createdAt)} ·{' '}
-                      {remark.authorName || remark.authorUserId}
-                    </Typography>
+                    <CommentCard
+                      comment={{
+                        id: remark.id,
+                        resourceId,
+                        comment: remark.comment,
+                        createdBy: remark.authorName || remark.authorUserId,
+                        createdAt: remark.createdAt,
+                      }}
+                    />
                     {remark.decidedAt && (
                       <Typography level="body-xs" textColor="neutral">
                         Décision le {formatDateTime(remark.decidedAt)}
