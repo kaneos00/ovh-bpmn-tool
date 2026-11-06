@@ -456,3 +456,27 @@ test('the right element-details panel and its resize handle exist only on the BP
   assert.match(details, /<Tab value=\{3\}>RACI<\/Tab>/);
   assert.match(details, /<Tab value=\{4\}>Informations documentées<\/Tab>/);
 });
+
+
+test('BPMN element selection opens and closes the right-hand element panel', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+
+  assert.match(details, /setTaskPanelCollapsed\(!selectedElementId\)/);
+  assert.ok(hook.includes("onElementSelectRef.current?.(element.id)"));
+  assert.ok(hook.includes("onElementSelectRef.current?.('')"));
+  assert.ok(hook.includes("canvas.addMarker(targetId, 'task-selected')"));
+  assert.ok(hook.includes("canvas.removeMarker(previousId, 'task-selected')"));
+});
+
+test('BPMN viewer exposes native fullscreen controls and browser Escape exit', async () => {
+  const viewer = await read('src/Components/BusinessComponents/ProcessViewer/ProcessViewer.tsx');
+  const css = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
+
+  assert.ok(viewer.includes('requestFullscreen()'));
+  assert.ok(viewer.includes('document.exitFullscreen()'));
+  assert.ok(viewer.includes("document.addEventListener('fullscreenchange'"));
+  assert.ok(viewer.includes('Afficher le BPMN en plein écran'));
+  assert.ok(viewer.includes('Quitter le plein écran (Échap)'));
+  assert.ok(css.includes('.process-viewer-shell:fullscreen'));
+});
