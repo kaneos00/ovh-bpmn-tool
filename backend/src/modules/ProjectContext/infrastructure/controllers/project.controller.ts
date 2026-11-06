@@ -115,6 +115,7 @@ export class ProjectController {
         color: project.color,
         icon: project.icon,
         role: roleByProject.get(project.id),
+        canSubmitRemarks: memberships.find(membership => membership.projectId === project.id)?.canSubmitRemarks ?? false,
         processes: (linksByProject.get(project.id) ?? []).map((link) => ({
           resourceId: link.resourceId,
           name: resourceById.get(link.resourceId)?.name ?? link.resourceId,
@@ -122,6 +123,32 @@ export class ProjectController {
           sourceResourceId: link.sourceResourceId,
         })),
       })),
+    };
+  }
+
+  /**
+   * Resolve remark permission for one explicit process/project pair.
+   * The Viewer uses this focused endpoint rather than relying on the workspace aggregate.
+   */
+  @Get(':projectId/processes/:resourceId/remark-permission')
+  @UseAcl()
+  async getProcessRemarkPermission(
+    @Param('projectId') projectId: string,
+    @Param('resourceId') resourceId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    const link = await this.projectProcesses.findOne({ where: { projectId, resourceId } });
+    if (!link) {
+      return { associated: false, isMember: false, canSubmitRemarks: false, usage: null };
+    }
+    const userId = this.projectResourceAccess.getAuthenticatedUserId(headers);
+    const membership = await this.projectMembers.findOne({ where: { projectId, userId } });
+    const isOrganizationAdmin = this.projectResourceAccess.hasOrganizationAdminRole(headers);
+    return {
+      associated: true,
+      isMember: Boolean(membership),
+      canSubmitRemarks: isOrganizationAdmin || Boolean(membership?.canSubmitRemarks),
+      usage: link.usage,
     };
   }
 
@@ -761,13 +788,16 @@ export class ProjectController {
   async setProjectMember(
     @Param('projectId') projectId: string,
     @Param('userId') userIdParam: string,
-    @Body() body: { role?: ProjectMemberRole },
+    @Body() body: { role?: ProjectMemberRole; canSubmitRemarks?: boolean },
     @Headers() headers: RequestHeaders,
   ) {
     const actorId = this.projectResourceAccess.getAuthenticatedUserId(headers);
     const userId = this.validateUserId(userIdParam);
     const role = this.validateMemberRole(body.role);
-    return this.changeProjectMember(projectId, userId, role, actorId, headers);
+    if (body.canSubmitRemarks !== undefined && typeof body.canSubmitRemarks !== 'boolean') {
+      throw new BadRequestException('canSubmitRemarks must be a boolean');
+    }
+    return this.changeProjectMember(projectId, userId, role, actorId, headers, body.canSubmitRemarks);
   }
 
   @Delete(':projectId/members/:userId')
@@ -813,6 +843,7 @@ export class ProjectController {
     role: ProjectMemberRole | null,
     actorId?: string,
     headers?: RequestHeaders,
+    canSubmitRemarks?: boolean,
   ) {
     return this.dataSource.transaction(async (manager) => {
       const projectRepository = manager.getRepository(ProjectTypeOrmEntity);
@@ -871,6 +902,7 @@ export class ProjectController {
           createdBy: actorId,
         });
       member.role = role;
+      if (canSubmitRemarks !== undefined) member.canSubmitRemarks = canSubmitRemarks;
       return members.save(member);
     });
   }
