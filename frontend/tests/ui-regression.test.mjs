@@ -791,7 +791,7 @@ test('fullscreen targets the complete process workspace and refits after both tr
   assert.ok(viewer.includes('fullscreenTargetRef?: React.RefObject<HTMLElement>'));
   assert.ok(viewer.includes('fullscreenTargetRef?.current ?? viewerShellRef.current'));
   assert.ok(viewer.includes('active || document.fullscreenElement === null'));
-  assert.ok(viewer.includes("isShellFullscreen ? 'is-fullscreen' : ''"));
+  assert.ok(viewer.includes("isShellFullscreen ? ' is-fullscreen' : ''"));
   assert.ok(styles.includes('.processViewerProcessWorkspace:fullscreen'));
   assert.ok(styles.includes(':fullscreen .processTaskPanel'));
 });
