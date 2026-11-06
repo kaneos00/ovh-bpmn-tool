@@ -375,9 +375,18 @@ export const Component = () => {
             />
           )}
           <Sheet
-            className="processViewerDiagram projectsOverviewPanel"
+            className="processViewerDiagram processViewerInfo projectsOverviewPanel"
             variant="outlined"
-            sx={{ p: 2, gap: 2, overflow: 'auto', alignItems: 'stretch' }}
+            sx={{
+              p: 2,
+              gap: 2,
+              overflow: 'auto',
+              alignItems: 'stretch',
+              flex: '1 1 0',
+              minWidth: 0,
+              minHeight: 0,
+              borderRadius: 0,
+            }}
           >
             <Stack spacing={2}>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
