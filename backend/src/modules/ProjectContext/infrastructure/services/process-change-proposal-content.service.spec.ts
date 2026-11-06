@@ -134,12 +134,10 @@ describe('process change proposal content lifecycle', () => {
 
   it('blocks promotion when the published source version has changed', async () => {
     const resources = {
-      findOne: jest
-        .fn()
-        .mockResolvedValue({
-          id: 'source-1',
-          authToken: 'token',
-        }),
+      findOne: jest.fn().mockResolvedValue({
+        id: 'source-1',
+        authToken: 'token',
+      }),
     };
     const contents = {
       findOne: jest
