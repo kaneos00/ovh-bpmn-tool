@@ -2,9 +2,15 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 
-import { drawioToBpmn } from '../../.test-dist/import/drawio/drawio-to-bpmn.js';
-import { DocumentReaderEngine } from '../../.test-dist/import/reader/reader-engine.js';
-import { drawioReader } from '../../.test-dist/import/readers/drawio-reader.js';
+import '../helpers/dom-parser.mjs';
+
+const { drawioToBpmn } = await import('../../.test-dist/import/drawio/drawio-to-bpmn.js');
+const { DocumentReaderEngine } = await import('../../.test-dist/import/reader/reader-engine.js');
+const { drawioReader } = await import('../../.test-dist/import/readers/drawio-reader.js');
+
+
+
+
 
 const BPMN_NS = 'http://www.omg.org/spec/BPMN/20100524/MODEL';
 const BPMNDI_NS = 'http://www.omg.org/spec/BPMN/20100524/DI';
