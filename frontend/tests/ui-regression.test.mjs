@@ -388,6 +388,7 @@ test('viewer keeps the explorer left of the tabs and the element sheet beside th
 
   assert.ok(layoutStart >= 0, 'viewer workspace should own the explorer and central tabs');
   assert.ok(explorer > layoutStart && explorer < tabs, 'explorer must remain to the left of central tabs');
+  // RACI stays a top-level tab; only the element sheet moves beside the BPMN diagram.
   assert.ok(tabs < processTab && processTab < descriptionTab && descriptionTab < historyTab && historyTab < raciTab && raciTab < inventoryTab && tabsClose > inventoryTab, 'diagram, description, history, RACI and inventory must remain ordered in the top-level tabs');
   assert.ok(processWorkspace > processTab && diagram > processWorkspace && taskPanel > diagram && workspaceClose > taskPanel && processTabClose > workspaceClose, 'the BPMN diagram and element sheet must be siblings inside the Vue du processus tab');
   assert.ok(details.slice(processTab, processTabClose).includes('className="processViewerResizeHandle"'), 'the element sheet resize handle must stay with the process workspace');
