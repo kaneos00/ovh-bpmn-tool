@@ -843,3 +843,14 @@ test('full-screen version viewer opens a read-only element sheet on BPMN selecti
   assert.ok(contentViewer.includes('Sélectionnez un élément BPMN pour afficher sa fiche.'));
   assert.ok(styles.includes('.processViewerWorkspace.viewerLayout:fullscreen'));
 });
+
+test('all-projects workspace reuses the shared Viewer breadcrumb header', async () => {
+  const projects = await read('src/Containers/Projects/Projects.container.tsx');
+  const sharedHeader = await read('src/Components/GenericComponents/Header/Header.tsx');
+  const breadcrumbs = await read('src/Components/GenericComponents/Breadcrumbs/Breadcrumbs.tsx');
+
+  assert.ok(projects.includes("import { Header } from '../../Components/GenericComponents/Header/Header'"));
+  assert.match(projects, /<Header[\\s\\S]*?title="Tous les projets"[\\s\\S]*?breadcrumbs=\\{\\[\\{ id: 'home', label: 'Tous les projets', to: '\\/projects' \\}\\]\\}/);
+  assert.ok(sharedHeader.includes('<Breadcrumbs isLoading={isLoading} breadcrumbItems={breadcrumbs || []} />'));
+  assert.ok(breadcrumbs.includes('aria-label="breadcrumbs"'));
+});
