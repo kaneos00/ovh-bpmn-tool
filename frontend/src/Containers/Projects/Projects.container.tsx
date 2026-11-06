@@ -120,19 +120,10 @@ export const Component = () => {
     return 0;
   });
 
-  const projectsQuery = useQuery<Project[]>(
-    projectsKey,
-    () => apiClient.get('/projects'),
-    { enabled: !projectId },
-  );
   const workspaceQuery = useQuery<WorkspaceSummary>(
     ['my-workspace'],
     () => apiClient.get('/projects/me/workspace'),
     { enabled: true },
-  );
-  const workspaceProjects = useMemo(
-    () => new Map((workspaceQuery.data?.projects ?? []).map((item) => [item.id, item])),
-    [workspaceQuery.data],
   );
   const projectQuery = useQuery<Project>(
     projectKey(projectId ?? ''),
@@ -357,75 +348,150 @@ export const Component = () => {
   if (!projectId) {
     return (
       <WorkspacePageLayout>
-        <Stack spacing={2}>
-          <Typography level="h2">Projets</Typography>
-          <Button variant="outlined" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/organization/users')}>Administration de l’organisation →</Button>
-          <Typography level="body-md">
-            Retrouvez vos projets, votre rôle et les processus associés au même endroit. L’administration globale de l’organisation reste distincte et réservée aux comptes autorisés.
-          </Typography>
-          {error && <Alert color="danger">{error}</Alert>}
-          <Card variant="outlined">
-            <Typography level="title-lg">Créer un projet</Typography>
-            <Stack spacing={1.5}>
-              <FormControl required>
-                <FormLabel>Nom du projet</FormLabel>
-                <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Ex. Refonte RH" />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Description</FormLabel>
-                <Input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Objectif et périmètre" />
-              </FormControl>
-              <Box>
-                <Button loading={createProject.isLoading} disabled={!name.trim()} onClick={() => createProject.mutate()}>
-                  Créer le projet
-                </Button>
-              </Box>
-            </Stack>
-          </Card>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
-            <Typography level="title-lg">Vos projets</Typography>
-            {workspaceQuery.data && <Chip variant="soft">{workspaceQuery.data.projects.length} projet(s) accessible(s)</Chip>}
-          </Stack>
-          {projectsQuery.isLoading && <Typography>Chargement des projets…</Typography>}
-          {workspaceQuery.isError && <Alert color="warning">Les informations de rôle et de processus ne sont pas disponibles pour le moment. La liste des projets reste consultable.</Alert>}
-          {projectsQuery.isError && <Alert color="danger">Impossible de charger les projets.</Alert>}
-          {!projectsQuery.isLoading && (projectsQuery.data?.length ?? 0) === 0 && (
-            <Typography level="body-sm">Aucun projet pour le moment.</Typography>
+        <Box
+          className="processViewerLayout processViewerWorkspace"
+          style={{ "--explorer-width": `${explorerWidth}px` } as React.CSSProperties}
+          sx={{ height: 'calc(100vh - 176px)', minHeight: 460 }}
+        >
+          <ViewerExplorerPanel
+            variant="projects-overview"
+            selectedId="projects"
+            onNodeClick={() => undefined}
+            collapsed={explorerCollapsed}
+            onToggle={() => setExplorerCollapsed(value => !value)}
+            projects={accessibleProjects}
+            activeProjectId={activeProjectId}
+            onProjectSelect={selectedProjectId => {
+              setActiveProject(selectedProjectId);
+              navigate('/root');
+            }}
+          />
+          {!explorerCollapsed && (
+            <Box
+              className="processViewerResizeHandle"
+              role="separator"
+              aria-label="Redimensionner le panneau des projets"
+              title="Glisser pour régler la largeur de l’explorateur"
+              onMouseDown={startExplorerResize}
+            />
           )}
-          <Stack spacing={1}>
-            {(projectsQuery.data ?? []).map((project) => {
-              const membership = workspaceProjects.get(project.id);
-              const processCount = membership?.processes.length;
-              return (
-                <Card key={project.id} variant="outlined" sx={{ gap: 1.25 }}>
-                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
-                    <Box sx={{ minWidth: 0, flex: 1 }}>
-                      <Typography level="title-md">{project.name}</Typography>
-                      {project.description && <Typography level="body-sm">{project.description}</Typography>}
-                    </Box>
-                    <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
-                      {membership && <Chip size="sm" variant="soft" color={projectRoleColors[membership.role]}>{projectRoleLabels[membership.role]}</Chip>}
-                      {processCount !== undefined && <Chip size="sm" variant="outlined">{processCount} processus</Chip>}
-                    </Stack>
-                  </Stack>
-                  {membership && membership.processes.length > 0 && (
-                    <Typography level="body-sm" sx={{ color: 'text.secondary' }}>
-                      {membership.processes.slice(0, 3).map((process) => process.name).join(' · ')}
-                      {membership.processes.length > 3 ? ` · +${membership.processes.length - 3} autre(s)` : ''}
-                    </Typography>
-                  )}
-                  <Box>
-                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                    <Button variant="soft" onClick={() => { setActiveProject(project.id); navigate("/root"); }}>Ouvrir le projet</Button>
-                    <Button variant="outlined" color="neutral" onClick={() => navigate(`/projects/${project.id}`)}>Administration</Button>
-                  </Stack>
-                  </Box>
+          <Sheet
+            className="processViewerDiagram projectsOverviewPanel"
+            variant="outlined"
+            sx={{ p: 2, gap: 2, overflow: 'auto', alignItems: 'stretch' }}
+          >
+            <Stack spacing={2}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography level="h2">Tous les projets</Typography>
+                  <Typography level="body-sm" color="neutral">
+                    Vos espaces de travail et les processus auxquels vous avez accès.
+                  </Typography>
+                </Box>
+                <Button variant="outlined" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/organization/users')}>
+                  Administration de l’organisation →
+                </Button>
+              </Stack>
+
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', xl: 'repeat(4, minmax(0, 1fr))' }, gap: 1.25 }}>
+                <Card variant="outlined" sx={{ gap: 0.5 }}>
+                  <Typography level="body-sm" color="neutral">Projets accessibles</Typography>
+                  <Typography level="h2">{workspaceStats.projects}</Typography>
                 </Card>
-              );
-            })}
-          </Stack>
-          <Button variant="plain" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/root')}>Retour au référentiel BPMN</Button>
-        </Stack>
+                <Card variant="outlined" sx={{ gap: 0.5 }}>
+                  <Typography level="body-sm" color="neutral">Processus distincts</Typography>
+                  <Typography level="h2">{workspaceStats.processes}</Typography>
+                </Card>
+                <Card variant="outlined" sx={{ gap: 0.5 }}>
+                  <Typography level="body-sm" color="neutral">Processus publiés</Typography>
+                  <Typography level="h2">{workspaceStats.contentLoading ? '…' : workspaceStats.published}</Typography>
+                </Card>
+                <Card variant="outlined" sx={{ gap: 0.5 }}>
+                  <Typography level="body-sm" color="neutral">Modifiés sur 30 jours</Typography>
+                  <Typography level="h2">{workspaceStats.contentLoading ? '…' : workspaceStats.recentlyChanged}</Typography>
+                </Card>
+              </Box>
+
+              {error && <Alert color="danger">{error}</Alert>}
+              {workspaceProjectsLoading && <Typography level="body-sm" color="neutral">Chargement de vos projets…</Typography>}
+              {workspaceQuery.isError && (
+                <Alert color="warning">
+                  Impossible de charger la liste des projets accessibles. Réessayez dans quelques instants.
+                </Alert>
+              )}
+
+              <Card variant="outlined" sx={{ gap: 1.25 }}>
+                <Typography level="title-lg">Créer un projet</Typography>
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems={{ md: 'flex-end' }}>
+                  <FormControl required sx={{ flex: 1 }}>
+                    <FormLabel>Nom du projet</FormLabel>
+                    <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Ex. Refonte RH" />
+                  </FormControl>
+                  <FormControl sx={{ flex: 1 }}>
+                    <FormLabel>Description</FormLabel>
+                    <Input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Objectif et périmètre" />
+                  </FormControl>
+                  <Button loading={createProject.isLoading} disabled={!name.trim()} onClick={() => createProject.mutate()}>
+                    Créer le projet
+                  </Button>
+                </Stack>
+              </Card>
+
+              <Stack spacing={1.25}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between">
+                  <Typography level="title-lg">Vos projets</Typography>
+                  <Chip variant="soft">{accessibleProjects.length} projet(s)</Chip>
+                </Stack>
+                {accessibleProjects.length === 0 && !workspaceProjectsLoading && (
+                  <Card variant="outlined">
+                    <Typography level="body-sm" color="neutral">Aucun projet ne vous est actuellement associé.</Typography>
+                  </Card>
+                )}
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, minmax(0, 1fr))' }, gap: 1.25 }}>
+                  {accessibleProjects.map(project => (
+                    <Card key={project.id} variant="outlined" sx={{ gap: 1.25 }}>
+                      <Stack direction="row" spacing={1} alignItems="flex-start">
+                        <Box
+                          component="span"
+                          title={project.name}
+                          sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 42, height: 30, px: 0.75, borderRadius: '7px', bgcolor: project.color || '#2864d7', color: '#fff', fontSize: 11, fontWeight: 800, letterSpacing: '0.04em', flexShrink: 0 }}
+                        >
+                          {getProjectTrigram(project.name)}
+                        </Box>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography level="title-md">{project.name}</Typography>
+                          {project.description && (
+                            <Typography level="body-sm" color="neutral">{project.description}</Typography>
+                          )}
+                        </Box>
+                        <Chip size="sm" variant="soft" color={projectRoleColors[project.role]}>
+                          {projectRoleLabels[project.role]}
+                        </Chip>
+                      </Stack>
+                      <Chip size="sm" variant="outlined" sx={{ alignSelf: 'flex-start' }}>
+                        {project.processes.length} processus associés
+                      </Chip>
+                      {project.processes.length > 0 && (
+                        <Typography level="body-sm" color="neutral">
+                          {project.processes.slice(0, 3).map(process => process.name).join(' · ')}
+                          {project.processes.length > 3 ? ` · +${project.processes.length - 3} autre(s)` : ''}
+                        </Typography>
+                      )}
+                      <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                        <Button variant="soft" onClick={() => { setActiveProject(project.id); navigate('/root'); }}>
+                          Ouvrir le projet
+                        </Button>
+                        <Button variant="outlined" color="neutral" onClick={() => navigate(`/projects/${project.id}`)}>
+                          Administration
+                        </Button>
+                      </Stack>
+                    </Card>
+                  ))}
+                </Box>
+              </Stack>
+            </Stack>
+          </Sheet>
+        </Box>
       </WorkspacePageLayout>
     );
   }
