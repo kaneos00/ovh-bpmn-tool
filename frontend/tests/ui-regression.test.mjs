@@ -862,6 +862,8 @@ test('project administration persists a member-backed default validator and docu
   const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project.controller.ts');
   const entity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/project.ormEntity.ts');
   const migration = await read('../backend/migrations/20261106_add_project_default_validator.sql');
+  const migrationDockerfile = await read('../deploy/coolify/Dockerfile.migrations');
+  const compose = await read('../deploy/coolify/compose.yaml');
 
   assert.ok(page.includes('defaultValidatorUserId: string | null'));
   assert.ok(page.includes('Validateur par défaut du projet'));
@@ -871,6 +873,9 @@ test('project administration persists a member-backed default validator and docu
   assert.ok(controller.includes('project.defaultValidatorUserId === userId'));
   assert.ok(entity.includes('defaultValidatorUserId: string | null'));
   assert.ok(migration.includes('ADD COLUMN IF NOT EXISTS "defaultValidatorUserId"'));
+  assert.ok(migrationDockerfile.includes('20261106_add_project_default_validator.sql'));
+  assert.ok(compose.includes('/opt/migrations/20261106_add_project_default_validator.sql'));
+  assert.ok(page.includes('<Tab value={3}>Validation</Tab>'));
 });
 
 test('project administration uses the shared breadcrumb header and Viewer-aligned surface', async () => {
