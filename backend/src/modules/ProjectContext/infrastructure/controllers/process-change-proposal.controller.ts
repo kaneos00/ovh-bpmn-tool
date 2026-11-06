@@ -291,8 +291,11 @@ export class ProcessChangeProposalController {
           where: { proposalId: In(proposalIds) },
         }),
       ]);
-    const linked = new Set(
-      links.map((link) => `${link.projectId}:${link.resourceId}`),
+    const linkByKey = new Map(
+      links.map((link) => [
+        `${link.projectId}:${link.resourceId}`,
+        link,
+      ]),
     );
     const projectById = new Map(
       projects.map((project) => [project.id, project]),
@@ -338,9 +341,15 @@ export class ProcessChangeProposalController {
     }
 
     return visible
-      .filter((proposal) =>
-        linked.has(`${proposal.projectId}:${proposal.sourceResourceId}`),
-      )
+      .filter((proposal) => {
+        const link = linkByKey.get(
+          `${proposal.projectId}:${proposal.sourceResourceId}`,
+        );
+        return Boolean(
+          link &&
+            (link.usage !== ProjectProcessUsage.Common || isOrganizationAdmin),
+        );
+      })
       .map((proposal) => {
         const latestEvent = latestEventByProposal.get(proposal.id);
         return {
@@ -520,13 +529,8 @@ export class ProcessChangeProposalController {
           'Le processus ne fait pas partie de ce projet',
         );
       }
-      const isCommonRemark =
-        sourceLink.usage === ProjectProcessUsage.Common && isViewerRemark;
-      if (sourceLink.usage === ProjectProcessUsage.Common && !isViewerRemark) {
-        throw new ForbiddenException(
-          'Un processus Commun peut recevoir des remarques, mais ne peut pas être cloné comme processus Spécifique.',
-        );
-      }
+      const isCommonProcess =
+        sourceLink.usage === ProjectProcessUsage.Common;
 
       const source = await resources.findOne({
         where: { id: sourceResourceId },
@@ -583,20 +587,27 @@ export class ProcessChangeProposalController {
             'Le brouillon associé à la demande ouverte est indisponible',
           );
         }
-        const validatorResolutionResult = existingOpenProposal.validatorUserId
+        const validatorResolutionResult = isCommonProcess
           ? {
-              validatorUserId: existingOpenProposal.validatorUserId,
-              validatorResolution: 'pilot_assigned' as const,
-              validatorWarning: null,
+              validatorUserId: null,
+              validatorResolution: 'pilot_missing' as const,
+              validatorWarning:
+                'La demande concerne le référentiel commun : la revue doit être prise en charge par un responsable habilité du référentiel.',
             }
-          : await this.resolveProposalValidator(
-              manager,
-              members,
-              projectId,
-              authorUsername,
-              authorUserId,
-              body.validatorUserId,
-            );
+          : existingOpenProposal.validatorUserId
+            ? {
+                validatorUserId: existingOpenProposal.validatorUserId,
+                validatorResolution: 'pilot_assigned' as const,
+                validatorWarning: null,
+              }
+            : await this.resolveProposalValidator(
+                manager,
+                members,
+                projectId,
+                authorUsername,
+                authorUserId,
+                body.validatorUserId,
+              );
         const { validatorUserId, validatorWarning } = validatorResolutionResult;
         const shouldReopenApproved =
           existingOpenProposal.status === ProcessChangeProposalStatus.Approved;
@@ -710,7 +721,7 @@ export class ProcessChangeProposalController {
 
       // A Common process is already associated with the project as a shared
       // usage. Never create a second project-process link for its working copy.
-      if (!isCommonRemark) {
+      if (!isCommonProcess) {
         await links.save(
           links.create({
             projectId,
@@ -726,7 +737,7 @@ export class ProcessChangeProposalController {
         validatorUserId: initialValidatorUserId,
         validatorResolution: initialValidatorResolution,
         validatorWarning: initialValidatorWarning,
-      } = isViewerRemark
+      } = isViewerRemark && !isCommonProcess
         ? await this.resolveProposalValidator(
             manager,
             members,
@@ -738,7 +749,9 @@ export class ProcessChangeProposalController {
         : {
             validatorUserId: null,
             validatorResolution: 'pilot_missing' as const,
-            validatorWarning: null,
+            validatorWarning: isCommonProcess
+              ? 'La demande concerne le référentiel commun : la revue doit être prise en charge par un responsable habilité du référentiel.'
+              : null,
           };
 
       const proposal = await proposals.save(
@@ -944,6 +957,23 @@ export class ProcessChangeProposalController {
         );
       }
 
+      const governanceLink = await manager
+        .getRepository(ProjectProcessTypeOrmEntity)
+        .findOne({
+          where: {
+            projectId: proposal.projectId,
+            resourceId: proposal.sourceResourceId,
+          },
+          lock: { mode: 'pessimistic_read' },
+        });
+      if (!governanceLink) {
+        throw new NotFoundException(
+          'Le processus ne fait plus partie du projet de la demande',
+        );
+      }
+      const isCommonProcess =
+        governanceLink.usage === ProjectProcessUsage.Common;
+
       const submittedContent = await contents.findOne({
         where: {
           resourceId: proposal.cloneResourceId,
@@ -959,14 +989,21 @@ export class ProcessChangeProposalController {
       }
 
       const { validatorUserId, validatorResolution, validatorWarning } =
-        await this.resolveProposalValidator(
-          manager,
-          members,
-          proposal.projectId,
-          actorUsername,
-          actorUserId,
-          body.validatorUserId?.trim() || proposal.validatorUserId || null,
-        );
+        isCommonProcess
+          ? {
+              validatorUserId: null,
+              validatorResolution: 'pilot_missing' as const,
+              validatorWarning:
+                'La demande concerne le référentiel commun : la revue doit être prise en charge par un responsable habilité du référentiel.',
+            }
+          : await this.resolveProposalValidator(
+              manager,
+              members,
+              proposal.projectId,
+              actorUsername,
+              actorUserId,
+              body.validatorUserId?.trim() || proposal.validatorUserId || null,
+            );
 
       proposal.validatorUserId = validatorUserId;
       proposal.submittedContentId = submittedContent.id;
@@ -1103,6 +1140,28 @@ export class ProcessChangeProposalController {
           );
         }
       }
+      const governanceLink = await manager
+        .getRepository(ProjectProcessTypeOrmEntity)
+        .findOne({
+          where: {
+            projectId: proposal.projectId,
+            resourceId: proposal.sourceResourceId,
+          },
+          lock: { mode: 'pessimistic_read' },
+        });
+      if (!governanceLink) {
+        throw new NotFoundException(
+          'Le processus ne fait plus partie du projet de la demande',
+        );
+      }
+      if (
+        governanceLink.usage === ProjectProcessUsage.Common &&
+        !isOrganizationAdmin
+      ) {
+        throw new ForbiddenException(
+          'La validation d’une évolution du référentiel commun relève exclusivement d’un responsable habilité du référentiel',
+        );
+      }
       const currentMembership = await members.findOne({
         where: { projectId: proposal.projectId, userId: actorUsername },
       });
@@ -1220,6 +1279,28 @@ export class ProcessChangeProposalController {
       if (proposal.status !== ProcessChangeProposalStatus.Approved) {
         throw new ConflictException(
           'La demande doit être approuvée avant publication',
+        );
+      }
+      const governanceLink = await manager
+        .getRepository(ProjectProcessTypeOrmEntity)
+        .findOne({
+          where: {
+            projectId: proposal.projectId,
+            resourceId: proposal.sourceResourceId,
+          },
+          lock: { mode: 'pessimistic_read' },
+        });
+      if (!governanceLink) {
+        throw new NotFoundException(
+          'Le processus ne fait plus partie du projet de la demande',
+        );
+      }
+      if (
+        governanceLink.usage === ProjectProcessUsage.Common &&
+        !isOrganizationAdmin
+      ) {
+        throw new ForbiddenException(
+          'La publication du référentiel commun relève exclusivement d’un responsable habilité du référentiel',
         );
       }
       const currentMembership = await members.findOne({
@@ -1639,6 +1720,28 @@ export class ProcessChangeProposalController {
         lockedProposal.status === ProcessChangeProposalStatus.Published
       ) {
         throw new ConflictException('La demande est clôturée');
+      }
+      const governanceLink = await manager
+        .getRepository(ProjectProcessTypeOrmEntity)
+        .findOne({
+          where: {
+            projectId: lockedProposal.projectId,
+            resourceId: lockedProposal.sourceResourceId,
+          },
+          lock: { mode: 'pessimistic_read' },
+        });
+      if (!governanceLink) {
+        throw new NotFoundException(
+          'Le processus ne fait plus partie du projet de la demande',
+        );
+      }
+      if (
+        governanceLink.usage === ProjectProcessUsage.Common &&
+        !isOrganizationAdmin
+      ) {
+        throw new ForbiddenException(
+          'Le traitement des remarques sur un processus Commun relève exclusivement d’un responsable habilité du référentiel',
+        );
       }
       const currentMembership = await manager
         .getRepository(ProjectMemberTypeOrmEntity)
