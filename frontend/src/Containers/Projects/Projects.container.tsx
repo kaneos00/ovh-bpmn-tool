@@ -42,6 +42,7 @@ type Project = {
   color: string;
   icon: string;
   createdAt: string;
+  defaultValidatorUserId: string | null;
 };
 
 type WorkspaceProjectSummary = {
@@ -102,6 +103,7 @@ export const Component = () => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [projectColor, setProjectColor] = useState('#2864d7');
+  const [defaultValidatorUserId, setDefaultValidatorUserId] = useState<string | null>(null);
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
   const [usage, setUsage] = useState<'common' | 'project-specific'>('common');
   const [memberUserId, setMemberUserId] = useState('');
@@ -133,6 +135,7 @@ export const Component = () => {
   useEffect(() => {
     if (!projectQuery.data) return;
     setProjectColor(projectQuery.data.color || '#2864d7');
+    setDefaultValidatorUserId(projectQuery.data.defaultValidatorUserId ?? null);
   }, [projectQuery.data]);
   const projectMembership = workspaceQuery.data?.projects.find(item => item.id === projectId);
   const canManageProjectIdentity = projectMembership?.role === 'admin';
@@ -164,6 +167,23 @@ export const Component = () => {
         setError(null);
         await queryClient.invalidateQueries(projectKey(projectId ?? ''));
         await queryClient.invalidateQueries(projectsKey);
+        await queryClient.invalidateQueries(['my-workspace']);
+      },
+      onError: (mutationError: Error) => setError(mutationError.message),
+    },
+  );
+
+  const updateDefaultValidator = useMutation(
+    () => {
+      if (!projectId) throw new Error('Aucun projet sélectionné.');
+      return apiClient.put(`/projects/${projectId}`, {
+        defaultValidatorUserId: defaultValidatorUserId || null,
+      });
+    },
+    {
+      onSuccess: async () => {
+        setError(null);
+        await queryClient.invalidateQueries(projectKey(projectId ?? ''));
         await queryClient.invalidateQueries(['my-workspace']);
       },
       onError: (mutationError: Error) => setError(mutationError.message),
@@ -506,19 +526,28 @@ export const Component = () => {
   const project = projectQuery.data;
   return (
     <WorkspacePageLayout>
+      <Header
+        isLoading={projectQuery.isLoading}
+        title={project?.name ?? 'Administration du projet'}
+        description={project?.description ?? 'Paramètres et processus associés à ce projet.'}
+        breadcrumbs={[
+          { id: 'home', label: 'Tous les projets', to: '/projects' },
+          ...(project ? [{ id: 'project', label: project.name, to: `/projects/${projectId}` }] : []),
+        ]}
+        actions={(
+          <Button variant="outlined" color="neutral" onClick={() => {
+            if (projectId) setActiveProject(projectId);
+            navigate('/root');
+          }}>
+            Référentiel
+          </Button>
+        )}
+      />
       <Stack spacing={2}>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} useFlexGap flexWrap="wrap" sx={{ alignItems: { sm: 'center' } }}>
-          <Button variant="plain" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/projects')}>← Tous les projets</Button>
-          {projectId && <Button variant="soft" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate(`/projects/${projectId}/viewer`)}>Ouvrir l’accueil dans le viewer</Button>}
-          {projectId && <Button variant="solid" sx={{ alignSelf: 'flex-start' }} onClick={() => { setActiveProject(projectId); navigate('/root'); }}>Ouvrir le référentiel de ce projet</Button>}
-        </Stack>
-        <Button variant="outlined" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/organization/projects')}>Administration de l’organisation →</Button>
         {projectQuery.isLoading && <Typography>Chargement du projet…</Typography>}
         {projectQuery.isError && <Alert color="danger">Impossible de charger ce projet.</Alert>}
         {project && (
           <>
-            <Typography level="h2">{project.name}</Typography>
-            {project.description && <Typography level="body-md">{project.description}</Typography>}
             {canManageProjectIdentity && (
               <Card variant="outlined" sx={{ gap: 1.25 }}>
                 <Typography level="title-lg">Identité visuelle du projet</Typography>
@@ -571,6 +600,34 @@ export const Component = () => {
             <Tab value={2}>Gestion du RACI du projet</Tab>
           </TabList>
           <TabPanel value={0} sx={{ px: 0, py: 2 }}>
+          <Card variant="outlined" sx={{ gap: 1.25 }}>
+            <Typography level="title-lg">Validazione dei processi</Typography>
+            <Typography level="body-sm" color="neutral">
+              Il validatore predefinito viene utilizzato quando il processo non indica un proprio pilota/validatore. Il pilota indicato nel processo mantiene la precedenza.
+            </Typography>
+            <FormControl>
+              <FormLabel>Validatore predefinito del progetto</FormLabel>
+              <Select
+                value={defaultValidatorUserId ?? ''}
+                onChange={(_event, value) => setDefaultValidatorUserId(value || null)}
+                placeholder="Selezionare un membro del progetto"
+              >
+                <Option value="">Nessun validatore predefinito</Option>
+                {(membersQuery.data ?? []).map(member => (
+                  <Option key={member.userId} value={member.userId}>{member.userId}</Option>
+                ))}
+              </Select>
+            </FormControl>
+            <Box>
+              <Button
+                loading={updateDefaultValidator.isLoading}
+                disabled={updateDefaultValidator.isLoading || membersQuery.isLoading}
+                onClick={() => updateDefaultValidator.mutate()}
+              >
+                Enregistrer le validateur
+              </Button>
+            </Box>
+          </Card>
           <Card variant="outlined">
             <Typography level="title-lg">Membres et rôles du projet</Typography>
             <Typography level="body-sm">
