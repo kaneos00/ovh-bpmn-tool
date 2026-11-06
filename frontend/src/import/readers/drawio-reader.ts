@@ -8,7 +8,8 @@ import type {
 const parseXml = (xml: string, description: string): Document => {
   const document = new DOMParser().parseFromString(xml, 'application/xml');
   if (document.querySelector('parsererror')) {
-    throw new Error(`Le XML ${description} est invalide.`);
+    const detail = document.querySelector('parsererror')?.textContent?.trim();
+    throw new Error(`Le XML ${description} est invalide${detail ? ` : ${detail}` : '.'}`);
   }
   return document;
 };
