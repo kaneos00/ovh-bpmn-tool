@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from 'react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from 'react-query';
 import {
   Alert,
   Box,
@@ -13,6 +13,7 @@ import {
   Option,
   Select,
   Stack,
+  Sheet,
   Tab,
   TabList,
   TabPanel,
@@ -21,13 +22,17 @@ import {
 } from '@mui/joy';
 import { apiClient } from '../../queryClient';
 import { resourcesQuery } from '../../api/resources/resources.queries';
-import { Resource } from '../../Types';
+import { contentsQuery } from '../../api/contents/contents.queries';
+import { ContentStatusEnum, type Content, Resource } from '../../Types';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import { ProjectRaciPanel } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciPanel';
 import { ProjectRaciManager } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciManager';
 import { ProjectProcessHierarchy } from './ProjectProcessHierarchy';
 import { WorkspacePageLayout } from '../../Components/GenericComponents/WorkspacePageLayout/WorkspacePageLayout';
 import { useActiveProject } from '../../shared/hooks/useActiveProject';
+import { ViewerExplorerPanel } from '../../Components/BusinessComponents/ViewerExplorerPanel/ViewerExplorerPanel';
+import { getProjectTrigram } from '../../shared/helpers/projectTrigram';
+import '../../Components/BusinessComponents/ProcessDetails/ProcessDetails.scss';
 
 type Project = {
   id: string;
@@ -84,7 +89,12 @@ const PROCESS_USAGE_LABELS: Record<ProjectProcessLink['usage'], string> = {
 
 export const Component = () => {
   const { projectId } = useParams<{ projectId: string }>();
-  const { setActiveProject } = useActiveProject();
+  const {
+    projects: accessibleProjects,
+    activeProjectId,
+    setActiveProject,
+    isLoading: workspaceProjectsLoading,
+  } = useActiveProject();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -97,6 +107,12 @@ export const Component = () => {
   const [memberUserId, setMemberUserId] = useState('');
   const [memberRole, setMemberRole] = useState<'viewer' | 'modeler' | 'admin'>('viewer');
   const [error, setError] = useState<string | null>(null);
+  const [explorerCollapsed, setExplorerCollapsed] = useState(false);
+  const [explorerWidth, setExplorerWidth] = useState(() => {
+    const saved = Number(window.localStorage.getItem('bpmn-viewer-explorer-width'));
+    return Number.isFinite(saved) && saved >= 180 && saved <= 480 ? saved : 248;
+  });
+  const resizeCleanupRef = useRef<(() => void) | null>(null);
   const [activeProjectTab, setActiveProjectTab] = useState(() => {
     const tab = searchParams.get('tab');
     if (tab === 'raci') return 2;
@@ -275,6 +291,68 @@ export const Component = () => {
       specific: links.filter((link) => link.usage === 'project-specific').length,
     };
   }, [linkedProcessesQuery.data]);
+
+  useEffect(() => {
+    window.localStorage.setItem('bpmn-viewer-explorer-width', String(explorerWidth));
+  }, [explorerWidth]);
+
+  useEffect(() => () => resizeCleanupRef.current?.(), []);
+
+  const startExplorerResize = (event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    resizeCleanupRef.current?.();
+    const startX = event.clientX;
+    const startWidth = explorerWidth;
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      setExplorerWidth(Math.min(480, Math.max(180, startWidth + moveEvent.clientX - startX)));
+    };
+    const cleanup = () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', cleanup);
+      resizeCleanupRef.current = null;
+    };
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', cleanup);
+    resizeCleanupRef.current = cleanup;
+  };
+
+  const uniqueWorkspaceProcesses = useMemo(() => {
+    const byId = new Map<string, { resourceId: string; name: string }>();
+    accessibleProjects.forEach(project => project.processes.forEach(process => {
+      if (!byId.has(process.resourceId)) {
+        byId.set(process.resourceId, { resourceId: process.resourceId, name: process.name });
+      }
+    }));
+    return Array.from(byId.values());
+  }, [accessibleProjects]);
+
+  const workspaceContentQueries = useQueries(
+    uniqueWorkspaceProcesses.map(process => contentsQuery(process.resourceId)),
+  );
+  const workspaceStats = useMemo(() => {
+    const published = new Set<string>();
+    const recentlyChanged = new Set<string>();
+    const recentCutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    uniqueWorkspaceProcesses.forEach((process, index) => {
+      const contents = (workspaceContentQueries[index]?.data as Content[] | undefined) ?? [];
+      if (contents.some(content => content.status === ContentStatusEnum.Published)) {
+        published.add(process.resourceId);
+      }
+      if (contents.some(content => {
+        const timestamp = new Date(content.updatedAt ?? content.createdAt).getTime();
+        return Number.isFinite(timestamp) && timestamp >= recentCutoff;
+      })) {
+        recentlyChanged.add(process.resourceId);
+      }
+    });
+    return {
+      projects: accessibleProjects.length,
+      processes: uniqueWorkspaceProcesses.length,
+      published: published.size,
+      recentlyChanged: recentlyChanged.size,
+      contentLoading: workspaceContentQueries.some(query => query.isLoading),
+    };
+  }, [accessibleProjects, uniqueWorkspaceProcesses, workspaceContentQueries]);
 
   if (!projectId) {
     return (
