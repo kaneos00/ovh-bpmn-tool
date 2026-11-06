@@ -11,7 +11,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Textarea,
   Sheet,
   Stack,
   Tab,
@@ -603,6 +602,8 @@ const ProcessContentViewer = () => {
           <AddCommentForm
             placeholder="Décrivez le point à examiner ou la modification souhaitée…"
             submitLabel="Envoyer la remarque"
+            disabled={!canSubmitViewerRemark || !selectedActivityId}
+            loading={submittingRemark}
             onFormSubmit={({ comment }) => submitViewerRemark(comment)}
           />
           {remarkError && <Alert color="danger">{remarkError}</Alert>}
