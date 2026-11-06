@@ -1387,7 +1387,7 @@ export const ProcessDetails = ({
               </Typography>
               {remarkWarning && <Alert color="warning">{remarkWarning}</Alert>}
               {proposalRemarksLoading && <Typography level="body-sm">Chargement des remarques…</Typography>}
-              {proposalRemarksError && <Alert color="danger">Impossible de charger les remarques.</Alert>}
+              {Boolean(proposalRemarksError) && <Alert color="danger">Impossible de charger les remarques.</Alert>}
               {!proposalRemarksLoading && !proposalRemarksError && proposalRemarks.length === 0 && (
                 <Typography level="body-sm" textColor="neutral">Aucune remarque enregistrée pour cette version.</Typography>
               )}
