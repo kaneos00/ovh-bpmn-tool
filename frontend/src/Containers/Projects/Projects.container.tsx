@@ -101,7 +101,6 @@ export const Component = () => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [projectColor, setProjectColor] = useState('#2864d7');
-  const [projectIcon, setProjectIcon] = useState('folder');
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
   const [usage, setUsage] = useState<'common' | 'project-specific'>('common');
   const [memberUserId, setMemberUserId] = useState('');
@@ -133,7 +132,6 @@ export const Component = () => {
   useEffect(() => {
     if (!projectQuery.data) return;
     setProjectColor(projectQuery.data.color || '#2864d7');
-    setProjectIcon(projectQuery.data.icon || 'folder');
   }, [projectQuery.data]);
   const projectMembership = workspaceQuery.data?.projects.find(item => item.id === projectId);
   const canManageProjectIdentity = projectMembership?.role === 'admin';
@@ -158,7 +156,7 @@ export const Component = () => {
   const updateProjectIdentity = useMutation(
     () => {
       if (!projectId) throw new Error('Aucun projet sélectionné.');
-      return apiClient.put(`/projects/${projectId}`, { color: projectColor, icon: projectIcon });
+      return apiClient.put(`/projects/${projectId}`, { color: projectColor });
     },
     {
       onSuccess: async () => {
@@ -179,6 +177,7 @@ export const Component = () => {
         setDescription('');
         setError(null);
         await queryClient.invalidateQueries(projectsKey);
+        await queryClient.invalidateQueries(['my-workspace']);
         navigate(`/projects/${project.id}`);
       },
       onError: (mutationError: Error) => setError(mutationError.message),
@@ -520,16 +519,14 @@ export const Component = () => {
                     <Typography level="body-sm">Couleur du projet</Typography>
                     <Input type="color" value={projectColor} onChange={event => setProjectColor(event.target.value)} aria-label="Couleur du projet" />
                   </Stack>
-                  <Stack spacing={0.5} sx={{ minWidth: 220 }}>
-                    <Typography level="body-sm">Pictogramme</Typography>
-                    <Select value={projectIcon} onChange={(_event, value) => value && setProjectIcon(value)} aria-label="Pictogramme du projet">
-                      <Option value="folder">📁 Dossier</Option>
-                      <Option value="briefcase">💼 Mallette</Option>
-                      <Option value="building">🏢 Bâtiment</Option>
-                      <Option value="workflow">🔀 Flux</Option>
-                      <Option value="users">👥 Équipe</Option>
-                      <Option value="chart">📊 Indicateurs</Option>
-                    </Select>
+                  <Stack spacing={0.5} sx={{ minWidth: 180 }}>
+                    <Typography level="body-sm">Aperçu du badge</Typography>
+                    <Box
+                      component="span"
+                      sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 48, height: 34, px: 1, borderRadius: '7px', bgcolor: projectColor, color: '#fff', fontSize: 12, fontWeight: 800, letterSpacing: '0.04em' }}
+                    >
+                      {getProjectTrigram(project.name)}
+                    </Box>
                   </Stack>
                   <Button loading={updateProjectIdentity.isLoading} disabled={updateProjectIdentity.isLoading} onClick={() => updateProjectIdentity.mutate()}>
                     Enregistrer l’identité visuelle
