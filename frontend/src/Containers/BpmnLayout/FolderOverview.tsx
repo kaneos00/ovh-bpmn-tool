@@ -270,39 +270,35 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
           </Stack>
         </Box>
       )}
-      {activeProjectId && children.length > 0 && (
-        <Stack spacing={0.75}>
-          {children.map((childResource: Resource) => {
-            const isFolder = childResource.type === ResourceType.Folder;
-            return (
+      {activeProjectId && children.some(child => child.type === ResourceType.Folder) && (
+        <Card variant="outlined" sx={{ gap: 1 }}>
+          <Typography level="title-lg">Sous-répertoires</Typography>
+          <Stack spacing={0.75}>
+            {children.filter(child => child.type === ResourceType.Folder).map(folder => (
               <Button
-                key={childResource.id}
+                key={folder.id}
                 variant="outlined"
                 color="neutral"
-                onClick={() => navigate(`/${childResource.id}`)}
-                startDecorator={isFolder ? <FolderOutlined /> : <DescriptionOutlined />}
-                sx={{
-                  justifyContent: 'flex-start',
-                  textAlign: 'left',
-                  minHeight: 44,
-                  px: 1.25,
-                  gap: 1,
-                  borderColor: 'neutral.outlinedBorder',
-                  '&:hover': { bgcolor: 'background.level1' },
-                }}
+                onClick={() => navigate(`/${folder.id}`)}
+                startDecorator={<FolderOutlined />}
+                sx={{ justifyContent: 'flex-start', textAlign: 'left', minHeight: 44 }}
               >
-                <Box sx={{ minWidth: 0, flex: 1 }}>
-                  <Typography level="title-sm" noWrap>
-                    {childResource.name}
-                  </Typography>
-                  <Typography level="body-xs" color="neutral">
-                    {isFolder ? 'Répertoire' : 'Processus'}
-                  </Typography>
-                </Box>
+                {folder.name}
               </Button>
-            );
-          })}
-        </Stack>
+            ))}
+          </Stack>
+        </Card>
+      )}
+      {activeProjectId && children.some(child => child.type === ResourceType.Process) && (
+        <ProjectProcessOverview
+          processes={children
+            .filter(child => child.type === ResourceType.Process)
+            .map(process => ({
+              resourceId: process.id,
+              name: process.name,
+              usage: activeProject?.processes.find(item => item.resourceId === process.id)?.usage ?? 'project-specific',
+            }))}
+        />
       )}
     </Card>
   );
