@@ -737,12 +737,14 @@ test('recent and favorite resources retain their project context', async () => {
   assert.match(tree, /project\.icon/);
 });
 
-test('project administrators can configure the project color and pictogram', async () => {
+test('project administrators can configure the color of the generated trigram badge', async () => {
   const admin = await read('src/Containers/Projects/Projects.container.tsx');
   assert.match(admin, /Input type="color"/);
-  assert.match(admin, /aria-label="Pictogramme du projet"/);
-  assert.match(admin, /color: projectColor, icon: projectIcon/);
+  assert.match(admin, /Aperçu du badge/);
+  assert.match(admin, /getProjectTrigram\\(project\\.name\\)/);
+  assert.match(admin, /color: projectColor/);
   assert.match(admin, /canManageProjectIdentity/);
+  assert.doesNotMatch(admin, /Pictogramme/);
 });
 
 
@@ -766,4 +768,62 @@ test('the root workspace replaces the former home dashboard and project viewer p
   assert.doesNotMatch(navigation, /label: 'Accueil'|label: 'Projets'/);
   assert.match(navigation, /globalRole === 'admin'[\s\S]*?>\s*Administration\s*<\/Button>/);
   assert.ok(navigation.includes('<UserAccountMenu />'), 'account menu remains available');
+});
+
+
+test('Viewer fit uses the first limiting dimension and includes the complete BPMN bounds', async () => {
+  const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+  assert.match(hook, /const scale = Math\\.min\\(/);
+  assert.match(hook, /availableWidth \/ diagramWidth/);
+  assert.match(hook, /availableHeight \/ diagramHeight/);
+  assert.match(hook, /canvas\\.viewbox\\(/);
+  assert.match(hook, /width: containerWidth \/ scale/);
+  assert.match(hook, /height: containerHeight \/ scale/);
+  assert.doesNotMatch(hook, /zoom\\('fit-viewport'\\)/);
+});
+
+test('fullscreen targets the complete process workspace and refits after both transitions', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const viewer = await read('src/Components/BusinessComponents/ProcessViewer/ProcessViewer.tsx');
+  const styles = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.scss');
+  assert.match(details, /const processWorkspaceRef = useRef<HTMLDivElement>\\(null\\)/);
+  assert.match(details, /fullscreenTargetRef=\\{processWorkspaceRef\\}/);
+  assert.match(viewer, /fullscreenTargetRef\\?: React\\.RefObject<HTMLElement>/);
+  assert.match(viewer, /fullscreenTargetRef\\?\\.current \\?\\? viewerShellRef\\.current/);
+  assert.match(viewer, /active \\|\\| document\\.fullscreenElement === null/);
+  assert.match(styles, /\\.processViewerProcessWorkspace:fullscreen/);
+  assert.match(styles, /:fullscreen \\.processTaskPanel/);
+});
+
+test('project home action is positioned below the explorer search field', async () => {
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+  const searchIndex = tree.indexOf('placeholder="Rechercher une ressource…"', tree.indexOf('return ('));
+  const homeIndex = tree.indexOf('Tous les projets', searchIndex);
+  assert.ok(searchIndex >= 0);
+  assert.ok(homeIndex > searchIndex);
+});
+
+test('project identities use generated trigrams and retain configurable colors', async () => {
+  const helper = await read('src/shared/helpers/projectTrigram.ts');
+  const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+  const projects = await read('src/Containers/Projects/Projects.container.tsx');
+  assert.match(helper, /export const getProjectTrigram/);
+  assert.match(navigation, /getProjectTrigram\\(project\\.name\\)/);
+  assert.match(tree, /getProjectTrigram\\(project\\.name\\)/);
+  assert.match(projects, /getProjectTrigram\\(project\\.name\\)/);
+  assert.match(projects, /color: projectColor/);
+});
+
+test('all-projects home reuses the Viewer workspace layout and shows four useful indicators', async () => {
+  const projects = await read('src/Containers/Projects/Projects.container.tsx');
+  const explorer = await read('src/Components/BusinessComponents/ViewerExplorerPanel/ViewerExplorerPanel.tsx');
+  assert.match(projects, /variant="projects-overview"/);
+  assert.match(projects, /className="processViewerLayout processViewerWorkspace"/);
+  assert.match(projects, /className="processViewerResizeHandle"/);
+  assert.match(projects, /Projets accessibles/);
+  assert.match(projects, /Processus distincts/);
+  assert.match(projects, /Processus publiés/);
+  assert.match(projects, /Modifiés sur 30 jours/);
+  assert.match(explorer, /variant: 'process-details' \\| 'content-viewer' \\| 'projects-overview'/);
 });
