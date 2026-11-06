@@ -24,6 +24,7 @@ import {
 } from '@mui/joy';
 import { apiClient } from '../../queryClient';
 import { WorkspacePageLayout } from '../../Components/GenericComponents/WorkspacePageLayout/WorkspacePageLayout';
+import { Breadcrumbs } from '../../Components/GenericComponents/Breadcrumbs/Breadcrumbs';
 import './OrganizationAdmin.scss';
 
 type MembershipView = {
@@ -437,12 +438,16 @@ export const Component = () => {
           <main className="org-admin-v2__main">
             <header className="org-admin-v2__topbar">
               <div>
-                <div className="org-admin-v2__crumb" aria-label="Fil d’Ariane">
-                  <Button size="sm" variant="plain" color="neutral" sx={{ p: 0, minHeight: 'unset' }} onClick={() => navigate('/organization/overview')}>Administration</Button>
-                  <span>/</span>
-                  <span>{title}</span>
-                  {selectedProject && <> / {selectedProject.name}</>}
-                  {selectedProcess && <> / {selectedProcess.name}</>}
+                <div className="org-admin-v2__crumb">
+                  <Breadcrumbs
+                    breadcrumbItems={[
+                      { id: 'home', label: 'Tous les projets', to: '/projects' },
+                      { id: 'administration', label: 'Administration', to: '/organization/overview' },
+                      { id: 'section', label: title, to: location.pathname },
+                      ...(selectedProject ? [{ id: 'selected-project', label: selectedProject.name, to: location.pathname }] : []),
+                      ...(selectedProcess ? [{ id: 'selected-process', label: selectedProcess.name, to: location.pathname }] : []),
+                    ]}
+                  />
                 </div>
                 <div className="org-admin-v2__top-title">Gestion des projets et du référentiel</div>
               </div>
