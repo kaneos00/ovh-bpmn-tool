@@ -51,7 +51,10 @@ export const ProcessViewer = ({
       const target = fullscreenTargetRef?.current ?? viewerShellRef.current;
       const active = document.fullscreenElement === target;
       setIsFullscreen(active);
-      if (active) window.requestAnimationFrame(resizeDiagram);
+      // Refit on entry and exit: both transitions change the available canvas size.
+      if (active || document.fullscreenElement === null) {
+        window.requestAnimationFrame(resizeDiagram);
+      }
     };
     document.addEventListener('fullscreenchange', syncFullscreenState);
     return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
