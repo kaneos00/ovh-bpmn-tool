@@ -317,7 +317,7 @@ export const Component = () => {
   }, [accessibleProjects]);
 
   const workspaceContentQueries = useQueries(
-    uniqueWorkspaceProcesses.map(process => contentsQuery(process.resourceId)),
+    projectId ? [] : uniqueWorkspaceProcesses.map(process => contentsQuery(process.resourceId)),
   );
   const workspaceStats = useMemo(() => {
     const published = new Set<string>();
