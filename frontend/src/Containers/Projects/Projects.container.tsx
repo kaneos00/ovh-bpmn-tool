@@ -543,7 +543,18 @@ export const Component = () => {
           </Button>
         )}
       />
-      <Stack spacing={2}>
+      <Stack
+        spacing={2}
+        sx={{
+          boxSizing: 'border-box',
+          minWidth: 0,
+          p: 2,
+          border: '1px solid',
+          borderColor: 'neutral.outlinedBorder',
+          bgcolor: 'background.surface',
+          borderRadius: 0,
+        }}
+      >
         {projectQuery.isLoading && <Typography>Chargement du projet…</Typography>}
         {projectQuery.isError && <Alert color="danger">Impossible de charger ce projet.</Alert>}
         {project && (
@@ -601,7 +612,7 @@ export const Component = () => {
           </TabList>
           <TabPanel value={0} sx={{ px: 0, py: 2 }}>
           <Card variant="outlined" sx={{ gap: 1.25 }}>
-            <Typography level="title-lg">Validazione dei processi</Typography>
+            <Typography level="title-lg">Validation des processus</Typography>
             <Typography level="body-sm" color="neutral">
               Il validatore predefinito viene utilizzato quando il processo non indica un proprio pilota/validatore. Il pilota indicato nel processo mantiene la precedenza.
             </Typography>
