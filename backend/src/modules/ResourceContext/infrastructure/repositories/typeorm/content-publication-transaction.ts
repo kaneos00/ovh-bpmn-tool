@@ -1,4 +1,3 @@
-import { randomBytes } from 'crypto';
 import {
   ConflictException,
   NotFoundException,
@@ -49,6 +48,16 @@ export async function publishDraftContentWithinTransaction(
     throw new ConflictException('Le brouillon à publier est introuvable ou n’est plus modifiable');
   }
 
+
+  if (
+    params.expectedPublishedContentId &&
+    previousPublished?.id !== params.expectedPublishedContentId
+  ) {
+    throw new ConflictException(
+      'Le processus source a changé depuis la soumission. La publication est bloquée.',
+    );
+  }
+
   const latestVersion = await contents
     .createQueryBuilder('content')
     .setLock('pessimistic_write')
@@ -69,15 +78,6 @@ export async function publishDraftContentWithinTransaction(
     order: { version: 'DESC' },
     lock: { mode: 'pessimistic_write' },
   });
-  if (
-    params.expectedPublishedContentId &&
-    previousPublished?.id !== params.expectedPublishedContentId
-  ) {
-    throw new ConflictException(
-      'Le processus source a changé depuis la soumission. La publication est bloquée.',
-    );
-  }
-
   if (previousPublished && previousPublished.id !== draft.id) {
     const previous = ContentMapper.fromPersistence(previousPublished);
     if (previous.fail) throw previous.fail;
@@ -112,7 +112,7 @@ export async function publishDraftContentWithinTransaction(
   );
 
   if (!resource.authToken) {
-    resource.authToken = params.authToken || randomBytes(32).toString('hex');
+    resource.authToken = params.authToken;
     await resources.save(resource);
   }
   return published;
