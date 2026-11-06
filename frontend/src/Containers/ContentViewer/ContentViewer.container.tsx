@@ -375,7 +375,6 @@ const ProcessContentViewer = () => {
           contentId={contentId}
           selectedElementId={selectedActivityId}
           onElementSelect={handleElementSelect}
-          remarks={contextualRemarks}
           onToggleInfoPanel={() => setInfoPanelOpen(value => !value)}
           infoPanelOpen={infoPanelOpen}
           fullscreenTargetRef={workspaceRef}
