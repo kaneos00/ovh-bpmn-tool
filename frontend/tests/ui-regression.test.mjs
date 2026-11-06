@@ -864,8 +864,8 @@ test('project administration persists a member-backed default validator and docu
   const migration = await read('../backend/migrations/20261106_add_project_default_validator.sql');
 
   assert.ok(page.includes('defaultValidatorUserId: string | null'));
-  assert.ok(page.includes('Validatore predefinito del progetto'));
-  assert.ok(page.includes('Il pilota indicato nel processo mantiene la precedenza.'));
+  assert.ok(page.includes('Validateur par défaut du projet'));
+  assert.ok(page.includes('Le pilote indiqué dans le processus reste prioritaire.'));
   assert.ok(page.includes('apiClient.put(`/projects/${projectId}`, {'));
   assert.ok(controller.includes('The default validator must be a member of this project'));
   assert.ok(controller.includes('project.defaultValidatorUserId === userId'));
