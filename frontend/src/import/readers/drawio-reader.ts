@@ -30,7 +30,12 @@ const inflateRaw = async (value: string): Promise<string> => {
   const stream = new Blob([bytes])
     .stream()
     .pipeThrough(new DecompressionStream('deflate-raw'));
-  return new TextDecoder().decode(await new Response(stream).arrayBuffer());
+  const inflated = new TextDecoder().decode(await new Response(stream).arrayBuffer());
+  try {
+    return decodeURIComponent(inflated);
+  } catch {
+    return inflated;
+  }
 };
 
 const readDiagramModel = async (diagram: Element, index: number): Promise<string> => {
