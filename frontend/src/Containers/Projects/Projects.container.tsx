@@ -34,6 +34,7 @@ type Project = {
   id: string;
   name: string;
   description: string | null;
+  defaultValidatorUserId: string | null;
   createdAt: string;
 };
 
@@ -252,6 +253,22 @@ export const Component = () => {
           'project-members',
           projectId ?? '',
         ]);
+      },
+      onError: (mutationError: Error) => setError(mutationError.message),
+    },
+  );
+
+  const setDefaultProjectValidator = useMutation(
+    (userId: string | null) => {
+      if (!projectId) throw new Error('Aucun projet sélectionné.');
+      return apiClient.put(`/projects/${projectId}`, {
+        defaultValidatorUserId: userId,
+      });
+    },
+    {
+      onSuccess: async () => {
+        setError(null);
+        await queryClient.invalidateQueries(projectKey(projectId ?? ''));
       },
       onError: (mutationError: Error) => setError(mutationError.message),
     },
@@ -612,6 +629,43 @@ export const Component = () => {
                 restent également applicables.
               </Typography>
               <Stack spacing={1.5}>
+                <Box>
+                  <Typography level="title-md">
+                    Valideur par défaut du projet
+                  </Typography>
+                  <Typography level="body-sm">
+                    Utilisé lorsqu’aucun pilote du processus ne peut être affecté.
+                    Le pilote du processus reste prioritaire.
+                  </Typography>
+                </Box>
+                <FormControl>
+                  <FormLabel>Valideur par défaut</FormLabel>
+                  <Select
+                    value={project?.defaultValidatorUserId ?? null}
+                    placeholder="Aucun valideur par défaut"
+                    disabled={
+                      !canManageProjectMembers ||
+                      membersQuery.isLoading ||
+                      setDefaultProjectValidator.isLoading
+                    }
+                    onChange={(_event, value) =>
+                      setDefaultProjectValidator.mutate(value)
+                    }
+                  >
+                    <Option value={null}>Aucun valideur par défaut</Option>
+                    {(membersQuery.data ?? [])
+                      .filter(
+                        member =>
+                          member.role === 'admin' || member.role === 'modeler',
+                      )
+                      .map(member => (
+                        <Option key={member.userId} value={member.userId}>
+                          {member.userId} — {member.role}
+                        </Option>
+                      ))}
+                  </Select>
+                </FormControl>
+                <Stack spacing={1.5}>
                 <FormControl>
                   <FormLabel>Identifiant utilisateur</FormLabel>
                   <Input
