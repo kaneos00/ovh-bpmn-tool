@@ -746,7 +746,7 @@ test('the root workspace replaces the former home dashboard and project viewer p
   assert.match(overview, /activeProject\.description/);
   assert.match(legacyRedirect, /setActiveProject\(projectId\)/);
   assert.match(breadcrumbs, /label: activeProject\.name/);
-  assert.doesNotMatch(breadcrumbs, /id: 'home'/);
+  assert.match(breadcrumbs, /id: 'home'.*label: 'Tous les projets'/);
   assert.doesNotMatch(breadcrumbs, /label: 'Référentiel'/);
   assert.doesNotMatch(navigation, /label: 'Accueil'|label: 'Projets'/);
   assert.match(navigation, /globalRole === 'admin'[\s\S]*?>\s*Administration\s*<\/Button>/);
