@@ -113,7 +113,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
               new Blob([result.xml], { type: 'application/xml' }),
             );
             anchor.href = objectUrl;
-            anchor.download = `${file.name.replace(/\\.[^.]+$/, '')}_${safeName}.bpmn`;
+            anchor.download = `${file.name.replace(/\.[^.]+$/, '')}_${safeName}.bpmn`;
             anchor.style.display = 'none';
             document.body.appendChild(anchor);
             anchor.click();
