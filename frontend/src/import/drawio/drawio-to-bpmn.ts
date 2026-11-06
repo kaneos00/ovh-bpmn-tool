@@ -239,12 +239,10 @@ const buildPage = (page: PageInfo, pageIndex: number, warnings: string[]) => {
 
 export async function drawioToBpmn(xml: string, pageName = 'Page-1'): Promise<DrawioImportResult> {
   const pageDocument = parseXml(xml, 'modèle de page Draw.io');
-  const model = pageDocument.documentElement.localName === 'mxGraphModel'
-    ? pageDocument.documentElement
-    : pageDocument.querySelector('mxGraphModel');
-  if (!model) {
-    throw new Error('Le convertisseur BPMN attend le modèle XML d’une page Draw.io. Le découpage du document multi-pages relève du moteur de lecture.');
+  if (pageDocument.documentElement.localName !== 'mxGraphModel') {
+    throw new Error('Le convertisseur BPMN attend le modèle XML d’une seule page Draw.io. Le découpage du document multi-pages relève du moteur de lecture.');
   }
+  const model = pageDocument.documentElement;
 
   const warnings: string[] = [];
   const converted = buildPage({ name: pageName, model }, 0, warnings);
