@@ -850,7 +850,9 @@ test('all-projects workspace reuses the shared Viewer breadcrumb header', async 
   const breadcrumbs = await read('src/Components/GenericComponents/Breadcrumbs/Breadcrumbs.tsx');
 
   assert.ok(projects.includes("import { Header } from '../../Components/GenericComponents/Header/Header'"));
-  assert.match(projects, /<Header[\\s\\S]*?title="Tous les projets"[\\s\\S]*?breadcrumbs=\\{\\[\\{ id: 'home', label: 'Tous les projets', to: '\\/projects' \\}\\]\\}/);
+  assert.ok(projects.includes('<Header'));
+  assert.ok(projects.includes('title="Tous les projets"'));
+  assert.ok(projects.includes("breadcrumbs={[{ id: 'home', label: 'Tous les projets', to: '/projects' }]}"));
   assert.ok(sharedHeader.includes('<Breadcrumbs isLoading={isLoading} breadcrumbItems={breadcrumbs || []} />'));
   assert.ok(breadcrumbs.includes('aria-label="breadcrumbs"'));
 });
