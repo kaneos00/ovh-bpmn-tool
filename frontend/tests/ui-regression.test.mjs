@@ -827,3 +827,16 @@ test('all-projects home reuses the Viewer workspace layout and shows four useful
   assert.ok(projects.includes('Modifiés sur 30 jours'));
   assert.ok(explorer.includes("variant: 'process-details' | 'content-viewer' | 'projects-overview'"));
 });
+
+
+test('full-screen version viewer opens a read-only element sheet on BPMN selection', async () => {
+  const contentViewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+  const styles = await read('src/Containers/ContentViewer/ContentViewerContainer.scss');
+  assert.ok(contentViewer.includes('const workspaceRef = useRef<HTMLDivElement>(null)'));
+  assert.ok(contentViewer.includes('fullscreenTargetRef={workspaceRef}'));
+  assert.ok(contentViewer.includes('setInfoTab(2)'));
+  assert.ok(contentViewer.includes('Fiche de l’élément'));
+  assert.ok(contentViewer.includes('selectedElementDetails'));
+  assert.ok(contentViewer.includes('Sélectionnez un élément BPMN pour afficher sa fiche.'));
+  assert.ok(styles.includes('.processViewerWorkspace.viewerLayout:fullscreen'));
+});
