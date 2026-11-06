@@ -295,7 +295,7 @@ export const Component = () => {
     }
   };
 
-  const blocker = useBlocker(({ nextLocation }) => isDirty && nextLocation.pathname === `/${resourceId}`);
+  const blocker = useBlocker(({ nextLocation }) => isDirty && nextLocation.pathname !== `/${resourceId}/modeler`);
   const publishApprovedProposal = async (skipDraftSave = false) => {
     if (!proposalId || !approvedProposalMode || publishingApprovedProposal)
       return;
