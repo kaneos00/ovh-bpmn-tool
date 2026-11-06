@@ -9,7 +9,11 @@ import {
 import Modeler from 'camunda-bpmn-js/lib/base/Modeler';
 import { useBpmnToolOptions } from '../../../Providers/BpmnToolOptions/useBpmnToolOptions';
 
-export const useModeler = (\n  bpmnModelerInstance: Modeler,\n  content?: string,\n  onDiagramsChanged?: () => void,\n) => {
+export const useModeler = (
+  bpmnModelerInstance: Modeler,
+  content?: string,
+  onDiagramsChanged?: () => void,
+) => {
   const diagramContainerRef = useRef<HTMLDivElement>(null);
   const diagramPropertiesRef = useRef<HTMLDivElement>(null);
   const [hasLintError, setHasLintError] = useState(false);
@@ -133,6 +137,7 @@ export const useModeler = (\n  bpmnModelerInstance: Modeler,\n  content?: string
         }
 
         if (generation !== importGenerationRef.current) return;
+        onDiagramsChanged?.();
         attachModeler();
       })
       .catch(() => {
