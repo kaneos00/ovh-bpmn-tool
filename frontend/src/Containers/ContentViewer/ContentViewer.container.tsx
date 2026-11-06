@@ -225,11 +225,6 @@ const ProcessContentViewer = () => {
     }
   };
 
-  const contextualRemarks = useMemo(
-    () => proposalRemarks.map(({ id, elementId, status }) => ({ id, elementId, status })),
-    [proposalRemarks],
-  );
-
   const lastPublishedContent = useMemo(() => {
     return contents
       .filter(({ status }) => status === ContentStatusEnum.Published)
