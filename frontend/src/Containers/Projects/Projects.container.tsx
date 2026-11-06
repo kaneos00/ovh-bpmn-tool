@@ -71,6 +71,7 @@ type ProjectMember = {
   userId: string;
   role: 'viewer' | 'modeler' | 'admin';
   canSubmitRemarks: boolean;
+  active: boolean;
 };
 
 type ProjectProcessLink = {
@@ -253,6 +254,7 @@ export const Component = () => {
           'project-members',
           projectId ?? '',
         ]);
+        await queryClient.invalidateQueries(projectKey(projectId ?? ''));
       },
       onError: (mutationError: Error) => setError(mutationError.message),
     },
@@ -309,6 +311,7 @@ export const Component = () => {
           'project-members',
           projectId ?? '',
         ]);
+        await queryClient.invalidateQueries(projectKey(projectId ?? ''));
       },
       onError: (mutationError: Error) => setError(mutationError.message),
     },
@@ -656,7 +659,8 @@ export const Component = () => {
                     {(membersQuery.data ?? [])
                       .filter(
                         member =>
-                          member.role === 'admin' || member.role === 'modeler',
+                          member.active &&
+                          (member.role === 'admin' || member.role === 'modeler'),
                       )
                       .map(member => (
                         <Option key={member.userId} value={member.userId}>
