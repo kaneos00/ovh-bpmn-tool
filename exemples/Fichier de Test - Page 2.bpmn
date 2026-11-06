@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_Drawio" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_Page_2" name="Page-2" isExecutable="false">
+    <bpmn:exclusiveGateway id="Page2_Q0jCcOh1SI9sx96Api0K-1" name="Decision" />
+    <bpmn:task id="Page2_Q0jCcOh1SI9sx96Api0K-2" name="ACTION" />
+    <bpmn:task id="Page2_Q0jCcOh1SI9sx96Api0K-3" name="Processus" />
+    <bpmn:task id="Page2_Q0jCcOh1SI9sx96Api0K-4" name="PROCEDURE" />
+    <bpmn:task id="Page2_Q0jCcOh1SI9sx96Api0K-5" name="Document ou information" />
+    <bpmn:endEvent id="Page2_Q0jCcOh1SI9sx96Api0K-6" name="Fin" />
+    <bpmn:startEvent id="Page2_Q0jCcOh1SI9sx96Api0K-7" name="Début" />
+    <bpmn:sequenceFlow id="Page2_Q0jCcOh1SI9sx96Api0K-10" sourceRef="Page2_Q0jCcOh1SI9sx96Api0K-1" targetRef="Page2_Q0jCcOh1SI9sx96Api0K-2" />
+    <bpmn:sequenceFlow id="Page2_Q0jCcOh1SI9sx96Api0K-12" sourceRef="Page2_Q0jCcOh1SI9sx96Api0K-1" targetRef="Page2_Q0jCcOh1SI9sx96Api0K-3" />
+    <bpmn:sequenceFlow id="Page2_Q0jCcOh1SI9sx96Api0K-11" sourceRef="Page2_Q0jCcOh1SI9sx96Api0K-2" targetRef="Page2_Q0jCcOh1SI9sx96Api0K-4" />
+    <bpmn:sequenceFlow id="Page2_Q0jCcOh1SI9sx96Api0K-8" sourceRef="Page2_Q0jCcOh1SI9sx96Api0K-7" targetRef="Page2_Q0jCcOh1SI9sx96Api0K-5" />
+    <bpmn:sequenceFlow id="Page2_Q0jCcOh1SI9sx96Api0K-9" sourceRef="Page2_Q0jCcOh1SI9sx96Api0K-5" targetRef="Page2_Q0jCcOh1SI9sx96Api0K-1" />
+    <bpmn:sequenceFlow id="Page2_Q0jCcOh1SI9sx96Api0K-15" sourceRef="Page2_Q0jCcOh1SI9sx96Api0K-4" targetRef="Page2_Q0jCcOh1SI9sx96Api0K-6" />
+    <bpmn:sequenceFlow id="Page2_Q0jCcOh1SI9sx96Api0K-16" sourceRef="Page2_Q0jCcOh1SI9sx96Api0K-3" targetRef="Page2_Q0jCcOh1SI9sx96Api0K-6" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_Page_2" name="Page-2">
+    <bpmndi:BPMNPlane id="Plane_Page_2" bpmnElement="Process_Page_2">
+      <bpmndi:BPMNShape id="Page2_Q0jCcOh1SI9sx96Api0K-1_di" bpmnElement="Page2_Q0jCcOh1SI9sx96Api0K-1"><dc:Bounds x="275" y="134" width="60" height="46" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Page2_Q0jCcOh1SI9sx96Api0K-2_di" bpmnElement="Page2_Q0jCcOh1SI9sx96Api0K-2"><dc:Bounds x="385" y="134" width="100" height="48" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Page2_Q0jCcOh1SI9sx96Api0K-3_di" bpmnElement="Page2_Q0jCcOh1SI9sx96Api0K-3"><dc:Bounds x="385" y="250" width="100" height="45" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Page2_Q0jCcOh1SI9sx96Api0K-4_di" bpmnElement="Page2_Q0jCcOh1SI9sx96Api0K-4"><dc:Bounds x="530" y="130" width="100" height="57" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Page2_Q0jCcOh1SI9sx96Api0K-5_di" bpmnElement="Page2_Q0jCcOh1SI9sx96Api0K-5"><dc:Bounds x="120" y="130" width="90" height="50" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Page2_Q0jCcOh1SI9sx96Api0K-6_di" bpmnElement="Page2_Q0jCcOh1SI9sx96Api0K-6"><dc:Bounds x="670" y="145.19000000000005" width="23.62" height="23.622" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Page2_Q0jCcOh1SI9sx96Api0K-7_di" bpmnElement="Page2_Q0jCcOh1SI9sx96Api0K-7"><dc:Bounds x="50" y="145.20000000000005" width="25.5905" height="25.6" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Page2_Q0jCcOh1SI9sx96Api0K-10_di" bpmnElement="Page2_Q0jCcOh1SI9sx96Api0K-10"><di:waypoint x="305" y="157" /><di:waypoint x="435" y="158" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Page2_Q0jCcOh1SI9sx96Api0K-12_di" bpmnElement="Page2_Q0jCcOh1SI9sx96Api0K-12"><di:waypoint x="305" y="157" /><di:waypoint x="305" y="272.5" /><di:waypoint x="435" y="272.5" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Page2_Q0jCcOh1SI9sx96Api0K-11_di" bpmnElement="Page2_Q0jCcOh1SI9sx96Api0K-11"><di:waypoint x="435" y="158" /><di:waypoint x="580" y="158.5" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Page2_Q0jCcOh1SI9sx96Api0K-8_di" bpmnElement="Page2_Q0jCcOh1SI9sx96Api0K-8"><di:waypoint x="62.795249999999996" y="158.00000000000006" /><di:waypoint x="165" y="155" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Page2_Q0jCcOh1SI9sx96Api0K-9_di" bpmnElement="Page2_Q0jCcOh1SI9sx96Api0K-9"><di:waypoint x="165" y="155" /><di:waypoint x="305" y="157" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Page2_Q0jCcOh1SI9sx96Api0K-15_di" bpmnElement="Page2_Q0jCcOh1SI9sx96Api0K-15"><di:waypoint x="580" y="158.5" /><di:waypoint x="681.81" y="157.00100000000006" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Page2_Q0jCcOh1SI9sx96Api0K-16_di" bpmnElement="Page2_Q0jCcOh1SI9sx96Api0K-16"><di:waypoint x="435" y="272.5" /><di:waypoint x="681.81" y="157.00100000000006" /></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
