@@ -145,6 +145,8 @@ jobs:
           # Execute the explorer XPath against a real PostgreSQL server. This
           # exercises namespace-aware BPMN XML parsing, latest-published
           # selection, Call Activities and collapsed SubProcess resolution.
+          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='projects' AND column_name='defaultValidatorUserId'")" = "1"
+
           proposal_table_count="$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('process_change_proposals','process_change_proposal_events','process_change_proposal_comments')")"
           test "$proposal_table_count" = "3"
 
