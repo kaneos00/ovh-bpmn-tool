@@ -777,10 +777,23 @@ export class ProjectController {
     @Headers() headers: RequestHeaders,
   ) {
     await this.assertProjectRole(projectId, headers, ProjectMemberRole.Viewer);
-    return this.projectMembers.find({
+    const memberships = await this.projectMembers.find({
       where: { projectId },
       order: { userId: 'ASC' },
     });
+    if (!memberships.length) return [];
+    const activeAccounts: Array<{ username: string; active: boolean }> =
+      await this.dataSource.query(
+        'SELECT username, active FROM app_users WHERE lower(username) = ANY($1::text[])',
+        [memberships.map(member => member.userId.toLowerCase())],
+      );
+    const activeByUsername = new Map(
+      activeAccounts.map(account => [account.username.toLowerCase(), account.active]),
+    );
+    return memberships.map(member => ({
+      ...member,
+      active: activeByUsername.get(member.userId.toLowerCase()) === true,
+    }));
   }
 
   @Put(':projectId/members/:userId')
