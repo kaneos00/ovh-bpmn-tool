@@ -171,7 +171,7 @@ const buildPage = (page: PageInfo, pageIndex: number, warnings: string[]) => {
       sourceId,
       id: `${prefix}${safeId(sourceId)}`,
       type,
-      name: attr(cell, 'value').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(),
+      name: attr(cell, 'value').replace(/<br\s*\/?\s*>/gi, ' ').replace(/<\/(?:div|p)>/gi, ' ').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim(),
       bounds: absoluteBounds(cell, cells),
     });
   });
