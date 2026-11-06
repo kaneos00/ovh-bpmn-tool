@@ -1746,17 +1746,25 @@ export class ProcessChangeProposalController {
     pilotIdentifier?: string | null,
   ): Promise<{
     validatorUserId: string | null;
-    validatorResolution: 'pilot_assigned' | 'pilot_missing' | 'pilot_invalid';
+    validatorResolution:
+      | 'pilot_assigned'
+      | 'project_default_assigned'
+      | 'pilot_missing'
+      | 'pilot_invalid'
+      | 'project_default_invalid';
     validatorWarning: string | null;
   }> {
     let validatorUserId: string | null = null;
     let validatorResolution:
       | 'pilot_assigned'
+      | 'project_default_assigned'
       | 'pilot_missing'
-      | 'pilot_invalid' = pilotIdentifier?.trim()
+      | 'pilot_invalid'
+      | 'project_default_invalid' = pilotIdentifier?.trim()
       ? 'pilot_invalid'
       : 'pilot_missing';
 
+    // The BPMN process pilot has priority over the project-level default.
     if (pilotIdentifier?.trim()) {
       const pilotRows: Array<{ id: string; username: string }> =
         await manager.query(
@@ -1779,31 +1787,54 @@ export class ProcessChangeProposalController {
       }
     }
 
+    // If no eligible pilot can be assigned, use only the explicitly configured
+    // project default. Do not silently select an arbitrary project administrator.
     if (!validatorUserId) {
-      const admins = await members.find({
-        where: { projectId, role: ProjectMemberRole.Admin },
-        order: { createdAt: 'ASC' },
-      });
-      for (const admin of admins) {
-        if (admin.userId === actorUsername) continue;
-        const adminRows: Array<{ id: string }> = await manager.query(
-          'SELECT id FROM app_users WHERE lower(username) = lower($1) AND active = TRUE LIMIT 1',
-          [admin.userId],
-        );
-        if (adminRows[0]) {
-          validatorUserId = adminRows[0].id;
-          break;
+      const project = await manager
+        .getRepository(ProjectTypeOrmEntity)
+        .findOneBy({ id: projectId });
+      const defaultUserId = project?.defaultValidatorUserId?.trim();
+      if (defaultUserId) {
+        const defaultMembership = await members.findOne({
+          where: { projectId, userId: defaultUserId },
+        });
+        if (
+          defaultMembership &&
+          (defaultMembership.role === ProjectMemberRole.Admin ||
+            defaultMembership.role === ProjectMemberRole.Modeler)
+        ) {
+          const defaultRows: Array<{ id: string }> = await manager.query(
+            'SELECT id FROM app_users WHERE lower(username) = lower($1) AND active = TRUE LIMIT 1',
+            [defaultMembership.userId],
+          );
+          if (defaultRows[0]?.id && defaultRows[0].id !== actorUserId) {
+            validatorUserId = defaultRows[0].id;
+            validatorResolution = 'project_default_assigned';
+          } else {
+            validatorResolution = 'project_default_invalid';
+          }
+        } else {
+          validatorResolution = 'project_default_invalid';
         }
       }
+    }
+
+    let validatorWarning: string | null = null;
+    if (!validatorUserId) {
+      const pilotMessage = pilotIdentifier?.trim()
+        ? 'Le pilote du processus est absent, non actif, non membre du projet ou non habilité.'
+        : 'Aucun pilote n’est renseigné sur le processus.';
+      const defaultMessage =
+        validatorResolution === 'project_default_invalid'
+          ? 'Le valideur par défaut du projet est absent, inactif, non habilité ou correspond à l’auteur.'
+          : 'Aucun valideur par défaut valide n’est configuré dans le projet.';
+      validatorWarning = `${pilotMessage} ${defaultMessage}`;
     }
 
     return {
       validatorUserId,
       validatorResolution,
-      validatorWarning:
-        validatorResolution === 'pilot_assigned'
-          ? null
-          : 'Le pilote du processus est absent ou non reconnu ; une validation administrateur est à prévoir.',
+      validatorWarning,
     };
   }
 
