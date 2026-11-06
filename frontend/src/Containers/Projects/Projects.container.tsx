@@ -119,6 +119,7 @@ export const Component = () => {
     const tab = searchParams.get('tab');
     if (tab === 'raci') return 2;
     if (tab === 'processes') return 1;
+    if (tab === 'validation') return 3;
     return 0;
   });
 
@@ -599,7 +600,7 @@ export const Component = () => {
             color="neutral"
             sx={{
               display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' },
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(4, minmax(0, 1fr))' },
               gap: 0.5,
               p: 0.5,
               borderRadius: 'md',
@@ -609,36 +610,9 @@ export const Component = () => {
             <Tab value={0}>Membres et rôles du projet</Tab>
             <Tab value={1}>Processus du projet</Tab>
             <Tab value={2}>Gestion du RACI du projet</Tab>
+            <Tab value={3}>Validation</Tab>
           </TabList>
           <TabPanel value={0} sx={{ px: 0, py: 2 }}>
-          <Card variant="outlined" sx={{ gap: 1.25 }}>
-            <Typography level="title-lg">Validation des processus</Typography>
-            <Typography level="body-sm" color="neutral">
-              Le validateur par défaut est utilisé lorsque le processus ne désigne pas son propre pilote ou validateur. Le pilote indiqué dans le processus reste prioritaire.
-            </Typography>
-            <FormControl>
-              <FormLabel>Validateur par défaut du projet</FormLabel>
-              <Select
-                value={defaultValidatorUserId ?? ''}
-                onChange={(_event, value) => setDefaultValidatorUserId(value || null)}
-                placeholder="Choisir un membre du projet"
-              >
-                <Option value="">Aucun validateur par défaut</Option>
-                {(membersQuery.data ?? []).map(member => (
-                  <Option key={member.userId} value={member.userId}>{member.userId}</Option>
-                ))}
-              </Select>
-            </FormControl>
-            <Box>
-              <Button
-                loading={updateDefaultValidator.isLoading}
-                disabled={updateDefaultValidator.isLoading || membersQuery.isLoading}
-                onClick={() => updateDefaultValidator.mutate()}
-              >
-                Enregistrer le validateur
-              </Button>
-            </Box>
-          </Card>
           <Card variant="outlined">
             <Typography level="title-lg">Membres et rôles du projet</Typography>
             <Typography level="body-sm">
@@ -785,6 +759,36 @@ export const Component = () => {
               projectId={projectId}
               onActivityClick={(targetResourceId, elementId) => navigate(`/${targetResourceId}?elementId=${encodeURIComponent(elementId)}`)}
             />
+          </Card>
+          </TabPanel>
+          <TabPanel value={3} sx={{ px: 0, py: 2 }}>
+          <Card variant="outlined" sx={{ gap: 1.25 }}>
+            <Typography level="title-lg">Validation des processus</Typography>
+            <Typography level="body-sm" color="neutral">
+              Le validateur par défaut est utilisé lorsque le processus ne désigne pas son propre pilote ou validateur. Le pilote indiqué dans le processus reste prioritaire.
+            </Typography>
+            <FormControl>
+              <FormLabel>Validateur par défaut du projet</FormLabel>
+              <Select
+                value={defaultValidatorUserId ?? ''}
+                onChange={(_event, value) => setDefaultValidatorUserId(value || null)}
+                placeholder="Choisir un membre du projet"
+              >
+                <Option value="">Aucun validateur par défaut</Option>
+                {(membersQuery.data ?? []).map(member => (
+                  <Option key={member.userId} value={member.userId}>{member.userId}</Option>
+                ))}
+              </Select>
+            </FormControl>
+            <Box>
+              <Button
+                loading={updateDefaultValidator.isLoading}
+                disabled={updateDefaultValidator.isLoading || membersQuery.isLoading}
+                onClick={() => updateDefaultValidator.mutate()}
+              >
+                Enregistrer le validateur
+              </Button>
+            </Box>
           </Card>
           </TabPanel>
         </Tabs>
