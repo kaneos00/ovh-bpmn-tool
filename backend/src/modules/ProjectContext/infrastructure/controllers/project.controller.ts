@@ -949,7 +949,7 @@ export class ProjectController {
         membership.role !== ProjectMemberRole.Modeler)
     ) {
       throw new BadRequestException(
-        'Le valideur par défaut doit être un membre actif du projet avec le rôle Admin ou Modeler',
+        'The default validator must be a member of this project and have an active Admin or Modeler role',
       );
     }
     const activeAccounts: Array<{ id: string }> = await this.dataSource.query(
