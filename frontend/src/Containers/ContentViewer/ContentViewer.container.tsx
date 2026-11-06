@@ -5,6 +5,12 @@ import {
   Button,
   Divider,
   IconButton,
+  Alert,
+  Modal,
+  ModalDialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Sheet,
   Stack,
   Tab,
@@ -32,21 +38,55 @@ import {
   getXmlContentQuery,
 } from '../../api/contents/contents.queries';
 import { ContentStatusEnum, type Content } from '../../Types';
-import { apiClient } from '../../queryClient';
+import queryClient, { apiClient } from '../../queryClient';
 import { formatDateTime } from '../../shared/helpers/date';
 import { useViewerRaciAnalysis } from './hooks/useViewerRaciAnalysis';
 import { getRaciIssueLabel } from '../../extensions/raci-engine';
 import type { RaciCode } from '../../extensions/raci-engine';
 import { useViewerRaciFilters } from './hooks/useViewerRaciFilters';
+import { AddCommentForm } from '../Comments/components/AddCommentForm';
+import { CommentCard } from '../Comments/components/CommentCard';
 
 import './ContentViewerContainer.scss';
+
+const getRemarkStatusColor = (status: string): 'success' | 'danger' | 'warning' => {
+  if (status === 'accepted') return 'success';
+  if (status === 'rejected') return 'danger';
+  return 'warning';
+};
+
+const getRemarkStatusLabel = (status: string): string => {
+  if (status === 'accepted') return 'Acceptée';
+  if (status === 'rejected') return 'Refusée';
+  return 'En attente';
+};
 
 type WorkspaceProjectSummary = {
   id: string;
   role: 'viewer' | 'modeler' | 'admin';
-  processes: { resourceId: string }[];
+  canSubmitRemarks?: boolean;
+  processes: { resourceId: string; usage?: 'common' | 'variant' | 'project-specific' }[];
 };
 type WorkspaceSummary = { projects: WorkspaceProjectSummary[] };
+type ViewerRemarkPermission = {
+  associated: boolean;
+  isMember: boolean;
+  canSubmitRemarks: boolean;
+  usage: 'common' | 'variant' | 'project-specific' | null;
+};
+type ProposalRemark = {
+  id: string;
+  elementId: string;
+  authorUserId: string;
+  authorName?: string;
+  decisionByName?: string | null;
+  comment: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: string;
+  decisionBy: string | null;
+  decidedAt: string | null;
+  decisionComment: string | null;
+};
 
 const RACICODES: RaciCode[] = ['R', 'A', 'C', 'I'];
 const STATUS_LABELS = {
@@ -65,14 +105,19 @@ const ProcessContentViewer = () => {
   const { resourceId, contentId } = useContentViewer();
   const navigate = useNavigate();
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
-  const { requestedElementId, requestedRaciView } = useViewerRouteState();
+  const { requestedElementId, requestedRaciView, projectId: routeProjectId } = useViewerRouteState();
   const [folderOpen, setFolderOpen] = useState(true);
-  const [infoTab, setInfoTab] = useState<0 | 1 | 2>(0);
+  const [infoTab, setInfoTab] = useState<0 | 1 | 2 | 3>(0);
   const workspaceRef = useRef<HTMLDivElement>(null);
   const [infoPanelOpen, setInfoPanelOpen] = useState(false);
   const [actorFilter, setActorFilter] = useState('');
   const [codeFilter, setCodeFilter] = useState<RaciCode | ''>('');
   const [issuesOnly, setIssuesOnly] = useState(false);
+  const [remarkModalOpen, setRemarkModalOpen] = useState(false);
+  const [remarkText, setRemarkText] = useState('');
+  const [remarkError, setRemarkError] = useState<string | null>(null);
+  const [remarkWarning, setRemarkWarning] = useState<string | null>(null);
+  const [submittingRemark, setSubmittingRemark] = useState(false);
   const {
     selectedElementId: selectedActivityId,
     setSelectedElementId: setSelectedActivityId,
@@ -91,13 +136,98 @@ const ProcessContentViewer = () => {
     ['my-workspace'],
     () => apiClient.get('/projects/me/workspace'),
   );
-  const associatedProject = workspace?.projects.find(project =>
+  const processProjects = workspace?.projects.filter(project =>
     project.processes.some(process => process.resourceId === resourceId),
+  ) ?? [];
+  const associatedProject = (() => {
+    if (routeProjectId) return processProjects.find(project => project.id === routeProjectId);
+    return processProjects.length === 1 ? processProjects[0] : undefined;
+  })();
+  const requiresProjectSelection = !routeProjectId && processProjects.length > 1;
+  const currentProjectProcess = associatedProject?.processes.find(process => process.resourceId === resourceId);
+  const {
+    data: remarkPermission,
+    error: remarkPermissionError,
+  } = useQuery<ViewerRemarkPermission>(
+    ['viewer-remark-permission', routeProjectId, resourceId],
+    () => apiClient.get(`/projects/${routeProjectId}/processes/${resourceId}/remark-permission`),
+    { enabled: Boolean(routeProjectId && resourceId) },
   );
+  const canSubmitViewerRemark = Boolean(remarkPermission?.canSubmitRemarks);
 
   const { data: contents = [] } = useQuery(contentsQuery(resourceId));
   const { data: xmlContent } = useQuery(
     getXmlContentQuery(resourceId, contentId),
+  );
+
+  const {
+    data: activeProposal,
+    isLoading: activeProposalLoading,
+  } = useQuery<{ id: string; status: string; cloneResourceId: string } | null>(
+    ['active-process-change-proposal', routeProjectId, resourceId, contentId],
+    () => apiClient.get(`/projects/${routeProjectId}/processes/${resourceId}/change-proposals/active?contentId=${contentId}`),
+    { enabled: Boolean(routeProjectId && resourceId && contentId) },
+  );
+  const {
+    data: proposalRemarks = [],
+    isLoading: proposalRemarksLoading,
+    isError: proposalRemarksError,
+    error: proposalRemarksLoadError,
+  } = useQuery<ProposalRemark[]>(
+    ['process-change-proposal-comments', activeProposal?.id],
+    () => apiClient.get(`/projects/process-change-proposals/${activeProposal!.id}/comments`),
+    { enabled: Boolean(activeProposal?.id) },
+  );
+
+  const submitViewerRemark = async (submittedText = remarkText) => {
+    if (!routeProjectId || !canSubmitViewerRemark || !selectedActivityId || !submittedText.trim() || submittingRemark) return;
+    setSubmittingRemark(true);
+    setRemarkError(null);
+    setRemarkWarning(null);
+    try {
+      const metadataDocument = new DOMParser().parseFromString(xmlContent ?? '', 'application/xml');
+      const processMetadata = Array.from(metadataDocument.getElementsByTagNameNS(
+        'https://ovh-bpmn-tool.local/schema/process-metadata',
+        'processMetadata',
+      ))[0];
+      const pilotIdentifier = processMetadata?.getAttribute('pilot')?.trim() || undefined;
+      const submissionResult = await apiClient.post(
+        `/projects/${routeProjectId}/processes/${resourceId}/change-proposals`,
+        { elementId: selectedActivityId, comment: submittedText.trim(), validatorUserId: pilotIdentifier },
+      );
+      setRemarkWarning(submissionResult?.validatorWarning ?? null);
+      const savedProposalId = submissionResult?.id as string | undefined;
+      const savedRemark = submissionResult?.comment as ProposalRemark | undefined;
+      if (savedProposalId) {
+        queryClient.setQueryData(
+          ['active-process-change-proposal', routeProjectId, resourceId, contentId],
+          { id: savedProposalId, status: submissionResult.status ?? 'submitted', cloneResourceId: submissionResult.cloneResourceId },
+        );
+        if (savedRemark?.id) {
+          queryClient.setQueryData<ProposalRemark[]>(
+            ['process-change-proposal-comments', savedProposalId],
+            previous => {
+              const current = previous ?? [];
+              return current.some(remark => remark.id === savedRemark.id) ? current : [...current, savedRemark];
+            },
+          );
+        }
+      }
+      await queryClient.invalidateQueries({ queryKey: ['process-change-proposals-to-review'] });
+      setRemarkText('');
+      setRemarkModalOpen(false);
+      setInfoPanelOpen(true);
+      setInfoTab(3);
+    } catch (error) {
+      setRemarkError(error instanceof Error ? error.message : 'Impossible de déposer la remarque.');
+    } finally {
+      setSubmittingRemark(false);
+    }
+  };
+
+  const contextualRemarks = useMemo(
+    () => proposalRemarks.map(({ id, elementId, status }) => ({ id, elementId, status })),
+    [proposalRemarks],
   );
 
   const lastPublishedContent = useMemo(() => {
@@ -211,6 +341,22 @@ const ProcessContentViewer = () => {
             </Stack>
             <Stack direction="row" alignItems="center" spacing={1} useFlexGap flexWrap="wrap">
               <Breadcrumbs breadcrumbItems={getBreadCrumbs()} />
+              {routeProjectId && canSubmitViewerRemark && (
+                <Button
+                  size="sm"
+                  variant="soft"
+                  color="warning"
+                  disabled={!selectedActivityId || contentId !== lastPublishedContent?.id || submittingRemark}
+                  onClick={() => { setRemarkError(null); setRemarkModalOpen(true); }}
+                >
+                  Ajouter une remarque
+                </Button>
+              )}
+              {requiresProjectSelection && (
+                <Alert color="warning" variant="soft" sx={{ py: 0.5 }}>
+                  Ce processus est utilisé par plusieurs projets. Ouvrez-le depuis le projet concerné pour déposer une remarque.
+                </Alert>
+              )}
               {associatedProject && (
                 <Button
                   size="sm"
@@ -229,6 +375,7 @@ const ProcessContentViewer = () => {
           contentId={contentId}
           selectedElementId={selectedActivityId}
           onElementSelect={handleElementSelect}
+          remarks={contextualRemarks}
           onToggleInfoPanel={() => setInfoPanelOpen(value => !value)}
           infoPanelOpen={infoPanelOpen}
           fullscreenTargetRef={workspaceRef}
@@ -236,6 +383,37 @@ const ProcessContentViewer = () => {
         />
       </Box>
 
+      <Modal
+        open={remarkModalOpen}
+        onClose={() => { if (!submittingRemark) setRemarkModalOpen(false); }}
+      >
+        <ModalDialog>
+          <DialogTitle>Déposer une remarque</DialogTitle>
+          <DialogContent>Élément BPMN sélectionné : {selectedActivityId || 'aucun'}</DialogContent>
+          <AddCommentForm
+            placeholder="Décrivez le point à examiner ou la modification souhaitée…"
+            submitLabel="Envoyer la remarque"
+            disabled={!canSubmitViewerRemark || !selectedActivityId}
+            loading={submittingRemark}
+            onFormSubmit={({ comment }) => submitViewerRemark(comment)}
+          />
+          {remarkError && <Alert color="danger">{remarkError}</Alert>}
+          <DialogActions>
+            <Button variant="plain" color="neutral" disabled={submittingRemark} onClick={() => setRemarkModalOpen(false)}>Annuler</Button>
+          </DialogActions>
+        </ModalDialog>
+      </Modal>
+      {Boolean(remarkPermissionError) && routeProjectId && (
+        <Alert color="danger" variant="soft" sx={{ mx: 2, mt: 1 }}>
+          Impossible de vérifier le droit de dépôt des remarques pour ce projet.
+        </Alert>
+      )}
+      {routeProjectId && remarkPermission && !remarkPermission.associated && (
+        <Alert color="danger" variant="soft" sx={{ mx: 2, mt: 1 }}>
+          Le processus n’est pas associé au projet sélectionné.
+        </Alert>
+      )}
+      {remarkWarning && <Alert color="warning" variant="soft" sx={{ mx: 2, mt: 1 }}>{remarkWarning}</Alert>}
       <Sheet className={`processTaskPanel viewerInfoPanel ${infoPanelOpen ? 'open mobile-visible' : ''}`} variant="outlined">
         <Stack spacing={1.5} className="viewerInfoHeader">
           <Stack direction="row" alignItems="center" justifyContent="space-between">
@@ -271,7 +449,7 @@ const ProcessContentViewer = () => {
 
         <Divider />
 
-        <Tabs value={infoTab} onChange={(_, value) => setInfoTab(value as 0 | 1 | 2)} className="viewerTabs">
+        <Tabs value={infoTab} onChange={(_, value) => setInfoTab(value as 0 | 1 | 2 | 3)} className="viewerTabs">
           <TabList sticky="top" variant="plain">
             <Tab value={0}>Historique des versions</Tab>
             <Tab value={1} sx={{ flexDirection: 'row', gap: 0.75, alignItems: 'center' }}>
@@ -279,6 +457,7 @@ const ProcessContentViewer = () => {
               <span>RACI ({raciMatrix.activities.length})</span>
             </Tab>
             <Tab value={2}>Fiche de l’élément</Tab>
+            <Tab value={3}>Remarques ({proposalRemarks.length})</Tab>
           </TabList>
 
           <TabPanel value={0} className="viewerTabPanel">
@@ -298,6 +477,45 @@ const ProcessContentViewer = () => {
                     {content.updatedBy}
                   </Typography>
 
+                </Sheet>
+              ))}
+            </Stack>
+          </TabPanel>
+
+          <TabPanel value={3} className="viewerTabPanel">
+            <Stack spacing={1.25}>
+              <Typography level="body-sm" textColor="neutral">
+                Les remarques sont liées aux éléments BPMN et conservées hors du fichier BPMN. Elles restent consultables après leur traitement.
+              </Typography>
+              {proposalRemarksLoading && <Typography level="body-sm">Chargement des remarques…</Typography>}
+              {proposalRemarksError && (
+                <Alert color="danger" variant="soft">
+                  Impossible de charger les remarques : {proposalRemarksLoadError instanceof Error ? proposalRemarksLoadError.message : 'erreur inconnue'}
+                </Alert>
+              )}
+              {!proposalRemarksLoading && !proposalRemarksError && proposalRemarks.length === 0 && (
+                <Typography level="body-sm" textColor="neutral">Aucune remarque pour cette version publiée.</Typography>
+              )}
+              {proposalRemarks.map((remark, index) => (
+                <Sheet key={remark.id} variant="outlined" sx={{ p: 1.25, borderRadius: 'sm' }}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
+                    <Typography level="title-sm">Remarque {index + 1} — {remark.elementId}</Typography>
+                    <Typography level="body-xs" color={getRemarkStatusColor(remark.status)}>{getRemarkStatusLabel(remark.status)}</Typography>
+                  </Stack>
+                  <CommentCard comment={{
+                    id: remark.id,
+                    resourceId,
+                    comment: remark.comment,
+                    createdBy: remark.authorName || remark.authorUserId,
+                    createdAt: remark.createdAt,
+                  }} />
+                  {remark.decidedAt && (
+                    <Typography level="body-xs" textColor="neutral">
+                      Décision le {formatDateTime(remark.decidedAt)}
+                      {(remark.decisionByName || remark.decisionBy) ? ` · ${remark.decisionByName || remark.decisionBy}` : ''}
+                      {remark.decisionComment ? ` · ${remark.decisionComment}` : ''}
+                    </Typography>
+                  )}
                 </Sheet>
               ))}
             </Stack>
