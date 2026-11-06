@@ -54,6 +54,7 @@ export const action = async ({
     switch (formAction) {
       case 'saveContent':
       case 'saveContentBeforePublish':
+      case 'saveContentBeforeSubmit':
         actionPromise = saveContentAction(resourceId, contentId, formData);
         break;
       default:
