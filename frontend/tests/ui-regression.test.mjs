@@ -397,7 +397,8 @@ test('viewer keeps the explorer left of the tabs and the element sheet beside th
   const processWorkspaceStyles = styles.slice(styles.indexOf('.processViewerProcessWorkspace {'), styles.indexOf('.processViewerDiagram {'));
   const diagramStyles = styles.slice(styles.indexOf('.processViewerDiagram {'), styles.indexOf('.processViewerDiagramHeader {'));
   const taskPanelStyles = styles.slice(styles.indexOf('.processTaskPanel {'), styles.indexOf('.processTaskPanel.collapsed {'));
-  const canvasStyles = styles.slice(styles.indexOf('.processViewerCanvas {'), styles.indexOf('.processViewerInfo {'));
+  const canvasStart = styles.indexOf('.processViewerCanvas {');
+  const canvasStyles = styles.slice(canvasStart, canvasStart + 500);
   assert.ok(processWorkspaceStyles.includes('display: flex;') && processWorkspaceStyles.includes('width: 100%;'), 'BPMN and element sheet must share a horizontal flex workspace');
   assert.ok(diagramStyles.includes('min-width: 0;') && diagramStyles.includes('display: flex;'), 'diagram must flex beside the element sheet');
   assert.ok(taskPanelStyles.includes('flex: 0 0 var(--task-panel-width, 320px)'), 'element sheet must retain its resizable side-panel width');
