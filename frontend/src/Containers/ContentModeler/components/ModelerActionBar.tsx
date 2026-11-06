@@ -46,6 +46,7 @@ type ModelerActionBarProps = {
   onPublishApprovedProposal?: () => void;
   publishApprovedDisabled?: boolean;
   publishApprovedLoading?: boolean;
+  returnToUrl?: string;
 };
 
 export const ModelerActionBar = ({
@@ -68,6 +69,7 @@ export const ModelerActionBar = ({
   onPublishApprovedProposal,
   publishApprovedDisabled = false,
   publishApprovedLoading = false,
+  returnToUrl = '/',
 }: ModelerActionBarProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   let publishButtonLabel = 'Publish';
@@ -168,8 +170,8 @@ export const ModelerActionBar = ({
         </Button>
 
         {reviewOnly && (
-          <Button component={Link} to="/mes-demandes" variant="outlined" color="neutral">
-            Retour aux demandes
+          <Button component={Link} to={returnToUrl} variant="outlined" color="neutral">
+            Retour au processus
           </Button>
         )}
         {!proposalMode && !reviewOnly && (
