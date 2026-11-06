@@ -1,7 +1,4 @@
-import {
-  ConflictException,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { Content } from '../../../../ResourceContext/domain/Content/Content';
 import { ContentStatusEnum } from '../../../../ResourceContext/shared/types/Content';
@@ -34,7 +31,9 @@ export async function publishDraftContentWithinTransaction(
     }));
   if (!resource) throw new NotFoundException('Processus source introuvable');
   if (resource.type === ResourceTypeEnum.Folder) {
-    throw new ConflictException('Un dossier ne peut pas recevoir de version publiée');
+    throw new ConflictException(
+      'Un dossier ne peut pas recevoir de version publiée',
+    );
   }
 
   const draft = await contents.findOne({
@@ -45,10 +44,19 @@ export async function publishDraftContentWithinTransaction(
     lock: { mode: 'pessimistic_write' },
   });
   if (!draft || draft.status !== ContentStatusEnum.Draft) {
-    throw new ConflictException('Le brouillon à publier est introuvable ou n’est plus modifiable');
+    throw new ConflictException(
+      'Le brouillon à publier est introuvable ou n’est plus modifiable',
+    );
   }
 
-
+  const previousPublished = await contents.findOne({
+    where: {
+      resourceId: params.targetResourceId,
+      status: ContentStatusEnum.Published,
+    },
+    order: { version: 'DESC' },
+    lock: { mode: 'pessimistic_write' },
+  });
   if (
     params.expectedPublishedContentId &&
     previousPublished?.id !== params.expectedPublishedContentId
@@ -70,14 +78,6 @@ export async function publishDraftContentWithinTransaction(
     .orderBy('content.version', 'DESC', 'NULLS LAST')
     .getOne();
 
-  const previousPublished = await contents.findOne({
-    where: {
-      resourceId: params.targetResourceId,
-      status: ContentStatusEnum.Published,
-    },
-    order: { version: 'DESC' },
-    lock: { mode: 'pessimistic_write' },
-  });
   if (previousPublished && previousPublished.id !== draft.id) {
     const previous = ContentMapper.fromPersistence(previousPublished);
     if (previous.fail) throw previous.fail;
