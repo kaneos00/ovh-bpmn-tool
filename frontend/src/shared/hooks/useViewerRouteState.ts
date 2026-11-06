@@ -12,5 +12,6 @@ export const useViewerRouteState = () => {
     requestedElementId: searchParams.get('elementId'),
     requestedContentId: searchParams.get('contentId'),
     requestedRaciView: searchParams.get('raci') === '1',
+    projectId: searchParams.get('projectId'),
   };
 };
