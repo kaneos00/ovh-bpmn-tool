@@ -369,7 +369,7 @@ test('selecting a folder renders its contents instead of an empty folder placeho
   assert.ok(processDetails.includes('useProcessDetails(resourceId'));
 });
 
-test('viewer keeps the explorer and task details in side panels while all central tabs stay grouped', async () => {
+test('viewer keeps the explorer left of the tabs and the element sheet beside the BPMN inside the process tab', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const layoutStart = details.indexOf('className="processViewerLayout processViewerWorkspace"');
   const explorer = details.indexOf('<ViewerExplorerPanel');
@@ -379,19 +379,26 @@ test('viewer keeps the explorer and task details in side panels while all centra
   const historyTab = details.indexOf('value={2} className="processViewerTabPanel"');
   const raciTab = details.indexOf('value={3} className="processViewerTabPanel"');
   const inventoryTab = details.indexOf('value={4} className="processViewerTabPanel"');
+  const processWorkspace = details.indexOf('className="processViewerProcessWorkspace"', processTab);
+  const diagram = details.indexOf('className="processViewerDiagram"', processWorkspace);
+  const taskPanel = details.indexOf('className={`processTaskPanel', processWorkspace);
+  const workspaceClose = details.indexOf('</Box>\n        </TabPanel>', processWorkspace);
+  const processTabClose = details.indexOf('</TabPanel>', processTab);
   const tabsClose = details.indexOf('</Tabs>', inventoryTab);
-  const taskPanel = details.indexOf('className={`processTaskPanel', tabsClose);
 
-  assert.ok(layoutStart >= 0, 'viewer workspace should own the three-column layout');
+  assert.ok(layoutStart >= 0, 'viewer workspace should own the explorer and central tabs');
   assert.ok(explorer > layoutStart && explorer < tabs, 'explorer must remain to the left of central tabs');
-  assert.ok(tabs < processTab && processTab < descriptionTab && descriptionTab < historyTab && historyTab < raciTab && raciTab < inventoryTab, 'diagram, description, history, RACI and inventory must be ordered in the central panel');
-  assert.ok(tabsClose > inventoryTab && taskPanel > tabsClose, 'task details must remain in the right-side panel outside the tabs');
-  assert.ok(details.slice(processTab, descriptionTab).includes('className="processViewerDiagram"'), 'process diagram belongs to the process tab');
+  assert.ok(tabs < processTab && processTab < descriptionTab && descriptionTab < historyTab && historyTab < raciTab && raciTab < inventoryTab && tabsClose > inventoryTab, 'diagram, description, history, RACI and inventory must remain ordered in the top-level tabs');
+  assert.ok(processWorkspace > processTab && diagram > processWorkspace && taskPanel > diagram && workspaceClose > taskPanel && processTabClose > workspaceClose, 'the BPMN diagram and element sheet must be siblings inside the Vue du processus tab');
+  assert.ok(details.slice(processTab, processTabClose).includes('className="processViewerResizeHandle"'), 'the element sheet resize handle must stay with the process workspace');
+  assert.match(details, /const \\[taskPanelCollapsed, setTaskPanelCollapsed\\] = useState\\(true\\)/);
+  assert.match(details, /setTaskPanelCollapsed\\(!selectedElementId\\)/);
   const styles = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.scss');
-  assert.match(styles, /\.processViewerTabs\s*\{[^}]*flex:\s*1 1 0;[^}]*width:\s*0;/s);
-  assert.match(styles, /\.processViewerDiagram\s*\{[^}]*width:\s*100%;/s);
-  assert.match(styles, /\.processViewerCanvas\s*\{[^}]*display:\s*flex;[^}]*flex:\s*1 1 0;[^}]*min-height:\s*0;/s);
-  assert.match(details, /<Stack direction="row" spacing=\{0\.5\} alignItems="center">[\s\S]*?aria-label="Copier le lien du processus"[\s\S]*?aria-label="Modifier le diagramme BPMN"/);
+  assert.match(styles, /\\.processViewerProcessWorkspace\\s*\\{[^}]*display:\\s*flex;[^}]*width:\\s*100%;/s);
+  assert.match(styles, /\\.processViewerDiagram\\s*\\{[^}]*min-width:\\s*0;[^}]*display:\\s*flex;/s);
+  assert.match(styles, /\\.processTaskPanel\\s*\\{[^}]*flex:\\s*0 0 var\\(--task-panel-width, 320px\\)/s);
+  assert.match(styles, /\\.processViewerCanvas\\s*\\{[^}]*display:\\s*flex;[^}]*flex:\\s*1 1 0;[^}]*min-height:\\s*0;/s);
+  assert.match(details, /<Stack direction="row" spacing=\\{0\\.5\\} alignItems="center">[\\s\\S]*?aria-label="Copier le lien du processus"[\\s\\S]*?aria-label="Modifier le diagramme BPMN"/);
   assert.ok(details.includes("import '../../../raci.css'"), 'Viewer should reuse the Modeler RACI design system');
   assert.ok(details.includes('className="raci-table"'));
   assert.ok(details.includes('raci-code-badge raci-code-'));
