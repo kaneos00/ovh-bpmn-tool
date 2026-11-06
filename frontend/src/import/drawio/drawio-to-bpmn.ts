@@ -234,12 +234,12 @@ const buildPage = (page: PageInfo, pageIndex: number, warnings: string[]) => {
 
   const dataStoreDefinitions = dataStores.map(node =>
     `  <bpmn:dataStore id="${node.id}_store" name="${escapeXml(node.name || 'Data store')}" />`
-  ).join('\\n');
+  ).join('\n');
 
   const nodeElements = nodes.map(node => {
     const name = node.name ? ` name="${escapeXml(node.name)}"` : '';
     if (node.type === 'dataObjectReference') {
-      return `    <bpmn:dataObject id="${node.id}_data" />\\n    <bpmn:dataObjectReference id="${node.id}"${name} dataObjectRef="${node.id}_data" />`;
+      return `    <bpmn:dataObject id="${node.id}_data" />\n    <bpmn:dataObjectReference id="${node.id}"${name} dataObjectRef="${node.id}_data" />`;
     }
     if (node.type === 'dataStoreReference') {
       return `    <bpmn:dataStoreReference id="${node.id}"${name} dataStoreRef="${node.id}_store" />`;
@@ -250,20 +250,20 @@ const buildPage = (page: PageInfo, pageIndex: number, warnings: string[]) => {
       const dataNode = bySourceId.get(dataId)!;
       if (edge.kind === 'dataInputAssociation') {
         const propertyId = `${edge.id}_property`;
-        return `      <bpmn:property id="${propertyId}" name="__targetRef_placeholder" />\\n      <bpmn:dataInputAssociation id="${edge.id}">\\n        <bpmn:sourceRef>${dataNode.id}</bpmn:sourceRef>\\n        <bpmn:targetRef>${propertyId}</bpmn:targetRef>\\n      </bpmn:dataInputAssociation>`;
+        return `      <bpmn:property id="${propertyId}" name="__targetRef_placeholder" />\n      <bpmn:dataInputAssociation id="${edge.id}">\n        <bpmn:sourceRef>${dataNode.id}</bpmn:sourceRef>\n        <bpmn:targetRef>${propertyId}</bpmn:targetRef>\n      </bpmn:dataInputAssociation>`;
       }
-      return `      <bpmn:dataOutputAssociation id="${edge.id}">\\n        <bpmn:targetRef>${dataNode.id}</bpmn:targetRef>\\n      </bpmn:dataOutputAssociation>`;
-    }).join('\\n');
+      return `      <bpmn:dataOutputAssociation id="${edge.id}">\n        <bpmn:targetRef>${dataNode.id}</bpmn:targetRef>\n      </bpmn:dataOutputAssociation>`;
+    }).join('\n');
     return associationXml
-      ? `    <bpmn:${node.type} id="${node.id}"${name}>\\n${associationXml}\\n    </bpmn:${node.type}>`
+      ? `    <bpmn:${node.type} id="${node.id}"${name}>\n${associationXml}\n    </bpmn:${node.type}>`
       : `    <bpmn:${node.type} id="${node.id}"${name} />`;
-  }).join('\\n');
+  }).join('\n');
 
   const flowXml = edges.filter(edge => edge.kind === 'sequenceFlow').map(edge => {
     const source = bySourceId.get(edge.sourceId)!;
     const target = bySourceId.get(edge.targetId)!;
     return `    <bpmn:sequenceFlow id="${edge.id}" sourceRef="${source.id}" targetRef="${target.id}" />`;
-  }).join('\\n');
+  }).join('\n');
 
   const shapes = nodes.map(node =>
     `      <bpmndi:BPMNShape id="${node.id}_di" bpmnElement="${node.id}">\n        <dc:Bounds x="${node.bounds.x}" y="${node.bounds.y}" width="${node.bounds.width}" height="${node.bounds.height}" />\n      </bpmndi:BPMNShape>`
@@ -274,7 +274,7 @@ const buildPage = (page: PageInfo, pageIndex: number, warnings: string[]) => {
   ).join('\n');
 
   return {
-    process: `  <bpmn:process id="${processId}" name="${escapeXml(page.name)}" isExecutable="false">\n${processes}\n${flowXml}\n  </bpmn:process>`,
+    dataStores: dataStoreDefinitions,\n    process: `  <bpmn:process id="${processId}" name="${escapeXml(page.name)}" isExecutable="false">\n${nodeElements}\n${flowXml}\n  </bpmn:process>`,
     diagram: `  <bpmndi:BPMNDiagram id="${diagramId}" name="${escapeXml(page.name)}">\n    <bpmndi:BPMNPlane id="${planeId}" bpmnElement="${processId}">\n${shapes}\n${diEdges}\n    </bpmndi:BPMNPlane>\n  </bpmndi:BPMNDiagram>`,
     dataObjectCount: dataObjects.length,
     dataStoreCount: dataStores.length,
@@ -285,7 +285,7 @@ export async function drawioToBpmn(xml: string): Promise<DrawioImportResult> {
   const pages = await readPages(xml);
   const warnings: string[] = [];
   const converted = pages.map((page, index) => buildPage(page, index, warnings));
-  const resultXml = `<?xml version="1.0" encoding="UTF-8"?>\n<bpmn:definitions xmlns:bpmn="${BPMN_NS}" xmlns:bpmndi="${BPMNDI_NS}" xmlns:dc="${DC_NS}" xmlns:di="${DI_NS}" id="Definitions_Drawio" targetNamespace="http://bpmn.io/schema/bpmn">\n${converted.map(item => item.process).join('\n')}\n${converted.map(item => item.diagram).join('\n')}\n</bpmn:definitions>`;
+  const resultXml = `<?xml version="1.0" encoding="UTF-8"?>\n<bpmn:definitions xmlns:bpmn="${BPMN_NS}" xmlns:bpmndi="${BPMNDI_NS}" xmlns:dc="${DC_NS}" xmlns:di="${DI_NS}" id="Definitions_Drawio" targetNamespace="http://bpmn.io/schema/bpmn">\n${converted.map(item => item.dataStores).filter(Boolean).join('\n')}\n${converted.map(item => item.process).join('\n')}\n${converted.map(item => item.diagram).join('\n')}\n</bpmn:definitions>`;
   return { xml: resultXml, warnings };
 }
 
