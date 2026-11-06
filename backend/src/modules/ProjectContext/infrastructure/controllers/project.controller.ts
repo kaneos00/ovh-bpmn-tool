@@ -907,6 +907,15 @@ export class ProjectController {
         return { deleted: true, projectId, userId };
       }
 
+      if (
+        project.defaultValidatorUserId === userId &&
+        role !== ProjectMemberRole.Admin &&
+        role !== ProjectMemberRole.Modeler
+      ) {
+        project.defaultValidatorUserId = null;
+        await projectRepository.save(project);
+      }
+
       const member =
         existing ??
         members.create({
@@ -934,9 +943,22 @@ export class ProjectController {
       projectId: project.id,
       userId,
     });
-    if (!membership) {
+    if (
+      !membership ||
+      (membership.role !== ProjectMemberRole.Admin &&
+        membership.role !== ProjectMemberRole.Modeler)
+    ) {
       throw new BadRequestException(
-        'The default validator must be a member of this project',
+        'Le valideur par défaut doit être un membre actif du projet avec le rôle Admin ou Modeler',
+      );
+    }
+    const activeAccounts: Array<{ id: string }> = await this.dataSource.query(
+      'SELECT id FROM app_users WHERE lower(username) = lower($1) AND active = TRUE LIMIT 1',
+      [membership.userId],
+    );
+    if (!activeAccounts.length) {
+      throw new BadRequestException(
+        'Le compte du valideur par défaut est introuvable ou désactivé',
       );
     }
     project.defaultValidatorUserId = userId;
