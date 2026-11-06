@@ -12,8 +12,9 @@
     <g fill="none" stroke="#fff" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round">
       <path d="M16 24 V38"/>
       <path d="M16 72 V58"/>
-      <path d="M26 48 C40 48 45 16 58.25 16"/>
-      <path d="M26 48 C40 48 45 80 58.25 80"/>
+      <!-- Connector shafts stop at the arrowhead bases, so they do not cross the arrow strokes. -->
+      <path d="M26 48 C40 48 45 16 53.25 16"/>
+      <path d="M26 48 C40 48 45 80 53.25 80"/>
     </g>
     <g fill="#1769e0" stroke="#fff" stroke-width="3.5">
       <circle cx="16" cy="16" r="8"/>
@@ -24,7 +25,7 @@
       <rect x="63" y="8" width="18" height="16" rx="4"/>
       <rect x="63" y="72" width="18" height="16" rx="4"/>
     </g>
-    <!-- Arrow tips meet the outer edge of each task border without crossing it. -->
+    <!-- Arrow tips end exactly at the outside edge of each task border. -->
     <g transform="translate(-3 0)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M56.25 13 L61.25 16 L56.25 19"/>
       <path d="M56.25 77 L61.25 80 L56.25 83"/>
