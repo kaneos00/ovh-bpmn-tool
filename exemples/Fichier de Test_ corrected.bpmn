@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_Drawio_Test" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.51.1">
+  <bpmn:process id="Process_Page_1" name="Page-1" isExecutable="false">
+    <bpmn:startEvent id="P1_Start" name="Start" />
+    <bpmn:task id="P1_Task_1" name="Etape 1">
+      <bpmn:property id="Property_0k6ab6n" name="__targetRef_placeholder" />
+      <bpmn:dataInputAssociation id="DataInputAssociation_0yjmm01">
+        <bpmn:sourceRef>DataStoreReference_0zixiem</bpmn:sourceRef>
+        <bpmn:targetRef>Property_0k6ab6n</bpmn:targetRef>
+      </bpmn:dataInputAssociation>
+    </bpmn:task>
+    <bpmn:task id="P1_Task_2" name="Etape 2">
+      <bpmn:dataOutputAssociation id="DataOutputAssociation_1lf19x0">
+        <bpmn:targetRef>DataStoreReference_0s8ysq7</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:endEvent id="P1_End" name="End" />
+    <bpmn:sequenceFlow id="P1_Flow_Start_Task1" sourceRef="P1_Start" targetRef="P1_Task_1" />
+    <bpmn:sequenceFlow id="P1_Flow_Task1_Task2" sourceRef="P1_Task_1" targetRef="P1_Task_2" />
+    <bpmn:sequenceFlow id="P1_Flow_Task2_End" sourceRef="P1_Task_2" targetRef="P1_End" />
+    <bpmn:dataStoreReference id="DataStoreReference_0s8ysq7" name="database" />
+    <bpmn:dataObjectReference id="DataStoreReference_0zixiem" name="file" dataObjectRef="DataObject_12inbz2" />
+    <bpmn:dataObject id="DataObject_12inbz2" />
+  </bpmn:process>
+  <bpmn:process id="Process_Page_2" name="Page-2" isExecutable="false">
+    <bpmn:startEvent id="P2_Start" name="Début" />
+    <bpmn:task id="P2_Document" name="Document ou information" />
+    <bpmn:exclusiveGateway id="P2_Decision" name="Decision" />
+    <bpmn:task id="P2_Action" name="ACTION" />
+    <bpmn:task id="P2_Processus" name="Processus" />
+    <bpmn:task id="P2_Procedure" name="PROCEDURE" />
+    <bpmn:endEvent id="P2_End" name="Fin" />
+    <bpmn:sequenceFlow id="P2_Flow_Start_Document" sourceRef="P2_Start" targetRef="P2_Document" />
+    <bpmn:sequenceFlow id="P2_Flow_Document_Decision" sourceRef="P2_Document" targetRef="P2_Decision" />
+    <bpmn:sequenceFlow id="P2_Flow_Decision_Action" sourceRef="P2_Decision" targetRef="P2_Action" />
+    <bpmn:sequenceFlow id="P2_Flow_Action_Procedure" sourceRef="P2_Action" targetRef="P2_Procedure" />
+    <bpmn:sequenceFlow id="P2_Flow_Procedure_End" sourceRef="P2_Procedure" targetRef="P2_End" />
+    <bpmn:sequenceFlow id="P2_Flow_Decision_Processus" sourceRef="P2_Decision" targetRef="P2_Processus" />
+    <bpmn:sequenceFlow id="P2_Flow_Processus_End" sourceRef="P2_Processus" targetRef="P2_End" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_Page_1">
+    <bpmndi:BPMNPlane id="Plane_Page_1" bpmnElement="Process_Page_1">
+      <bpmndi:BPMNShape id="P1_Start_di" bpmnElement="P1_Start">
+        <dc:Bounds x="130" y="100" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="143" y="150" width="24" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P1_Task_1_di" bpmnElement="P1_Task_1">
+        <dc:Bounds x="230" y="85" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P1_Task_2_di" bpmnElement="P1_Task_2">
+        <dc:Bounds x="430" y="85" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P1_End_di" bpmnElement="P1_End">
+        <dc:Bounds x="810" y="100" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="825" y="150" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataObjectReference_1n3w28m_di" bpmnElement="DataStoreReference_0zixiem">
+        <dc:Bounds x="272" y="255" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="283" y="312" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataStoreReference_0s8ysq7_di" bpmnElement="DataStoreReference_0s8ysq7">
+        <dc:Bounds x="465" y="255" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="467" y="312" width="46" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="P1_Flow_Start_Task1_di" bpmnElement="P1_Flow_Start_Task1">
+        <di:waypoint x="180" y="125" />
+        <di:waypoint x="230" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="P1_Flow_Task1_Task2_di" bpmnElement="P1_Flow_Task1_Task2">
+        <di:waypoint x="350" y="125" />
+        <di:waypoint x="430" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="P1_Flow_Task2_End_di" bpmnElement="P1_Flow_Task2_End">
+        <di:waypoint x="550" y="125" />
+        <di:waypoint x="810" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DataInputAssociation_0yjmm01_di" bpmnElement="DataInputAssociation_0yjmm01">
+        <di:waypoint x="290" y="255" />
+        <di:waypoint x="290" y="165" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DataOutputAssociation_1lf19x0_di" bpmnElement="DataOutputAssociation_1lf19x0">
+        <di:waypoint x="490" y="165" />
+        <di:waypoint x="490" y="255" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+  <bpmndi:BPMNDiagram id="Diagram_Page_2">
+    <bpmndi:BPMNPlane id="Plane_Page_2" bpmnElement="Process_Page_2">
+      <bpmndi:BPMNShape id="P2_Start_di" bpmnElement="P2_Start">
+        <dc:Bounds x="50" y="145.2" width="25.6" height="25.6" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P2_Document_di" bpmnElement="P2_Document">
+        <dc:Bounds x="120" y="130" width="90" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P2_Decision_di" bpmnElement="P2_Decision">
+        <dc:Bounds x="275" y="134" width="60" height="46" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P2_Action_di" bpmnElement="P2_Action">
+        <dc:Bounds x="385" y="134" width="100" height="48" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P2_Processus_di" bpmnElement="P2_Processus">
+        <dc:Bounds x="385" y="250" width="100" height="45" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P2_Procedure_di" bpmnElement="P2_Procedure">
+        <dc:Bounds x="530" y="130" width="100" height="57" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P2_End_di" bpmnElement="P2_End">
+        <dc:Bounds x="670" y="145.19" width="23.62" height="23.62" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="P2_Flow_Start_Document_di" bpmnElement="P2_Flow_Start_Document">
+        <di:waypoint x="75.6" y="158" />
+        <di:waypoint x="120" y="155" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="P2_Flow_Document_Decision_di" bpmnElement="P2_Flow_Document_Decision">
+        <di:waypoint x="210" y="155" />
+        <di:waypoint x="275" y="157" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="P2_Flow_Decision_Action_di" bpmnElement="P2_Flow_Decision_Action">
+        <di:waypoint x="335" y="157" />
+        <di:waypoint x="385" y="158" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="P2_Flow_Action_Procedure_di" bpmnElement="P2_Flow_Action_Procedure">
+        <di:waypoint x="485" y="158" />
+        <di:waypoint x="530" y="158" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="P2_Flow_Procedure_End_di" bpmnElement="P2_Flow_Procedure_End">
+        <di:waypoint x="630" y="158" />
+        <di:waypoint x="670" y="157" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="P2_Flow_Decision_Processus_di" bpmnElement="P2_Flow_Decision_Processus">
+        <di:waypoint x="305" y="180" />
+        <di:waypoint x="305" y="272.5" />
+        <di:waypoint x="385" y="272.5" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="P2_Flow_Processus_End_di" bpmnElement="P2_Flow_Processus_End">
+        <di:waypoint x="485" y="272.5" />
+        <di:waypoint x="681.8" y="272.5" />
+        <di:waypoint x="681.8" y="168.81" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
