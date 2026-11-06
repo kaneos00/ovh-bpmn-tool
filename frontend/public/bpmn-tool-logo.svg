@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title">
-  <title id="title">BPMN Tool</title>
+  <title id="title">BPMN Tool — K processus</title>
   <defs>
     <linearGradient id="bg" x1="10%" y1="0%" x2="90%" y2="100%">
       <stop offset="0%" stop-color="#1769e0"/>
@@ -7,13 +7,24 @@
     </linearGradient>
   </defs>
   <rect x="4" y="4" width="88" height="88" rx="24" fill="url(#bg)"/>
-  <g fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="4">
-    <path d="M27 30h18l9 18h16"/>
-    <path d="M27 66h18l9-18"/>
-    <path d="M63 48l7-7m-7 7 7 7"/>
+  <g fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Two independent incoming flows from the start/end events to the gateway -->
+    <path d="M25 27 C25 35 32 40 41 45"/>
+    <path d="M25 69 C25 61 32 56 41 51"/>
+    <!-- Smooth outgoing branches to the two tasks -->
+    <path d="M55 44 C63 39 63 29 70 27"/>
+    <path d="M55 52 C63 57 63 67 70 69"/>
   </g>
-  <rect x="16" y="19" width="22" height="22" rx="6" fill="#fff"/>
-  <rect x="16" y="55" width="22" height="22" rx="6" fill="#fff"/>
-  <circle cx="73" cy="48" r="9" fill="#9fd5ff" stroke="#fff" stroke-width="3"/>
-  <path d="M23 26h8v8h-8zM23 62h8v8h-8z" fill="#1769e0"/>
+  <g fill="#1769e0" stroke="#fff" stroke-width="3.5">
+    <circle cx="23" cy="19" r="8"/>
+    <circle cx="23" cy="77" r="8"/>
+    <rect x="68" y="18" width="21" height="17" rx="4"/>
+    <rect x="68" y="61" width="21" height="17" rx="4"/>
+  </g>
+  <!-- Filled BPMN gateway at the junction of the four flows -->
+  <path d="M48 38 L58 48 L48 58 L38 48 Z" fill="#fff"/>
+  <g fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M64 27l5-3-1 6"/>
+    <path d="M64 69l5 3-1-6"/>
+  </g>
 </svg>
