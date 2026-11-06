@@ -95,6 +95,18 @@ const getContentStatusLabel = (status: ContentStatusEnum) => {
   return 'Obsolète';
 };
 
+const getProposalRemarkStatusColor = (status: string) => {
+  if (status === 'accepted') return 'success' as const;
+  if (status === 'rejected') return 'danger' as const;
+  return 'warning' as const;
+};
+
+const getProposalRemarkStatusLabel = (status: string) => {
+  if (status === 'accepted') return 'Acceptée';
+  if (status === 'rejected') return 'Refusée';
+  return 'En attente';
+};
+
 const getRaciCellStatusClass = (status: string) => {
   if (status === 'explicit') return 'raci-status-explicit';
   if (status === 'inferred') return 'raci-status-inferred';
@@ -200,6 +212,14 @@ export const ProcessDetails = ({
     { enabled: Boolean(viewerContent) },
   );
   const queryClient = useQueryClient();
+  const [activeViewerTab, setActiveViewerTab] = useState(0);
+  const [remarkModalOpen, setRemarkModalOpen] = useState(false);
+  const [startingProposal, setStartingProposal] = useState(false);
+  const [remarkText, setRemarkText] = useState('');
+  const [submittingRemark, setSubmittingRemark] = useState(false);
+  const [remarkError, setRemarkError] = useState<string | null>(null);
+  const [remarkWarning, setRemarkWarning] = useState<string | null>(null);
+
   const { data: remarkPermission } = useQuery<{
     associated: boolean;
     isMember: boolean;
@@ -296,13 +316,6 @@ export const ProcessDetails = ({
   const { data: resourceShares } = useQuery(resourceSharesQuery(resourceId));
   const { showAlert } = useSnackbar();
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
-  const [activeViewerTab, setActiveViewerTab] = useState(0);
-  const [remarkModalOpen, setRemarkModalOpen] = useState(false);
-  const [startingProposal, setStartingProposal] = useState(false);
-  const [remarkText, setRemarkText] = useState('');
-  const [submittingRemark, setSubmittingRemark] = useState(false);
-  const [remarkError, setRemarkError] = useState<string | null>(null);
-  const [remarkWarning, setRemarkWarning] = useState<string | null>(null);
 
   // A deep link may explicitly open the RACI workspace. Otherwise keep the
   // current tab when the user navigates between processes or versions.
@@ -1382,8 +1395,8 @@ export const ProcessDetails = ({
                 <Sheet key={remark.id} variant="soft" sx={{ p: 1.25, borderRadius: 'sm' }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
                     <Typography level="title-sm">Remarque {index + 1} — {remark.elementId}</Typography>
-                    <Chip size="sm" color={remark.status === 'accepted' ? 'success' : remark.status === 'rejected' ? 'danger' : 'warning'}>
-                      {remark.status === 'accepted' ? 'Acceptée' : remark.status === 'rejected' ? 'Refusée' : 'En attente'}
+                    <Chip size="sm" color={getProposalRemarkStatusColor(remark.status)}>
+                      {getProposalRemarkStatusLabel(remark.status)}
                     </Chip>
                   </Stack>
                   <Typography level="body-sm">{remark.comment}</Typography>
