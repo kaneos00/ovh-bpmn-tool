@@ -702,14 +702,12 @@ export class ProcessChangeProposalController {
       // deliberately enforces sourceResourceId <> cloneResourceId. For a
       // Common process this workspace stays private to the proposal and is
       // not added as a second project-process link below.
-      const {
-        resource: savedClone,
-        content: savedCloneContent,
-      } = await createProposalWorkspace(manager, {
-        source,
-        publishedContent: published,
-        createdBy: authorUsername,
-      });
+      const { resource: savedClone, content: savedCloneContent } =
+        await createProposalWorkspace(manager, {
+          source,
+          publishedContent: published,
+          createdBy: authorUsername,
+        });
 
       // A Common process is already associated with the project as a shared
       // usage. Never create a second project-process link for its working copy.
