@@ -463,6 +463,14 @@ export class ProjectController {
       project.description = body.description.trim() || null;
     }
     if (body.defaultValidatorUserId !== undefined) {
+      if (
+        body.defaultValidatorUserId !== null &&
+        typeof body.defaultValidatorUserId !== 'string'
+      ) {
+        throw new BadRequestException(
+          'defaultValidatorUserId must be a member username or null',
+        );
+      }
       const requestedValidator = body.defaultValidatorUserId?.trim() || null;
       if (requestedValidator) {
         const membership = await this.projectMembers.findOne({
