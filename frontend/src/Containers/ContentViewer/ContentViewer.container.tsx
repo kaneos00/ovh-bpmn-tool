@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -67,7 +67,8 @@ const ProcessContentViewer = () => {
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
   const { requestedElementId, requestedRaciView } = useViewerRouteState();
   const [folderOpen, setFolderOpen] = useState(true);
-  const [infoTab, setInfoTab] = useState<0 | 1>(0);
+  const [infoTab, setInfoTab] = useState<0 | 1 | 2>(0);
+  const workspaceRef = useRef<HTMLDivElement>(null);
   const [infoPanelOpen, setInfoPanelOpen] = useState(false);
   const [actorFilter, setActorFilter] = useState('');
   const [codeFilter, setCodeFilter] = useState<RaciCode | ''>('');
@@ -110,6 +111,31 @@ const ProcessContentViewer = () => {
 
   const selectedRole = selectedActivityId ? laneRoleByElement.get(selectedActivityId) ?? '' : '';
 
+  const selectedElementDetails = useMemo(() => {
+    if (!xmlContent || !selectedActivityId) return null;
+    const document = new DOMParser().parseFromString(xmlContent, 'application/xml');
+    if (document.getElementsByTagName('parsererror').length > 0) return null;
+    const element = Array.from(document.getElementsByTagName('*'))
+      .find(candidate => candidate.getAttribute('id') === selectedActivityId);
+    if (!element) return null;
+    const documentation = Array.from(element.children)
+      .filter(child => child.localName === 'documentation')
+      .map(child => child.textContent?.trim() ?? '')
+      .filter(Boolean);
+    return {
+      id: selectedActivityId,
+      name: element.getAttribute('name')?.trim() || selectedActivityId,
+      type: element.localName.replace(/([a-z])([A-Z])/g, '$1 $2'),
+      documentation,
+    };
+  }, [xmlContent, selectedActivityId]);
+
+  useEffect(() => {
+    if (!selectedActivityId) return;
+    setInfoTab(2);
+    setInfoPanelOpen(true);
+  }, [selectedActivityId]);
+
   const { raciAnalysis, issueByActivity, filteredActivities } =
     useViewerRaciFilters(raciMatrix, {
       actorFilter,
@@ -118,7 +144,7 @@ const ProcessContentViewer = () => {
     });
 
   return (
-    <Box className={`processViewerWorkspace viewerLayout ${folderOpen ? 'sidebar-open' : 'sidebar-collapsed'} ${infoPanelOpen ? 'info-open' : ''}`}>
+    <Box ref={workspaceRef} className={`processViewerWorkspace viewerLayout ${folderOpen ? 'sidebar-open' : 'sidebar-collapsed'} ${infoPanelOpen ? 'info-open' : ''}`}>
       <ViewerExplorerPanel
         variant="content-viewer"
         selectedId={resourceId}
@@ -200,6 +226,7 @@ const ProcessContentViewer = () => {
           onElementSelect={setSelectedActivityId}
           onToggleInfoPanel={() => setInfoPanelOpen(value => !value)}
           infoPanelOpen={infoPanelOpen}
+          fullscreenTargetRef={workspaceRef}
           toolbarExtra={<UserAccountMenu dark={false} />}
         />
       </Box>
@@ -239,13 +266,14 @@ const ProcessContentViewer = () => {
 
         <Divider />
 
-        <Tabs value={infoTab} onChange={(_, value) => setInfoTab(value as 0 | 1)} className="viewerTabs">
+        <Tabs value={infoTab} onChange={(_, value) => setInfoTab(value as 0 | 1 | 2)} className="viewerTabs">
           <TabList sticky="top" variant="plain">
             <Tab value={0}>Historique des versions</Tab>
             <Tab value={1} sx={{ flexDirection: 'row', gap: 0.75, alignItems: 'center' }}>
               <GroupsOutlined fontSize="small" />
               <span>RACI ({raciMatrix.activities.length})</span>
             </Tab>
+            <Tab value={2}>Fiche de l’élément</Tab>
           </TabList>
 
           <TabPanel value={0} className="viewerTabPanel">
@@ -268,6 +296,38 @@ const ProcessContentViewer = () => {
                 </Sheet>
               ))}
             </Stack>
+          </TabPanel>
+
+          <TabPanel value={2} className="viewerTabPanel">
+            {selectedElementDetails ? (
+              <Stack spacing={1.5} sx={{ minWidth: 0 }}>
+                <Typography level="title-lg">{selectedElementDetails.name}</Typography>
+                <Typography level="body-sm">
+                  Type : {selectedElementDetails.type.replace(/^./, value => value.toUpperCase())}
+                </Typography>
+                <Typography level="body-sm">Identifiant : {selectedElementDetails.id}</Typography>
+                {selectedRole && (
+                  <Typography level="body-sm" textColor="neutral">Couloir / rôle : {selectedRole}</Typography>
+                )}
+                <Divider />
+                <Typography level="title-sm">Description</Typography>
+                {selectedElementDetails.documentation.length > 0 ? (
+                  selectedElementDetails.documentation.map((entry, index) => (
+                    <Sheet key={index} variant="soft" sx={{ p: 1, borderRadius: 'sm' }}>
+                      <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>{entry}</Typography>
+                    </Sheet>
+                  ))
+                ) : (
+                  <Typography level="body-sm" textColor="neutral">
+                    Aucune description n’est renseignée pour cet élément.
+                  </Typography>
+                )}
+              </Stack>
+            ) : (
+              <Typography level="body-sm" textColor="neutral">
+                Sélectionnez un élément BPMN pour afficher sa fiche.
+              </Typography>
+            )}
           </TabPanel>
 
           <TabPanel value={1} className="viewerTabPanel">
