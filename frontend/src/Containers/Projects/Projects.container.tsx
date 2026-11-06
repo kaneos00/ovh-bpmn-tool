@@ -670,52 +670,54 @@ export const Component = () => {
                   </Select>
                 </FormControl>
                 <Stack spacing={1.5}>
-                <FormControl>
-                  <FormLabel>Identifiant utilisateur</FormLabel>
-                  <Input
-                    value={memberUserId}
-                    onChange={event => setMemberUserId(event.target.value)}
-                    placeholder="Identifiant exact de l’utilisateur"
+                  <FormControl>
+                    <FormLabel>Identifiant utilisateur</FormLabel>
+                    <Input
+                      value={memberUserId}
+                      onChange={event => setMemberUserId(event.target.value)}
+                      placeholder="Identifiant exact de l’utilisateur"
+                      disabled={!canManageProjectMembers}
+                    />
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel>Rôle du projet</FormLabel>
+                    <Select
+                      value={memberRole}
+                      disabled={!canManageProjectMembers}
+                      onChange={(_event, value) =>
+                        value &&
+                        setMemberRole(value as 'viewer' | 'modeler' | 'admin')
+                      }
+                    >
+                      <Option value="viewer">Viewer — consultation</Option>
+                      <Option value="modeler">
+                        Modeler — modification des processus
+                      </Option>
+                      <Option value="admin">
+                        Admin — administration du projet
+                      </Option>
+                    </Select>
+                  </FormControl>
+                  <Checkbox
+                    checked={memberCanSubmitRemarks}
                     disabled={!canManageProjectMembers}
-                  />
-                </FormControl>
-                <FormControl>
-                  <FormLabel>Rôle du projet</FormLabel>
-                  <Select
-                    value={memberRole}
-                    disabled={!canManageProjectMembers}
-                    onChange={(_event, value) =>
-                      value &&
-                      setMemberRole(value as 'viewer' | 'modeler' | 'admin')
+                    onChange={event =>
+                      setMemberCanSubmitRemarks(event.target.checked)
                     }
-                  >
-                    <Option value="viewer">Viewer — consultation</Option>
-                    <Option value="modeler">
-                      Modeler — modification des processus
-                    </Option>
-                    <Option value="admin">
-                      Admin — administration du projet
-                    </Option>
-                  </Select>
-                </FormControl>
-                <Checkbox
-                  checked={memberCanSubmitRemarks}
-                  disabled={!canManageProjectMembers}
-                  onChange={event =>
-                    setMemberCanSubmitRemarks(event.target.checked)
-                  }
-                  label="Autoriser le dépôt de remarques sur les processus"
-                />
-                <Box>
-                  <Button
-                    loading={setProjectMember.isLoading}
-                    disabled={!memberUserId.trim() || !canManageProjectMembers}
-                    onClick={() => setProjectMember.mutate()}
-                  >
-                    Enregistrer le rôle
-                  </Button>
-                </Box>
-              </Stack>
+                    label="Autoriser le dépôt de remarques sur les processus"
+                  />
+                  <Box>
+                    <Button
+                      loading={setProjectMember.isLoading}
+                      disabled={
+                        !memberUserId.trim() || !canManageProjectMembers
+                      }
+                      onClick={() => setProjectMember.mutate()}
+                    >
+                      Enregistrer le rôle
+                    </Button>
+                  </Box>
+                </Stack>
               <Typography level="title-md">Membres enregistrés</Typography>
               {membersQuery.isLoading && (
                 <Typography>Chargement des membres…</Typography>
