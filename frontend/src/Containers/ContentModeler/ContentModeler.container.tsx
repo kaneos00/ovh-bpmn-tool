@@ -416,6 +416,7 @@ export const Component = () => {
         onRolesOpen={() => setRaciView('actors')}
         onCompareWithSource={onCompareWithSource}
         proposalMode={proposalMode}
+        returnToUrl={sourceResourceId ? `/${sourceResourceId}` : `/${resourceId}`}
         reviewOnly={reviewRemarksMode && !approvedProposalMode}
         approvedProposalMode={approvedProposalMode}
         onPublishApprovedProposal={publishApprovedProposal}
