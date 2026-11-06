@@ -93,10 +93,10 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
       if (!file) return;
 
       try {
-        const sourceContent = await file.text();
+        const sourceXml = await file.text();
         const readerEngine = new DocumentReaderEngine([drawioReader]);
 
-        if (drawioReader.supports({ fileName: file.name, content: sourceContent })) {
+        if (drawioReader.supports({ fileName: file.name, content: sourceXml })) {
           const sourceDocument = await readerEngine.read({
             fileName: file.name,
             content: sourceContent,
@@ -137,7 +137,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
           return;
         }
 
-        await bpmnModelerInstance.importXML(sourceContent);
+        await bpmnModelerInstance.importXML(sourceXml);
       } catch (error) {
         showAlert({
           message: error instanceof Error
