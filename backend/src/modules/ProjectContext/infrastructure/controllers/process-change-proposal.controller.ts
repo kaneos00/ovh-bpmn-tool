@@ -292,10 +292,7 @@ export class ProcessChangeProposalController {
         }),
       ]);
     const linkByKey = new Map(
-      links.map((link) => [
-        `${link.projectId}:${link.resourceId}`,
-        link,
-      ]),
+      links.map((link) => [`${link.projectId}:${link.resourceId}`, link]),
     );
     const projectById = new Map(
       projects.map((project) => [project.id, project]),
@@ -347,7 +344,7 @@ export class ProcessChangeProposalController {
         );
         return Boolean(
           link &&
-            (link.usage !== ProjectProcessUsage.Common || isOrganizationAdmin),
+          (link.usage !== ProjectProcessUsage.Common || isOrganizationAdmin),
         );
       })
       .map((proposal) => {
@@ -529,8 +526,7 @@ export class ProcessChangeProposalController {
           'Le processus ne fait pas partie de ce projet',
         );
       }
-      const isCommonProcess =
-        sourceLink.usage === ProjectProcessUsage.Common;
+      const isCommonProcess = sourceLink.usage === ProjectProcessUsage.Common;
 
       const source = await resources.findOne({
         where: { id: sourceResourceId },
@@ -971,8 +967,7 @@ export class ProcessChangeProposalController {
           'Le processus ne fait plus partie du projet de la demande',
         );
       }
-      const isCommonProcess =
-        governanceLink.usage === ProjectProcessUsage.Common;
+      const isCommonProcess = governanceLink.usage === ProjectProcessUsage.Common;
 
       const submittedContent = await contents.findOne({
         where: {
