@@ -171,8 +171,6 @@ export const useProcessViewer = (
 
   const resizeDiagram = () => {
     if (!importedRef.current) return;
-    const canvas = viewer.get('canvas') as any;
-    canvas.resized?.();
     fitDiagram();
   };
 
