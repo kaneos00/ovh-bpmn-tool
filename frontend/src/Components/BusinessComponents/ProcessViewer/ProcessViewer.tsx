@@ -28,6 +28,24 @@ export const ProcessViewer = ({
   const viewerShellRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  const {
+    viewerRef,
+    importError,
+    isLoading,
+    minimapVisible,
+    setMinimapVisible,
+    zoomIn,
+    zoomOut,
+    resetZoom,
+    fitDiagram,
+    resizeDiagram,
+  } = useProcessViewer(
+    resourceId,
+    contentId,
+    selectedElementId,
+    onElementSelect,
+  );
+
   useEffect(() => {
     const syncFullscreenState = () => {
       const target = fullscreenTargetRef?.current ?? viewerShellRef.current;
@@ -48,24 +66,6 @@ export const ProcessViewer = ({
       await target.requestFullscreen();
     }
   };
-
-  const {
-    viewerRef,
-    importError,
-    isLoading,
-    minimapVisible,
-    setMinimapVisible,
-    zoomIn,
-    zoomOut,
-    resetZoom,
-    fitDiagram,
-    resizeDiagram,
-  } = useProcessViewer(
-    resourceId,
-    contentId,
-    selectedElementId,
-    onElementSelect,
-  );
 
   return (
     <Box className={`process-viewer-shell${isFullscreen ? ' is-fullscreen' : ''}`} ref={viewerShellRef}>
