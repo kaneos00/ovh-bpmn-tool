@@ -761,10 +761,20 @@ The following paths must coordinate on the project row:
 - all RACI actor/matrix writes that depend on the project or a project-process
   link.
 
-For process-scoped RACI writes, lock the resource row and then the project
-row, and re-check the exact `project_processes(projectId, resourceId)` row
-inside the transaction. For project-wide actor-registry writes, the project
-row is sufficient unless the operation also changes process-scoped entries.
+For database-only RACI mutations (actor registry, actor rename/active
+state, and project matrix replacement), the project row is the coordination
+lock. These operations must not acquire a resource lock after taking the
+project lock. They must re-read the actor registry, current matrix and exact
+`project_processes(projectId, resourceId)` links inside the transaction.
+This is sufficient to serialize them against attach/unlink/resource-tree
+deletion once every link writer follows the resource-first/project-second
+protocol, because those writers cannot pass the project lock while the RACI
+transaction is active.
+
+A future XML/content reconciliation that also locks or publishes a BPMN
+resource must instead acquire its resource row(s) first, then the project row,
+and only then re-read and mutate the RACI rows. It must never start with the
+project row and later request a resource lock.
 
 The current project update/default-validator and project delete paths still
 perform their checks and writes outside a transaction-scoped project lock.
