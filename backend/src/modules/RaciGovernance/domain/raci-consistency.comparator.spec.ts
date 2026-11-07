@@ -88,6 +88,7 @@ describe('RaciConsistencyComparator', () => {
     ];
 
     const report = comparator.compare({
+      scope,
       xmlOccurrences: [
         assignment('Task_1', 'RESPONSABLE IVV', 'responsible'),
         assignment('Task_3', 'Équipe métier', 'consulted'),
@@ -117,6 +118,7 @@ describe('RaciConsistencyComparator', () => {
 
   it('does not report equivalent labels with accents or case as differences', () => {
     const report = comparator.compare({
+      scope,
       xmlOccurrences: [
         actor('Direction qualité', true),
         assignment('Task_1', 'Responsable IVV', 'responsible'),
@@ -133,6 +135,7 @@ describe('RaciConsistencyComparator', () => {
 
   it('does not interpret process-level actor registry entries as task assignments', () => {
     const report = comparator.compare({
+      scope,
       xmlOccurrences: [actor('Responsable IVV', true)],
       databaseActors: [],
       databaseEntries: [],
@@ -144,6 +147,7 @@ describe('RaciConsistencyComparator', () => {
 
   it('does not invent an active-state comparison when XML metadata is absent', () => {
     const report = comparator.compare({
+      scope,
       xmlOccurrences: [actor('Direction qualité')],
       databaseActors: [{ name: 'Direction qualité', active: false }],
       databaseEntries: [],
