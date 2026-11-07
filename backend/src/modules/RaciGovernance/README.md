@@ -814,3 +814,55 @@ connections for:
 
 Until all writers participate and those tests pass, no RACI governance write
 or XML reconciliation may be enabled.
+
+### Additional hierarchy-writer inventory
+
+A focused pass over ResourceContext command handlers found the concrete
+resource-tree writers that must adopt the parent-row rule:
+
+- `POST /resources` delegates to `CreateResourceCommandHandler`, which
+  currently reads the parent, checks sibling names, and saves through the
+  generic repository without a transaction or parent lock.
+- `POST /resources/:resourceId/clone` creates a resource under the source's
+  existing parent and then copies content in separate repository operations;
+  it currently has no transaction-scoped parent lock.
+- `ProjectController.createProcessVariant` inserts a variant under the
+  source's parent inside a transaction, but currently does not lock that
+  parent or the source row.
+- `createProposalWorkspace(manager, ...)` inserts a proposal workspace under
+  the source's parent inside the proposal transaction; it currently does not
+  lock the parent row as part of a common hierarchy protocol.
+- `UpdateResourceCommandHandler` changes name/description only; it does not
+  currently reparent resources. If reparenting is added later, it must lock
+  old and new parents in sorted UUID order and participate in the hierarchy
+  protocol.
+
+This confirms that parent locking cannot be added only to the delete handler.
+All child creation paths must coordinate through the same parent-row lock;
+otherwise a folder deletion can miss a concurrently inserted descendant.
+
+Project-level mutation inventory is also wider than process links:
+- `ProjectController.updateProject` validates and saves the default validator
+  outside a transaction, while membership changes can concurrently demote or
+  remove that user. It must lock the project row and revalidate membership in
+  the same transaction.
+- `deleteProject` and `deleteOrganizationProject` count links and delete
+  the project outside a transaction. They must lock the project row before
+  checking the final link count, so a concurrent attach cannot race the
+  deletion.
+- `updateOrganizationProject` writes project metadata outside a transaction;
+  it should use the shared project mutation transaction helper for a uniform
+  project-row write discipline.
+- `createProject` currently saves the project and its initial administrator
+  in separate operations with compensating cleanup. It is a new-project
+  lifecycle rather than a contested existing-project mutation, but should be
+  made one transaction when the project mutation service is introduced.
+
+The resource tree protocol therefore has to be integrated at the application
+service/repository boundary, not implemented as ad hoc controller locks.
+The generic `ResourceRepository` currently exposes no EntityManager-aware
+transaction API, and its TypeORM delete method performs recursive selection
+and deletion using an injected global repository. The ResourceContext
+application contract must be extended so the controller's policy checks,
+resource/parent locks, project-link checks, and recursive deletion share one
+transaction manager.
