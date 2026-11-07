@@ -203,17 +203,18 @@ export const ProcessDetails = ({
   );
   const queryClient = useQueryClient();
   const { resource: processResource } = useResource(resourceId);
-  const { projects } = useActiveProject();
-  const projectForProcess = projects.find(project =>
+  const { projects, activeProject } = useActiveProject();
+  const projectsForProcess = projects.filter(project =>
     project.processes.some(process => process.resourceId === resourceId),
   );
-  // A process may be shared by several projects. Do not let the first project
-  // in the workspace hide the remark action when another linked project grants
-  // this member the explicit remark permission.
-  const projectForRemark = projects.find(project =>
-    project.canSubmitRemarks &&
-    project.processes.some(process => process.resourceId === resourceId),
-  ) ?? projectForProcess;
+  // Keep the project context explicit: prefer the active project, and infer a
+  // project only when the process belongs to exactly one accessible project.
+  const projectForProcess = projectsForProcess.find(
+    project => project.id === activeProject?.id,
+  ) ?? (projectsForProcess.length === 1 ? projectsForProcess[0] : undefined);
+  const projectForRemark = projectForProcess?.canSubmitRemarks
+    ? projectForProcess
+    : undefined;
   const processUsage = projectForProcess?.processes.find(
     process => process.resourceId === resourceId,
   )?.usage;
