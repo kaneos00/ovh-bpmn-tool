@@ -7,6 +7,12 @@ import { ActorLabelOccurrence } from './actor-label.xml-reader';
 
 describe('RaciConsistencyComparator', () => {
   const comparator = new RaciConsistencyComparator();
+  const scope = {
+    projectId: 'Project_1',
+    resourceId: 'Resource_1',
+    contentId: 'Content_1',
+    contentVersion: 4,
+  };
 
   const actor = (
     label: string,
@@ -43,6 +49,7 @@ describe('RaciConsistencyComparator', () => {
     ];
 
     const report = comparator.compare({
+      scope,
       xmlOccurrences: [
         actor('Direction qualité', true),
         actor('Acteur uniquement XML', true),
@@ -52,6 +59,8 @@ describe('RaciConsistencyComparator', () => {
       databaseEntries: [],
     });
 
+    expect(report.scope).toEqual(scope);
+    expect(report.databaseMatrixVersioned).toBe(false);
     expect(report.actorRegistry).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
