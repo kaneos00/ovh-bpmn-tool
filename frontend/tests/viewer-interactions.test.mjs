@@ -331,11 +331,17 @@ test('administrator explorer context menu restores folder and resource actions',
 });
 
 
-test('Viewer URL state is handled by the canonical process viewer', async () => {
+test('legacy content-viewer URLs redirect to the canonical process viewer', async () => {
+  const routes = await read('src/routes.tsx');
   const routeState = await read('src/shared/hooks/useViewerRouteState.ts');
   const selectionState = await read('src/shared/hooks/useViewerSelectionState.ts');
   const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.match(routes, /path: '\/:resourceId\/viewer\/:contentId'[\s\S]*?loader:/);
+  assert.ok(routes.includes("url.searchParams.set('contentId', params.contentId ?? '')"));
+  assert.ok(routes.includes('url.searchParams.toString()'), 'legacy deep-link query parameters are preserved');
+  assert.doesNotMatch(routes, /lazy: \(\) => import\('\.\/Containers\/ContentViewer'\)/);
 
   assert.ok(routeState.includes("searchParams.get('elementId')"));
   assert.ok(routeState.includes("searchParams.get('contentId')"));
@@ -347,11 +353,11 @@ test('Viewer URL state is handled by the canonical process viewer', async () => 
   assert.ok(layout.includes('useViewerSelectionState('));
   assert.ok(layout.includes('selectedContentId={requestedContentId}'));
   assert.ok(layout.includes('requestedRaciView={requestedRaciView}'));
-  assert.doesNotMatch(layout, /useSearchParams|searchParams\\.get\\(/);
-  assert.match(details, /selectedContentId\\?: string \\| null/);
-  assert.match(details, /const viewerContent = selectedContentId[\\s\\S]*?: publishedContent/);
-  assert.match(details, /requestedRaciView\\?: boolean/);
-  assert.match(details, /if \\(requestedRaciView\\) setActiveViewerTab\\(3\\);[\\s\\S]*?\\[requestedRaciView\\]/);
+  assert.doesNotMatch(layout, /useSearchParams|searchParams\.get\(/);
+  assert.match(details, /selectedContentId\?: string \| null/);
+  assert.match(details, /const viewerContent = selectedContentId[\s\S]*?: publishedContent/);
+  assert.match(details, /requestedRaciView\?: boolean/);
+  assert.match(details, /if \(requestedRaciView\) setActiveViewerTab\(3\);[\s\S]*?\[requestedRaciView\]/);
   assert.ok(details.includes('<Tab value={3}>RACI</Tab>'));
 });
 
