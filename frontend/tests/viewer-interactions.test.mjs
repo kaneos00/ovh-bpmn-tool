@@ -379,7 +379,7 @@ test('Viewer creates a dedicated BpmnViewer without constructing a BpmnModeler',
 
 test('Viewer reuses one parsed BPMN document through a dedicated RACI analysis hook', async () => {
   const raci = await read('src/extensions/raci-viewer.ts');
-  const analysisHook = await read('src/Containers/ContentViewer/hooks/useViewerRaciAnalysis.ts');
+  const analysisHook = await read('src/shared/hooks/useViewerRaciAnalysis.ts');
   const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
 
   assert.ok(raci.includes('export const deriveRaciMatrixFromDocument = (document: Document): RaciMatrix'));
@@ -390,13 +390,17 @@ test('Viewer reuses one parsed BPMN document through a dedicated RACI analysis h
   assert.ok(analysisHook.includes('laneRoleByElement'));
   assert.ok(analysisHook.includes('laneIdByRole'));
   assert.ok(viewer.includes('useViewerRaciAnalysis(xmlContent)'));
+  const canonicalViewer = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  assert.ok(canonicalViewer.includes('useViewerRaciAnalysis(xmlContent)'));
 });
 
 test('Viewer delegates RACI issue analysis and filtering to a dedicated hook', async () => {
   const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
-  const filters = await read('src/Containers/ContentViewer/hooks/useViewerRaciFilters.ts');
+  const filters = await read('src/shared/hooks/useViewerRaciFilters.ts');
 
   assert.ok(viewer.includes('useViewerRaciFilters(raciMatrix'));
+  const canonicalViewer = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  assert.ok(canonicalViewer.includes('useViewerRaciFilters('));
   assert.ok(viewer.includes('filteredActivities'));
   assert.ok(filters.includes('analyzeRaciMatrix(raciMatrix)'));
   assert.ok(filters.includes('filters.issuesOnly') === false);
