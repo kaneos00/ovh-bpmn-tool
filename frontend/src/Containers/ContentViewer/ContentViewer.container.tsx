@@ -34,10 +34,10 @@ import {
 import { ContentStatusEnum, type Content } from '../../Types';
 import { apiClient } from '../../queryClient';
 import { formatDateTime } from '../../shared/helpers/date';
-import { useViewerRaciAnalysis } from './hooks/useViewerRaciAnalysis';
+import { useViewerRaciAnalysis } from '../../shared/hooks/useViewerRaciAnalysis';
 import { getRaciIssueLabel } from '../../extensions/raci-engine';
 import type { RaciCode } from '../../extensions/raci-engine';
-import { useViewerRaciFilters } from './hooks/useViewerRaciFilters';
+import { useViewerRaciFilters } from '../../shared/hooks/useViewerRaciFilters';
 
 import './ContentViewerContainer.scss';
 
