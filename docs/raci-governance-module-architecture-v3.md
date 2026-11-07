@@ -270,3 +270,47 @@ L'audit du repository TypeORM montre que `updateEditableFields` met à jour `con
 **Règle pour RaciGovernance :** ne pas réutiliser `updateEditableFields` pour transformer un contenu publié ou obsolète. Le module doit créer ou cibler un brouillon autorisé, vérifier le contenu publié attendu, puis publier via le mécanisme transactionnel avec contrôle de concurrence. Toute évolution du endpoint générique de contenu devra faire l'objet d'une correction séparée et de tests de non-régression, sans être glissée silencieusement dans le module RACI.
 
 Autre constat : le repository utilise PostgreSQL `xpath` sur le XML pour extraire quelques identifiants BPMN, mais cela ne constitue pas un parseur/éditeur BPMN capable de garantir un round-trip complet des extensions et namespaces.
+
+
+## 9. Audit des fixtures BPMN — champs réellement observés
+
+Inspection des fixtures du commit de référence `e9c3eef48d413324f0c14afd722a2f2c69e541ee`, notamment :
+- `examples/organisation-demo/00-organisation-complete.bpmn`
+- `examples/organisation-demo/01-recrutement.bpmn`
+- `frontend/tests/fixtures/Parking (copie)_v9.bpmn`
+- `frontend/tests/fixtures/pagination-witness.bpmn`
+
+### Structures confirmées
+
+Les fichiers utilisent plusieurs préfixes XML pour le même vocabulaire BPMN (`bpmn:` et `bpmn2:`) et contiennent les namespaces BPMN DI/DC ainsi que des namespaces personnalisés (`raci:`, `url:`).
+
+Les éléments observés comprennent notamment :
+- `definitions`, `collaboration`, `participant`, `process` ;
+- `task`, `callActivity`, `subProcess`, événements et passerelles ;
+- `sequenceFlow`, `messageFlow`, documentation ;
+- `BPMNDiagram`, `BPMNPlane`, `BPMNShape`, `BPMNEdge`, `BPMNLabel`, `Bounds`, waypoints.
+
+### Attributs métier importants
+
+Dans la fixture Parking, les affectations RACI ne sont pas uniquement stockées dans la matrice SQL :
+- `raci:responsible`, `raci:accountable`, `raci:consulted`, `raci:informed` sont des attributs personnalisés d'éléments BPMN et portent directement des noms d'acteurs ;
+- `raci:responsibleStatus`, `raci:informedStatus` et `raci:consultedStatus` sont des métadonnées de statut, à préserver strictement ;
+- `raci:actors` est un attribut du processus contenant un tableau JSON sérialisé (avec guillemets échappés en entités XML), incluant notamment `name`, `source`, `active` et parfois `bpmnId` ;
+- `url:link` est un autre attribut personnalisé et ne doit jamais être traité comme un libellé d'acteur.
+
+Les attributs `name` sont présents sur les participants, processus, activités, événements, passerelles et autres éléments. Leur présence ne suffit pas à autoriser leur remplacement : chaque type d'élément et chaque champ devront être explicitement inclus dans la liste blanche des champs métier modifiables. Les libellés DI et les noms de flux peuvent avoir une sémantique différente.
+
+### Conséquence pour l'opération de remplacement
+
+Le remplacement devra travailler sur un arbre XML conscient des namespaces et des types d'éléments, jamais par regex ou remplacement brut :
+1. sélectionner les champs BPMN `name` autorisés selon une whitelist explicite ;
+2. traiter les attributs RACI connus comme des références d'acteurs, en conservant exactement les attributs de statut ;
+3. décoder, parser, modifier uniquement les propriétés `name` des entrées de `raci:actors`, puis sérialiser de nouveau le JSON dans l'attribut XML en conservant les autres propriétés ;
+4. laisser intacts les IDs, références, `calledElement`, `sourceRef`, `targetRef`, liens URL, documentation, scripts, expressions, DI et tous les autres attributs inconnus ;
+5. vérifier avant/après que le nombre et les valeurs des IDs, références, connexions, waypoints et attributs non ciblés sont inchangés.
+
+### Limite de l'audit du parser
+
+La dépendance backend `fast-xml-parser` est déclarée, mais aucune utilisation effective n'a été identifiée dans les fichiers backend examinés. Les fixtures confirment qu'un simple parseur générique ne peut être choisi sans test de round-trip sur les namespaces, attributs personnalisés, JSON échappé et mise en forme. Le choix du parser/serializer reste donc conditionné à une suite de tests de conservation sur les fixtures complètes ; aucun parser n'est encore approuvé pour modifier des BPMN en production.
+
+Aucune des fixtures examinées ne suffit à prouver que tous les documents de production utilisent exactement les mêmes extensions : l'inventaire devra être étendu aux contenus BPMN réels avant activation des remplacements.
