@@ -312,6 +312,16 @@ Ordre recommandé : Lot 0 → Lot 1 → Lot 2 → Lot 3 → Lot 4 → Lot 5. Cha
 - la migration n'entraîne aucune perte de données ;
 - les tests de non-régression et la CI sont verts.
 
+## 15. Hors périmètre initial
+
+- remplacement des utilisateurs par des acteurs RACI ou inversement ;
+- synchronisation automatique avec un annuaire RH ;
+- IA externe, embeddings ou base vectorielle ;
+- normalisation forcée des libellés des projets ;
+- réécriture des BPMN XML ou des affectations RACI ;
+- modification des rôles d'accès, pilotes ou validateurs ;
+- consolidation statistique qui masque les différences R/A/C/I locales.
+
 ## 16. Administration des appellations et remplacements transversaux (exigence complémentaire)
 
 L'administrateur de l'organisation doit pouvoir corriger et harmoniser facilement les noms d'acteurs et les libellés métier utilisés dans l'ensemble des RACI et des BPMN accessibles dans son périmètre.
@@ -366,13 +376,3 @@ Aucun remplacement global ne doit être lancé automatiquement par le moteur de 
 - L'opération est auditée et son annulation est possible sans perte de données.
 - Les tests prouvent l'absence de modification des rôles R/A/C/I, des liens BPMN, des versions et des droits.
 - Les accès interprojets sont filtrés et contrôlés côté backend.
-
-## 15. Hors périmètre initial
-
-- remplacement des utilisateurs par des acteurs RACI ou inversement ;
-- synchronisation automatique avec un annuaire RH ;
-- IA externe, embeddings ou base vectorielle ;
-- normalisation forcée des libellés des projets ;
-- réécriture des BPMN XML ou des affectations RACI ;
-- modification des rôles d'accès, pilotes ou validateurs ;
-- consolidation statistique qui masque les différences R/A/C/I locales.
