@@ -11,6 +11,7 @@ import { ContentTypeOrmEntity } from './infrastructure/entities/content.ormEntit
 import { CommentTypeOrmEntity } from './infrastructure/entities/comment.ormEntity';
 import { TerminusModule } from '@nestjs/terminus';
 import { ProjectContextModule } from '../ProjectContext/projectContext.module';
+import { ResourceContentGovernanceService } from './resource-content-governance.service';
 
 @Module({
   controllers: [...getControllers()],
@@ -23,6 +24,12 @@ import { ProjectContextModule } from '../ProjectContext/projectContext.module';
     ProjectContextModule,
     TerminusModule,
   ],
-  providers: [...getCommands(), ...getQueries(), ...getRepositories()],
+  providers: [
+    ...getCommands(),
+    ...getQueries(),
+    ...getRepositories(),
+    ResourceContentGovernanceService,
+  ],
+  exports: [ResourceContentGovernanceService],
 })
 export class ResourceContextModule {}
