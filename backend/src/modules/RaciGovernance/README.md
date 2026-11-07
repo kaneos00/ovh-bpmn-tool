@@ -435,3 +435,32 @@ prove:
 Until these contracts and tests exist, the governance module remains
 read-only. No route, UI, migration, XML writer, or Viewer/Modeler dependency
 is authorized by this design step.
+
+
+## ProjectContext facade — first read-only implementation
+
+Commit `d08dc7bc4d01123789d8dda2b4c03cfe3faff6d3` adds
+`ProjectRaciApplicationService` to the owning ProjectContext module and
+exports it as a narrow provider for future consumers.
+
+Implemented operations:
+- `readProjectRaciScope(projectId, resourceId, headers)`: checks existing
+  project Viewer membership, verifies the exact project/process link, reads
+  the project actor registry, and reads assignments filtered by both
+  projectId and resourceId.
+- `readProjectRaciRegistry(projectId, headers)`: reads the existing
+  project-wide actor register under the same Viewer policy.
+
+Schema clarification: `project_raci_actors` is keyed by projectId, not
+resourceId. The actor register is therefore project-wide; only assignment
+rows are process-scoped. The facade and its tests preserve that distinction.
+
+Five focused unit tests cover Viewer authorization, missing project/process
+links, scoped assignment filtering, denied reads and project-wide registry
+reads. The facade exposes no write method and does not alter the existing
+ProjectRaciController behavior. No repository/table duplication, route,
+migration, UI or Viewer/Modeler integration is added.
+
+The tests have been committed but have not been executed in this environment.
+The latest commit currently has no associated workflow run or status check;
+CI is not confirmed.
