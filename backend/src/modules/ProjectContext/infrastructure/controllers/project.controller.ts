@@ -106,7 +106,10 @@ export class ProjectController {
       memberships.map(({ projectId, role }) => [projectId, role]),
     );
     const canSubmitRemarksByProject = new Map(
-      memberships.map(({ projectId, canSubmitRemarks }) => [projectId, Boolean(canSubmitRemarks)]),
+      memberships.map(({ projectId, canSubmitRemarks }) => [
+        projectId,
+        Boolean(canSubmitRemarks),
+      ]),
     );
 
     return {
