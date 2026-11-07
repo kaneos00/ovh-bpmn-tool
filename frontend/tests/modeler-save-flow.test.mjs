@@ -43,5 +43,9 @@ test('viewer remark submission uses a project that grants the member remark perm
   assert.ok(viewer.includes('project.canSubmitRemarks &&'));
   assert.ok(viewer.includes('${projectForRemark.id}/processes/${resourceId}/change-proposals'));
   assert.ok(viewer.includes('Votre remarque a été déposée et transmise au circuit de validation du projet.'));
-  assert.ok(!viewer.includes('navigate(`/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}`)'));
+  const initialRemarkFlow = viewer.slice(
+    viewer.indexOf('const startInitialRemark'),
+    viewer.indexOf('const processWorkspaceRef'),
+  );
+  assert.ok(!initialRemarkFlow.includes('navigate('));
 });
