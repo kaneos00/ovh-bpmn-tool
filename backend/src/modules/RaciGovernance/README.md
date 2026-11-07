@@ -623,3 +623,45 @@ This means the next safe code slice, if approved for implementation, is an
 internal serialization refactor across these existing write paths (without
 changing their public API), followed by PostgreSQL concurrency tests. It is
 not sufficient to add a lock only to the new governance facade.
+
+### Lock-protocol audit — proposal workspace link creation
+
+A further repository-wide controller pass found one additional project-link
+writer outside `ProjectController`: the proposal workflow in
+`ProcessChangeProposalController.createProposal`.
+
+Within its existing `DataSource.transaction`, the workflow:
+- reads the selected source `project_processes` row with
+  `pessimistic_read`;
+- creates a private proposal resource and draft through
+  `createProposalWorkspace(manager, ...)`;
+- for a non-Common source, inserts a new
+  `project_processes` row linking the proposal workspace to the same project;
+- deliberately does not create a second project link for a Common source.
+
+The transaction is atomic for workspace/resource/content/proposal/event
+creation, but it does not acquire the candidate `projects` row coordination
+lock before rechecking membership and the source link. Its source-link
+`pessimistic_read` is not a substitute for the common project-row protocol:
+it does not serialize against existing attach/unlink writers that currently
+do not lock the project row.
+
+Consequently, the complete adoption inventory is broader than the two
+controllers first identified. Before relying on a project-row lock, the
+protocol must cover:
+1. every RACI actor and assignment writer in `ProjectRaciController`;
+2. ordinary attach, unlink and variant creation in `ProjectController`;
+3. proposal workspace link creation in
+   `ProcessChangeProposalController.createProposal`;
+4. membership changes, which already take the project-row write lock.
+
+Proposal operations that only update proposal state or comments do not
+themselves create or remove project-process links. Their existing
+proposal/resource/content locks remain separate and must retain their current
+ordering; any future addition of project-row locks must be reviewed for
+deadlock-safe, consistent lock ordering across the proposal lifecycle.
+
+This is an audit finding only. No lock or runtime behavior has been changed.
+The common lock protocol remains unimplemented, and RACI governance writes
+remain blocked pending adoption by every relevant writer and PostgreSQL
+concurrency tests.
