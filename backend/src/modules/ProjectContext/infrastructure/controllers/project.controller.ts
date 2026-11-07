@@ -326,7 +326,7 @@ export class ProjectController {
   async setOrganizationProjectMember(
     @Param('projectId') projectId: string,
     @Param('userId') userIdParam: string,
-    @Body() body: { role?: ProjectMemberRole; canSubmitRemarks?: boolean },
+    @Body() body: { role?: ProjectMemberRole },
     @Headers() headers: RequestHeaders,
   ) {
     const actorId = this.projectResourceAccess.getAuthenticatedUserId(headers);
@@ -761,16 +761,26 @@ export class ProjectController {
   async setProjectMember(
     @Param('projectId') projectId: string,
     @Param('userId') userIdParam: string,
-    @Body() body: { role?: ProjectMemberRole },
+    @Body() body: { role?: ProjectMemberRole; canSubmitRemarks?: boolean },
     @Headers() headers: RequestHeaders,
   ) {
     const actorId = this.projectResourceAccess.getAuthenticatedUserId(headers);
     const userId = this.validateUserId(userIdParam);
     const role = this.validateMemberRole(body.role);
-    if (body.canSubmitRemarks !== undefined && typeof body.canSubmitRemarks !== 'boolean') {
+    if (
+      body.canSubmitRemarks !== undefined &&
+      typeof body.canSubmitRemarks !== 'boolean'
+    ) {
       throw new BadRequestException('canSubmitRemarks must be a boolean');
     }
-    return this.changeProjectMember(projectId, userId, role, actorId, headers, body.canSubmitRemarks);
+    return this.changeProjectMember(
+      projectId,
+      userId,
+      role,
+      actorId,
+      headers,
+      body.canSubmitRemarks,
+    );
   }
 
   @Delete(':projectId/members/:userId')
@@ -875,7 +885,9 @@ export class ProjectController {
           createdBy: actorId,
         });
       member.role = role;
-      if (canSubmitRemarks !== undefined) member.canSubmitRemarks = canSubmitRemarks;
+      if (canSubmitRemarks !== undefined) {
+        member.canSubmitRemarks = canSubmitRemarks;
+      }
       return members.save(member);
     });
   }
