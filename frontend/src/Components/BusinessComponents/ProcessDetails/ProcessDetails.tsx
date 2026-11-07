@@ -35,10 +35,9 @@ import {
 } from '../../../api/resources/resources.queries';
 import { useResource } from '../../../shared/hooks/useResource';
 import { useSnackbar } from '../../../shared/hooks/useSnackbar';
-import {
-  deriveRaciMatrixFromXml,
-} from '../../../extensions/raci-viewer';
-import { analyzeRaciMatrix, type RaciCode } from '../../../extensions/raci-engine';
+import { getRaciIssueLabel, type RaciCode } from '../../../extensions/raci-engine';
+import { useViewerRaciAnalysis } from '../../../shared/hooks/useViewerRaciAnalysis';
+import { useViewerRaciFilters } from '../../../shared/hooks/useViewerRaciFilters';
 import { ConditionalRender } from '../../../Components/GenericComponents/ConditionalRender/ConditionalRender';
 import { DropZone } from '../../../Components/GenericComponents/DropZone/DropZone';
 import { ContentStatusEnum } from '../../../Types';
@@ -194,6 +193,9 @@ export const ProcessDetails = ({
   const { showAlert } = useSnackbar();
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
   const [activeViewerTab, setActiveViewerTab] = useState(0);
+  const [actorFilter, setActorFilter] = useState('');
+  const [codeFilter, setCodeFilter] = useState<RaciCode | ''>('');
+  const [issuesOnly, setIssuesOnly] = useState(false);
 
   // A deep link may explicitly open the RACI workspace. Otherwise keep the
   // current tab when the user navigates between processes or versions.
@@ -252,17 +254,11 @@ export const ProcessDetails = ({
     }
   };
 
-  const raciMatrix = useMemo(
-    () =>
-      xmlContent
-        ? deriveRaciMatrixFromXml(xmlContent)
-        : { roles: [], activities: [] },
-    [xmlContent],
-  );
-
-  const raciAnalysis = useMemo(
-    () => analyzeRaciMatrix(raciMatrix),
-    [raciMatrix],
+  const { raciMatrix, laneRoleByElement, laneIdByRole } = useViewerRaciAnalysis(xmlContent);
+  const selectedRole = selectedElementId ? laneRoleByElement.get(selectedElementId) ?? '' : '';
+  const { raciAnalysis, issueByActivity, filteredActivities } = useViewerRaciFilters(
+    raciMatrix,
+    { actorFilter, codeFilter, issuesOnly },
   );
 
   const navigate = useNavigate();
@@ -1139,56 +1135,118 @@ export const ProcessDetails = ({
                 </Box>
               </Box>
             </Box>
+            <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ px: 2, pt: 1 }}>
+              <Select
+                size="sm"
+                value={actorFilter || null}
+                placeholder="Tous les acteurs"
+                onChange={(_, value) => setActorFilter(value ?? '')}
+                aria-label="Filtrer par acteur"
+                sx={{ minWidth: 180 }}
+              >
+                <Option value="">Tous les acteurs</Option>
+                {raciMatrix.roles.map(role => <Option key={role} value={role}>{role}</Option>)}
+              </Select>
+              <Select
+                size="sm"
+                value={codeFilter || null}
+                placeholder="Tous les rôles"
+                onChange={(_, value) => setCodeFilter((value ?? '') as RaciCode | '')}
+                aria-label="Filtrer par rôle RACI"
+                sx={{ minWidth: 150 }}
+              >
+                <Option value="">Tous les rôles</Option>
+                {(['R', 'A', 'C', 'I'] as RaciCode[]).map(code => <Option key={code} value={code}>{code}</Option>)}
+              </Select>
+              <Button
+                size="sm"
+                variant={issuesOnly ? 'soft' : 'outlined'}
+                color={issuesOnly ? 'warning' : 'neutral'}
+                aria-pressed={issuesOnly}
+                onClick={() => setIssuesOnly(value => !value)}
+              >
+                {issuesOnly ? 'Toutes les activités' : 'Activités à compléter'}
+              </Button>
+            </Stack>
             <Box className="raci-table-wrapper processViewerRaciTableWrapper">
-              {raciMatrix.activities.length ? (
+              {filteredActivities.length ? (
                 <table className="raci-table" aria-label="Matrice RACI en lecture seule">
                   <thead>
                     <tr>
                       <th>Activité</th>
-                      {raciMatrix.roles.map(role => <th key={role}>{role}</th>)}
+                      {raciMatrix.roles.map(role => (
+                        <th key={role} className={selectedRole === role ? 'raci-role-column-selected' : undefined}>
+                          <Button
+                            size="sm"
+                            variant={selectedRole === role ? 'soft' : 'plain'}
+                            color={selectedRole === role ? 'primary' : 'neutral'}
+                            disabled={!laneIdByRole.has(role)}
+                            onClick={() => {
+                              const laneId = laneIdByRole.get(role);
+                              if (laneId) {
+                                setActiveViewerTab(0);
+                                onElementSelect?.(laneId);
+                              }
+                            }}
+                          >
+                            {role}
+                          </Button>
+                        </th>
+                      ))}
+                      <th>Contrôle</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {raciMatrix.activities.map(activity => (
-                      <tr key={activity.elementId}>
-                        <th className="raci-activity">
-                          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ minWidth: 0 }}>
-                            <Typography level="body-sm" sx={{ flex: 1, minWidth: 0 }}>{activity.activity}</Typography>
-                            <IconButton size="sm" variant="plain" color="primary" title="Voir l’activité dans le BPMN" aria-label="Voir l’activité dans le BPMN" onClick={() => { setActiveViewerTab(0); onElementSelect?.(activity.elementId); }} disabled={!onElementSelect || !activity.elementId} sx={{ flex: '0 0 auto' }}>
-                              <CenterFocusStrong />
-                            </IconButton>
-                          </Stack>
-                        </th>
-                        {activity.cells.map(cell => (
-                          <td
-                            key={cell.role}
-                            className={getRaciCellStatusClass(cell.status)}
-                            title={getRaciCellStatusLabel(cell.status)}
-                          >
-                            <Box className="raci-cell-code">
-                              {cell.codes.length ? cell.codes.map(code => (
-                                <span key={code} className={`raci-code-badge raci-code-${code}`} title={code}>{code}</span>
-                              )) : '—'}
-                            </Box>
-                            <Box className="raci-cell-status">
-                              {getRaciCellStatusLabel(cell.status)}
-                            </Box>
+                    {filteredActivities.map(activity => {
+                      const issue = issueByActivity.get(activity.elementId);
+                      return (
+                        <tr key={activity.elementId}>
+                          <th className="raci-activity">
+                            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ minWidth: 0 }}>
+                              <Typography level="body-sm" sx={{ flex: 1, minWidth: 0 }}>{activity.activity}</Typography>
+                              <IconButton size="sm" variant="plain" color="primary" title="Voir l’activité dans le BPMN" aria-label="Voir l’activité dans le BPMN" onClick={() => { setActiveViewerTab(0); onElementSelect?.(activity.elementId); }} disabled={!onElementSelect || !activity.elementId} sx={{ flex: '0 0 auto' }}>
+                                <CenterFocusStrong />
+                              </IconButton>
+                            </Stack>
+                          </th>
+                          {activity.cells.map(cell => (
+                            <td
+                              key={cell.role}
+                              className={`${getRaciCellStatusClass(cell.status)} ${selectedRole === cell.role ? 'raci-role-column-selected' : ''}`}
+                              title={getRaciCellStatusLabel(cell.status)}
+                            >
+                              <Box className="raci-cell-code">
+                                {cell.codes.length ? cell.codes.map(code => (
+                                  <span key={code} className={`raci-code-badge raci-code-${code}`} title={code}>{code}</span>
+                                )) : '—'}
+                              </Box>
+                              <Box className="raci-cell-status">
+                                {getRaciCellStatusLabel(cell.status)}
+                              </Box>
+                            </td>
+                          ))}
+                          <td>
+                            {issue
+                              ? issue.codes.map(code => <div key={code}>⚠ {getRaciIssueLabel(code)}</div>)
+                              : '✓ OK'}
                           </td>
-                        ))}
-                      </tr>
-                    ))}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               ) : (
                 <Typography level="body-sm" textColor="neutral" sx={{ p: 2 }}>
-                  {viewerContent
-                    ? 'Aucune activité BPMN détectée dans ce contenu.'
-                    : 'Aucune version publiée.'}
+                  {raciMatrix.activities.length
+                    ? 'Aucune activité ne correspond aux filtres.'
+                    : viewerContent
+                      ? 'Aucune activité BPMN détectée dans ce contenu.'
+                      : 'Aucune version publiée.'}
                 </Typography>
               )}
             </Box>
             <Box className="raci-footer processViewerRaciFooter">
-              <span>{raciMatrix.activities.length} activité(s)</span>
+              <span>{filteredActivities.length}/{raciMatrix.activities.length} activité(s)</span>
               <span>{raciMatrix.roles.length} acteur(s)</span>
               <span>{raciAnalysis.issues.length} anomalie(s)</span>
               <span>🟢 Explicite</span>
