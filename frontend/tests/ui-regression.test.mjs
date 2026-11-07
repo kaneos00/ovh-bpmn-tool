@@ -824,7 +824,7 @@ test('all-projects home reuses the Viewer workspace layout and shows four useful
   assert.ok(projects.includes('Processus publiés'));
   assert.ok(projects.includes('Modifiés sur 30 jours'));
   assert.ok(projects.includes('className="processViewerDiagram processViewerInfo projectsOverviewPanel"'));
-  assert.ok(explorer.includes("variant: 'process-details' | 'content-viewer' | 'projects-overview'"));
+  assert.ok(explorer.includes("variant: 'process-details' | 'projects-overview'"));
 });
 
 
