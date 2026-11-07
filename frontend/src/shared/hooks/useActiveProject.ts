@@ -12,6 +12,7 @@ export type WorkspaceProject = {
   color: string;
   icon: string;
   role: 'viewer' | 'modeler' | 'admin';
+  canSubmitRemarks: boolean;
   processes: Array<{
     resourceId: string;
     name: string;

@@ -10,6 +10,11 @@ import {
   Input,
   Sheet,
   Skeleton,
+  Modal,
+  ModalDialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Stack,
   Select,
   Option,
@@ -198,11 +203,22 @@ export const ProcessDetails = ({
   const queryClient = useQueryClient();
   const { resource: processResource } = useResource(resourceId);
   const { projects } = useActiveProject();
-  const proposalProjectId = projects.find(project =>
-    (project.role === 'modeler' || project.role === 'admin') &&
+  const projectForProcess = projects.find(project =>
     project.processes.some(process => process.resourceId === resourceId),
-  )?.id;
+  );
+  const processUsage = projectForProcess?.processes.find(
+    process => process.resourceId === resourceId,
+  )?.usage;
+  const proposalProjectId = projectForProcess && (
+    projectForProcess.role === 'admin' ||
+    (projectForProcess.role === 'modeler' && processUsage !== 'common')
+  ) ? projectForProcess.id : undefined;
+  const canSubmitProcessRemark = Boolean(projectForProcess?.canSubmitRemarks);
   const [startingProposal, setStartingProposal] = useState(false);
+  const [initialRemarkOpen, setInitialRemarkOpen] = useState(false);
+  const [initialRemarkText, setInitialRemarkText] = useState('');
+  const [submittingInitialRemark, setSubmittingInitialRemark] = useState(false);
+  const [initialRemarkError, setInitialRemarkError] = useState<string | null>(null);
   const { data: resourceShares } = useQuery(resourceSharesQuery(resourceId));
   const { showAlert } = useSnackbar();
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
@@ -297,6 +313,36 @@ export const ProcessDetails = ({
       setStartingProposal(false);
     }
   };
+  const startInitialRemark = async () => {
+    if (
+      !projectForProcess ||
+      !selectedElementId ||
+      !initialRemarkText.trim() ||
+      submittingInitialRemark
+    ) return;
+    setSubmittingInitialRemark(true);
+    setInitialRemarkError(null);
+    try {
+      const proposal = await apiClient.post(
+        `/projects/${projectForProcess.id}/processes/${resourceId}/change-proposals`,
+        { elementId: selectedElementId, comment: initialRemarkText.trim() },
+      );
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['my-process-change-proposals'] }),
+        queryClient.invalidateQueries({ queryKey: ['process-change-proposals-to-review'] }),
+      ]);
+      setInitialRemarkOpen(false);
+      setInitialRemarkText('');
+      navigate(`/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}`);
+    } catch (error) {
+      setInitialRemarkError(
+        error instanceof Error ? error.message : 'Impossible de déposer la remarque.',
+      );
+    } finally {
+      setSubmittingInitialRemark(false);
+    }
+  };
+
   const processWorkspaceRef = useRef<HTMLDivElement>(null);
   const [explorerCollapsed, setExplorerCollapsed] = useState(false);
   const [taskPanelCollapsed, setTaskPanelCollapsed] = useState(true);
@@ -634,6 +680,20 @@ export const ProcessDetails = ({
                     >
                       <FileCopy />
                     </IconButton>
+                    {canSubmitProcessRemark && !isHistoricalView && (
+                      <Button
+                        size="sm"
+                        variant="outlined"
+                        color="neutral"
+                        disabled={!selectedElementId}
+                        onClick={() => {
+                          setInitialRemarkError(null);
+                          setInitialRemarkOpen(true);
+                        }}
+                      >
+                        Ajouter une remarque
+                      </Button>
+                    )}
                     {proposalProjectId && !isHistoricalView && (
                       <Button
                         size="sm"
@@ -1325,6 +1385,46 @@ export const ProcessDetails = ({
             />
           </Sheet>
         </TabPanel>
+      <Modal
+        open={initialRemarkOpen}
+        onClose={() => {
+          if (!submittingInitialRemark) setInitialRemarkOpen(false);
+        }}
+      >
+        <ModalDialog>
+          <DialogTitle>Ajouter une remarque au processus</DialogTitle>
+          <DialogContent>
+            La remarque sera liée à l’élément sélectionné. Le suivi des remarques et leur traitement se feront ensuite dans le modeleur.
+            <Typography level="body-xs" color="neutral">
+              Élément : {selectedElementId || 'Aucun élément sélectionné'}
+            </Typography>
+          </DialogContent>
+          <Textarea
+            minRows={3}
+            value={initialRemarkText}
+            onChange={event => setInitialRemarkText(event.target.value)}
+            placeholder="Décrivez le point à signaler…"
+          />
+          {initialRemarkError && <Alert color="danger">{initialRemarkError}</Alert>}
+          <DialogActions>
+            <Button
+              variant="plain"
+              color="neutral"
+              disabled={submittingInitialRemark}
+              onClick={() => setInitialRemarkOpen(false)}
+            >
+              Annuler
+            </Button>
+            <Button
+              loading={submittingInitialRemark}
+              disabled={!selectedElementId || !initialRemarkText.trim() || submittingInitialRemark}
+              onClick={startInitialRemark}
+            >
+              Déposer la remarque
+            </Button>
+          </DialogActions>
+        </ModalDialog>
+      </Modal>
       </Tabs>
 
 

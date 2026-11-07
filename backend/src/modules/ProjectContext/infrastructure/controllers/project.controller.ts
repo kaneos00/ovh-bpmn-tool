@@ -105,6 +105,9 @@ export class ProjectController {
     const roleByProject = new Map(
       memberships.map(({ projectId, role }) => [projectId, role]),
     );
+    const canSubmitRemarksByProject = new Map(
+      memberships.map(({ projectId, canSubmitRemarks }) => [projectId, Boolean(canSubmitRemarks)]),
+    );
 
     return {
       userId,
@@ -115,6 +118,7 @@ export class ProjectController {
         color: project.color,
         icon: project.icon,
         role: roleByProject.get(project.id),
+        canSubmitRemarks: canSubmitRemarksByProject.get(project.id) ?? false,
         processes: (linksByProject.get(project.id) ?? []).map((link) => ({
           resourceId: link.resourceId,
           name: resourceById.get(link.resourceId)?.name ?? link.resourceId,
