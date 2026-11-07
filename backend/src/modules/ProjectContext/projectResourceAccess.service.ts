@@ -15,6 +15,10 @@ import {
   ProjectMemberRole,
   ProjectMemberTypeOrmEntity,
 } from './infrastructure/entities/projectMember.ormEntity';
+import {
+  ProcessChangeProposalStatus,
+  ProcessChangeProposalTypeOrmEntity,
+} from './infrastructure/entities/processChangeProposal.ormEntity';
 
 type RequestHeaders = Record<string, string | undefined>;
 
@@ -33,6 +37,8 @@ export class ProjectResourceAccessService {
     private readonly projectMembers: Repository<ProjectMemberTypeOrmEntity>,
     @InjectRepository(ResourceTypeOrmEntity)
     private readonly resources: Repository<ResourceTypeOrmEntity>,
+    @InjectRepository(ProcessChangeProposalTypeOrmEntity)
+    private readonly processChangeProposals: Repository<ProcessChangeProposalTypeOrmEntity>,
   ) {}
 
   /** Resolve the trusted identity header consistently across project controllers. */
@@ -224,6 +230,73 @@ export class ProjectResourceAccessService {
     if (!canEditEveryProject) {
       throw new ForbiddenException(
         'Editing this resource requires modeler access to every linked project',
+      );
+    }
+  }
+
+  /**
+   * Proposal workspaces are the only resources that project workflow roles may
+   * edit without the organization-wide read/write group. All other resources
+   * retain the legacy global ACL plus project-scope checks.
+   */
+  async assertCanEditProposalResource(
+    resourceId: string,
+    headers: RequestHeaders,
+  ) {
+    const userId = this.getAuthenticatedUserId(headers);
+    const proposal = await this.processChangeProposals.findOne({
+      where: { cloneResourceId: resourceId },
+    });
+
+    if (!proposal) {
+      if (
+        !this.hasOrganizationAdminRole(headers) &&
+        !this.hasOrganizationReadWriteRole(headers)
+      ) {
+        throw new ForbiddenException(
+          'Editing this resource requires organization write access',
+        );
+      }
+      return this.assertCanEditResource(resourceId, headers, {
+        allowCommonForOrganizationAdmin: true,
+      });
+    }
+
+    if (
+      proposal.status === ProcessChangeProposalStatus.Rejected ||
+      proposal.status === ProcessChangeProposalStatus.Published
+    ) {
+      throw new ForbiddenException('This proposal workspace is closed');
+    }
+
+    if (this.hasOrganizationAdminRole(headers)) return;
+
+    const membership = await this.projectMembers.findOne({
+      where: { projectId: proposal.projectId, userId },
+    });
+    const sourceLink = await this.projectProcesses.findOne({
+      where: {
+        projectId: proposal.projectId,
+        resourceId: proposal.sourceResourceId,
+      },
+    });
+
+    if (sourceLink?.usage === ProjectProcessUsage.Common) {
+      if (membership?.role !== ProjectMemberRole.Admin) {
+        throw new ForbiddenException(
+          'Editing a common-process proposal requires project administrator access',
+        );
+      }
+      return;
+    }
+
+    const isProjectEditor =
+      membership?.role === ProjectMemberRole.Modeler ||
+      membership?.role === ProjectMemberRole.Admin;
+    const isAssignedValidator = proposal.validatorUserId === userId;
+    if (!isProjectEditor && !isAssignedValidator) {
+      throw new ForbiddenException(
+        'Editing this proposal requires modeler, project administrator or assigned validator access',
       );
     }
   }
