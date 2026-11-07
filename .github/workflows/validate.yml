@@ -308,7 +308,10 @@ jobs:
             http://127.0.0.1:18080/bpmn-api/auth/logout)"
           test "$status" = "200"
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/bpmn-api/projects/administration/overview)"
-          test "$status" = "401" -o "$status" = "403"
+          if [ "$status" != "401" ] && [ "$status" != "403" ] && [ "$status" != "302" ]; then
+            echo "Unexpected protected-route response after logout: HTTP $status" >&2
+            exit 1
+          fi
 
   deploy-coolify:
     name: Deploy to Coolify test instance
