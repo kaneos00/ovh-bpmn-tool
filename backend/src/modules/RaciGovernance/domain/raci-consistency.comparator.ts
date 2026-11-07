@@ -42,10 +42,19 @@ export type AssignmentDifference =
       normalizedActorName: string;
     };
 
+export interface RaciConsistencyScope {
+  projectId: string;
+  resourceId: string;
+  contentId: string;
+  contentVersion: number | null;
+}
+
 export interface RaciConsistencyReport {
+  scope: RaciConsistencyScope;
+  /** Project RACI entries currently have no content/version foreign key. */
+  databaseMatrixVersioned: false;
   actorRegistry: ActorRegistryDifference[];
   assignments: AssignmentDifference[];
-  ignoredXmlOccurrences: number;
 }
 
 /**
@@ -55,6 +64,7 @@ export interface RaciConsistencyReport {
  */
 export class RaciConsistencyComparator {
   compare(input: {
+    scope: RaciConsistencyScope;
     xmlOccurrences: ActorLabelOccurrence[];
     databaseActors: StoredProjectActor[];
     databaseEntries: StoredProjectRaciEntry[];
@@ -181,16 +191,11 @@ export class RaciConsistencyComparator {
       }
     }
 
-    const relevantOccurrences = input.xmlOccurrences.filter(
-      (occurrence) =>
-        occurrence.source === 'raci-actors-json' ||
-        occurrence.source === 'raci-attribute',
-    ).length;
-
     return {
+      scope: input.scope,
+      databaseMatrixVersioned: false,
       actorRegistry,
       assignments,
-      ignoredXmlOccurrences: input.xmlOccurrences.length - relevantOccurrences,
     };
   }
 }
