@@ -75,8 +75,8 @@ export const Component = () => {
   const { diagramContainerRef, diagramPropertiesRef, hasLintError, isDirty, canUndo, canRedo, undo, redo, markSaved, isModelerReady } = useModeler(bpmnModelerInstance, draftXmlContent);
   const blocker = useBlocker(({ nextLocation }) => isDirty && nextLocation.pathname === returnToUrl);
   let homeSaveActionLabel = 'Enregistrer et publier';
-  if (proposalId) homeSaveActionLabel = 'Enregistrer et demander validation';
-  if (reviewRemarksMode) homeSaveActionLabel = 'Enregistrer et quitter';
+  if (proposalId && !approvedProposalMode) homeSaveActionLabel = 'Enregistrer et demander validation';
+  if (reviewRemarksMode || approvedProposalMode) homeSaveActionLabel = 'Enregistrer et quitter';
 
   const publishApprovedProposal = async () => {
     if (!proposalId || !approvedProposalMode || publishingApprovedProposal) return;
@@ -284,7 +284,7 @@ export const Component = () => {
             <Button variant="outlined" color="danger" onClick={() => { markSaved(); blocker.proceed?.(); }}>Abandonner les modifications</Button>
             <Button variant="outlined" color="neutral" onClick={() => { pendingSaveExitRef.current = true; onDiagramSave(); }}>Enregistrer sans publier</Button>
             <Button variant="solid" color="success" onClick={() => {
-              if (reviewRemarksMode) {
+              if (reviewRemarksMode || approvedProposalMode) {
                 pendingSaveExitRef.current = true;
                 onDiagramSave();
               } else {
