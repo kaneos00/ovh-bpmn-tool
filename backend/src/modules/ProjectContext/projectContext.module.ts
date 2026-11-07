@@ -14,6 +14,7 @@ import { ProcessChangeProposalTypeOrmEntity } from './infrastructure/entities/pr
 import { ProcessChangeProposalEventTypeOrmEntity } from './infrastructure/entities/processChangeProposalEvent.ormEntity';
 import { ProcessChangeProposalCommentTypeOrmEntity } from './infrastructure/entities/processChangeProposalComment.ormEntity';
 import { ProjectResourceAccessService } from './projectResourceAccess.service';
+import { ProjectRaciApplicationService } from './project-raci.application.service';
 
 @Module({
   imports: [
@@ -35,7 +36,7 @@ import { ProjectResourceAccessService } from './projectResourceAccess.service';
     ProjectRaciController,
     ProcessChangeProposalController,
   ],
-  providers: [ProjectResourceAccessService],
-  exports: [ProjectResourceAccessService],
+  providers: [ProjectResourceAccessService, ProjectRaciApplicationService],
+  exports: [ProjectResourceAccessService, ProjectRaciApplicationService],
 })
 export class ProjectContextModule {}
