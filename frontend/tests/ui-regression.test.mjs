@@ -883,3 +883,11 @@ test('project administration uses the shared breadcrumb header and Viewer-aligne
   assert.ok(page.includes("borderColor: 'neutral.outlinedBorder'"));
   assert.ok(page.includes('borderRadius: 0'));
 });
+
+test('canonical Viewer reports declared RACI actors that are not used', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.ok(details.includes('raciAnalysis.unusedActors.length > 0'));
+  assert.ok(details.includes('Acteurs déclarés mais non utilisés'));
+  assert.ok(details.includes('raciAnalysis.unusedActors.join'));
+});
