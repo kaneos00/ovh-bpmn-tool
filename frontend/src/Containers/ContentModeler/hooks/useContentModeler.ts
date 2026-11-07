@@ -76,11 +76,14 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   // Review links carry the exact submitted content ID. Prefer the current
   // draft, but retain that proposal content as an editable fallback when the
   // list endpoint does not classify it as the current draft.
-  const editableContent = draftContent ?? (
-    proposalId && selectedContent?.status === ContentStatusEnum.Draft
+  const editableContent = proposalId && requestedContentId &&
+    selectedContent?.status === ContentStatusEnum.Draft
       ? selectedContent
-      : undefined
-  );
+      : draftContent ?? (
+          proposalId && selectedContent?.status === ContentStatusEnum.Draft
+            ? selectedContent
+            : undefined
+        );
 
   const { data: draftXmlContent } = useQuery({
     ...getXmlContentQuery(resourceId, selectedContent?.id as string),
@@ -194,16 +197,17 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   const saveDiagram = useCallback(
     async (action: string, content: Content) => {
       const contentXml = await bpmnModelerInstance.saveXML({ format: true });
-      if (contentXml.xml) {
-        submit(
-          {
-            action,
-            contentId: content.id,
-            content: contentXml.xml,
-          },
-          { method: 'put' },
-        );
+      if (!contentXml.xml) {
+        throw new Error('Le modeleur n’a retourné aucun XML à enregistrer.');
       }
+      submit(
+        {
+          action,
+          contentId: content.id,
+          content: contentXml.xml,
+        },
+        { method: 'put' },
+      );
     },
     [bpmnModelerInstance, submit],
   );
@@ -221,7 +225,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
       await saveDiagram('saveContent', editableContent);
     } catch {
       showAlert({
-        message: 'An error occur during saving content.',
+        message: 'Impossible de préparer l’enregistrement du processus. Vérifiez le diagramme et réessayez.',
         severity: 'danger',
       });
     }
