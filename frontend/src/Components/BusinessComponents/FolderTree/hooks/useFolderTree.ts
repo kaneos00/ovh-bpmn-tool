@@ -35,15 +35,60 @@ export const useFolderTree = (selectedResourceId: string) => {
 
   const { getFolderHierarchy } = useFolders();
   const { resource } = useResource(selectedResourceId);
-  const { data: explorerData, isLoading } = useQuery(explorerQuery());
+  const { data: explorerData, isLoading: isExplorerLoading } = useQuery(explorerQuery());
   const resources = explorerData?.resources;
-  const { activeProjectId, projectProcessIds } = useActiveProject();
+  const {
+    projects,
+    activeProject,
+    activeProjectId,
+    projectProcessIds,
+    isLoading: areProjectsLoading,
+  } = useActiveProject();
+
+  // A process can be reached directly from a project even when the active
+  // project has not yet been restored from local storage. Infer it only when
+  // the current resource belongs to exactly one project; never guess when it
+  // is shared by several projects.
+  const projectForTree = useMemo(() => {
+    if (activeProject) return activeProject;
+    const matchingProjects = projects.filter(project =>
+      project.processes.some(process => process.resourceId === selectedResourceId),
+    );
+    return matchingProjects.length === 1 ? matchingProjects[0] : null;
+  }, [activeProject, projects, selectedResourceId]);
+
+  const effectiveProjectId = activeProjectId ?? projectForTree?.id ?? null;
+  const effectiveProcessIds = useMemo(
+    () => new Set(projectForTree?.processes.map(process => process.resourceId) ?? projectProcessIds),
+    [projectForTree, projectProcessIds],
+  );
+
   const scopedResources = useMemo(() => {
-    if (!activeProjectId) return [];
-    const allResources = resources ?? [];
-    const allowedIds = new Set(projectProcessIds);
-    const byId = new Map(allResources.map(item => [item.id, item]));
-    projectProcessIds.forEach(id => {
+    if (!effectiveProjectId) return [];
+
+    // The workspace endpoint is the authoritative list of processes attached
+    // to a project. The explorer endpoint supplies their folder hierarchy and
+    // BPMN call-activity links, but may omit resources for which the current
+    // account has only project-scoped navigation rights. Add those missing
+    // project processes as root entries so they remain reachable.
+    const byId = new Map((resources ?? []).map(item => [item.id, item]));
+    const workspaceProcesses = projectForTree?.processes ?? [];
+    workspaceProcesses.forEach(process => {
+      if (!byId.has(process.resourceId)) {
+        byId.set(process.resourceId, {
+          id: process.resourceId,
+          name: process.name,
+          depth: 0,
+          description: '',
+          type: ResourceType.Process,
+          sourceResourceId: process.sourceResourceId,
+        } as Resource);
+      }
+    });
+
+    const allResources = Array.from(byId.values());
+    const allowedIds = new Set(effectiveProcessIds);
+    effectiveProcessIds.forEach(id => {
       let current = byId.get(id);
       while (current?.parentId) {
         allowedIds.add(current.parentId);
@@ -51,11 +96,11 @@ export const useFolderTree = (selectedResourceId: string) => {
       }
     });
     return allResources.filter(item => allowedIds.has(item.id));
-  }, [resources, activeProjectId, projectProcessIds]);
+  }, [resources, effectiveProjectId, effectiveProcessIds, projectForTree]);
 
   const processResources = useMemo(
-    () => (resources ?? []).filter(item => item.type === ResourceType.Process),
-    [resources],
+    () => scopedResources.filter(item => item.type === ResourceType.Process),
+    [scopedResources],
   );
   const linkedChildrenByResource = useMemo(() => {
     const linksByResource = new Map(
@@ -171,5 +216,11 @@ export const useFolderTree = (selectedResourceId: string) => {
     setExpandedNodes(current => Array.from(new Set([...current, ...folderAncestors, ...treeAncestors])));
   }, [selectedResourceId, scopedResources, resource, getFolderHierarchy, dataTree]);
 
-  return { dataTree, expandedNodes, setExpandedNodes, isLoading, activeProjectId };
+  return {
+    dataTree,
+    expandedNodes,
+    setExpandedNodes,
+    isLoading: isExplorerLoading || areProjectsLoading,
+    activeProjectId: effectiveProjectId,
+  };
 };
