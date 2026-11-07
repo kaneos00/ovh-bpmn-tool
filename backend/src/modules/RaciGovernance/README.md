@@ -195,3 +195,36 @@ The unit test suite covers namespace aliases, both BPMN prefixes, scalar
 assignments, entity-escaped JSON metadata, duplicate labels, ignored fields
 and namespaces, and fail-closed behavior. CI results must be checked on the
 resulting commit; no local test execution is claimed.
+
+## Read-only consistency comparison
+
+`domain/raci-consistency.comparator.ts` adds a pure comparison step for one
+explicit project/resource/content-version scope. Its caller supplies snapshots
+already obtained through the existing authorized application paths; this
+component does not query repositories or open content itself.
+
+It compares:
+- the XML `raci:actors` registry against the existing
+  `project_raci_actors` rows, including active-state conflicts only when the
+  XML actually supplies an `active` value;
+- task assignments from the four scalar XML RACI attributes against
+  `project_raci_entries`, using the BPMN element ID, normalized actor label
+  and R/A/C/I role.
+
+The report distinguishes XML-only and database-only entries and carries the
+project, resource, content ID and content version used for the XML side.
+Comparison is diagnostic only; it never proposes or applies a correction.
+
+**Important versioning limitation:** the existing `project_raci_entries`
+entity has no `contentId` or content-version relationship. The comparator
+therefore explicitly reports `databaseMatrixVersioned: false`. A difference
+against an older published BPMN version cannot be asserted to be a true
+inconsistency with that historical version: the database matrix may represent
+a more recent project state. This comparison must not be used to trigger
+automatic synchronization, migration or mutation. Resolving that temporal
+ambiguity requires a separate architectural decision about RACI matrix
+versioning and its relationship to the existing content publication lifecycle.
+
+The comparator is intentionally not wired into controllers, NestJS modules,
+Viewer or Modeler. No database adapter, endpoint, migration or write path is
+introduced in this tranche.
