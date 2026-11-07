@@ -1168,6 +1168,14 @@ export const ProcessDetails = ({
                 {issuesOnly ? 'Toutes les activités' : 'Activités à compléter'}
               </Button>
             </Stack>
+            {raciAnalysis.unusedActors.length > 0 && (
+              <Sheet variant="soft" color="warning" sx={{ p: 1, mx: 2, mt: 1 }}>
+                <Typography level="title-sm">Acteurs déclarés mais non utilisés</Typography>
+                <Typography level="body-xs">
+                  {raciAnalysis.unusedActors.join(', ')}
+                </Typography>
+              </Sheet>
+            )}
             <Box className="raci-table-wrapper processViewerRaciTableWrapper">
               {filteredActivities.length ? (
                 <table className="raci-table" aria-label="Matrice RACI en lecture seule">
