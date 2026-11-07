@@ -39,8 +39,10 @@ test('proposal review opens and saves the exact submitted draft instead of faili
 test('viewer remark submission uses a project that grants the member remark permission', async () => {
   const viewer = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
 
-  assert.ok(viewer.includes('const projectForRemark = projects.find(project =>'));
-  assert.ok(viewer.includes('project.canSubmitRemarks &&'));
+  assert.ok(viewer.includes('const { projects, activeProject } = useActiveProject();'));
+  assert.ok(viewer.includes('project => project.id === activeProject?.id'));
+  assert.ok(viewer.includes('projectsForProcess.length === 1 ? projectsForProcess[0] : undefined'));
+  assert.ok(viewer.includes('const projectForRemark = projectForProcess?.canSubmitRemarks'));
   assert.ok(viewer.includes('${projectForRemark.id}/processes/${resourceId}/change-proposals'));
   assert.ok(viewer.includes('Votre remarque a été déposée et transmise au circuit de validation du projet.'));
   const initialRemarkFlow = viewer.slice(
