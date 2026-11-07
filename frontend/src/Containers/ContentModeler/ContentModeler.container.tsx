@@ -74,6 +74,9 @@ export const Component = () => {
 
   const { diagramContainerRef, diagramPropertiesRef, hasLintError, isDirty, canUndo, canRedo, undo, redo, markSaved, isModelerReady } = useModeler(bpmnModelerInstance, draftXmlContent);
   const blocker = useBlocker(({ nextLocation }) => isDirty && nextLocation.pathname === returnToUrl);
+  let homeSaveActionLabel = 'Enregistrer et publier';
+  if (proposalId) homeSaveActionLabel = 'Enregistrer et demander validation';
+  if (reviewRemarksMode) homeSaveActionLabel = 'Enregistrer et quitter';
 
   const publishApprovedProposal = async () => {
     if (!proposalId || !approvedProposalMode || publishingApprovedProposal) return;
@@ -289,7 +292,7 @@ export const Component = () => {
                 onDiagramPublish();
               }
             }}>
-              {reviewRemarksMode ? 'Enregistrer et quitter' : proposalId ? 'Enregistrer et demander validation' : 'Enregistrer et publier'}
+              {homeSaveActionLabel}
             </Button>
           </DialogActions>
         </ModalDialog>
