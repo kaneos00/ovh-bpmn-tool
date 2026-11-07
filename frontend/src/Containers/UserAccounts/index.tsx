@@ -38,7 +38,7 @@ type Account = {
 type Project = { id: string; name: string };
 type Membership = {
   userId: string;
-  projects: Array<{ projectId: string; projectName: string; role: ProjectRole }>;
+  projects: Array<{ projectId: string; projectName: string; role: ProjectRole; canSubmitRemarks: boolean }>;
 };
 type AdministrationOverview = { projects: Project[]; users: Membership[] };
 type AccountDraft = { username: string; email: string; role: Role; active: boolean };
@@ -300,6 +300,21 @@ export const Component = () => {
     );
   };
 
+  const updateProjectRemarkPermission = async (
+    project: Membership['projects'][number],
+    canSubmitRemarks: boolean,
+  ) => {
+    if (!selectedAccount || project.canSubmitRemarks === canSubmitRemarks) return;
+    await runAction(
+      () => call(
+        `/projects/administration/projects/${encodeURIComponent(project.projectId)}/members/${encodeURIComponent(selectedAccount.username)}`,
+        'PUT',
+        { role: project.role, canSubmitRemarks },
+      ),
+      'Autorisation de dépôt de remarques mise à jour.',
+    );
+  };
+
   const removeProjectAccess = async (project: Membership['projects'][number]) => {
     if (!selectedAccount) return;
     await runAction(
@@ -542,6 +557,13 @@ export const Component = () => {
                           <Stack key={project.projectId} direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'center' }} spacing={1} className="org-users__project-row">
                             <Box sx={{ flex: 1, minWidth: 180 }}><Typography level="title-sm">{project.projectName}</Typography><Typography level="body-xs" sx={{ color: 'text.secondary' }}>Rôle limité à ce projet</Typography></Box>
                             <FormControl sx={{ minWidth: 170 }}><Select size="sm" value={project.role} disabled={busy} onChange={(_event, value) => value && void updateProjectAccess(project, value as ProjectRole)}><Option value="viewer">Viewer</Option><Option value="modeler">Modeler</Option><Option value="admin">Admin projet</Option></Select></FormControl>
+                            <Checkbox
+                              size="sm"
+                              checked={project.canSubmitRemarks}
+                              disabled={busy}
+                              label="Peut déposer des remarques"
+                              onChange={event => void updateProjectRemarkPermission(project, event.target.checked)}
+                            />
                             <Button size="sm" variant="outlined" color="danger" disabled={busy} onClick={() => setPendingRemoval(project)}>Retirer l’accès</Button>
                           </Stack>
                         ))}

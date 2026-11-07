@@ -301,6 +301,7 @@ export class ProjectController {
                 projectById.get(membership.projectId)?.name ??
                 membership.projectId,
               role: membership.role,
+              canSubmitRemarks: membership.canSubmitRemarks ?? false,
             }))
             .sort((left, right) =>
               left.projectName.localeCompare(right.projectName),
@@ -326,13 +327,26 @@ export class ProjectController {
   async setOrganizationProjectMember(
     @Param('projectId') projectId: string,
     @Param('userId') userIdParam: string,
-    @Body() body: { role?: ProjectMemberRole },
+    @Body() body: { role?: ProjectMemberRole; canSubmitRemarks?: boolean },
     @Headers() headers: RequestHeaders,
   ) {
     const actorId = this.projectResourceAccess.getAuthenticatedUserId(headers);
     const userId = this.validateUserId(userIdParam);
     const role = this.validateMemberRole(body.role);
-    return this.changeProjectMember(projectId, userId, role, actorId);
+    if (
+      body.canSubmitRemarks !== undefined &&
+      typeof body.canSubmitRemarks !== 'boolean'
+    ) {
+      throw new BadRequestException('canSubmitRemarks must be a boolean');
+    }
+    return this.changeProjectMember(
+      projectId,
+      userId,
+      role,
+      actorId,
+      undefined,
+      body.canSubmitRemarks,
+    );
   }
 
   @Delete('administration/projects/:projectId/members/:userId')
