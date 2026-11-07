@@ -317,8 +317,8 @@ Ordre recommandé : Lot 0 → Lot 1 → Lot 2 → Lot 3 → Lot 4 → Lot 5. Cha
 - remplacement des utilisateurs par des acteurs RACI ou inversement ;
 - synchronisation automatique avec un annuaire RH ;
 - IA externe, embeddings ou base vectorielle ;
-- normalisation forcée des libellés des projets ;
-- réécriture des BPMN XML ou des affectations RACI ;
+- normalisation forcée des libellés des projets sans action explicite, aperçu et validation de l'administrateur ;
+- réécriture non contrôlée des BPMN XML ou des affectations RACI ; les remplacements ciblés et audités décrits au §16 sont inclus dans le périmètre ;
 - modification des rôles d'accès, pilotes ou validateurs ;
 - consolidation statistique qui masque les différences R/A/C/I locales.
 
