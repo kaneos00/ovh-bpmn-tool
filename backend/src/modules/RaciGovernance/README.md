@@ -470,3 +470,31 @@ migration, UI or Viewer/Modeler integration is added.
 The tests have been committed but have not been executed in this environment.
 The latest commit currently has no associated workflow run or status check;
 CI is not confirmed.
+
+
+## ResourceContext facade — first read-only implementation
+
+The ResourceContext owner module now exposes
+`ResourceContentGovernanceService` as a narrow read-only contract for the
+future governance orchestrator.
+
+`readContentSnapshot(resourceId, contentId, headers)`:
+- applies the existing `ProjectResourceAccessService.assertCanReadResource`
+  policy before reading content;
+- queries by the exact pair `resourceId + contentId`, so an identifier from
+  another resource is not accepted;
+- returns the XML payload together with status, version, change comment and
+  update timestamp needed for a scoped comparison;
+- returns not-found for a missing or cross-resource content identifier.
+
+The service is exported only by its owning `ResourceContextModule`. It does
+not expose repositories or generic command handlers, and it has no draft,
+update, XML-write or publication method. This preserves the existing
+one-way module dependency: ResourceContext already depends on ProjectContext
+for resource access, while ProjectContext does not depend on ResourceContext
+as a Nest module.
+
+Four focused unit tests cover access-before-read, exact resource/content
+scoping, cross-resource rejection and denied-access short-circuiting. They
+have been committed but not executed in this environment. The shared
+transaction and all write operations remain blocked.
