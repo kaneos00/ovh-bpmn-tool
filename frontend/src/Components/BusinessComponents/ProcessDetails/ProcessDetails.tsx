@@ -1245,11 +1245,11 @@ export const ProcessDetails = ({
                 </table>
               ) : (
                 <Typography level="body-sm" textColor="neutral" sx={{ p: 2 }}>
-                  {raciMatrix.activities.length
+                  {raciMatrix.activities.length > 0
                     ? 'Aucune activité ne correspond aux filtres.'
-                    : viewerContent
-                      ? 'Aucune activité BPMN détectée dans ce contenu.'
-                      : 'Aucune version publiée.'}
+                    : !viewerContent
+                      ? 'Aucune version publiée.'
+                      : 'Aucune activité BPMN détectée dans ce contenu.'}
                 </Typography>
               )}
             </Box>
