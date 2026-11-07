@@ -164,3 +164,32 @@ Chaque étape doit rester activable et testable indépendamment. Aucun déploiem
 - Parcours et conventions exacts du shell Administration pour ajouter une section Acteurs RACI.
 
 Aucune migration ni modification du comportement applicatif n'est incluse dans cet audit documentaire.
+
+
+## 7. Compléments d'audit — cycle de publication et interface V3
+
+### Publication et concurrence
+
+Le chemin de publication existant passe par `ContentController`, `PublishContentCommandHandler` et `publishDraftContentWithinTransaction`. Ce dernier verrouille pessimiste la ressource cible, le brouillon et la dernière version publiée ; il peut aussi vérifier `expectedPublishedContentId` et rejeter la publication si la version source a changé depuis la préparation.
+
+**Règle pour les remplacements BPMN :** ne jamais modifier un contenu publié en place. Le module doit préparer une nouvelle version brouillon, conserver l'identifiant de la version publiée attendue, puis utiliser le chemin de publication transactionnel existant ou un adaptateur équivalent. Si la version attendue a changé, l'opération devient conflictuelle et doit être recalculée ; elle ne doit jamais écraser silencieusement la modification concurrente.
+
+La stratégie d'annulation devra créer une nouvelle version compensatoire ou restaurer un brouillon contrôlé. Elle ne pourra pas réécrire une ancienne version publiée ni supprimer les événements d'audit.
+
+Source :
+- [content-publication-transaction.ts](../blob/feat/issue-125-v3-integration/backend/src/modules/ResourceContext/infrastructure/repositories/typeorm/content-publication-transaction.ts)
+- [publishContent.commandHandler.ts](../blob/feat/issue-125-v3-integration/backend/src/modules/ResourceContext/application/commands/Content/publishContent/publishContent.commandHandler.ts)
+
+### Interface Administration
+
+Le composant `OrganizationAdmin.container.tsx` existe et contient déjà une section conceptuelle « Acteurs et RACI ». Toutefois, `frontend/src/routes.tsx` précise explicitement que les routes d'administration organisationnelle ne sont pas exposées dans le shell V3 audité.
+
+**Conséquence :** ne pas considérer la page Administration comme déjà intégrée ou accessible. Le module frontend devra fournir une page/section indépendante et son contrat de navigation ; le raccordement à la navigation et au shell Administration V3 sera un adaptateur d'intégration distinct, activé lorsque les routes d'administration seront réintroduites.
+
+Sources :
+- [OrganizationAdmin.container.tsx](../blob/feat/issue-125-v3-integration/frontend/src/Containers/OrganizationAdmin/OrganizationAdmin.container.tsx)
+- [routes.tsx](../blob/feat/issue-125-v3-integration/frontend/src/routes.tsx)
+
+### Parser BPMN
+
+Le backend déclare `fast-xml-parser` comme dépendance. Le lot 0 doit encore confirmer son usage effectif, sa configuration et les garanties de round-trip sur les BPMN réels du dépôt. Sa seule présence dans `package.json` ne constitue pas une validation de son aptitude à préserver les extensions, namespaces, attributs et éléments DI.
