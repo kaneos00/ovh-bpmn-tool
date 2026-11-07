@@ -159,3 +159,38 @@ has been changed.
 This is an integration design constraint derived from the current NestJS
 module declarations, not a code change or authorization to expose broad
 repositories.
+
+## Read-only BPMN actor extraction
+
+The first XML implementation is deliberately read-only:
+`domain/actor-label.xml-reader.ts` uses the already-declared
+`fast-xml-parser@5.11.2` dependency to validate and traverse BPMN XML without
+building or writing XML.
+
+The reader currently:
+- recognizes BPMN model elements by the BPMN model namespace URI;
+- recognizes the RACI extension by its namespace URI, not by assuming the
+  literal `raci` prefix (so a different prefix bound to the same URI works);
+- extracts only `responsible`, `accountable`, `consulted` and `informed`
+  scalar attributes, plus the `name` values inside the `raci:actors` JSON
+  array;
+- returns each occurrence with element ID/type, field provenance, original
+  label and comparison-normalized label; JSON actor metadata such as
+  `source`, `active`, `bpmnId` and array index is retained when present;
+- preserves duplicate occurrences rather than silently deduplicating them;
+- ignores BPMN `name` attributes, RACI status attributes and unrelated
+  namespaces;
+- fails closed on malformed XML, malformed actor JSON or an invalid actor
+  entry, and never returns a partial result.
+
+This reader is an audit/import aid only. It does not read from or write to the
+database, does not change XML, does not establish the future synchronization
+policy, and is not a runtime dependency of Viewer or Modeler. It does not
+approve `fast-xml-parser` for XML serialization or round-trip fidelity.
+Those remain separate gates requiring dedicated preservation tests before any
+writer, migration, import mutation or export synchronization is designed.
+
+The unit test suite covers namespace aliases, both BPMN prefixes, scalar
+assignments, entity-escaped JSON metadata, duplicate labels, ignored fields
+and namespaces, and fail-closed behavior. CI results must be checked on the
+resulting commit; no local test execution is claimed.
