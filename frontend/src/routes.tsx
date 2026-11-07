@@ -89,6 +89,10 @@ export const routes = [
         lazy: () => import('./Containers/SearchResults'),
       },
       {
+        path: '/mes-demandes',
+        lazy: () => import('./Containers/MyProcessChangeProposals/MyProcessChangeProposals.container'),
+      },
+      {
         path: '/:resourceId',
         lazy: () => import('./Containers/BpmnLayout'),
         children: [
