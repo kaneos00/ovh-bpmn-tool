@@ -205,7 +205,10 @@ export class ContentController {
     @Headers() headers: Record<string, string>,
   ) {
     const { resourceId, contentId } = params;
-    await this.projectResourceAccess.assertCanEditProposalResource(resourceId, headers);
+    await this.projectResourceAccess.assertCanEditProposalResource(
+      resourceId,
+      headers,
+    );
 
     const commandResult = await this.updateContentCommandHandler.execute(
       resourceId,
