@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Outlet, useBlocker, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Outlet, useBlocker, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { ModelerActionBar } from './components/ModelerActionBar';
 import { Alert, Button, Modal, ModalDialog, DialogTitle, DialogContent, DialogActions, Textarea } from '@mui/joy';
@@ -25,6 +25,7 @@ export const Component = () => {
   const { getRechercheProvider } = useBpmnToolOptions();
   const { resourceId: routeResourceId } = useParams() as ContentModelerRouteParams;
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const proposalId = searchParams.get('proposalId');
   const reviewRemarksMode = searchParams.get('reviewRemarks') === '1';
@@ -73,7 +74,13 @@ export const Component = () => {
   } = useContentModeler(bpmnModelerInstance);
 
   const { diagramContainerRef, diagramPropertiesRef, hasLintError, isDirty, canUndo, canRedo, undo, redo, markSaved, isModelerReady } = useModeler(bpmnModelerInstance, draftXmlContent);
-  const blocker = useBlocker(({ nextLocation }) => isDirty && nextLocation.pathname === returnToUrl);
+  // Protect every exit from the modeler, not only the Home button target.
+  // The nested publication preview remains part of the current editing flow.
+  const blocker = useBlocker(({ nextLocation }) =>
+    isDirty &&
+    nextLocation.pathname !== location.pathname &&
+    !nextLocation.pathname.startsWith(`${location.pathname}/`),
+  );
   let homeSaveActionLabel = 'Enregistrer et publier';
   if (proposalId && !approvedProposalMode) homeSaveActionLabel = 'Enregistrer et demander validation';
   if (reviewRemarksMode || approvedProposalMode) homeSaveActionLabel = 'Enregistrer et quitter';
