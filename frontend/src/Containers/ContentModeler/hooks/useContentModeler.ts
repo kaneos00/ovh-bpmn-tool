@@ -6,6 +6,7 @@ import type { ContentModelerRouteParams } from '..';
 import {
   contentsQuery,
   getXmlContentQuery,
+  proposalContentQuery,
 } from '../../../api/contents/contents.queries';
 import { useSnackbar } from '../../../shared/hooks/useSnackbar';
 import { ActionResponse } from '../../../shared/types/ActionResponse';
@@ -22,6 +23,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   const [searchParams] = useSearchParams();
   const requestedContentId = searchParams.get('contentId');
   const proposalId = searchParams.get('proposalId');
+  const reviewRemarksMode = searchParams.get('reviewRemarks') === '1';
   const actionData = useActionData() as Content & ActionResponse;
   const navigate = useNavigate();
 
@@ -73,6 +75,11 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     () => contents?.find(content => content.id === requestedContentId) ?? draftContent,
     [contents, requestedContentId, draftContent],
   );
+
+  const { data: proposalXmlContent } = useQuery({
+    ...proposalContentQuery(proposalId ?? ''),
+    enabled: reviewRemarksMode && Boolean(proposalId),
+  });
 
   const { data: draftXmlContent } = useQuery({
     ...getXmlContentQuery(resourceId, selectedContent?.id as string),
@@ -291,7 +298,9 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
 
   return {
     resourceId,
-    draftXmlContent: draftXmlContent ?? '',
+    draftXmlContent: reviewRemarksMode
+      ? proposalXmlContent ?? ''
+      : draftXmlContent ?? '',
     selectedContent,
     isShortcurtModalOpen,
     actionData,
