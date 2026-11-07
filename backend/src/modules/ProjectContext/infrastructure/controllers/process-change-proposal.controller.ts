@@ -1398,6 +1398,47 @@ export class ProcessChangeProposalController {
    * Contextual BPMN remarks are stored outside the BPMN XML. Project viewers
    * can read them; the proposal workflow remains the single source of truth.
    */
+  /**
+   * Return the exact BPMN snapshot submitted for review. Reviewers read it
+   * through the proposal scope so common-process workspaces do not depend
+   * on direct access to the private clone resource.
+   */
+  @Get('process-change-proposals/:proposalId/content')
+  @UseAcl()
+  async getProposalContent(
+    @Param('proposalId') proposalId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    const proposal = await this.proposals.findOne({
+      where: { id: proposalId },
+    });
+    if (!proposal) throw new NotFoundException('Demande introuvable');
+    await this.assertProjectWorkflowScope(
+      proposal.projectId,
+      proposal.sourceResourceId,
+    );
+    if (!this.access.hasOrganizationAdminRole(headers)) {
+      await this.access.assertProjectRole(
+        proposal.projectId,
+        headers,
+        ProjectMemberRole.Viewer,
+      );
+    }
+    if (!proposal.submittedContentId) {
+      throw new ConflictException('La demande ne contient aucune version soumise');
+    }
+    const content = await this.dataSource
+      .getRepository(ContentTypeOrmEntity)
+      .findOne({
+        where: {
+          id: proposal.submittedContentId,
+          resourceId: proposal.cloneResourceId,
+        },
+      });
+    if (!content) throw new NotFoundException('Version BPMN soumise introuvable');
+    return content.content;
+  }
+
   @Get('process-change-proposals/:proposalId/comments')
   @UseAcl()
   async listProposalComments(
