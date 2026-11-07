@@ -312,6 +312,61 @@ Ordre recommandé : Lot 0 → Lot 1 → Lot 2 → Lot 3 → Lot 4 → Lot 5. Cha
 - la migration n'entraîne aucune perte de données ;
 - les tests de non-régression et la CI sont verts.
 
+## 16. Administration des appellations et remplacements transversaux (exigence complémentaire)
+
+L'administrateur de l'organisation doit pouvoir corriger et harmoniser facilement les noms d'acteurs et les libellés métier utilisés dans l'ensemble des RACI et des BPMN accessibles dans son périmètre.
+
+Exemple : remplacer « Responsable IVV » par « Responsable VV » dans tous les projets, matrices RACI et diagrammes BPMN concernés.
+
+### 16.1 Deux opérations distinctes
+
+- **Fusionner des appellations/acteurs :** déclarer que plusieurs appellations locales désignent le même acteur de référence. Les appellations sources et leur provenance restent consultables ; la fusion logique ne détruit pas les acteurs locaux.
+- **Remplacer un libellé :** effectuer un renommage explicite d'une appellation source vers un libellé cible, sur un périmètre choisi (organisation entière, projets sélectionnés, processus sélectionnés ou occurrences sélectionnées).
+
+L'administrateur peut choisir une opération globale ou limitée. Une fusion d'identités ne doit pas entraîner implicitement une réécriture de tous les textes BPMN ; le remplacement des libellés est une action distincte, proposée dans le même parcours lorsque pertinent.
+
+### 16.2 Sources à couvrir
+
+L'audit du lot 0 doit inventorier précisément les occurrences éditables et leur stockage. Le périmètre cible comprend au minimum :
+- les acteurs et affectations RACI, sans modifier les codes R/A/C/I ;
+- les noms d'acteurs et libellés de lanes/pools/participants BPMN ;
+- les libellés textuels BPMN pertinents (activités, événements, passerelles, annotations et autres éléments retenus après audit).
+
+Les identifiants techniques BPMN, références, liens, expressions, scripts, propriétés techniques, noms de fichiers et données non textuelles ne sont jamais remplacés par une recherche textuelle générique. Les occurrences ambiguës ou non éditables sont signalées, pas modifiées silencieusement.
+
+### 16.3 Parcours administrateur obligatoire
+
+1. Saisir l'appellation source et l'appellation cible.
+2. Choisir le périmètre (tous les projets autorisés ou sélection explicite).
+3. Analyser les occurrences sans rien modifier.
+4. Afficher un aperçu regroupé par projet, processus, version BPMN, matrice RACI, élément et champ, avec le texte avant/après.
+5. Permettre d'exclure des occurrences et signaler les collisions (acteur cible déjà présent, doublon dans une matrice, libellé identique avec sens différent).
+6. Afficher le nombre exact d'occurrences et les objets qui seront modifiés.
+7. Demander une confirmation explicite avant application.
+8. Exécuter l'opération de manière contrôlée, enregistrer un journal d'audit et fournir un bilan des réussites/échecs.
+
+Aucun remplacement global ne doit être lancé automatiquement par le moteur de détection de doublons.
+
+### 16.4 Intégrité, versions et réversibilité
+
+- Préserver les identifiants BPMN, les références entrantes/sortantes, les connexions DI et la structure XML.
+- Ne pas modifier les codes R/A/C/I, les pilotes, validateurs, droits, commentaires ou historiques de validation.
+- Respecter le mécanisme de versionnement/publication des BPMN : ne jamais écraser une version publiée ou un brouillon concurrent sans contrôle de version et confirmation.
+- Prévoir une opération atomique par lot lorsque techniquement possible ; sinon, produire un état détaillé et reprenable sans masquer les échecs partiels.
+- Conserver avant/après, auteur, date, périmètre, critères et références des objets modifiés afin de permettre une annulation contrôlée.
+- Respecter les ACL côté serveur pour l'analyse comme pour l'application. Un administrateur ne peut modifier que les objets de son périmètre autorisé ; les opérations réellement transversales sont réservées au rôle organisationnel compétent identifié par l'audit.
+
+### 16.5 Critères d'acceptation
+
+- Un administrateur peut prévisualiser puis remplacer « Responsable IVV » par « Responsable VV » sur plusieurs projets.
+- Le parcours couvre les occurrences RACI et les champs BPMN retenus par l'audit, sans toucher aux identifiants ni à la structure des diagrammes.
+- Les occurrences peuvent être exclues individuellement avant confirmation.
+- Les collisions et homonymies sont présentées avant application.
+- Le nombre d'occurrences annoncé correspond au bilan réel.
+- L'opération est auditée et son annulation est possible sans perte de données.
+- Les tests prouvent l'absence de modification des rôles R/A/C/I, des liens BPMN, des versions et des droits.
+- Les accès interprojets sont filtrés et contrôlés côté backend.
+
 ## 15. Hors périmètre initial
 
 - remplacement des utilisateurs par des acteurs RACI ou inversement ;
