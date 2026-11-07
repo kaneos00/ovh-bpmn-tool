@@ -308,7 +308,7 @@ jobs:
             http://127.0.0.1:18080/bpmn-api/auth/logout)"
           test "$status" = "200"
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/bpmn-api/projects/administration/overview)"
-          [[ "$status" == "401" || "$status" == "403" || "$status" == "302" ]]
+          test "$status" = "401" || test "$status" = "403" || test "$status" = "302"
 
   deploy-coolify:
     name: Deploy to Coolify test instance
