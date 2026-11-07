@@ -132,14 +132,29 @@ describe('ProjectController administration overview', () => {
       {
         userId: 'alice',
         projects: [
-          { projectId: 'project-a', projectName: 'Atlas', role: 'admin', canSubmitRemarks: false },
-          { projectId: 'project-b', projectName: 'RH', role: 'viewer', canSubmitRemarks: false },
+          {
+            projectId: 'project-a',
+            projectName: 'Atlas',
+            role: 'admin',
+            canSubmitRemarks: false,
+          },
+          {
+            projectId: 'project-b',
+            projectName: 'RH',
+            role: 'viewer',
+            canSubmitRemarks: false,
+          },
         ],
       },
       {
         userId: 'bob',
         projects: [
-          { projectId: 'project-a', projectName: 'Atlas', role: 'modeler', canSubmitRemarks: false },
+          {
+            projectId: 'project-a',
+            projectName: 'Atlas',
+            role: 'modeler',
+            canSubmitRemarks: false,
+          },
         ],
       },
     ]);
