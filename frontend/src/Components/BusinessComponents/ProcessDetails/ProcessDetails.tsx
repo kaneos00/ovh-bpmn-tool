@@ -331,7 +331,7 @@ export const ProcessDetails = ({
     setSubmittingInitialRemark(true);
     setInitialRemarkError(null);
     try {
-      const proposal = await apiClient.post(
+      await apiClient.post(
         `/projects/${projectForRemark.id}/processes/${resourceId}/change-proposals`,
         {
           elementId: selectedElementId,
