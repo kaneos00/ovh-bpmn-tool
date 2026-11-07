@@ -139,20 +139,23 @@ export const ProposalRemarksPanel = ({
       });
       overlayIdsRef.current = [];
 
-      const counts = new Map<string, number>();
+      const counts = new Map<string, { total: number; pending: number }>();
       remarks
-        .filter(remark => remark.status === 'pending' && registry.get(remark.elementId))
+        .filter(remark => registry.get(remark.elementId))
         .forEach(remark => {
-          counts.set(remark.elementId, (counts.get(remark.elementId) ?? 0) + 1);
+          const current = counts.get(remark.elementId) ?? { total: 0, pending: 0 };
+          current.total += 1;
+          if (remark.status === 'pending') current.pending += 1;
+          counts.set(remark.elementId, current);
         });
 
-      counts.forEach((count, elementId) => {
+      counts.forEach(({ total, pending }, elementId) => {
         const badge = document.createElement('button');
         badge.type = 'button';
-        badge.textContent = String(count);
-        badge.title = count === 1
-          ? '1 remarque à traiter sur cet élément'
-          : `${count} remarques à traiter sur cet élément`;
+        badge.textContent = String(total);
+        badge.title = pending > 0
+          ? `${total} commentaire(s) sur cet élément, dont ${pending} à traiter`
+          : `${total} commentaire(s) sur cet élément`;
         badge.setAttribute('aria-label', badge.title);
         Object.assign(badge.style, {
           display: 'inline-flex',
