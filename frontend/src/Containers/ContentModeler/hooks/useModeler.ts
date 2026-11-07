@@ -17,6 +17,7 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
   const [isDirty, setIsDirty] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+  const [isModelerReady, setIsModelerReady] = useState(false);
 
   const { getModelerProviders } = useBpmnToolOptions();
 
@@ -125,6 +126,7 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
 
   useEffect(() => {
     const generation = ++importGenerationRef.current;
+    setIsModelerReady(false);
     if (
       registeredPropertiesPanelRef.current &&
       registeredPropertiesPanelRef.current !== propertiesPanel
@@ -165,9 +167,11 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
         if (generation !== importGenerationRef.current) return;
         setIsDirty(false);
         attachModeler();
+        setIsModelerReady(true);
       },
     ).catch(() => {
       if (generation === importGenerationRef.current) {
+        setIsModelerReady(false);
         showAlert({
           message: content ? 'Failed to import file' : 'Failed to render file',
           severity: 'danger',
@@ -194,5 +198,5 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
     setCanUndo(Boolean(commandStack?.canUndo?.()));
     setCanRedo(Boolean(commandStack?.canRedo?.()));
   }, [bpmnModelerInstance]);
-  return { diagramContainerRef, diagramPropertiesRef, hasLintError, isDirty, canUndo, canRedo, undo, redo, markSaved };
+  return { diagramContainerRef, diagramPropertiesRef, hasLintError, isDirty, canUndo, canRedo, undo, redo, markSaved, isModelerReady };
 };

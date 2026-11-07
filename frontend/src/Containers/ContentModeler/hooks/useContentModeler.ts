@@ -6,6 +6,7 @@ import type { ContentModelerRouteParams } from '..';
 import {
   contentsQuery,
   getXmlContentQuery,
+  proposalContentQuery,
 } from '../../../api/contents/contents.queries';
 import { useSnackbar } from '../../../shared/hooks/useSnackbar';
 import { ActionResponse } from '../../../shared/types/ActionResponse';
@@ -21,6 +22,8 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   const { resourceId } = useParams() as ContentModelerRouteParams;
   const [searchParams] = useSearchParams();
   const requestedContentId = searchParams.get('contentId');
+  const proposalId = searchParams.get('proposalId');
+  const reviewRemarksMode = searchParams.get('reviewRemarks') === '1';
   const actionData = useActionData() as Content & ActionResponse;
   const navigate = useNavigate();
 
@@ -72,6 +75,11 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     () => contents?.find(content => content.id === requestedContentId) ?? draftContent,
     [contents, requestedContentId, draftContent],
   );
+
+  const { data: proposalXmlContent } = useQuery({
+    ...proposalContentQuery(proposalId ?? ''),
+    enabled: reviewRemarksMode && Boolean(proposalId),
+  });
 
   const { data: draftXmlContent } = useQuery({
     ...getXmlContentQuery(resourceId, selectedContent?.id as string),
@@ -220,17 +228,21 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     }
 
     try {
-      await saveDiagram('saveContentBeforePublish', draftContent);
+      await saveDiagram(
+        proposalId ? 'saveContentBeforeSubmit' : 'saveContentBeforePublish',
+        draftContent,
+      );
     } catch {
       showAlert({
         message: 'An error occur during saving content.',
         severity: 'danger',
       });
     }
-  }, [draftContent, saveDiagram, showAlert]);
+  }, [draftContent, saveDiagram, showAlert, proposalId]);
 
   const processActionMessages: Record<string, string> = {
     saveContent: 'Content has been saved successfully.',
+    saveContentBeforeSubmit: 'Brouillon enregistré. Vous pouvez maintenant soumettre la demande.',
   };
 
   const getSaveErrorMessage = (error: unknown, formAction: string) => {
@@ -286,7 +298,9 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
 
   return {
     resourceId,
-    draftXmlContent: draftXmlContent ?? '',
+    draftXmlContent: reviewRemarksMode
+      ? proposalXmlContent ?? ''
+      : draftXmlContent ?? '',
     selectedContent,
     isShortcurtModalOpen,
     actionData,

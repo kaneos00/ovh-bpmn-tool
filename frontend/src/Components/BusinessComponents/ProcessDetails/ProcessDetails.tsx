@@ -3,6 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
+  Alert,
+  Modal,
+  ModalDialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Chip,
   Checkbox,
   Divider,
@@ -42,6 +48,7 @@ import { analyzeRaciMatrix, type RaciCode } from '../../../extensions/raci-engin
 import { ConditionalRender } from '../../../Components/GenericComponents/ConditionalRender/ConditionalRender';
 import { DropZone } from '../../../Components/GenericComponents/DropZone/DropZone';
 import { ContentStatusEnum } from '../../../Types';
+import { apiClient } from '../../../queryClient';
 
 import '../../../raci.css';
 import { DataInventory } from './DataInventory';
@@ -61,6 +68,8 @@ type ProcessDetailsProps = {
   selectedContentId?: string | null;
   readOnlyShell?: boolean;
   requestedRaciView?: boolean;
+  projectId?: string | null;
+  projectRole?: 'viewer' | 'modeler' | 'admin' | null;
 };
 
 const PROCESS_METADATA_NS = 'https://ovh-bpmn-tool.local/schema/process-metadata';
@@ -84,6 +93,18 @@ const getContentStatusLabel = (status: ContentStatusEnum) => {
   if (status === ContentStatusEnum.Published) return 'Publiée';
   if (status === ContentStatusEnum.Draft) return 'Brouillon';
   return 'Obsolète';
+};
+
+const getProposalRemarkStatusColor = (status: string) => {
+  if (status === 'accepted') return 'success' as const;
+  if (status === 'rejected') return 'danger' as const;
+  return 'warning' as const;
+};
+
+const getProposalRemarkStatusLabel = (status: string) => {
+  if (status === 'accepted') return 'Acceptée';
+  if (status === 'rejected') return 'Refusée';
+  return 'En attente';
 };
 
 const getRaciCellStatusClass = (status: string) => {
@@ -157,6 +178,8 @@ export const ProcessDetails = ({
   selectedContentId,
   readOnlyShell = false,
   requestedRaciView = false,
+  projectId = null,
+  projectRole = null,
 }: ProcessDetailsProps) => {
   const {
     contents,
@@ -189,11 +212,110 @@ export const ProcessDetails = ({
     { enabled: Boolean(viewerContent) },
   );
   const queryClient = useQueryClient();
+  const [activeViewerTab, setActiveViewerTab] = useState(0);
+  const [remarkModalOpen, setRemarkModalOpen] = useState(false);
+  const [startingProposal, setStartingProposal] = useState(false);
+  const [remarkText, setRemarkText] = useState('');
+  const [submittingRemark, setSubmittingRemark] = useState(false);
+  const [remarkError, setRemarkError] = useState<string | null>(null);
+  const [remarkWarning, setRemarkWarning] = useState<string | null>(null);
+
+  const { data: remarkPermission } = useQuery<{
+    associated: boolean;
+    isMember: boolean;
+    canSubmitRemarks: boolean;
+    usage: 'common' | 'variant' | 'project-specific' | null;
+  }>(
+    ['viewer-remark-permission', projectId, resourceId],
+    () => apiClient.get(`/projects/${projectId}/processes/${resourceId}/remark-permission`),
+    { enabled: Boolean(projectId && viewerContent) },
+  );
+  const { data: activeProposal, isLoading: activeProposalLoading } = useQuery<{
+    id: string;
+    status: string;
+    cloneResourceId: string;
+    validatorUserId?: string | null;
+  } | null>(
+    ['active-process-change-proposal', projectId, resourceId, viewerContent?.id],
+    () => apiClient.get(`/projects/${projectId}/processes/${resourceId}/change-proposals/active?contentId=${viewerContent?.id}`),
+    { enabled: Boolean(projectId && viewerContent?.id) },
+  );
+  type ProposalRemark = {
+    id: string;
+    elementId: string;
+    authorUserId: string;
+    authorName?: string;
+    decisionByName?: string | null;
+    comment: string;
+    status: 'pending' | 'accepted' | 'rejected';
+    createdAt: string;
+    decisionBy: string | null;
+    decidedAt: string | null;
+    decisionComment: string | null;
+  };
+  const { data: proposalRemarks = [], isLoading: proposalRemarksLoading, error: proposalRemarksError } =
+    useQuery<ProposalRemark[]>(
+      ['process-change-proposal-comments', activeProposal?.id],
+      () => apiClient.get(`/projects/process-change-proposals/${activeProposal!.id}/comments`),
+      { enabled: Boolean(activeProposal?.id) },
+    );
+  const { data: proposalsToReview = [] } = useQuery<Array<{ id: string; status: string }>>(
+    ['process-change-proposals-to-review'],
+    () => apiClient.get('/projects/me/process-change-proposals/to-review'),
+    { enabled: Boolean(projectId) },
+  );
+  const canSubmitProcessRemark = Boolean(
+    projectId && remarkPermission?.associated && remarkPermission.canSubmitRemarks &&
+    viewerContent && publishedContent?.id === viewerContent.id && !isHistoricalView,
+  );
+  const reviewableProposal = activeProposal
+    ? proposalsToReview.find(proposal => proposal.id === activeProposal.id)
+    : undefined;
+  const canReviewActiveProposal = Boolean(reviewableProposal);
+  const reviewProposalStatus = reviewableProposal?.status ?? activeProposal?.status;
+  const submitProcessRemark = async (comment: string) => {
+    if (!projectId || !canSubmitProcessRemark || !selectedElementId || !comment.trim() || submittingRemark) return;
+    setSubmittingRemark(true);
+    setRemarkError(null);
+    setRemarkWarning(null);
+    try {
+      const metadataDocument = new DOMParser().parseFromString(xmlContent ?? '', 'application/xml');
+      const processMetadata = Array.from(metadataDocument.getElementsByTagNameNS(PROCESS_METADATA_NS, 'processMetadata'))[0];
+      const pilotIdentifier = processMetadata?.getAttribute('pilot')?.trim() || undefined;
+      const result = await apiClient.post(
+        `/projects/${projectId}/processes/${resourceId}/change-proposals`,
+        { elementId: selectedElementId, comment: comment.trim(), validatorUserId: pilotIdentifier },
+      );
+      setRemarkWarning(result?.validatorWarning ?? null);
+      if (result?.id) {
+        queryClient.setQueryData(
+          ['active-process-change-proposal', projectId, resourceId, viewerContent?.id],
+          { id: result.id, status: result.status ?? 'submitted', cloneResourceId: result.cloneResourceId },
+        );
+        if (result.comment?.id) {
+          queryClient.setQueryData<ProposalRemark[]>(
+            ['process-change-proposal-comments', result.id],
+            previous => [...(previous ?? []), result.comment],
+          );
+        }
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['process-change-proposals-to-review'] }),
+        queryClient.invalidateQueries(contentsQuery(resourceId).queryKey),
+      ]);
+      setRemarkText('');
+      setRemarkModalOpen(false);
+      setActiveViewerTab(5);
+    } catch (error) {
+      setRemarkError(error instanceof Error ? error.message : 'Impossible de déposer la remarque.');
+    } finally {
+      setSubmittingRemark(false);
+    }
+  };
   const { resource: processResource } = useResource(resourceId);
   const { data: resourceShares } = useQuery(resourceSharesQuery(resourceId));
   const { showAlert } = useSnackbar();
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
-  const [activeViewerTab, setActiveViewerTab] = useState(0);
 
   // A deep link may explicitly open the RACI workspace. Otherwise keep the
   // current tab when the user navigates between processes or versions.
@@ -266,6 +388,25 @@ export const ProcessDetails = ({
   );
 
   const navigate = useNavigate();
+  const startChangeProposal = async () => {
+    if (!projectId || startingProposal || isHistoricalView || remarkPermission?.usage === 'common') return;
+    if (activeProposal && !['draft', 'changes_requested'].includes(activeProposal.status)) return;
+    setStartingProposal(true);
+    try {
+      const proposal = activeProposal ?? await apiClient.post(
+        `/projects/${projectId}/processes/${resourceId}/change-proposals`,
+        {},
+      );
+      navigate(`/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}&sourceResourceId=${resourceId}`);
+    } catch (error) {
+      showAlert({
+        message: error instanceof Error ? error.message : 'Impossible de créer la demande de modification.',
+        severity: 'danger',
+      });
+    } finally {
+      setStartingProposal(false);
+    }
+  };
   const processWorkspaceRef = useRef<HTMLDivElement>(null);
   const [explorerCollapsed, setExplorerCollapsed] = useState(false);
   const [taskPanelCollapsed, setTaskPanelCollapsed] = useState(true);
@@ -567,6 +708,7 @@ export const ProcessDetails = ({
           <Tab value={2}>Historique des versions</Tab>
           <Tab value={3}>RACI</Tab>
           <Tab value={4}>Informations documentées</Tab>
+          <Tab value={5}>Remarques ({proposalRemarks.length})</Tab>
         </TabList>
 
 
@@ -603,6 +745,43 @@ export const ProcessDetails = ({
                     >
                       <FileCopy />
                     </IconButton>
+                    {projectId && (projectRole === 'modeler' || projectRole === 'admin') &&
+                      !activeProposalLoading && (!activeProposal || ['draft', 'changes_requested'].includes(activeProposal.status)) &&
+                      remarkPermission?.associated && remarkPermission.usage !== 'common' && !isHistoricalView && (
+                        <Button
+                          size="sm"
+                          variant="soft"
+                          color="primary"
+                          loading={startingProposal}
+                          disabled={startingProposal || activeProposalLoading}
+                          onClick={startChangeProposal}
+                        >
+                          {activeProposal ? 'Reprendre la modification' : 'Proposer une modification'}
+                        </Button>
+                      )}
+                    {canSubmitProcessRemark && (
+                      <Button
+                        size="sm"
+                        variant="soft"
+                        color="warning"
+                        disabled={!selectedElementId || submittingRemark}
+                        onClick={() => { setRemarkError(null); setRemarkModalOpen(true); }}
+                      >
+                        Ajouter une remarque
+                      </Button>
+                    )}
+                    {canReviewActiveProposal && activeProposal && (
+                      <Button
+                        size="sm"
+                        variant="soft"
+                        color="primary"
+                        onClick={() => navigate(
+                          `/${activeProposal.cloneResourceId}/modeler?proposalId=${activeProposal.id}&${reviewProposalStatus === 'approved' ? 'publishApproved=1' : 'reviewRemarks=1'}&sourceResourceId=${resourceId}`,
+                        )}
+                      >
+                        {reviewProposalStatus === 'approved' ? 'Préparer la publication' : 'Traiter les remarques'}
+                      </Button>
+                    )}
                     {canEditDescription && (
                       <IconButton
                         title="Modifier le diagramme BPMN"
@@ -1199,6 +1378,44 @@ export const ProcessDetails = ({
           </Sheet>
         </TabPanel>
 
+        <TabPanel value={5} className="processViewerTabPanel">
+          <Sheet className="processViewerInfo" variant="outlined" sx={{ height: '100%', overflow: 'auto', p: 2 }}>
+            <Stack spacing={1.5}>
+              <Typography level="title-md">Remarques liées au processus</Typography>
+              <Typography level="body-sm" textColor="neutral">
+                Les remarques sont rattachées à un élément BPMN et conservées hors du fichier XML. Le validateur peut les accepter ou les refuser avant publication.
+              </Typography>
+              {remarkWarning && <Alert color="warning">{remarkWarning}</Alert>}
+              {proposalRemarksLoading && <Typography level="body-sm">Chargement des remarques…</Typography>}
+              {Boolean(proposalRemarksError) && <Alert color="danger">Impossible de charger les remarques.</Alert>}
+              {!proposalRemarksLoading && !proposalRemarksError && proposalRemarks.length === 0 && (
+                <Typography level="body-sm" textColor="neutral">Aucune remarque enregistrée pour cette version.</Typography>
+              )}
+              {proposalRemarks.map((remark, index) => (
+                <Sheet key={remark.id} variant="soft" sx={{ p: 1.25, borderRadius: 'sm' }}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
+                    <Typography level="title-sm">Remarque {index + 1} — {remark.elementId}</Typography>
+                    <Chip size="sm" color={getProposalRemarkStatusColor(remark.status)}>
+                      {getProposalRemarkStatusLabel(remark.status)}
+                    </Chip>
+                  </Stack>
+                  <Typography level="body-sm">{remark.comment}</Typography>
+                  <Typography level="body-xs" textColor="neutral">
+                    Déposée le {new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(remark.createdAt))} · {remark.authorName || remark.authorUserId}
+                  </Typography>
+                  {remark.decidedAt && (
+                    <Typography level="body-xs" textColor="neutral">
+                      Décision le {new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(remark.decidedAt))}
+                      {(remark.decisionByName || remark.decisionBy) ? ` · ${remark.decisionByName || remark.decisionBy}` : ''}
+                      {remark.decisionComment ? ` · ${remark.decisionComment}` : ''}
+                    </Typography>
+                  )}
+                </Sheet>
+              ))}
+            </Stack>
+          </Sheet>
+        </TabPanel>
+
         <TabPanel value={4} className="processViewerTabPanel">
           <Sheet className="processViewerInfo" variant="outlined" sx={{ height: '100%', overflow: 'auto' }}>
             <DataInventory
@@ -1216,7 +1433,23 @@ export const ProcessDetails = ({
           </Sheet>
         </TabPanel>
       </Tabs>
-
+      <Modal open={remarkModalOpen} onClose={() => { if (!submittingRemark) setRemarkModalOpen(false); }}>
+        <ModalDialog>
+          <DialogTitle>Déposer une remarque</DialogTitle>
+          <DialogContent>Élément BPMN sélectionné : {selectedElementId || 'aucun'}</DialogContent>
+          <Textarea
+            minRows={3}
+            value={remarkText}
+            placeholder="Décrivez le point à examiner ou la modification souhaitée…"
+            onChange={event => setRemarkText(event.target.value)}
+          />
+          {remarkError && <Alert color="danger">{remarkError}</Alert>}
+          <DialogActions>
+            <Button variant="plain" color="neutral" disabled={submittingRemark} onClick={() => setRemarkModalOpen(false)}>Annuler</Button>
+            <Button variant="solid" color="primary" loading={submittingRemark} disabled={!selectedElementId || !remarkText.trim() || submittingRemark} onClick={() => submitProcessRemark(remarkText)}>Envoyer la remarque</Button>
+          </DialogActions>
+        </ModalDialog>
+      </Modal>
 
     </Box>
   );

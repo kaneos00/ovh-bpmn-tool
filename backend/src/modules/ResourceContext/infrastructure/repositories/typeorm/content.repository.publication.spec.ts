@@ -45,6 +45,7 @@ describe('ContentTypeOrmRepository.publishAtomically', () => {
     getRepository: jest.fn((entity) =>
       entity === ResourceTypeOrmEntity ? resources : contents,
     ),
+    query: jest.fn().mockResolvedValue([]),
   };
   const dataSource = {
     transaction: jest.fn((callback) => callback(manager)),

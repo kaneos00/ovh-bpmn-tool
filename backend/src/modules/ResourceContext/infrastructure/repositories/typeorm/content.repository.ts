@@ -60,6 +60,18 @@ export class ContentTypeOrmRepository implements ContentRepository {
           lock: { mode: 'pessimistic_write' },
         });
         if (!resource) throw new Error('Resource no longer exists');
+
+        // Proposal workspaces must be published through the review workflow,
+        // never through the generic content publication endpoint.
+        const proposalRows: Array<{ id: string }> = await manager.query(
+          'SELECT id FROM process_change_proposals WHERE "cloneResourceId" = $1 LIMIT 1',
+          [params.resourceId],
+        );
+        if (proposalRows.length) {
+          throw new Error(
+            'A proposal workspace cannot be published through the generic content endpoint',
+          );
+        }
         if (resource.type === ResourceTypeEnum.Folder) {
           throw new Error('A folder cannot receive published content');
         }

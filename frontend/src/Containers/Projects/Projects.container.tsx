@@ -7,6 +7,7 @@ import {
   Chip,
   Button,
   Card,
+  Checkbox,
   FormControl,
   FormLabel,
   Input,
@@ -69,6 +70,8 @@ type ProjectMember = {
   projectId: string;
   userId: string;
   role: 'viewer' | 'modeler' | 'admin';
+  canSubmitRemarks: boolean;
+  active?: boolean;
 };
 
 type ProjectProcessLink = {
@@ -108,6 +111,7 @@ export const Component = () => {
   const [usage, setUsage] = useState<'common' | 'project-specific'>('common');
   const [memberUserId, setMemberUserId] = useState('');
   const [memberRole, setMemberRole] = useState<'viewer' | 'modeler' | 'admin'>('viewer');
+  const [memberCanSubmitRemarks, setMemberCanSubmitRemarks] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [explorerCollapsed, setExplorerCollapsed] = useState(false);
   const [explorerWidth, setExplorerWidth] = useState(() => {
@@ -262,13 +266,28 @@ export const Component = () => {
       if (!projectId || !memberUserId.trim()) throw new Error('Saisissez l’identifiant de l’utilisateur.');
       return apiClient.put(
         `/projects/${projectId}/members/${encodeURIComponent(memberUserId.trim())}`,
-        { role: memberRole },
+        { role: memberRole, canSubmitRemarks: memberCanSubmitRemarks },
       );
     },
     {
       onSuccess: async () => {
         setMemberUserId('');
+        setMemberCanSubmitRemarks(false);
         setError(null);
+        await queryClient.invalidateQueries(['project-members', projectId ?? '']);
+      },
+      onError: (mutationError: Error) => setError(mutationError.message),
+    },
+  );
+
+  const updateMemberRemarkPermission = useMutation(
+    (input: { userId: string; role: ProjectMember['role']; canSubmitRemarks: boolean }) =>
+      apiClient.put(
+        `/projects/${projectId}/members/${encodeURIComponent(input.userId)}`,
+        { role: input.role, canSubmitRemarks: input.canSubmitRemarks },
+      ),
+    {
+      onSuccess: async () => {
         await queryClient.invalidateQueries(['project-members', projectId ?? '']);
       },
       onError: (mutationError: Error) => setError(mutationError.message),
@@ -631,6 +650,12 @@ export const Component = () => {
                   <Option value="admin">Admin — administration du projet</Option>
                 </Select>
               </FormControl>
+              <Checkbox
+                checked={memberCanSubmitRemarks}
+                disabled={!canManageProjectIdentity}
+                onChange={event => setMemberCanSubmitRemarks(event.target.checked)}
+                label="Autoriser le dépôt de remarques sur les processus"
+              />
               <Box>
                 <Button loading={setProjectMember.isLoading} disabled={!memberUserId.trim()} onClick={() => setProjectMember.mutate()}>
                   Enregistrer le rôle
@@ -645,6 +670,17 @@ export const Component = () => {
                 <Box sx={{ minWidth: 0 }}>
                   <Typography level="title-sm">{member.userId}</Typography>
                   <Typography level="body-sm">{member.role}</Typography>
+                  <Checkbox
+                    size="sm"
+                    checked={Boolean(member.canSubmitRemarks)}
+                    disabled={!canManageProjectIdentity || updateMemberRemarkPermission.isLoading}
+                    onChange={event => updateMemberRemarkPermission.mutate({
+                      userId: member.userId,
+                      role: member.role,
+                      canSubmitRemarks: event.target.checked,
+                    })}
+                    label="Peut déposer des remarques"
+                  />
                 </Box>
                 <Button color="danger" variant="plain" loading={removeProjectMember.isLoading} onClick={() => removeProjectMember.mutate(member.userId)}>Retirer</Button>
               </Card>
