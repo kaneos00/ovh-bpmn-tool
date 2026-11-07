@@ -597,3 +597,29 @@ RACI persistence writers and membership revocation paths; then add
 concurrency/integration tests against PostgreSQL. If any competing writer
 cannot honor the same lock, the protocol is insufficient and writes remain
 blocked. No schema change, migration or runtime behavior is introduced here.
+
+
+### Lock-protocol audit — project links and membership
+
+The follow-up inspection of `ProjectController` refines the candidate lock
+protocol:
+
+- Membership changes already use `changeProjectMember`, which locks the
+  `projects` row with `pessimistic_write` before changing memberships.
+  A governance confirmation can use the same project-row lock and re-check
+  the current member under that lock.
+- The normal process-link endpoint currently saves a link directly, and
+  unlink currently deletes it directly; neither takes the project-row lock.
+- Variant creation uses a transaction for resource/content/link creation,
+  but does not lock the project row.
+- Therefore a project-row lock by itself is not yet a complete scope guard:
+  attach, unlink and variant-link creation must adopt the same lock before a
+  governance transaction can rely on a stable project/resource relationship.
+- The RACI actor/matrix write paths are concentrated in
+  `ProjectRaciController`; the project-link and membership paths are in
+  `ProjectController`. Both controllers must participate in the protocol.
+
+This means the next safe code slice, if approved for implementation, is an
+internal serialization refactor across these existing write paths (without
+changing their public API), followed by PostgreSQL concurrency tests. It is
+not sufficient to add a lock only to the new governance facade.
