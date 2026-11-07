@@ -121,9 +121,10 @@ Before selecting or approving an XML parser, tests must cover:
 7. Malformed XML and malformed `raci:actors` JSON must fail closed and must
    never yield a partially writable document.
 
-This is fixture-derived evidence and a test contract only. No parser has been
-approved, no XML writer has been implemented, and no production BPMN content
-has been changed.
+This is fixture-derived evidence and a test contract. A parser is implemented
+for read-only extraction only (see the section below); no parser has been
+approved for XML serialization or round-trip transformation. No XML writer has
+been implemented, and no production BPMN content has been changed.
 
 
 ## NestJS integration and ACL boundary (verified)
