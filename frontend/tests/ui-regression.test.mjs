@@ -452,7 +452,10 @@ test('modeler exposes undo/redo controls and guards unsaved navigation', async (
   assert.ok(hook.includes('savedStackIndexRef'));
   assert.ok(actionBar.includes('Annuler la dernière modification'));
   assert.ok(actionBar.includes('Rétablir la dernière modification'));
-  assert.ok(container.includes('useBlocker(({ nextLocation }) => isDirty && nextLocation.pathname === returnToUrl)'));
+  assert.ok(container.includes('useBlocker(({ nextLocation }) =>'));
+  assert.ok(container.includes('nextLocation.pathname !== location.pathname'));
+  assert.ok(container.includes('!nextLocation.pathname.startsWith(`${location.pathname}/`)'));
+  assert.ok(container.includes('const location = useLocation()'));
   assert.ok(container.includes('const returnToUrl = proposalId && (sourceResourceId || resource?.sourceResourceId)'));
   assert.ok(actionBar.includes('to={returnToUrl ?? `/${resourceId}`}'));
   assert.ok(container.includes("if (reviewRemarksMode || approvedProposalMode) homeSaveActionLabel = 'Enregistrer et quitter'"));
