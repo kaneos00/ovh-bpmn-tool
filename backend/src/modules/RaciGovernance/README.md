@@ -39,3 +39,32 @@ pnpm --dir backend test -- --runInBand
 
 Integration tests will be added only when the module consumes existing
 ProjectContext and ResourceContext services through explicit contracts.
+
+
+## Integration gates confirmed by the V3 audit
+
+- The existing `ResourceContext` content API already exposes XML reads and
+  create/update/clone/publish operations. The governance module must call the
+  owning application services; it must not add parallel content endpoints or
+  repositories.
+- Content publication already has a transaction helper that locks the target
+  resource and draft, checks that the draft is still a draft, and can compare
+  the expected published content ID. Any future harmonization write must use
+  that existing publication path and its optimistic source-version check.
+- The generic editable-content repository update is not a safe harmonization
+  primitive: its SQL predicate does not explicitly require
+  `status = 'draft'`. Do not use it to mutate published or obsolete content.
+- The audited V3 frontend route table explicitly says organization
+  administration is not exposed in the current shell. The existing
+  administration container is therefore not proof of a reachable route.
+  Integration must first restore/expose the existing Administration shell
+  route under its established access controls; it must not create a second
+  administration area.
+- The BPMN demo fixtures contain process, task, event and call-activity
+  `name` values, plus `calledElement` references and BPMN DI geometry.
+  This confirms that a future rename must be element/attribute-whitelisted:
+  a broad replacement of XML text or all attributes would risk changing
+  technical references or unrelated labels.
+
+These are integration constraints, not an authorization to add routes,
+migrations, XML writers, or publication behavior in this initial slice.
