@@ -27,6 +27,7 @@ import { UserAccountMenu } from '../../../Components/GenericComponents/UserAccou
 
 type ModelerActionBarProps = {
   resourceId: string;
+  returnToUrl?: string;
   hasLintError: boolean;
   canUndo: boolean;
   canRedo: boolean;
@@ -50,6 +51,7 @@ type ModelerActionBarProps = {
 
 export const ModelerActionBar = ({
   resourceId,
+  returnToUrl,
   canUndo,
   canRedo,
   onUndo,
@@ -78,7 +80,7 @@ export const ModelerActionBar = ({
           variant="outlined"
           color="neutral"
           component={Link}
-          to={`/${resourceId}`}
+          to={returnToUrl ?? `/${resourceId}`}
         >
           <Home fontSize="small" />
         </Button>

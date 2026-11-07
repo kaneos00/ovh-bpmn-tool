@@ -41,6 +41,9 @@ export const Component = () => {
   const pendingPublishExitRef = useRef(false);
   const handledActionDataRef = useRef<typeof actionData>(undefined);
   const { resource } = useResource(routeResourceId);
+  const returnToUrl = proposalId && (sourceResourceId || resource?.sourceResourceId)
+    ? `/${sourceResourceId || resource?.sourceResourceId}`
+    : `/${routeResourceId}`;
   const [raciView, setRaciView] = useState<'matrix' | 'actors' | null>(null);
 
   useCallActivityNavigation(bpmnModelerInstance);
@@ -70,7 +73,7 @@ export const Component = () => {
   } = useContentModeler(bpmnModelerInstance);
 
   const { diagramContainerRef, diagramPropertiesRef, hasLintError, isDirty, canUndo, canRedo, undo, redo, markSaved, isModelerReady } = useModeler(bpmnModelerInstance, draftXmlContent);
-  const blocker = useBlocker(({ nextLocation }) => isDirty && nextLocation.pathname === `/${resourceId}`);
+  const blocker = useBlocker(({ nextLocation }) => isDirty && nextLocation.pathname === returnToUrl);
 
   const publishApprovedProposal = async () => {
     if (!proposalId || !approvedProposalMode || publishingApprovedProposal) return;
@@ -144,6 +147,7 @@ export const Component = () => {
       <ImpersonationBanner />
       <ModelerActionBar
         resourceId={resourceId}
+        returnToUrl={returnToUrl}
         hasLintError={hasLintError}
         canUndo={canUndo}
         canRedo={canRedo}
@@ -276,7 +280,17 @@ export const Component = () => {
             <Button variant="plain" color="neutral" onClick={() => { pendingSaveExitRef.current = false; pendingPublishExitRef.current = false; blocker.reset?.(); }}>Continuer l’édition</Button>
             <Button variant="outlined" color="danger" onClick={() => { markSaved(); blocker.proceed?.(); }}>Abandonner les modifications</Button>
             <Button variant="outlined" color="neutral" onClick={() => { pendingSaveExitRef.current = true; onDiagramSave(); }}>Enregistrer sans publier</Button>
-            <Button variant="solid" color="success" onClick={() => { pendingPublishExitRef.current = true; onDiagramPublish(); }}>Enregistrer et publier</Button>
+            <Button variant="solid" color="success" onClick={() => {
+              if (reviewRemarksMode) {
+                pendingSaveExitRef.current = true;
+                onDiagramSave();
+              } else {
+                pendingPublishExitRef.current = true;
+                onDiagramPublish();
+              }
+            }}>
+              {reviewRemarksMode ? 'Enregistrer et quitter' : proposalId ? 'Enregistrer et demander validation' : 'Enregistrer et publier'}
+            </Button>
           </DialogActions>
         </ModalDialog>
       </Modal>
