@@ -85,6 +85,12 @@ const getContentStatusLabel = (status: ContentStatusEnum) => {
   return 'Obsolète';
 };
 
+const getRaciEmptyStateMessage = (activityCount: number, hasViewerContent: boolean) => {
+  if (activityCount > 0) return 'Aucune activité ne correspond aux filtres.';
+  if (hasViewerContent) return 'Aucune activité BPMN détectée dans ce contenu.';
+  return 'Aucune version publiée.';
+};
+
 const getRaciCellStatusClass = (status: string) => {
   if (status === 'explicit') return 'raci-status-explicit';
   if (status === 'inferred') return 'raci-status-inferred';
@@ -1245,11 +1251,7 @@ export const ProcessDetails = ({
                 </table>
               ) : (
                 <Typography level="body-sm" textColor="neutral" sx={{ p: 2 }}>
-                  {raciMatrix.activities.length > 0
-                    ? 'Aucune activité ne correspond aux filtres.'
-                    : !viewerContent
-                      ? 'Aucune version publiée.'
-                      : 'Aucune activité BPMN détectée dans ce contenu.'}
+                  {getRaciEmptyStateMessage(raciMatrix.activities.length, Boolean(viewerContent))}
                 </Typography>
               )}
             </Box>
