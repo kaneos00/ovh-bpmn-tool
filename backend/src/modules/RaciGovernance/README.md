@@ -665,3 +665,37 @@ This is an audit finding only. No lock or runtime behavior has been changed.
 The common lock protocol remains unimplemented, and RACI governance writes
 remain blocked pending adoption by every relevant writer and PostgreSQL
 concurrency tests.
+
+### Lock-protocol audit — indirect link deletion through ResourceContext
+
+The audit of `ResourceController.deleteResource` and the owning migration
+found an additional indirect mutation path that must not be overlooked.
+
+The resource deletion command recursively deletes the selected resource and
+its descendants. The existing schema declares
+`project_processes.resourceId -> resources.id ON DELETE CASCADE`; RACI
+assignment rows also cascade when their project/process link is deleted.
+Therefore, deleting a resource tree can remove project-process links and
+their RACI assignments without calling `ProjectController.unlinkProcess`.
+
+The controller currently calls `assertCanDeleteResourceTree` before invoking
+the ResourceContext delete handler. That policy rejects Common processes and
+resources linked to multiple projects, but the deletion repository performs
+the recursive resource deletion without a transaction-scoped project-row
+coordination lock or a re-check of the affected links under such locks.
+
+This means the candidate project-row protocol must also account for
+ResourceContext tree deletion. Before deletion, the affected resource tree
+and all project IDs whose links will cascade must be determined; the
+coordination rows must then be locked in a deterministic order and the
+resource/link policy revalidated in the same transaction as the deletion.
+The current generic resource deletion command/repository does not expose that
+transaction contract. It must be adapted in its owning module or wrapped by a
+narrow ResourceContext application service; ProjectContext must not become a
+dependency of the governance module in the reverse direction.
+
+The complete writer inventory now includes direct link insert/delete paths,
+proposal workspace link creation, RACI writes, membership changes, and
+indirect cascade deletion through ResourceContext. No common lock is safe to
+rely on until this deletion path participates too. This finding is
+documentation only; no runtime behavior has changed.
