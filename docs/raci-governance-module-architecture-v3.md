@@ -193,3 +193,12 @@ Sources :
 ### Parser BPMN
 
 Le backend déclare `fast-xml-parser` comme dépendance. Le lot 0 doit encore confirmer son usage effectif, sa configuration et les garanties de round-trip sur les BPMN réels du dépôt. Sa seule présence dans `package.json` ne constitue pas une validation de son aptitude à préserver les extensions, namespaces, attributs et éléments DI.
+
+
+### Point de vigilance — mise à jour des contenus existants
+
+L'audit du repository TypeORM montre que `updateEditableFields` met à jour `contents.content` après contrôle de l'appartenance ressource/contenu et de certains états de propositions, mais la requête ne limite pas explicitement l'écriture à `status = 'draft'`. L'interface peut normalement n'appeler cette route que pour un brouillon, mais cette hypothèse UI ne doit pas devenir une garantie de sécurité pour un traitement transversal.
+
+**Règle pour RaciGovernance :** ne pas réutiliser `updateEditableFields` pour transformer un contenu publié ou obsolète. Le module doit créer ou cibler un brouillon autorisé, vérifier le contenu publié attendu, puis publier via le mécanisme transactionnel avec contrôle de concurrence. Toute évolution du endpoint générique de contenu devra faire l'objet d'une correction séparée et de tests de non-régression, sans être glissée silencieusement dans le module RACI.
+
+Autre constat : le repository utilise PostgreSQL `xpath` sur le XML pour extraire quelques identifiants BPMN, mais cela ne constitue pas un parseur/éditeur BPMN capable de garantir un round-trip complet des extensions et namespaces.
