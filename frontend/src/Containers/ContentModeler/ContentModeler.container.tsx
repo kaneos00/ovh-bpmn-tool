@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Outlet, useBlocker, useNavigate, useParams } from 'react-router-dom';
+import { Outlet, useBlocker, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { ModelerActionBar } from './components/ModelerActionBar';
-import { Button, Modal, ModalDialog, DialogTitle, DialogContent, DialogActions } from '@mui/joy';
+import { Alert, Button, Modal, ModalDialog, DialogTitle, DialogContent, DialogActions, Textarea } from '@mui/joy';
 import { ModelerShortcuts } from '../../Components/BusinessComponents/ModelerShortcuts/ModelerShortcuts';
 import { useContentModeler } from './hooks/useContentModeler';
 import { useModeler } from './hooks/useModeler';
@@ -14,6 +14,8 @@ import { useResource } from '../../shared/hooks/useResource';
 import type { ContentModelerRouteParams } from '.';
 import { useCallActivityNavigation } from '../../shared/hooks/useCallActivityNavigation';
 import { ImpersonationBanner } from '../../Components/GenericComponents/ImpersonationBanner/ImpersonationBanner';
+import { ProposalRemarksPanel } from './components/ProposalRemarksPanel';
+import queryClient, { apiClient } from '../../queryClient';
 
 export const Component = () => {
   // share modeler instance in order to avoid create instance in useContentModeler and useModeler
@@ -22,6 +24,13 @@ export const Component = () => {
   const { getRechercheProvider } = useBpmnToolOptions();
   const { resourceId: routeResourceId } = useParams() as ContentModelerRouteParams;
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const proposalId = searchParams.get('proposalId');
+  const reviewRemarksMode = searchParams.get('reviewRemarks') === '1';
+  const [validationModalOpen, setValidationModalOpen] = useState(false);
+  const [submissionComment, setSubmissionComment] = useState('');
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [submittingProposal, setSubmittingProposal] = useState(false);
   const pendingSaveExitRef = useRef(false);
   const pendingPublishExitRef = useRef(false);
   const handledActionDataRef = useRef<typeof actionData>(undefined);
@@ -54,7 +63,7 @@ export const Component = () => {
     actionData,
   } = useContentModeler(bpmnModelerInstance);
 
-  const { diagramContainerRef, diagramPropertiesRef, hasLintError, isDirty, canUndo, canRedo, undo, redo, markSaved } = useModeler(bpmnModelerInstance, draftXmlContent);
+  const { diagramContainerRef, diagramPropertiesRef, hasLintError, isDirty, canUndo, canRedo, undo, redo, markSaved, isModelerReady } = useModeler(bpmnModelerInstance, draftXmlContent);
   const blocker = useBlocker(({ nextLocation }) => isDirty && nextLocation.pathname === `/${resourceId}`);
 
   useEffect(() => {
@@ -63,6 +72,14 @@ export const Component = () => {
     if (actionData.error) {
       pendingSaveExitRef.current = false;
       pendingPublishExitRef.current = false;
+      return;
+    }
+    if (actionData.formAction === 'saveContentBeforeSubmit') {
+      markSaved();
+      pendingSaveExitRef.current = false;
+      pendingPublishExitRef.current = false;
+      setSubmissionError(null);
+      setValidationModalOpen(true);
       return;
     }
     if (actionData.formAction === 'saveContent' || actionData.formAction === 'saveContentBeforePublish') {
@@ -109,11 +126,87 @@ export const Component = () => {
         onRaciOpen={() => setRaciView('matrix')}
         onRolesOpen={() => setRaciView('actors')}
         onCompareWithSource={onCompareWithSource}
+        proposalMode={Boolean(proposalId)}
       />
-      <Modeler
-        diagramContainerRef={diagramContainerRef}
-        diagramPropertiesRef={diagramPropertiesRef}
-      />
+      <div style={{ position: 'relative' }}>
+        <Modeler
+          diagramContainerRef={diagramContainerRef}
+          diagramPropertiesRef={diagramPropertiesRef}
+        />
+        {proposalId && (
+          <ProposalRemarksPanel
+            modeler={bpmnModelerInstance}
+            proposalId={proposalId}
+            isModelerReady={isModelerReady}
+            canDecide={reviewRemarksMode}
+          />
+        )}
+      </div>
+      <Modal
+        open={validationModalOpen}
+        onClose={() => {
+          if (!submittingProposal) setValidationModalOpen(false);
+        }}
+      >
+        <ModalDialog>
+          <DialogTitle>Demander la validation de la modification</DialogTitle>
+          <DialogContent>
+            Le brouillon est enregistré. Ajoutez un commentaire pour transmettre cette version au validateur du projet.
+          </DialogContent>
+          <Textarea
+            minRows={3}
+            value={submissionComment}
+            onChange={event => setSubmissionComment(event.target.value)}
+            placeholder="Décrivez les modifications proposées et leur justification…"
+          />
+          {submissionError && <Alert color="danger">{submissionError}</Alert>}
+          <DialogActions>
+            <Button
+              variant="plain"
+              color="neutral"
+              disabled={submittingProposal}
+              onClick={() => setValidationModalOpen(false)}
+            >
+              Continuer l’édition
+            </Button>
+            <Button
+              variant="solid"
+              color="primary"
+              loading={submittingProposal}
+              disabled={!proposalId || !submissionComment.trim() || submittingProposal}
+              onClick={async () => {
+                if (!proposalId || !submissionComment.trim() || submittingProposal) return;
+                setSubmittingProposal(true);
+                setSubmissionError(null);
+                try {
+                  const metadataDocument = new DOMParser().parseFromString(draftXmlContent, 'application/xml');
+                  const processMetadata = Array.from(metadataDocument.getElementsByTagNameNS(
+                    'https://ovh-bpmn-tool.local/schema/process-metadata',
+                    'processMetadata',
+                  ))[0];
+                  const pilotIdentifier = processMetadata?.getAttribute('pilot')?.trim() || undefined;
+                  await apiClient.post(
+                    `/projects/process-change-proposals/${proposalId}/submit`,
+                    { comment: submissionComment.trim(), validatorUserId: pilotIdentifier },
+                  );
+                  await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ['my-process-change-proposals'] }),
+                    queryClient.invalidateQueries({ queryKey: ['process-change-proposals-to-review'] }),
+                  ]);
+                  setValidationModalOpen(false);
+                  navigate('/mes-demandes');
+                } catch (error) {
+                  setSubmissionError(error instanceof Error ? error.message : 'Impossible de soumettre la demande.');
+                } finally {
+                  setSubmittingProposal(false);
+                }
+              }}
+            >
+              Envoyer au validateur
+            </Button>
+          </DialogActions>
+        </ModalDialog>
+      </Modal>
       <RaciMatrix
         modeler={bpmnModelerInstance}
         open={raciView !== null}
