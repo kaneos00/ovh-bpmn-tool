@@ -127,6 +127,7 @@ export const ProposalRemarksPanel = ({
     const overlays = modeler.get('overlays') as any;
     const registry = modeler.get('elementRegistry') as any;
     const eventBus = modeler.get('eventBus') as any;
+    const selection = modeler.get('selection') as any;
 
     const applyOverlays = () => {
       overlayIdsRef.current.forEach(id => {

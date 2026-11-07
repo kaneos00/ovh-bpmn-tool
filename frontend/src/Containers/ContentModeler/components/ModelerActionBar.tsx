@@ -41,6 +41,7 @@ type ModelerActionBarProps = {
   onRolesOpen: () => void;
   onCompareWithSource?: () => void;
   proposalMode?: boolean;
+  hidePublish?: boolean;
 };
 
 export const ModelerActionBar = ({
@@ -58,6 +59,7 @@ export const ModelerActionBar = ({
   onRolesOpen,
   onCompareWithSource,
   proposalMode = false,
+  hidePublish = false,
 }: ModelerActionBarProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -161,15 +163,17 @@ export const ModelerActionBar = ({
           Save
         </Button>
 
-        <Button
-          onClick={onDiagramPublish}
-          variant="outlined"
-          // disabled={hasLintError}
-          color="success"
-          endDecorator={<Done fontSize="small" />}
-        >
-          {proposalMode ? 'Demander la validation' : 'Publish'}
-        </Button>
+        {!hidePublish && (
+          <Button
+            onClick={onDiagramPublish}
+            variant="outlined"
+            // disabled={hasLintError}
+            color="success"
+            endDecorator={<Done fontSize="small" />}
+          >
+            {proposalMode ? 'Demander la validation' : 'Publish'}
+          </Button>
+        )}
         <UserAccountMenu dark={false} />
       </Stack>
     </ActionBar>

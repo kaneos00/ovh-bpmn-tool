@@ -127,6 +127,7 @@ export const Component = () => {
         onRolesOpen={() => setRaciView('actors')}
         onCompareWithSource={onCompareWithSource}
         proposalMode={Boolean(proposalId)}
+        hidePublish={reviewRemarksMode}
       />
       <div style={{ position: 'relative' }}>
         <Modeler
