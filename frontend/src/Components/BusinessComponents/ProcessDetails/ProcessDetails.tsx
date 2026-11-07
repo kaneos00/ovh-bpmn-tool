@@ -34,6 +34,8 @@ import {
   getResourceQuery,
 } from '../../../api/resources/resources.queries';
 import { useResource } from '../../../shared/hooks/useResource';
+import { useActiveProject } from '../../../shared/hooks/useActiveProject';
+import { apiClient } from '../../../queryClient';
 import { useSnackbar } from '../../../shared/hooks/useSnackbar';
 import { getRaciIssueLabel, type RaciCode } from '../../../extensions/raci-engine';
 import { useViewerRaciAnalysis } from '../../../shared/hooks/useViewerRaciAnalysis';
@@ -195,6 +197,12 @@ export const ProcessDetails = ({
   );
   const queryClient = useQueryClient();
   const { resource: processResource } = useResource(resourceId);
+  const { projects } = useActiveProject();
+  const proposalProjectId = projects.find(project =>
+    (project.role === 'modeler' || project.role === 'admin') &&
+    project.processes.some(process => process.resourceId === resourceId),
+  )?.id;
+  const [startingProposal, setStartingProposal] = useState(false);
   const { data: resourceShares } = useQuery(resourceSharesQuery(resourceId));
   const { showAlert } = useSnackbar();
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
@@ -268,6 +276,27 @@ export const ProcessDetails = ({
   );
 
   const navigate = useNavigate();
+
+  const startChangeProposal = async () => {
+    if (!proposalProjectId || startingProposal || isHistoricalView) return;
+    setStartingProposal(true);
+    try {
+      const proposal = await apiClient.post(
+        `/projects/${proposalProjectId}/processes/${resourceId}/change-proposals`,
+        {},
+      );
+      navigate(`/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}`);
+    } catch (error) {
+      showAlert({
+        message: error instanceof Error
+          ? error.message
+          : 'Impossible de créer la demande de modification.',
+        severity: 'danger',
+      });
+    } finally {
+      setStartingProposal(false);
+    }
+  };
   const processWorkspaceRef = useRef<HTMLDivElement>(null);
   const [explorerCollapsed, setExplorerCollapsed] = useState(false);
   const [taskPanelCollapsed, setTaskPanelCollapsed] = useState(true);
@@ -605,6 +634,19 @@ export const ProcessDetails = ({
                     >
                       <FileCopy />
                     </IconButton>
+                    {proposalProjectId && !isHistoricalView && (
+                      <Button
+                        size="sm"
+                        variant="soft"
+                        color="primary"
+                        loading={startingProposal}
+                        disabled={startingProposal}
+                        onClick={startChangeProposal}
+                      >
+                        <EditOutlined sx={{ fontSize: 16, mr: 0.5 }} />
+                        Proposer une modification
+                      </Button>
+                    )}
                     {canEditDescription && (
                       <IconButton
                         title="Modifier le diagramme BPMN"
