@@ -68,3 +68,59 @@ ProjectContext and ResourceContext services through explicit contracts.
 
 These are integration constraints, not an authorization to add routes,
 migrations, XML writers, or publication behavior in this initial slice.
+
+
+## Fixture evidence: RACI and BPMN label boundaries
+
+A second pass over `frontend/tests/fixtures/Parking (copie)_v9.bpmn`
+confirms the following concrete XML shapes (fixture SHA
+`e3d5db0cc1901d573716ad3e4c6984cd46a47b99`):
+
+- The document uses the `bpmn2:` prefix alongside `bpmndi:`, `dc:` and
+  `di:`, and declares custom `raci:` and `url:` namespaces.
+- The fixture contains 73 XML `name` attributes, including participant,
+  process, task, event, call-activity, sub-process, message-flow and
+  sequence-flow labels. A blanket `name` rewrite is therefore unsafe:
+  flow labels and collaboration labels cannot be assumed to be actor names.
+- RACI assignments occur as `raci:responsible`, `raci:accountable`,
+  `raci:consulted` and `raci:informed` attributes. Their corresponding
+  `*Status` attributes (for example `raci:responsibleStatus`) are separate
+  metadata and must remain unchanged.
+- `raci:actors` is a JSON array serialized inside an XML attribute. The
+  fixture stores actor `name`, `source`, `active` and sometimes `bpmnId`.
+  The XML attribute itself uses entity-escaped JSON quotes
+  (`&#34;`). A future rename must parse the XML attribute value, parse the
+  JSON array, change only a confirmed actor `name`, serialize JSON, then
+  XML-escape the attribute value correctly.
+- The same fixture contains `url:link`, `calledElement`, `sourceRef`,
+  `targetRef`, BPMN IDs, DI bounds and waypoints. These are not actor-label
+  targets and must be invariant across any proposed transformation.
+
+The organisation demo fixture
+`examples/organisation-demo/00-organisation-complete.bpmn` (SHA
+`5c0d9ea0c542dbd3e906765d10cb8c3ce2a70d6f`) uses the `bpmn:` prefix and
+contains ordinary process/task/event/call-activity names and call references,
+but no RACI extension attributes in the inspected content. The implementation
+must therefore support both prefixed BPMN variants without assuming that
+every resource contains RACI metadata.
+
+### Required read-only extraction and transformation test cases
+
+Before selecting or approving an XML parser, tests must cover:
+
+1. Both `bpmn:` and `bpmn2:` prefixes, with custom namespaces preserved.
+2. RACI scalar actor attributes and their independent status attributes.
+3. Entity-escaped `raci:actors` JSON, including Unicode, ampersands, quotes,
+   inactive entries, duplicate labels and optional `bpmnId`.
+4. Empty and non-actor `name` attributes, including sequence/message flows.
+5. Preservation of every ID, reference, unknown attribute, namespace binding,
+   documentation node, DI shape/edge, bounds and waypoint.
+6. Parse -> serialize -> parse semantic equivalence, plus an explicit
+   before/after invariant comparison. Byte-for-byte equality is not assumed
+   because serializers may normalize whitespace or attribute order.
+7. Malformed XML and malformed `raci:actors` JSON must fail closed and must
+   never yield a partially writable document.
+
+This is fixture-derived evidence and a test contract only. No parser has been
+approved, no XML writer has been implemented, and no production BPMN content
+has been changed.
