@@ -73,6 +73,14 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     () => contents?.find(content => content.id === requestedContentId) ?? draftContent,
     [contents, requestedContentId, draftContent],
   );
+  // Review links carry the exact submitted content ID. Prefer the current
+  // draft, but retain that proposal content as an editable fallback when the
+  // list endpoint does not classify it as the current draft.
+  const editableContent = draftContent ?? (
+    proposalId && selectedContent?.status === ContentStatusEnum.Draft
+      ? selectedContent
+      : undefined
+  );
 
   const { data: draftXmlContent } = useQuery({
     ...getXmlContentQuery(resourceId, selectedContent?.id as string),
@@ -201,29 +209,37 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   );
 
   const onDiagramSave = useCallback(async () => {
-    if (!draftContent) {
+    if (!editableContent) {
+      showAlert({
+        message: 'Aucun brouillon modifiable n’a été chargé pour ce processus. Rechargez la page ; si le problème persiste, la demande doit être vérifiée.',
+        severity: 'warning',
+      });
       return;
     }
 
     try {
-      await saveDiagram('saveContent', draftContent);
+      await saveDiagram('saveContent', editableContent);
     } catch {
       showAlert({
         message: 'An error occur during saving content.',
         severity: 'danger',
       });
     }
-  }, [draftContent, saveDiagram, showAlert]);
+  }, [editableContent, saveDiagram, showAlert]);
 
   const onDiagramPublish = useCallback(async () => {
-    if (!draftContent) {
+    if (!editableContent) {
+      showAlert({
+        message: 'Aucun brouillon modifiable n’a été chargé : la validation ou la publication ne peut pas démarrer.',
+        severity: 'warning',
+      });
       return;
     }
 
     try {
       await saveDiagram(
         proposalId ? 'saveContentBeforeSubmit' : 'saveContentBeforePublish',
-        draftContent,
+        editableContent,
       );
     } catch {
       showAlert({
@@ -231,7 +247,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
         severity: 'danger',
       });
     }
-  }, [draftContent, saveDiagram, showAlert, proposalId]);
+  }, [editableContent, saveDiagram, showAlert, proposalId]);
 
   const processActionMessages: Record<string, string> = {
     saveContent: 'Content has been saved successfully.',
