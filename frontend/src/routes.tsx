@@ -141,8 +141,22 @@ export const routes = [
         ],
       },
       {
+        // Compatibility URL only: historical content is now rendered by the
+        // canonical BpmnLayout / ProcessDetails viewer.
         path: '/:resourceId/viewer/:contentId',
-        lazy: () => import('./Containers/ContentViewer'),
+        loader: ({
+          params,
+          request,
+        }: {
+          params: { resourceId?: string; contentId?: string };
+          request: Request;
+        }) => {
+          const url = new URL(request.url);
+          // The path contentId is authoritative; preserve elementId, raci,
+          // and any other deep-link context in the query string.
+          url.searchParams.set('contentId', params.contentId ?? '');
+          return redirect(`/${params.resourceId}?${url.searchParams.toString()}`);
+        },
       },
     ],
   },
