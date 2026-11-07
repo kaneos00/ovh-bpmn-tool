@@ -16,6 +16,7 @@ import { useCallActivityNavigation } from '../../shared/hooks/useCallActivityNav
 import { ImpersonationBanner } from '../../Components/GenericComponents/ImpersonationBanner/ImpersonationBanner';
 import { ProposalRemarksPanel } from './components/ProposalRemarksPanel';
 import queryClient, { apiClient } from '../../queryClient';
+import { generatePngFromSvg } from '../../shared/utils/generatePngFromSvg';
 
 export const Component = () => {
   // share modeler instance in order to avoid create instance in useContentModeler and useModeler
@@ -27,10 +28,15 @@ export const Component = () => {
   const [searchParams] = useSearchParams();
   const proposalId = searchParams.get('proposalId');
   const reviewRemarksMode = searchParams.get('reviewRemarks') === '1';
+  const approvedProposalMode = searchParams.get('publishApproved') === '1';
+  const sourceResourceId = searchParams.get('sourceResourceId');
   const [validationModalOpen, setValidationModalOpen] = useState(false);
   const [submissionComment, setSubmissionComment] = useState('');
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submittingProposal, setSubmittingProposal] = useState(false);
+  const [publishingApprovedProposal, setPublishingApprovedProposal] = useState(false);
+  const [publicationError, setPublicationError] = useState<string | null>(null);
+  const [publicationSummaryComment, setPublicationSummaryComment] = useState('');
   const pendingSaveExitRef = useRef(false);
   const pendingPublishExitRef = useRef(false);
   const handledActionDataRef = useRef<typeof actionData>(undefined);
@@ -65,6 +71,31 @@ export const Component = () => {
 
   const { diagramContainerRef, diagramPropertiesRef, hasLintError, isDirty, canUndo, canRedo, undo, redo, markSaved, isModelerReady } = useModeler(bpmnModelerInstance, draftXmlContent);
   const blocker = useBlocker(({ nextLocation }) => isDirty && nextLocation.pathname === `/${resourceId}`);
+
+  const publishApprovedProposal = async () => {
+    if (!proposalId || !approvedProposalMode || publishingApprovedProposal) return;
+    setPublishingApprovedProposal(true);
+    setPublicationError(null);
+    try {
+      const { svg } = await bpmnModelerInstance.saveSVG();
+      const pngContent = await generatePngFromSvg(svg);
+      await apiClient.post(
+        `/projects/process-change-proposals/${proposalId}/publish`,
+        { pngContent, summaryComment: publicationSummaryComment.trim() },
+      );
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['my-process-change-proposals'] }),
+        queryClient.invalidateQueries({ queryKey: ['process-change-proposals-to-review'] }),
+      ]);
+      navigate(sourceResourceId ? `/${sourceResourceId}` : '/mes-demandes');
+    } catch (error) {
+      setPublicationError(
+        error instanceof Error ? error.message : 'Impossible de publier la version approuvée.',
+      );
+    } finally {
+      setPublishingApprovedProposal(false);
+    }
+  };
 
   useEffect(() => {
     if (!actionData || handledActionDataRef.current === actionData) return;
@@ -127,8 +158,26 @@ export const Component = () => {
         onRolesOpen={() => setRaciView('actors')}
         onCompareWithSource={onCompareWithSource}
         proposalMode={Boolean(proposalId)}
-        hidePublish={reviewRemarksMode}
+        hidePublish={reviewRemarksMode || approvedProposalMode}
+        approvedProposalMode={approvedProposalMode}
+        onPublishApprovedProposal={publishApprovedProposal}
+        publishApprovedDisabled={!isModelerReady || publishingApprovedProposal || !proposalId || !publicationSummaryComment.trim()}
+        publishApprovedLoading={publishingApprovedProposal}
       />
+      {publicationError && <Alert color="danger" sx={{ mx: 2, my: 1 }}>{publicationError}</Alert>}
+      {approvedProposalMode && (
+        <Alert color="neutral" variant="soft" sx={{ mx: 2, my: 1 }}>
+          <div style={{ width: '100%' }}>
+            <DialogTitle>Commentaire général de publication</DialogTitle>
+            <Textarea
+              minRows={2}
+              value={publicationSummaryComment}
+              onChange={event => setPublicationSummaryComment(event.target.value)}
+              placeholder="Synthèse des modifications apportées…"
+            />
+          </div>
+        </Alert>
+      )}
       <div style={{ position: 'relative' }}>
         <Modeler
           diagramContainerRef={diagramContainerRef}

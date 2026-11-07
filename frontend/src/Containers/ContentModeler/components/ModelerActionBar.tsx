@@ -42,6 +42,10 @@ type ModelerActionBarProps = {
   onCompareWithSource?: () => void;
   proposalMode?: boolean;
   hidePublish?: boolean;
+  approvedProposalMode?: boolean;
+  onPublishApprovedProposal?: () => void;
+  publishApprovedDisabled?: boolean;
+  publishApprovedLoading?: boolean;
 };
 
 export const ModelerActionBar = ({
@@ -60,6 +64,10 @@ export const ModelerActionBar = ({
   onCompareWithSource,
   proposalMode = false,
   hidePublish = false,
+  approvedProposalMode = false,
+  onPublishApprovedProposal,
+  publishApprovedDisabled = false,
+  publishApprovedLoading = false,
 }: ModelerActionBarProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -172,6 +180,18 @@ export const ModelerActionBar = ({
             endDecorator={<Done fontSize="small" />}
           >
             {proposalMode ? 'Demander la validation' : 'Publish'}
+          </Button>
+        )}
+        {approvedProposalMode && (
+          <Button
+            onClick={onPublishApprovedProposal}
+            variant="solid"
+            color="success"
+            disabled={publishApprovedDisabled}
+            loading={publishApprovedLoading}
+            endDecorator={<Done fontSize="small" />}
+          >
+            Publier la version approuvée
           </Button>
         )}
         <UserAccountMenu dark={false} />
