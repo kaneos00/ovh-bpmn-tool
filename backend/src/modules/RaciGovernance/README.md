@@ -318,3 +318,120 @@ tested. In particular:
    content ID.
 4. Any partial failure must leave the original matrix and published content
    unchanged, with an auditable and controlled reversal path.
+
+
+## Narrow application facades — implementation contract
+
+The follow-up source review confirms that the existing use cases can be
+reused, but their current public boundaries are not sufficient for a safe
+governance orchestrator. The next implementation should introduce two small
+facades in the modules that own the data. The signatures below are logical
+contracts; they are not yet implemented APIs.
+
+### ProjectContext facade
+
+Expose a ProjectRaciApplicationPort from ProjectContextModule, backed by
+the existing TypeORM entities and the same authorization service:
+
+- readProjectRaciScope({ projectId, resourceId, headers }): verify that the
+  resource is linked to the selected project, verify the existing project
+  Viewer membership, and return only that resource's actor registry and
+  assignment rows. Never return the full project matrix when a
+  resource-scoped snapshot was requested.
+- readProjectRaciRegistry({ projectId, headers }): read the project's
+  existing actor registry under the existing project read policy.
+- replaceProjectRaciScope({ projectId, resourceId, entries, headers,
+  expectedScopeRevision }): do not implement this by calling or wrapping
+  the existing full-project PUT. Validate every row belongs to the supplied
+  resource, validate active registered actors and the project link, then
+  perform a resource-filtered delete/insert in a transaction. The revision
+  precondition must be checked under the same transaction/lock to prevent
+  stale preview confirmation from overwriting a concurrent edit.
+
+The facade must not accept arbitrary project/resource pairs without checking
+the ProjectProcessTypeOrmEntity link. It must preserve the existing
+uniqueness semantics and reject duplicate actor/task assignments before any
+write. Existing project-level full replacement remains a distinct use case;
+its contract must be named/documented as full-project replacement.
+
+Cross-project operations must use the existing organization-admin check in
+addition to the global Admin ACL. A project Modeler/Admin or global RW user is
+not sufficient. The facade should receive trusted request identity/context
+from the authenticated application boundary; it must not trust a caller-
+supplied user ID.
+
+### ResourceContext facade
+
+Expose a ResourceContentGovernancePort from ResourceContextModule, with
+only the operations required by governance:
+
+- Read a content snapshot by the exact resourceId + contentId, including
+  status and version metadata; reject a content ID belonging to another
+  resource. Apply the existing resource/project read policy.
+- Create an explicit draft from the selected published source through the
+  established clone/proposal workflow. The current generic clone handler
+  clones a content version within the same resource; it does not itself
+  express a target resource. Do not pretend it supports cross-resource
+  promotion. Reuse the existing process-change-proposal path where its
+  source/target semantics apply.
+- Update only a draft whose identity and status have been re-read and
+  verified inside the write transaction. The generic updateEditableFields
+  method must not be treated as a draft guard because its update predicate
+  does not itself require status = 'draft'.
+- Publish through the existing transaction helper with the exact expected
+  published source content ID. Keep the existing resource lock, draft lock,
+  version increment, obsolete transition and auth-token behavior.
+
+Do not export the ContentRepository, TypeORM repositories, or private command
+handlers as a general-purpose API. The facade should return typed domain
+results and map failures at the owning module boundary.
+
+### Transaction boundary — required before write implementation
+
+Both contexts use the application's TypeORM connection, but that alone does
+not make two independent service calls atomic. The existing ProjectContext
+matrix replacement opens its own transaction, while publication accepts an
+EntityManager inside its own publication transaction. Calling these existing
+operations sequentially would permit a partial result (matrix changed but XML
+publication failed, or vice versa).
+
+Therefore the final confirm operation must not be implemented as two ordinary
+facade calls. Before enabling writes, introduce a narrow shared unit-of-work
+contract backed by the single application DataSource, and make both owning
+facades accept the same transaction-scoped EntityManager (or an equivalent
+opaque transaction context). Under that one transaction:
+1. re-check the preview's expected project-matrix revision and expected
+   published content ID;
+2. lock and validate the target project/resource link, actors and assignments;
+3. write only the selected resource's RACI rows;
+4. create/update the explicit draft without touching published content;
+5. publish through the existing publishDraftContentWithinTransaction
+   helper using the same manager;
+6. append the audit event in the same transaction.
+
+If the existing process-change-proposal lifecycle cannot be invoked with that
+same manager, stop before mutation and redesign the workflow; do not silently
+fall back to a two-transaction sequence. A compensating action is not an
+equivalent substitute for atomicity unless it is itself durable, tested and
+auditable.
+
+### Required facade and orchestration tests
+
+Before adding an administration route or enabling any mutation, tests must
+prove:
+
+- a resource not linked to the supplied project is rejected;
+- a scoped read returns no other process's actors or assignments;
+- a scoped write cannot delete or modify another process's rows;
+- a stale matrix revision or changed published content ID rejects confirmation
+  without writes;
+- inactive or unregistered actors cannot be assigned implicitly;
+- a content ID from another resource is rejected;
+- a published or obsolete content row can never be edited as a draft;
+- a publication failure rolls back matrix, draft and audit changes together;
+- organization-admin checks reject project-only Admin and global RW identities;
+- retries and concurrent confirmations cannot apply the same preview twice.
+
+Until these contracts and tests exist, the governance module remains
+read-only. No route, UI, migration, XML writer, or Viewer/Modeler dependency
+is authorized by this design step.
