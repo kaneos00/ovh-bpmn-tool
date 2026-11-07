@@ -132,14 +132,14 @@ describe('ProjectController administration overview', () => {
       {
         userId: 'alice',
         projects: [
-          { projectId: 'project-a', projectName: 'Atlas', role: 'admin' },
-          { projectId: 'project-b', projectName: 'RH', role: 'viewer' },
+          { projectId: 'project-a', projectName: 'Atlas', role: 'admin', canSubmitRemarks: false },
+          { projectId: 'project-b', projectName: 'RH', role: 'viewer', canSubmitRemarks: false },
         ],
       },
       {
         userId: 'bob',
         projects: [
-          { projectId: 'project-a', projectName: 'Atlas', role: 'modeler' },
+          { projectId: 'project-a', projectName: 'Atlas', role: 'modeler', canSubmitRemarks: false },
         ],
       },
     ]);
@@ -164,6 +164,7 @@ describe('ProjectController administration overview', () => {
     expect(result.projects[0]).toMatchObject({
       id: 'project-a',
       role: ProjectMemberRole.Admin,
+      canSubmitRemarks: false,
       processes: [
         {
           resourceId: 'process-shared',
