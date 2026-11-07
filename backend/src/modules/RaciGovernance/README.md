@@ -228,3 +228,93 @@ versioning and its relationship to the existing content publication lifecycle.
 The comparator is intentionally not wired into controllers, NestJS modules,
 Viewer or Modeler. No database adapter, endpoint, migration or write path is
 introduced in this tranche.
+
+
+## RACI administration contract — design audit
+
+A further review of `ProjectRaciController` and the owning NestJS modules
+establishes the following constraints for the future administration capability.
+
+### Existing write semantics that must be preserved
+
+- `PUT /projects/:projectId/raci` accepts the **complete project matrix**.
+  It validates every row, then transactionally deletes every existing
+  `project_raci_entries` row for that project and inserts the submitted rows.
+  It is not a per-process patch endpoint. A caller that submits only one
+  process would erase assignments for the project's other processes.
+- Each row is nevertheless scoped by `resourceId`, `taskId`, actor and role;
+  the database uniqueness index also includes project, resource, task and
+  actor. The API's replacement boundary is broader than an individual
+  process.
+- The route requires both the global read/write ACL group and at least the
+  project `Modeler` role. Project `Viewer` can read the matrix. This is
+  appropriate for ordinary project editing but is not sufficient authority
+  for cross-project governance.
+- `POST /projects/:projectId/raci/actors/sync` only adds previously unknown
+  names to the project actor registry. It does not reactivate an inactive
+  actor and does not remove actors absent from the latest XML. This is a
+  non-destructive import behavior, not a general reconciliation operation.
+- Actor rename updates matching assignment labels in a transaction and checks
+  for collisions. Actor activation is a separate operation. Future global
+  actor harmonization must not bypass these existing rules or silently rename
+  project actors.
+
+### Authorization matrix for governance
+
+| Operation | Minimum authority |
+| --- | --- |
+| Read one project's local actors/matrix | Existing project Viewer membership, subject to global ACL |
+| Edit one project's local matrix/actors | Existing global RW ACL plus project Modeler (or existing project Admin policy where explicitly supported) |
+| Inspect cross-project actor matches | Organization/global Admin |
+| Propose, confirm or reverse cross-project harmonization | Organization/global Admin, with explicit preview and audit |
+| Publish BPMN content affected by a harmonization | Existing ResourceContext publication authorization and transaction; never inferred from governance read access |
+
+A project administrator is not automatically an organization administrator.
+Likewise, a global RW group alone must not authorize cross-project mutation.
+For governance routes, the existing global Admin ACL and
+`ProjectResourceAccessService.hasOrganizationAdminRole()` must be applied
+consistently; project membership is not a substitute.
+
+### Module composition contract
+
+- `BpmnToolAppModule` is the composition root and already imports
+  `ProjectContextModule` and `ResourceContextModule`.
+- `ProjectContextModule` owns the RACI entities/controller and exports
+  `ProjectResourceAccessService`, but does not expose a dedicated application
+  service for safe RACI reads/writes. The current controller directly owns
+  repository operations.
+- `ResourceContextModule` owns content handlers and repositories and exports
+  none of them. It already imports `ProjectContextModule` for resource ACL.
+- A sibling governance module cannot safely inject those private providers
+  merely because the owning modules are imported by the application root.
+
+Before integration, add narrow application-facing contracts in the owning
+modules rather than exporting TypeORM repositories or duplicating handlers.
+The ProjectContext contract should expose authorized project actor/matrix
+operations with explicit project/resource scope and must make the full-matrix
+replacement semantics impossible to mistake for a per-resource update.
+The ResourceContext contract should expose read of the selected published
+content and the established create-draft/publish workflow, including the
+expected source content ID. The governance module should orchestrate those
+contracts only; it should not access persistence tables directly.
+
+Keep dependencies one-way. The governance module may depend on the owning
+contracts and be composed by `BpmnToolAppModule`; ProjectContext and
+ResourceContext must not import the governance module. Do not export broad
+repositories, add a second RACI controller, or add a parallel content
+publication path.
+
+### Immediate implementation decision
+
+No route or mutation is added in this design slice. Before any implementation,
+the narrow contracts and their transaction boundaries must be specified and
+tested. In particular:
+1. A project-scoped edit must not delete assignments belonging to other
+   projects or processes.
+2. A cross-project harmonization must preview every affected actor and
+   assignment before confirmation.
+3. A BPMN XML change must target an explicitly created draft, preserve
+   non-target XML semantics, and publish only against the expected source
+   content ID.
+4. Any partial failure must leave the original matrix and published content
+   unchanged, with an auditable and controlled reversal path.
