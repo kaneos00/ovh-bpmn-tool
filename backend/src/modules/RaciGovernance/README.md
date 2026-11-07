@@ -360,6 +360,12 @@ not sufficient. The facade should receive trusted request identity/context
 from the authenticated application boundary; it must not trust a caller-
 supplied user ID.
 
+**Schema scope clarification:** `project_raci_actors` is keyed only by
+`projectId`; the actor registry is project-wide, not process-specific.
+`project_raci_entries` is the table filtered by both `projectId` and
+`resourceId` for a process-scoped snapshot. The implementation and tests
+preserve this distinction.
+
 ### ResourceContext facade
 
 Expose a ResourceContentGovernancePort from ResourceContextModule, with
