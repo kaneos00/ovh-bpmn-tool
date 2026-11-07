@@ -25,3 +25,23 @@ test('failed publication stays on the confirmation screen for retry', async () =
   assert.match(container, /actionData && !actionData.error/);
   assert.match(container, /failed publication must remain on the confirmation screen/);
 });
+
+test('proposal review opens and saves the exact submitted draft instead of failing silently', async () => {
+  const hook = await read('src/Containers/ContentModeler/hooks/useContentModeler.ts');
+  const queue = await read('src/Containers/MyProcessChangeProposals/MyProcessChangeProposals.container.tsx');
+
+  assert.ok(hook.includes('const editableContent = draftContent ??'));
+  assert.ok(hook.includes('Aucun brouillon modifiable n’a été chargé'));
+  assert.ok(hook.includes("saveDiagram('saveContent', editableContent)"));
+  assert.ok(queue.includes('&contentId=${proposal.submittedContentId}'));
+});
+
+test('viewer remark submission uses a project that grants the member remark permission', async () => {
+  const viewer = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.ok(viewer.includes('const projectForRemark = projects.find(project =>'));
+  assert.ok(viewer.includes('project.canSubmitRemarks &&'));
+  assert.ok(viewer.includes('${projectForRemark.id}/processes/${resourceId}/change-proposals'));
+  assert.ok(viewer.includes('Votre remarque a été déposée et transmise au circuit de validation du projet.'));
+  assert.ok(!viewer.includes('navigate(`/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}`)'));
+});
