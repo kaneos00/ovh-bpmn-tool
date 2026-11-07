@@ -8,9 +8,9 @@ describe('ActorLabelNormalizer', () => {
   });
 
   it('preserves meaningful digits and letter sequences', () => {
-    expect(
-      ActorLabelNormalizer.normalize('Responsabile IVV / ISO 9001'),
-    ).toBe('responsabile ivv iso 9001');
+    expect(ActorLabelNormalizer.normalize('Responsabile IVV / ISO 9001')).toBe(
+      'responsabile ivv iso 9001',
+    );
   });
 
   it('returns no tokens for an empty or punctuation-only label', () => {
