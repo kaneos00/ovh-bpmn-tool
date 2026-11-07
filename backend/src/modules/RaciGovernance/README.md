@@ -498,3 +498,72 @@ Four focused unit tests cover access-before-read, exact resource/content
 scoping, cross-resource rejection and denied-access short-circuiting. They
 have been committed but not executed in this environment. The shared
 transaction and all write operations remain blocked.
+
+
+## Shared transaction feasibility — second implementation audit
+
+A source-level pass over the current V3 code confirms that the application
+uses one TypeORM `DataSource` registered in `backend/src/app.module.ts`.
+Both ProjectContext and ResourceContext therefore participate in the same
+database connection. More importantly, the existing proposal workflow already
+demonstrates the required low-level pattern:
+
+- `createProposalWorkspace(manager, ...)` creates the proposal resource and
+  draft through repositories obtained from the caller's `EntityManager`.
+- `publishProposalWorkspace(manager, ...)` delegates to
+  `publishDraftContentWithinTransaction(manager, ...)`.
+- `publishApprovedProposal` wraps publication, proposal status transition
+  and the `published` audit event in one `dataSource.transaction` callback.
+  The publication helper receives that same manager and checks the expected
+  source published-content ID.
+
+This proves that draft/workspace creation, BPMN publication and proposal
+audit can already share one transaction when called from the existing
+proposal controller. It does **not** yet prove that the ProjectContext RACI
+matrix can be safely included in that transaction through the current
+application facade.
+
+### Remaining blockers before a shared write
+
+1. `ProjectRaciApplicationService` is currently read-only and its
+   repositories are injected directly. A future write method must use
+   `manager.getRepository(...)` from the caller's transaction, not the
+   injected repositories.
+2. The current full-project `PUT /projects/:projectId/raci` validates
+   actors and project/process links before opening its transaction, then
+   deletes every assignment for the project. It does not lock a common
+   project/process coordination row. A process-scoped writer cannot safely
+   assume its resource-only delete/insert is serialized against this legacy
+   full-project replacement.
+3. Existing actor creation, activation, synchronization and rename paths do
+   not all share a common project-level lock protocol. A transaction-scoped
+   re-check alone is insufficient if competing legacy writers do not honor
+   the same lock.
+4. `assertProjectRole` currently uses an injected repository outside the
+   transaction. A final confirm operation must re-check the authenticated
+   user's current membership inside the transaction, using the same manager.
+5. `project_raci_entries` has no explicit revision/version column. The
+   current schema cannot supply a durable monotonic scope revision. A
+   preview/confirm contract must not invent one or use a content version as
+   a substitute. The implementation must first define a serialization and
+   stale-preview strategy that also covers existing write paths.
+6. The proposal publish endpoint contains controller-owned authorization,
+   pending-remark checks, proposal locking and audit behavior. Reusing only
+   its low-level publication helper does not reuse the complete proposal
+   lifecycle. Governance must not create or publish a proposal workspace
+   behind that lifecycle's back.
+
+### Safe conclusion
+
+The existing TypeORM design is technically capable of a single transaction:
+the same `EntityManager` can be passed to ProjectContext persistence and the
+existing ResourceContext publication helper. The missing part is a shared
+write contract and a lock/revision protocol honored by **all** competing RACI
+writers. Until that is designed and tested, no mutation method or unit of
+work is exposed. The read-only facades remain the only new application
+contracts.
+
+The next implementation gate is to design the common lock protocol and
+revision semantics, then adapt the existing full-project matrix and actor
+write paths to honor it without changing their public behavior. Only after
+that should a resource-scoped transaction-aware write facade be introduced.
