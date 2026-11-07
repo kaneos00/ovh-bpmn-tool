@@ -107,6 +107,17 @@ jobs:
           }
           trap cleanup EXIT
 
+          assert_status() {
+            expected="$1"
+            actual="$2"
+            label="$3"
+            if [ "$actual" != "$expected" ]; then
+              echo "HTTP smoke test failed for $label: expected $expected, got $actual" >&2
+              exit 1
+            fi
+            echo "HTTP smoke test passed: $label ($actual)"
+          }
+
           docker run --detach --name bpmn-v2-demo-db-ci \
             --network bpmn-v2-ci --network-alias database \
             --env POSTGRES_DB="$DATABASE_NAME" \
@@ -171,11 +182,11 @@ jobs:
             if [ "$status" = "401" ]; then break; fi
             sleep 2
           done
-          test "$status" = "401"
+          assert_status "$status" "401" "backend unauthenticated session"
           status="$(docker run --rm --network bpmn-v2-ci curlimages/curl:8.12.1 -sS -o /dev/null -w '%{http_code}' \
             -H 'content-type: application/json' -d '{"username":"demo-v2","password":"wrong"}' \
             http://backend:3000/auth/login || true)"
-          test "$status" = "401"
+          assert_status "$status" "401" "backend invalid-password login"
 
           docker run --detach --name bpmn-v2-demo-frontend-ci --network bpmn-v2-ci \
             --publish 127.0.0.1:18080:80 \
@@ -185,7 +196,7 @@ jobs:
             if [ "$status" = "200" ]; then break; fi
             sleep 2
           done
-          test "$status" = "200"
+          assert_status "$status" "200" "frontend root page"
           test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/bpmn-tool-logo.svg)" = "200"
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/bpmn-api/projects/administration/overview)"
           echo "Unauthenticated protected route returned HTTP $status"
@@ -199,16 +210,16 @@ jobs:
             --data '{"username":"demo-v2","password":"ci-only-demo-password"}' \
             --cookie-jar /tmp/bpmn-v2-ci.cookies \
             http://127.0.0.1:18080/bpmn-api/auth/login)"
-          test "$status" = "200"
+          assert_status "$status" "200" "frontend logo asset"
 
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-ci.cookies \
             http://127.0.0.1:18080/bpmn-api/projects/administration/overview)"
-          test "$status" = "200"
+          assert_status "$status" "200" "frontend anonymous protected route"
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-ci.cookies \
             http://127.0.0.1:18080/bpmn-api/auth/session)"
-          test "$status" = "200"
+          assert_status "$status" "200" "frontend demo login"
 
           # Exercise local-account administration, email login, role mapping and password reset.
           created_user="$(curl --fail --silent --show-error \
@@ -222,21 +233,21 @@ jobs:
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-ci.cookies \
             http://127.0.0.1:18080/bpmn-api/auth/users)"
-          test "$status" = "200"
+          assert_status "$status" "200" "frontend authenticated administration overview"
 
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-ci.cookies \
             --request POST --header 'content-type: application/json' \
             --data '{"newPassword":"ci-reader-reset-password"}' \
             "http://127.0.0.1:18080/bpmn-api/auth/users/$reader_id/password")"
-          test "$status" = "201"
+          assert_status "$status" "201" "frontend authenticated session"
 
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --header 'content-type: application/json' \
             --data '{"username":"ci-reader@example.com","password":"ci-reader-reset-password"}' \
             --cookie-jar /tmp/bpmn-v2-reader.cookies \
             http://127.0.0.1:18080/bpmn-api/auth/login)"
-          test "$status" = "200"
+          assert_status "$status" "200" "frontend viewer cannot list users"
 
           reader_session="$(curl --fail --silent --show-error \
             --cookie /tmp/bpmn-v2-reader.cookies \
@@ -247,13 +258,13 @@ jobs:
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-reader.cookies \
             http://127.0.0.1:18080/bpmn-api/auth/users)"
-          test "$status" = "403"
+          assert_status "$status" "403" "frontend admin impersonation start"
 
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-ci.cookies --cookie-jar /tmp/bpmn-v2-ci.cookies \
             --request POST \
             "http://127.0.0.1:18080/bpmn-api/auth/users/$reader_id/impersonate")"
-          test "$status" = "200"
+          assert_status "$status" "200" "frontend impersonated viewer cannot list users"
 
           impersonated_session="$(curl --fail --silent --show-error \
             --cookie /tmp/bpmn-v2-ci.cookies \
@@ -265,12 +276,12 @@ jobs:
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-ci.cookies \
             http://127.0.0.1:18080/bpmn-api/auth/users)"
-          test "$status" = "403"
+          assert_status "$status" "403" "frontend impersonation stop"
 
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-ci.cookies --cookie-jar /tmp/bpmn-v2-ci.cookies \
             --request POST http://127.0.0.1:18080/bpmn-api/auth/impersonation/stop)"
-          test "$status" = "200"
+          assert_status "$status" "200" "frontend restored admin session"
 
           admin_session="$(curl --fail --silent --show-error \
             --cookie /tmp/bpmn-v2-ci.cookies \
@@ -281,20 +292,20 @@ jobs:
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-ci.cookies \
             http://127.0.0.1:18080/bpmn-api/auth/users)"
-          test "$status" = "200"
+          assert_status "$status" "200" "frontend restored admin can list users"
 
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-reader.cookies \
             --request POST --header 'content-type: application/json' \
             --data '{"currentPassword":"ci-reader-reset-password","newPassword":"ci-reader-final-password"}' \
             http://127.0.0.1:18080/bpmn-api/auth/password)"
-          test "$status" = "201"
+          assert_status "$status" "201" "frontend reader password change"
 
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --header 'content-type: application/json' \
             --data '{"username":"ci-reader","password":"ci-reader-final-password"}' \
             http://127.0.0.1:18080/bpmn-api/auth/login)"
-          test "$status" = "200"
+          assert_status "$status" "200" "frontend reader password login"
 
           workspace_payload="$(curl --fail --silent --show-error \
             --cookie /tmp/bpmn-v2-ci.cookies \
@@ -306,7 +317,7 @@ jobs:
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-ci.cookies -X POST \
             http://127.0.0.1:18080/bpmn-api/auth/logout)"
-          test "$status" = "200"
+          assert_status "$status" "200" "frontend logout"
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/bpmn-api/projects/administration/overview)"
           if [ "$status" != "401" ] && [ "$status" != "403" ] && [ "$status" != "302" ]; then
             echo "Unexpected protected-route response after logout: HTTP $status" >&2
