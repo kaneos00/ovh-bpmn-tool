@@ -189,10 +189,10 @@ jobs:
           test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/bpmn-tool-logo.svg)" = "200"
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/bpmn-api/projects/administration/overview)"
           echo "Unauthenticated protected route returned HTTP $status"
-          case "$status" in
-            401|403|302) ;;
-            *) echo "Unexpected anonymous response: HTTP $status" >&2; exit 1 ;;
-          esac
+          if [ "$status" != "401" ] && [ "$status" != "403" ] && [ "$status" != "302" ]; then
+            echo "Unexpected anonymous response: HTTP $status" >&2
+            exit 1
+          fi
 
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --header 'content-type: application/json' \
