@@ -699,3 +699,118 @@ proposal workspace link creation, RACI writes, membership changes, and
 indirect cascade deletion through ResourceContext. No common lock is safe to
 rely on until this deletion path participates too. This finding is
 documentation only; no runtime behavior has changed.
+
+### Candidate transaction protocol — resource-first, then project coordination
+
+The earlier project-row-only candidate is insufficient once ResourceContext
+recursive deletion and link creation are considered. A project lock cannot by
+itself protect a resource tree from a concurrent child creation or resource
+deletion. The candidate protocol is therefore revised to a single global
+ordering:
+
+1. Lock all affected resource rows first, in ascending UUID order.
+2. Lock all affected project rows second, in ascending UUID order.
+3. Re-read and validate the exact resource/project links and the caller's
+   current membership/organization authorization under those locks.
+4. Perform all related writes through the same transaction's EntityManager.
+5. Commit only after link changes, RACI changes, content publication (where
+   applicable), and required audit events have all succeeded.
+
+Operations that touch only project membership or project metadata may take
+the project row lock without resource locks, but must never subsequently
+request a resource lock. This preserves the resource-before-project order
+without creating a project-to-resource lock cycle.
+
+#### Required resource participation
+
+A link writer must lock the target process resource before locking its
+project. A variant workflow must lock its source resource before the project
+row; its newly inserted variant row is transaction-owned. A proposal workspace
+workflow must lock the source resource before the project row and keep its
+existing resource/content/proposal transaction semantics.
+
+Resource tree deletion needs a stronger protocol than a one-time recursive
+query:
+- Lock the requested root resource row first.
+- Enumerate descendants; lock discovered resource rows in ascending UUID
+  order.
+- Re-enumerate the tree after acquiring those locks, locking newly discovered
+  rows and repeating until the locked set and current tree are stable.
+- Determine every project linked to any resource in the stable tree.
+- Lock those project rows in ascending UUID order.
+- Re-read the tree/link set and revalidate delete policy under the locks.
+- Delete the complete tree and its cascaded links/assignments in the same
+  transaction.
+
+For this to prevent phantom descendants, every resource creation that assigns
+a non-null parent must lock that parent row before inserting the child.
+Resource clone/variant paths that create a child under an existing parent must
+follow the same rule. Any future move/reparent operation must lock both old
+and new parent rows in ascending UUID order and participate in the same
+hierarchy protocol. The current generic ResourceContext create/delete
+repository contract does not yet provide these transaction-scoped guarantees.
+
+#### Project-side participation
+
+The following paths must coordinate on the project row:
+- membership changes (already implemented);
+- default-validator and project metadata updates that depend on membership;
+- project deletion, with its linked-process count checked after locking;
+- process attach, unlink and variant-link creation;
+- proposal workspace link creation;
+- all RACI actor/matrix writes that depend on the project or a project-process
+  link.
+
+For process-scoped RACI writes, lock the resource row and then the project
+row, and re-check the exact `project_processes(projectId, resourceId)` row
+inside the transaction. For project-wide actor-registry writes, the project
+row is sufficient unless the operation also changes process-scoped entries.
+
+The current project update/default-validator and project delete paths still
+perform their checks and writes outside a transaction-scoped project lock.
+They must be included in the implementation inventory; it is not enough to
+refactor only attach/unlink and membership changes.
+
+#### Deadlock and consistency constraints
+
+- Every multi-resource lock set is sorted by resource UUID; every multi-project
+  lock set is sorted by project UUID.
+- Never acquire a resource lock after acquiring a project lock.
+- The resource-tree deletion loop must lock newly discovered descendants
+  before revalidating the final tree.
+- A writer that cannot follow the protocol must be adapted or must not be
+  allowed to mutate the protected relationship.
+- Existing content/proposal locks must be reviewed against the new prefix
+  ordering before adoption. In particular, proposal workflows must not lock a
+  proposal/content row first and later request resource/project locks if a
+  competing workflow can acquire those rows in the reverse order.
+- Authorization must be re-read in the transaction. An earlier controller
+  pre-check is useful for fast rejection but is not an authorization guarantee.
+- All repositories involved in a coordinated mutation must be obtained from
+  the same `EntityManager`; injected global repositories and pre-transaction
+  reads must not be used for the protected write decision.
+- The deterministic snapshot fingerprint remains a stale-preview precondition,
+  not a database revision number. It must be computed from the locked,
+  re-read canonical actors and scoped entries; the expected fingerprint must
+  be checked before any mutation.
+- The matrix replacement endpoint that deletes all project entries must not
+  be reused for process-scoped reconciliation.
+
+#### Implementation gate
+
+This is a candidate protocol, not an approved implementation. Before any
+writer is changed, inspect and map every resource hierarchy writer, project
+metadata/deletion writer, RACI writer, proposal writer, and cascade path.
+Then implement shared transaction helpers and migrate all participants as
+one coordinated change. Add PostgreSQL integration tests with two independent
+connections for:
+- attach racing with resource-tree deletion;
+- child creation racing with ancestor deletion;
+- unlink racing with process-scoped RACI confirmation;
+- membership revocation racing with RACI confirmation;
+- two simultaneous project deletions/last-admin changes;
+- proposal workspace creation racing with unlink/deletion;
+- stable lock ordering for overlapping multi-resource/multi-project trees.
+
+Until all writers participate and those tests pass, no RACI governance write
+or XML reconciliation may be enabled.
