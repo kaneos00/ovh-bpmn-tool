@@ -207,6 +207,13 @@ export const ProcessDetails = ({
   const projectForProcess = projects.find(project =>
     project.processes.some(process => process.resourceId === resourceId),
   );
+  // A process may be shared by several projects. Do not let the first project
+  // in the workspace hide the remark action when another linked project grants
+  // this member the explicit remark permission.
+  const projectForRemark = projects.find(project =>
+    project.canSubmitRemarks &&
+    project.processes.some(process => process.resourceId === resourceId),
+  ) ?? projectForProcess;
   const processUsage = projectForProcess?.processes.find(
     process => process.resourceId === resourceId,
   )?.usage;
@@ -214,7 +221,7 @@ export const ProcessDetails = ({
     projectForProcess.role === 'admin' ||
     (projectForProcess.role === 'modeler' && processUsage !== 'common')
   ) ? projectForProcess.id : undefined;
-  const canSubmitProcessRemark = Boolean(projectForProcess?.canSubmitRemarks);
+  const canSubmitProcessRemark = Boolean(projectForRemark?.canSubmitRemarks);
   const [startingProposal, setStartingProposal] = useState(false);
   const [initialRemarkOpen, setInitialRemarkOpen] = useState(false);
   const [initialRemarkText, setInitialRemarkText] = useState('');
@@ -316,7 +323,7 @@ export const ProcessDetails = ({
   };
   const startInitialRemark = async () => {
     if (
-      !projectForProcess ||
+      !projectForRemark ||
       !selectedElementId ||
       !initialRemarkText.trim() ||
       submittingInitialRemark
@@ -325,7 +332,7 @@ export const ProcessDetails = ({
     setInitialRemarkError(null);
     try {
       const proposal = await apiClient.post(
-        `/projects/${projectForProcess.id}/processes/${resourceId}/change-proposals`,
+        `/projects/${projectForRemark.id}/processes/${resourceId}/change-proposals`,
         {
           elementId: selectedElementId,
           comment: initialRemarkText.trim(),
@@ -338,7 +345,14 @@ export const ProcessDetails = ({
       ]);
       setInitialRemarkOpen(false);
       setInitialRemarkText('');
-      navigate(`/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}`);
+      showAlert({
+        message: 'Votre remarque a été déposée et transmise au circuit de validation du projet.',
+        severity: 'success',
+      });
+      // The author may only have the right to submit remarks, not to edit the
+      // proposal workspace. The assigned validator opens that workspace from
+      // the review queue; keep the author on the source viewer.
+      await queryClient.invalidateQueries({ queryKey: ['my-workspace'] });
     } catch (error) {
       setInitialRemarkError(
         error instanceof Error ? error.message : 'Impossible de déposer la remarque.',
