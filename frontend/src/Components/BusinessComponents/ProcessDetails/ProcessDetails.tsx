@@ -300,7 +300,7 @@ export const ProcessDetails = ({
     try {
       const proposal = await apiClient.post(
         `/projects/${proposalProjectId}/processes/${resourceId}/change-proposals`,
-        {},
+        { validatorUserId: processMetadata.pilot.trim() || undefined },
       );
       navigate(`/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}`);
     } catch (error) {
@@ -326,7 +326,11 @@ export const ProcessDetails = ({
     try {
       const proposal = await apiClient.post(
         `/projects/${projectForProcess.id}/processes/${resourceId}/change-proposals`,
-        { elementId: selectedElementId, comment: initialRemarkText.trim() },
+        {
+          elementId: selectedElementId,
+          comment: initialRemarkText.trim(),
+          validatorUserId: processMetadata.pilot.trim() || undefined,
+        },
       );
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['my-process-change-proposals'] }),
