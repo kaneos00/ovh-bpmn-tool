@@ -1,6 +1,6 @@
 import React from 'react';
-import { Box, Button, Chip, Divider, IconButton, Sheet, Stack, Typography } from '@mui/joy';
-import { ArrowBack, ArrowForward, ChevronLeft, ChevronRight, FolderOutlined, Menu as MenuIcon } from '@mui/icons-material';
+import { Box, Button, Chip, IconButton, Sheet, Stack, Typography } from '@mui/joy';
+import { ArrowBack, ArrowForward, ChevronLeft, ChevronRight, FolderOutlined } from '@mui/icons-material';
 
 import { FolderTree } from '../FolderTree';
 import { getProjectTrigram } from '../../../shared/helpers/projectTrigram';
@@ -12,7 +12,7 @@ type Props = {
   onNodeClick: (id: string) => void;
   collapsed: boolean;
   onToggle: () => void;
-  variant: 'process-details' | 'content-viewer' | 'projects-overview';
+  variant: 'process-details' | 'projects-overview';
   projects?: Array<{ id: string; name: string; color: string; processes: Array<{ resourceId: string }> }>;
   activeProjectId?: string | null;
   onProjectSelect?: (projectId: string) => void;
@@ -34,15 +34,11 @@ export const ViewerExplorerPanel = ({
   onBack,
   onForward,
 }: Props) => {
-  const isContentViewer = variant === 'content-viewer';
   const isProjectList = variant === 'projects-overview';
-  const panelClass = isContentViewer
-    ? `processTaskPanel viewerFolderPanel ${collapsed ? 'collapsed' : 'open'}`
-    : `processExplorerPanel ${collapsed ? 'collapsed' : ''}`;
-  const headerClass = `viewerPanelHeader ${isContentViewer ? 'viewerFolderHeader' : 'processExplorerPanelHeader'}`;
-  const contentClass = isContentViewer ? 'viewerFolderTree' : 'processExplorerPanelContent';
-  let toggleIcon = <ChevronLeft />;
-  if (collapsed) toggleIcon = isContentViewer ? <MenuIcon /> : <ChevronRight />;
+  const panelClass = `processExplorerPanel ${collapsed ? 'collapsed' : ''}`;
+  const headerClass = 'viewerPanelHeader processExplorerPanelHeader';
+  const contentClass = 'processExplorerPanelContent';
+  const toggleIcon = collapsed ? <ChevronRight /> : <ChevronLeft />;
 
   return (
     <Sheet className={panelClass} variant="outlined">
@@ -51,10 +47,10 @@ export const ViewerExplorerPanel = ({
         alignItems="center"
         justifyContent={collapsed ? 'center' : 'space-between'}
         className={headerClass}
-        onClick={isContentViewer ? undefined : onToggle}
-        role={isContentViewer ? undefined : 'button'}
-        tabIndex={isContentViewer ? undefined : 0}
-        onKeyDown={isContentViewer ? undefined : event => {
+        onClick={onToggle}
+        role="button"
+        tabIndex={0}
+        onKeyDown={event => {
           if (event.target !== event.currentTarget) return;
           if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
@@ -65,7 +61,7 @@ export const ViewerExplorerPanel = ({
         {!collapsed && (
           <Stack direction="row" spacing={1} alignItems="center">
             <FolderOutlined fontSize="small" />
-            <Typography level={isContentViewer ? 'title-md' : 'title-sm'}>{isProjectList ? 'Projets' : 'Explorateur'}</Typography>
+            <Typography level="title-sm">{isProjectList ? 'Projets' : 'Explorateur'}</Typography>
           </Stack>
         )}
         <IconButton
@@ -84,7 +80,6 @@ export const ViewerExplorerPanel = ({
       </Stack>
       {!collapsed && (
         <>
-          {isContentViewer && <Divider />}
           <Box className={contentClass}>
             {isProjectList ? (
               <Stack spacing={0.5} sx={{ p: 1 }}>
