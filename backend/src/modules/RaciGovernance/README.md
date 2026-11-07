@@ -567,3 +567,33 @@ The next implementation gate is to design the common lock protocol and
 revision semantics, then adapt the existing full-project matrix and actor
 write paths to honor it without changing their public behavior. Only after
 that should a resource-scoped transaction-aware write facade be introduced.
+
+
+### Candidate serialization protocol — design proposal, not implemented
+
+The existing project row is a candidate coordination lock because every RACI
+actor and assignment belongs to a project. A future write transaction could
+acquire `projects.id = projectId` with `pessimistic_write` before reading or
+changing either table. The protocol would have to be adopted by every
+ProjectRaciController mutation path (full matrix replacement, actor create,
+BPMN actor import, rename and activation), not only by the new governance
+facade. The selected `project_processes` link should also be re-read and
+locked in the same transaction so a concurrent unlink cannot invalidate the
+scope.
+
+For a stale-preview precondition, the current schema has no monotonic RACI
+revision. One candidate that does not pretend otherwise is a deterministic
+fingerprint of the canonical sorted actor-register and selected-process
+assignment snapshot. Confirmation would re-read the same data under the
+coordination lock and compare fingerprints before writing. This is a
+state-precondition, not a database revision number; it must be documented as
+such and must include every field whose change invalidates the preview.
+Membership and organization-admin authorization must also be revalidated
+inside the transaction using its manager.
+
+This protocol remains a proposal, not a verified implementation decision.
+Before adopting it, inspect all project-process link mutation paths, all
+RACI persistence writers and membership revocation paths; then add
+concurrency/integration tests against PostgreSQL. If any competing writer
+cannot honor the same lock, the protocol is insufficient and writes remain
+blocked. No schema change, migration or runtime behavior is introduced here.
