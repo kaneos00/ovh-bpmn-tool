@@ -124,3 +124,38 @@ Before selecting or approving an XML parser, tests must cover:
 This is fixture-derived evidence and a test contract only. No parser has been
 approved, no XML writer has been implemented, and no production BPMN content
 has been changed.
+
+
+## NestJS integration and ACL boundary (verified)
+
+- `BpmnToolAppModule` is currently declared in `backend/src/app.module.ts`
+  and imports `ResourceContextModule` and `ProjectContextModule`. This is
+  the correct application composition boundary for a future native module;
+  there is no existing `RaciGovernanceModule` yet.
+- `ProjectContextModule` exports the existing
+  `ProjectResourceAccessService`. Its organization-admin check reads the
+  configured user-groups header and accepts groups beginning
+  `bpmn-tool-admin-`; the read/write group is separate
+  (`bpmn-tool-readwrite-`). Project roles remain viewer/modeler/admin.
+- `AclGuard` implements the same group-prefix convention for
+  `@UseAcl([UserGroup.Admin])`, but this guard only authenticates access to
+  the controller route. The governance operation must additionally enforce
+  the organization-admin rule through the existing access service; project
+  membership or read/write group must not authorize cross-project mutation.
+- `ResourceContextModule` currently provides its command/query handlers and
+  repositories internally but exports none of them. Therefore a sibling
+  `RaciGovernanceModule` imported only by `BpmnToolAppModule` cannot inject
+  those providers directly. Do not work around this by creating replacement
+  repositories or duplicating handlers. Before integration, expose the
+  minimum existing application contract from ResourceContext (or place a
+  narrow facade in that owning module) and keep the governance module
+  dependent on that contract. The module dependency must remain one-way:
+  ResourceContext must not import RaciGovernance.
+- `ResourceContextModule` already imports `ProjectContextModule`, while
+  `ProjectContextModule` exports `ProjectResourceAccessService`. The
+  application-level module can compose both without introducing a reverse
+  dependency into the normal project/resource request paths.
+
+This is an integration design constraint derived from the current NestJS
+module declarations, not a code change or authorization to expose broad
+repositories.
