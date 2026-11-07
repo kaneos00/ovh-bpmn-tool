@@ -1,6 +1,6 @@
 import { ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { ResourceTypeOrmEntity } from '../ResourceContext/infrastructure/entities/resource.ormEntity';
 import {
   ProcessChangeProposalStatus,
@@ -37,6 +37,9 @@ describe('ProjectResourceAccessService proposal editing', () => {
   const processChangeProposals = {
     findOne: jest.fn(),
   };
+  const dataSource = {
+    query: jest.fn(),
+  };
 
   const service = new ProjectResourceAccessService(
     configService as unknown as ConfigService,
@@ -44,6 +47,7 @@ describe('ProjectResourceAccessService proposal editing', () => {
     projectMembers as unknown as Repository<ProjectMemberTypeOrmEntity>,
     resources as unknown as Repository<ResourceTypeOrmEntity>,
     processChangeProposals as unknown as Repository<ProcessChangeProposalTypeOrmEntity>,
+    dataSource as unknown as DataSource,
   );
 
   beforeEach(() => {
@@ -64,6 +68,7 @@ describe('ProjectResourceAccessService proposal editing', () => {
     projectProcesses.findOne.mockResolvedValue({
       usage: ProjectProcessUsage.ProjectSpecific,
     });
+    dataSource.query.mockResolvedValue([{ id: 'validator-1' }]);
 
     await expect(
       service.assertCanEditProposalResource('clone-1', {

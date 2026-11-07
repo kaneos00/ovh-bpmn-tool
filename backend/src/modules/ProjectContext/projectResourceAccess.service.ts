@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { ResourceTypeOrmEntity } from '../ResourceContext/infrastructure/entities/resource.ormEntity';
 import {
   ProjectProcessTypeOrmEntity,
@@ -39,6 +39,7 @@ export class ProjectResourceAccessService {
     private readonly resources: Repository<ResourceTypeOrmEntity>,
     @InjectRepository(ProcessChangeProposalTypeOrmEntity)
     private readonly processChangeProposals: Repository<ProcessChangeProposalTypeOrmEntity>,
+    private readonly dataSource: DataSource,
   ) {}
 
   /** Resolve the trusted identity header consistently across project controllers. */
@@ -281,7 +282,13 @@ export class ProjectResourceAccessService {
       },
     });
 
-    if (sourceLink?.usage === ProjectProcessUsage.Common) {
+    if (!sourceLink) {
+      throw new ForbiddenException(
+        'The proposal source is no longer linked to its project',
+      );
+    }
+
+    if (sourceLink.usage === ProjectProcessUsage.Common) {
       if (membership?.role !== ProjectMemberRole.Admin) {
         throw new ForbiddenException(
           'Editing a common-process proposal requires project administrator access',
@@ -293,7 +300,14 @@ export class ProjectResourceAccessService {
     const isProjectEditor =
       membership?.role === ProjectMemberRole.Modeler ||
       membership?.role === ProjectMemberRole.Admin;
-    const isAssignedValidator = proposal.validatorUserId === userId;
+    let isAssignedValidator = false;
+    if (!isProjectEditor && proposal.validatorUserId) {
+      const accountRows: Array<{ id: string }> = await this.dataSource.query(
+        'SELECT id FROM app_users WHERE lower(username) = lower($1) AND active = TRUE LIMIT 1',
+        [userId],
+      );
+      isAssignedValidator = accountRows[0]?.id === proposal.validatorUserId;
+    }
     if (!isProjectEditor && !isAssignedValidator) {
       throw new ForbiddenException(
         'Editing this proposal requires modeler, project administrator or assigned validator access',
