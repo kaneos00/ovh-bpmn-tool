@@ -1425,7 +1425,9 @@ export class ProcessChangeProposalController {
       );
     }
     if (!proposal.submittedContentId) {
-      throw new ConflictException('La demande ne contient aucune version soumise');
+      throw new ConflictException(
+        'La demande ne contient aucune version soumise',
+      );
     }
     const content = await this.dataSource
       .getRepository(ContentTypeOrmEntity)
@@ -1435,7 +1437,9 @@ export class ProcessChangeProposalController {
           resourceId: proposal.cloneResourceId,
         },
       });
-    if (!content) throw new NotFoundException('Version BPMN soumise introuvable');
+    if (!content) {
+      throw new NotFoundException('Version BPMN soumise introuvable');
+    }
     return content.content;
   }
 
