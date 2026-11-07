@@ -26,6 +26,12 @@ export const getContentQuery = (resourceId: string, contentId: string) => ({
     apiClient.get(`/resources/${resourceId}/contents/${contentId}`),
 });
 
+export const proposalContentQuery = (proposalId: string) => ({
+  queryKey: ['process-change-proposal-content', proposalId],
+  queryFn: async (): Promise<string> =>
+    apiClient.get(`/projects/process-change-proposals/${proposalId}/content`),
+});
+
 export const getXmlContentQuery = (resourceId: string, contentId: string) => ({
   queryKey: [`${QUERY_KEY}_content_${resourceId}_${contentId}`],
   queryFn: async (): Promise<string> =>
