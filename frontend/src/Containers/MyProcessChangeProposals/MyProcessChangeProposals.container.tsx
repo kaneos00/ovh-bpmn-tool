@@ -181,7 +181,7 @@ export const Component = () => {
                           Comparer les versions
                         </Button>
                         <Button size="sm" variant="solid" color="primary"
-                          onClick={() => navigate(`/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}&reviewRemarks=1`)}>
+                          onClick={() => navigate(`/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}&reviewRemarks=1${proposal.submittedContentId ? `&contentId=${proposal.submittedContentId}` : ''}`)}>
                           Traiter dans le modeleur
                         </Button>
                       </Stack>
