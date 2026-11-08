@@ -239,7 +239,6 @@ test('deployed frontend exposes a build identifier with a source-derived fallbac
   const mainContainer = await read('src/MainContainer.tsx');
   const dockerfile = await read('../deploy/coolify/Dockerfile.frontend');
   const compose = await read('../deploy/coolify/compose.yaml');
-  const validateWorkflow = await read('../.github/workflows/validate.yml');
 
   assert.ok(mainContainer.includes('VITE_BUILD_ID'));
   assert.ok(mainContainer.includes('Identifiant de version déployée'));
@@ -899,6 +898,7 @@ test('project trigram is editable, validated and persisted by the project API', 
   const migration = await read('../backend/migrations/20261108_v3_project_trigram.sql');
   const migrationDockerfile = await read('../deploy/coolify/Dockerfile.migrations');
   const compose = await read('../deploy/coolify/compose.yaml');
+  const validateWorkflow = await read('../.github/workflows/validate.yml');
 
   assert.ok(page.includes('Trigramme du projet'));
   assert.ok(page.includes('trigram: projectTrigram.trim() || null'));
