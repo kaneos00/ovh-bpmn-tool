@@ -138,7 +138,7 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
       setCanRedo(false);
     }
 
-    if (!diagramContainerRef.current || !diagramPropertiesRef.current) {
+    if (!diagramContainerRef.current || !diagramPropertiesRef.current || content === undefined) {
       return () => {
         if (importGenerationRef.current === generation) importGenerationRef.current += 1;
       };
