@@ -352,6 +352,7 @@ describe('ProcessChangeProposalController common-process remark creation', () =>
     };
     const proposalRepository = {
       findOne: jest.fn().mockResolvedValue(null),
+      find: jest.fn().mockResolvedValue([]),
       create: jest.fn((value: unknown) => value),
       save: jest.fn(async (value: Record<string, unknown>) => ({
         ...value,
