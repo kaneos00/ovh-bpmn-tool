@@ -261,6 +261,10 @@ export const Component = () => {
                 setSubmittingProposal(true);
                 setSubmissionError(null);
                 try {
+                  if (typeof draftXmlContent !== 'string' || !draftXmlContent.trim()) {
+                    setSubmissionError('Le diagramme BPMN n’est pas encore chargé. Rechargez le modeleur avant de soumettre la demande.');
+                    return;
+                  }
                   const metadataDocument = new DOMParser().parseFromString(draftXmlContent, 'application/xml');
                   const processMetadata = Array.from(metadataDocument.getElementsByTagNameNS(
                     'https://ovh-bpmn-tool.local/schema/process-metadata',
