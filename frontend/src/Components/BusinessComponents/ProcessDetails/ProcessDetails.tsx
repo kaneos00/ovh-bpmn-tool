@@ -234,7 +234,11 @@ export const ProcessDetails = ({
     resourceId,
     viewerContent?.id,
   ];
-  const { data: activeProposal } = useQuery<ActiveProcessProposal | null>(
+  const {
+    data: activeProposal,
+    isLoading: activeProposalLoading,
+    isError: activeProposalError,
+  } = useQuery<ActiveProcessProposal | null>(
     activeProposalQueryKey,
     () => apiClient.get(
       `/projects/${projectForProcess!.id}/processes/${resourceId}/change-proposals/active?contentId=${encodeURIComponent(viewerContent!.id)}`,
@@ -334,7 +338,13 @@ export const ProcessDetails = ({
   const navigate = useNavigate();
 
   const startChangeProposal = async () => {
-    if (!proposalProjectId || startingProposal || isHistoricalView) return;
+    if (!proposalProjectId || startingProposal || activeProposalLoading || isHistoricalView) return;
+    // Reuse the existing workflow instead of attempting to create a second
+    // proposal for the same published process version.
+    if (activeProposal) {
+      navigate(`/${activeProposal.cloneResourceId}/modeler?proposalId=${activeProposal.id}`);
+      return;
+    }
     setStartingProposal(true);
     try {
       const proposal = await apiClient.post(
@@ -752,12 +762,12 @@ export const ProcessDetails = ({
                         size="sm"
                         variant="soft"
                         color="primary"
-                        loading={startingProposal}
-                        disabled={startingProposal}
+                        loading={startingProposal || activeProposalLoading}
+                        disabled={startingProposal || activeProposalLoading || Boolean(activeProposalError)}
                         onClick={startChangeProposal}
                       >
                         <EditOutlined sx={{ fontSize: 16, mr: 0.5 }} />
-                        Proposer une modification
+                        {activeProposal ? 'Reprendre la demande en cours' : 'Proposer une modification'}
                       </Button>
                     )}
                     {canEditDescription && (
