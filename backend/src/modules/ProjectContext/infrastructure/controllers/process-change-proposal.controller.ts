@@ -618,6 +618,7 @@ export class ProcessChangeProposalController {
       });
       let existingOpenProposal: ProcessChangeProposalTypeOrmEntity | null = null;
       let existingCloneDraft: ContentTypeOrmEntity | null = null;
+      const proposalsWithDraft = new Set<string>();
       for (const candidate of openProposals) {
         const candidateDraft = await contents.findOne({
           where: {
@@ -628,16 +629,19 @@ export class ProcessChangeProposalController {
           lock: { mode: 'pessimistic_write' },
         });
         if (candidateDraft) {
-          existingOpenProposal = candidate;
-          existingCloneDraft = candidateDraft;
-          break;
+          proposalsWithDraft.add(candidate.id);
+          if (!existingOpenProposal) {
+            existingOpenProposal = candidate;
+            existingCloneDraft = candidateDraft;
+          }
         }
       }
 
       // Orphaned active rows must not permanently block a new request. Close
-      // them without deleting their history, and record why they were closed.
+      // only rows whose own workspace has no draft; preserve every usable
+      // historical workspace and its audit trail.
       const orphanedProposals = openProposals.filter(
-        (candidate) => candidate.id !== existingOpenProposal?.id,
+        (candidate) => !proposalsWithDraft.has(candidate.id),
       );
       for (const orphaned of orphanedProposals) {
         orphaned.status = ProcessChangeProposalStatus.Rejected;
