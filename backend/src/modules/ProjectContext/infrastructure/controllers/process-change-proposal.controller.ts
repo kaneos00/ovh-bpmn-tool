@@ -475,14 +475,10 @@ export class ProcessChangeProposalController {
       }
     }
 
-    // Keep the newest orphan visible to administrators for diagnosis, but
-    // do not advertise it as resumable to the modeler.
-    return {
-      id: activeProposals[0].id,
-      status: activeProposals[0].status,
-      cloneResourceId: activeProposals[0].cloneResourceId,
-      cloneContentId: null,
-    };
+    // An active row without a draft is not resumable. Return no active
+    // workspace so the UI offers a fresh request; createProposal will close
+    // the orphaned row with an audit event before creating the replacement.
+    return null;
   }
 
   /**
