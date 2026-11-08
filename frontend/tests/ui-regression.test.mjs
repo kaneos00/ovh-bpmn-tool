@@ -901,3 +901,19 @@ test('canonical Viewer reports declared RACI actors that are not used', async ()
   assert.ok(details.includes('Acteurs déclarés mais non utilisés'));
   assert.ok(details.includes('raciAnalysis.unusedActors.join'));
 });
+
+
+test('process viewer resumes an existing open proposal and exposes its status', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  assert.ok(details.includes('isLoading: activeProposalLoading'));
+  assert.ok(details.includes('if (activeProposal)'));
+  assert.ok(details.includes('Reprendre la demande en cours'));
+  assert.ok(details.includes('Une demande de modification est déjà ouverte'));
+  assert.ok(details.includes('Impossible de vérifier les demandes déjà ouvertes'));
+});
+
+test('leaving the proposal modeler clears the shared BPMN selection', async () => {
+  const modeler = await read('src/Containers/ContentModeler/ContentModeler.container.tsx');
+  assert.ok(modeler.includes("bpmnModelerInstance.get('selection')"));
+  assert.ok(modeler.includes('selection?.select?.([])'));
+});
