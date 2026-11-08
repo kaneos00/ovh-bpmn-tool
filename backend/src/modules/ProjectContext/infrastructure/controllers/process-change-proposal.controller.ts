@@ -437,7 +437,7 @@ export class ProcessChangeProposalController {
         order: { version: 'DESC' },
       });
     if (!published) return null;
-    const proposal = await this.proposals.findOne({
+    const activeProposals = await this.proposals.find({
       where: {
         projectId,
         sourceResourceId: resourceId,
@@ -449,25 +449,39 @@ export class ProcessChangeProposalController {
           ProcessChangeProposalStatus.ChangesRequested,
         ]),
       },
-      // Prefer the most recently maintained active workspace. Older orphaned
-      // proposals can remain in the audit history after their draft was removed.
       order: { updatedAt: 'DESC', createdAt: 'DESC' },
     });
-    if (!proposal) return null;
-    const cloneDraft = await this.dataSource
-      .getRepository(ContentTypeOrmEntity)
-      .findOne({
+    if (!activeProposals.length) return null;
+
+    const contents = this.dataSource.getRepository(ContentTypeOrmEntity);
+    // A proposal is resumable only when its own workspace still contains a
+    // draft. Skip orphaned historical rows instead of letting the oldest
+    // missing workspace mask a newer, usable request for the same version.
+    for (const proposal of activeProposals) {
+      const cloneDraft = await contents.findOne({
         where: {
           resourceId: proposal.cloneResourceId,
           status: ContentStatusEnum.Draft,
         },
         order: { version: 'DESC', updatedAt: 'DESC' },
       });
+      if (cloneDraft) {
+        return {
+          id: proposal.id,
+          status: proposal.status,
+          cloneResourceId: proposal.cloneResourceId,
+          cloneContentId: cloneDraft.id,
+        };
+      }
+    }
+
+    // Keep the newest orphan visible to administrators for diagnosis, but
+    // do not advertise it as resumable to the modeler.
     return {
-      id: proposal.id,
-      status: proposal.status,
-      cloneResourceId: proposal.cloneResourceId,
-      cloneContentId: cloneDraft?.id ?? null,
+      id: activeProposals[0].id,
+      status: activeProposals[0].status,
+      cloneResourceId: activeProposals[0].cloneResourceId,
+      cloneContentId: null,
     };
   }
 
@@ -588,7 +602,7 @@ export class ProcessChangeProposalController {
         );
       }
 
-      const existingOpenProposal = await proposals.findOne({
+      const openProposals = await proposals.find({
         where: {
           projectId,
           sourceResourceId,
@@ -600,23 +614,55 @@ export class ProcessChangeProposalController {
             ProcessChangeProposalStatus.ChangesRequested,
           ]),
         },
-        // Reuse the latest active workspace rather than an older orphaned row.
         order: { updatedAt: 'DESC', createdAt: 'DESC' },
       });
+      let existingOpenProposal: ProcessChangeProposalTypeOrmEntity | null = null;
+      let existingCloneDraft: ContentTypeOrmEntity | null = null;
+      for (const candidate of openProposals) {
+        const candidateDraft = await contents.findOne({
+          where: {
+            resourceId: candidate.cloneResourceId,
+            status: ContentStatusEnum.Draft,
+          },
+          order: { version: 'DESC', updatedAt: 'DESC' },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (candidateDraft) {
+          existingOpenProposal = candidate;
+          existingCloneDraft = candidateDraft;
+          break;
+        }
+      }
+
+      // Orphaned active rows must not permanently block a new request. Close
+      // them without deleting their history, and record why they were closed.
+      const orphanedProposals = openProposals.filter(
+        (candidate) => candidate.id !== existingOpenProposal?.id,
+      );
+      for (const orphaned of orphanedProposals) {
+        orphaned.status = ProcessChangeProposalStatus.Rejected;
+        orphaned.decidedAt = new Date();
+        await proposals.save(orphaned);
+        await events.save(
+          events.create({
+            proposalId: orphaned.id,
+            eventType: 'rejected',
+            actorUserId: authorUserId,
+            validatorUserId: orphaned.validatorUserId,
+            comment: 'Demande clôturée automatiquement : brouillon de travail introuvable.',
+            details: { reason: 'proposal_workspace_missing', source: 'workflow_recovery' },
+            createdBy: authorUsername,
+          }),
+        );
+      }
+
       if (existingOpenProposal) {
         if (!isViewerRemark) {
           throw new ConflictException(
             'Une demande de modification est déjà ouverte pour cette version du processus',
           );
         }
-        const cloneDraft = await contents.findOne({
-          where: {
-            resourceId: existingOpenProposal.cloneResourceId,
-            status: ContentStatusEnum.Draft,
-          },
-          order: { version: 'DESC' },
-          lock: { mode: 'pessimistic_write' },
-        });
+        const cloneDraft = existingCloneDraft;
         if (!cloneDraft) {
           throw new ConflictException(
             'Le brouillon associé à la demande ouverte est indisponible',
