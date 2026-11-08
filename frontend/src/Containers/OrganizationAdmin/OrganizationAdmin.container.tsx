@@ -23,8 +23,7 @@ import {
   Typography,
 } from '@mui/joy';
 import { apiClient } from '../../queryClient';
-import { WorkspacePageLayout } from '../../Components/GenericComponents/WorkspacePageLayout/WorkspacePageLayout';
-import { Breadcrumbs } from '../../Components/GenericComponents/Breadcrumbs/Breadcrumbs';
+import { OrganizationAdminLayout } from './OrganizationAdminLayout';
 import './OrganizationAdmin.scss';
 
 type ProjectRole = 'viewer' | 'modeler' | 'admin';
@@ -302,60 +301,18 @@ export const Component = () => {
   ).length;
 
   return (
-    <WorkspacePageLayout className="org-admin-v2__page">
-      <Stack spacing={2}>
-        <div className="org-admin-v2">
-          <aside className="org-admin-v2__sidebar">
-            <div className="org-admin-v2__brand">
-              <img className="org-admin-v2__brand-logo" src="/bpmn-tool-logo.svg" alt="" />
-              <div><strong>KHI Flows</strong><small>Organisation</small></div>
-            </div>
-            <div className="org-admin-v2__nav-group">
-              <div className="org-admin-v2__nav-label">Administration</div>
-              <nav className="org-admin-v2__nav" aria-label="Navigation de l’administration">
-                {sections.map((item) => (
-                  <button
-                    type="button"
-                    key={item.key}
-                    className={`org-admin-v2__nav-item${activeSection === item.key ? ' is-active' : ''}`}
-                    aria-current={activeSection === item.key ? 'page' : undefined}
-                    onClick={() => {
-                      setSearch('');
-                      setSelectedProjectId(null);
-                      setSelectedProcessId(null);
-                      navigate(`/organization/${item.key}`);
-                    }}
-                  >
-                    <span className="org-admin-v2__nav-icon" aria-hidden="true">{item.icon}</span>
-                    <span>{item.label}</span>
-                  </button>
-                ))}
-              </nav>
-            </div>
-            <div className="org-admin-v2__sidebar-foot">
-              <strong>Accès sécurisés</strong>
-              <span>Les droits sont contrôlés par l’API, indépendamment de l’interface.</span>
-            </div>
-          </aside>
-          <main className="org-admin-v2__main">
-            <header className="org-admin-v2__topbar">
-              <div>
-                <div className="org-admin-v2__crumb">
-                  <Breadcrumbs
-                    breadcrumbItems={[
-                      { id: 'home', label: 'Tous les projets', to: '/projects' },
-                      { id: 'administration', label: 'Administration', to: '/organization/overview' },
-                      { id: 'section', label: title, to: location.pathname },
-                      ...(selectedProject ? [{ id: 'selected-project', label: selectedProject.name, to: location.pathname }] : []),
-                      ...(selectedProcess ? [{ id: 'selected-process', label: selectedProcess.name, to: location.pathname }] : []),
-                    ]}
-                  />
-                </div>
-                <div className="org-admin-v2__top-title">Gestion des projets et du référentiel</div>
-              </div>
-              <Chip size="sm" color="primary" variant="soft">Accès organisationnel</Chip>
-            </header>
-            <div className="org-admin-v2__content">
+    <OrganizationAdminLayout
+      activeSection={activeSection}
+      title="Gestion des projets et du référentiel"
+      breadcrumbs={[
+        { id: 'home', label: 'Tous les projets', to: '/projects' },
+        { id: 'administration', label: 'Administration', to: '/organization/overview' },
+        { id: 'section', label: title, to: location.pathname },
+        ...(selectedProject ? [{ id: 'selected-project', label: selectedProject.name, to: location.pathname }] : []),
+        ...(selectedProcess ? [{ id: 'selected-process', label: selectedProcess.name, to: location.pathname }] : []),
+      ]}
+    >
+
               {activeSection === 'overview' && overview && (
                 <section aria-labelledby="org-overview-title">
                   <div className="org-admin-v2__page-head">
@@ -664,11 +621,7 @@ export const Component = () => {
                   {overview.users.length} utilisateurs avec adhésion · {overview.projects.length} projets · {overview.processes.length} ressources de type processus
                 </Typography>
               )}
-            </div>
-          </main>
-        </div>
-      </Stack>
-    </WorkspacePageLayout>
+    </OrganizationAdminLayout>
   );
 };
 
