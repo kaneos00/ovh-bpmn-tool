@@ -260,7 +260,12 @@ export class ContentTypeOrmRepository implements ContentRepository {
       }> = await this.contentRepository.query(
         `WITH latest_published AS (
            SELECT DISTINCT ON ("resourceId")
-             "resourceId", content
+             "resourceId",
+             CASE
+               WHEN xml_is_well_formed_document(content) IS TRUE
+                 THEN content::xml
+               ELSE '<definitions />'::xml
+             END AS xml_content
            FROM contents
            WHERE "resourceId" = ANY($1::uuid[])
              AND status = $2
@@ -269,16 +274,175 @@ export class ContentTypeOrmRepository implements ContentRepository {
          SELECT
            "resourceId",
            ARRAY(
-             SELECT regexp_replace(node::text, '^.*="([^"]*)".*$', '\\1')
-             FROM unnest(xpath('//*[local-name()="process"]/@id', content::xml)) AS extracted(node)
+             SELECT regexp_replace(node::text, '^.*="([^"]*)".*`,
+        [resourceIds, 'published'],
+      );
+
+      return ok(
+        rows.map((row) => ({
+          resourceId: row.resourceId,
+          processIds: row.processIds ?? [],
+          targets: [
+            ...(row.callTargets ?? []),
+            ...(row.collapsedTargets ?? []),
+          ].filter(Boolean),
+        })),
+      );
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      const errorMsg = `Error while building explorer BPMN links: ${detail}`;
+      this.logger.error(
+        errorMsg,
+        error instanceof Error ? error.stack : detail,
+      );
+      return fail(new Error(errorMsg));
+    }
+  }
+
+  async find(
+    resourceId: string,
+    filters?: ContentFilters,
+    sort?: SortCommand,
+  ): Promise<Result<Content[], Error | Error[]>> {
+    try {
+      const whereFilters = filters?.status
+        ? {
+            status: filters.status,
+          }
+        : {};
+
+      const queryResult = await this.contentRepository.find({
+        where: {
+          resourceId,
+          ...whereFilters,
+        },
+        order: { [sort?.by || 'version']: sort?.order || 'DESC' },
+      });
+
+      return combineResults(queryResult.map(ContentMapper.fromPersistence));
+    } catch (error) {
+      const errorMsg = `Error while finding contents for resourceId '${resourceId}'`;
+      this.logger.error(`${errorMsg}:`, error);
+      return fail(new Error(errorMsg));
+    }
+  }
+}
+, '\\1')
+             FROM unnest(xpath('//*[local-name()="process"]/@id', xml_content)) AS extracted(node)
            ) AS "processIds",
            ARRAY(
-             SELECT regexp_replace(node::text, '^.*="([^"]*)".*$', '\\1')
-             FROM unnest(xpath('//*[local-name()="callActivity"]/@calledElement', content::xml)) AS extracted(node)
+             SELECT regexp_replace(node::text, '^.*="([^"]*)".*`,
+        [resourceIds, 'published'],
+      );
+
+      return ok(
+        rows.map((row) => ({
+          resourceId: row.resourceId,
+          processIds: row.processIds ?? [],
+          targets: [
+            ...(row.callTargets ?? []),
+            ...(row.collapsedTargets ?? []),
+          ].filter(Boolean),
+        })),
+      );
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      const errorMsg = `Error while building explorer BPMN links: ${detail}`;
+      this.logger.error(
+        errorMsg,
+        error instanceof Error ? error.stack : detail,
+      );
+      return fail(new Error(errorMsg));
+    }
+  }
+
+  async find(
+    resourceId: string,
+    filters?: ContentFilters,
+    sort?: SortCommand,
+  ): Promise<Result<Content[], Error | Error[]>> {
+    try {
+      const whereFilters = filters?.status
+        ? {
+            status: filters.status,
+          }
+        : {};
+
+      const queryResult = await this.contentRepository.find({
+        where: {
+          resourceId,
+          ...whereFilters,
+        },
+        order: { [sort?.by || 'version']: sort?.order || 'DESC' },
+      });
+
+      return combineResults(queryResult.map(ContentMapper.fromPersistence));
+    } catch (error) {
+      const errorMsg = `Error while finding contents for resourceId '${resourceId}'`;
+      this.logger.error(`${errorMsg}:`, error);
+      return fail(new Error(errorMsg));
+    }
+  }
+}
+, '\\1')
+             FROM unnest(xpath('//*[local-name()="callActivity"]/@calledElement', xml_content)) AS extracted(node)
            ) AS "callTargets",
            ARRAY(
-             SELECT regexp_replace(node::text, '^.*="([^"]*)".*$', '\\1')
-             FROM unnest(xpath('//*[local-name()="subProcess" and @id = //*[local-name()="BPMNShape" and @isExpanded="false"]/@bpmnElement]/@id', content::xml)) AS extracted(node)
+             SELECT regexp_replace(node::text, '^.*="([^"]*)".*`,
+        [resourceIds, 'published'],
+      );
+
+      return ok(
+        rows.map((row) => ({
+          resourceId: row.resourceId,
+          processIds: row.processIds ?? [],
+          targets: [
+            ...(row.callTargets ?? []),
+            ...(row.collapsedTargets ?? []),
+          ].filter(Boolean),
+        })),
+      );
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      const errorMsg = `Error while building explorer BPMN links: ${detail}`;
+      this.logger.error(
+        errorMsg,
+        error instanceof Error ? error.stack : detail,
+      );
+      return fail(new Error(errorMsg));
+    }
+  }
+
+  async find(
+    resourceId: string,
+    filters?: ContentFilters,
+    sort?: SortCommand,
+  ): Promise<Result<Content[], Error | Error[]>> {
+    try {
+      const whereFilters = filters?.status
+        ? {
+            status: filters.status,
+          }
+        : {};
+
+      const queryResult = await this.contentRepository.find({
+        where: {
+          resourceId,
+          ...whereFilters,
+        },
+        order: { [sort?.by || 'version']: sort?.order || 'DESC' },
+      });
+
+      return combineResults(queryResult.map(ContentMapper.fromPersistence));
+    } catch (error) {
+      const errorMsg = `Error while finding contents for resourceId '${resourceId}'`;
+      this.logger.error(`${errorMsg}:`, error);
+      return fail(new Error(errorMsg));
+    }
+  }
+}
+, '\\1')
+             FROM unnest(xpath('//*[local-name()="subProcess" and @id = //*[local-name()="BPMNShape" and @isExpanded="false"]/@bpmnElement]/@id', xml_content)) AS extracted(node)
            ) AS "collapsedTargets"
          FROM latest_published`,
         [resourceIds, 'published'],

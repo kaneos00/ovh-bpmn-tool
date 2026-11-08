@@ -14,7 +14,7 @@ import {
 } from '@mui/joy';
 import { CloseRounded, EditRounded, FolderOutlined, SaveRounded } from '@mui/icons-material';
 
-import { explorerQuery, type ExplorerData } from '../../api/resources/resources.queries';
+import { resourcesQuery } from '../../api/resources/resources.queries';
 import { apiClient } from '../../queryClient';
 import { useActiveProject } from '../../shared/hooks/useActiveProject';
 import { ProjectProcessOverview } from './ProjectProcessOverview';
@@ -29,7 +29,7 @@ type FolderOverviewProps = {
 export const FolderOverview = ({ resource }: FolderOverviewProps) => {
   const { id: resourceId } = resource;
   const navigate = useNavigate();
-  const resources = useQuery<ExplorerData>(explorerQuery());
+  const resources = useQuery(resourcesQuery());
   const { activeProject, activeProjectId, projectProcessIds } = useActiveProject();
   const queryClient = useQueryClient();
   const [editingDescription, setEditingDescription] = useState(false);
@@ -54,7 +54,7 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
   );
 
   const children = useMemo(() => {
-    const allResources = resources.data?.resources ?? [];
+    const allResources = resources.data ?? [];
     const allowedIds = new Set(projectProcessIds);
     const byId = new Map(allResources.map(item => [item.id, item]));
 

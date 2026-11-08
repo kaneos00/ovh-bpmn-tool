@@ -417,6 +417,8 @@ describe('ProcessChangeProposalController common-process remark creation', () =>
     expect(resourceRepository.save).toHaveBeenCalledTimes(1);
     expect(result.cloneResourceId).toBe(cloneId);
     expect(result.cloneResourceId).not.toBe(sourceId);
+    expect(access.assertCanReadResource).toHaveBeenCalledTimes(1);
+    expect(access.assertCanCloneResource).not.toHaveBeenCalled();
     expect(proposalRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({
         sourceResourceId: sourceId,

@@ -44,5 +44,7 @@ test('explorer endpoint is a single batched metadata request, not a per-process 
   assert.match(query, /this\.contentRepository\.query\(/);
   assert.match(query, /ANY\(\$1::uuid\[\]\)/);
   assert.match(query, /xpath\(/);
+  assert.match(query, /xml_is_well_formed_document\(content\)/);
+  assert.match(query, /ELSE '<definitions \/>'::xml/);
   assert.doesNotMatch(query, /getXmlContent|findOne\(/);
 });

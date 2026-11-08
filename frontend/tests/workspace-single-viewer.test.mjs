@@ -27,6 +27,8 @@ test('the project workspace is the only project landing page and Viewer shell', 
   assert.match(redirect, /navigate\('\/root', \{ replace: true \}\)/);
 
   assert.match(overview, /ProjectProcessOverview/);
+  assert.match(overview, /useQuery\(resourcesQuery\(\)\)/);
+  assert.doesNotMatch(overview, /explorerQuery/);
   assert.match(overview, /apiClient\.put\(`\/projects\/\$\{activeProjectId\}`/);
 });
 

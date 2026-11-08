@@ -472,13 +472,13 @@ export class ProcessChangeProposalController {
           headers,
           ProjectMemberRole.Modeler,
         );
-    if (isViewerRemark) {
-      if (!isOrganizationAdmin) {
-        await this.access.assertCanReadResource(sourceResourceId, headers);
-      }
-    } else {
-      // Keep the existing clone policy for ordinary modeler proposals.
-      await this.access.assertCanCloneResource(sourceResourceId, headers);
+    // The project role above is the authorization boundary for this
+    // workflow. A proposal creates a private workspace and never mutates the
+    // source, so requiring clone permission across every project linked to a
+    // shared process incorrectly blocks a member who is authorized in the
+    // selected project only.
+    if (!isOrganizationAdmin) {
+      await this.access.assertCanReadResource(sourceResourceId, headers);
     }
     const authorUserId = await this.resolveAccountId(authorUsername);
 
