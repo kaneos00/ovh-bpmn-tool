@@ -600,7 +600,8 @@ export class ProcessChangeProposalController {
             ProcessChangeProposalStatus.ChangesRequested,
           ]),
         },
-        order: { createdAt: 'ASC' },
+        // Reuse the latest active workspace rather than an older orphaned row.
+        order: { updatedAt: 'DESC', createdAt: 'DESC' },
       });
       if (existingOpenProposal) {
         if (!isViewerRemark) {
