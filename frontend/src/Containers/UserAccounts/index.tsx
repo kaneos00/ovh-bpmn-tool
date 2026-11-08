@@ -96,6 +96,7 @@ export const Component = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [roleFilter, setRoleFilter] = useState<'all' | Role>('all');
   const [projectRoleFilter, setProjectRoleFilter] = useState<'all' | ProjectRole>('all');
+  const [projectFilter, setProjectFilter] = useState('all');
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [bulkAction, setBulkAction] = useState<'activate' | 'deactivate' | 'assign' | null>(null);
   const [bulkProjectId, setBulkProjectId] = useState('');
@@ -183,9 +184,11 @@ export const Component = () => {
       const matchesRole = roleFilter === 'all' || account.role === roleFilter;
       const matchesProjectRole = projectRoleFilter === 'all' ||
         (membership?.projects ?? []).some((project) => project.role === projectRoleFilter);
-      return matchesSearch && matchesStatus && matchesRole && matchesProjectRole;
+      const matchesProject = projectFilter === 'all' ||
+        (membership?.projects ?? []).some((project) => project.projectId === projectFilter);
+      return matchesSearch && matchesStatus && matchesRole && matchesProjectRole && matchesProject;
     });
-  }, [accounts, membershipsByUser, search, statusFilter, roleFilter, projectRoleFilter]);
+  }, [accounts, membershipsByUser, search, statusFilter, roleFilter, projectRoleFilter, projectFilter]);
 
   const selectedAccount = accounts.find((account) => account.username === username) ?? null;
   const selectedAccounts = filteredAccounts.filter((account) => selectedAccountIds.includes(account.id));
@@ -471,6 +474,7 @@ export const Component = () => {
                   <FormControl sx={{ minWidth: 160 }}><FormLabel>État du compte</FormLabel><Select value={statusFilter} onChange={(_event, value) => setStatusFilter((value ?? 'all') as typeof statusFilter)}><Option value="all">Tous les états</Option><Option value="active">Actif</Option><Option value="inactive">Désactivé</Option></Select></FormControl>
                   <FormControl sx={{ minWidth: 180 }}><FormLabel>Rôle global</FormLabel><Select value={roleFilter} onChange={(_event, value) => setRoleFilter((value ?? 'all') as typeof roleFilter)}><Option value="all">Tous les rôles</Option><Option value="admin">Administrateur</Option><Option value="modeler">Modélisateur</Option><Option value="viewer">Lecteur</Option></Select></FormControl>
                   <FormControl sx={{ minWidth: 180 }}><FormLabel>Rôle projet</FormLabel><Select value={projectRoleFilter} onChange={(_event, value) => setProjectRoleFilter((value ?? 'all') as typeof projectRoleFilter)}><Option value="all">Tous les rôles</Option><Option value="admin">Admin projet</Option><Option value="modeler">Modélisateur</Option><Option value="viewer">Lecteur</Option></Select></FormControl>
+                  <FormControl sx={{ minWidth: 190 }}><FormLabel>Projet</FormLabel><Select value={projectFilter} onChange={(_event, value) => setProjectFilter(value ?? 'all')}><Option value="all">Tous les projets</Option>{overview.projects.map(project => <Option key={project.id} value={project.id}>{project.name}</Option>)}</Select></FormControl>
 
                 </div>
                 <Box sx={{ overflowX: 'auto' }}>
