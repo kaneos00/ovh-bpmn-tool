@@ -932,3 +932,12 @@ test('proposal modeler waits for its BPMN XML and reports loading failures inste
   assert.ok(container.includes('modelerReady={isModelerReady}'));
   assert.ok(actionBar.includes('disabled={!modelerReady}'));
 });
+
+
+test('project home falls back to workspace process membership when the global resource list fails', async () => {
+  const overview = await read('src/Containers/BpmnLayout/FolderOverview.tsx');
+  assert.ok(overview.includes('resources.isError && !activeProject'));
+  assert.ok(overview.includes('The project workspace can still provide the process list'));
+  assert.ok(overview.includes('Les processus associés au projet sont affichés'));
+  assert.ok(overview.includes('activeProject?.processes.forEach'));
+});
