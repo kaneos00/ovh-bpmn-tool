@@ -743,7 +743,7 @@ test('recent and favorite resources retain their project context', async () => {
   assert.match(tree, /projects\.filter\(project => project\.processes\.some/);
   assert.match(tree, /setActiveProject\(projectId\)/);
   assert.match(tree, /project\.color/);
-  assert.match(tree, /getProjectTrigram\(project\.name\)/);
+  assert.match(tree, /getProjectTrigram\(project\.name, project\.trigram\)/);
 });
 
 test('project administrators can configure the color of the generated trigram badge', async () => {

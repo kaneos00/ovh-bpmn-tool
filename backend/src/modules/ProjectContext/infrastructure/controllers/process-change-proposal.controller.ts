@@ -219,7 +219,8 @@ export class ProcessChangeProposalController {
         sourceResourceId: proposal.sourceResourceId,
         processName: resource?.name ?? 'Processus indisponible',
         cloneResourceId: proposal.cloneResourceId,
-        cloneContentId: cloneDraftByResourceId.get(proposal.cloneResourceId)?.id ?? null,
+        cloneContentId:
+          cloneDraftByResourceId.get(proposal.cloneResourceId)?.id ?? null,
         submittedContentId: proposal.submittedContentId,
         authorUserId: proposal.authorUserId,
         validatorUserId: proposal.validatorUserId,
