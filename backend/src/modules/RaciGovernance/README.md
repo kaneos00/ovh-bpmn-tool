@@ -1334,3 +1334,37 @@ database: init scripts do not rerun on a non-empty volume, and the deployment
 README explicitly warns that later updates do not automatically reapply
 initialization SQL. The per-environment live-schema preflight remains
 mandatory before relying on FK behavior in production.
+
+## Live PostgreSQL schema preflight (read-only)
+
+Before designing or implementing any cross-context writer, run
+`backend/migrations/raci-governance-read-only-preflight.sql` against the
+actual target database using a catalog-readable account. The script contains
+only catalog `SELECT` statements and reports:
+
+1. PostgreSQL version, database, search path and transaction isolation;
+2. presence and schema location of the project, resource, content and proposal
+   relations;
+3. every foreign key entering or leaving those relations, including the
+   effective delete action and the full constraint definition;
+4. primary, unique and ordinary indexes, including expression definitions and
+   validity/readiness flags;
+5. non-internal triggers attached to the relevant tables.
+
+Run it in a read-only session where supported (for example, set the session
+transaction to read only before executing the script). Export all five result
+sets as text or CSV. Share catalog output only: do not send credentials,
+connection strings, customer rows or business data.
+
+The preflight is not a migration and does not prove that another environment
+has the same schema. In particular, the Coolify bootstrap scripts run only
+when its PostgreSQL volume is empty; an existing volume is not upgraded by
+re-running those initialization scripts. Compare the output from each
+environment independently before selecting deletion, cascade, locking or
+versioning behavior.
+
+The SQL uses relation names and reports all matching non-system schemas. If a
+deployment uses renamed tables or nonstandard schemas, inspect the output
+carefully and adapt the target relation list explicitly rather than assuming
+that a missing relation is safe to ignore. No live database has been queried
+as part of this repository change.
