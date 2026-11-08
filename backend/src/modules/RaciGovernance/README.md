@@ -876,3 +876,19 @@ and deletion using an injected global repository. The ResourceContext
 application contract must be extended so the controller's policy checks,
 resource/parent locks, project-link checks, and recursive deletion share one
 transaction manager.
+
+### Variant and clone semantics — RACI state boundary
+
+A source review of the three existing clone paths identifies materially different lifecycle semantics that the governance contract must preserve:
+
+- **Project variant** — `ProjectController.createProcessVariant` reads the source's latest published BPMN content, then in one transaction creates a new resource with a new `resourceId`, copies the XML into its first draft, and links the new resource to the selected project with `usage = Variant` and `sourceResourceId`. It does not copy `project_raci_entries`. The copied XML can therefore still contain RACI extensions while the new resource has no corresponding database assignments. The project-wide actor registry remains the same registry because it is keyed by `projectId`.
+- **Generic resource clone** — `POST /resources/:resourceId/clone` creates a separate resource and copies the selected source XML through separate handler calls. It does not create a project link or copy RACI assignment rows. If content copying fails, cleanup is best-effort rather than part of one shared transaction. This path is not a safe primitive for governance harmonization.
+- **New version draft of the same resource** — `POST /resources/:resourceId/contents/:contentId/clone` creates a draft from an existing content version under the same `resourceId`. It copies XML only. The existing project RACI matrix remains the current database matrix for that resource; it is neither cloned nor frozen for the draft. Publishing the draft does not create a RACI snapshot.
+
+#### Consequence and proposed policy
+
+A new project variant must be treated as an independent process, not as an implicit copy of the source process's database matrix. Its copied XML RACI values are import evidence only. The initial database matrix for the variant should remain empty until an administrator explicitly reviews a preview and confirms an import/transfer. The project actor registry is not copied because it is already project-wide; candidate actors found in the XML must be reconciled against that registry through the existing non-destructive actor workflow.
+
+This is a proposed governance rule, not an enabled behavior or an already approved product decision. Before implementing it, confirm whether a project variant should always start with an empty assignment matrix or whether the administrator should be offered an explicit, previewed copy of the source matrix as a starting point. In either case, no automatic copy, merge, or XML-to-database synchronization is permitted.
+
+Required integration tests must distinguish all three paths and assert the resource IDs, content status/version, project links, actor registry, assignment rows, and retained XML RACI extensions. They must also prove that a failed clone cannot leave a partially linked or partially governed variant.
