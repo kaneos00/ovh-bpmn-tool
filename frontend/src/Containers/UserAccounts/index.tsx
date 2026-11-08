@@ -56,6 +56,20 @@ const roleColors: Record<Role, 'warning' | 'primary' | 'neutral'> = {
 };
 const userPath = (id: string) => `/auth/users/${encodeURIComponent(id)}`;
 
+function exportCsv(filename: string, rows: string[][]) {
+  const csv = rows.map((row) => row.map((value) => {
+    const escaped = String(value ?? '').replace(/"/g, '""');
+    return /[",\r\n;]/.test(escaped) ? `"${escaped}"` : escaped;
+  }).join(';')).join('\r\n');
+  const blob = new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 async function call<T = any>(path: string, method = 'GET', body?: unknown): Promise<T> {
   const response = await fetch(`${apiBase}${path}`, {
     method,
@@ -81,6 +95,7 @@ export const Component = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [roleFilter, setRoleFilter] = useState<'all' | Role>('all');
+  const [projectRoleFilter, setProjectRoleFilter] = useState<'all' | ProjectRole>('all');
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [bulkAction, setBulkAction] = useState<'activate' | 'deactivate' | 'assign' | null>(null);
   const [bulkProjectId, setBulkProjectId] = useState('');
@@ -166,9 +181,11 @@ export const Component = () => {
       const matchesStatus = statusFilter === 'all' ||
         (statusFilter === 'active' ? account.active : !account.active);
       const matchesRole = roleFilter === 'all' || account.role === roleFilter;
-      return matchesSearch && matchesStatus && matchesRole;
+      const matchesProjectRole = projectRoleFilter === 'all' ||
+        (membership?.projects ?? []).some((project) => project.role === projectRoleFilter);
+      return matchesSearch && matchesStatus && matchesRole && matchesProjectRole;
     });
-  }, [accounts, membershipsByUser, search, statusFilter, roleFilter]);
+  }, [accounts, membershipsByUser, search, statusFilter, roleFilter, projectRoleFilter]);
 
   const selectedAccount = accounts.find((account) => account.username === username) ?? null;
   const selectedAccounts = filteredAccounts.filter((account) => selectedAccountIds.includes(account.id));
@@ -412,6 +429,15 @@ export const Component = () => {
                   </Typography>
                 </div>
                 <div className="org-admin-v2__actions">
+                  <Button variant="outlined" color="neutral" onClick={() => exportCsv('utilisateurs-khi-flows.csv', [
+                    ['Identifiant', 'E-mail', 'Rôle global', 'État du compte', 'Projet', 'Rôle projet', 'Dépôt remarques'],
+                    ...filteredAccounts.flatMap((account) => {
+                      const projects = membershipsByUser.get(account.username.toLocaleLowerCase())?.projects ?? [];
+                      return projects.length
+                        ? projects.map((project) => [account.username, account.email ?? '', roleLabels[account.role], account.active ? 'Actif' : 'Désactivé', project.projectName, project.role, project.canSubmitRemarks ? 'Oui' : 'Non'])
+                        : [[account.username, account.email ?? '', roleLabels[account.role], account.active ? 'Actif' : 'Désactivé', '', '', '']];
+                    }),
+                  ])}>Exporter la vue</Button>
                   <Button onClick={() => setShowCreate((value) => !value)}>＋ Créer un compte</Button>
                 </div>
               </div>
@@ -444,6 +470,7 @@ export const Component = () => {
                   <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher un identifiant, un e-mail ou un projet…" sx={{ flex: 1, minWidth: 240 }} />
                   <FormControl sx={{ minWidth: 160 }}><FormLabel>État du compte</FormLabel><Select value={statusFilter} onChange={(_event, value) => setStatusFilter((value ?? 'all') as typeof statusFilter)}><Option value="all">Tous les états</Option><Option value="active">Actif</Option><Option value="inactive">Désactivé</Option></Select></FormControl>
                   <FormControl sx={{ minWidth: 180 }}><FormLabel>Rôle global</FormLabel><Select value={roleFilter} onChange={(_event, value) => setRoleFilter((value ?? 'all') as typeof roleFilter)}><Option value="all">Tous les rôles</Option><Option value="admin">Administrateur</Option><Option value="modeler">Modélisateur</Option><Option value="viewer">Lecteur</Option></Select></FormControl>
+                  <FormControl sx={{ minWidth: 180 }}><FormLabel>Rôle projet</FormLabel><Select value={projectRoleFilter} onChange={(_event, value) => setProjectRoleFilter((value ?? 'all') as typeof projectRoleFilter)}><Option value="all">Tous les rôles</Option><Option value="admin">Admin projet</Option><Option value="modeler">Modélisateur</Option><Option value="viewer">Lecteur</Option></Select></FormControl>
 
                 </div>
                 <Box sx={{ overflowX: 'auto' }}>
