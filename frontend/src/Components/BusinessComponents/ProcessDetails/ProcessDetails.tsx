@@ -66,6 +66,8 @@ type ActiveProcessProposal = {
   cloneResourceId: string;
 };
 
+const EMPTY_VIEWER_REMARKS: ViewerRemark[] = [];
+
 type ProcessDetailsProps = {
   resourceId: string;
   onContentUpload: (content: string) => void;
@@ -240,7 +242,7 @@ export const ProcessDetails = ({
     ),
     { enabled: Boolean(projectForProcess && viewerContent && !isHistoricalView) },
   );
-  const { data: viewerRemarks = [] } = useQuery<ViewerRemark[]>(
+  const { data: viewerRemarks = EMPTY_VIEWER_REMARKS } = useQuery<ViewerRemark[]>(
     ['process-change-proposal-comments', activeProposal?.id],
     () => apiClient.get(`/projects/process-change-proposals/${activeProposal!.id}/comments`),
     { enabled: Boolean(activeProposal?.id && !isHistoricalView) },
