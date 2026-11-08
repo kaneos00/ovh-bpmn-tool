@@ -4,11 +4,18 @@ import { useProcessViewer } from './hooks/useProcessViewer';
 import 'diagram-js-minimap/assets/diagram-js-minimap.css';
 import '../Modeler/Modeler.css';
 
+export type ProcessViewerRemark = {
+  id: string;
+  elementId: string;
+  status: 'pending' | 'accepted' | 'rejected';
+};
+
 type ProcessViewerProps = {
   resourceId: string;
   contentId: string;
   selectedElementId?: string | null;
   onElementSelect?: (elementId: string) => void;
+  remarks?: ProcessViewerRemark[];
   onToggleInfoPanel?: () => void;
   infoPanelOpen?: boolean;
   toolbarExtra?: ReactNode;
@@ -20,6 +27,7 @@ export const ProcessViewer = ({
   contentId,
   selectedElementId,
   onElementSelect,
+  remarks = [],
   onToggleInfoPanel,
   infoPanelOpen = false,
   toolbarExtra,
@@ -45,6 +53,7 @@ export const ProcessViewer = ({
     contentId,
     selectedElementId,
     onElementSelect,
+    remarks,
   );
 
   useEffect(() => {
