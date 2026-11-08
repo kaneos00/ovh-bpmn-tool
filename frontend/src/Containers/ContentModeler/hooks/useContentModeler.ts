@@ -5,6 +5,7 @@ import { useQuery } from 'react-query';
 import type { ContentModelerRouteParams } from '..';
 import {
   contentsQuery,
+  getContentQuery,
   getXmlContentQuery,
 } from '../../../api/contents/contents.queries';
 import { useSnackbar } from '../../../shared/hooks/useSnackbar';
@@ -31,6 +32,15 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   const [isShortcurtModalOpen, setIsShortcurtModalOpen] = useState(false);
 
   const { data: contents } = useQuery(contentsQuery(resourceId));
+  const {
+    data: requestedContent,
+    isLoading: requestedContentIsLoading,
+    isError: requestedContentIsError,
+    error: requestedContentError,
+  } = useQuery({
+    ...getContentQuery(resourceId, requestedContentId ?? ''),
+    enabled: Boolean(proposalId && requestedContentId),
+  });
   const { resource } = useResource(resourceId);
   const sourceResourceId = resource?.sourceResourceId ?? undefined;
   const { data: sourceContents } = useQuery({
@@ -69,10 +79,13 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     })[0];
   }, [sourceContents]);
 
-  const selectedContent = useMemo(
-    () => contents?.find(content => content.id === requestedContentId) ?? draftContent,
-    [contents, requestedContentId, draftContent],
-  );
+  const selectedContent = useMemo(() => {
+    if (!requestedContentId) return draftContent;
+    const listedContent = contents?.find(content => content.id === requestedContentId);
+    if (listedContent) return listedContent;
+    if (proposalId) return requestedContent;
+    return draftContent;
+  }, [contents, requestedContentId, requestedContent, proposalId, draftContent]);
   // Review links carry the exact submitted content ID. Prefer the current
   // draft, but retain that proposal content as an editable fallback when the
   // list endpoint does not classify it as the current draft.
@@ -92,21 +105,28 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     enabled: !!selectedContent?.id,
   });
 
-  // Do not initialize an empty diagram while the requested BPMN XML is still
-  // loading (or after its request has failed). That previously left the user
-  // with a blank modeler and no indication that the source content was absent.
+  // Do not show an empty diagram while an exact proposal draft is being resolved.
+  const proposalContentLookupFailed = Boolean(
+    proposalId &&
+    requestedContentId &&
+    !selectedContent &&
+    !requestedContentIsLoading &&
+    (requestedContentIsError || requestedContent === undefined),
+  );
+
   let draftXmlContent: string | undefined;
   if (selectedContent) {
     draftXmlContent = loadedDraftXmlContent;
-  } else if (contents !== undefined) {
+  } else if (contents !== undefined && !(proposalId && requestedContentId)) {
     draftXmlContent = '';
   }
 
   let draftXmlContentErrorMessage: string | null = null;
-  if (draftXmlContentIsError) {
-    draftXmlContentErrorMessage = draftXmlContentError instanceof Error
-      ? draftXmlContentError.message
-      : 'Le serveur n’a pas retourné le contenu BPMN.';
+  if (draftXmlContentIsError || proposalContentLookupFailed) {
+    const error = draftXmlContentError ?? requestedContentError;
+    draftXmlContentErrorMessage = error instanceof Error
+      ? error.message
+      : 'Le serveur n’a pas retourné le contenu BPMN de la demande.';
   }
 
   const onCompareWithSource = useCallback(() => {

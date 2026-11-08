@@ -40,6 +40,7 @@ type Project = {
   name: string;
   description: string | null;
   color: string;
+  trigram: string | null;
   icon: string;
   createdAt: string;
   defaultValidatorUserId: string | null;
@@ -103,6 +104,7 @@ export const Component = () => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [projectColor, setProjectColor] = useState('#2864d7');
+  const [projectTrigram, setProjectTrigram] = useState('');
   const [defaultValidatorUserId, setDefaultValidatorUserId] = useState<string | null>(null);
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
   const [usage, setUsage] = useState<'common' | 'project-specific'>('common');
@@ -136,6 +138,7 @@ export const Component = () => {
   useEffect(() => {
     if (!projectQuery.data) return;
     setProjectColor(projectQuery.data.color || '#2864d7');
+    setProjectTrigram(projectQuery.data.trigram ?? '');
     setDefaultValidatorUserId(projectQuery.data.defaultValidatorUserId ?? null);
   }, [projectQuery.data]);
   const projectMembership = workspaceQuery.data?.projects.find(item => item.id === projectId);
@@ -161,7 +164,10 @@ export const Component = () => {
   const updateProjectIdentity = useMutation(
     () => {
       if (!projectId) throw new Error('Aucun projet sélectionné.');
-      return apiClient.put(`/projects/${projectId}`, { color: projectColor });
+      return apiClient.put(`/projects/${projectId}`, {
+        color: projectColor,
+        trigram: projectTrigram.trim() || null,
+      });
     },
     {
       onSuccess: async () => {
@@ -479,7 +485,7 @@ export const Component = () => {
                           title={project.name}
                           sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 42, height: 30, px: 0.75, borderRadius: '7px', bgcolor: project.color || '#2864d7', color: '#fff', fontSize: 11, fontWeight: 800, letterSpacing: '0.04em', flexShrink: 0 }}
                         >
-                          {getProjectTrigram(project.name)}
+                          {getProjectTrigram(project.name, project.trigram)}
                         </Box>
                         <Box sx={{ flex: 1, minWidth: 0 }}>
                           <Typography level="title-md">{project.name}</Typography>
@@ -563,16 +569,26 @@ export const Component = () => {
                     <Typography level="body-sm">Couleur du projet</Typography>
                     <Input type="color" value={projectColor} onChange={event => setProjectColor(event.target.value)} aria-label="Couleur du projet" />
                   </Stack>
+                  <Stack spacing={0.5} sx={{ minWidth: 140 }}>
+                    <Typography level="body-sm">Trigramme du projet</Typography>
+                    <Input
+                      value={projectTrigram}
+                      onChange={event => setProjectTrigram(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3))}
+                      placeholder="Ex. RHX"
+                      aria-label="Trigramme du projet"
+                    />
+                    <Typography level="body-xs" color="neutral">3 caractères alphanumériques ; vide = génération automatique.</Typography>
+                  </Stack>
                   <Stack spacing={0.5} sx={{ minWidth: 180 }}>
                     <Typography level="body-sm">Aperçu du badge</Typography>
                     <Box
                       component="span"
                       sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 48, height: 34, px: 1, borderRadius: '7px', bgcolor: projectColor, color: '#fff', fontSize: 12, fontWeight: 800, letterSpacing: '0.04em' }}
                     >
-                      {getProjectTrigram(project.name)}
+                      {getProjectTrigram(project.name, projectTrigram)}
                     </Box>
                   </Stack>
-                  <Button loading={updateProjectIdentity.isLoading} disabled={updateProjectIdentity.isLoading} onClick={() => updateProjectIdentity.mutate()}>
+                  <Button loading={updateProjectIdentity.isLoading} disabled={updateProjectIdentity.isLoading || (projectTrigram.length > 0 && projectTrigram.length !== 3)} onClick={() => updateProjectIdentity.mutate()}>
                     Enregistrer l’identité visuelle
                   </Button>
                 </Stack>

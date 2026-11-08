@@ -24,6 +24,8 @@ type Proposal = {
   sourceResourceId: string;
   processName: string;
   cloneResourceId: string;
+  cloneContentId: string | null;
+  submittedContentId: string | null;
   validatorUserId: string | null;
   validatorName?: string | null;
   validatorWarning?: string | null;
@@ -101,7 +103,10 @@ export const Component = () => {
 
   const openProposal = (proposal: Proposal) => {
     if (proposal.status === 'draft' || proposal.status === 'changes_requested') {
-      navigate(`/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}`);
+      const contentQuery = proposal.cloneContentId
+        ? `&contentId=${proposal.cloneContentId}`
+        : '';
+      navigate(`/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}${contentQuery}`);
       return;
     }
     navigate(`/${proposal.sourceResourceId}`);
@@ -212,7 +217,7 @@ export const Component = () => {
                       <Stack direction="row" spacing={1} sx={{ mt: 1.25 }}>
                         <Button size="sm" color="success" variant="solid"
                           onClick={() => navigate(
-                            `/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}&publishApproved=1&sourceResourceId=${proposal.sourceResourceId}`,
+                            `/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}&publishApproved=1&sourceResourceId=${proposal.sourceResourceId}${proposal.submittedContentId ? `&contentId=${proposal.submittedContentId}` : ''}`,
                           )}>
                           Publier la version approuvée
                         </Button>

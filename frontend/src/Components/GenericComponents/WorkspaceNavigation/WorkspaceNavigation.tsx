@@ -551,7 +551,7 @@ export const WorkspaceNavigation = () => {
           renderValue={() => activeProject ? (
             <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
               <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 34, height: 24, px: 0.5, borderRadius: '6px', bgcolor: activeProject.color || '#2864d7', color: '#fff', fontSize: 11, fontWeight: 800, letterSpacing: '0.04em', flexShrink: 0 }}>
-                {getProjectTrigram(activeProject.name)}
+                {getProjectTrigram(activeProject.name, activeProject.trigram)}
               </Box>
               <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {activeProject.name}
@@ -563,7 +563,7 @@ export const WorkspaceNavigation = () => {
           {projects.map(project => <Option key={project.id} value={project.id}>
             <Stack direction="row" spacing={1} alignItems="center">
               <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 34, height: 24, px: 0.5, borderRadius: '6px', bgcolor: project.color || '#2864d7', color: '#fff', fontSize: 11, fontWeight: 800, letterSpacing: '0.04em', flexShrink: 0 }}>
-                {getProjectTrigram(project.name)}
+                {getProjectTrigram(project.name, project.trigram)}
               </Box>
               <Box component="span">{project.name}</Box>
             </Stack>

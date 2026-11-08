@@ -1,4 +1,9 @@
-export const getProjectTrigram = (projectName: string): string => {
+export const getProjectTrigram = (projectName: string, configuredTrigram?: string | null): string => {
+  const normalizedTrigram = configuredTrigram?.trim().toUpperCase();
+  if (normalizedTrigram && /^[A-Z0-9]{3}$/.test(normalizedTrigram)) {
+    return normalizedTrigram;
+  }
+
   const words = projectName
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')

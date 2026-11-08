@@ -483,7 +483,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                 </Button>
                 {project && (
                   <Chip size="sm" variant="solid" title={project.name} sx={{ bgcolor: project.color || '#2864d7', color: '#fff', maxWidth: 160, minWidth: 36, fontWeight: 800, letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {getProjectTrigram(project.name)}
+                    {getProjectTrigram(project.name, project.trigram)}
                   </Chip>
                 )}
                 <IconButton

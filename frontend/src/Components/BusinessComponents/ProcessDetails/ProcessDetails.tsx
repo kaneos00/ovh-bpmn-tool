@@ -64,6 +64,7 @@ type ActiveProcessProposal = {
   id: string;
   status: string;
   cloneResourceId: string;
+  cloneContentId: string | null;
 };
 
 const EMPTY_VIEWER_REMARKS: ViewerRemark[] = [];
@@ -342,7 +343,14 @@ export const ProcessDetails = ({
     // Reuse the existing workflow instead of attempting to create a second
     // proposal for the same published process version.
     if (activeProposal) {
-      navigate(`/${activeProposal.cloneResourceId}/modeler?proposalId=${activeProposal.id}`);
+      if (!activeProposal.cloneContentId) {
+        showAlert({
+          message: 'Le brouillon de la demande en cours est introuvable. La demande doit être vérifiée avant de pouvoir être reprise.',
+          severity: 'danger',
+        });
+        return;
+      }
+      navigate(`/${activeProposal.cloneResourceId}/modeler?proposalId=${activeProposal.id}&contentId=${activeProposal.cloneContentId}`);
       return;
     }
     setStartingProposal(true);
@@ -350,8 +358,8 @@ export const ProcessDetails = ({
       const proposal = await apiClient.post(
         `/projects/${proposalProjectId}/processes/${resourceId}/change-proposals`,
         { validatorUserId: processMetadata.pilot.trim() || undefined },
-      );
-      navigate(`/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}`);
+      ) as { id: string; cloneResourceId: string; cloneContentId: string };
+      navigate(`/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}&contentId=${proposal.cloneContentId}`);
     } catch (error) {
       showAlert({
         message: error instanceof Error

@@ -47,46 +47,6 @@ export const useProcessViewer = (
   }, [viewer]);
   useCallActivityNavigation(viewer, true);
 
-  const alignDiagramTopLeft = () => {
-    const canvas = viewer.get('canvas') as any;
-    const elementRegistry = viewer.get('elementRegistry') as any;
-    const viewport = canvas.viewbox();
-    if (!viewport) return;
-
-    const bounds = elementRegistry
-      .getAll()
-      .filter((element: any) =>
-        element &&
-        Number.isFinite(element.x) &&
-        Number.isFinite(element.y) &&
-        element.width > 0 &&
-        element.height > 0,
-      )
-      .map((element: any) => canvas.getAbsoluteBBox(element))
-      .filter((bbox: any) => bbox && Number.isFinite(bbox.x) && Number.isFinite(bbox.y));
-
-    if (!bounds.length) return;
-
-    const minX = Math.min(...bounds.map((bbox: any) => bbox.x));
-    const minY = Math.min(...bounds.map((bbox: any) => bbox.y));
-
-    // Preserve the current fit scale while aligning the diagram with the
-    // upper-left edge of the available canvas.
-    canvas.viewbox({
-      x: minX - DIAGRAM_PADDING,
-      y: minY - DIAGRAM_PADDING,
-      width: viewport.width,
-      height: viewport.height,
-    });
-  };
-
-  const fitDiagramToWidth = () => {
-    // The viewer starts at a true 1:1 scale, anchored at the diagram's
-    // upper-left corner. Users can still choose "Ajuster" from the toolbar.
-    (viewer.get('canvas') as any).zoom(1);
-    alignDiagramTopLeft();
-  };
-
   const zoomIn = () => {
     if (!importedRef.current) return;
     const canvas = viewer.get('canvas') as any;
@@ -384,8 +344,15 @@ export const useProcessViewer = (
             canvas.addMarker(element.id, 'bpmn-gateway-event-based');
           }
         });
-        fitDiagramToWidth();
         importedRef.current = true;
+        // Wait for the Viewer canvas to receive its final flex layout before
+        // calculating the initial fit. A 1:1 zoom crops larger processes until refresh.
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            if (cancelled || generation !== importGenerationRef.current) return;
+            fitDiagram();
+          });
+        });
         setIsImporting(false);
         // Keep the minimap closed on import; users can open it manually from the viewer controls.
         applySelectionRef.current();

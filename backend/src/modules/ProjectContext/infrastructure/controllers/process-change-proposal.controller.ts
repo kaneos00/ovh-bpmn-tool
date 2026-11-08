@@ -137,6 +137,22 @@ export class ProcessChangeProposalController {
     );
     if (!visible.length) return [];
 
+    const cloneDrafts = await this.dataSource
+      .getRepository(ContentTypeOrmEntity)
+      .find({
+        where: {
+          resourceId: In(visible.map((proposal) => proposal.cloneResourceId)),
+          status: ContentStatusEnum.Draft,
+        },
+        order: { version: 'DESC', updatedAt: 'DESC' },
+      });
+    const cloneDraftByResourceId = new Map<string, ContentTypeOrmEntity>();
+    for (const draft of cloneDrafts) {
+      if (!cloneDraftByResourceId.has(draft.resourceId)) {
+        cloneDraftByResourceId.set(draft.resourceId, draft);
+      }
+    }
+
     const events = await this.events.find({
       where: { proposalId: In(visible.map((proposal) => proposal.id)) },
       order: { createdAt: 'DESC' },
@@ -203,6 +219,7 @@ export class ProcessChangeProposalController {
         sourceResourceId: proposal.sourceResourceId,
         processName: resource?.name ?? 'Processus indisponible',
         cloneResourceId: proposal.cloneResourceId,
+        cloneContentId: cloneDraftByResourceId.get(proposal.cloneResourceId)?.id ?? null,
         submittedContentId: proposal.submittedContentId,
         authorUserId: proposal.authorUserId,
         validatorUserId: proposal.validatorUserId,
@@ -433,13 +450,22 @@ export class ProcessChangeProposalController {
       },
       order: { createdAt: 'ASC' },
     });
-    return proposal
-      ? {
-          id: proposal.id,
-          status: proposal.status,
-          cloneResourceId: proposal.cloneResourceId,
-        }
-      : null;
+    if (!proposal) return null;
+    const cloneDraft = await this.dataSource
+      .getRepository(ContentTypeOrmEntity)
+      .findOne({
+        where: {
+          resourceId: proposal.cloneResourceId,
+          status: ContentStatusEnum.Draft,
+        },
+        order: { version: 'DESC', updatedAt: 'DESC' },
+      });
+    return {
+      id: proposal.id,
+      status: proposal.status,
+      cloneResourceId: proposal.cloneResourceId,
+      cloneContentId: cloneDraft?.id ?? null,
+    };
   }
 
   /**

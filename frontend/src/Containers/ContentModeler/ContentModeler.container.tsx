@@ -23,16 +23,6 @@ export const Component = () => {
   const { getModelerInstance } = useModelerInstance();
   const bpmnModelerInstance = getModelerInstance();
 
-  // The modeler instance is shared with the Viewer. Clear its real BPMN
-  // selection when leaving the editor so returning Home cannot restore a
-  // stale selected element from the previous editing session.
-  useEffect(() => () => {
-    const selection = bpmnModelerInstance.get('selection') as {
-      select?: (elements: unknown[]) => void;
-    } | undefined;
-    selection?.select?.([]);
-  }, [bpmnModelerInstance]);
-
   const { getRechercheProvider } = useBpmnToolOptions();
   const { resourceId: routeResourceId } = useParams() as ContentModelerRouteParams;
   const navigate = useNavigate();

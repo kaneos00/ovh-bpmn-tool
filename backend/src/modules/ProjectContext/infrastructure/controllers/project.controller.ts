@@ -119,6 +119,7 @@ export class ProjectController {
         name: project.name,
         description: project.description,
         color: project.color,
+        trigram: project.trigram,
         icon: project.icon,
         role: roleByProject.get(project.id),
         canSubmitRemarks: canSubmitRemarksByProject.get(project.id) ?? false,
@@ -190,6 +191,7 @@ export class ProjectController {
       name?: string;
       description?: string;
       color?: string;
+      trigram?: string | null;
       icon?: string;
     },
     @Headers() headers: RequestHeaders,
@@ -207,6 +209,7 @@ export class ProjectController {
       name,
       description: body.description?.trim() || null,
       color: this.validateProjectColor(body.color),
+      trigram: this.validateProjectTrigram(body.trigram),
       icon: this.validateProjectIcon(body.icon),
       createdBy: userId,
     });
@@ -375,6 +378,7 @@ export class ProjectController {
       name?: string;
       description?: string;
       color?: string;
+      trigram?: string | null;
       icon?: string;
       defaultValidatorUserId?: string | null;
     },
@@ -395,6 +399,9 @@ export class ProjectController {
     }
     if (body.color !== undefined) {
       project.color = this.validateProjectColor(body.color);
+    }
+    if (body.trigram !== undefined) {
+      project.trigram = this.validateProjectTrigram(body.trigram);
     }
     if (body.icon !== undefined) {
       project.icon = this.validateProjectIcon(body.icon);
@@ -449,6 +456,7 @@ export class ProjectController {
       name?: string;
       description?: string;
       color?: string;
+      trigram?: string | null;
       icon?: string;
       defaultValidatorUserId?: string | null;
     },
@@ -471,6 +479,9 @@ export class ProjectController {
     }
     if (body.color !== undefined) {
       project.color = this.validateProjectColor(body.color);
+    }
+    if (body.trigram !== undefined) {
+      project.trigram = this.validateProjectTrigram(body.trigram);
     }
     if (body.icon !== undefined) {
       project.icon = this.validateProjectIcon(body.icon);
@@ -933,6 +944,17 @@ export class ProjectController {
       );
     }
     project.defaultValidatorUserId = userId;
+  }
+
+  private validateProjectTrigram(value?: string | null): string | null {
+    const trigram = value?.trim().toUpperCase() ?? '';
+    if (!trigram) return null;
+    if (!/^[A-Z0-9]{3}$/.test(trigram)) {
+      throw new BadRequestException(
+        'Project trigram must contain exactly three letters or digits',
+      );
+    }
+    return trigram;
   }
 
   private validateProjectColor(value?: string) {

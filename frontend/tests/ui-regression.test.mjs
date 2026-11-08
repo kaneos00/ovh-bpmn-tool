@@ -718,7 +718,9 @@ test('active project selector is selectable and carries project visual identity'
   assert.match(navigation, /placeholder="Choisir un projet…"/);
   assert.match(navigation, /setActiveProject\(value\)/);
   assert.match(navigation, /project\.color/);
+  assert.match(navigation, /activeProject\.trigram/);
   assert.match(activeProject, /color: string/);
+  assert.match(activeProject, /trigram: string \| null/);
   assert.match(activeProject, /icon: string/);
 });
 
@@ -748,7 +750,9 @@ test('project administrators can configure the color of the generated trigram ba
   const admin = await read('src/Containers/Projects/Projects.container.tsx');
   assert.match(admin, /Input type="color"/);
   assert.match(admin, /Aperçu du badge/);
-  assert.ok(admin.includes('getProjectTrigram(project.name)'));
+  assert.ok(admin.includes('getProjectTrigram(project.name, projectTrigram)'));
+  assert.match(admin, /value=\{projectTrigram\}/);
+  assert.match(admin, /trigram: projectTrigram/);
   assert.match(admin, /color: projectColor/);
   assert.match(admin, /canManageProjectIdentity/);
   assert.doesNotMatch(admin, /Pictogramme/);
@@ -786,6 +790,9 @@ test('Viewer fit uses the first limiting dimension and includes the complete BPM
   assert.ok(hook.includes('canvas.viewbox({'));
   assert.ok(hook.includes('width: containerWidth / scale'));
   assert.ok(hook.includes('height: containerHeight / scale'));
+  assert.ok(hook.includes('fitDiagram();'));
+  assert.ok(hook.includes('window.requestAnimationFrame'));
+  assert.ok(!hook.includes('fitDiagramToWidth'));
   assert.ok(!hook.includes("zoom('fit-viewport')"));
 });
 
@@ -817,9 +824,9 @@ test('project identities use generated trigrams and retain configurable colors',
   const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
   const projects = await read('src/Containers/Projects/Projects.container.tsx');
   assert.ok(helper.includes('export const getProjectTrigram'));
-  assert.ok(navigation.includes('getProjectTrigram(project.name)'));
-  assert.ok(tree.includes('getProjectTrigram(project.name)'));
-  assert.ok(projects.includes('getProjectTrigram(project.name)'));
+  assert.ok(navigation.includes('getProjectTrigram(project.name, project.trigram)'));
+  assert.ok(tree.includes('getProjectTrigram(project.name, project.trigram)'));
+  assert.ok(projects.includes('getProjectTrigram(project.name, project.trigram)'));
   assert.ok(projects.includes('color: projectColor'));
 });
 
@@ -884,6 +891,24 @@ test('project administration persists a member-backed default validator and docu
   assert.ok(page.includes('<Tab value={3}>Validation</Tab>'));
 });
 
+test('project trigram is editable, validated and persisted by the project API', async () => {
+  const page = await read('src/Containers/Projects/Projects.container.tsx');
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project.controller.ts');
+  const entity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/project.ormEntity.ts');
+  const migration = await read('../backend/migrations/20261108_v3_project_trigram.sql');
+  const migrationDockerfile = await read('../deploy/coolify/Dockerfile.migrations');
+  const compose = await read('../deploy/coolify/compose.yaml');
+
+  assert.ok(page.includes('Trigramme du projet'));
+  assert.ok(page.includes('trigram: projectTrigram.trim() || null'));
+  assert.ok(controller.includes('validateProjectTrigram'));
+  assert.ok(controller.includes('Project trigram must contain exactly three letters or digits'));
+  assert.ok(entity.includes('trigram: string | null'));
+  assert.ok(migration.includes('ADD COLUMN IF NOT EXISTS trigram'));
+  assert.ok(migrationDockerfile.includes('20261108_v3_project_trigram.sql'));
+  assert.ok(compose.includes('/opt/migrations/20261108_v3_project_trigram.sql'));
+});
+
 test('project administration uses the shared breadcrumb header and Viewer-aligned surface', async () => {
   const page = await read('src/Containers/Projects/Projects.container.tsx');
 
@@ -905,17 +930,24 @@ test('canonical Viewer reports declared RACI actors that are not used', async ()
 
 test('process viewer resumes an existing open proposal and exposes its status', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const proposals = await read('src/Containers/MyProcessChangeProposals/MyProcessChangeProposals.container.tsx');
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/process-change-proposal.controller.ts');
   assert.ok(details.includes('isLoading: activeProposalLoading'));
   assert.ok(details.includes('if (activeProposal)'));
+  assert.ok(details.includes('cloneContentId'));
+  assert.ok(proposals.includes('proposal.cloneContentId'));
+  assert.ok(controller.includes('cloneContentId: cloneDraft?.id ?? null'));
+  assert.ok(controller.includes('cloneContentId: cloneDraftByResourceId.get(proposal.cloneResourceId)?.id ?? null'));
   assert.ok(details.includes('Reprendre la demande en cours'));
   assert.ok(details.includes('Une demande de modification est déjà ouverte'));
   assert.ok(details.includes('Impossible de vérifier les demandes déjà ouvertes'));
 });
 
-test('leaving the proposal modeler clears the shared BPMN selection', async () => {
-  const modeler = await read('src/Containers/ContentModeler/ContentModeler.container.tsx');
-  assert.ok(modeler.includes("bpmnModelerInstance.get('selection')"));
+test('leaving the proposal modeler clears the shared BPMN selection before destroying it', async () => {
+  const modeler = await read('src/shared/hooks/useModelerInstance.ts');
+  assert.ok(modeler.includes("modeler.get('selection')"));
   assert.ok(modeler.includes('selection?.select?.([])'));
+  assert.ok(modeler.indexOf('selection?.select?.([])') < modeler.indexOf('modeler.destroy()'));
 });
 
 
@@ -926,6 +958,8 @@ test('proposal modeler waits for its BPMN XML and reports loading failures inste
   const actionBar = await read('src/Containers/ContentModeler/components/ModelerActionBar.tsx');
 
   assert.ok(contentHook.includes('draftXmlContentIsError'));
+  assert.ok(contentHook.includes('getContentQuery'));
+  assert.ok(contentHook.includes('requestedContentId'));
   assert.ok(contentHook.includes('contents !== undefined'));
   assert.ok(modelerHook.includes('content === undefined'));
   assert.ok(container.includes('Impossible de charger le diagramme BPMN de cette demande'));

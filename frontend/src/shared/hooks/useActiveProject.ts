@@ -10,6 +10,7 @@ export type WorkspaceProject = {
   name: string;
   description?: string | null;
   color: string;
+  trigram: string | null;
   icon: string;
   role: 'viewer' | 'modeler' | 'admin';
   canSubmitRemarks: boolean;
