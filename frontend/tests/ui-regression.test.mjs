@@ -688,11 +688,14 @@ test('description, version history, RACI and documented information stay top-ali
 
 test('user administration uses a dedicated breadcrumb route and grouped account actions', async () => {
   const accounts = await read('src/Containers/UserAccounts/index.tsx');
+  const layout = await read('src/Containers/OrganizationAdmin/OrganizationAdminLayout.tsx');
   const routes = await read('src/routes.tsx');
 
   assert.match(routes, /path: '\/organization\/users\/\:username'/);
   assert.match(accounts, /useParams<\{ username\?: string \}>/);
-  assert.ok(accounts.includes('>Administration</Button>') && accounts.includes('>Utilisateurs</Button>'));
+  assert.match(accounts, /id: 'administration', label: 'Administration'/);
+  assert.match(accounts, /id: 'users', label: 'Utilisateurs'/);
+  assert.match(layout, /<Breadcrumbs breadcrumbItems=\{breadcrumbs\} \/>/);
   assert.match(accounts, /!username && <>/);
   assert.match(accounts, /Actions groupées/);
   assert.match(accounts, /Associer à un projet/);
