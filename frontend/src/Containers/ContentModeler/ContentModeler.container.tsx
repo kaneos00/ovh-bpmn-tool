@@ -74,6 +74,7 @@ export const Component = () => {
   const {
     resourceId,
     draftXmlContent,
+    draftXmlContentErrorMessage,
     isShortcurtModalOpen,
     setIsShortcurtModalOpen,
     onFileUpload,
@@ -189,6 +190,11 @@ export const Component = () => {
         publishApprovedDisabled={!isModelerReady || publishingApprovedProposal || !proposalId || !publicationSummaryComment.trim()}
         publishApprovedLoading={publishingApprovedProposal}
       />
+      {draftXmlContentErrorMessage && (
+        <Alert color="danger" sx={{ mx: 2, my: 1 }}>
+          Impossible de charger le diagramme BPMN de cette demande : {draftXmlContentErrorMessage}
+        </Alert>
+      )}
       {publicationError && <Alert color="danger" sx={{ mx: 2, my: 1 }}>{publicationError}</Alert>}
       {approvedProposalMode && (
         <Alert color="neutral" variant="soft" sx={{ mx: 2, my: 1 }}>
