@@ -1224,3 +1224,88 @@ No schema, lock helper, service, endpoint, writer or test has been changed as
 part of this design note. This protocol remains a candidate until the
 remaining resource and project mutation paths and database constraints have
 been checked against it.
+
+
+### Schema-constraint audit — additional blockers (2026-11-08)
+
+The entity and SQL definitions were inspected after drafting the lock protocol.
+They reveal constraints that must be treated as part of the design, not
+assumed to be equivalent across installations.
+
+#### Referential integrity and deletion semantics
+
+- `project_processes` has a unique key on `(projectId, resourceId)`.
+  `project_raci_entries` has a composite foreign key to that pair with
+  `ON DELETE CASCADE`. Unlinking a process therefore also deletes its RACI
+  assignments at the database level; this is not merely an application-level
+  convention.
+- The project-process schema appears in two historical SQL files with
+  different resource deletion semantics: `20261011_projects_shared_processes.sql`
+  declares the resource FK `ON DELETE RESTRICT`, while
+  `20261011_v2_project_context.sql` declares `ON DELETE CASCADE`.
+  The checked-in Coolify migration Dockerfile does not install either of
+  those two initial project-context files; it installs only later additive
+  migrations. Therefore repository SQL alone does not establish which FK
+  action exists in every deployed database. The live schema must be inspected
+  per environment before designing resource deletion behavior.
+- `project_processes.sourceResourceId` is `ON DELETE RESTRICT` in the
+  v2 project-context migration. Deleting a source resource may therefore be
+  blocked while variants still refer to it.
+- `process_change_proposals.sourceResourceId`,
+  `cloneResourceId` and content references use `ON DELETE RESTRICT`;
+  proposal history can block deletion of source/workspace/content rows.
+  Proposal events/comments cascade from the proposal. Resource deletion
+  cannot be described as a simple recursive cascade without checking these
+  references first.
+- `resources.parentId` is a nullable varchar in the resource entity and
+  has no declared self-referencing foreign key in `init.sql`. Parent/child
+  integrity and recursive deletion protection are consequently application
+  responsibilities unless a later live-schema migration adds a constraint.
+- `project_raci_actors` has no FK from `project_raci_entries.actorName` to
+  the actor registry. Actor registration/active-state consistency is
+  application-enforced. The project row lock plus a single manager-aware
+  writer contract is therefore essential; the unique index alone does not
+  ensure every assignment references an active registered actor.
+
+#### Normalization and uniqueness mismatch
+
+The current RACI controller normalizes actor names using only
+`trim().toLocaleLowerCase()`. The new governance domain normalizer additionally
+uses Unicode NFD, strips diacritics, normalizes punctuation/symbols and
+collapses whitespace. The database actor unique index stores the
+controller-provided `normalizedName`; it does not independently enforce the
+new canonical normalization algorithm. Assignment uniqueness is also based
+on raw `actorName` text, not normalized actor identity.
+
+Consequences:
+- A migration to the new normalizer can discover collisions that the current
+  database index permits (for example accented/unaccented or punctuation
+  variants).
+- Existing assignments can differ in spelling/case while representing the
+  same actor; the current unique assignment index will not identify all such
+  semantic duplicates.
+- No automatic merge or rename is allowed. A future canonicalization must
+  report every collision, require explicit human resolution, and only then
+  apply a versioned, audited transaction.
+- The normalizer algorithm and version must be part of any fingerprint and
+  preview contract; silently changing it invalidates old previews.
+
+#### Required live-schema preflight
+
+Before selecting deletion locks, cascade behavior or constraints for the
+coordinator, collect a read-only schema fingerprint from each target database:
+- PostgreSQL version and transaction isolation default;
+- `pg_constraint` definitions and `confdeltype` for all FKs touching
+  `projects`, `project_members`, `project_processes`, `project_raci_actors`,
+  `project_raci_entries`, `resources`, `contents`,
+  `process_change_proposals`, proposal events and comments;
+- unique indexes and their exact indexed expressions;
+- whether any production-only constraints/triggers differ from repository SQL.
+
+Until that preflight is available, do not assume resource delete cascades,
+do not weaken `RESTRICT` constraints, do not add a duplicate FK or unique
+index, and do not implement a recursive-delete lock strategy based only on
+the TypeORM entities.
+
+This is a schema audit finding only. No migration, trigger, constraint,
+normalizer or writer was changed.
