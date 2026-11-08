@@ -30,7 +30,13 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
   const { id: resourceId } = resource;
   const navigate = useNavigate();
   const resources = useQuery(resourcesQuery());
-  const { activeProject, activeProjectId, projectProcessIds } = useActiveProject();
+  const {
+    activeProject,
+    activeProjectId,
+    projectProcessIds,
+    isLoading: projectsLoading,
+    isError: projectsError,
+  } = useActiveProject();
   const queryClient = useQueryClient();
   const [editingDescription, setEditingDescription] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState('');
@@ -90,22 +96,26 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
       });
   }, [resources.data, resourceId, projectProcessIds, activeProject]);
 
-  if (resources.isLoading) {
+  // The project workspace can still provide the process list when the
+  // global resource explorer endpoint is unavailable. Do not replace the
+  // whole project home with an error in that case.
+  if ((resources.isLoading || projectsLoading) && !activeProject && resourceId === 'root') {
     return (
       <Card variant="outlined" sx={{ flex: 1, minHeight: 220, gap: 1 }}>
-        <Typography level="title-lg">{resourceId === 'root' ? (activeProject?.name ?? 'Référentiel') : resource.name}</Typography>
-        <Typography level="body-sm" color="neutral">Chargement du contenu…</Typography>
+        <Typography level="title-lg">Chargement de l’espace projet…</Typography>
+        <Typography level="body-sm" color="neutral">Récupération des répertoires et des processus.</Typography>
       </Card>
     );
   }
 
-  if (resources.isError) {
+  if (resources.isError && !activeProject) {
     return (
       <Card variant="outlined" sx={{ flex: 1, minHeight: 220, gap: 1 }}>
-        <Typography level="title-lg">{resourceId === 'root' ? (activeProject?.name ?? 'Référentiel') : resource.name}</Typography>
+        <Typography level="title-lg">{resourceId === 'root' ? 'Référentiel' : resource.name}</Typography>
         <Typography level="body-sm" color="danger">
           Impossible de charger le contenu de ce répertoire. {resources.error instanceof Error ? resources.error.message : ''}
         </Typography>
+        {projectsError && <Typography level="body-xs" color="danger">L’espace projet n’est pas disponible non plus.</Typography>}
       </Card>
     );
   }
@@ -114,6 +124,11 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
     const rootFolders = children.filter(child => child.type === ResourceType.Folder);
     return (
       <Stack spacing={1.5} sx={{ minWidth: 0 }}>
+        {resources.isError && (
+          <Alert color="warning" variant="soft">
+            La liste complète des répertoires est momentanément indisponible. Les processus associés au projet sont affichés à partir de son espace de travail.
+          </Alert>
+        )}
         <Card variant="outlined" sx={{ gap: 0.75 }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
             <Typography level="title-lg">{activeProject.name}</Typography>
