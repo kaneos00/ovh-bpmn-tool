@@ -104,6 +104,34 @@ test('workspace and organization administration avoid duplicate repository and a
   assert.match(navigation, />\s*Administration\s*<\/Button>/);
 });
 
+test('all organization administration screens share one shell and navigation', async () => {
+  const layout = await read('src/Containers/OrganizationAdmin/OrganizationAdminLayout.tsx');
+  const administration = await read('src/Containers/OrganizationAdmin/OrganizationAdmin.container.tsx');
+  const users = await read('src/Containers/UserAccounts/index.tsx');
+
+  for (const section of ['overview', 'users', 'projects', 'processes', 'governance']) {
+    assert.match(layout, new RegExp(`key: '${section}'`));
+  }
+  assert.match(layout, /aria-current=\{activeSection === item\.key \? 'page' : undefined\}/);
+  assert.match(layout, /<Breadcrumbs breadcrumbItems=\{breadcrumbs\} \/>/);
+  assert.match(administration, /<OrganizationAdminLayout[\s\S]*?activeSection=\{activeSection\}/);
+  assert.match(users, /<OrganizationAdminLayout[\s\S]*?activeSection="users"/);
+  assert.doesNotMatch(users, /org-admin-v2__sidebar|Navigation de l’administration/);
+  assert.match(users, /id: 'account', label: selectedAccount\?\.username/);
+});
+
+test('organization administration routes and APIs keep global administrator authorization', async () => {
+  const routes = await read('src/routes.tsx');
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project.controller.ts');
+
+  assert.match(routes, /path: '\/organization\/users',[\s\S]*?loader: requireGlobalAdmin/);
+  assert.match(routes, /path: '\/organization\/users\/:username',[\s\S]*?loader: requireGlobalAdmin/);
+  assert.match(routes, /path: '\/organization\/:section',[\s\S]*?loader: requireOrganizationSection/);
+  assert.match(controller, /@Get\('administration\/overview'\)[\s\S]*?@UseAcl\(\[UserGroup\.Admin\]\)/);
+  assert.match(controller, /@Put\('administration\/projects\/:projectId\/members\/:userId'\)[\s\S]*?@UseAcl\(\[UserGroup\.Admin\]\)/);
+  assert.match(controller, /@Delete\('administration\/projects\/:projectId\/members\/:userId'\)[\s\S]*?@UseAcl\(\[UserGroup\.Admin\]\)/);
+});
+
 test('organization-wide search is explicit and project scope remains the default when a project is active', async () => {
   const search = await read('src/Containers/SearchResults/SearchResults.container.tsx');
   const users = await read('src/Containers/UserAccounts/index.tsx');
