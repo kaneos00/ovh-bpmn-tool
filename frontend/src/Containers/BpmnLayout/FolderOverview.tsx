@@ -14,7 +14,7 @@ import {
 } from '@mui/joy';
 import { CloseRounded, EditRounded, FolderOutlined, SaveRounded } from '@mui/icons-material';
 
-import { resourcesQuery } from '../../api/resources/resources.queries';
+import { explorerQuery, type ExplorerData } from '../../api/resources/resources.queries';
 import { apiClient } from '../../queryClient';
 import { useActiveProject } from '../../shared/hooks/useActiveProject';
 import { ProjectProcessOverview } from './ProjectProcessOverview';
@@ -29,7 +29,7 @@ type FolderOverviewProps = {
 export const FolderOverview = ({ resource }: FolderOverviewProps) => {
   const { id: resourceId } = resource;
   const navigate = useNavigate();
-  const resources = useQuery<Resource[]>(resourcesQuery());
+  const resources = useQuery<ExplorerData>(explorerQuery());
   const { activeProject, activeProjectId, projectProcessIds } = useActiveProject();
   const queryClient = useQueryClient();
   const [editingDescription, setEditingDescription] = useState(false);
@@ -54,9 +54,25 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
   );
 
   const children = useMemo(() => {
-    const allResources = resources.data ?? [];
+    const allResources = resources.data?.resources ?? [];
     const allowedIds = new Set(projectProcessIds);
     const byId = new Map(allResources.map(item => [item.id, item]));
+
+    // The workspace endpoint is authoritative for project membership. Keep
+    // project-linked processes reachable even when the global resource list
+    // omits them for a member with project-scoped navigation rights.
+    activeProject?.processes.forEach(process => {
+      if (!byId.has(process.resourceId)) {
+        byId.set(process.resourceId, {
+          id: process.resourceId,
+          name: process.name,
+          depth: 0,
+          description: '',
+          type: ResourceType.Process,
+          sourceResourceId: process.sourceResourceId,
+        } as Resource);
+      }
+    });
     projectProcessIds.forEach(id => {
       let current = byId.get(id);
       while (current?.parentId) {
@@ -72,7 +88,7 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
         }
         return left.name.localeCompare(right.name, 'fr');
       });
-  }, [resources.data, resourceId, projectProcessIds]);
+  }, [resources.data, resourceId, projectProcessIds, activeProject]);
 
   if (resources.isLoading) {
     return (
@@ -88,7 +104,7 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
       <Card variant="outlined" sx={{ flex: 1, minHeight: 220, gap: 1 }}>
         <Typography level="title-lg">{resourceId === 'root' ? (activeProject?.name ?? 'Référentiel') : resource.name}</Typography>
         <Typography level="body-sm" color="danger">
-          Impossible de charger le contenu de ce répertoire.
+          Impossible de charger le contenu de ce répertoire. {resources.error instanceof Error ? resources.error.message : ''}
         </Typography>
       </Card>
     );
