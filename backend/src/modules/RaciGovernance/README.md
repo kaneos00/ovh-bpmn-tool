@@ -1427,3 +1427,16 @@ should the governance module receive a mutation use case.
 
 No migration, lock helper, controller, route, UI, XML writer or mutation API
 is authorized by this review note.
+
+### Transaction coordination ADR
+
+The proposed application-owned unit of work, opaque transaction context,
+ProjectContext/ResourceContext owner contracts, candidate global lock order,
+writer adoption inventory, fingerprint semantics and PostgreSQL concurrency
+gates are specified in
+[`docs/architecture/raci-governance-transaction-coordination.md`](../../../docs/architecture/raci-governance-transaction-coordination.md).
+
+This ADR is a design artifact only. It does not approve or implement a
+transaction coordinator, lock helper, writer refactor, migration, endpoint,
+UI, XML writer or governance mutation. The live database preflight and
+PostgreSQL concurrency evidence remain mandatory.
