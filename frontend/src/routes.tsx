@@ -53,6 +53,12 @@ async function requireOrganizationSection(args: {
   return null;
 }
 
+async function redirectLegacyAccounts({ request }: { request: Request }) {
+  await requireGlobalAdmin({ request });
+  const url = new URL(request.url);
+  throw redirect(`/organization/users${url.search}`);
+}
+
 /**
  * V3 application routes: authenticated process workspace plus global-admin
  * organization administration. Account and project access operations reuse
@@ -73,9 +79,9 @@ export const routes = [
         lazy: () => import('./Containers/UserAccounts'),
       },
       {
+        // Legacy alias: the canonical user directory is /organization/users.
         path: '/organization/accounts',
-        loader: requireGlobalAdmin,
-        lazy: () => import('./Containers/UserAccounts'),
+        loader: redirectLegacyAccounts,
       },
       {
         path: '/organization/:section',
