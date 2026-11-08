@@ -123,6 +123,7 @@ test('all organization administration screens share one shell and navigation', a
 test('organization administration routes and APIs keep global administrator authorization', async () => {
   const routes = await read('src/routes.tsx');
   const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project.controller.ts');
+  const auth = await read('../backend/src/auth/auth.controller.ts');
 
   assert.match(routes, /path: '\/organization\/users',[\s\S]*?loader: requireGlobalAdmin/);
   assert.match(routes, /path: '\/organization\/users\/:username',[\s\S]*?loader: requireGlobalAdmin/);
@@ -130,6 +131,10 @@ test('organization administration routes and APIs keep global administrator auth
   assert.match(controller, /@Get\('administration\/overview'\)[\s\S]*?@UseAcl\(\[UserGroup\.Admin\]\)/);
   assert.match(controller, /@Put\('administration\/projects\/:projectId\/members\/:userId'\)[\s\S]*?@UseAcl\(\[UserGroup\.Admin\]\)/);
   assert.match(controller, /@Delete\('administration\/projects\/:projectId\/members\/:userId'\)[\s\S]*?@UseAcl\(\[UserGroup\.Admin\]\)/);
+  assert.match(controller, /@Get\('\:projectId'\)[\s\S]*?assertProjectReadRole\(projectId, headers\)/);
+  assert.match(controller, /@Put\('\:projectId'\)[\s\S]*?assertProjectRole\(projectId, headers, ProjectMemberRole\.Admin\)/);
+  assert.match(auth, /@Get\('users'\)[\s\S]*?await this\.requireAdmin\(request\)/);
+  assert.match(auth, /@Post\('users'\)[\s\S]*?await this\.requireAdmin\(request\)/);
 });
 
 test('organization-wide search is explicit and project scope remains the default when a project is active', async () => {
