@@ -1368,3 +1368,62 @@ deployment uses renamed tables or nonstandard schemas, inspect the output
 carefully and adapt the target relation list explicitly rather than assuming
 that a missing relation is safe to ignore. No live database has been queried
 as part of this repository change.
+
+### Migration-path audit — deployment boundary (2026-11-08)
+
+The checked-in Coolify deployment has two distinct schema paths:
+
+| Schema group | Fresh empty demo volume | Existing non-empty volume |
+|---|---|---|
+| Legacy `resources` / `contents` | `init.sql` via PostgreSQL init directory | Not replayed by the init directory |
+| Project, membership and process links | `20261011_v2_project_context.sql` via PostgreSQL init directory | Not replayed by the init directory |
+| Project RACI entries and actor register | `20261011_v2_project_raci.sql`, then `20261012_v2_project_raci_actors.sql` via init directory | Not replayed by the init directory |
+| Later V2/V3 additive changes | Explicitly copied into `Dockerfile.migrations` and executed in Compose order | Executed by the migration service when the stack starts |
+
+The current migration service does **not** apply the three project/RACI bootstrap
+scripts. Conversely, the PostgreSQL init directory does not rerun on an
+existing data volume. The repository therefore documents a deterministic
+fresh-demo bootstrap and a list of later additive Coolify migrations, but it
+does not provide one universal, ledger-backed upgrade path that can create or
+repair the project/RACI foundation on every historical installation.
+
+The older `20261011_projects_shared_processes.sql` is also not part of the
+Coolify fresh-volume bootstrap. It defines different uniqueness and FK
+semantics from `20261011_v2_project_context.sql`; it must not be treated as
+an interchangeable migration.
+
+**Implementation consequence:** before any RACI governance migration or
+cross-context writer, classify each target installation by its actual schema
+using the read-only preflight. Do not add the bootstrap SQL to the existing
+migration service blindly: some installations may already have equivalent
+tables with different constraints, names or data. A future migration strategy
+must be explicit about supported starting schemas, preconditions, duplicate
+detection, data preservation, rollback and deployment ordering.
+
+### Lock protocol — operation-by-operation review checklist
+
+The candidate global order above is a design constraint, not a blanket claim
+that every current handler can simply acquire these locks. The following
+review checklist makes the conflict surface explicit:
+
+| Mutation path | Current serialization observed | Required before RACI governance can write |
+|---|---|---|
+| Actor create / sync / rename / active toggle | Mixed repository reads, partial transactions, no common project lock | Route every actor mutation through one ProjectContext manager-aware coordinator; recheck membership/admin, canonical name collisions and all dependent assignments under the project lock. |
+| Full matrix replacement | Transactional delete-and-reinsert, but project-wide scope and validation before transaction | Preserve the existing API contract for its current callers; add a separate exact-process-scoped operation for governance. Lock project, exact link, actor rows and affected entries; never call project-wide replacement with a process subset. |
+| Link / unlink process | Checks and link writes are not consistently serialized with RACI and proposal paths | Lock resource set, project and exact link in canonical order. Treat unlink cascade of matrix rows as an explicit destructive operation with audit/confirmation, not a side effect hidden from governance. |
+| Project membership / default validator | Membership change already locks project; default-validator and other project mutations do not all share that lock | All mutations affecting authorization or validator resolution must use the same project coordinator and re-read account/membership/policy inside the transaction. |
+| Variant creation | Resource/content/link creation is transactional but does not consistently lock source resource, parent and project link | Coordinate source/parent resources, project and link; initialize target matrix empty. Any optional transfer remains a separate preview/confirm workflow. |
+| Proposal lifecycle | Proposal row, link and resource locks are acquired in different orders across transitions | Refactor every create/submit/decision/remark/publication path together before introducing a governance transaction that can contend with it. Keep all state-machine and pending-remark guards. |
+| Resource hierarchy mutation/deletion | Parent-child integrity is not fully database-enforced; resource create/delete paths do not share a hierarchy coordinator | ResourceContext must own manager-aware hierarchy locking and reference checks. Do not rely on the ambiguous historical FK actions or a recursive delete based only on ORM relations. |
+| Content publication | Existing transaction helper locks resource, draft, prior publication and latest version | Keep it as the only publication primitive; expose a narrow manager-aware ResourceContext contract. No governance code may update published/obsolete content directly. |
+| Variant matrix transfer | Not implemented | Use the already approved preview/fingerprint contract; revalidate both process links, source matrix fingerprint, exact target draft identity/version/XML fingerprint, registry and admin authority in the same transaction as target-only writes. |
+
+The first implementation milestone should therefore be **coordination only**:
+typed, named transaction-scoped contracts owned by ProjectContext and
+ResourceContext, with no public generic repository access. They should first
+be adopted by the existing writers that can conflict with RACI governance.
+Only after that adoption and PostgreSQL two-connection concurrency tests pass
+should the governance module receive a mutation use case.
+
+No migration, lock helper, controller, route, UI, XML writer or mutation API
+is authorized by this review note.
