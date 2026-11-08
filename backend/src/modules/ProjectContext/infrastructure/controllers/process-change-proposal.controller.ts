@@ -1048,7 +1048,9 @@ export class ProcessChangeProposalController {
           resourceId: proposal.cloneResourceId,
           status: ContentStatusEnum.Draft,
         },
-        order: { version: 'DESC' },
+        // When a workspace contains more than one draft at the same
+        // version, submit the one most recently saved by the modeler.
+        order: { updatedAt: 'DESC', version: 'DESC' },
         lock: { mode: 'pessimistic_write' },
       });
       if (!submittedContent) {
