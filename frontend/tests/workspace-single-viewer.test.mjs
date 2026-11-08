@@ -80,6 +80,19 @@ test('organization user administration has one canonical directory with project-
   assert.match(users, /project\.canSubmitRemarks \? 'Oui' : 'Non'/);
 });
 
+test('organization user management exists only in the canonical user directory', async () => {
+  const routes = await read('src/routes.tsx');
+  const administration = await read('src/Containers/OrganizationAdmin/OrganizationAdmin.container.tsx');
+  const users = await read('src/Containers/UserAccounts/index.tsx');
+
+  assert.match(routes, /path: '\/organization\/users',[\\s\\S]*?import\\('\.\/Containers\/UserAccounts'\\)/);
+  assert.doesNotMatch(administration, /{ key: 'users', label: 'Utilisateurs'/);
+  assert.doesNotMatch(administration, /activeSection === 'users'|setMembership|removeMembership|userRoleFilter|userProjectFilter|org-add-access/);
+  assert.match(users, /updateProjectAccess/);
+  assert.match(users, /updateProjectRemarkPermission/);
+  assert.match(users, /removeProjectAccess/);
+});
+
 test('workspace and organization administration avoid duplicate repository and admin entry points', async () => {
   const projects = await read('src/Containers/Projects/Projects.container.tsx');
   const administration = await read('src/Containers/OrganizationAdmin/OrganizationAdmin.container.tsx');
