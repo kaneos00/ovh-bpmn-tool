@@ -356,6 +356,14 @@ test('legacy content-viewer URLs redirect to the canonical process viewer', asyn
   assert.doesNotMatch(layout, /useSearchParams|searchParams\.get\(/);
   assert.match(details, /selectedContentId\?: string \| null/);
   assert.match(details, /const viewerContent = selectedContentId[\s\S]*?: publishedContent/);
+  assert.match(
+    details,
+    /const viewerContent = selectedContentId[\s\S]*?contents\.find\(content => content\.id === selectedContentId\)[\s\S]*?: publishedContent/,
+    'an explicit deep link must load its exact snapshot, including a draft; the default remains the published version',
+  );
+  assert.match(details, /const isHistoricalView = Boolean\([\s\S]*?viewerContent\.id !== publishedContent\?\.id/);
+  assert.match(details, /const canEditDescription = !isHistoricalView/);
+  assert.match(details, /const canManageVersions = !isHistoricalView/);
   assert.match(details, /requestedRaciView\?: boolean/);
   assert.match(details, /if \(requestedRaciView\) setActiveViewerTab\(3\);[\s\S]*?\[requestedRaciView\]/);
   assert.ok(details.includes('<Tab value={3}>RACI</Tab>'));
