@@ -239,6 +239,7 @@ test('deployed frontend exposes a build identifier with a source-derived fallbac
   const mainContainer = await read('src/MainContainer.tsx');
   const dockerfile = await read('../deploy/coolify/Dockerfile.frontend');
   const compose = await read('../deploy/coolify/compose.yaml');
+  const validateWorkflow = await read('../.github/workflows/validate.yml');
 
   assert.ok(mainContainer.includes('VITE_BUILD_ID'));
   assert.ok(mainContainer.includes('Identifiant de version déployée'));
@@ -907,6 +908,8 @@ test('project trigram is editable, validated and persisted by the project API', 
   assert.ok(migration.includes('ADD COLUMN IF NOT EXISTS trigram'));
   assert.ok(migrationDockerfile.includes('20261108_v3_project_trigram.sql'));
   assert.ok(compose.includes('/opt/migrations/20261108_v3_project_trigram.sql'));
+  assert.ok(validateWorkflow.includes('/opt/migrations/20261108_v3_project_trigram.sql'));
+  assert.ok(validateWorkflow.includes("column_name='trigram'"));
 });
 
 test('project administration uses the shared breadcrumb header and Viewer-aligned surface', async () => {
@@ -937,7 +940,7 @@ test('process viewer resumes an existing open proposal and exposes its status', 
   assert.ok(details.includes('cloneContentId'));
   assert.ok(proposals.includes('proposal.cloneContentId'));
   assert.ok(controller.includes('cloneContentId: cloneDraft?.id ?? null'));
-  assert.ok(controller.includes('cloneContentId: cloneDraftByResourceId.get(proposal.cloneResourceId)?.id ?? null'));
+  assert.ok(controller.includes('cloneDraftByResourceId.get(proposal.cloneResourceId)?.id ?? null'));
   assert.ok(details.includes('Reprendre la demande en cours'));
   assert.ok(details.includes('Une demande de modification est déjà ouverte'));
   assert.ok(details.includes('Impossible de vérifier les demandes déjà ouvertes'));
