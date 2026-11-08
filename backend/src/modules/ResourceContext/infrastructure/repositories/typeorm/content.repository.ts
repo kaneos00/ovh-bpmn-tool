@@ -259,7 +259,7 @@ export class ContentTypeOrmRepository implements ContentRepository {
         callTargets: string[];
         collapsedTargets: string[];
       }> = await this.contentRepository.query(
-        \`WITH latest_published AS (
+        `WITH latest_published AS (
            SELECT DISTINCT ON ("resourceId")
              "resourceId",
              CASE
@@ -286,7 +286,7 @@ export class ContentTypeOrmRepository implements ContentRepository {
              SELECT regexp_replace(node::text, '^.*="([^"]*)".*$', '\\1')
              FROM unnest(xpath('//*[local-name()="subProcess" and @id = //*[local-name()="BPMNShape" and @isExpanded="false"]/@bpmnElement]/@id', xml_content)) AS extracted(node)
            ) AS "collapsedTargets"
-         FROM latest_published\`,
+         FROM latest_published`,
         [resourceIds, 'published'],
       );
 
@@ -302,7 +302,7 @@ export class ContentTypeOrmRepository implements ContentRepository {
       );
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
-      const errorMsg = \`Error while building explorer BPMN links: \${detail}\`;
+      const errorMsg = `Error while building explorer BPMN links: ${detail}`;
       this.logger.error(
         errorMsg,
         error instanceof Error ? error.stack : detail,
