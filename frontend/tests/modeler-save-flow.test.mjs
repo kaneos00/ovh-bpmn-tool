@@ -53,3 +53,18 @@ test('viewer remark submission uses a project that grants the member remark perm
   );
   assert.ok(!initialRemarkFlow.includes('navigate('));
 });
+
+test('published viewer loads active proposal remarks and displays per-element counters', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const viewer = await read('src/Components/BusinessComponents/ProcessViewer/ProcessViewer.tsx');
+  const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+
+  assert.ok(details.includes('/change-proposals/active?contentId='));
+  assert.ok(details.includes('/projects/process-change-proposals/'));
+  assert.ok(details.includes("queryKey: ['process-change-proposal-comments']"));
+  assert.ok(details.includes('remarks={viewerRemarks}'));
+  assert.ok(viewer.includes('remarks?: ProcessViewerRemark[]'));
+  assert.ok(hook.includes("viewer.get('overlays')"));
+  assert.ok(hook.includes('pending > 0 ?'));
+  assert.ok(hook.includes('onElementSelectRef.current?.(elementId)'));
+});
