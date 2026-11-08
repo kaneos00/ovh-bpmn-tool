@@ -373,11 +373,6 @@ export const Component = () => {
           title="Tous les projets"
           description="Vos espaces de travail et les processus auxquels vous avez accès."
           breadcrumbs={[{ id: 'home', label: 'Tous les projets', to: '/projects' }]}
-          actions={(
-            <Button variant="outlined" color="neutral" onClick={() => navigate('/organization/users')}>
-              Administration de l’organisation →
-            </Button>
-          )}
         />
         <Box
           className="processViewerLayout processViewerWorkspace"
