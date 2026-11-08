@@ -63,3 +63,19 @@ test('organization administration accepts only declared sections and returns 404
   assert.match(routes, /path: '\/organization\/:section',[\s\S]*?loader: requireOrganizationSection/);
   assert.match(routes, /path: '\/organization\/users',[\s\S]*?lazy: \(\) => import\('\.\/Containers\/UserAccounts'\)/);
 });
+
+test('organization user administration has one canonical directory with project-role filtering and export', async () => {
+  const routes = await read('src/routes.tsx');
+  const users = await read('src/Containers/UserAccounts/index.tsx');
+
+  assert.match(routes, /path: '\/organization\/users',[\s\S]*?import\('\.\/Containers\/UserAccounts'\)/);
+  assert.match(routes, /async function redirectLegacyAccounts[\s\S]*?redirect\(\`\/organization\/users\$\{url\.search\}\`\)/);
+  assert.match(routes, /path: '\/organization\/accounts',[\s\S]*?loader: redirectLegacyAccounts/);
+  assert.doesNotMatch(routes, /path: '\/organization\/accounts',[\s\S]*?lazy: \(\) => import\('\.\/Containers\/UserAccounts'\)/);
+
+  assert.match(users, /const \[projectRoleFilter, setProjectRoleFilter\] = useState/);
+  assert.match(users, /project\.role === projectRoleFilter/);
+  assert.match(users, /<FormLabel>Rôle projet<\/FormLabel>/);
+  assert.match(users, /exportCsv\('utilisateurs-khi-flows\.csv'/);
+  assert.match(users, /project\.canSubmitRemarks \? 'Oui' : 'Non'/);
+});
