@@ -76,14 +76,12 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   // Review links carry the exact submitted content ID. Prefer the current
   // draft, but retain that proposal content as an editable fallback when the
   // list endpoint does not classify it as the current draft.
-  const editableContent = proposalId && requestedContentId &&
-    selectedContent?.status === ContentStatusEnum.Draft
-      ? selectedContent
-      : draftContent ?? (
-          proposalId && selectedContent?.status === ContentStatusEnum.Draft
-            ? selectedContent
-            : undefined
-        );
+  // In proposal review, save the exact draft submitted for review when its
+  // ID is present in the review link. Ordinary modeler sessions keep using
+  // the current draft, never a historical selected version.
+  const editableContent = proposalId && selectedContent?.status === ContentStatusEnum.Draft
+    ? selectedContent
+    : draftContent;
 
   const { data: draftXmlContent } = useQuery({
     ...getXmlContentQuery(resourceId, selectedContent?.id as string),
@@ -247,7 +245,7 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
       );
     } catch {
       showAlert({
-        message: 'An error occur during saving content.',
+        message: 'Impossible d’enregistrer le brouillon avant la validation ou la publication. Vérifiez le diagramme et réessayez.',
         severity: 'danger',
       });
     }
