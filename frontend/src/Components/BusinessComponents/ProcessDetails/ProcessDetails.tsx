@@ -757,6 +757,17 @@ export const ProcessDetails = ({
                         Ajouter une remarque
                       </Button>
                     )}
+                    {proposalProjectId && activeProposal && !isHistoricalView && (
+                      <Alert color="warning" variant="soft" size="sm">
+                        Une demande de modification est déjà ouverte pour cette version
+                        (statut : {activeProposal.status}). Vous pouvez la retrouver avec le bouton ci-dessous.
+                      </Alert>
+                    )}
+                    {proposalProjectId && activeProposalError && !isHistoricalView && (
+                      <Alert color="danger" variant="soft" size="sm">
+                        Impossible de vérifier les demandes déjà ouvertes. Rechargez la page avant d’en créer une nouvelle.
+                      </Alert>
+                    )}
                     {proposalProjectId && !isHistoricalView && (
                       <Button
                         size="sm"
