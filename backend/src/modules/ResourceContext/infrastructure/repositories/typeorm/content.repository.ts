@@ -251,14 +251,15 @@ export class ContentTypeOrmRepository implements ContentRepository {
 
     try {
       // Only link identifiers are returned to the explorer; BPMN XML stays
-      // inside PostgreSQL and is not transferred to the browser.
+      // inside PostgreSQL and is not transferred to the browser. Malformed
+      // historical XML must not make the entire explorer unavailable.
       const rows: Array<{
         resourceId: string;
         processIds: string[];
         callTargets: string[];
         collapsedTargets: string[];
       }> = await this.contentRepository.query(
-        `WITH latest_published AS (
+        \`WITH latest_published AS (
            SELECT DISTINCT ON ("resourceId")
              "resourceId",
              CASE
@@ -274,7 +275,18 @@ export class ContentTypeOrmRepository implements ContentRepository {
          SELECT
            "resourceId",
            ARRAY(
-             SELECT regexp_replace(node::text, '^.*="([^"]*)".*`,
+             SELECT regexp_replace(node::text, '^.*="([^"]*)".*$', '\\1')
+             FROM unnest(xpath('//*[local-name()="process"]/@id', xml_content)) AS extracted(node)
+           ) AS "processIds",
+           ARRAY(
+             SELECT regexp_replace(node::text, '^.*="([^"]*)".*$', '\\1')
+             FROM unnest(xpath('//*[local-name()="callActivity"]/@calledElement', xml_content)) AS extracted(node)
+           ) AS "callTargets",
+           ARRAY(
+             SELECT regexp_replace(node::text, '^.*="([^"]*)".*$', '\\1')
+             FROM unnest(xpath('//*[local-name()="subProcess" and @id = //*[local-name()="BPMNShape" and @isExpanded="false"]/@bpmnElement]/@id', xml_content)) AS extracted(node)
+           ) AS "collapsedTargets"
+         FROM latest_published\`,
         [resourceIds, 'published'],
       );
 
@@ -290,7 +302,7 @@ export class ContentTypeOrmRepository implements ContentRepository {
       );
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
-      const errorMsg = `Error while building explorer BPMN links: ${detail}`;
+      const errorMsg = \`Error while building explorer BPMN links: \${detail}\`;
       this.logger.error(
         errorMsg,
         error instanceof Error ? error.stack : detail,
