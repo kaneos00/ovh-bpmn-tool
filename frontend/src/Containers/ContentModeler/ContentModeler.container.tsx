@@ -170,6 +170,7 @@ export const Component = () => {
       <ModelerActionBar
         resourceId={resourceId}
         returnToUrl={returnToUrl}
+        modelerReady={isModelerReady}
         hasLintError={hasLintError}
         canUndo={canUndo}
         canRedo={canRedo}
