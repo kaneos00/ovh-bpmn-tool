@@ -40,7 +40,7 @@ async function requireGlobalAdmin({ request }: { request: Request }) {
 }
 
 
-const organizationSections = new Set(['overview', 'users', 'projects', 'processes', 'governance']);
+const organizationSections = new Set(['overview', 'projects', 'processes', 'governance']);
 
 async function requireOrganizationSection(args: {
   request: Request;
