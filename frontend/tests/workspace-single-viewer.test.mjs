@@ -51,3 +51,13 @@ test('legacy content viewer deep links redirect to the canonical viewer with sna
   assert.match(layout, /<ProcessDetails[\s\S]*?selectedContentId=\{requestedContentId\}/);
   assert.match(details, /contents\.find\(content => content\.id === selectedContentId\)/);
 });
+
+test('organization administration accepts only declared sections and returns 404 for unknown ones', async () => {
+  const routes = await read('src/routes.tsx');
+
+  assert.match(routes, /const organizationSections = new Set\(\['overview', 'users', 'projects', 'processes', 'governance'\]\)/);
+  assert.match(routes, /async function requireOrganizationSection\([\s\S]*?await requireGlobalAdmin\(args\)/);
+  assert.match(routes, /throw new Response\('Page d’administration introuvable', \{ status: 404 \}\)/);
+  assert.match(routes, /path: '\/organization\/:section',[\s\S]*?loader: requireOrganizationSection/);
+  assert.match(routes, /path: '\/organization\/users',[\s\S]*?lazy: \(\) => import\('\.\/Containers\/UserAccounts'\)/);
+});
