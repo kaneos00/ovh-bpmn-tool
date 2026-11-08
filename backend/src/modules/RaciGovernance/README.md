@@ -1041,3 +1041,21 @@ a ready-made cross-context coordinator.
 This audit identifies a concrete lock-order conflict, not merely missing locks.
 The shared coordinator design must resolve it before implementation. No
 proposal workflow or content publication code was changed.
+
+
+#### Clarification — individual remark decisions
+
+The full `decideProposalComment` transaction was inspected after the table
+above was written. It locks the proposal row first, then the project-process
+link, re-reads membership, and finally locks the individual comment row.
+Therefore it has the same proposal-before-link prefix and also needs to be
+included in the ordered transition redesign. The pre-transaction membership
+and role checks are only early rejection; the transaction does re-read
+membership, but does not serialize against membership changes with the project
+row lock.
+
+The validator resolution helper also reads the project default validator and
+membership through the transaction manager, but currently without a project
+row lock. The future coordinator must lock the project before resolving or
+confirming validator identity and must keep the project default, membership,
+active account, and proposal assignment mutually consistent.
