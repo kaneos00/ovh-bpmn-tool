@@ -1059,3 +1059,168 @@ membership through the transaction manager, but currently without a project
 row lock. The future coordinator must lock the project before resolving or
 confirming validator identity and must keep the project default, membership,
 active account, and proposal assignment mutually consistent.
+
+
+### Proposed global lock protocol — design baseline, not yet implemented (2026-11-08)
+
+This section turns the inventory into a candidate protocol for review. It is
+not permission to change writers. The protocol must first be checked against
+all database constraints, foreign keys, cascade behavior, repository methods,
+and every transaction that can touch the same rows.
+
+#### A. Canonical lock classes and order
+
+For a transaction that spans more than one class, acquire locks in this order:
+
+1. **Resource hierarchy rows**: all known affected resource rows, including
+   source/target resources and relevant parent rows. Sort by immutable UUID
+   ascending; acquire each row lock in that order. If ancestors must be
+   discovered, read candidate IDs first, then lock the ordered set and
+   revalidate parent relationships. If the set changed, abort and retry from
+   a fresh snapshot; do not acquire a newly discovered lower-order resource
+   after later classes have been locked.
+2. **Project rows**: all affected project rows, UUID ascending, with
+   `pessimistic_write`. Re-read project existence, membership, default
+   validator and project-level policy only after these locks.
+3. **Project-process link rows**: exact `(projectId, resourceId)` pairs in
+   lexicographic UUID tuple order. Re-read existence and usage after project
+   locks. Link attach/unlink and variant creation must use this same order.
+4. **Governance rows**: actor registry rows, RACI assignment rows, proposal
+   rows, proposal comment rows and governance event rows. Within each table,
+   acquire exact rows in stable primary-key order. For absent rows, row locks
+   do not serialize competing inserts: rely on a database unique constraint
+   plus conflict handling, or lock the owning project before checking and
+   inserting.
+5. **Content rows**: draft, current published and version rows, in the
+   exact deterministic order established by the ResourceContext publication
+   contract. The publication helper currently locks the resource, draft,
+   previous published row and latest version in that order. Any caller that
+   composes it must already own the resource lock through the same
+   EntityManager and must not have acquired a later class first.
+6. **Writes and audit**: perform mutations only after all relevant locks and
+   revalidation have succeeded. Keep state changes, audit events and
+   publication/proposal transitions in the same transaction.
+
+The ordering above is a proposed cross-context hierarchy, not a claim that
+all current handlers comply. In particular, the current publication helper's
+resource/content sequence must be retained and explicitly composed with the
+governance sequence. If a transaction needs a row not included in its initial
+lock set, it must abort and restart with the expanded sorted set rather than
+acquiring it out of order.
+
+#### B. Lock-set discovery and stale-set handling
+
+- A preliminary read may discover candidate resource IDs, parent IDs, project
+  IDs and link pairs. It is discovery only and grants no authority.
+- Start the transaction, lock the complete discovered resource set in sorted
+  order, then project rows, then link rows. Re-read the relationships through
+  the same manager.
+- If a parent, project link, source publication, proposal source or target
+  identity differs from the discovery snapshot, abort with a retryable
+  conflict. Do not append an out-of-order lock.
+- For operations with a user preview (such as variant matrix transfer), also
+  compare the stored preview fingerprints and exact content IDs/versions after
+  acquiring locks. A lock does not make an old preview current.
+- Authorization is re-evaluated under the locks: authenticated account active
+  state, organization-admin status where applicable, current project
+  membership/role, `canSubmitRemarks`, process usage, configured validator
+  and target draft eligibility. Pre-transaction checks may reject early but
+  cannot authorize the write.
+- All reads and writes in the critical section use the transaction's
+  `EntityManager`. Injected global repositories must not be used for
+  authorization or state used to decide a mutation after transaction start.
+
+#### C. Operation classes and required serialization
+
+| Operation class | Minimum rows in the canonical lock set | Required invariant |
+|---|---|---|
+| Actor create / import / rename / activate / deactivate | Project; relevant actor rows; relevant assignment rows | Actor uniqueness, active state and every affected assignment label are serialized with all other project RACI writers. |
+| RACI matrix replace | Project; exact project-process links for all submitted and currently affected resource IDs; actor rows; assignment rows | Reconcile only the intended resource scope. A process-scoped operation must never delete the entire project's matrix. |
+| Variant creation | Source and target/parent resource rows; project; exact source/target project-process links; source published content | Source publication, parent hierarchy, project link and new variant draft are created atomically. New variant matrix remains empty by default. |
+| Explicit variant matrix transfer | Source and target resource rows; project; both exact project-process links; source and target draft/content rows; actor registry and assignment rows | Revalidate source fingerprint, exact target draft, stable BPMN IDs, active registered actors, authorization and unresolved rows; write only target assignments and audit. |
+| Attach / unlink process | Resource and relevant parent rows; project; exact link row (or unique-key insert) | Link operations serialize with project deletion, resource deletion, proposal actions and RACI preview/confirm. |
+| Project membership / default validator | Project; membership rows; project row already serializes current membership path | Role, remark permission, default validator and active account checks cannot race governed operations. |
+| Resource create / clone / delete / reparent | Parent/source/target resource rows; affected projects and links when resource is linked or deletion constraints require them | No child may appear during a protected recursive delete; no linked resource may disappear while a project operation relies on it. |
+| Proposal create / submit / decide / publish / remark add / remark decide | Source/workspace/parent resource rows; project; link; proposal; comment; content rows as applicable | All proposal transitions share one lock order and preserve existing state-machine, validator, pending-remark and publication guards. |
+
+#### D. Specific migration of proposal workflows
+
+The current proposal controller cannot be fixed by adding a project lock
+inside its existing transactions. Its current order includes proposal or
+project-process locks before the source resource lock. The proposed migration
+is:
+
+1. Resolve immutable candidate identifiers (source resource, workspace
+   resource if already known, source parent, project, proposal and comment).
+2. Begin transaction and lock the complete resource set first, including
+   source and workspace resources where present, in UUID order.
+3. Lock the project row; re-read membership, role, validator/default and
+   process policy.
+4. Lock/re-read the exact project-process link.
+5. Lock proposal row, then comment rows, in stable ID order.
+6. Lock content rows through the existing ResourceContext publication
+   contract; for publication, pass an already locked source resource only
+   after proving it was locked by this transaction and in step 2.
+7. Revalidate proposal status, source published content ID, submitted draft
+   ID/status, pending remarks and validator decision; then write proposal,
+   content, event and audit state atomically.
+
+For proposal creation, the workspace resource does not yet exist at step 2.
+Its parent and source are locked first; workspace insertion then occurs under
+the already locked parent. The new workspace row is owned by the transaction
+and must not be re-locked out of order. A generated workspace ID must not
+cause acquisition of a resource lock after project/governance locks; the
+new row is not concurrently visible before commit, and its writes remain
+inside the transaction.
+
+This migration must be applied consistently to every proposal transition.
+The current proposal row lock remains necessary for state-machine serialization;
+it simply moves later in the global order.
+
+#### E. Transaction ownership and API boundaries
+
+- ProjectContext should own a narrow application-level coordinator for
+  project-row locks, membership/policy revalidation and exact project-process
+  link operations. It may accept an `EntityManager` supplied by the outer
+  transaction; it must not start a nested independent transaction.
+- ResourceContext should own a corresponding narrow resource-hierarchy and
+  content-publication contract. It must provide manager-aware operations for
+  locking parent/source rows and creating/deleting/reparenting resources.
+- The app composition root may compose these contracts. Neither context may
+  import the other's repositories, entities or controllers.
+- Do not export generic repositories or `EntityManager`-level escape hatches
+  as public cross-context APIs. Expose named operations with explicit
+  invariants and typed inputs/results.
+- A transaction has one owner. Helpers participate in the supplied manager
+  and never commit independently.
+- Keep the current content publication helper as the sole publication
+  primitive until an equivalent or safer contract is implemented and tested.
+
+#### F. Database and test prerequisites
+
+Before implementation, verify:
+- PostgreSQL isolation level used by TypeORM transactions and the behavior of
+  `pessimistic_write` / `pessimistic_read` for the deployed PostgreSQL
+  version.
+- Unique constraints for actor normalized names, project-process links,
+  resource sibling names, content version/status and RACI matrix cells.
+- Foreign keys and cascade behavior for deleting projects/resources with
+  memberships, links, contents, proposals, actors and assignments.
+- Whether every path that changes parent IDs, resource links or project
+  membership can be forced through the owning coordinator.
+- Whether a database constraint or trigger is needed for invariants that
+  cannot be guaranteed by application locks alone.
+
+Required PostgreSQL integration tests use two independent connections and
+explicit barriers (not timing sleeps): actor create vs rename; actor deactivate
+vs RACI replace; RACI replace vs unlink; attach vs project delete; child create
+vs recursive delete; variant create vs source publish/unlink; proposal create
+vs unlink; proposal publish vs source publication/resource delete; membership
+revocation vs remark add/decision; and two confirmations from the same stale
+variant-transfer preview. Assert both final rows and absence of deadlocks,
+partial audit, orphan workspace resources and duplicate matrix cells.
+
+No schema, lock helper, service, endpoint, writer or test has been changed as
+part of this design note. This protocol remains a candidate until the
+remaining resource and project mutation paths and database constraints have
+been checked against it.
