@@ -27,7 +27,7 @@ test('the project workspace is the only project landing page and Viewer shell', 
   assert.match(redirect, /navigate\('\/root', \{ replace: true \}\)/);
 
   assert.match(overview, /ProjectProcessOverview/);
-  assert.match(overview, /apiClient\.put\('\/projects\/' \+ activeProjectId/);
+  assert.match(overview, /apiClient\.put\(`\/projects\/\$\{activeProjectId\}`/);
 });
 
 test('project breadcrumbs omit the redundant Referentiel level and Home landing page', async () => {
@@ -37,4 +37,17 @@ test('project breadcrumbs omit the redundant Referentiel level and Home landing 
   assert.doesNotMatch(breadcrumbs, /to: '\/home'/);
   assert.match(breadcrumbs, /label: activeProject\.name/);
   assert.match(breadcrumbs, /treePath\.filter\(node => node\.id !== 'root'\)/);
+});
+
+test('legacy content viewer deep links redirect to the canonical viewer with snapshot context', async () => {
+  const routes = await read('src/routes.tsx');
+  const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.match(routes, /path: '\/:resourceId\/viewer\/:contentId'/);
+  assert.match(routes, /url\.searchParams\.set\('contentId', params\.contentId \?\? ''\)/);
+  assert.match(routes, /return redirect\(`\/\$\{params\.resourceId\}\?\$\{url\.searchParams\.toString\(\)\}`\)/);
+  assert.doesNotMatch(routes, /import\('\.\/Containers\/ContentViewer'\)/);
+  assert.match(layout, /<ProcessDetails[\s\S]*?selectedContentId=\{requestedContentId\}/);
+  assert.match(details, /contents\.find\(content => content\.id === selectedContentId\)/);
 });
