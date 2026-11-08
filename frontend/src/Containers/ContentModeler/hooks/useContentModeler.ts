@@ -95,16 +95,19 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   // Do not initialize an empty diagram while the requested BPMN XML is still
   // loading (or after its request has failed). That previously left the user
   // with a blank modeler and no indication that the source content was absent.
-  const draftXmlContent = selectedContent
-    ? loadedDraftXmlContent
-    : contents !== undefined
-      ? ''
-      : undefined;
-  const draftXmlContentErrorMessage = draftXmlContentIsError
-    ? draftXmlContentError instanceof Error
+  let draftXmlContent: string | undefined;
+  if (selectedContent) {
+    draftXmlContent = loadedDraftXmlContent;
+  } else if (contents !== undefined) {
+    draftXmlContent = '';
+  }
+
+  let draftXmlContentErrorMessage: string | null = null;
+  if (draftXmlContentIsError) {
+    draftXmlContentErrorMessage = draftXmlContentError instanceof Error
       ? draftXmlContentError.message
-      : 'Le serveur n’a pas retourné le contenu BPMN.'
-    : null;
+      : 'Le serveur n’a pas retourné le contenu BPMN.';
+  }
 
   const onCompareWithSource = useCallback(() => {
     if (!sourceResourceId || !sourceContent?.id || !draftContent?.id) {
