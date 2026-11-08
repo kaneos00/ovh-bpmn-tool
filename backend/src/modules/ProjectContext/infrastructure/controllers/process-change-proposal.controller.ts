@@ -449,7 +449,9 @@ export class ProcessChangeProposalController {
           ProcessChangeProposalStatus.ChangesRequested,
         ]),
       },
-      order: { createdAt: 'ASC' },
+      // Prefer the most recently maintained active workspace. Older orphaned
+      // proposals can remain in the audit history after their draft was removed.
+      order: { updatedAt: 'DESC', createdAt: 'DESC' },
     });
     if (!proposal) return null;
     const cloneDraft = await this.dataSource
