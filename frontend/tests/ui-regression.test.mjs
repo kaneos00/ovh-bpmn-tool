@@ -917,3 +917,18 @@ test('leaving the proposal modeler clears the shared BPMN selection', async () =
   assert.ok(modeler.includes("bpmnModelerInstance.get('selection')"));
   assert.ok(modeler.includes('selection?.select?.([])'));
 });
+
+
+test('proposal modeler waits for its BPMN XML and reports loading failures instead of showing an empty diagram', async () => {
+  const contentHook = await read('src/Containers/ContentModeler/hooks/useContentModeler.ts');
+  const modelerHook = await read('src/Containers/ContentModeler/hooks/useModeler.ts');
+  const container = await read('src/Containers/ContentModeler/ContentModeler.container.tsx');
+  const actionBar = await read('src/Containers/ContentModeler/components/ModelerActionBar.tsx');
+
+  assert.ok(contentHook.includes('draftXmlContentIsError'));
+  assert.ok(contentHook.includes('contents !== undefined'));
+  assert.ok(modelerHook.includes('content === undefined'));
+  assert.ok(container.includes('Impossible de charger le diagramme BPMN de cette demande'));
+  assert.ok(container.includes('modelerReady={isModelerReady}'));
+  assert.ok(actionBar.includes('disabled={!modelerReady}'));
+});
