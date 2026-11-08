@@ -196,12 +196,11 @@ export const ProcessDetails = ({
     onContentChecked,
   } = useProcessDetails(resourceId, { onContentUpload });
 
-  // An explicit contentId is authoritative: never silently show the latest
-  // published version when a requested historical version is missing or invalid.
+  // An explicit contentId is authoritative, including a draft reached through
+  // a legacy deep link. Drafts are treated as historical read-only snapshots;
+  // without an explicit ID, the canonical viewer still opens the published version.
   const viewerContent = selectedContentId
-    ? contents.find(
-        content => content.id === selectedContentId && content.status !== ContentStatusEnum.Draft,
-      )
+    ? contents.find(content => content.id === selectedContentId)
     : publishedContent;
   const isHistoricalView = Boolean(
     selectedContentId && (!viewerContent || viewerContent.id !== publishedContent?.id),
