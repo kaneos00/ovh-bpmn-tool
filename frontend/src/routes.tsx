@@ -39,6 +39,20 @@ async function requireGlobalAdmin({ request }: { request: Request }) {
   }
 }
 
+
+const organizationSections = new Set(['overview', 'users', 'projects', 'processes', 'governance']);
+
+async function requireOrganizationSection(args: {
+  request: Request;
+  params: { section?: string };
+}) {
+  await requireGlobalAdmin(args);
+  if (!args.params.section || !organizationSections.has(args.params.section)) {
+    throw new Response('Page d’administration introuvable', { status: 404 });
+  }
+  return null;
+}
+
 /**
  * V3 application routes: authenticated process workspace plus global-admin
  * organization administration. Account and project access operations reuse
@@ -65,7 +79,7 @@ export const routes = [
       },
       {
         path: '/organization/:section',
-        loader: requireGlobalAdmin,
+        loader: requireOrganizationSection,
         lazy: () => import('./Containers/OrganizationAdmin'),
       },
       {
