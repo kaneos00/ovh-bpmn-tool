@@ -1440,3 +1440,13 @@ This ADR is a design artifact only. It does not approve or implement a
 transaction coordinator, lock helper, writer refactor, migration, endpoint,
 UI, XML writer or governance mutation. The live database preflight and
 PostgreSQL concurrency evidence remain mandatory.
+
+### Concrete writer-path audit
+
+The controller/handler-level findings are recorded in
+[`docs/architecture/raci-governance-writer-path-audit.md`](../../../docs/architecture/raci-governance-writer-path-audit.md).
+In particular, ordinary resource clone is currently a non-atomic
+resource-then-content workflow with best-effort cleanup, project creation
+saves its initial administrator membership separately, actor activation is a
+direct repository write, and unlink/delete checks occur before their writes.
+These are additional coordination gaps, not approved runtime changes.
