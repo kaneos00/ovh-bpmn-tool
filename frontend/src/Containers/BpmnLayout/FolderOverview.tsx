@@ -80,7 +80,7 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
         current = byId.get(current.parentId);
       }
     });
-    return allResources
+    return Array.from(byId.values())
       .filter(childResource => allowedIds.has(childResource.id) && (childResource.parentId ?? 'root') === resourceId)
       .sort((left, right) => {
         if (left.type !== right.type) {
