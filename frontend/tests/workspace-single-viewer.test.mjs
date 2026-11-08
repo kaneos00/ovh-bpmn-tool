@@ -79,3 +79,18 @@ test('organization user administration has one canonical directory with project-
   assert.match(users, /exportCsv\('utilisateurs-khi-flows\.csv'/);
   assert.match(users, /project\.canSubmitRemarks \? 'Oui' : 'Non'/);
 });
+
+test('organization-wide search is explicit and project scope remains the default when a project is active', async () => {
+  const search = await read('src/Containers/SearchResults/SearchResults.container.tsx');
+  const users = await read('src/Containers/UserAccounts/index.tsx');
+
+  assert.match(search, /useState<'project' \| 'organization'>/);
+  assert.match(search, /projectId: effectiveProjectId/);
+  assert.match(search, /scope === 'organization' \|\| Boolean\(activeProjectId\)/);
+  assert.match(search, /Toute l’organisation/);
+  assert.match(search, /scope === 'project' \? activeProjectId/);
+  assert.match(search, /filter\(process => scope === 'organization' \|\| projectProcessIds\.has\(process\.id\)\)/);
+  assert.match(users, /const \[projectFilter, setProjectFilter\] = useState\('all'\)/);
+  assert.match(users, /project\.projectId === projectFilter/);
+  assert.match(users, /<FormLabel>Projet<\/FormLabel>/);
+});
