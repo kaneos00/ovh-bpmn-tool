@@ -892,3 +892,28 @@ A new project variant must be treated as an independent process, not as an impli
 This is a proposed governance rule, not an enabled behavior or an already approved product decision. Before implementing it, confirm whether a project variant should always start with an empty assignment matrix or whether the administrator should be offered an explicit, previewed copy of the source matrix as a starting point. In either case, no automatic copy, merge, or XML-to-database synchronization is permitted.
 
 Required integration tests must distinguish all three paths and assert the resource IDs, content status/version, project links, actor registry, assignment rows, and retained XML RACI extensions. They must also prove that a failed clone cannot leave a partially linked or partially governed variant.
+
+#### Accepted decision — variant starts empty; optional explicit transfer
+
+Decision confirmed by the product owner on 2026-11-08:
+
+1. Every newly created project variant starts with **no database assignment rows** in `project_raci_entries`. The source process's matrix is never copied implicitly.
+2. The project-wide actor registry is not duplicated or reset. It remains shared by the project, as required by the existing `project_raci_actors` scope.
+3. An administrator may later request an explicit transfer from the source process to the variant. This is a separate governance operation, not part of variant creation or XML publication.
+4. The transfer must first produce a read-only preview. Only a subsequent explicit confirmation may write assignments. There is no automatic merge, overwrite, XML rewrite, or publication.
+
+##### Preview contract to implement later
+
+The preview should be bound to the exact source and target scope and include:
+- project ID, source resource ID, target variant resource ID;
+- source matrix snapshot and its deterministic fingerprint;
+- target resource's exact draft content ID, version and XML fingerprint;
+- each proposed assignment, matched by stable BPMN element ID and role;
+- actor-register validation (registered, active, normalized-name collision);
+- target BPMN element validation, duplicate candidates, and all rejected/unmapped rows with explicit reasons.
+
+The preview must not silently drop rows. Any assignment whose BPMN element ID is absent from the target draft, whose actor is inactive/unregistered, or whose role is invalid must be reported as unresolved. A name-only task match is not sufficient for automatic transfer. Human resolution is required for unresolved rows.
+
+Confirmation must revalidate the source matrix fingerprint, target draft identity/version/fingerprint, actor registry, project membership and administrator authorization inside the same transaction that writes the target assignments. It must reject stale previews without partial writes. A confirmed transfer must be auditable and idempotent; retrying the same confirmation cannot duplicate or reapply it. It must not modify the source matrix or either BPMN XML document.
+
+**Implementation gate:** this contract is approved as a design direction, but implementation remains blocked until the shared lock/revision protocol is adopted by every competing RACI writer and project/process-link mutation path, and PostgreSQL integration tests prove concurrency, stale-preview rejection, authorization revalidation, atomicity and idempotency. No new table, migration, endpoint, UI or writer is authorized by this decision alone.
