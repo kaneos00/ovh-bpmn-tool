@@ -85,7 +85,7 @@ test('organization user management exists only in the canonical user directory',
   const administration = await read('src/Containers/OrganizationAdmin/OrganizationAdmin.container.tsx');
   const users = await read('src/Containers/UserAccounts/index.tsx');
 
-  assert.match(routes, /path: '\/organization\/users',[\\s\\S]*?import\\('\.\/Containers\/UserAccounts'\\)/);
+  assert.match(routes, /path: '\/organization\/users',[\s\S]*?lazy: \(\) => import\('\.\/Containers\/UserAccounts'\)/);
   assert.doesNotMatch(administration, /{ key: 'users', label: 'Utilisateurs'/);
   assert.doesNotMatch(administration, /activeSection === 'users'|setMembership|removeMembership|userRoleFilter|userProjectFilter|org-add-access/);
   assert.match(users, /updateProjectAccess/);
