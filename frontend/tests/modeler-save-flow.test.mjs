@@ -30,7 +30,7 @@ test('proposal review opens and saves the exact submitted draft instead of faili
   const hook = await read('src/Containers/ContentModeler/hooks/useContentModeler.ts');
   const queue = await read('src/Containers/MyProcessChangeProposals/MyProcessChangeProposals.container.tsx');
 
-  assert.ok(hook.includes('const editableContent = draftContent ??'));
+  assert.ok(hook.includes('const editableContent = proposalId && requestedContentId'));
   assert.ok(hook.includes('Aucun brouillon modifiable n’a été chargé'));
   assert.ok(hook.includes("saveDiagram('saveContent', editableContent)"));
   assert.ok(queue.includes('&contentId=${proposal.submittedContentId}'));
