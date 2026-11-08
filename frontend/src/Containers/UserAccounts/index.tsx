@@ -21,8 +21,8 @@ import {
   Table,
   Typography,
 } from '@mui/joy';
-import { WorkspacePageLayout } from '../../Components/GenericComponents/WorkspacePageLayout/WorkspacePageLayout';
 import './UserAccounts.scss';
+import { OrganizationAdminLayout } from '../OrganizationAdmin/OrganizationAdminLayout';
 import '../OrganizationAdmin/OrganizationAdmin.scss';
 
 type Role = 'admin' | 'modeler' | 'viewer';
@@ -370,56 +370,17 @@ export const Component = () => {
   };
 
   return (
-    <WorkspacePageLayout className="org-admin-v2__page">
-      <Stack spacing={2}>
-        <div className="org-admin-v2">
-          <aside className="org-admin-v2__sidebar">
-            <div className="org-admin-v2__brand">
-              <img className="org-admin-v2__brand-logo" src="/bpmn-tool-logo.svg" alt="" />
-              <div><strong>KHI Flows</strong><small>Administration</small></div>
-            </div>
-            <div className="org-admin-v2__nav-group">
-              <div className="org-admin-v2__nav-label">Administration</div>
-              <nav className="org-admin-v2__nav" aria-label="Navigation de l’administration">
-                {[
-                  ['overview', 'Vue d’ensemble', '▦'],
-                  ['users', 'Utilisateurs', '♙'],
-                  ['projects', 'Projets', '▣'],
-                  ['processes', 'Processus', '⌘'],
-                  ['governance', 'Acteurs et RACI', '⬡'],
-                ].map(([key, label, icon]) => (
-                  <button
-                    type="button"
-                    key={key}
-                    className={`org-admin-v2__nav-item${key === 'users' ? ' is-active' : ''}`}
-                    aria-current={key === 'users' ? 'page' : undefined}
-                    onClick={() => navigate(`/organization/${key}`)}
-                  >
-                    <span className="org-admin-v2__nav-icon" aria-hidden="true">{icon}</span>
-                    <span>{label}</span>
-                  </button>
-                ))}
-              </nav>
-            </div>
-            <div className="org-admin-v2__sidebar-foot">
-              <strong>Accès sécurisés</strong>
-              <span>Les droits sont contrôlés par l’API, indépendamment de l’interface.</span>
-            </div>
-          </aside>
-          <main className="org-admin-v2__main">
-            <header className="org-admin-v2__topbar">
-              <div>
-                <div className="org-admin-v2__crumb" aria-label="Fil d’Ariane">
-                  <Button size="sm" variant="plain" color="neutral" sx={{ p: 0, minHeight: 'unset' }} onClick={() => navigate('/organization/overview')}>Administration</Button>
-                  <span>/</span>
-                  <Button size="sm" variant="plain" color="neutral" sx={{ p: 0, minHeight: 'unset' }} onClick={() => navigate('/organization/users')}>Utilisateurs</Button>
-                  {username && <> / {selectedAccount?.username ?? username}</>}
-                </div>
-                <div className="org-admin-v2__top-title">{username ? 'Fiche utilisateur' : 'Administration des utilisateurs'}</div>
-              </div>
-              <Chip size="sm" color="primary" variant="soft">Accès organisationnel</Chip>
-            </header>
-            <div className="org-admin-v2__content">
+    <OrganizationAdminLayout
+      activeSection="users"
+      title={username ? 'Fiche utilisateur' : 'Administration des utilisateurs'}
+      breadcrumbs={[
+        { id: 'home', label: 'Tous les projets', to: '/projects' },
+        { id: 'administration', label: 'Administration', to: '/organization/overview' },
+        { id: 'users', label: 'Utilisateurs', to: '/organization/users' },
+        ...(username ? [{ id: 'account', label: selectedAccount?.username ?? username, to: `/organization/users/${encodeURIComponent(username)}` }] : []),
+      ]}
+    >
+
               {error && <Alert color="danger" sx={{ mb: 2 }}>{error}</Alert>}
               {notice && <Alert color="success" sx={{ mb: 2 }}>{notice}</Alert>}
               {!username && <>
@@ -628,11 +589,7 @@ export const Component = () => {
                   </div>
                 </Card>
               )}
-            </div>
-          </main>
-        </div>
-      </Stack>
-    </WorkspacePageLayout>
+    </OrganizationAdminLayout>
   );
 };
 
