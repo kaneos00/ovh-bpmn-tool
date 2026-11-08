@@ -27,16 +27,7 @@ import { WorkspacePageLayout } from '../../Components/GenericComponents/Workspac
 import { Breadcrumbs } from '../../Components/GenericComponents/Breadcrumbs/Breadcrumbs';
 import './OrganizationAdmin.scss';
 
-type MembershipView = {
-  projectId: string;
-  projectName: string;
-  role: 'viewer' | 'modeler' | 'admin';
-};
-
-type AdminUser = {
-  userId: string;
-  projects: MembershipView[];
-};
+type ProjectRole = 'viewer' | 'modeler' | 'admin';
 
 type ProjectCreate = { name: string; description: string };
 type ProjectUpdate = { id: string; name: string; description: string };
@@ -71,7 +62,7 @@ type AdminProcess = {
 
 type AdministrationOverview = {
   projects: AdminProject[];
-  users: AdminUser[];
+  users: Array<{ userId: string }>;
   processes: AdminProcess[];
 };
 
@@ -148,7 +139,7 @@ export const Component = () => {
   const [projectBulkAction, setProjectBulkAction] = useState(false);
   const [processBulkAction, setProcessBulkAction] = useState(false);
   const [bulkMemberUserId, setBulkMemberUserId] = useState('');
-  const [bulkMemberRole, setBulkMemberRole] = useState<MembershipView['role']>('viewer');
+  const [bulkMemberRole, setBulkMemberRole] = useState<ProjectRole>('viewer');
   const [bulkProcessProjectId, setBulkProcessProjectId] = useState('');
   const [bulkProcessUsage, setBulkProcessUsage] = useState<'common' | 'project-specific'>('project-specific');
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -421,7 +412,7 @@ export const Component = () => {
                     <Alert color="primary" variant="soft" sx={{ mb: 2 }}>
                       <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'flex-end' }} gap={1}>
                         <FormControl sx={{ flex: 1 }}><FormLabel>Identifiant utilisateur</FormLabel><Input value={bulkMemberUserId} onChange={event => setBulkMemberUserId(event.target.value)} placeholder="Identifiant exact" /></FormControl>
-                        <FormControl sx={{ minWidth: 180 }}><FormLabel>Rôle dans les projets</FormLabel><Select value={bulkMemberRole} onChange={(_event, value) => value && setBulkMemberRole(value as MembershipView['role'])}><Option value="viewer">Viewer</Option><Option value="modeler">Modeler</Option><Option value="admin">Admin</Option></Select></FormControl>
+                        <FormControl sx={{ minWidth: 180 }}><FormLabel>Rôle dans les projets</FormLabel><Select value={bulkMemberRole} onChange={(_event, value) => value && setBulkMemberRole(value as ProjectRole)}><Option value="viewer">Viewer</Option><Option value="modeler">Modeler</Option><Option value="admin">Admin</Option></Select></FormControl>
                         <Button disabled={!bulkMemberUserId.trim() || bulkBusy} loading={bulkBusy} onClick={() => void applyBulkProjectMember()}>Affecter à {selectedProjects.length} projet(s)</Button>
                         <Button variant="plain" color="neutral" onClick={() => setProjectBulkAction(false)}>Annuler</Button>
                       </Stack>
