@@ -104,7 +104,12 @@ export const Component = () => {
     const source = searchParams.get('source') ?? '';
     setSourceFilter(isSearchSource(source) ? source : '');
     setProcessFilter(searchParams.get('resourceId') ?? '');
-    setScope(searchParams.get('scope') === 'project' ? 'project' : searchParams.get('scope') === 'organization' ? 'organization' : activeProjectId ? 'project' : 'organization');
+    const requestedScope = searchParams.get('scope');
+    if (requestedScope === 'project' || requestedScope === 'organization') {
+      setScope(requestedScope);
+    } else {
+      setScope(activeProjectId ? 'project' : 'organization');
+    }
     const role = searchParams.get('role') ?? '';
     setRoleFilter(isSearchRole(role) ? role : '');
   }, [searchParams, activeProjectId]);
