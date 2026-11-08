@@ -47,6 +47,7 @@ type ModelerActionBarProps = {
   onPublishApprovedProposal?: () => void;
   publishApprovedDisabled?: boolean;
   publishApprovedLoading?: boolean;
+  modelerReady?: boolean;
 };
 
 export const ModelerActionBar = ({
@@ -70,6 +71,7 @@ export const ModelerActionBar = ({
   onPublishApprovedProposal,
   publishApprovedDisabled = false,
   publishApprovedLoading = false,
+  modelerReady = true,
 }: ModelerActionBarProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -169,6 +171,7 @@ export const ModelerActionBar = ({
           color="neutral"
           startDecorator={<Save fontSize="small" />}
           onClick={onDiagramSave}
+          disabled={!modelerReady}
         >
           Save
         </Button>
@@ -176,6 +179,7 @@ export const ModelerActionBar = ({
         {!hidePublish && (
           <Button
             onClick={onDiagramPublish}
+            disabled={!modelerReady}
             variant="outlined"
             // disabled={hasLintError}
             color="success"
