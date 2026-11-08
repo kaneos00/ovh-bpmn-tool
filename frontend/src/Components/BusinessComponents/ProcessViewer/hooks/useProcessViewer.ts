@@ -4,6 +4,7 @@ import { useQuery } from 'react-query';
 import { getXmlContentQuery } from '../../../../api/contents/contents.queries';
 import { useBpmnViewerInstance } from '../../../../shared/hooks/useBpmnViewerInstance';
 import { useCallActivityNavigation } from '../../../../shared/hooks/useCallActivityNavigation';
+import type { ProcessViewerRemark } from '../ProcessViewer';
 
 const ZOOM_STEP = 1.2;
 const DIAGRAM_PADDING = 24;
@@ -13,6 +14,7 @@ export const useProcessViewer = (
   contentId: string,
   selectedElementId?: string | null,
   onElementSelect?: (elementId: string) => void,
+  remarks: ProcessViewerRemark[] = [],
 ) => {
   const { getViewerInstance } = useBpmnViewerInstance();
   const viewerRef = useRef<HTMLDivElement>(null);
@@ -20,6 +22,7 @@ export const useProcessViewer = (
   const onElementSelectRef = useRef(onElementSelect);
   const importedRef = useRef(false);
   const highlightedIdRef = useRef<string | null>(null);
+  const overlayIdsRef = useRef<Array<string | number>>([]);
   const [importError, setImportError] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [minimapVisible, setMinimapVisible] = useState(false);
@@ -410,6 +413,80 @@ export const useProcessViewer = (
       }
     };
   }, [xmlContent, resourceId, contentId, viewer, isXmlLoading, isXmlError, setMinimapVisibility]);
+
+  useEffect(() => {
+    if (!importedRef.current) return undefined;
+
+    const overlays = viewer.get('overlays') as any;
+    const registry = viewer.get('elementRegistry') as any;
+    overlayIdsRef.current.forEach(id => {
+      try {
+        overlays.remove(id);
+      } catch {
+        // The import may already have cleared the overlay.
+      }
+    });
+    overlayIdsRef.current = [];
+
+    const counts = new Map<string, { total: number; pending: number }>();
+    remarks.forEach(remark => {
+      if (!registry.get(remark.elementId)) return;
+      const current = counts.get(remark.elementId) ?? { total: 0, pending: 0 };
+      current.total += 1;
+      if (remark.status === 'pending') current.pending += 1;
+      counts.set(remark.elementId, current);
+    });
+
+    counts.forEach(({ total, pending }, elementId) => {
+      const badge = document.createElement('button');
+      badge.type = 'button';
+      badge.textContent = String(total);
+      badge.title = pending > 0
+        ? `${total} remarque(s) sur cet élément, dont ${pending} à traiter`
+        : `${total} remarque(s) sur cet élément`;
+      badge.setAttribute('aria-label', badge.title);
+      Object.assign(badge.style, {
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: '20px',
+        height: '20px',
+        padding: '0 5px',
+        border: '2px solid #fff',
+        borderRadius: '12px',
+        background: pending > 0 ? '#b45309' : '#2459a6',
+        color: '#fff',
+        boxShadow: '0 1px 4px rgba(0,0,0,.25)',
+        fontSize: '11px',
+        fontWeight: '700',
+        lineHeight: '16px',
+        cursor: 'pointer',
+      });
+      badge.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        onElementSelectRef.current?.(elementId);
+      });
+      const overlayId = overlays.add(elementId, 'contextual-remarks', {
+        position: { top: -9, right: -9 },
+        html: badge,
+      });
+      if (overlayId !== undefined && overlayId !== null) {
+        overlayIdsRef.current.push(overlayId);
+      }
+    });
+
+    return () => {
+      overlayIdsRef.current.forEach(id => {
+        try {
+          overlays.remove(id);
+        } catch {
+          // Ignore overlays already removed by the viewer.
+        }
+      });
+      overlayIdsRef.current = [];
+    };
+  }, [remarks, viewer, isImporting]);
 
   useEffect(() => {
     applySelectionRef.current();
