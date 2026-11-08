@@ -1309,3 +1309,28 @@ the TypeORM entities.
 
 This is a schema audit finding only. No migration, trigger, constraint,
 normalizer or writer was changed.
+
+
+#### Clarification — checked-in Coolify demo bootstrap
+
+The deployment files resolve part of the ambiguity for a **fresh Coolify demo
+volume**:
+- `Dockerfile.postgres` copies `init.sql`, then
+  `20261011_v2_project_context.sql`, `20261011_v2_project_raci.sql` and
+  `20261012_v2_project_raci_actors.sql` into PostgreSQL's first-init
+  directory, followed by demo seeding.
+- `deploy/coolify/README.md` explicitly documents that order and states
+  initialization scripts run only for an empty volume.
+- The separate `Dockerfile.migrations` / Compose migration service applies
+  later additive migrations; it is not the bootstrap for the project/RACI
+  tables.
+- The older `20261011_projects_shared_processes.sql` is not included in this
+  fresh demo bootstrap. The fresh demo schema therefore follows the
+  `20261011_v2_project_context.sql` FK definition, including
+  `project_processes.resourceId ON DELETE CASCADE`.
+
+This does **not** establish the schema of an existing production or upgraded
+database: init scripts do not rerun on a non-empty volume, and the deployment
+README explicitly warns that later updates do not automatically reapply
+initialization SQL. The per-environment live-schema preflight remains
+mandatory before relying on FK behavior in production.
