@@ -583,3 +583,93 @@ describe('ProcessChangeProposalController validator resolution', () => {
     expect(result.validatorWarning).toContain('Aucun pilote n’est renseigné');
   });
 });
+
+
+describe('ProcessChangeProposalController active workspace lookup', () => {
+  const makeController = (activeProposals: unknown[], draftByResource: Record<string, unknown>) => {
+    const contentRepository = {
+      findOne: jest.fn(async ({ where }: { where: { resourceId: string } }) =>
+        draftByResource[where.resourceId] ?? null,
+      ),
+    };
+    const proposals = { find: jest.fn().mockResolvedValue(activeProposals) };
+    const controller = Object.create(
+      ProcessChangeProposalController.prototype,
+    ) as ProcessChangeProposalController;
+    Object.assign(controller, {
+      access: {
+        hasOrganizationAdminRole: jest.fn(() => true),
+        assertProjectRole: jest.fn(),
+      },
+      projectProcesses: {
+        findOne: jest.fn().mockResolvedValue({ projectId: 'project-1', resourceId: 'source-1' }),
+      },
+      dataSource: {
+        getRepository: jest.fn(() => contentRepository),
+      },
+      proposals,
+    });
+    return { controller, proposals, contentRepository };
+  };
+
+  it('returns the newest resumable workspace and keeps the project/process/version scope', async () => {
+    const older = {
+      id: 'proposal-old',
+      cloneResourceId: 'clone-old',
+      status: ProcessChangeProposalStatus.Submitted,
+    };
+    const newer = {
+      id: 'proposal-new',
+      cloneResourceId: 'clone-new',
+      status: ProcessChangeProposalStatus.Draft,
+    };
+    const { controller, proposals } = makeController(
+      [newer, older],
+      { 'clone-new': { id: 'draft-new' } },
+    );
+
+    await expect(
+      controller.getActiveProposalForProcess(
+        'project-1',
+        'source-1',
+        'published-1',
+        {},
+      ),
+    ).resolves.toEqual({
+      id: 'proposal-new',
+      status: ProcessChangeProposalStatus.Draft,
+      cloneResourceId: 'clone-new',
+      cloneContentId: 'draft-new',
+    });
+    expect(proposals.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          projectId: 'project-1',
+          sourceResourceId: 'source-1',
+          sourcePublishedContentId: 'published-1',
+        }),
+        order: { updatedAt: 'DESC', createdAt: 'DESC' },
+      }),
+    );
+  });
+
+  it('ignores active records whose proposal workspace no longer has a draft', async () => {
+    const { controller } = makeController(
+      [{
+        id: 'orphan-proposal',
+        cloneResourceId: 'missing-clone',
+        status: ProcessChangeProposalStatus.Draft,
+      }],
+      {},
+    );
+
+    await expect(
+      controller.getActiveProposalForProcess(
+        'project-1',
+        'source-1',
+        'published-1',
+        {},
+      ),
+    ).resolves.toBeNull();
+  });
+});
