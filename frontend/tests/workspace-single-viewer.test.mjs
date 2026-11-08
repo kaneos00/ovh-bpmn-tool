@@ -80,6 +80,17 @@ test('organization user administration has one canonical directory with project-
   assert.match(users, /project\.canSubmitRemarks \? 'Oui' : 'Non'/);
 });
 
+test('workspace and organization administration avoid duplicate repository and admin entry points', async () => {
+  const projects = await read('src/Containers/Projects/Projects.container.tsx');
+  const administration = await read('src/Containers/OrganizationAdmin/OrganizationAdmin.container.tsx');
+  const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+
+  assert.doesNotMatch(projects, /Administration de l’organisation/);
+  assert.doesNotMatch(administration, /org-admin-v2__repository-link/);
+  assert.match(navigation, /navigate\('\/organization\/overview'\)/);
+  assert.match(navigation, />\s*Administration\s*<\/Button>/);
+});
+
 test('organization-wide search is explicit and project scope remains the default when a project is active', async () => {
   const search = await read('src/Containers/SearchResults/SearchResults.container.tsx');
   const users = await read('src/Containers/UserAccounts/index.tsx');
