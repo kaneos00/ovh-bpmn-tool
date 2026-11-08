@@ -54,6 +54,18 @@ import '../../../raci.css';
 import { DataInventory } from './DataInventory';
 import './ProcessDetails.scss';
 
+type ViewerRemark = {
+  id: string;
+  elementId: string;
+  status: 'pending' | 'accepted' | 'rejected';
+};
+
+type ActiveProcessProposal = {
+  id: string;
+  status: string;
+  cloneResourceId: string;
+};
+
 type ProcessDetailsProps = {
   resourceId: string;
   onContentUpload: (content: string) => void;
@@ -215,6 +227,24 @@ export const ProcessDetails = ({
   const projectForRemark = projectForProcess?.canSubmitRemarks
     ? projectForProcess
     : undefined;
+  const activeProposalQueryKey = [
+    'active-process-change-proposal',
+    projectForProcess?.id,
+    resourceId,
+    viewerContent?.id,
+  ];
+  const { data: activeProposal } = useQuery<ActiveProcessProposal | null>(
+    activeProposalQueryKey,
+    () => apiClient.get(
+      `/projects/${projectForProcess!.id}/processes/${resourceId}/change-proposals/active?contentId=${encodeURIComponent(viewerContent!.id)}`,
+    ),
+    { enabled: Boolean(projectForProcess && viewerContent && !isHistoricalView) },
+  );
+  const { data: viewerRemarks = [] } = useQuery<ViewerRemark[]>(
+    ['process-change-proposal-comments', activeProposal?.id],
+    () => apiClient.get(`/projects/process-change-proposals/${activeProposal!.id}/comments`),
+    { enabled: Boolean(activeProposal?.id && !isHistoricalView) },
+  );
   const processUsage = projectForProcess?.processes.find(
     process => process.resourceId === resourceId,
   )?.usage;
@@ -343,6 +373,8 @@ export const ProcessDetails = ({
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['my-process-change-proposals'] }),
         queryClient.invalidateQueries({ queryKey: ['process-change-proposals-to-review'] }),
+        queryClient.invalidateQueries({ queryKey: ['active-process-change-proposal'] }),
+        queryClient.invalidateQueries({ queryKey: ['process-change-proposal-comments'] }),
       ]);
       setInitialRemarkOpen(false);
       setInitialRemarkText('');
@@ -750,6 +782,7 @@ export const ProcessDetails = ({
                     selectedElementId={selectedElementId}
                     onElementSelect={onElementSelect}
                     fullscreenTargetRef={processWorkspaceRef}
+                    remarks={viewerRemarks}
                   />
                 </Box>
               </>
