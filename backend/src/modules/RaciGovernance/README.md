@@ -917,3 +917,82 @@ The preview must not silently drop rows. Any assignment whose BPMN element ID is
 Confirmation must revalidate the source matrix fingerprint, target draft identity/version/fingerprint, actor registry, project membership and administrator authorization inside the same transaction that writes the target assignments. It must reject stale previews without partial writes. A confirmed transfer must be auditable and idempotent; retrying the same confirmation cannot duplicate or reapply it. It must not modify the source matrix or either BPMN XML document.
 
 **Implementation gate:** this contract is approved as a design direction, but implementation remains blocked until the shared lock/revision protocol is adopted by every competing RACI writer and project/process-link mutation path, and PostgreSQL integration tests prove concurrency, stale-preview rejection, authorization revalidation, atomicity and idempotency. No new table, migration, endpoint, UI or writer is authorized by this decision alone.
+
+
+### Writer inventory — direct endpoint and handler audit (2026-11-08)
+
+A further source pass mapped the concrete write entry points. This is an
+inventory of current behavior, not an implementation approval.
+
+#### RACI actor and assignment writers
+
+| Entry point | Current write behavior | Coordination gap |
+|---|---|---|
+| `PUT /projects/:projectId/raci` | Validates actor registry and project-process links before opening a transaction; transaction then deletes every assignment for the project and inserts the submitted matrix. | Authorization, active actor checks, and link checks are stale-able; no project lock; broad project-wide delete is unsuitable for process-scoped reconciliation. |
+| `POST /projects/:projectId/raci/actors` | Checks duplicate using injected repository, then saves actor outside a transaction. | No project lock; concurrent duplicate/create and membership revocation can race. |
+| `POST /projects/:projectId/raci/actors/sync` | Reads existing registry outside transaction, then inserts additions with `orIgnore` in a transaction. | No project lock; pre-read can be stale; ignored conflicts conceal which proposed rows were actually inserted. |
+| `PUT /projects/:projectId/raci/actors/:actorId` | Transactionally renames actor and rewrites matching assignment labels. | Transaction does not lock project row or revalidate membership inside transaction; collision scan and updates are not coordinated with other writers. |
+| `PATCH /projects/:projectId/raci/actors/:actorId` | Reads actor and saves active flag outside transaction. | No project lock; can race assignment replacement, transfer confirmation, and membership revocation. |
+
+The current controller therefore has five distinct write paths across two tables.
+A transaction alone is not a common concurrency protocol: only actor rename
+currently wraps its related writes, and even that transaction lacks the
+project-level serialization lock and transaction-scoped authorization check.
+
+#### Project membership, metadata and process-link writers
+
+| Entry point | Current behavior | Coordination gap |
+|---|---|---|
+| `POST /projects` | Creates project and initial admin membership in separate saves with compensating project deletion. | Not atomic; should become one transaction in the shared project lifecycle service. |
+| `PUT /projects/administration/projects/:projectId/members/:userId` and `DELETE .../members/:userId` | Delegate to `changeProjectMember`, which already locks the project row and performs membership changes transactionally. | This is the strongest existing project-row locking pattern; confirm every related membership/default-validator check uses the same manager. |
+| `PUT /projects/administration/projects/:projectId` | Reads and saves project metadata through injected repository. | No project lock or manager-scoped write. |
+| `PUT /projects/:projectId` | Checks default validator membership and active account before saving project through injected repository. | Membership/account validation can race demotion/removal; no project lock or transactional re-read. |
+| `DELETE /projects/administration/projects/:projectId` and `DELETE /projects/:projectId` | Count process links, then delete project in separate operations. | Attach can race the count/delete; project row must be locked before final link count. |
+| `POST /projects/:projectId/processes` | Checks role/resource visibility, then saves link through injected repository. | No project/resource locks; link creation can race project deletion, resource-tree deletion, and scoped RACI confirmation. |
+| `DELETE /projects/:projectId/processes/:resourceId` | Reads link, counts links to resource, then deletes link separately. | No project/resource locks; last-link invariant can race another attach/unlink and RACI confirmation. |
+| `POST /projects/:projectId/processes/variants` | Transactionally inserts variant resource, first draft XML and project link. | Does not lock source resource, destination parent or project; must follow global resource-before-project lock order and revalidate source publication under lock. |
+
+#### Resource hierarchy and content writers that intersect governance
+
+- `POST /resources` uses `CreateResourceCommandHandler`; parent/sibling checks
+  and resource save use the generic repository without a parent lock or shared
+  transaction.
+- `POST /resources/:resourceId/clone` creates the new resource and copies its
+  content through separate handler calls; cleanup on content failure is
+  best-effort. It is not an atomic governance primitive.
+- `DELETE /resources/:resourceId` recursively discovers descendants and
+  deletes them through the injected global repository. The recursive set is
+  not protected against concurrent child creation.
+- `POST /resources/:resourceId/contents`, `PUT /resources/:resourceId/contents/:contentId`,
+  `DELETE /resources/:resourceId/contents/:contentId` and
+  `POST /resources/:resourceId/contents/:contentId/clone` use handlers/repositories
+  that are not uniformly manager-aware. Their read/check/write sequences need
+  review against resource deletion and any future RACI preview confirmation.
+- `POST /resources/:resourceId/contents/:contentId/publish` does use the
+  existing atomic publication helper, which locks the resource and content
+  rows. Its lock prefix must be reconciled with the proposed resource-before-
+  project order before any cross-context transaction is introduced.
+- Proposal workspace creation is transaction-scoped but currently inserts a
+  resource under the source's parent without participating in a common parent
+  lock. Proposal publication uses the shared content publication helper.
+  Proposal/content lock acquisition order must be checked end-to-end, not
+  inferred from the helper alone.
+
+#### Consequences for the shared protocol
+
+1. The project row is the serialization point for project membership,
+   project-process links, actor registry and RACI assignment mutations.
+2. Any operation touching both resource hierarchy/content and project state
+   must acquire all resource/parent locks first (resource UUID order), then
+   project locks (project UUID order), then re-read authorization, links,
+   actor registry, assignments and target draft through the same
+   `EntityManager`.
+3. A project-only operation must not later acquire a resource lock. A resource
+   operation must not hold a project lock while waiting for a resource lock.
+4. Existing content publication and proposal flows require an explicit
+   lock-order audit before they can be composed with project governance;
+   do not weaken or bypass their existing publication/proposal guards.
+5. No writer is changed by this inventory. The next design step is a complete
+   lock graph and manager-aware application contracts, followed by PostgreSQL
+   concurrency tests. RACI write/reconciliation remains disabled until every
+   participating writer follows the same protocol.
