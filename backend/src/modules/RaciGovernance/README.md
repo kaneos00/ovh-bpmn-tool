@@ -996,3 +996,48 @@ project-level serialization lock and transaction-scoped authorization check.
    lock graph and manager-aware application contracts, followed by PostgreSQL
    concurrency tests. RACI write/reconciliation remains disabled until every
    participating writer follows the same protocol.
+
+
+### Proposal workflow lock-order audit (2026-11-08)
+
+A deeper pass through `ProcessChangeProposalController` and
+`publishDraftContentWithinTransaction` found that the proposal workflow is
+already transactional, but its lock acquisition order is not yet compatible
+with the proposed resource-before-project protocol. It must not be treated as
+a ready-made cross-context coordinator.
+
+| Workflow | Observed lock/read order | Implication |
+|---|---|---|
+| Create proposal / first Viewer remark | Membership read; project-process link `pessimistic_read`; source resource `pessimistic_write`; published content `pessimistic_read`; optionally proposal clone draft `pessimistic_write`; then workspace resource/content and optional project-process link inserts. | Acquires project-link lock before resource lock; workspace child insertion does not lock parent. Authorization is re-read from membership in the transaction, but the project row itself is not locked. |
+| Submit proposal | Proposal row `pessimistic_write`; source resource `pessimistic_read`; source published content `pessimistic_read`; project-process link `pessimistic_read`; workspace draft `pessimistic_write`. | Proposal lock precedes resource and project-link locks; role is re-read in transaction but no project serialization lock is held. |
+| Decide proposal | Proposal row `pessimistic_write`; latest submitted event and remarks; project-process link `pessimistic_read`; membership re-read; proposal/event writes. | Proposal lock precedes project-link lock; no project-row serialization lock. |
+| Publish approved proposal | Proposal row `pessimistic_write`; project-process link `pessimistic_read`; membership and remarks; then `publishDraftContentWithinTransaction` locks source resource, submitted draft, prior published content and latest version. | Concrete reverse-order risk: proposal/link locks are held before the source resource lock. Publication helper correctly locks the resource before content rows, but the caller's prefix must be redesigned as a whole. |
+| Add remark to proposal | Proposal row `pessimistic_write`; membership re-read; comment/event writes. | Does not lock project row; a membership revocation is not serialized by the same project lock. |
+| Decide individual remark | Must be reviewed alongside the remaining controller method and its comment/proposal row locks before protocol adoption. | Do not assume it shares the parent proposal's lock order without checking its full transaction. |
+
+#### Required correction before composing governance transactions
+
+- Do not simply add a project-row lock at the beginning of these existing
+  transactions: that would put the project lock ahead of the source resource
+  lock in create/publish paths and violate the resource-before-project order.
+- Establish the complete ordered lock set from the request's immutable
+  identifiers before entering the transaction: relevant source/target
+  resources and parent resources first, then project rows, then content,
+  proposal and comment rows in a documented stable order.
+- Re-read the proposal, link, membership, validator, source publication and
+  target draft only after the required locks are held; verify that the locked
+  records still match the pre-transaction identifiers.
+- Review all proposal transitions (create/reuse, submit, decision, publish,
+  add remark, decide remark) as one coordinated change. A partial conversion
+  can introduce a deadlock or leave an authorization race.
+- The publication helper's existing resource/content locks remain mandatory.
+  A cross-context caller may pass an already-locked resource only when that
+  exact row was acquired through the same transaction manager and in the
+  global order.
+- Include two-connection PostgreSQL tests for proposal creation vs unlink,
+  proposal publish vs unlink/resource deletion, membership revocation vs
+  remark insertion, and competing proposal/transfer confirmation.
+
+This audit identifies a concrete lock-order conflict, not merely missing locks.
+The shared coordinator design must resolve it before implementation. No
+proposal workflow or content publication code was changed.
