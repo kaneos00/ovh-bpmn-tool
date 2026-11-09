@@ -211,6 +211,22 @@ describe('ProcessChangeProposalController remark permissions', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
+  it('does not allow a final decision while an author clarification is outstanding', async () => {
+    const { controller, events } = makeController({ role: ProjectMemberRole.Modeler });
+    events.find.mockResolvedValue([{
+      eventType: 'remark_clarification_requested',
+      details: { remarkId: commentId },
+    }]);
+    await expect(
+      controller.decideProposalComment(
+        proposalId,
+        commentId,
+        { decision: 'accepted' },
+        { 'x-user': actorUsername },
+      ),
+    ).rejects.toThrow('La demande de précision attend la réponse de l’auteur');
+  });
+
   it('allows the designated validator to decide a remark', async () => {
     await assertCanDecide(
       { role: ProjectMemberRole.Modeler },
