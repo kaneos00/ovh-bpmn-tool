@@ -997,6 +997,23 @@ test('rejecting a BPMN remark requires a reason in the UI and backend', async ()
   assert.ok(controllerSpec.includes("requires a reason when rejecting a remark"));
 });
 
+test('BPMN remark clarification stays in the remark event thread', async () => {
+  const panel = await read('src/Containers/ContentModeler/components/ProposalRemarksPanel.tsx');
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/process-change-proposal.controller.ts');
+  const controllerSpec = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/process-change-proposal.controller.spec.ts');
+
+  assert.ok(panel.includes('/clarification'));
+  assert.ok(panel.includes('/response'));
+  assert.ok(panel.includes('Précision demandée'));
+  assert.ok(panel.includes('Réponse de l’auteur'));
+  assert.ok(controller.includes('remark_clarification_requested'));
+  assert.ok(controller.includes('remark_author_responded'));
+  assert.ok(controller.includes('canRespond:'));
+  assert.ok(controllerSpec.includes('allows the designated validator to request clarification'));
+  assert.ok(controllerSpec.includes('allows only the remark author to answer'));
+  assert.ok(controllerSpec.includes('does not allow another project member to answer'));
+});
+
 test('project home falls back to workspace process membership when the global resource list fails', async () => {
   const overview = await read('src/Containers/BpmnLayout/FolderOverview.tsx');
   assert.ok(overview.includes('resources.isError && !activeProject'));
