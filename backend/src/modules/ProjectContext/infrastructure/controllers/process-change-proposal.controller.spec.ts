@@ -30,6 +30,7 @@ describe('ProcessChangeProposalController remark permissions', () => {
     isOrganizationAdmin = false,
     remarkAuthorUserId = authorUserId,
     usage: ProjectProcessUsage = ProjectProcessUsage.Variant,
+    authenticatedAccountId = actorUserId,
   ) => {
     const proposal = {
       id: proposalId,
@@ -59,6 +60,7 @@ describe('ProcessChangeProposalController remark permissions', () => {
     const events = {
       create: jest.fn((value: unknown) => value),
       findOne: jest.fn().mockResolvedValue({ actorUserId: authorUserId }),
+      find: jest.fn().mockResolvedValue([]),
       save: jest.fn(async (value: unknown) => value),
     };
     const projectProcesses = {
@@ -88,7 +90,7 @@ describe('ProcessChangeProposalController remark permissions', () => {
       getRepository: jest.fn((entity: unknown) => repositories.get(entity)),
     };
     const dataSource = {
-      query: jest.fn().mockResolvedValue([{ id: actorUserId }]),
+      query: jest.fn().mockResolvedValue([{ id: authenticatedAccountId }]),
       transaction: jest.fn(async (work: (value: unknown) => unknown) =>
         work(manager),
       ),
@@ -150,6 +152,64 @@ describe('ProcessChangeProposalController remark permissions', () => {
       }),
     );
   };
+
+  it('allows the designated validator to request clarification without deciding the remark', async () => {
+    const { controller, events } = makeController({ role: ProjectMemberRole.Modeler });
+    await expect(
+      controller.requestRemarkClarification(
+        proposalId,
+        commentId,
+        { comment: 'Pouvez-vous préciser le périmètre ?' },
+        { 'x-user': actorUsername },
+      ),
+    ).resolves.toMatchObject({ eventType: 'remark_clarification_requested' });
+    expect(events.save).toHaveBeenCalledWith(expect.objectContaining({
+      eventType: 'remark_clarification_requested',
+      details: expect.objectContaining({ remarkId: commentId }),
+    }));
+  });
+
+  it('allows only the remark author to answer an outstanding clarification', async () => {
+    const { controller, events } = makeController(
+      { role: ProjectMemberRole.Viewer },
+      false,
+      authorUserId,
+      ProjectProcessUsage.Variant,
+      authorUserId,
+    );
+    events.find.mockResolvedValue([{
+      eventType: 'remark_clarification_requested',
+      details: { remarkId: commentId },
+    }]);
+    await expect(
+      controller.respondToRemarkClarification(
+        proposalId,
+        commentId,
+        { comment: 'Le périmètre concerne uniquement cette activité.' },
+        { 'x-user': actorUsername },
+      ),
+    ).resolves.toMatchObject({ eventType: 'remark_author_responded' });
+    expect(events.save).toHaveBeenCalledWith(expect.objectContaining({
+      eventType: 'remark_author_responded',
+      actorUserId: authorUserId,
+    }));
+  });
+
+  it('does not allow another project member to answer the clarification', async () => {
+    const { controller, events } = makeController({ role: ProjectMemberRole.Viewer });
+    events.find.mockResolvedValue([{
+      eventType: 'remark_clarification_requested',
+      details: { remarkId: commentId },
+    }]);
+    await expect(
+      controller.respondToRemarkClarification(
+        proposalId,
+        commentId,
+        { comment: 'Réponse non autorisée' },
+        { 'x-user': actorUsername },
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
 
   it('allows the designated validator to decide a remark', async () => {
     await assertCanDecide(
