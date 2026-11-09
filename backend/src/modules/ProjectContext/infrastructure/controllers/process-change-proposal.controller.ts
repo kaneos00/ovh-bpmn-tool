@@ -651,7 +651,8 @@ export class ProcessChangeProposalController {
             eventType: 'rejected',
             actorUserId: authorUserId,
             validatorUserId: orphaned.validatorUserId,
-            comment: 'Demande clôturée automatiquement : brouillon de travail introuvable.',
+            comment:
+              'Demande clôturée automatiquement : brouillon de travail introuvable.',
             details: {
               reason: 'proposal_workspace_missing',
               source: 'workflow_recovery',
@@ -1887,9 +1888,8 @@ export class ProcessChangeProposalController {
       | 'project_default_assigned'
       | 'pilot_missing'
       | 'pilot_invalid'
-      | 'project_default_invalid' = pilotIdentifier?.trim()
-      ? 'pilot_invalid'
-      : 'pilot_missing';
+      | 'project_default_invalid' =
+      pilotIdentifier?.trim() ? 'pilot_invalid' : 'pilot_missing';
 
     // The BPMN process pilot has priority over the project-level default.
     if (pilotIdentifier?.trim()) {
