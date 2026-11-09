@@ -8,9 +8,7 @@ type RequestHeaders = Record<string, string | undefined>;
 
 @Controller('admin/raci-governance')
 export class RaciGovernanceController {
-  constructor(
-    private readonly projectRaci: ProjectRaciApplicationService,
-  ) {}
+  constructor(private readonly projectRaci: ProjectRaciApplicationService) {}
 
   /**
    * First MVP slice: read-only cross-project actor inventory and exact
@@ -19,7 +17,9 @@ export class RaciGovernanceController {
   @Get('actors')
   @UseAcl([UserGroup.Admin])
   async getActorInventory(@Headers() headers: RequestHeaders) {
-    const actors = await this.projectRaci.readOrganizationActorInventory(headers);
+    const actors = await this.projectRaci.readOrganizationActorInventory(
+      headers,
+    );
     const grouped = new Map<string, typeof actors>();
 
     for (const actor of actors) {
@@ -31,7 +31,10 @@ export class RaciGovernanceController {
     }
 
     const duplicateCandidates = [...grouped.entries()]
-      .filter(([, matches]) => new Set(matches.map((item) => item.projectId)).size > 1)
+      .filter(
+        ([, matches]) =>
+          new Set(matches.map((item) => item.projectId)).size > 1,
+      )
       .map(([normalizedName, matches]) => ({
         normalizedName,
         actorCount: matches.length,
