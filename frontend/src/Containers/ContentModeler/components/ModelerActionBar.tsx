@@ -48,6 +48,7 @@ type ModelerActionBarProps = {
   publishApprovedDisabled?: boolean;
   publishApprovedLoading?: boolean;
   modelerReady?: boolean;
+  readOnly?: boolean;
 };
 
 export const ModelerActionBar = ({
@@ -98,14 +99,16 @@ export const ModelerActionBar = ({
           </Button>
         )}
 
-        <Button
-          onClick={() => fileInputRef.current?.click()}
-          variant="outlined"
-          color="neutral"
-          startDecorator={<UploadFile fontSize="small" />}
-        >
-          Upload
-        </Button>
+        {!readOnly && (
+          <Button
+            onClick={() => fileInputRef.current?.click()}
+            variant="outlined"
+            color="neutral"
+            startDecorator={<UploadFile fontSize="small" />}
+          >
+            Upload
+          </Button>
+        )}
 
         <input
           ref={fileInputRef}
@@ -152,8 +155,12 @@ export const ModelerActionBar = ({
             </MenuItem>
           </Menu>
         </Dropdown>
-        <Button variant="outlined" color="neutral" onClick={onUndo} disabled={!canUndo} title="Annuler (Ctrl+Z)" aria-label="Annuler la dernière modification"><Undo fontSize="small" /></Button>
-        <Button variant="outlined" color="neutral" onClick={onRedo} disabled={!canRedo} title="Rétablir (Ctrl+Maj+Z)" aria-label="Rétablir la dernière modification"><Redo fontSize="small" /></Button>
+        {!readOnly && (
+          <>
+            <Button variant="outlined" color="neutral" onClick={onUndo} disabled={!canUndo} title="Annuler (Ctrl+Z)" aria-label="Annuler la dernière modification"><Undo fontSize="small" /></Button>
+            <Button variant="outlined" color="neutral" onClick={onRedo} disabled={!canRedo} title="Rétablir (Ctrl+Maj+Z)" aria-label="Rétablir la dernière modification"><Redo fontSize="small" /></Button>
+          </>
+        )}
         <Button variant="outlined" color="neutral" onClick={onRaciOpen}>
           RACI
         </Button>
@@ -166,15 +173,17 @@ export const ModelerActionBar = ({
           <Info fontSize="small" />
         </Button>
 
-        <Button
-          variant="outlined"
-          color="neutral"
-          startDecorator={<Save fontSize="small" />}
-          onClick={onDiagramSave}
-          disabled={!modelerReady}
-        >
-          Save
-        </Button>
+        {!readOnly && (
+          <Button
+            variant="outlined"
+            color="neutral"
+            startDecorator={<Save fontSize="small" />}
+            onClick={onDiagramSave}
+            disabled={!modelerReady}
+          >
+            Save
+          </Button>
+        )}
 
         {!hidePublish && (
           <Button
