@@ -57,10 +57,9 @@ describe('RaciGovernanceController', () => {
       actorCount: 2,
       projectCount: 2,
     });
-    expect(result.duplicateCandidates[0].actors.map((actor) => actor.actorName)).toEqual([
-      'Responsable IVV',
-      'responsable-ivv',
-    ]);
+    expect(
+      result.duplicateCandidates[0].actors.map((actor) => actor.actorName),
+    ).toEqual(['Responsable IVV', 'responsable-ivv']);
   });
 
   it('does not flag repeated labels contained in only one project', async () => {
