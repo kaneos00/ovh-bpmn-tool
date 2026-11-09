@@ -47,6 +47,10 @@ export const routes = [
         lazy: () => import('./Containers/Projects'),
       },
       {
+        path: '/organization/accounts',
+        lazy: () => import('./Containers/UserAccounts'),
+      },
+      {
         path: '/organization/:section',
         lazy: () => import('./Containers/OrganizationAdmin'),
       },
