@@ -11,7 +11,9 @@ export type ProcessChangeProposalEventType =
   | 'published'
   | 'remark_added'
   | 'remark_accepted'
-  | 'remark_rejected';
+  | 'remark_rejected'
+  | 'remark_clarification_requested'
+  | 'remark_author_responded';
 
 @Entity('process_change_proposal_events')
 @Index('process_change_proposal_events_proposal_created_idx', [
