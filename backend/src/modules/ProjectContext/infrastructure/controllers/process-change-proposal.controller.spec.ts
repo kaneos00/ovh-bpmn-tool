@@ -591,8 +591,16 @@ describe('ProcessChangeProposalController active workspace lookup', () => {
   ) => {
     const contentRepository = {
       findOne: jest.fn(
-        async ({ where }: { where: { resourceId: string } }) =>
-          draftByResource[where.resourceId] ?? null,
+        async ({
+          where,
+        }: {
+          where: { resourceId: string; status: ContentStatusEnum };
+        }) => {
+          if (where.status === ContentStatusEnum.Published) {
+            return { id: 'published-1', resourceId: 'source-1' };
+          }
+          return draftByResource[where.resourceId] ?? null;
+        },
       ),
     };
     const proposals = { find: jest.fn().mockResolvedValue(activeProposals) };
