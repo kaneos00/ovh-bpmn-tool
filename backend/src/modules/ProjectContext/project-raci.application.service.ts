@@ -84,4 +84,46 @@ export class ProjectRaciApplicationService {
       order: { active: 'DESC', name: 'ASC' },
     });
   }
+
+  /**
+   * Cross-project actor inventory for the isolated governance module.
+   * This is deliberately read-only and requires organization-admin authority;
+   * project membership is not sufficient for a cross-project view.
+   */
+  async readOrganizationActorInventory(
+    headers: ProjectRaciRequestHeaders,
+  ): Promise<Array<{
+    projectId: string;
+    projectName: string;
+    actorId: string;
+    actorName: string;
+    normalizedName: string;
+    active: boolean;
+    origin: string;
+  }>> {
+    if (!this.access.hasOrganizationAdminRole(headers)) {
+      throw new (await import('@nestjs/common')).ForbiddenException(
+        'Organization administrator role is required',
+      );
+    }
+
+    return this.actors
+      .createQueryBuilder('actor')
+      .innerJoin(
+        'projects',
+        'project',
+        'project.id = actor."projectId"',
+      )
+      .select('actor."projectId"', 'projectId')
+      .addSelect('project.name', 'projectName')
+      .addSelect('actor.id', 'actorId')
+      .addSelect('actor.name', 'actorName')
+      .addSelect('actor."normalizedName"', 'normalizedName')
+      .addSelect('actor.active', 'active')
+      .addSelect('actor.origin', 'origin')
+      .orderBy('project.name', 'ASC')
+      .addOrderBy('actor.name', 'ASC')
+      .getRawMany();
+  }
+
 }
