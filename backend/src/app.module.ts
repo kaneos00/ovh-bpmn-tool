@@ -11,6 +11,7 @@ import { getTypeormConfig } from './shared-kernel/modules/infrastructure/db/type
 import { loadConfigFromEnv } from './config';
 import { AuthModule } from './auth/auth.module';
 import { SearchContextModule } from './modules/SearchContext/searchContext.module';
+import { RaciGovernanceModule } from './modules/RaciGovernance/raci-governance.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { SearchContextModule } from './modules/SearchContext/searchContext.modul
     ResourceContextModule,
     ProjectContextModule,
     SearchContextModule,
+    RaciGovernanceModule,
     EventEmitterModule,
     UuidGeneratorModule,
     DomainEventModule,
