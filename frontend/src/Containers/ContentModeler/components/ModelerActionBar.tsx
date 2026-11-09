@@ -161,12 +161,16 @@ export const ModelerActionBar = ({
             <Button variant="outlined" color="neutral" onClick={onRedo} disabled={!canRedo} title="Rétablir (Ctrl+Maj+Z)" aria-label="Rétablir la dernière modification"><Redo fontSize="small" /></Button>
           </>
         )}
-        <Button variant="outlined" color="neutral" onClick={onRaciOpen}>
-          RACI
-        </Button>
-        <Button variant="outlined" color="neutral" onClick={onRolesOpen}>
-          ROLE
-        </Button>
+        {!readOnly && (
+          <>
+            <Button variant="outlined" color="neutral" onClick={onRaciOpen}>
+              RACI
+            </Button>
+            <Button variant="outlined" color="neutral" onClick={onRolesOpen}>
+              ROLE
+            </Button>
+          </>
+        )}
       </Stack>
       <Stack gap={1} direction="row" justifyContent="flex-end">
         <Button onClick={onShortcutDisplay} variant="outlined" color="neutral">
