@@ -45,6 +45,7 @@ describe('ContentTypeOrmRepository.publishAtomically', () => {
     getRepository: jest.fn((entity) =>
       entity === ResourceTypeOrmEntity ? resources : contents,
     ),
+    query: jest.fn().mockResolvedValue([]),
   };
   const dataSource = {
     transaction: jest.fn((callback) => callback(manager)),
@@ -163,6 +164,28 @@ describe('ContentTypeOrmRepository.publishAtomically', () => {
         status: ContentStatusEnum.Published,
         updatedBy: 'publisher',
       }),
+    );
+  });
+
+  it('blocks generic publication of a proposal workspace', async () => {
+    manager.query.mockResolvedValueOnce([{ id: 'proposal-1' }]);
+
+    const result = await repository.publishAtomically({
+      resourceId: 'resource-1',
+      contentId: 'content-2',
+      updatedBy: 'publisher',
+      pngContent: 'data:image/png;base64,cG5n',
+      authToken: 'generated-token',
+    });
+
+    expect(manager.query).toHaveBeenCalledWith(
+      'SELECT id FROM process_change_proposals WHERE "cloneResourceId" = $1 LIMIT 1',
+      ['resource-1'],
+    );
+    expect(contents.findOne).not.toHaveBeenCalled();
+    expect(result.ok).toBeNull();
+    expect(result.fail?.message).toContain(
+      'A proposal workspace cannot be published through the generic content endpoint',
     );
   });
 
