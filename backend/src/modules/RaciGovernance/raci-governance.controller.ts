@@ -7,7 +7,6 @@ import { ActorLabelNormalizer } from './domain/actor-label.normalizer';
 type RequestHeaders = Record<string, string | undefined>;
 
 @Controller('admin/raci-governance')
-@UseAcl([UserGroup.Admin])
 export class RaciGovernanceController {
   constructor(
     private readonly projectRaci: ProjectRaciApplicationService,
@@ -18,6 +17,7 @@ export class RaciGovernanceController {
    * normalized-name duplicate candidates. No mutation is exposed here.
    */
   @Get('actors')
+  @UseAcl([UserGroup.Admin])
   async getActorInventory(@Headers() headers: RequestHeaders) {
     const actors = await this.projectRaci.readOrganizationActorInventory(headers);
     const grouped = new Map<string, typeof actors>();
