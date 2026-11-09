@@ -584,9 +584,11 @@ describe('ProcessChangeProposalController validator resolution', () => {
   });
 });
 
-
 describe('ProcessChangeProposalController active workspace lookup', () => {
-  const makeController = (activeProposals: unknown[], draftByResource: Record<string, unknown>) => {
+  const makeController = (
+    activeProposals: unknown[],
+    draftByResource: Record<string, unknown>,
+  ) => {
     const contentRepository = {
       findOne: jest.fn(async ({ where }: { where: { resourceId: string } }) =>
         draftByResource[where.resourceId] ?? null,
@@ -602,7 +604,10 @@ describe('ProcessChangeProposalController active workspace lookup', () => {
         assertProjectRole: jest.fn(),
       },
       projectProcesses: {
-        findOne: jest.fn().mockResolvedValue({ projectId: 'project-1', resourceId: 'source-1' }),
+        findOne: jest.fn().mockResolvedValue({
+          projectId: 'project-1',
+          resourceId: 'source-1',
+        }),
       },
       dataSource: {
         getRepository: jest.fn(() => contentRepository),
@@ -623,10 +628,9 @@ describe('ProcessChangeProposalController active workspace lookup', () => {
       cloneResourceId: 'clone-new',
       status: ProcessChangeProposalStatus.Draft,
     };
-    const { controller, proposals } = makeController(
-      [newer, older],
-      { 'clone-new': { id: 'draft-new' } },
-    );
+    const { controller, proposals } = makeController([newer, older], {
+      'clone-new': { id: 'draft-new' },
+    });
 
     await expect(
       controller.getActiveProposalForProcess(
@@ -655,11 +659,13 @@ describe('ProcessChangeProposalController active workspace lookup', () => {
 
   it('ignores active records whose proposal workspace no longer has a draft', async () => {
     const { controller } = makeController(
-      [{
-        id: 'orphan-proposal',
-        cloneResourceId: 'missing-clone',
-        status: ProcessChangeProposalStatus.Draft,
-      }],
+      [
+        {
+          id: 'orphan-proposal',
+          cloneResourceId: 'missing-clone',
+          status: ProcessChangeProposalStatus.Draft,
+        },
+      ],
       {},
     );
 
