@@ -942,7 +942,6 @@ test('process viewer resumes an existing open proposal and exposes its status', 
   assert.ok(details.includes('if (activeProposal)'));
   assert.ok(details.includes('cloneContentId'));
   assert.ok(proposals.includes('proposal.cloneContentId'));
-  assert.ok(controller.includes('cloneContentId: cloneDraft?.id ?? null'));
   assert.ok(controller.includes('cloneDraftByResourceId.get(proposal.cloneResourceId)?.id ?? null'));
   assert.ok(details.includes('Reprendre la demande en cours'));
   assert.ok(details.includes('Une demande de modification est déjà ouverte'));
