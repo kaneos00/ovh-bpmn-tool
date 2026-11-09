@@ -196,9 +196,7 @@ export class RaciGovernanceApplicationService {
           where: { id: input.referenceActorId },
         });
         if (!referenceActor || !referenceActor.active) {
-          throw new NotFoundException(
-            'An active reference actor is required',
-          );
+          throw new NotFoundException('An active reference actor is required');
         }
 
         const existing = await mappings.findOne({
@@ -264,13 +262,19 @@ export class RaciGovernanceApplicationService {
   }
 
   private validateName(value: string): string {
-    if (typeof value !== 'string' || !value.trim() || value.trim().length > 255) {
+    if (
+      typeof value !== 'string' ||
+      !value.trim() ||
+      value.trim().length > 255
+    ) {
       throw new BadRequestException('name must contain 1 to 255 characters');
     }
     return value.trim();
   }
 
-  private validateActorType(value: RaciReferenceActorType): RaciReferenceActorType {
+  private validateActorType(
+    value: RaciReferenceActorType,
+  ): RaciReferenceActorType {
     if (!ACTOR_TYPES.includes(value)) {
       throw new BadRequestException('Unsupported reference actor type');
     }

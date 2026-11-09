@@ -113,22 +113,24 @@ export class ProjectRaciApplicationService {
       );
     }
 
-    return this.actors
-      .createQueryBuilder('actor')
-      .innerJoin(
-        ProjectTypeOrmEntity,
-        'project',
-        'project.id = actor."projectId"',
-      )
-      .select('actor."projectId"', 'projectId')
-      .addSelect('project.name', 'projectName')
-      .addSelect('actor.id', 'actorId')
-      .addSelect('actor.name', 'actorName')
-      .addSelect('actor."normalizedName"', 'normalizedName')
-      .addSelect('actor.active', 'active')
-      .addSelect('actor.origin', 'origin')
-      .where('actor.id = :actorId', { actorId })
-      .getRawOne();
+    return (
+      (await this.actors
+        .createQueryBuilder('actor')
+        .innerJoin(
+          ProjectTypeOrmEntity,
+          'project',
+          'project.id = actor."projectId"',
+        )
+        .select('actor."projectId"', 'projectId')
+        .addSelect('project.name', 'projectName')
+        .addSelect('actor.id', 'actorId')
+        .addSelect('actor.name', 'actorName')
+        .addSelect('actor."normalizedName"', 'normalizedName')
+        .addSelect('actor.active', 'active')
+        .addSelect('actor.origin', 'origin')
+        .where('actor.id = :actorId', { actorId })
+        .getRawOne()) ?? null
+    );
   }
 
   async readOrganizationActorInventory(

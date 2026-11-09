@@ -1,17 +1,9 @@
 import { ProjectRaciApplicationService } from '../ProjectContext/project-raci.application.service';
-import { RaciGovernanceApplicationService } from './application/raci-governance.application.service';
 import { RaciGovernanceController } from './raci-governance.controller';
 
 describe('RaciGovernanceController', () => {
   const projectRaci = {
     readOrganizationActorInventory: jest.fn(),
-  };
-  const governance = {
-    listReferenceActors: jest.fn(),
-    createReferenceActor: jest.fn(),
-    updateReferenceActor: jest.fn(),
-    listActorMappings: jest.fn(),
-    createActorMapping: jest.fn(),
   };
   let controller: RaciGovernanceController;
 
@@ -19,7 +11,6 @@ describe('RaciGovernanceController', () => {
     jest.clearAllMocks();
     controller = new RaciGovernanceController(
       projectRaci as unknown as ProjectRaciApplicationService,
-      governance as unknown as RaciGovernanceApplicationService,
     );
   });
 
@@ -114,34 +105,5 @@ describe('RaciGovernanceController', () => {
 
     expect(actor.actorName).toBe('Support');
     expect(actor.active).toBe(true);
-  });
-
-  it('delegates reference registry reads and mapping writes to the application service', async () => {
-    const headers = { 'x-user': 'admin' };
-    const body = { name: 'Responsable VV', actorType: 'function' as const };
-    governance.listReferenceActors.mockResolvedValue([]);
-    governance.createReferenceActor.mockResolvedValue({ id: 'ref-1' });
-    governance.createActorMapping.mockResolvedValue({ id: 'mapping-1' });
-
-    await expect(controller.listReferenceActors(headers)).resolves.toEqual([]);
-    await expect(
-      controller.createReferenceActor(body, headers),
-    ).resolves.toEqual({ id: 'ref-1' });
-    await expect(
-      controller.createActorMapping(
-        { localActorId: 'local-1', referenceActorId: 'ref-1' },
-        headers,
-      ),
-    ).resolves.toEqual({ id: 'mapping-1' });
-
-    expect(governance.listReferenceActors).toHaveBeenCalledWith(headers);
-    expect(governance.createReferenceActor).toHaveBeenCalledWith(
-      body,
-      headers,
-    );
-    expect(governance.createActorMapping).toHaveBeenCalledWith(
-      { localActorId: 'local-1', referenceActorId: 'ref-1' },
-      headers,
-    );
   });
 });
