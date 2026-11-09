@@ -1450,3 +1450,12 @@ resource-then-content workflow with best-effort cleanup, project creation
 saves its initial administrator membership separately, actor activation is a
 direct repository write, and unlink/delete checks occur before their writes.
 These are additional coordination gaps, not approved runtime changes.
+
+### Writer inventory follow-up (2026-11-09)
+
+The additional ResourceContext content/comment/resource writers and proposal-workspace
+creation path inspected in the second source pass are documented in
+[`docs/architecture/raci-governance-writer-inventory-followup.md`](../../../docs/architecture/raci-governance-writer-inventory-followup.md).
+This expands, but does not close, the repository-wide writer inventory. No
+runtime code or schema was changed; the live PostgreSQL preflight and
+repository-wide search remain hard gates.
