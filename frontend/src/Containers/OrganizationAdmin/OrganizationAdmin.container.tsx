@@ -33,6 +33,32 @@ type AdminUser = {
   projects: MembershipView[];
 };
 
+
+type GovernanceActor = {
+  projectId: string;
+  projectName: string;
+  actorId: string;
+  actorName: string;
+  normalizedName: string;
+  active: boolean;
+  origin: 'manual' | 'bpmn' | string;
+};
+
+type GovernanceDuplicateCandidate = {
+  normalizedName: string;
+  actorCount: number;
+  projectCount: number;
+  actors: GovernanceActor[];
+};
+
+type GovernanceActorInventory = {
+  readOnly: boolean;
+  totalActors: number;
+  projectsCount: number;
+  duplicateCandidates: GovernanceDuplicateCandidate[];
+  actors: GovernanceActor[];
+};
+
 type MembershipChange = {
   projectId: string;
   userId: string;
@@ -180,6 +206,12 @@ export const Component = () => {
   const overviewQuery = useQuery<AdministrationOverview>(
     queryKey,
     () => apiClient.get('/projects/administration/overview'),
+  );
+
+  const actorInventoryQuery = useQuery<GovernanceActorInventory>(
+    ['raci-governance-actors'],
+    () => apiClient.get('/admin/raci-governance/actors'),
+    { enabled: activeSection === 'governance' },
   );
 
   const setMembership = useMutation(
@@ -423,12 +455,107 @@ export const Component = () => {
                 </section>
               )}
 
-              {activeSection === 'governance' && overview && (
+              {activeSection === 'governance' && (
                 <section aria-labelledby="org-governance-title">
-                  <div className="org-admin-v2__page-head"><div><div className="org-admin-v2__eyebrow">Responsabilités</div><Typography id="org-governance-title" level="h1">Acteurs et RACI</Typography><Typography level="body-md" sx={{ color: 'text.secondary', maxWidth: 700, mt: 0.5 }}>Retrouvez les projets et ouvrez directement leur gestion des responsabilités.</Typography></div></div>
-                  <Alert color="neutral" variant="soft" sx={{ mb: 2 }}>Le RACI est géré au niveau du projet : cette vue transversale aide à retrouver le bon périmètre, tandis que les modifications restent soumises aux droits du projet.</Alert>
-                  <div className="org-admin-v2__governance-list">{overview.projects.map((project) => <Card key={project.id} className="org-admin-v2__governance-card"><div className="org-admin-v2__governance-copy"><Typography level="title-lg">{project.name}</Typography>{project.description && <Typography level="body-sm" sx={{ color: 'text.secondary' }}>{project.description}</Typography>}<div className="org-admin-v2__governance-meta"><Chip size="sm" variant="soft">{project.membersCount} membre(s)</Chip><Chip size="sm" variant="soft">{project.processes.length} processus</Chip><Chip size="sm" variant="soft">RACI du projet</Chip></div></div><Button onClick={() => navigate(`/projects/${project.id}?tab=raci`)}>Gérer le RACI →</Button></Card>)}</div>
-                  {overview.projects.length === 0 && <Card className="org-admin-v2__panel"><Typography level="title-md">Aucun projet accessible</Typography><Typography level="body-sm">Créez un projet ou attribuez un accès pour commencer à définir les responsabilités.</Typography></Card>}
+                  <div className="org-admin-v2__page-head">
+                    <div>
+                      <div className="org-admin-v2__eyebrow">Administration transversale</div>
+                      <Typography id="org-governance-title" level="h1">Acteurs et RACI</Typography>
+                      <Typography level="body-md" sx={{ color: 'text.secondary', maxWidth: 760, mt: 0.5 }}>
+                        Inventaire des acteurs déclarés dans les projets et repérage des libellés identiques. Cette première version est en lecture seule.
+                      </Typography>
+                    </div>
+                    <div className="org-admin-v2__actions">
+                      <Button variant="outlined" loading={actorInventoryQuery.isFetching} onClick={() => actorInventoryQuery.refetch()}>Actualiser</Button>
+                    </div>
+                  </div>
+                  {actorInventoryQuery.isLoading && <Alert color="neutral">Chargement de l’inventaire des acteurs…</Alert>}
+                  {actorInventoryQuery.isError && (
+                    <Alert color="danger" sx={{ mb: 2 }}>
+                      Impossible de charger l’inventaire. Vérifiez que le backend de cette branche est déployé et que votre compte possède le rôle d’administrateur global.
+                    </Alert>
+                  )}
+                  {actorInventoryQuery.data && (
+                    <>
+                      <div className="org-admin-v2__stats">
+                        <Card className="org-admin-v2__stat">
+                          <div className="org-admin-v2__stat-top"><span>Acteurs recensés</span><span className="org-admin-v2__stat-icon">♙</span></div>
+                          <div className="org-admin-v2__stat-value">{actorInventoryQuery.data.totalActors}</div>
+                          <div className="org-admin-v2__stat-note">Registres de tous les projets</div>
+                        </Card>
+                        <Card className="org-admin-v2__stat">
+                          <div className="org-admin-v2__stat-top"><span>Projets concernés</span><span className="org-admin-v2__stat-icon">▣</span></div>
+                          <div className="org-admin-v2__stat-value">{actorInventoryQuery.data.projectsCount}</div>
+                          <div className="org-admin-v2__stat-note">Projets avec au moins un acteur</div>
+                        </Card>
+                        <Card className="org-admin-v2__stat">
+                          <div className="org-admin-v2__stat-top"><span>Groupes similaires</span><span className="org-admin-v2__stat-icon">⇄</span></div>
+                          <div className="org-admin-v2__stat-value">{actorInventoryQuery.data.duplicateCandidates.length}</div>
+                          <div className="org-admin-v2__stat-note">Même libellé normalisé, dans plusieurs projets</div>
+                        </Card>
+                        <Card className="org-admin-v2__stat">
+                          <div className="org-admin-v2__stat-top"><span>Acteurs inactifs</span><span className="org-admin-v2__stat-icon">◌</span></div>
+                          <div className="org-admin-v2__stat-value">{actorInventoryQuery.data.actors.filter((actor) => !actor.active).length}</div>
+                          <div className="org-admin-v2__stat-note">Conservés dans l’inventaire</div>
+                        </Card>
+                      </div>
+                      <Alert color="neutral" variant="soft" sx={{ mb: 2 }}>
+                        Les groupes proposés sont des pistes de rapprochement, pas des fusions automatiques. Les noms ne sont pas modifiés et les affectations RACI/XML restent intactes.
+                      </Alert>
+                      <Card className="org-admin-v2__panel" sx={{ mb: 2 }}>
+                        <div className="org-admin-v2__panel-head">
+                          <Typography level="title-lg">Doublons potentiels entre projets</Typography>
+                          <Chip size="sm" variant="soft">{actorInventoryQuery.data.duplicateCandidates.length} groupe(s)</Chip>
+                        </div>
+                        {actorInventoryQuery.data.duplicateCandidates.length === 0 ? (
+                          <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Aucun libellé strictement identique après normalisation n’a été trouvé entre plusieurs projets.</Typography>
+                        ) : (
+                          <Stack spacing={1.5}>
+                            {actorInventoryQuery.data.duplicateCandidates.map((candidate) => (
+                              <Box key={candidate.normalizedName} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 'md', p: 1.5 }}>
+                                <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} gap={1}>
+                                  <Box>
+                                    <Typography level="title-md">{candidate.actors[0]?.actorName}</Typography>
+                                    <Typography level="body-xs" sx={{ color: 'text.secondary' }}>Libellé comparé : {candidate.normalizedName}</Typography>
+                                  </Box>
+                                  <Chip color="warning" variant="soft">{candidate.actorCount} occurrences · {candidate.projectCount} projets</Chip>
+                                </Stack>
+                                <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" sx={{ mt: 1 }}>
+                                  {candidate.actors.map((actor) => (
+                                    <Chip key={actor.actorId} size="sm" variant="outlined">{actor.projectName} · {actor.actorName}</Chip>
+                                  ))}
+                                </Stack>
+                              </Box>
+                            ))}
+                          </Stack>
+                        )}
+                      </Card>
+                      <Card className="org-admin-v2__panel" sx={{ mb: 2, p: 0, overflow: 'auto' }}>
+                        <Box sx={{ p: 2, pb: 0 }}><Typography level="title-lg">Tous les acteurs</Typography></Box>
+                        <Table hoverRow stickyHeader>
+                          <thead><tr><th>Acteur</th><th>Projet</th><th>Origine</th><th>Statut</th></tr></thead>
+                          <tbody>
+                            {actorInventoryQuery.data.actors.map((actor) => (
+                              <tr key={actor.actorId}>
+                                <td><Typography level="title-sm">{actor.actorName}</Typography></td>
+                                <td>{actor.projectName}</td>
+                                <td>{actor.origin === 'bpmn' ? 'Détecté dans BPMN' : 'Manuel'}</td>
+                                <td><Chip size="sm" color={actor.active ? 'success' : 'neutral'} variant="soft">{actor.active ? 'Actif' : 'Inactif'}</Chip></td>
+                              </tr>
+                            ))}
+                            {actorInventoryQuery.data.actors.length === 0 && <tr><td colSpan={4}>Aucun acteur enregistré dans les projets.</td></tr>}
+                          </tbody>
+                        </Table>
+                      </Card>
+                    </>
+                  )}
+                  {overview && (
+                    <>
+                      <Typography level="title-lg" sx={{ mb: 1 }}>Accès aux matrices RACI des projets</Typography>
+                      <div className="org-admin-v2__governance-list">{overview.projects.map((project) => <Card key={project.id} className="org-admin-v2__governance-card"><div className="org-admin-v2__governance-copy"><Typography level="title-lg">{project.name}</Typography>{project.description && <Typography level="body-sm" sx={{ color: 'text.secondary' }}>{project.description}</Typography>}<div className="org-admin-v2__governance-meta"><Chip size="sm" variant="soft">{project.membersCount} membre(s)</Chip><Chip size="sm" variant="soft">{project.processes.length} processus</Chip><Chip size="sm" variant="soft">RACI du projet</Chip></div></div><Button onClick={() => navigate(`/projects/${project.id}?tab=raci`)}>Gérer le RACI →</Button></Card>)}</div>
+                      {overview.projects.length === 0 && <Card className="org-admin-v2__panel"><Typography level="title-md">Aucun projet accessible</Typography><Typography level="body-sm">Créez un projet ou attribuez un accès pour commencer à définir les responsabilités.</Typography></Card>}
+                    </>
+                  )}
                 </section>
               )}
 
