@@ -1,4 +1,8 @@
 FROM postgres:16-alpine
+COPY backend/migrations/init.sql /opt/migrations/init.sql
+COPY backend/migrations/20261011_v2_project_context.sql /opt/migrations/20261011_v2_project_context.sql
+COPY backend/migrations/20261011_v2_project_raci.sql /opt/migrations/20261011_v2_project_raci.sql
+COPY backend/migrations/20261012_v2_project_raci_actors.sql /opt/migrations/20261012_v2_project_raci_actors.sql
 COPY backend/migrations/20261014_v2_1_process_provenance.sql /opt/migrations/20261014_v2_1_process_provenance.sql
 COPY backend/migrations/20261029_v3_user_theme_preference.sql /opt/migrations/20261029_v3_user_theme_preference.sql
 

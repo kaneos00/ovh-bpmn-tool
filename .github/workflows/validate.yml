@@ -149,6 +149,16 @@ jobs:
           test "$governance_tables" = "3"
           test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM raci_reference_actors")" = "0"
 
+          # Also prove the additive migration applies to a fresh, empty V3 schema.
+          docker exec bpmn-v2-demo-db-ci psql -v ON_ERROR_STOP=1 -U "$DATABASE_USER" -d postgres -c "CREATE DATABASE bpmn_v2_empty"
+          docker run --rm --network bpmn-v2-ci \
+            --env PGPASSWORD="$DATABASE_PASSWORD" \
+            --env DATABASE_USER="$DATABASE_USER" --env DATABASE_NAME="bpmn_v2_empty" \
+            bpmn-v2-demo-migrations:ci sh -ec 'until pg_isready -h database -U "$DATABASE_USER" -d "$DATABASE_NAME"; do sleep 1; done; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/init.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261011_v2_project_context.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261011_v2_project_raci.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261012_v2_project_raci_actors.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261109_v3_raci_reference_registry.sql'
+          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d bpmn_v2_empty -Atc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('raci_reference_actors','raci_actor_mappings','raci_actor_events')")" = "3"
+          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d bpmn_v2_empty -Atc "SELECT count(*) FROM raci_reference_actors")" = "0"
+          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d bpmn_v2_empty -Atc "SELECT count(*) FROM pg_indexes WHERE schemaname='public' AND indexname='raci_actor_mappings_one_active_local_idx'")" = "1"
+
           # Execute the explorer XPath against a real PostgreSQL server. This
           # exercises namespace-aware BPMN XML parsing, latest-published
           # selection, Call Activities and collapsed SubProcess resolution.
