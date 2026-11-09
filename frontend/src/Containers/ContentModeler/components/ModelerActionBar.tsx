@@ -73,6 +73,7 @@ export const ModelerActionBar = ({
   publishApprovedDisabled = false,
   publishApprovedLoading = false,
   modelerReady = true,
+  readOnly = false,
 }: ModelerActionBarProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
