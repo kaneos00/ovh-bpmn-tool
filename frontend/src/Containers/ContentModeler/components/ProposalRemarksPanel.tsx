@@ -27,6 +27,8 @@ type ProposalRemark = {
   decisionBy: string | null;
   decidedAt: string | null;
   decisionComment: string | null;
+  canRespond?: boolean;
+  thread?: Array<{ id: string; eventType: string; actorUserId: string | null; actorName?: string | null; comment: string | null; createdAt: string }>;
 };
 
 type ProposalRemarksPanelProps = {
@@ -77,6 +79,8 @@ export const ProposalRemarksPanel = ({
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [newRemarkText, setNewRemarkText] = useState('');
   const [decisionComments, setDecisionComments] = useState<Record<string, string>>({});
+  const [clarificationComments, setClarificationComments] = useState<Record<string, string>>({});
+  const [responseComments, setResponseComments] = useState<Record<string, string>>({});
   const [busyRemarkId, setBusyRemarkId] = useState<string | null>(null);
   const [submittingRemark, setSubmittingRemark] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -266,6 +270,46 @@ export const ProposalRemarksPanel = ({
     }
   };
 
+  const requestClarification = async (remark: ProposalRemark) => {
+    const comment = clarificationComments[remark.id]?.trim();
+    if (!comment || busyRemarkId) return;
+    setBusyRemarkId(remark.id);
+    setError(null);
+    try {
+      await apiClient.post(
+        `/projects/process-change-proposals/${proposalId}/comments/${remark.id}/clarification`,
+        { comment },
+      );
+      setClarificationComments(previous => ({ ...previous, [remark.id]: '' }));
+      await refetch();
+      await queryClient.invalidateQueries({ queryKey: ['process-change-proposals-to-review'] });
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Impossible de demander une précision.');
+    } finally {
+      setBusyRemarkId(null);
+    }
+  };
+
+  const respondToClarification = async (remark: ProposalRemark) => {
+    const comment = responseComments[remark.id]?.trim();
+    if (!comment || busyRemarkId) return;
+    setBusyRemarkId(remark.id);
+    setError(null);
+    try {
+      await apiClient.post(
+        `/projects/process-change-proposals/${proposalId}/comments/${remark.id}/response`,
+        { comment },
+      );
+      setResponseComments(previous => ({ ...previous, [remark.id]: '' }));
+      await refetch();
+      await queryClient.invalidateQueries({ queryKey: ['process-change-proposals-to-review'] });
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Impossible d’envoyer la réponse.');
+    } finally {
+      setBusyRemarkId(null);
+    }
+  };
+
   return (
     <Sheet
       variant="outlined"
@@ -384,8 +428,62 @@ export const ProposalRemarksPanel = ({
                   >
                     Localiser dans le diagramme
                   </Button>
+                  {(remark.thread ?? []).filter(item =>
+                    item.eventType === 'remark_clarification_requested' ||
+                    item.eventType === 'remark_author_responded'
+                  ).map(item => (
+                    <Sheet key={item.id} variant="outlined" sx={{ p: 1, borderRadius: 'sm' }}>
+                      <Typography level="body-xs" color="neutral">
+                        {item.eventType === 'remark_clarification_requested' ? 'Précision demandée' : 'Réponse de l’auteur'}
+                        {' · '}{item.actorName || item.actorUserId || 'Utilisateur'} · {formatDate(item.createdAt)}
+                      </Typography>
+                      <Typography level="body-sm">{item.comment}</Typography>
+                    </Sheet>
+                  ))}
+                  {remark.canRespond && remark.status === 'pending' && (
+                    <Stack spacing={0.75}>
+                      <Textarea
+                        size="sm"
+                        minRows={2}
+                        value={responseComments[remark.id] ?? ''}
+                        onChange={event => setResponseComments(previous => ({
+                          ...previous,
+                          [remark.id]: event.target.value,
+                        }))}
+                        placeholder="Votre réponse à la demande de précision…"
+                      />
+                      <Button
+                        size="sm"
+                        loading={busyRemarkId === remark.id}
+                        disabled={busyRemarkId !== null || !responseComments[remark.id]?.trim()}
+                        onClick={() => respondToClarification(remark)}
+                      >
+                        Répondre à la précision
+                      </Button>
+                    </Stack>
+                  )}
                   {canDecide && remark.status === 'pending' && (
                     <>
+                      <Textarea
+                        size="sm"
+                        minRows={1}
+                        value={clarificationComments[remark.id] ?? ''}
+                        onChange={event => setClarificationComments(previous => ({
+                          ...previous,
+                          [remark.id]: event.target.value,
+                        }))}
+                        placeholder="Demander une précision à l’auteur…"
+                      />
+                      <Button
+                        size="sm"
+                        variant="outlined"
+                        color="neutral"
+                        loading={busyRemarkId === remark.id}
+                        disabled={busyRemarkId !== null || !clarificationComments[remark.id]?.trim()}
+                        onClick={() => requestClarification(remark)}
+                      >
+                        Demander une précision
+                      </Button>
                       <Textarea
                         size="sm"
                         minRows={1}
