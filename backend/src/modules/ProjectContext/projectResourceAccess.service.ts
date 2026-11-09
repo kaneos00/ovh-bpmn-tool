@@ -265,9 +265,12 @@ export class ProjectResourceAccessService {
 
     if (
       proposal.status === ProcessChangeProposalStatus.Rejected ||
-      proposal.status === ProcessChangeProposalStatus.Published
+      proposal.status === ProcessChangeProposalStatus.Published ||
+      proposal.status === ProcessChangeProposalStatus.Approved
     ) {
-      throw new ForbiddenException('This proposal workspace is closed');
+      throw new ForbiddenException(
+        'This proposal workspace is closed or its approved snapshot is immutable',
+      );
     }
 
     if (this.hasOrganizationAdminRole(headers)) return;
@@ -313,6 +316,25 @@ export class ProjectResourceAccessService {
         'Editing this proposal requires modeler, project administrator or assigned validator access',
       );
     }
+  }
+
+  /**
+   * Proposal workspaces are governed by their workflow lifecycle and cannot
+   * have contents deleted through the generic content endpoint.
+   */
+  async assertCanDeleteProposalResource(
+    resourceId: string,
+    headers: RequestHeaders,
+  ) {
+    const proposal = await this.processChangeProposals.findOne({
+      where: { cloneResourceId: resourceId },
+    });
+    if (proposal) {
+      throw new ForbiddenException(
+        'Proposal workspace contents cannot be deleted through the generic content endpoint',
+      );
+    }
+    return this.assertCanEditResource(resourceId, headers);
   }
 
   async assertCanDeleteResource(resourceId: string) {
