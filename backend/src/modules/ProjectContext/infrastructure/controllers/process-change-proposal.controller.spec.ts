@@ -14,6 +14,7 @@ import { ProjectProcessUsage } from '../entities/projectProcess.ormEntity';
 import { ContentTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/content.ormEntity';
 import { ResourceTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/resource.ormEntity';
 import { ProjectProcessTypeOrmEntity } from '../entities/projectProcess.ormEntity';
+import { ContentStatusEnum } from '../../../ResourceContext/shared/types/Content';
 import { ResourceTypeEnum } from '../../../ResourceContext/shared/types/Resource';
 import { ProcessChangeProposalController } from './process-change-proposal.controller';
 
