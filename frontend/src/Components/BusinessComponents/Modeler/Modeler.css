@@ -478,3 +478,14 @@
   width: 100%;
   height: 100%;
 }
+
+
+/* An approved proposal is an immutable snapshot until it is published. */
+.modelerReadOnly #diagramContainer,
+.modelerReadOnly #diagramProperties {
+  pointer-events: none !important;
+  user-select: none;
+}
+.modelerReadOnly #diagramProperties {
+  opacity: 0.65;
+}
