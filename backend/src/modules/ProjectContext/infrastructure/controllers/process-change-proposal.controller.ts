@@ -1600,6 +1600,10 @@ export class ProcessChangeProposalController {
           const latest = thread[thread.length - 1];
           return latest?.eventType === 'remark_clarification_requested';
         })(),
+      awaitingAuthorResponse: (() => {
+        const thread = eventsByRemark.get(comment.id) ?? [];
+        return thread[thread.length - 1]?.eventType === 'remark_clarification_requested';
+      })(),
       thread: (eventsByRemark.get(comment.id) ?? []).map((event) => ({
         id: event.id,
         eventType: event.eventType,
@@ -1867,6 +1871,17 @@ export class ProcessChangeProposalController {
       if (current.status !== ProcessChangeProposalCommentStatus.Pending) {
         throw new ConflictException(
           'Cette remarque a déjà fait l’objet d’une décision',
+        );
+      }
+      const remarkHistory = await manager
+        .getRepository(ProcessChangeProposalEventTypeOrmEntity)
+        .find({ where: { proposalId }, order: { createdAt: 'ASC' } });
+      const remarkThread = remarkHistory.filter(
+        (event) => event.details?.remarkId === current.id,
+      );
+      if (remarkThread[remarkThread.length - 1]?.eventType === 'remark_clarification_requested') {
+        throw new ConflictException(
+          'La demande de précision attend la réponse de l’auteur',
         );
       }
       current.status =
