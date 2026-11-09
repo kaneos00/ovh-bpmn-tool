@@ -1755,6 +1755,11 @@ export class ProcessChangeProposalController {
       throw new BadRequestException('Décision de remarque non reconnue');
     }
     const decisionComment = body.comment?.trim() ?? '';
+    if (body.decision === 'rejected' && !decisionComment) {
+      throw new BadRequestException(
+        'Un motif est obligatoire pour refuser une remarque',
+      );
+    }
     return this.dataSource.transaction(async (manager) => {
       const lockedProposal = await manager
         .getRepository(ProcessChangeProposalTypeOrmEntity)
