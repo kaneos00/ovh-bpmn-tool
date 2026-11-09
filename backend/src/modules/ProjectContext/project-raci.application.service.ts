@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ProjectMemberRole } from './infrastructure/entities/projectMember.ormEntity';
+import { ProjectTypeOrmEntity } from './infrastructure/entities/project.ormEntity';
 import { ProjectProcessTypeOrmEntity } from './infrastructure/entities/projectProcess.ormEntity';
 import { ProjectRaciActorTypeOrmEntity } from './infrastructure/entities/projectRaciActor.ormEntity';
 import { ProjectRaciEntryTypeOrmEntity } from './infrastructure/entities/projectRaciEntry.ormEntity';
@@ -102,7 +103,7 @@ export class ProjectRaciApplicationService {
     origin: string;
   }>> {
     if (!this.access.hasOrganizationAdminRole(headers)) {
-      throw new (await import('@nestjs/common')).ForbiddenException(
+      throw new ForbiddenException(
         'Organization administrator role is required',
       );
     }
@@ -110,7 +111,7 @@ export class ProjectRaciApplicationService {
     return this.actors
       .createQueryBuilder('actor')
       .innerJoin(
-        'projects',
+        ProjectTypeOrmEntity,
         'project',
         'project.id = actor."projectId"',
       )
