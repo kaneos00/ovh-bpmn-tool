@@ -30,7 +30,9 @@ BEGIN
       'published',
       'remark_added',
       'remark_accepted',
-      'remark_rejected'
+      'remark_rejected',
+      'remark_clarification_requested',
+      'remark_author_responded'
     ));
 END;
 $remark_event_migration$;
