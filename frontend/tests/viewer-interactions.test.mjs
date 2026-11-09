@@ -495,3 +495,28 @@ test('BPMN viewer exposes native fullscreen controls and browser Escape exit', a
   assert.ok(viewer.includes('Quitter le plein écran (Échap)'));
   assert.ok(css.includes('.process-viewer-shell:fullscreen'));
 });
+
+
+test('proposal review opens and edits only the exact submitted BPMN snapshot', async () => {
+  const queue = await read('src/Containers/MyProcessChangeProposals/MyProcessChangeProposals.container.tsx');
+  const modeler = await read('src/Containers/ContentModeler/ContentModeler.container.tsx');
+  const contentHook = await read('src/Containers/ContentModeler/hooks/useContentModeler.ts');
+  const backend = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/process-change-proposal.controller.ts');
+
+  assert.ok(queue.includes('proposal.submittedContentId'));
+  assert.ok(queue.includes('reviewRemarks=1'));
+  assert.ok(queue.includes('&contentId='));
+  assert.match(modeler, /const reviewRemarksMode = searchParams\.get\('reviewRemarks'\) === '1'/);
+  assert.match(modeler, /<ProposalRemarksPanel[\s\S]*?proposalId=\{proposalId\}[\s\S]*?canDecide=\{reviewRemarksMode\}/);
+
+  assert.match(contentHook, /getContentQuery\(resourceId, requestedContentId \?\? ''\)/);
+  assert.match(contentHook, /enabled: Boolean\(proposalId && requestedContentId\)/);
+  assert.match(contentHook, /if \(listedContent\) return listedContent;[\s\S]*?if \(proposalId\) return requestedContent/);
+  assert.match(contentHook, /getXmlContentQuery\(resourceId, selectedContent\?\.id as string\)/);
+  assert.match(contentHook, /proposalContentLookupFailed = Boolean\([\s\S]*?proposalId &&[\s\S]*?requestedContentId[\s\S]*?!selectedContent[\s\S]*?requestedContentIsError/);
+  assert.match(contentHook, /const editableContent = proposalId && selectedContent\?\.status === ContentStatusEnum\.Draft[\s\S]*?\? selectedContent[\s\S]*?: draftContent/);
+
+  assert.match(backend, /const submittedContent = await contents\.findOne\([\s\S]*?resourceId: proposal\.cloneResourceId,[\s\S]*?status: ContentStatusEnum\.Draft/);
+  assert.match(backend, /proposal\.submittedContentId = submittedContent\.id/);
+  assert.match(backend, /submittedContentId: submittedContent\.id/);
+});
