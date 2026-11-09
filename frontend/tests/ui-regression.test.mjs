@@ -973,6 +973,19 @@ test('proposal modeler waits for its BPMN XML and reports loading failures inste
 });
 
 
+test('approved BPMN proposals are read-only until the approved snapshot is published', async () => {
+  const container = await read('src/Containers/ContentModeler/ContentModeler.container.tsx');
+  const modeler = await read('src/Components/BusinessComponents/Modeler/Modeler.tsx');
+  const actionBar = await read('src/Containers/ContentModeler/components/ModelerActionBar.tsx');
+  const styles = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
+
+  assert.ok(container.includes('readOnly={approvedProposalMode}'));
+  assert.ok(container.includes('isDirty || publishingApprovedProposal'));
+  assert.ok(modeler.includes('modelerReadOnly'));
+  assert.ok(actionBar.includes('{!readOnly && ('));
+  assert.ok(styles.includes('.modelerReadOnly #diagramContainer'));
+});
+
 test('rejecting a BPMN remark requires a reason in the UI and backend', async () => {
   const panel = await read('src/Containers/ContentModeler/components/ProposalRemarksPanel.tsx');
   const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/process-change-proposal.controller.ts');
