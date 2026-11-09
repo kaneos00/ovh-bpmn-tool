@@ -5,7 +5,10 @@ import { ContentStatusEnum } from './shared/types/Content';
 import { ContentTypeOrmEntity } from './infrastructure/entities/content.ormEntity';
 import { ProjectResourceAccessService } from '../ProjectContext/projectResourceAccess.service';
 
-export type ResourceContentGovernanceHeaders = Record<string, string | undefined>;
+export type ResourceContentGovernanceHeaders = Record<
+  string,
+  string | undefined
+>;
 
 export interface ResourceContentGovernanceSnapshot {
   resourceId: string;
