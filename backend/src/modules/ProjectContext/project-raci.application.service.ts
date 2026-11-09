@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ProjectMemberRole } from './infrastructure/entities/projectMember.ormEntity';
@@ -93,15 +97,17 @@ export class ProjectRaciApplicationService {
    */
   async readOrganizationActorInventory(
     headers: ProjectRaciRequestHeaders,
-  ): Promise<Array<{
-    projectId: string;
-    projectName: string;
-    actorId: string;
-    actorName: string;
-    normalizedName: string;
-    active: boolean;
-    origin: string;
-  }>> {
+  ): Promise<
+    Array<{
+      projectId: string;
+      projectName: string;
+      actorId: string;
+      actorName: string;
+      normalizedName: string;
+      active: boolean;
+      origin: string;
+    }>
+  > {
     if (!this.access.hasOrganizationAdminRole(headers)) {
       throw new ForbiddenException(
         'Organization administrator role is required',
@@ -126,5 +132,4 @@ export class ProjectRaciApplicationService {
       .addOrderBy('actor.name', 'ASC')
       .getRawMany();
   }
-
 }
