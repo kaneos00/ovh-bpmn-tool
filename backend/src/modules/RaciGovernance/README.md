@@ -1506,3 +1506,29 @@ to postpone the read-only MVP.
 No frontend page, database migration, XML writer or mutation endpoint has been
 added in this increment. CI and test results must be verified on the latest
 commit before considering the slice ready for integration.
+
+
+### Admin screen now connected
+
+The existing consolidated organization administration screen now exposes the
+first actor inventory under **Administration → Acteurs et RACI**
+(`/organization/governance`). No separate governance page or second navigation
+system was introduced.
+
+The screen currently shows:
+
+- total registered actors, projects represented, duplicate groups and inactive
+  actors;
+- exact normalized-name candidates appearing in more than one project;
+- the original actor label, project, origin (manual/BPMN registry) and active
+  status;
+- existing project links to open the corresponding RACI workspace.
+
+The list is backed by `GET /admin/raci-governance/actors`. It reads the
+`project_raci_actors` registry; it does **not yet** scan every published BPMN
+XML for labels that have never been synchronized into that registry. This
+limitation is explicit: the first screen is an inventory of registered actors,
+not yet a complete XML/database reconciliation report.
+
+The screen is read-only. No merge, rename, activation or XML write action is
+available until preview and confirmation semantics are implemented.
