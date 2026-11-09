@@ -1954,8 +1954,8 @@ export class ProcessChangeProposalController {
         where: { id: proposalId }, lock: { mode: 'pessimistic_write' },
       });
       if (!lockedProposal) throw new NotFoundException('Demande introuvable');
-      if ([ProcessChangeProposalStatus.Rejected, ProcessChangeProposalStatus.Published].includes(lockedProposal.status)) {
-        throw new ConflictException('La demande est clôturée');
+      if (lockedProposal.status !== ProcessChangeProposalStatus.Submitted) {
+        throw new ConflictException('La demande doit être soumise pour demander une précision');
       }
       const governance = await manager.getRepository(ProjectProcessTypeOrmEntity).findOne({
         where: { projectId: lockedProposal.projectId, resourceId: lockedProposal.sourceResourceId },
@@ -2024,18 +2024,25 @@ export class ProcessChangeProposalController {
     await this.assertProjectWorkflowScope(proposal.projectId, proposal.sourceResourceId);
     const actorUsername = this.access.getAuthenticatedUserId(headers);
     const actorUserId = await this.resolveAccountId(actorUsername);
-    const membership = await this.members.findOne({
-      where: { projectId: proposal.projectId, userId: actorUsername },
-    });
-    if (!membership) throw new ForbiddenException('Un accès actif au projet est requis pour répondre');
     return this.dataSource.transaction(async (manager) => {
       const lockedProposal = await manager.getRepository(ProcessChangeProposalTypeOrmEntity).findOne({
         where: { id: proposalId }, lock: { mode: 'pessimistic_write' },
       });
       if (!lockedProposal) throw new NotFoundException('Demande introuvable');
-      if ([ProcessChangeProposalStatus.Rejected, ProcessChangeProposalStatus.Published].includes(lockedProposal.status)) {
-        throw new ConflictException('La demande est clôturée');
+      if (lockedProposal.status !== ProcessChangeProposalStatus.Submitted) {
+        throw new ConflictException('La demande n’est plus en cours de revue');
       }
+      const currentMembership = await manager.getRepository(ProjectMemberTypeOrmEntity).findOne({
+        where: { projectId: lockedProposal.projectId, userId: actorUsername },
+      });
+      if (!currentMembership) {
+        throw new ForbiddenException('Votre accès au projet a été retiré ; vous ne pouvez plus répondre');
+      }
+      const governance = await manager.getRepository(ProjectProcessTypeOrmEntity).findOne({
+        where: { projectId: lockedProposal.projectId, resourceId: lockedProposal.sourceResourceId },
+        lock: { mode: 'pessimistic_read' },
+      });
+      if (!governance) throw new NotFoundException('Le processus ne fait plus partie du projet');
       const remark = await manager.getRepository(ProcessChangeProposalCommentTypeOrmEntity).findOne({
         where: { id: commentId, proposalId }, lock: { mode: 'pessimistic_write' },
       });
