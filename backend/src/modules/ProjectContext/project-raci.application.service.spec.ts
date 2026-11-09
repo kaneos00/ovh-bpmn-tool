@@ -3,9 +3,9 @@ import { ProjectMemberRole } from './infrastructure/entities/projectMember.ormEn
 import { ProjectRaciApplicationService } from './project-raci.application.service';
 
 describe('ProjectRaciApplicationService', () => {
-  const access = { assertProjectRole: jest.fn() };
+  const access = { assertProjectRole: jest.fn(), hasOrganizationAdminRole: jest.fn() };
   const projectProcesses = { findOne: jest.fn() };
-  const actors = { find: jest.fn() };
+  const actors = { find: jest.fn(), createQueryBuilder: jest.fn() };
   const entries = { find: jest.fn() };
   const headers = { 'x-user': 'alice' };
   let service: ProjectRaciApplicationService;
@@ -13,6 +13,7 @@ describe('ProjectRaciApplicationService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     access.assertProjectRole.mockResolvedValue('alice');
+    access.hasOrganizationAdminRole.mockReturnValue(true);
     projectProcesses.findOne.mockResolvedValue({
       projectId: 'project-1',
       resourceId: 'resource-1',
@@ -91,4 +92,41 @@ describe('ProjectRaciApplicationService', () => {
     expect(result).toEqual([{ id: 'actor-1', name: 'Support' }]);
     expect(projectProcesses.findOne).not.toHaveBeenCalled();
   });
+
+  it('requires organization-admin authority for the cross-project actor inventory', async () => {
+    access.hasOrganizationAdminRole.mockReturnValue(false);
+
+    await expect(service.readOrganizationActorInventory(headers)).rejects.toThrow(
+      'Organization administrator role is required',
+    );
+    expect(actors.createQueryBuilder).not.toHaveBeenCalled();
+  });
+
+  it('returns the cross-project actor inventory through a read-only project join', async () => {
+    const rows = [
+      {
+        projectId: 'project-1',
+        projectName: 'Alpha',
+        actorId: 'actor-1',
+        actorName: 'Responsable IVV',
+        normalizedName: 'responsabile ivv',
+        active: true,
+        origin: 'manual',
+      },
+    ];
+    const query = {
+      innerJoin: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      addOrderBy: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue(rows),
+    };
+    actors.createQueryBuilder.mockReturnValue(query);
+
+    await expect(service.readOrganizationActorInventory(headers)).resolves.toEqual(rows);
+    expect(access.hasOrganizationAdminRole).toHaveBeenCalledWith(headers);
+    expect(query.getRawMany).toHaveBeenCalledTimes(1);
+  });
+
 });
