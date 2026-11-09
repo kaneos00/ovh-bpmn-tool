@@ -1006,6 +1006,8 @@ test('BPMN remark clarification stays in the remark event thread', async () => {
   assert.ok(panel.includes('/response'));
   assert.ok(panel.includes('Précision demandée'));
   assert.ok(panel.includes('Réponse de l’auteur'));
+  assert.ok(panel.includes('awaitingAuthorResponse'));
+  assert.ok(panel.includes('En attente de la réponse de l’auteur avant la décision finale.'));
   assert.ok(controller.includes('remark_clarification_requested'));
   assert.ok(controller.includes('remark_author_responded'));
   assert.ok(controller.includes('canRespond:'));
