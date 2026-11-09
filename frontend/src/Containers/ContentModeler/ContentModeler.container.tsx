@@ -194,7 +194,7 @@ export const Component = () => {
       {publicationError && <Alert color="danger" sx={{ mx: 2, my: 1 }}>{publicationError}</Alert>}
       {approvedProposalMode && (
         <Alert color="neutral" variant="soft" sx={{ mx: 2, my: 1 }}>
-          La contribution est approuvée et figée. Le diagramme est en lecture seule fino alla pubblicazione.
+          La contribution est approuvée et figée. Le diagramme est en lecture seule jusqu’à sa publication.
         </Alert>
       )}
       {approvedProposalMode && (
