@@ -238,7 +238,7 @@ export class ContentController {
     @Param() params: DeleteContentCommandParams,
     @Headers() headers: Record<string, string>,
   ) {
-    await this.projectResourceAccess.assertCanEditResource(
+    await this.projectResourceAccess.assertCanDeleteProposalResource(
       params.resourceId,
       headers,
     );
