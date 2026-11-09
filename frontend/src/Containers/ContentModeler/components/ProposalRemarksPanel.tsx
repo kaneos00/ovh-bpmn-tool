@@ -394,7 +394,7 @@ export const ProposalRemarksPanel = ({
                           ...previous,
                           [remark.id]: event.target.value,
                         }))}
-                        placeholder="Commentaire de décision (facultatif)…"
+                        placeholder="Motif de décision (obligatoire pour refuser)…"
                       />
                       <Stack direction="row" spacing={1}>
                         <Button
@@ -411,7 +411,10 @@ export const ProposalRemarksPanel = ({
                           color="danger"
                           variant="outlined"
                           loading={busyRemarkId === remark.id}
-                          disabled={busyRemarkId !== null}
+                          disabled={
+                            busyRemarkId !== null ||
+                            !decisionComments[remark.id]?.trim()
+                          }
                           onClick={() => decideRemark(remark, 'rejected')}
                         >
                           Refuser
