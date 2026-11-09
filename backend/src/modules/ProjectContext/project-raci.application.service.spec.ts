@@ -103,6 +103,34 @@ describe('ProjectRaciApplicationService', () => {
     expect(actors.createQueryBuilder).not.toHaveBeenCalled();
   });
 
+  it('looks up one local actor through the owning ProjectContext service', async () => {
+    const actor = {
+      projectId: 'project-1',
+      projectName: 'Alpha',
+      actorId: 'actor-1',
+      actorName: 'Support',
+      normalizedName: 'support',
+      active: true,
+      origin: 'manual',
+    };
+    const query = {
+      innerJoin: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      getRawOne: jest.fn().mockResolvedValue(actor),
+    };
+    actors.createQueryBuilder.mockReturnValue(query);
+
+    await expect(
+      service.readOrganizationActorById('actor-1', headers),
+    ).resolves.toEqual(actor);
+    expect(access.hasOrganizationAdminRole).toHaveBeenCalledWith(headers);
+    expect(query.where).toHaveBeenCalledWith('actor.id = :actorId', {
+      actorId: 'actor-1',
+    });
+  });
+
   it('returns the cross-project actor inventory through a read-only project join', async () => {
     const rows = [
       {

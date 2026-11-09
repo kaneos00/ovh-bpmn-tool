@@ -1532,3 +1532,61 @@ not yet a complete XML/database reconciliation report.
 
 The screen is read-only. No merge, rename, activation or XML write action is
 available until preview and confirmation semantics are implemented.
+
+
+## Lot 1 — reference registry and local mappings
+
+The first reference-registry increment is implemented on the V3 governance
+branch. It adds only concepts absent from the existing project RACI model:
+
+- `raci_reference_actors`: instance-wide reference identities, with the
+  controlled types `person`, `function`, `service`,
+  `external_organization` and `unknown`;
+- `raci_actor_mappings`: explicit links from an existing
+  `project_raci_actors.id` to one reference identity;
+- `raci_actor_events`: append-only records for reference creation/update
+  and mapping creation.
+
+There is no `organizationId`: the current V3 database is the verified
+organizational boundary. The migration is additive and deliberately performs
+no backfill from equal labels. Existing local actor names and RACI assignments
+are not rewritten.
+
+The mapping table enforces at most one active reference per local actor with a
+partial unique index. Several local actors may point to the same reference.
+Foreign keys use `ON DELETE RESTRICT`; reference identities, mappings and
+their audit history are not deleted through cascades. This also means a
+project/local actor with retained mappings must be explicitly unmapped before
+physical deletion; no implicit history loss is allowed.
+
+### Administrative API
+
+All endpoints are under `/admin/raci-governance`, protected by the existing
+global Admin ACL and a second `ProjectResourceAccessService` organization-admin
+check:
+
+- `GET /reference-actors`
+- `POST /reference-actors`
+- `PATCH /reference-actors/:id`
+- `GET /mappings`
+- `POST /mappings`
+
+Reference creation/update and mapping creation write their audit event in
+the same database transaction. A mapping is an explicit administrative
+decision; the duplicate detector does not create mappings. Local actors are
+read through `ProjectRaciApplicationService`, their owning module. No
+ProjectContext or ResourceContext repository is copied into RaciGovernance.
+
+The frontend remains unchanged in this lot: the existing administration
+section continues to expose the validated detection view. The reference
+registry review and decision UX belongs to the administration lot, after the
+backend contract and migration have passed CI and review.
+
+### Migration and rollout
+
+Apply `backend/migrations/20261109_v3_raci_reference_registry.sql` only after
+a database backup and inspection of the target schema. It must be applied
+before deploying code that uses the new entities. No production deployment
+or merge is performed by this change. A rollback must only be attempted while
+the three new tables are empty; once audit or mapping data exists, preserve
+those records and use a forward corrective migration instead of dropping them.

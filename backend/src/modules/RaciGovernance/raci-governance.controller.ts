@@ -1,6 +1,21 @@
-import { Controller, Get, Headers } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { UseAcl } from '../../shared-kernel/modules/acl/infrastructure/acl.decorator';
 import { UserGroup } from '../../shared-kernel/utils/UserGroup';
+import {
+  CreateActorMappingInput,
+  CreateReferenceActorInput,
+  RaciGovernanceApplicationService,
+  RaciGovernanceHeaders,
+  UpdateReferenceActorInput,
+} from './application/raci-governance.application.service';
 import { ProjectRaciApplicationService } from '../ProjectContext/project-raci.application.service';
 import { ActorLabelNormalizer } from './domain/actor-label.normalizer';
 
@@ -8,11 +23,14 @@ type RequestHeaders = Record<string, string | undefined>;
 
 @Controller('admin/raci-governance')
 export class RaciGovernanceController {
-  constructor(private readonly projectRaci: ProjectRaciApplicationService) {}
+  constructor(
+    private readonly projectRaci: ProjectRaciApplicationService,
+    private readonly governance: RaciGovernanceApplicationService,
+  ) {}
 
   /**
-   * First MVP slice: read-only cross-project actor inventory and exact
-   * normalized-name duplicate candidates. No mutation is exposed here.
+   * Read-only cross-project inventory and exact normalized-name candidates.
+   * Candidate detection never creates a mapping or changes a local actor.
    */
   @Get('actors')
   @UseAcl([UserGroup.Admin])
@@ -48,5 +66,45 @@ export class RaciGovernanceController {
       duplicateCandidates,
       actors,
     };
+  }
+
+  @Get('reference-actors')
+  @UseAcl([UserGroup.Admin])
+  listReferenceActors(@Headers() headers: RaciGovernanceHeaders) {
+    return this.governance.listReferenceActors(headers);
+  }
+
+  @Post('reference-actors')
+  @UseAcl([UserGroup.Admin])
+  createReferenceActor(
+    @Body() body: CreateReferenceActorInput,
+    @Headers() headers: RaciGovernanceHeaders,
+  ) {
+    return this.governance.createReferenceActor(body, headers);
+  }
+
+  @Patch('reference-actors/:id')
+  @UseAcl([UserGroup.Admin])
+  updateReferenceActor(
+    @Param('id') id: string,
+    @Body() body: UpdateReferenceActorInput,
+    @Headers() headers: RaciGovernanceHeaders,
+  ) {
+    return this.governance.updateReferenceActor(id, body, headers);
+  }
+
+  @Get('mappings')
+  @UseAcl([UserGroup.Admin])
+  listActorMappings(@Headers() headers: RaciGovernanceHeaders) {
+    return this.governance.listActorMappings(headers);
+  }
+
+  @Post('mappings')
+  @UseAcl([UserGroup.Admin])
+  createActorMapping(
+    @Body() body: CreateActorMappingInput,
+    @Headers() headers: RaciGovernanceHeaders,
+  ) {
+    return this.governance.createActorMapping(body, headers);
   }
 }

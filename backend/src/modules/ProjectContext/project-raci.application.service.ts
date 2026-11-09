@@ -95,6 +95,42 @@ export class ProjectRaciApplicationService {
    * This is deliberately read-only and requires organization-admin authority;
    * project membership is not sufficient for a cross-project view.
    */
+  async readOrganizationActorById(
+    actorId: string,
+    headers: ProjectRaciRequestHeaders,
+  ): Promise<{
+    projectId: string;
+    projectName: string;
+    actorId: string;
+    actorName: string;
+    normalizedName: string;
+    active: boolean;
+    origin: string;
+  } | null> {
+    if (!this.access.hasOrganizationAdminRole(headers)) {
+      throw new ForbiddenException(
+        'Organization administrator role is required',
+      );
+    }
+
+    return this.actors
+      .createQueryBuilder('actor')
+      .innerJoin(
+        ProjectTypeOrmEntity,
+        'project',
+        'project.id = actor."projectId"',
+      )
+      .select('actor."projectId"', 'projectId')
+      .addSelect('project.name', 'projectName')
+      .addSelect('actor.id', 'actorId')
+      .addSelect('actor.name', 'actorName')
+      .addSelect('actor."normalizedName"', 'normalizedName')
+      .addSelect('actor.active', 'active')
+      .addSelect('actor.origin', 'origin')
+      .where('actor.id = :actorId', { actorId })
+      .getRawOne();
+  }
+
   async readOrganizationActorInventory(
     headers: ProjectRaciRequestHeaders,
   ): Promise<
