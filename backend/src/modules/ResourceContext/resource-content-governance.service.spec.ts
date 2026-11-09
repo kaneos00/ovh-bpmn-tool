@@ -68,7 +68,11 @@ describe('ResourceContentGovernanceService', () => {
     contents.findOne.mockResolvedValue(null);
 
     await expect(
-      service.readContentSnapshot('resource-1', 'content-from-resource-2', headers),
+      service.readContentSnapshot(
+        'resource-1',
+        'content-from-resource-2',
+        headers,
+      ),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
