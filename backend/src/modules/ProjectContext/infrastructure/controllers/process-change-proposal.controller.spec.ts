@@ -1,4 +1,4 @@
-import { ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ProjectMemberRole } from '../entities/projectMember.ormEntity';
 import {
   ProcessChangeProposalStatus,
@@ -176,6 +176,18 @@ describe('ProcessChangeProposalController remark permissions', () => {
       '00000000-0000-4000-8000-000000000099',
       'organization_admin',
     );
+  });
+
+  it('requires a reason when rejecting a remark', async () => {
+    const { controller } = makeController({ role: ProjectMemberRole.Modeler });
+    await expect(
+      controller.decideProposalComment(
+        proposalId,
+        commentId,
+        { decision: 'rejected', comment: '   ' },
+        { 'x-user': actorUsername },
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('does not allow a viewer to decide a remark', async () => {
