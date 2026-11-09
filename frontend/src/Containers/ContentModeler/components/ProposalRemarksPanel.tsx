@@ -28,6 +28,7 @@ type ProposalRemark = {
   decidedAt: string | null;
   decisionComment: string | null;
   canRespond?: boolean;
+  awaitingAuthorResponse?: boolean;
   thread?: Array<{ id: string; eventType: string; actorUserId: string | null; actorName?: string | null; comment: string | null; createdAt: string }>;
 };
 
@@ -462,7 +463,12 @@ export const ProposalRemarksPanel = ({
                       </Button>
                     </Stack>
                   )}
-                  {canDecide && remark.status === 'pending' && (
+                  {canDecide && remark.status === 'pending' && remark.awaitingAuthorResponse && (
+                    <Typography level="body-xs" color="warning">
+                      En attente de la réponse de l’auteur avant la décision finale.
+                    </Typography>
+                  )}
+                  {canDecide && remark.status === 'pending' && !remark.awaitingAuthorResponse && (
                     <>
                       <Textarea
                         size="sm"
