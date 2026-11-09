@@ -19,9 +19,8 @@ async function requireSession({ request }: { request: Request }) {
 
 /**
  * V3 initial shell: authentication, process/folder viewer and BPMN modeler.
- * Application management, organization administration, project management,
- * comparisons and resource CRUD routes are intentionally not exposed here.
- * Their backend APIs and implementation remain untouched for later phases.
+ * Organization administration is exposed through its existing consolidated
+ * administration screen; the RACI governance view reuses that screen.
  */
 export const routes = [
   {
@@ -46,6 +45,10 @@ export const routes = [
       {
         path: '/projects/:projectId',
         lazy: () => import('./Containers/Projects'),
+      },
+      {
+        path: '/organization/:section',
+        lazy: () => import('./Containers/OrganizationAdmin'),
       },
       {
         path: '/:resourceId',
