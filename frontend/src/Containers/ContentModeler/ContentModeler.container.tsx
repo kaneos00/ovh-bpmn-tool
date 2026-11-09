@@ -89,6 +89,10 @@ export const Component = () => {
 
   const publishApprovedProposal = async () => {
     if (!proposalId || !approvedProposalMode || publishingApprovedProposal) return;
+    if (isDirty) {
+      setPublicationError('La version approuvée ne peut pas être modifiée avant publication. Rechargez le modeleur pour retrouver le contenu approuvé.');
+      return;
+    }
     setPublishingApprovedProposal(true);
     setPublicationError(null);
     try {
@@ -178,8 +182,9 @@ export const Component = () => {
         hidePublish={reviewRemarksMode || approvedProposalMode}
         approvedProposalMode={approvedProposalMode}
         onPublishApprovedProposal={publishApprovedProposal}
-        publishApprovedDisabled={!isModelerReady || publishingApprovedProposal || !proposalId || !publicationSummaryComment.trim()}
+        publishApprovedDisabled={!isModelerReady || isDirty || publishingApprovedProposal || !proposalId || !publicationSummaryComment.trim()}
         publishApprovedLoading={publishingApprovedProposal}
+        readOnly={approvedProposalMode}
       />
       {draftXmlContentErrorMessage && (
         <Alert color="danger" sx={{ mx: 2, my: 1 }}>
@@ -187,6 +192,13 @@ export const Component = () => {
         </Alert>
       )}
       {publicationError && <Alert color="danger" sx={{ mx: 2, my: 1 }}>{publicationError}</Alert>}
+      {approvedProposalMode && (
+        <Alert color="neutral" variant="soft" sx={{ mx: 2, my: 1 }}>
+          <div style={{ width: '100%' }}>
+            <Typography level="body-sm">La contribution est approuvée et figée. Le diagramme est en lecture seule jusqu’à sa publication.</Typography>
+          </div>
+        </Alert>
+      )}
       {approvedProposalMode && (
         <Alert color="neutral" variant="soft" sx={{ mx: 2, my: 1 }}>
           <div style={{ width: '100%' }}>
@@ -204,6 +216,7 @@ export const Component = () => {
         <Modeler
           diagramContainerRef={diagramContainerRef}
           diagramPropertiesRef={diagramPropertiesRef}
+          readOnly={approvedProposalMode}
         />
         {proposalId && (
           <ProposalRemarksPanel
