@@ -54,9 +54,7 @@ function asString(value: unknown): string | undefined {
 
 function localName(qualifiedName: string): string {
   const separator = qualifiedName.indexOf(':');
-  return separator === -1
-    ? qualifiedName
-    : qualifiedName.slice(separator + 1);
+  return separator === -1 ? qualifiedName : qualifiedName.slice(separator + 1);
 }
 
 function namespacePrefix(qualifiedName: string): string {
@@ -183,9 +181,7 @@ export class ActorLabelXmlReader {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Unknown XML parser error';
-      throw new ActorLabelXmlReadError(
-        `Unable to parse BPMN XML: ${message}`,
-      );
+      throw new ActorLabelXmlReadError(`Unable to parse BPMN XML: ${message}`);
     }
 
     if (!Array.isArray(document)) {
@@ -247,9 +243,7 @@ export class ActorLabelXmlReader {
               continue;
             }
 
-            if (
-              (RACI_ROLES as readonly string[]).includes(fieldName)
-            ) {
+            if ((RACI_ROLES as readonly string[]).includes(fieldName)) {
               const normalizedLabel =
                 ActorLabelNormalizer.normalize(attributeValue);
               if (normalizedLabel) {
