@@ -1459,3 +1459,50 @@ creation path inspected in the second source pass are documented in
 This expands, but does not close, the repository-wide writer inventory. No
 runtime code or schema was changed; the live PostgreSQL preflight and
 repository-wide search remain hard gates.
+
+
+## MVP implementation update (2026-11-09)
+
+The first runtime slice is now present on `feat/raci-governance-module-v3`:
+
+- `RaciGovernanceModule` is a separate NestJS module composed only by
+  `BpmnToolAppModule`; it depends on the existing `ProjectContextModule`.
+- `GET /admin/raci-governance/actors` exposes a read-only cross-project actor
+  inventory. It is protected by the existing global Admin ACL and repeats the
+  organization-admin check in the owning ProjectContext facade.
+- The response includes project and actor identity, active state and origin,
+  plus duplicate candidates grouped by the comparison-only normalizer. A
+  candidate is reported only when the normalized label occurs in more than
+  one project.
+- The inventory is intentionally read-only. It does not rename, merge,
+  activate, deactivate, rewrite XML, update RACI assignments or publish BPMN
+  content.
+
+This is the first functional backend increment, not the final governance
+workflow. It deliberately replaces the previous plan to finish a repository-
+wide transaction-coordination refactor before delivering anything.
+
+### Short delivery sequence
+
+1. **Now — inventory and duplicate discovery:** read-only endpoint and focused
+   unit tests. No new UI is required for this backend slice.
+2. **Next — one compact administration surface:** one page/tab in the existing
+   administration area, not a new multi-screen workflow. It will show the
+   cross-project actor list and duplicate groups, with a single preview panel.
+3. **Then — controlled rename/merge:** support one selected target label,
+   preview every affected project, assignment and BPMN content, require
+   explicit confirmation, and record an audit entry. Reuse owner-module
+   contracts; do not introduce a second publication mechanism.
+4. **Later refinement:** improve rollback/reversal, fuzzy suggestions,
+   transaction coordination for less common writer paths, and historical
+   matrix/content versioning.
+
+The first mutation will be restricted to a small, well-defined operation and
+must fail closed on ambiguity or stale source content. Broad writer-path
+coordination and the production database preflight remain necessary before
+cross-context XML/database writes, but they are no longer treated as reasons
+to postpone the read-only MVP.
+
+No frontend page, database migration, XML writer or mutation endpoint has been
+added in this increment. CI and test results must be verified on the latest
+commit before considering the slice ready for integration.
