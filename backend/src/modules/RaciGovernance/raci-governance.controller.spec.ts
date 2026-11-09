@@ -135,10 +135,7 @@ describe('RaciGovernanceController', () => {
     ).resolves.toEqual({ id: 'mapping-1' });
 
     expect(governance.listReferenceActors).toHaveBeenCalledWith(headers);
-    expect(governance.createReferenceActor).toHaveBeenCalledWith(
-      body,
-      headers,
-    );
+    expect(governance.createReferenceActor).toHaveBeenCalledWith(body, headers);
     expect(governance.createActorMapping).toHaveBeenCalledWith(
       { localActorId: 'local-1', referenceActorId: 'ref-1' },
       headers,
