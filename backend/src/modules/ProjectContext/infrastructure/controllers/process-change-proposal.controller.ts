@@ -612,9 +612,8 @@ export class ProcessChangeProposalController {
         },
         order: { updatedAt: 'DESC', createdAt: 'DESC' },
       });
-      let existingOpenProposal:
-        | ProcessChangeProposalTypeOrmEntity
-        | null = null;
+      let existingOpenProposal: ProcessChangeProposalTypeOrmEntity | null =
+        null;
       let existingCloneDraft: ContentTypeOrmEntity | null = null;
       const proposalsWithDraft = new Set<string>();
       for (const candidate of openProposals) {
@@ -1888,8 +1887,9 @@ export class ProcessChangeProposalController {
       | 'project_default_assigned'
       | 'pilot_missing'
       | 'pilot_invalid'
-      | 'project_default_invalid' =
-      pilotIdentifier?.trim() ? 'pilot_invalid' : 'pilot_missing';
+      | 'project_default_invalid' = pilotIdentifier?.trim()
+      ? 'pilot_invalid'
+      : 'pilot_missing';
 
     // The BPMN process pilot has priority over the project-level default.
     if (pilotIdentifier?.trim()) {
