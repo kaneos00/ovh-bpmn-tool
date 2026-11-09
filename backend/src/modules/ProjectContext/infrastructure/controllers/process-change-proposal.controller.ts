@@ -1971,9 +1971,6 @@ export class ProcessChangeProposalController {
         throw new ForbiddenException('L’auteur ne peut pas demander une précision sur sa propre remarque');
       }
       const events = manager.getRepository(ProcessChangeProposalEventTypeOrmEntity);
-      const latest = await events.findOne({
-        where: { proposalId }, order: { createdAt: 'DESC' },
-      });
       // A clarification request may be repeated only after the author answered.
       const remarkEvents = await events.find({ where: { proposalId }, order: { createdAt: 'DESC' } });
       const latestForRemark = remarkEvents.find((event) => event.details?.remarkId === remark.id);
