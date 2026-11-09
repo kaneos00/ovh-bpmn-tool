@@ -132,7 +132,10 @@ describe('RaciGovernanceApplicationService', () => {
       localActor: { actorName: 'Responsable IVV' },
       referenceActor: { name: 'Responsable VV' },
     });
-    expect(projectRaci.readOrganizationActorById).toHaveBeenCalledWith('local-1', headers);
+    expect(projectRaci.readOrganizationActorById).toHaveBeenCalledWith(
+      'local-1',
+      headers,
+    );
     expect(eventRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({
         eventType: 'actor_mapping.created',
