@@ -612,7 +612,9 @@ export class ProcessChangeProposalController {
         },
         order: { updatedAt: 'DESC', createdAt: 'DESC' },
       });
-      let existingOpenProposal: ProcessChangeProposalTypeOrmEntity | null = null;
+      let existingOpenProposal:
+        | ProcessChangeProposalTypeOrmEntity
+        | null = null;
       let existingCloneDraft: ContentTypeOrmEntity | null = null;
       const proposalsWithDraft = new Set<string>();
       for (const candidate of openProposals) {
@@ -650,7 +652,10 @@ export class ProcessChangeProposalController {
             actorUserId: authorUserId,
             validatorUserId: orphaned.validatorUserId,
             comment: 'Demande clôturée automatiquement : brouillon de travail introuvable.',
-            details: { reason: 'proposal_workspace_missing', source: 'workflow_recovery' },
+            details: {
+              reason: 'proposal_workspace_missing',
+              source: 'workflow_recovery',
+            },
             createdBy: authorUsername,
           }),
         );
