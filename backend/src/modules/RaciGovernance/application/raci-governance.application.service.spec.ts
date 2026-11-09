@@ -1,7 +1,4 @@
-import {
-  ConflictException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { RaciGovernanceApplicationService } from './raci-governance.application.service';
 import { RaciReferenceActorTypeOrmEntity } from '../infrastructure/entities/raciReferenceActor.ormEntity';
 import { RaciActorMappingTypeOrmEntity } from '../infrastructure/entities/raciActorMapping.ormEntity';
