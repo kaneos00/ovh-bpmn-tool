@@ -78,6 +78,38 @@ describe('ProjectResourceAccessService proposal editing', () => {
     ).resolves.toBeUndefined();
   });
 
+  it('blocks editing an approved proposal snapshot, including for organization administrators', async () => {
+    processChangeProposals.findOne.mockResolvedValue({
+      projectId: 'project-1',
+      sourceResourceId: 'source-1',
+      cloneResourceId: 'clone-1',
+      validatorUserId: 'validator-1',
+      status: ProcessChangeProposalStatus.Approved,
+    });
+
+    await expect(
+      service.assertCanEditProposalResource('clone-1', {
+        'x-user': 'admin-1',
+        'x-groups': 'bpmn-tool-admin-org',
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('blocks generic deletion of proposal workspace contents', async () => {
+    processChangeProposals.findOne.mockResolvedValue({
+      projectId: 'project-1',
+      cloneResourceId: 'clone-1',
+      status: ProcessChangeProposalStatus.Submitted,
+    });
+
+    await expect(
+      service.assertCanDeleteProposalResource('clone-1', {
+        'x-user': 'admin-1',
+        'x-groups': 'bpmn-tool-admin-org',
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
   it('requires project administrator access for common-process proposal workspaces', async () => {
     processChangeProposals.findOne.mockResolvedValue({
       projectId: 'project-1',
