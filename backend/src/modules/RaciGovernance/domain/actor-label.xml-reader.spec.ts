@@ -136,8 +136,9 @@ describe('ActorLabelXmlReader', () => {
   });
 
   it('fails closed on malformed XML', () => {
-    expect(() => reader.read('<bpmn:definitions><bpmn:task></bpmn:definitions>'))
-      .toThrow(ActorLabelXmlReadError);
+    expect(() =>
+      reader.read('<bpmn:definitions><bpmn:task></bpmn:definitions>'),
+    ).toThrow(ActorLabelXmlReadError);
   });
 
   it('fails closed on malformed raci:actors JSON', () => {
