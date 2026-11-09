@@ -973,6 +973,17 @@ test('proposal modeler waits for its BPMN XML and reports loading failures inste
 });
 
 
+test('rejecting a BPMN remark requires a reason in the UI and backend', async () => {
+  const panel = await read('src/Containers/ContentModeler/components/ProposalRemarksPanel.tsx');
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/process-change-proposal.controller.ts');
+  const controllerSpec = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/process-change-proposal.controller.spec.ts');
+
+  assert.ok(panel.includes('Motif de décision (obligatoire pour refuser)'));
+  assert.ok(panel.includes("!decisionComments[remark.id]?.trim()"));
+  assert.ok(controller.includes('Un motif est obligatoire pour refuser une remarque'));
+  assert.ok(controllerSpec.includes("requires a reason when rejecting a remark"));
+});
+
 test('project home falls back to workspace process membership when the global resource list fails', async () => {
   const overview = await read('src/Containers/BpmnLayout/FolderOverview.tsx');
   assert.ok(overview.includes('resources.isError && !activeProject'));
