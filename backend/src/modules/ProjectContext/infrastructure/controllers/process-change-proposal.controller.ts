@@ -1556,11 +1556,15 @@ export class ProcessChangeProposalController {
       where: { proposalId },
       order: { createdAt: 'ASC' },
     });
-    const eventsByRemark = new Map<string, ProcessChangeProposalEventTypeOrmEntity[]>();
+    const eventsByRemark = new Map<
+      string,
+      ProcessChangeProposalEventTypeOrmEntity[]
+    >();
     for (const event of remarkEvents) {
-      const remarkId = typeof event.details?.remarkId === 'string'
-        ? event.details.remarkId
-        : null;
+      const remarkId =
+        typeof event.details?.remarkId === 'string'
+          ? event.details.remarkId
+          : null;
       if (!remarkId) continue;
       const thread = eventsByRemark.get(remarkId) ?? [];
       thread.push(event);
@@ -1575,7 +1579,9 @@ export class ProcessChangeProposalController {
           comment.authorUserId,
           ...(comment.decisionBy ? [comment.decisionBy] : []),
         ]),
-        ...remarkEvents.map((event) => event.actorUserId).filter((id): id is string => Boolean(id)),
+        ...remarkEvents
+          .map((event) => event.actorUserId)
+          .filter((id): id is string => Boolean(id)),
       ]),
     ];
     const users: Array<{ id: string; username: string; email: string | null }> =
@@ -1593,7 +1599,8 @@ export class ProcessChangeProposalController {
       decisionByName: comment.decisionBy
         ? (userNameById.get(comment.decisionBy) ?? comment.decisionBy)
         : null,
-      canRespond: comment.authorUserId === currentUserId &&
+      canRespond:
+        comment.authorUserId === currentUserId &&
         comment.status === ProcessChangeProposalCommentStatus.Pending &&
         (() => {
           const thread = eventsByRemark.get(comment.id) ?? [];
@@ -1602,7 +1609,10 @@ export class ProcessChangeProposalController {
         })(),
       awaitingAuthorResponse: (() => {
         const thread = eventsByRemark.get(comment.id) ?? [];
-        return thread[thread.length - 1]?.eventType === 'remark_clarification_requested';
+        return (
+          thread[thread.length - 1]?.eventType ===
+          'remark_clarification_requested'
+        );
       })(),
       thread: (eventsByRemark.get(comment.id) ?? []).map((event) => ({
         id: event.id,
@@ -1879,7 +1889,10 @@ export class ProcessChangeProposalController {
       const remarkThread = remarkHistory.filter(
         (event) => event.details?.remarkId === current.id,
       );
-      if (remarkThread[remarkThread.length - 1]?.eventType === 'remark_clarification_requested') {
+      if (
+        remarkThread[remarkThread.length - 1]?.eventType ===
+        'remark_clarification_requested'
+      ) {
         throw new ConflictException(
           'La demande de précision attend la réponse de l’auteur',
         );
@@ -1923,7 +1936,9 @@ export class ProcessChangeProposalController {
    * Ask the remark author for clarification without changing the remark's
    * business status. The event stream is the source of truth for the thread.
    */
-  @Post('process-change-proposals/:proposalId/comments/:commentId/clarification')
+  @Post(
+    'process-change-proposals/:proposalId/comments/:commentId/clarification',
+  )
   @UseAcl()
   async requestRemarkClarification(
     @Param('proposalId') proposalId: string,
@@ -1932,76 +1947,134 @@ export class ProcessChangeProposalController {
     @Headers() headers: RequestHeaders,
   ) {
     const text = body.comment?.trim() ?? '';
-    if (!text) throw new BadRequestException('Le texte de la demande de précision est obligatoire');
-    const proposal = await this.proposals.findOne({ where: { id: proposalId } });
+    if (!text)
+      throw new BadRequestException(
+        'Le texte de la demande de précision est obligatoire',
+      );
+    const proposal = await this.proposals.findOne({
+      where: { id: proposalId },
+    });
     if (!proposal) throw new NotFoundException('Demande introuvable');
-    await this.assertProjectWorkflowScope(proposal.projectId, proposal.sourceResourceId);
+    await this.assertProjectWorkflowScope(
+      proposal.projectId,
+      proposal.sourceResourceId,
+    );
     const actorUsername = this.access.getAuthenticatedUserId(headers);
     const actorUserId = await this.resolveAccountId(actorUsername);
     const isOrganizationAdmin = this.access.hasOrganizationAdminRole(headers);
     const membership = await this.members.findOne({
       where: { projectId: proposal.projectId, userId: actorUsername },
     });
-    const canReview = isOrganizationAdmin ||
+    const canReview =
+      isOrganizationAdmin ||
       membership?.role === ProjectMemberRole.Admin ||
       (proposal.validatorUserId === actorUserId &&
         membership?.role === ProjectMemberRole.Modeler);
     if (!canReview) {
-      throw new ForbiddenException('Seul le validateur désigné ou un administrateur habilité peut demander une précision');
+      throw new ForbiddenException(
+        'Seul le validateur désigné ou un administrateur habilité peut demander une précision',
+      );
     }
     return this.dataSource.transaction(async (manager) => {
-      const lockedProposal = await manager.getRepository(ProcessChangeProposalTypeOrmEntity).findOne({
-        where: { id: proposalId }, lock: { mode: 'pessimistic_write' },
-      });
+      const lockedProposal = await manager
+        .getRepository(ProcessChangeProposalTypeOrmEntity)
+        .findOne({
+          where: { id: proposalId },
+          lock: { mode: 'pessimistic_write' },
+        });
       if (!lockedProposal) throw new NotFoundException('Demande introuvable');
       if (lockedProposal.status !== ProcessChangeProposalStatus.Submitted) {
-        throw new ConflictException('La demande doit être soumise pour demander une précision');
+        throw new ConflictException(
+          'La demande doit être soumise pour demander une précision',
+        );
       }
-      const governance = await manager.getRepository(ProjectProcessTypeOrmEntity).findOne({
-        where: { projectId: lockedProposal.projectId, resourceId: lockedProposal.sourceResourceId },
-        lock: { mode: 'pessimistic_read' },
-      });
-      if (!governance) throw new NotFoundException('Le processus ne fait plus partie du projet');
-      if (governance.usage === ProjectProcessUsage.Common && !isOrganizationAdmin) {
-        throw new ForbiddenException('Seul un administrateur global peut traiter les remarques du référentiel commun');
+      const governance = await manager
+        .getRepository(ProjectProcessTypeOrmEntity)
+        .findOne({
+          where: {
+            projectId: lockedProposal.projectId,
+            resourceId: lockedProposal.sourceResourceId,
+          },
+          lock: { mode: 'pessimistic_read' },
+        });
+      if (!governance)
+        throw new NotFoundException(
+          'Le processus ne fait plus partie du projet',
+        );
+      if (
+        governance.usage === ProjectProcessUsage.Common &&
+        !isOrganizationAdmin
+      ) {
+        throw new ForbiddenException(
+          'Seul un administrateur global peut traiter les remarques du référentiel commun',
+        );
       }
-      const currentMembership = await manager.getRepository(ProjectMemberTypeOrmEntity).findOne({
-        where: { projectId: lockedProposal.projectId, userId: actorUsername },
-      });
-      if (!isOrganizationAdmin &&
+      const currentMembership = await manager
+        .getRepository(ProjectMemberTypeOrmEntity)
+        .findOne({
+          where: { projectId: lockedProposal.projectId, userId: actorUsername },
+        });
+      if (
+        !isOrganizationAdmin &&
         currentMembership?.role !== ProjectMemberRole.Admin &&
-        !(lockedProposal.validatorUserId === actorUserId &&
-          currentMembership?.role === ProjectMemberRole.Modeler)) {
+        !(
+          lockedProposal.validatorUserId === actorUserId &&
+          currentMembership?.role === ProjectMemberRole.Modeler
+        )
+      ) {
         throw new ForbiddenException('Vos droits de validation ont changé');
       }
-      const comments = manager.getRepository(ProcessChangeProposalCommentTypeOrmEntity);
+      const comments = manager.getRepository(
+        ProcessChangeProposalCommentTypeOrmEntity,
+      );
       const remark = await comments.findOne({
-        where: { id: commentId, proposalId }, lock: { mode: 'pessimistic_write' },
+        where: { id: commentId, proposalId },
+        lock: { mode: 'pessimistic_write' },
       });
       if (!remark) throw new NotFoundException('Remarque introuvable');
       if (remark.status !== ProcessChangeProposalCommentStatus.Pending) {
-        throw new ConflictException('Cette remarque a déjà fait l’objet d’une décision');
+        throw new ConflictException(
+          'Cette remarque a déjà fait l’objet d’une décision',
+        );
       }
       if (remark.authorUserId === actorUserId) {
-        throw new ForbiddenException('L’auteur ne peut pas demander une précision sur sa propre remarque');
+        throw new ForbiddenException(
+          'L’auteur ne peut pas demander une précision sur sa propre remarque',
+        );
       }
-      const events = manager.getRepository(ProcessChangeProposalEventTypeOrmEntity);
+      const events = manager.getRepository(
+        ProcessChangeProposalEventTypeOrmEntity,
+      );
       // A clarification request may be repeated only after the author answered.
-      const remarkEvents = await events.find({ where: { proposalId }, order: { createdAt: 'DESC' } });
-      const latestForRemark = remarkEvents.find((event) => event.details?.remarkId === remark.id);
+      const remarkEvents = await events.find({
+        where: { proposalId },
+        order: { createdAt: 'DESC' },
+      });
+      const latestForRemark = remarkEvents.find(
+        (event) => event.details?.remarkId === remark.id,
+      );
       if (latestForRemark?.eventType === 'remark_clarification_requested') {
-        throw new ConflictException('Une demande de précision attend déjà la réponse de l’auteur');
+        throw new ConflictException(
+          'Une demande de précision attend déjà la réponse de l’auteur',
+        );
       }
-      const saved = await events.save(events.create({
-        proposalId,
-        eventType: 'remark_clarification_requested',
-        actorUserId,
-        validatorUserId: lockedProposal.validatorUserId,
-        comment: text,
-        details: { remarkId: remark.id, elementId: remark.elementId },
-        createdBy: actorUsername,
-      }));
-      return { id: saved.id, eventType: saved.eventType, comment: saved.comment, createdAt: saved.createdAt };
+      const saved = await events.save(
+        events.create({
+          proposalId,
+          eventType: 'remark_clarification_requested',
+          actorUserId,
+          validatorUserId: lockedProposal.validatorUserId,
+          comment: text,
+          details: { remarkId: remark.id, elementId: remark.elementId },
+          createdBy: actorUsername,
+        }),
+      );
+      return {
+        id: saved.id,
+        eventType: saved.eventType,
+        comment: saved.comment,
+        createdAt: saved.createdAt,
+      };
     });
   }
 
@@ -2018,58 +2091,104 @@ export class ProcessChangeProposalController {
     @Headers() headers: RequestHeaders,
   ) {
     const text = body.comment?.trim() ?? '';
-    if (!text) throw new BadRequestException('La réponse à la demande de précision est obligatoire');
-    const proposal = await this.proposals.findOne({ where: { id: proposalId } });
+    if (!text)
+      throw new BadRequestException(
+        'La réponse à la demande de précision est obligatoire',
+      );
+    const proposal = await this.proposals.findOne({
+      where: { id: proposalId },
+    });
     if (!proposal) throw new NotFoundException('Demande introuvable');
-    await this.assertProjectWorkflowScope(proposal.projectId, proposal.sourceResourceId);
+    await this.assertProjectWorkflowScope(
+      proposal.projectId,
+      proposal.sourceResourceId,
+    );
     const actorUsername = this.access.getAuthenticatedUserId(headers);
     const actorUserId = await this.resolveAccountId(actorUsername);
     return this.dataSource.transaction(async (manager) => {
-      const lockedProposal = await manager.getRepository(ProcessChangeProposalTypeOrmEntity).findOne({
-        where: { id: proposalId }, lock: { mode: 'pessimistic_write' },
-      });
+      const lockedProposal = await manager
+        .getRepository(ProcessChangeProposalTypeOrmEntity)
+        .findOne({
+          where: { id: proposalId },
+          lock: { mode: 'pessimistic_write' },
+        });
       if (!lockedProposal) throw new NotFoundException('Demande introuvable');
       if (lockedProposal.status !== ProcessChangeProposalStatus.Submitted) {
         throw new ConflictException('La demande n’est plus en cours de revue');
       }
-      const currentMembership = await manager.getRepository(ProjectMemberTypeOrmEntity).findOne({
-        where: { projectId: lockedProposal.projectId, userId: actorUsername },
-      });
+      const currentMembership = await manager
+        .getRepository(ProjectMemberTypeOrmEntity)
+        .findOne({
+          where: { projectId: lockedProposal.projectId, userId: actorUsername },
+        });
       if (!currentMembership) {
-        throw new ForbiddenException('Votre accès au projet a été retiré ; vous ne pouvez plus répondre');
+        throw new ForbiddenException(
+          'Votre accès au projet a été retiré ; vous ne pouvez plus répondre',
+        );
       }
-      const governance = await manager.getRepository(ProjectProcessTypeOrmEntity).findOne({
-        where: { projectId: lockedProposal.projectId, resourceId: lockedProposal.sourceResourceId },
-        lock: { mode: 'pessimistic_read' },
-      });
-      if (!governance) throw new NotFoundException('Le processus ne fait plus partie du projet');
-      const remark = await manager.getRepository(ProcessChangeProposalCommentTypeOrmEntity).findOne({
-        where: { id: commentId, proposalId }, lock: { mode: 'pessimistic_write' },
-      });
+      const governance = await manager
+        .getRepository(ProjectProcessTypeOrmEntity)
+        .findOne({
+          where: {
+            projectId: lockedProposal.projectId,
+            resourceId: lockedProposal.sourceResourceId,
+          },
+          lock: { mode: 'pessimistic_read' },
+        });
+      if (!governance)
+        throw new NotFoundException(
+          'Le processus ne fait plus partie du projet',
+        );
+      const remark = await manager
+        .getRepository(ProcessChangeProposalCommentTypeOrmEntity)
+        .findOne({
+          where: { id: commentId, proposalId },
+          lock: { mode: 'pessimistic_write' },
+        });
       if (!remark) throw new NotFoundException('Remarque introuvable');
       if (remark.authorUserId !== actorUserId) {
-        throw new ForbiddenException('Seul l’auteur de la remarque peut répondre');
+        throw new ForbiddenException(
+          'Seul l’auteur de la remarque peut répondre',
+        );
       }
       if (remark.status !== ProcessChangeProposalCommentStatus.Pending) {
-        throw new ConflictException('Cette remarque a déjà fait l’objet d’une décision');
+        throw new ConflictException(
+          'Cette remarque a déjà fait l’objet d’une décision',
+        );
       }
-      const events = manager.getRepository(ProcessChangeProposalEventTypeOrmEntity);
-      const history = await events.find({ where: { proposalId }, order: { createdAt: 'ASC' } });
-      const thread = history.filter((event) => event.details?.remarkId === remark.id);
+      const events = manager.getRepository(
+        ProcessChangeProposalEventTypeOrmEntity,
+      );
+      const history = await events.find({
+        where: { proposalId },
+        order: { createdAt: 'ASC' },
+      });
+      const thread = history.filter(
+        (event) => event.details?.remarkId === remark.id,
+      );
       const latest = thread[thread.length - 1];
       if (latest?.eventType !== 'remark_clarification_requested') {
-        throw new ConflictException('Aucune demande de précision n’attend de réponse');
+        throw new ConflictException(
+          'Aucune demande de précision n’attend de réponse',
+        );
       }
-      const saved = await events.save(events.create({
-        proposalId,
-        eventType: 'remark_author_responded',
-        actorUserId,
-        validatorUserId: lockedProposal.validatorUserId,
-        comment: text,
-        details: { remarkId: remark.id, elementId: remark.elementId },
-        createdBy: actorUsername,
-      }));
-      return { id: saved.id, eventType: saved.eventType, comment: saved.comment, createdAt: saved.createdAt };
+      const saved = await events.save(
+        events.create({
+          proposalId,
+          eventType: 'remark_author_responded',
+          actorUserId,
+          validatorUserId: lockedProposal.validatorUserId,
+          comment: text,
+          details: { remarkId: remark.id, elementId: remark.elementId },
+          createdBy: actorUsername,
+        }),
+      );
+      return {
+        id: saved.id,
+        eventType: saved.eventType,
+        comment: saved.comment,
+        createdAt: saved.createdAt,
+      };
     });
   }
 
