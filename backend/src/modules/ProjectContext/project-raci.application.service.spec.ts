@@ -3,7 +3,10 @@ import { ProjectMemberRole } from './infrastructure/entities/projectMember.ormEn
 import { ProjectRaciApplicationService } from './project-raci.application.service';
 
 describe('ProjectRaciApplicationService', () => {
-  const access = { assertProjectRole: jest.fn(), hasOrganizationAdminRole: jest.fn() };
+  const access = {
+    assertProjectRole: jest.fn(),
+    hasOrganizationAdminRole: jest.fn(),
+  };
   const projectProcesses = { findOne: jest.fn() };
   const actors = { find: jest.fn(), createQueryBuilder: jest.fn() };
   const entries = { find: jest.fn() };
@@ -70,9 +73,7 @@ describe('ProjectRaciApplicationService', () => {
       projectId: 'project-1',
       resourceId: 'resource-1',
       actors: [{ id: 'actor-1', name: 'Support' }],
-      entries: [
-        { id: 'entry-1', resourceId: 'resource-1', taskId: 'Task_1' },
-      ],
+      entries: [{ id: 'entry-1', resourceId: 'resource-1', taskId: 'Task_1' }],
     });
   });
 
@@ -96,9 +97,9 @@ describe('ProjectRaciApplicationService', () => {
   it('requires organization-admin authority for the cross-project actor inventory', async () => {
     access.hasOrganizationAdminRole.mockReturnValue(false);
 
-    await expect(service.readOrganizationActorInventory(headers)).rejects.toThrow(
-      'Organization administrator role is required',
-    );
+    await expect(
+      service.readOrganizationActorInventory(headers),
+    ).rejects.toThrow('Organization administrator role is required');
     expect(actors.createQueryBuilder).not.toHaveBeenCalled();
   });
 
@@ -124,9 +125,10 @@ describe('ProjectRaciApplicationService', () => {
     };
     actors.createQueryBuilder.mockReturnValue(query);
 
-    await expect(service.readOrganizationActorInventory(headers)).resolves.toEqual(rows);
+    await expect(
+      service.readOrganizationActorInventory(headers),
+    ).resolves.toEqual(rows);
     expect(access.hasOrganizationAdminRole).toHaveBeenCalledWith(headers);
     expect(query.getRawMany).toHaveBeenCalledTimes(1);
   });
-
 });
