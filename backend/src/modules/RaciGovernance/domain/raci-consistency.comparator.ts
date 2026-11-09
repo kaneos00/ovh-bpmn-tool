@@ -1,7 +1,4 @@
-import {
-  ActorLabelOccurrence,
-  RaciRole,
-} from './actor-label.xml-reader';
+import { ActorLabelOccurrence, RaciRole } from './actor-label.xml-reader';
 import { ActorLabelNormalizer } from './actor-label.normalizer';
 
 export type StoredProjectActor = {
@@ -16,8 +13,18 @@ export type StoredProjectRaciEntry = {
 };
 
 export type ActorRegistryDifference =
-  | { kind: 'xml-only'; label: string; normalizedLabel: string; xmlActive?: boolean }
-  | { kind: 'database-only'; label: string; normalizedLabel: string; databaseActive: boolean }
+  | {
+      kind: 'xml-only';
+      label: string;
+      normalizedLabel: string;
+      xmlActive?: boolean;
+    }
+  | {
+      kind: 'database-only';
+      label: string;
+      normalizedLabel: string;
+      databaseActive: boolean;
+    }
   | {
       kind: 'active-state-mismatch';
       label: string;
@@ -98,10 +105,7 @@ export class RaciConsistencyComparator {
           normalizedLabel: key,
           ...(actor.active === undefined ? {} : { xmlActive: actor.active }),
         });
-      } else if (
-        actor.active !== undefined &&
-        actor.active !== stored.active
-      ) {
+      } else if (actor.active !== undefined && actor.active !== stored.active) {
         actorRegistry.push({
           kind: 'active-state-mismatch',
           label: actor.label,
@@ -122,18 +126,24 @@ export class RaciConsistencyComparator {
       }
     }
 
-    const xmlAssignments = new Map<string, {
-      taskId: string;
-      actorName: string;
-      role: RaciRole;
-      normalizedActorName: string;
-    }>();
-    const databaseAssignments = new Map<string, {
-      taskId: string;
-      actorName: string;
-      role: 'R' | 'A' | 'C' | 'I';
-      normalizedActorName: string;
-    }>();
+    const xmlAssignments = new Map<
+      string,
+      {
+        taskId: string;
+        actorName: string;
+        role: RaciRole;
+        normalizedActorName: string;
+      }
+    >();
+    const databaseAssignments = new Map<
+      string,
+      {
+        taskId: string;
+        actorName: string;
+        role: 'R' | 'A' | 'C' | 'I';
+        normalizedActorName: string;
+      }
+    >();
 
     for (const occurrence of input.xmlOccurrences) {
       if (
@@ -143,7 +153,9 @@ export class RaciConsistencyComparator {
       ) {
         continue;
       }
-      const normalizedActorName = ActorLabelNormalizer.normalize(occurrence.label);
+      const normalizedActorName = ActorLabelNormalizer.normalize(
+        occurrence.label,
+      );
       if (!normalizedActorName) continue;
       const key = JSON.stringify([
         occurrence.elementId,
@@ -158,13 +170,17 @@ export class RaciConsistencyComparator {
       });
     }
 
-    const xmlRoleByDatabaseRole: Record<
-      'R' | 'A' | 'C' | 'I',
-      RaciRole
-    > = { R: 'responsible', A: 'accountable', C: 'consulted', I: 'informed' };
+    const xmlRoleByDatabaseRole: Record<'R' | 'A' | 'C' | 'I', RaciRole> = {
+      R: 'responsible',
+      A: 'accountable',
+      C: 'consulted',
+      I: 'informed',
+    };
 
     for (const entry of input.databaseEntries) {
-      const normalizedActorName = ActorLabelNormalizer.normalize(entry.actorName);
+      const normalizedActorName = ActorLabelNormalizer.normalize(
+        entry.actorName,
+      );
       if (!normalizedActorName) continue;
       const key = JSON.stringify([
         entry.taskId,
