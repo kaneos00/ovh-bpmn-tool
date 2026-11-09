@@ -14,10 +14,7 @@ describe('RaciConsistencyComparator', () => {
     contentVersion: 4,
   };
 
-  const actor = (
-    label: string,
-    active?: boolean,
-  ): ActorLabelOccurrence => ({
+  const actor = (label: string, active?: boolean): ActorLabelOccurrence => ({
     elementId: 'Process_1',
     elementType: 'process',
     field: 'raci:actors.name',
