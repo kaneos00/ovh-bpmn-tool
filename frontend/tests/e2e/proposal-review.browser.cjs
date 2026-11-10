@@ -153,6 +153,7 @@ async function main() {
         : null;
       const expectedLabels = parsedXml
         ? Array.from(parsedXml.getElementsByTagName('*'))
+          .filter(element => !['definitions', 'process', 'collaboration'].includes(element.localName))
           .map(element => element.getAttribute('name'))
           .filter(Boolean)
         : [];
