@@ -22,7 +22,7 @@ type JobFunction = {
   code: string;
   name: string;
   description: string | null;
-  competencyBlocks?: Array<{ id: string; code: string; name: string }>;
+  competencyBlocks?: Array<{ id: string; code: string; name: string; description: string | null; competencies: Array<{ id: string; code: string; name: string; description: string | null; referenceLevel: number | null }> }>;
 };
 
 type ActivitySection = {
@@ -72,7 +72,8 @@ export const Component = () => {
   });
   const [activityDraft, setActivityDraft] = useState({ code: '', title: '', tasks: '' });
   const [editingActivity, setEditingActivity] = useState<ActivitySection | null>(null);
-  const [customDraft, setCustomDraft] = useState({ sectionKey: '', title: '', content: '{\n  "text": ""\n}' });
+  const [customDraft, setCustomDraft] = useState({ sectionKey: '', title: '', content: '' });
+  const [showPreview, setShowPreview] = useState(false);
   const [editingCustomId, setEditingCustomId] = useState('');
   const [customContentDraft, setCustomContentDraft] = useState('');
   const [error, setError] = useState('');
@@ -212,12 +213,7 @@ export const Component = () => {
 
   const createCustom = useMutation(
     () => {
-      let content: Record<string, unknown>;
-      try {
-        content = JSON.parse(customDraft.content) as Record<string, unknown>;
-      } catch {
-        throw new Error('Le contenu de la rubrique doit être un objet JSON valide.');
-      }
+      const content: Record<string, unknown> = { text: customDraft.content.trim() };
       return apiClient.post(`${documentUrl(selectedId)}/sections`, {
         sectionKey: customDraft.sectionKey.trim(),
         title: customDraft.title.trim(),
@@ -227,7 +223,7 @@ export const Component = () => {
     },
     {
       onSuccess: async () => {
-        setCustomDraft({ sectionKey: '', title: '', content: '{\n  "text": ""\n}' });
+        setCustomDraft({ sectionKey: '', title: '', content: '' });
         setError('');
         await queryClient.invalidateQueries(['job-function-document', selectedId]);
       },
@@ -248,6 +244,20 @@ export const Component = () => {
     },
   );
 
+  const reorderCustom = useMutation(
+    ({ sectionId, direction }: { sectionId: string; direction: -1 | 1 }) => {
+      const rows = [...customSections];
+      const from = rows.findIndex((item) => item.id === sectionId);
+      const to = from + direction;
+      if (from < 0 || to < 0 || to >= rows.length) return Promise.resolve([]);
+      [rows[from], rows[to]] = [rows[to], rows[from]];
+      return Promise.all(rows.map((item, index) => apiClient.patch(
+        `${documentUrl(selectedId)}/sections/${item.id}`, { sortOrder: index },
+      )));
+    },
+    { onSuccess: () => queryClient.invalidateQueries(['job-function-document', selectedId]), onError: (reason: Error) => setError(reason.message) },
+  );
+
   const deleteCustom = useMutation(
     (sectionId: string) => apiClient.remove(`${documentUrl(selectedId)}/sections/${sectionId}`),
     {
@@ -258,6 +268,7 @@ export const Component = () => {
 
   const activities = documentQuery.data?.activitySections ?? [];
   const customSections = documentQuery.data?.customSections ?? [];
+  const competencyBlocks = selectedFunction?.competencyBlocks ?? [];
 
   return (
     <OrganizationAdminLayout
@@ -337,7 +348,7 @@ export const Component = () => {
                       <Typography level="h2">{selectedFunction.name}</Typography>
                       <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Fiche de fonction · {selectedFunction.code}</Typography>
                     </Box>
-                    <Chip color="primary" variant="soft">Modèle commun</Chip>
+                    <Stack direction="row" gap={1} alignItems="center"><Chip color="primary" variant="soft">Modèle commun</Chip><Button size="sm" variant={showPreview ? 'solid' : 'outlined'} onClick={() => setShowPreview(!showPreview)}>{showPreview ? 'Masquer l’aperçu' : 'Aperçu de la fiche'}</Button></Stack>
                   </Stack>
                   {documentQuery.isLoading && <Typography level="body-sm">Chargement de la fiche…</Typography>}
                   {documentQuery.isError && <Alert color="danger">Impossible de charger le document de fonction.</Alert>}
@@ -410,6 +421,27 @@ export const Component = () => {
 
                 {documentQuery.data && (
                   <Card variant="outlined" sx={{ gap: 1.5 }}>
+                    <Typography level="title-lg">Compétences de référence</Typography>
+                    <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Blocs et compétences rattachés à cette fonction dans le référentiel commun.</Typography>
+                    {competencyBlocks.length === 0 && <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Aucun bloc de compétences n’est encore associé à cette fonction.</Typography>}
+                    {competencyBlocks.map((block) => (
+                      <Card key={block.id} variant="soft" sx={{ gap: 0.75 }}>
+                        <Typography level="title-md">{block.code} · {block.name}</Typography>
+                        {block.description && <Typography level="body-xs" sx={{ color: 'text.secondary' }}>{block.description}</Typography>}
+                        {block.competencies.map((competency) => (
+                          <Box key={competency.id} sx={{ pl: 1.5, borderLeft: '2px solid', borderColor: 'divider' }}>
+                            <Typography level="body-sm">{competency.code} · {competency.name}{competency.referenceLevel ? ` (niveau de référence ${competency.referenceLevel}/5)` : ''}</Typography>
+                            {competency.description && <Typography level="body-xs" sx={{ color: 'text.secondary' }}>{competency.description}</Typography>}
+                          </Box>
+                        ))}
+                        {block.competencies.length === 0 && <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Aucune compétence détaillée dans ce bloc.</Typography>}
+                      </Card>
+                    ))}
+                  </Card>
+                )}
+
+                {documentQuery.data && (
+                  <Card variant="outlined" sx={{ gap: 1.5 }}>
                     <Typography level="title-lg">Rubriques complémentaires</Typography>
                     <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Ajoutez des rubriques spécifiques sans modifier le modèle documentaire commun. Leur contenu est structuré et pourra recevoir une présentation dédiée.</Typography>
                     {customSections.map((section) => (
@@ -417,7 +449,9 @@ export const Component = () => {
                         <Stack direction="row" justifyContent="space-between" alignItems="center">
                           <Box><Typography level="title-md">{section.title}</Typography><Typography level="body-xs" sx={{ color: 'text.tertiary' }}>{section.sectionKey}</Typography></Box>
                           <Stack direction="row" gap={0.5}>
-                            <Button size="sm" variant="plain" onClick={() => { setEditingCustomId(section.id); setCustomContentDraft(JSON.stringify(section.content, null, 2)); }}>Modifier</Button>
+                            <Button size="sm" variant="plain" disabled={customSections.indexOf(section) === 0 || reorderCustom.isLoading} onClick={() => reorderCustom.mutate({ sectionId: section.id, direction: -1 })}>↑</Button>
+                            <Button size="sm" variant="plain" disabled={customSections.indexOf(section) === customSections.length - 1 || reorderCustom.isLoading} onClick={() => reorderCustom.mutate({ sectionId: section.id, direction: 1 })}>↓</Button>
+                            <Button size="sm" variant="plain" onClick={() => { setEditingCustomId(section.id); setCustomContentDraft(String(section.content?.text ?? '')); }}>Modifier</Button>
                             <Button size="sm" variant="plain" color="danger" onClick={() => deleteCustom.mutate(section.id)}>Supprimer</Button>
                           </Stack>
                         </Stack>
@@ -427,14 +461,11 @@ export const Component = () => {
                             <Stack direction="row" justifyContent="flex-end" gap={1}>
                               <Button size="sm" variant="plain" onClick={() => setEditingCustomId('')}>Annuler</Button>
                               <Button size="sm" onClick={() => {
-                                try {
-                                  const parsed = JSON.parse(customContentDraft) as Record<string, unknown>;
-                                  updateCustom.mutate({ sectionId: section.id, content: parsed });
-                                } catch { setError('Le contenu doit être un objet JSON valide.'); }
+                                updateCustom.mutate({ sectionId: section.id, content: { ...section.content, text: customContentDraft } });
                               }}>Enregistrer</Button>
                             </Stack>
                           </>
-                        ) : <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(section.content, null, 2)}</Typography>}
+                        ) : <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>{String(section.content?.text ?? '')}</Typography>}
                       </Card>
                     ))}
                     <Divider />
@@ -443,8 +474,8 @@ export const Component = () => {
                       <FormControl><FormLabel>Clé stable</FormLabel><Input value={customDraft.sectionKey} onChange={(event) => setCustomDraft({ ...customDraft, sectionKey: event.target.value })} placeholder="interfaces" /></FormControl>
                       <FormControl><FormLabel>Titre</FormLabel><Input value={customDraft.title} onChange={(event) => setCustomDraft({ ...customDraft, title: event.target.value })} placeholder="Interfaces et relations" /></FormControl>
                     </Box>
-                    <FormControl><FormLabel>Contenu structuré (JSON)</FormLabel><Textarea minRows={4} value={customDraft.content} onChange={(event) => setCustomDraft({ ...customDraft, content: event.target.value })} /></FormControl>
-                    <Stack direction="row" justifyContent="flex-end"><Button disabled={!customDraft.sectionKey.trim() || !customDraft.title.trim()} loading={createCustom.isLoading} onClick={() => createCustom.mutate()}>Ajouter la rubrique</Button></Stack>
+                    <FormControl><FormLabel>Contenu de la rubrique</FormLabel><Textarea minRows={4} value={customDraft.content} onChange={(event) => setCustomDraft({ ...customDraft, content: event.target.value })} placeholder="Saisissez le contenu de cette rubrique…" /></FormControl>
+                    <Stack direction="row" justifyContent="flex-end"><Button disabled={!customDraft.sectionKey.trim() || !customDraft.title.trim() || !customDraft.content.trim()} loading={createCustom.isLoading} onClick={() => createCustom.mutate()}>Ajouter la rubrique</Button></Stack>
                   </Card>
                 )}
               </>
