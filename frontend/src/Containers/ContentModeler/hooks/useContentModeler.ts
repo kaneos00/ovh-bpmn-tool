@@ -18,8 +18,12 @@ import { paginateBpmnSvg } from '../../../shared/utils/paginatedBpmnSvg';
 import { HttpError } from '../../../shared/api/httpError';
 import { enqueueModelerImport } from '../../../shared/utils/modelerImportQueue';
 
-export const useContentModeler = (bpmnModelerInstance: Modeler) => {
-  const { resourceId } = useParams() as ContentModelerRouteParams;
+export const useContentModeler = (
+  bpmnModelerInstance: Modeler,
+  resourceIdOverride?: string,
+) => {
+  const { resourceId: routeResourceId } = useParams() as ContentModelerRouteParams;
+  const resourceId = resourceIdOverride ?? routeResourceId;
   const [searchParams] = useSearchParams();
   const requestedContentId = searchParams.get('contentId');
   const proposalId = searchParams.get('proposalId');
