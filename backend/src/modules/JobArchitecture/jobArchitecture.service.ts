@@ -498,7 +498,9 @@ export class JobArchitectureService {
     const position = await this.positions.findOne({
       where: { id: positionId, projectId, active: true },
     });
-    if (!position) throw new NotFoundException('Project job position not found');
+    if (!position) {
+      throw new NotFoundException('Project job position not found');
+    }
     const [raciActors, activities] = await Promise.all([
       this.raciMappings.find({ where: { projectId, positionId } }),
       this.activityMappings.find({ where: { projectId, positionId } }),
@@ -527,13 +529,17 @@ export class JobArchitectureService {
     ]);
     if (!position) throw new NotFoundException('Project job position not found');
     if (!actor) {
-      throw new NotFoundException('Active RACI actor not found in this project');
+      throw new NotFoundException(
+        'Active RACI actor not found in this project',
+      );
     }
     const existing = await this.raciMappings.findOne({
       where: { projectId, positionId, raciActorId },
     });
     if (existing) {
-      throw new ConflictException('This RACI actor is already linked to the position');
+      throw new ConflictException(
+        'This RACI actor is already linked to the position',
+      );
     }
     return this.raciMappings.save(
       this.raciMappings.create({
@@ -569,7 +575,9 @@ export class JobArchitectureService {
       this.positionBlocks.findOne({ where: { positionId, blockId } }),
     ]);
     if (!process) {
-      throw new NotFoundException('BPMN process is not linked to this project');
+      throw new NotFoundException(
+        'BPMN process is not linked to this project',
+      );
     }
     if (
       !positionBlock ||
@@ -583,7 +591,9 @@ export class JobArchitectureService {
       where: { projectId, positionId, resourceId, taskId, blockId },
     });
     if (existing) {
-      throw new ConflictException('This activity is already mapped to this block');
+      throw new ConflictException(
+        'This activity is already mapped to this block',
+      );
     }
     return this.activityMappings.save(
       this.activityMappings.create({
@@ -596,7 +606,6 @@ export class JobArchitectureService {
       }),
     );
   }
-
 
   async removePositionRaciActor(
     projectId: string,
@@ -651,23 +660,28 @@ export class JobArchitectureService {
       headers,
       ProjectMemberRole.Viewer,
     );
-    const [positions, actors, raciEntries, raciMappings, activityMappings, blocks] =
+
+    const positions = await this.positions.find({
+      where: { projectId, active: true },
+    });
+    const [actors, raciEntries, raciMappings, activityMappings] =
       await Promise.all([
-        this.positions.find({ where: { projectId, active: true } }),
         this.raciActors.find({ where: { projectId, active: true } }),
         this.raciEntries.find({ where: { projectId } }),
         this.raciMappings.find({ where: { projectId } }),
         this.activityMappings.find({ where: { projectId } }),
-        positions.length
-          ? this.positionBlocks.find({
-              where: positions.map((position) => ({
-                positionId: position.id,
-              })),
-            })
-          : Promise.resolve([]),
       ]);
+    const blocks = positions.length
+      ? await this.positionBlocks.find({
+          where: positions.map((position) => ({
+            positionId: position.id,
+          })),
+        })
+      : [];
 
-    const mappedActorIds = new Set(raciMappings.map((mapping) => mapping.raciActorId));
+    const mappedActorIds = new Set(
+      raciMappings.map((mapping) => mapping.raciActorId),
+    );
     const actorByNormalizedName = new Map(
       actors.map((actor) => [actor.normalizedName, actor]),
     );
@@ -683,18 +697,25 @@ export class JobArchitectureService {
       .map(({ name, actor }) => ({
         name,
         actorId: actor?.id ?? null,
-        reason: actor ? 'actor_not_linked_to_a_position' : 'actor_not_in_registry',
+        reason: actor
+          ? 'actor_not_linked_to_a_position'
+          : 'actor_not_in_registry',
       }));
 
     const activityKeys = new Set(
-      activityMappings.map((mapping) => `${mapping.positionId}:${mapping.blockId}`),
+      activityMappings.map(
+        (mapping) => `${mapping.positionId}:${mapping.blockId}`,
+      ),
     );
-    const positionById = new Map(positions.map((position) => [position.id, position]));
+    const positionById = new Map(
+      positions.map((position) => [position.id, position]),
+    );
     const requiredBlocksWithoutActivities = blocks
-      .filter((block) =>
-        positionById.has(block.positionId) &&
-        block.applicability === 'required' &&
-        !activityKeys.has(`${block.positionId}:${block.blockId}`),
+      .filter(
+        (block) =>
+          positionById.has(block.positionId) &&
+          block.applicability === 'required' &&
+          !activityKeys.has(`${block.positionId}:${block.blockId}`),
       )
       .map((block) => ({
         positionId: block.positionId,
