@@ -178,7 +178,7 @@ jobs:
 
           # The demo project member must be allowed to submit Viewer remarks.
           remark_permission_count="$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc \
-            "UPDATE project_members SET \"canSubmitRemarks\" = TRUE WHERE \"projectId\" = '10000000-0000-4000-8000-000000000001' AND \"userId\" = '$DEMO_AUTH_USER'; SELECT COUNT(*) FROM project_members WHERE \"projectId\" = '10000000-0000-4000-8000-000000000001' AND \"userId\" = '$DEMO_AUTH_USER' AND \"canSubmitRemarks\" = TRUE")"
+            "WITH updated AS (UPDATE project_members SET \"canSubmitRemarks\" = TRUE WHERE \"projectId\" = '10000000-0000-4000-8000-000000000001' AND \"userId\" = '$DEMO_AUTH_USER' RETURNING 1) SELECT COUNT(*) FROM updated")"
           test "$remark_permission_count" = "1"
 
           docker run --detach --name bpmn-v2-demo-backend-ci --network bpmn-v2-ci --network-alias backend \
