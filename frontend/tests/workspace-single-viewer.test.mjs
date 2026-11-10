@@ -170,3 +170,15 @@ test('a newly created process variant starts with a published copy of its source
   assert.match(variantHandler, /status: ContentStatusEnum\.Published/);
   assert.match(variantHandler, /version: 1/);
 });
+
+test('quick search uses the same unified backend search as the results page', async () => {
+  const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+  const results = await read('src/Containers/SearchResults/SearchResults.container.tsx');
+
+  assert.match(navigation, /unifiedSearchQuery/);
+  assert.match(navigation, /searchOptions\.queryKey/);
+  assert.match(navigation, /searchOptions\.queryFn/);
+  assert.match(navigation, /searchError/);
+  assert.doesNotMatch(navigation, /resourcesQuery|contentsQuery|getXmlContentQuery|deriveRaciMatrixFromXml/);
+  assert.match(results, /unifiedSearchQuery/);
+});
