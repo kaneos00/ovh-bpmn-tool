@@ -20,7 +20,10 @@ export async function createProposalWorkspace(
   const contents = manager.getRepository(ContentTypeOrmEntity);
   const resource = await resources.save(
     resources.create({
-      name: `${params.source.name.slice(0, 220)} — proposition ${randomUUID().slice(0, 8)}`,
+      // ResourceName validation accepts the standard ASCII display-name
+      // punctuation. Avoid an em dash here: one invalid workspace name makes
+      // the repository's entire resource listing fail.
+      name: `${params.source.name.slice(0, 220)} - proposition ${randomUUID().slice(0, 8)}`,
       description: params.source.description,
       depth: params.source.depth,
       parentId: params.source.parentId,
