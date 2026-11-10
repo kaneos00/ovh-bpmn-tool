@@ -67,6 +67,9 @@ CREATE TABLE IF NOT EXISTS project_job_positions (
 CREATE INDEX IF NOT EXISTS project_job_positions_project_idx ON project_job_positions ("projectId");
 CREATE UNIQUE INDEX IF NOT EXISTS project_job_positions_project_title_unique
   ON project_job_positions ("projectId", lower(title));
+-- Composite key lets child mappings enforce that their position belongs to the same project.
+CREATE UNIQUE INDEX IF NOT EXISTS project_job_positions_project_id_unique
+  ON project_job_positions ("projectId", id);
 
 CREATE TABLE IF NOT EXISTS position_competency_blocks (
   id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
@@ -90,9 +93,12 @@ CREATE TABLE IF NOT EXISTS position_raci_actor_mappings (
   "createdBy" varchar(64) NOT NULL DEFAULT 'system',
   "createdAt" timestamptz NOT NULL DEFAULT now(),
   "updatedAt" timestamptz NOT NULL DEFAULT now(),
-  "projectId" uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-  "positionId" uuid NOT NULL REFERENCES project_job_positions(id) ON DELETE CASCADE,
-  "raciActorId" uuid NOT NULL REFERENCES project_raci_actors(id) ON DELETE RESTRICT
+  "projectId" uuid NOT NULL,
+  "positionId" uuid NOT NULL,
+  "raciActorId" uuid NOT NULL REFERENCES project_raci_actors(id) ON DELETE RESTRICT,
+  CONSTRAINT position_raci_actor_mappings_position_fk
+    FOREIGN KEY ("projectId", "positionId")
+    REFERENCES project_job_positions ("projectId", id) ON DELETE CASCADE
 );
 CREATE UNIQUE INDEX IF NOT EXISTS position_raci_actor_mappings_unique
   ON position_raci_actor_mappings ("positionId", "raciActorId");
@@ -102,11 +108,14 @@ CREATE TABLE IF NOT EXISTS position_activity_mappings (
   "createdBy" varchar(64) NOT NULL DEFAULT 'system',
   "createdAt" timestamptz NOT NULL DEFAULT now(),
   "updatedAt" timestamptz NOT NULL DEFAULT now(),
-  "projectId" uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-  "positionId" uuid NOT NULL REFERENCES project_job_positions(id) ON DELETE CASCADE,
-  "resourceId" uuid NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+  "projectId" uuid NOT NULL,
+  "positionId" uuid NOT NULL,
+  "resourceId" uuid NOT NULL,
   "taskId" varchar(255) NOT NULL,
   "blockId" uuid NOT NULL REFERENCES competency_blocks(id) ON DELETE RESTRICT,
+  CONSTRAINT position_activity_mappings_position_fk
+    FOREIGN KEY ("projectId", "positionId")
+    REFERENCES project_job_positions ("projectId", id) ON DELETE CASCADE,
   CONSTRAINT position_activity_mappings_project_process_fk
     FOREIGN KEY ("projectId", "resourceId")
     REFERENCES project_processes ("projectId", "resourceId") ON DELETE CASCADE

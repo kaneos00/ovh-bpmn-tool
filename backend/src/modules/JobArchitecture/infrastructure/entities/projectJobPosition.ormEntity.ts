@@ -3,6 +3,7 @@ import { AbstractEntity } from '../../../../shared-kernel/modules/infrastructure
 
 @Entity('project_job_positions')
 @Index('project_job_positions_project_idx', ['projectId'])
+@Index('project_job_positions_project_id_unique', ['projectId', 'id'], { unique: true })
 export class ProjectJobPositionTypeOrmEntity extends AbstractEntity {
   @Column('uuid')
   projectId: string;
