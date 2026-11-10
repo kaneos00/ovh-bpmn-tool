@@ -69,19 +69,45 @@ async function main() {
     // A project variant must open its own published BPMN content, not the
     // common source or an empty Viewer.
     await reviewerPage.goto(`${baseUrl}/${variantResourceId}`);
-    await reviewerPage.waitForFunction(() =>
-      document.querySelectorAll('.djs-container text').length > 0 ||
-      document.body.innerText.includes('Le diagramme BPMN ne peut pas être affiché'),
+    await reviewerPage.waitForTimeout(2000);
+    const variantDiagnostics = await reviewerPage.evaluate(async resourceId => {
+      const [resourceResponse, contentsResponse] = await Promise.all([
+        fetch(`/bpmn-api/resources/${resourceId}`, { credentials: 'same-origin' }),
+        fetch(`/bpmn-api/resources/${resourceId}/contents`, { credentials: 'same-origin' }),
+      ]);
+      const [resource, contents] = await Promise.all([
+        resourceResponse.json().catch(() => null),
+        contentsResponse.json().catch(() => null),
+      ]);
+      return {
+        resourceStatus: resourceResponse.status,
+        resourceName: resource?.name ?? null,
+        contentsStatus: contentsResponse.status,
+        contentVersions: Array.isArray(contents)
+          ? contents.map(content => ({ id: content.id, status: content.status, version: content.version }))
+          : contents,
+        canvasCount: document.querySelectorAll('.djs-container').length,
+        elementCount: document.querySelectorAll('.djs-element').length,
+        diagramText: Array.from(document.querySelectorAll('.djs-container text'))
+          .map(element => element.textContent || '')
+          .join(' '),
+        bodyText: document.body.innerText.slice(0, 3000),
+      };
+    }, variantResourceId);
+    assert.equal(
+      variantDiagnostics.resourceStatus,
+      200,
+      `Variant resource lookup failed: ${JSON.stringify(variantDiagnostics)}`,
     );
-    const variantDiagramText = await reviewerPage.evaluate(() =>
-      Array.from(document.querySelectorAll('.djs-container text'))
-        .map(element => element.textContent || '')
-        .join(' '),
+    assert.equal(
+      variantDiagnostics.contentsStatus,
+      200,
+      `Variant contents lookup failed: ${JSON.stringify(variantDiagnostics)}`,
     );
     assert.match(
-      variantDiagramText,
+      variantDiagnostics.diagramText,
       /Revoir la demande/,
-      `The project variant did not render its own BPMN labels. Viewer text: ${await reviewerPage.locator('body').innerText()}`,
+      `The project variant did not render its own BPMN labels: ${JSON.stringify(variantDiagnostics)}`,
     );
 
     // Exercise the header's quick search against the seeded published process.
