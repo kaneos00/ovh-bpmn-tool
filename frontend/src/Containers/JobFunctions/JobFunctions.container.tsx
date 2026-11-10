@@ -1,0 +1,425 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  Chip,
+  Divider,
+  FormControl,
+  FormLabel,
+  Input,
+  Stack,
+  Textarea,
+  Typography,
+} from '@mui/joy';
+import { apiClient } from '../../queryClient';
+import { OrganizationAdminLayout } from '../OrganizationAdmin/OrganizationAdminLayout';
+
+type JobFunction = {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  competencyBlocks?: Array<{ id: string; code: string; name: string }>;
+};
+
+type ActivitySection = {
+  id: string;
+  code: string;
+  title: string;
+  tasks: string[];
+  sortOrder: number;
+};
+
+type CustomSection = {
+  id: string;
+  sectionKey: string;
+  title: string;
+  content: Record<string, unknown>;
+  sortOrder: number;
+};
+
+type FunctionDocument = JobFunction & {
+  attachment: string | null;
+  documentDate: string | null;
+  documentVersion: string | null;
+  establishedBy: string | null;
+  validatedBy: string | null;
+  mission: string | null;
+  activitySections: ActivitySection[];
+  customSections: CustomSection[];
+};
+
+const documentUrl = (id: string) => `/job-architecture/functions/${id}/document`;
+
+export const Component = () => {
+  const queryClient = useQueryClient();
+  const [selectedId, setSelectedId] = useState('');
+  const [newCode, setNewCode] = useState('');
+  const [newName, setNewName] = useState('');
+  const [newDescription, setNewDescription] = useState('');
+  const [documentDraft, setDocumentDraft] = useState({
+    attachment: '',
+    documentDate: '',
+    documentVersion: 'V01',
+    establishedBy: '',
+    validatedBy: '',
+    mission: '',
+  });
+  const [activityDraft, setActivityDraft] = useState({ code: '', title: '', tasks: '' });
+  const [editingActivity, setEditingActivity] = useState<ActivitySection | null>(null);
+  const [customDraft, setCustomDraft] = useState({ sectionKey: '', title: '', content: '{\n  "text": ""\n}' });
+  const [editingCustomId, setEditingCustomId] = useState('');
+  const [customContentDraft, setCustomContentDraft] = useState('');
+  const [error, setError] = useState('');
+
+  const functionsQuery = useQuery<JobFunction[]>(
+    ['job-architecture-functions'],
+    () => apiClient.get('/job-architecture/functions'),
+  );
+  const documentQuery = useQuery<FunctionDocument>(
+    ['job-function-document', selectedId],
+    () => apiClient.get(documentUrl(selectedId)),
+    { enabled: Boolean(selectedId) },
+  );
+  const selectedFunction = useMemo(
+    () => (functionsQuery.data ?? []).find((item) => item.id === selectedId) ?? null,
+    [functionsQuery.data, selectedId],
+  );
+
+  useEffect(() => {
+    const document = documentQuery.data;
+    if (!document) return;
+    setDocumentDraft({
+      attachment: document.attachment ?? '',
+      documentDate: document.documentDate?.slice(0, 10) ?? '',
+      documentVersion: document.documentVersion ?? 'V01',
+      establishedBy: document.establishedBy ?? '',
+      validatedBy: document.validatedBy ?? '',
+      mission: document.mission ?? '',
+    });
+  }, [documentQuery.data]);
+
+  const refresh = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries(['job-architecture-functions']),
+      queryClient.invalidateQueries(['job-function-document', selectedId]),
+    ]);
+  };
+
+  const createFunction = useMutation(
+    () => apiClient.post('/job-architecture/functions', {
+      code: newCode.trim(),
+      name: newName.trim(),
+      description: newDescription.trim() || null,
+    }),
+    {
+      onSuccess: async (created: JobFunction) => {
+        setError('');
+        setNewCode('');
+        setNewName('');
+        setNewDescription('');
+        await queryClient.invalidateQueries(['job-architecture-functions']);
+        setSelectedId(created.id);
+      },
+      onError: (reason: Error) => setError(reason.message),
+    },
+  );
+
+  const saveDocument = useMutation(
+    () => apiClient.patch(documentUrl(selectedId), {
+      attachment: documentDraft.attachment || null,
+      documentDate: documentDraft.documentDate || null,
+      documentVersion: documentDraft.documentVersion || null,
+      establishedBy: documentDraft.establishedBy || null,
+      validatedBy: documentDraft.validatedBy || null,
+      mission: documentDraft.mission || null,
+    }),
+    {
+      onSuccess: refresh,
+      onError: (reason: Error) => setError(reason.message),
+    },
+  );
+
+  const createActivity = useMutation(
+    () => apiClient.post(`${documentUrl(selectedId)}/activity-sections`, {
+      code: activityDraft.code.trim(),
+      title: activityDraft.title.trim(),
+      tasks: activityDraft.tasks.split('\n').map((task) => task.trim()).filter(Boolean),
+      sortOrder: documentQuery.data?.activitySections.length ?? 0,
+    }),
+    {
+      onSuccess: async () => {
+        setActivityDraft({ code: '', title: '', tasks: '' });
+        setError('');
+        await queryClient.invalidateQueries(['job-function-document', selectedId]);
+      },
+      onError: (reason: Error) => setError(reason.message),
+    },
+  );
+
+  const updateActivity = useMutation(
+    (section: ActivitySection) => apiClient.patch(
+      `${documentUrl(selectedId)}/activity-sections/${section.id}`,
+      {
+        code: section.code,
+        title: section.title,
+        tasks: section.tasks,
+        sortOrder: section.sortOrder,
+      },
+    ),
+    {
+      onSuccess: async () => {
+        setEditingActivity(null);
+        setError('');
+        await queryClient.invalidateQueries(['job-function-document', selectedId]);
+      },
+      onError: (reason: Error) => setError(reason.message),
+    },
+  );
+
+  const deleteActivity = useMutation(
+    (sectionId: string) => apiClient.remove(`${documentUrl(selectedId)}/activity-sections/${sectionId}`),
+    {
+      onSuccess: () => queryClient.invalidateQueries(['job-function-document', selectedId]),
+      onError: (reason: Error) => setError(reason.message),
+    },
+  );
+
+  const createCustom = useMutation(
+    () => {
+      let content: Record<string, unknown>;
+      try {
+        content = JSON.parse(customDraft.content) as Record<string, unknown>;
+      } catch {
+        throw new Error('Le contenu de la rubrique doit être un objet JSON valide.');
+      }
+      return apiClient.post(`${documentUrl(selectedId)}/sections`, {
+        sectionKey: customDraft.sectionKey.trim(),
+        title: customDraft.title.trim(),
+        content,
+        sortOrder: documentQuery.data?.customSections.length ?? 0,
+      });
+    },
+    {
+      onSuccess: async () => {
+        setCustomDraft({ sectionKey: '', title: '', content: '{\n  "text": ""\n}' });
+        setError('');
+        await queryClient.invalidateQueries(['job-function-document', selectedId]);
+      },
+      onError: (reason: Error) => setError(reason.message),
+    },
+  );
+
+  const updateCustom = useMutation(
+    ({ sectionId, content }: { sectionId: string; content: Record<string, unknown> }) =>
+      apiClient.patch(`${documentUrl(selectedId)}/sections/${sectionId}`, { content }),
+    {
+      onSuccess: async () => {
+        setEditingCustomId('');
+        setError('');
+        await queryClient.invalidateQueries(['job-function-document', selectedId]);
+      },
+      onError: (reason: Error) => setError(reason.message),
+    },
+  );
+
+  const deleteCustom = useMutation(
+    (sectionId: string) => apiClient.remove(`${documentUrl(selectedId)}/sections/${sectionId}`),
+    {
+      onSuccess: () => queryClient.invalidateQueries(['job-function-document', selectedId]),
+      onError: (reason: Error) => setError(reason.message),
+    },
+  );
+
+  const activities = documentQuery.data?.activitySections ?? [];
+  const customSections = documentQuery.data?.customSections ?? [];
+
+  return (
+    <OrganizationAdminLayout
+      activeSection="functions"
+      title="Référentiel des fonctions"
+      breadcrumbs={[
+        { label: 'Organisation', href: '/organization/overview' },
+        { label: 'Fiches de fonction' },
+      ]}
+    >
+      <Stack spacing={2.5}>
+        <Box>
+          <Typography level="h1">Fiches de fonction</Typography>
+          <Typography level="body-md" sx={{ color: 'text.secondary', mt: 0.5 }}>
+            Un modèle documentaire commun, avec des rubriques et des sections d’activités extensibles.
+          </Typography>
+        </Box>
+
+        {error && <Alert color="danger" onClose={() => setError('')}>{error}</Alert>}
+        {functionsQuery.isError && <Alert color="danger">Impossible de charger le référentiel des fonctions.</Alert>}
+
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(250px, 0.8fr) minmax(0, 2fr)' }, gap: 2, alignItems: 'start' }}>
+          <Stack spacing={2}>
+            <Card variant="outlined" sx={{ gap: 1.25 }}>
+              <Typography level="title-lg">Référentiel</Typography>
+              {functionsQuery.isLoading && <Typography level="body-sm">Chargement…</Typography>}
+              {(functionsQuery.data ?? []).map((jobFunction) => (
+                <Button
+                  key={jobFunction.id}
+                  variant={selectedId === jobFunction.id ? 'soft' : 'plain'}
+                  color={selectedId === jobFunction.id ? 'primary' : 'neutral'}
+                  sx={{ justifyContent: 'flex-start', textAlign: 'left' }}
+                  onClick={() => { setSelectedId(jobFunction.id); setEditingActivity(null); setEditingCustomId(''); }}
+                >
+                  <Stack sx={{ alignItems: 'flex-start', gap: 0 }}>
+                    <Typography level="title-sm">{jobFunction.name}</Typography>
+                    <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>{jobFunction.code}</Typography>
+                  </Stack>
+                </Button>
+              ))}
+              {!functionsQuery.isLoading && (functionsQuery.data ?? []).length === 0 && (
+                <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Aucune fiche de fonction pour le moment.</Typography>
+              )}
+            </Card>
+            <Card variant="outlined" sx={{ gap: 1.25 }}>
+              <Typography level="title-lg">Créer une fonction</Typography>
+              <FormControl><FormLabel>Code</FormLabel><Input value={newCode} onChange={(event) => setNewCode(event.target.value)} placeholder="CHEF-PROJET" /></FormControl>
+              <FormControl><FormLabel>Intitulé</FormLabel><Input value={newName} onChange={(event) => setNewName(event.target.value)} placeholder="Chef de projet" /></FormControl>
+              <FormControl><FormLabel>Description</FormLabel><Textarea minRows={2} value={newDescription} onChange={(event) => setNewDescription(event.target.value)} /></FormControl>
+              <Button disabled={!newCode.trim() || !newName.trim() || createFunction.isLoading} loading={createFunction.isLoading} onClick={() => createFunction.mutate()}>
+                Créer la fiche
+              </Button>
+            </Card>
+          </Stack>
+
+          <Stack spacing={2}>
+            {!selectedId && (
+              <Card variant="outlined">
+                <Typography level="title-md">Sélectionnez une fonction</Typography>
+                <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Choisissez une fiche dans le référentiel ou créez-en une nouvelle.</Typography>
+              </Card>
+            )}
+            {selectedFunction && (
+              <>
+                <Card variant="outlined" sx={{ gap: 1.5 }}>
+                  <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} gap={1}>
+                    <Box>
+                      <Typography level="h2">{selectedFunction.name}</Typography>
+                      <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Fiche de fonction · {selectedFunction.code}</Typography>
+                    </Box>
+                    <Chip color="primary" variant="soft">Modèle commun</Chip>
+                  </Stack>
+                  {documentQuery.isLoading && <Typography level="body-sm">Chargement de la fiche…</Typography>}
+                  {documentQuery.isError && <Alert color="danger">Impossible de charger le document de fonction.</Alert>}
+                  {documentQuery.data && (
+                    <>
+                      <Divider />
+                      <Typography level="title-lg">Identification et suivi documentaire</Typography>
+                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 1.5 }}>
+                        <FormControl><FormLabel>Rattachement / entité</FormLabel><Input value={documentDraft.attachment} onChange={(event) => setDocumentDraft({ ...documentDraft, attachment: event.target.value })} placeholder="Direction des Opérations" /></FormControl>
+                        <FormControl><FormLabel>Date</FormLabel><Input type="date" value={documentDraft.documentDate} onChange={(event) => setDocumentDraft({ ...documentDraft, documentDate: event.target.value })} /></FormControl>
+                        <FormControl><FormLabel>Version</FormLabel><Input value={documentDraft.documentVersion} onChange={(event) => setDocumentDraft({ ...documentDraft, documentVersion: event.target.value })} placeholder="V01" /></FormControl>
+                        <FormControl><FormLabel>Établie par</FormLabel><Input value={documentDraft.establishedBy} onChange={(event) => setDocumentDraft({ ...documentDraft, establishedBy: event.target.value })} /></FormControl>
+                        <FormControl><FormLabel>Validée par</FormLabel><Input value={documentDraft.validatedBy} onChange={(event) => setDocumentDraft({ ...documentDraft, validatedBy: event.target.value })} /></FormControl>
+                      </Box>
+                      <FormControl><FormLabel>Mission(s)</FormLabel><Textarea minRows={4} value={documentDraft.mission} onChange={(event) => setDocumentDraft({ ...documentDraft, mission: event.target.value })} placeholder="Décrire la finalité et le périmètre de la fonction…" /></FormControl>
+                      <Stack direction="row" justifyContent="flex-end">
+                        <Button loading={saveDocument.isLoading} disabled={saveDocument.isLoading} onClick={() => saveDocument.mutate()}>Enregistrer les informations</Button>
+                      </Stack>
+                    </>
+                  )}
+                </Card>
+
+                {documentQuery.data && (
+                  <Card variant="outlined" sx={{ gap: 1.5 }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
+                      <Box><Typography level="title-lg">Activités et tâches</Typography><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Chaque bloc est une section indépendante avec son propre code et son contenu.</Typography></Box>
+                      <Chip variant="soft">{activities.length} section(s)</Chip>
+                    </Stack>
+                    {activities.map((section) => (
+                      <Card key={section.id} variant="soft" sx={{ gap: 1 }}>
+                        {editingActivity?.id === section.id ? (
+                          <>
+                            <Input value={editingActivity.code} onChange={(event) => setEditingActivity({ ...editingActivity, code: event.target.value })} aria-label="Code de section" />
+                            <Input value={editingActivity.title} onChange={(event) => setEditingActivity({ ...editingActivity, title: event.target.value })} aria-label="Titre de section" />
+                            <Textarea minRows={4} value={editingActivity.tasks.join('\n')} onChange={(event) => setEditingActivity({ ...editingActivity, tasks: event.target.value.split('\n') })} aria-label="Tâches, une par ligne" />
+                            <Stack direction="row" gap={1} justifyContent="flex-end">
+                              <Button size="sm" variant="plain" color="neutral" onClick={() => setEditingActivity(null)}>Annuler</Button>
+                              <Button size="sm" loading={updateActivity.isLoading} onClick={() => updateActivity.mutate(editingActivity)}>Enregistrer</Button>
+                            </Stack>
+                          </>
+                        ) : (
+                          <>
+                            <Stack direction="row" justifyContent="space-between" alignItems="center">
+                              <Box><Chip size="sm" color="primary" variant="soft">{section.code}</Chip><Typography level="title-md" sx={{ mt: 0.5 }}>{section.title}</Typography></Box>
+                              <Stack direction="row" gap={0.5}>
+                                <Button size="sm" variant="plain" onClick={() => setEditingActivity(section)}>Modifier</Button>
+                                <Button size="sm" variant="plain" color="danger" onClick={() => deleteActivity.mutate(section.id)}>Supprimer</Button>
+                              </Stack>
+                            </Stack>
+                            <Stack component="ol" sx={{ m: 0, pl: 3, gap: 0.5 }}>
+                              {section.tasks.map((task, index) => <Typography component="li" level="body-sm" key={index}>{task}</Typography>)}
+                            </Stack>
+                          </>
+                        )}
+                      </Card>
+                    ))}
+                    <Divider />
+                    <Typography level="title-md">Ajouter une section d’activité</Typography>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '160px minmax(0, 1fr)' }, gap: 1 }}>
+                      <FormControl><FormLabel>Code</FormLabel><Input value={activityDraft.code} onChange={(event) => setActivityDraft({ ...activityDraft, code: event.target.value })} placeholder="CDP-1" /></FormControl>
+                      <FormControl><FormLabel>Titre</FormLabel><Input value={activityDraft.title} onChange={(event) => setActivityDraft({ ...activityDraft, title: event.target.value })} placeholder="Organiser et planifier le projet" /></FormControl>
+                    </Box>
+                    <FormControl><FormLabel>Tâches (une par ligne)</FormLabel><Textarea minRows={4} value={activityDraft.tasks} onChange={(event) => setActivityDraft({ ...activityDraft, tasks: event.target.value })} placeholder="Analyser les objectifs et exigences…&#10;Définir et maintenir le planning…" /></FormControl>
+                    <Stack direction="row" justifyContent="flex-end"><Button disabled={!activityDraft.code.trim() || !activityDraft.title.trim() || !activityDraft.tasks.trim()} loading={createActivity.isLoading} onClick={() => createActivity.mutate()}>Ajouter la section</Button></Stack>
+                  </Card>
+                )}
+
+                {documentQuery.data && (
+                  <Card variant="outlined" sx={{ gap: 1.5 }}>
+                    <Typography level="title-lg">Rubriques complémentaires</Typography>
+                    <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Ajoutez des rubriques spécifiques sans modifier le modèle documentaire commun. Leur contenu est structuré et pourra recevoir une présentation dédiée.</Typography>
+                    {customSections.map((section) => (
+                      <Card key={section.id} variant="soft" sx={{ gap: 1 }}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                          <Box><Typography level="title-md">{section.title}</Typography><Typography level="body-xs" sx={{ color: 'text.tertiary' }}>{section.sectionKey}</Typography></Box>
+                          <Stack direction="row" gap={0.5}>
+                            <Button size="sm" variant="plain" onClick={() => { setEditingCustomId(section.id); setCustomContentDraft(JSON.stringify(section.content, null, 2)); }}>Modifier</Button>
+                            <Button size="sm" variant="plain" color="danger" onClick={() => deleteCustom.mutate(section.id)}>Supprimer</Button>
+                          </Stack>
+                        </Stack>
+                        {editingCustomId === section.id ? (
+                          <>
+                            <Textarea minRows={4} value={customContentDraft} onChange={(event) => setCustomContentDraft(event.target.value)} />
+                            <Stack direction="row" justifyContent="flex-end" gap={1}>
+                              <Button size="sm" variant="plain" onClick={() => setEditingCustomId('')}>Annuler</Button>
+                              <Button size="sm" onClick={() => {
+                                try {
+                                  const parsed = JSON.parse(customContentDraft) as Record<string, unknown>;
+                                  updateCustom.mutate({ sectionId: section.id, content: parsed });
+                                } catch { setError('Le contenu doit être un objet JSON valide.'); }
+                              }}>Enregistrer</Button>
+                            </Stack>
+                          </>
+                        ) : <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(section.content, null, 2)}</Typography>}
+                      </Card>
+                    ))}
+                    <Divider />
+                    <Typography level="title-md">Ajouter une rubrique</Typography>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '180px minmax(0, 1fr)' }, gap: 1 }}>
+                      <FormControl><FormLabel>Clé stable</FormLabel><Input value={customDraft.sectionKey} onChange={(event) => setCustomDraft({ ...customDraft, sectionKey: event.target.value })} placeholder="interfaces" /></FormControl>
+                      <FormControl><FormLabel>Titre</FormLabel><Input value={customDraft.title} onChange={(event) => setCustomDraft({ ...customDraft, title: event.target.value })} placeholder="Interfaces et relations" /></FormControl>
+                    </Box>
+                    <FormControl><FormLabel>Contenu structuré (JSON)</FormLabel><Textarea minRows={4} value={customDraft.content} onChange={(event) => setCustomDraft({ ...customDraft, content: event.target.value })} /></FormControl>
+                    <Stack direction="row" justifyContent="flex-end"><Button disabled={!customDraft.sectionKey.trim() || !customDraft.title.trim()} loading={createCustom.isLoading} onClick={() => createCustom.mutate()}>Ajouter la rubrique</Button></Stack>
+                  </Card>
+                )}
+              </>
+            )}
+          </Stack>
+        </Box>
+      </Stack>
+    </OrganizationAdminLayout>
+  );
+};
+
+Component.displayName = 'JobFunctionsContainer';
