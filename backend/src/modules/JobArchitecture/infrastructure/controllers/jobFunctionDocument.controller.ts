@@ -84,11 +84,7 @@ export class JobFunctionDocumentController {
     @Param('sectionId') sectionId: string,
     @Headers() headers: RequestHeaders,
   ) {
-    return this.documents.deleteActivitySection(
-      functionId,
-      sectionId,
-      headers,
-    );
+    return this.documents.deleteActivitySection(functionId, sectionId, headers);
   }
 
   @Post('sections')
