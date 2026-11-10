@@ -244,6 +244,8 @@ export const Component = () => {
     },
   );
 
+  const customSections = documentQuery.data?.customSections ?? [];
+
   const reorderCustom = useMutation(
     ({ sectionId, direction }: { sectionId: string; direction: -1 | 1 }) => {
       const rows = [...customSections];
