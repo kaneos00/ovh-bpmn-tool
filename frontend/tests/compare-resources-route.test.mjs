@@ -22,10 +22,10 @@ test('legacy cross-resource comparison URL remains a standalone route', async ()
   assert.match(comparison, /params\.rightResourceId \?\? params\.resourceId/);
   assert.match(comparison, /getXmlContentQuery\(leftResourceId, leftContentId\)/);
   assert.match(comparison, /getXmlContentQuery\(rightResourceId, rightContentId\)/);
-  assert.match(proposals, /const reviewUrl = `\\/\\$\\{proposal\.cloneResourceId\\}\\/modeler\\?proposalId=/);
-  assert.match(proposals, /returnTo=\\$\\{returnTo\\}/);
-  assert.match(actionBar, /requestedReturnTo\?\.startsWith\('\/'\)/);
-  assert.match(actionBar, /!requestedReturnTo\.startsWith\('\/\/'\)/);
-  assert.match(actionBar, /navigate\(returnTo\)/);
-  assert.match(actionBar, /: `\\/\\$\\{resourceId\\}`/);
+  assert.ok(proposals.includes("const reviewUrl = `/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}&reviewRemarks=1${proposal.submittedContentId ? `&contentId=${proposal.submittedContentId}` : ''}`;"));
+  assert.ok(proposals.includes("returnTo=${returnTo}"));
+  assert.ok(actionBar.includes("requestedReturnTo?.startsWith('/')"));
+  assert.ok(actionBar.includes("!requestedReturnTo.startsWith('//')"));
+  assert.ok(actionBar.includes('navigate(returnTo)'));
+  assert.ok(actionBar.includes(": `/${resourceId}`"));
 });
