@@ -228,7 +228,7 @@ async function main() {
     });
     await quickSearch.fill('demande');
     await reviewerPage.getByRole('button', { name: 'Voir tous les résultats' }).waitFor();
-    await reviewerPage.getByText(/Processus BPMN/).waitFor();
+    await reviewerPage.getByText(/Processus BPMN/).first().waitFor();
     assert.equal(
       await reviewerPage.getByText(/Recherche indisponible pour le moment/).count(),
       0,
