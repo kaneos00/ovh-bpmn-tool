@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Headers, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { UseAcl } from '../../../../shared-kernel/modules/acl/infrastructure/acl.decorator';
 import { UserGroup } from '../../../../shared-kernel/utils/UserGroup';
 import { JobFunctionDocumentService } from '../../jobFunctionDocument.service';
@@ -18,7 +27,8 @@ export class JobFunctionDocumentController {
   @Patch()
   updateDocument(
     @Param('functionId') functionId: string,
-    @Body() body: {
+    @Body()
+    body: {
       attachment?: string | null;
       documentDate?: string | null;
       documentVersion?: string | null;
@@ -34,7 +44,13 @@ export class JobFunctionDocumentController {
   @Post('activity-sections')
   createActivitySection(
     @Param('functionId') functionId: string,
-    @Body() body: { code?: string; title?: string; tasks?: string[]; sortOrder?: number },
+    @Body()
+    body: {
+      code?: string;
+      title?: string;
+      tasks?: string[];
+      sortOrder?: number;
+    },
     @Headers() headers: RequestHeaders,
   ) {
     return this.documents.createActivitySection(functionId, body, headers);
@@ -44,10 +60,21 @@ export class JobFunctionDocumentController {
   updateActivitySection(
     @Param('functionId') functionId: string,
     @Param('sectionId') sectionId: string,
-    @Body() body: { code?: string; title?: string; tasks?: string[]; sortOrder?: number },
+    @Body()
+    body: {
+      code?: string;
+      title?: string;
+      tasks?: string[];
+      sortOrder?: number;
+    },
     @Headers() headers: RequestHeaders,
   ) {
-    return this.documents.updateActivitySection(functionId, sectionId, body, headers);
+    return this.documents.updateActivitySection(
+      functionId,
+      sectionId,
+      body,
+      headers,
+    );
   }
 
   @Delete('activity-sections/:sectionId')
@@ -56,13 +83,23 @@ export class JobFunctionDocumentController {
     @Param('sectionId') sectionId: string,
     @Headers() headers: RequestHeaders,
   ) {
-    return this.documents.deleteActivitySection(functionId, sectionId, headers);
+    return this.documents.deleteActivitySection(
+      functionId,
+      sectionId,
+      headers,
+    );
   }
 
   @Post('sections')
   createCustomSection(
     @Param('functionId') functionId: string,
-    @Body() body: { sectionKey?: string; title?: string; content?: Record<string, unknown>; sortOrder?: number },
+    @Body()
+    body: {
+      sectionKey?: string;
+      title?: string;
+      content?: Record<string, unknown>;
+      sortOrder?: number;
+    },
     @Headers() headers: RequestHeaders,
   ) {
     return this.documents.createCustomSection(functionId, body, headers);
@@ -72,10 +109,21 @@ export class JobFunctionDocumentController {
   updateCustomSection(
     @Param('functionId') functionId: string,
     @Param('sectionId') sectionId: string,
-    @Body() body: { sectionKey?: string; title?: string; content?: Record<string, unknown>; sortOrder?: number },
+    @Body()
+    body: {
+      sectionKey?: string;
+      title?: string;
+      content?: Record<string, unknown>;
+      sortOrder?: number;
+    },
     @Headers() headers: RequestHeaders,
   ) {
-    return this.documents.updateCustomSection(functionId, sectionId, body, headers);
+    return this.documents.updateCustomSection(
+      functionId,
+      sectionId,
+      body,
+      headers,
+    );
   }
 
   @Delete('sections/:sectionId')
