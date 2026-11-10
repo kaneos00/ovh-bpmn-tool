@@ -4,6 +4,7 @@ import { ProjectContextModule } from '../ProjectContext/projectContext.module';
 import { ProjectProcessTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectProcess.ormEntity';
 import { ProjectRaciActorTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectRaciActor.ormEntity';
 import { ProjectRaciEntryTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectRaciEntry.ormEntity';
+import { ContentTypeOrmEntity } from '../ResourceContext/infrastructure/entities/content.ormEntity';
 import { CompetencyBlockTypeOrmEntity } from './infrastructure/entities/competencyBlock.ormEntity';
 import { CompetencyTypeOrmEntity } from './infrastructure/entities/competency.ormEntity';
 import { JobFunctionActivitySectionTypeOrmEntity } from './infrastructure/entities/jobFunctionActivitySection.ormEntity';
@@ -38,6 +39,7 @@ import { JobFunctionDocumentService } from './jobFunctionDocument.service';
       ProjectProcessTypeOrmEntity,
       ProjectRaciActorTypeOrmEntity,
       ProjectRaciEntryTypeOrmEntity,
+      ContentTypeOrmEntity,
     ]),
   ],
   controllers: [JobArchitectureController, JobFunctionDocumentController],
