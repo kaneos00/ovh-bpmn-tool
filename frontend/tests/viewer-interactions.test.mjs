@@ -359,11 +359,7 @@ test('legacy content-viewer URLs redirect to the canonical process viewer', asyn
   assert.match(details, /selectedContentId\?: string \| null/);
   assert.match(details, /let viewerContent = publishedContent \?\? undefined;/);
   assert.match(details, /if \(selectedContentId\) \{[\s\S]*?viewerContent = contents\.find\(content => content\.id === selectedContentId\)/);
-  assert.match(
-    details,
-    /const viewerContent = selectedContentId[\s\S]*?contents\.find\(content => content\.id === selectedContentId\)[\s\S]*?: publishedContent/,
-    'an explicit deep link must load its exact snapshot, including a draft; the default remains the published version',
-  );
+  assert.match(details, /else if \(!viewerContent && isProjectVariant\) \{[\s\S]*?viewerContent = draftContent/);
   assert.match(details, /const isHistoricalView = Boolean\([\s\S]*?viewerContent\.id !== publishedContent\?\.id/);
   assert.match(details, /const canEditDescription = !isHistoricalView/);
   assert.match(details, /const canManageVersions = !isHistoricalView/);
