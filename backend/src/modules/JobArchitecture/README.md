@@ -1,6 +1,6 @@
 # Job Architecture module
 
-This bounded context owns job functions, competency blocks, competencies and project-specific job positions.
+This bounded context owns structured job-function documents, competency definitions and project-specific organisational positions.
 
 ## Source-of-truth boundaries
 
@@ -8,6 +8,35 @@ This bounded context owns job functions, competency blocks, competencies and pro
 - Project positions and their competency applicability are owned by this module.
 - Project membership and authorization are delegated to the existing ProjectContext access service.
 - RACI actors and BPMN resources remain owned by their existing modules. Mapping entities hold references only; they do not copy or update source records or BPMN XML.
+- The function document is independent of a named incumbent and of a specific project.
+
+## Structured function document
+
+The function sheet uses a shared document structure, while allowing additional sections:
+
+- document metadata: attachment/reference, date, version label, established by, validated by;
+- function identification: code, name, description;
+- mission;
+- ordered activity sections, each with a unique code (for example CDP-1), title and ordered task list;
+- extensible custom sections with a stable key, title, structured JSON content and order;
+- competency blocks and competencies, with reference levels.
+
+Activity sections can be independently created, edited, deleted and reordered. Custom sections follow the same lifecycle. The JSON content of a custom section is intentionally structured rather than a single untyped text field, so the UI can introduce suitable controls per section later.
+
+### Function document API
+
+All endpoints below are restricted to organization administrators in this first implementation slice:
+
+- `GET /job-architecture/functions/:functionId/document`
+- `PATCH /job-architecture/functions/:functionId/document`
+- `POST /job-architecture/functions/:functionId/document/activity-sections`
+- `PATCH /job-architecture/functions/:functionId/document/activity-sections/:sectionId`
+- `DELETE /job-architecture/functions/:functionId/document/activity-sections/:sectionId`
+- `POST /job-architecture/functions/:functionId/document/sections`
+- `PATCH /job-architecture/functions/:functionId/document/sections/:sectionId`
+- `DELETE /job-architecture/functions/:functionId/document/sections/:sectionId`
+
+The approval/proposal workflow, published-version history and Word/PDF exports are explicitly phase 2. The current CRUD API is an editing foundation, not a publication/approval workflow.
 
 ## Competency block states
 
@@ -31,9 +60,7 @@ A new project position initializes every block defined for its reference functio
 - `GET /projects/:projectId/job-positions/:positionId/competency-requirements`
 - `PATCH /projects/:projectId/job-positions/:positionId/competency-requirements` (project modeler/administrator)
 
-RACI and BPMN mapping tables are introduced in the foundation migration. Their write APIs and consistency diagnostics are a subsequent implementation slice.
-
-## RACI and BPMN links (initial API)
+## RACI and BPMN links
 
 - `GET /projects/:projectId/job-positions/:positionId/mappings`
 - `POST /projects/:projectId/job-positions/:positionId/raci-actors` with `raciActorId`
