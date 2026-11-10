@@ -158,10 +158,13 @@ export const WorkspaceNavigation = () => {
       raci: 'RACI',
       actor: 'Rôle',
     };
+    const detailLabel = result.field === 'testo annotazione' || result.field === 'descrizione'
+      ? 'Description'
+      : detailByType[result.type];
     return {
       key: result.id,
       title: result.label,
-      detail: `${detailByType[result.type]} · ${result.excerpt || result.field}`,
+      detail: `${detailLabel} · ${result.excerpt || result.field}`,
       resourceId: result.resourceId,
       projectId: result.projectId,
       elementId: result.elementId,
