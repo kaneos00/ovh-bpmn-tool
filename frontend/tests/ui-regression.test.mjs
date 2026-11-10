@@ -210,11 +210,12 @@ test('Start/End events and data references keep their semantic markers and style
 });
 
 
-test('detail panel starts collapsed, opens on element selection and exposes task/RACI/documentation in order', async () => {
+test('detail panel starts collapsed, opens on selection and keeps visibility under user control', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
 
   assert.match(details, /useState\(true\);[\s\S]*?taskPanelCollapsed/);
-  assert.match(details, /setTaskPanelCollapsed\(!selectedElementId\)/);
+  assert.match(details, /if \(selectedElementId\) setTaskPanelCollapsed\(false\)/);
+  assert.doesNotMatch(details, /setTaskPanelCollapsed\(!selectedElementId\)/);
   assert.match(details, /className="viewerPanelHeader processTaskPanelHeader"[\s\S]*?onClick=\{\(\) => setTaskPanelCollapsed\(value => !value\)\}/);
   assert.match(details, /aria-label=\{taskPanelCollapsed \? 'Développer le panneau de tâche' : 'Replier le panneau de tâche'\}/);
   const taskInfo = details.indexOf('1. Description de la tâche');
@@ -788,18 +789,17 @@ test('the root workspace replaces the former home dashboard and project viewer p
 });
 
 
-test('Viewer fit uses the first limiting dimension and includes the complete BPMN bounds', async () => {
+test('Viewer opens at 1:1 and uses native fit-to-viewport for Ajuster', async () => {
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
-  assert.ok(hook.includes('const scale = Math.min('));
-  assert.ok(hook.includes('availableWidth / diagramWidth'));
-  assert.ok(hook.includes('availableHeight / diagramHeight'));
-  assert.ok(hook.includes('canvas.viewbox({'));
-  assert.ok(hook.includes('width: containerWidth / scale'));
-  assert.ok(hook.includes('height: containerHeight / scale'));
-  assert.ok(hook.includes('fitDiagram();'));
-  assert.ok(hook.includes('window.requestAnimationFrame'));
-  assert.ok(!hook.includes('fitDiagramToWidth'));
-  assert.ok(!hook.includes("zoom('fit-viewport')"));
+  const viewer = await read('src/Components/BusinessComponents/ProcessViewer/ProcessViewer.tsx');
+
+  assert.match(hook, /const showDiagramAtActualSize = \(\) =>/);
+  assert.match(hook, /One diagram unit per screen pixel/);
+  assert.match(hook, /canvas\.viewbox\(\{[\s\S]*?width,[\s\S]*?height,/);
+  assert.match(hook, /window\.requestAnimationFrame\(\(\) =>\s*window\.requestAnimationFrame/);
+  assert.match(hook, /const fitDiagram = \(\) =>[\s\S]*?canvas\.resized\?\.\(\);[\s\S]*?canvas\.zoom\('fit-viewport'\)/);
+  assert.match(hook, /const resetZoom = \(\) =>[\s\S]*?canvas\.zoom\(1\)/);
+  assert.match(viewer, /onClick=\{fitDiagram\}[^>]*aria-label="Ajuster à la fenêtre"/);
 });
 
 test('fullscreen targets the complete process workspace and refits after both transitions', async () => {
