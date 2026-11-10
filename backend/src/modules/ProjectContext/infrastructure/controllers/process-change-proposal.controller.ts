@@ -478,9 +478,29 @@ export class ProcessChangeProposalController {
       }
     }
 
-    // An active row without a draft is not resumable. Return no active
-    // workspace so the UI offers a fresh request; createProposal will close
-    // the orphaned row with an audit event before creating the replacement.
+    // Submitted proposals no longer have a Draft content row: their editable
+    // workspace has been frozen into submittedContentId. They must still be
+    // returned so the source Viewer can display their remarks and the open
+    // review state. cloneContentId stays null to prevent resuming a frozen
+    // workspace in the modeler.
+    const submittedProposal = activeProposals.find(
+      (proposal) => Boolean(proposal.submittedContentId),
+    );
+    if (submittedProposal) {
+      return {
+        id: submittedProposal.id,
+        projectId: submittedProposal.projectId,
+        sourceResourceId: submittedProposal.sourceResourceId,
+        sourcePublishedContentId: submittedProposal.sourcePublishedContentId,
+        status: submittedProposal.status,
+        cloneResourceId: submittedProposal.cloneResourceId,
+        cloneContentId: null,
+      };
+    }
+
+    // An active row without either a draft or a submitted version is orphaned.
+    // Return no active workspace; createProposal will close it with an audit
+    // event before creating a replacement.
     return null;
   }
 
