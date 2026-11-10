@@ -125,7 +125,7 @@ export const ModelerActionBar = ({
           }}
         />
 
-        <Dropdown>
+        <Dropdown key={`export-menu:${resourceId}`}>
           <MenuButton startDecorator={<FileDownload fontSize="small" />}>
             Export
           </MenuButton>
