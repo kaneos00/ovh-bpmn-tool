@@ -48,8 +48,9 @@ export class JobFunctionDocumentService {
   async updateDocument(
     functionId: string,
     input: {
-      attachment?: string | null;
+      reportingLine?: string | null;
       documentDate?: string | null;
+      otherTitles?: string[];
       documentVersion?: string | null;
       establishedBy?: string | null;
       validatedBy?: string | null;
@@ -68,8 +69,11 @@ export class JobFunctionDocumentService {
       throw new BadRequestException('documentDate must use YYYY-MM-DD');
     }
 
-    if (input.attachment !== undefined) {
-      jobFunction.attachment = this.optionalText(input.attachment, 255);
+    if (input.reportingLine !== undefined) {
+      jobFunction.reportingLine = this.optionalText(input.reportingLine, 255);
+    }
+    if (input.otherTitles !== undefined) {
+      jobFunction.otherTitles = this.validateOtherTitles(input.otherTitles);
     }
     if (input.documentDate !== undefined) {
       jobFunction.documentDate = input.documentDate;
@@ -352,6 +356,17 @@ export class JobFunctionDocumentService {
     }
     return value.map((task, index) =>
       this.requiredText(task, `tasks[${index}]`, 2000),
+    );
+  }
+
+  private validateOtherTitles(value: unknown): string[] {
+    if (!Array.isArray(value) || value.length > 20) {
+      throw new BadRequestException(
+        'otherTitles must be an array of at most 20 items',
+      );
+    }
+    return value.map((title, index) =>
+      this.requiredText(title, `otherTitles[${index}]`, 255),
     );
   }
 
