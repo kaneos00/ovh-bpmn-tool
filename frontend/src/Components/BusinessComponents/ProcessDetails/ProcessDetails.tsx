@@ -263,7 +263,7 @@ export const ProcessDetails = ({
     () => apiClient.get(
       `/projects/${projectForProcess!.id}/processes/${resourceId}/change-proposals/active?contentId=${encodeURIComponent(viewerContent!.id)}`,
     ),
-    { enabled: Boolean(projectForProcess && publishedContent && viewerContent && !isHistoricalView) },
+    { enabled: Boolean(projectForProcess && publishedContent && viewerContent && !isHistoricalView), refetchOnMount: 'always' },
   );
   // Guard the Viewer against stale or cross-process proposal data: the
   // warning and remark count must belong to this exact project, process and
@@ -277,7 +277,7 @@ export const ProcessDetails = ({
   const { data: viewerRemarks = EMPTY_VIEWER_REMARKS } = useQuery<ViewerRemark[]>(
     ['process-change-proposal-comments', currentActiveProposal?.id],
     () => apiClient.get(`/projects/process-change-proposals/${currentActiveProposal!.id}/comments`),
-    { enabled: Boolean(currentActiveProposal?.id && !isHistoricalView) },
+    { enabled: Boolean(currentActiveProposal?.id && !isHistoricalView), refetchOnMount: 'always' },
   );
   const processUsage = projectForProcess?.processes.find(
     process => process.resourceId === resourceId,
