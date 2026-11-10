@@ -96,10 +96,18 @@ async function main() {
     await reviewerPage.getByPlaceholder('Synthèse des modifications apportées…').fill(
       'Publication de validation du parcours E2E.',
     );
-    await reviewerPage.getByRole('button', { name: 'Publier la version approuvée' }).click();
+    const publishApprovedButton = reviewerPage.getByRole('button', { name: 'Publier la version approuvée' });
+    // The modeler becomes ready asynchronously after importing the frozen
+    // approved snapshot. Do not click while its publication action is disabled.
+    await reviewerPage.waitForFunction(() => {
+      const button = Array.from(document.querySelectorAll('button'))
+        .find(item => item.textContent?.trim() === 'Publier la version approuvée');
+      return Boolean(button && !button.disabled);
+    });
+    await publishApprovedButton.click();
     await reviewerPage.waitForURL(`**/${sourceResourceId}`);
 
-    const finalState = await authorPage.evaluate(async () => {
+    const finalState = await reviewerPage.evaluate(async () => {
       const response = await fetch('/bpmn-api/projects/me/process-change-proposals', {
         credentials: 'same-origin',
         headers: { accept: 'application/json' },
