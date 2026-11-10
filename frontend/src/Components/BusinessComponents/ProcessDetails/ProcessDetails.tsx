@@ -90,9 +90,9 @@ const getRemarkStatusColor = (status: ViewerRemark['status']): 'warning' | 'succ
 const getRemarkStatusLabel = (status: ViewerRemark['status']): string => {
   switch (status) {
     case 'accepted':
-      return 'Accolta';
+      return 'Acceptée';
     case 'rejected':
-      return 'Respinta';
+      return 'Refusée';
     default:
       return 'In attesa';
   }
