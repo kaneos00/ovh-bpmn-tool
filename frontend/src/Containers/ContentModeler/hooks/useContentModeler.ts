@@ -21,6 +21,7 @@ import { enqueueModelerImport } from '../../../shared/utils/modelerImportQueue';
 export const useContentModeler = (
   bpmnModelerInstance: Modeler,
   resourceIdOverride?: string,
+  enabled: boolean = true,
 ) => {
   const { resourceId: routeResourceId } = useParams() as ContentModelerRouteParams;
   const resourceId = resourceIdOverride ?? routeResourceId;
@@ -35,7 +36,10 @@ export const useContentModeler = (
 
   const [isShortcurtModalOpen, setIsShortcurtModalOpen] = useState(false);
 
-  const { data: contents } = useQuery(contentsQuery(resourceId));
+  const { data: contents } = useQuery({
+    ...contentsQuery(resourceId),
+    enabled,
+  });
   const {
     data: requestedContent,
     isLoading: requestedContentIsLoading,
@@ -43,13 +47,13 @@ export const useContentModeler = (
     error: requestedContentError,
   } = useQuery({
     ...getContentQuery(resourceId, requestedContentId ?? ''),
-    enabled: Boolean(proposalId && requestedContentId),
+    enabled: enabled && Boolean(proposalId && requestedContentId),
   });
-  const { resource } = useResource(resourceId);
+  const { resource } = useResource(resourceId, enabled);
   const sourceResourceId = resource?.sourceResourceId ?? undefined;
   const { data: sourceContents } = useQuery({
     ...contentsQuery(sourceResourceId ?? ''),
-    enabled: Boolean(sourceResourceId),
+    enabled: enabled && Boolean(sourceResourceId),
   });
 
   const draftContent = useMemo(() => {
@@ -106,7 +110,7 @@ export const useContentModeler = (
     error: draftXmlContentError,
   } = useQuery({
     ...getXmlContentQuery(resourceId, selectedContent?.id as string),
-    enabled: !!selectedContent?.id,
+    enabled: enabled && !!selectedContent?.id,
   });
 
   // Do not show an empty diagram while an exact proposal draft is being resolved.
