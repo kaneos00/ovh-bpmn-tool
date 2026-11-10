@@ -2,8 +2,15 @@ import { Column, Entity, Index } from 'typeorm';
 import { AbstractEntity } from '../../../../shared-kernel/modules/infrastructure/db/abstract.entity';
 
 @Entity('job_function_custom_sections')
-@Index('job_function_custom_sections_function_key_unique', ['functionId', 'sectionKey'], { unique: true })
-@Index('job_function_custom_sections_function_order_idx', ['functionId', 'sortOrder'])
+@Index(
+  'job_function_custom_sections_function_key_unique',
+  ['functionId', 'sectionKey'],
+  { unique: true },
+)
+@Index(
+  'job_function_custom_sections_function_order_idx',
+  ['functionId', 'sortOrder'],
+)
 export class JobFunctionCustomSectionTypeOrmEntity extends AbstractEntity {
   @Column('uuid')
   functionId: string;
