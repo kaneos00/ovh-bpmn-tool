@@ -80,7 +80,7 @@ export const Component = () => {
     requestedElementId,
   );
 
-  const { resource, contents, callbacks } = useBpmnLayout();
+  const { resource, callbacks } = useBpmnLayout();
   const { projects, activeProject, activeProjectId, setActiveProject, isLoading: projectsLoading } = useActiveProject();
   const activeProcess = activeProject?.processes.find(process => process.resourceId === resourceId);
   let processUsageLabel: string | undefined;
