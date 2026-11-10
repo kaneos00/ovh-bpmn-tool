@@ -180,6 +180,24 @@ export const Component = () => {
     },
   );
 
+  const reorderActivity = useMutation(
+    ({ sectionId, direction }: { sectionId: string; direction: -1 | 1 }) => {
+      const rows = [...(documentQuery.data?.activitySections ?? [])];
+      const from = rows.findIndex((item) => item.id === sectionId);
+      const to = from + direction;
+      if (from < 0 || to < 0 || to >= rows.length) return Promise.resolve([]);
+      [rows[from], rows[to]] = [rows[to], rows[from]];
+      return Promise.all(rows.map((item, index) => apiClient.patch(
+        `${documentUrl(selectedId)}/activity-sections/${item.id}`,
+        { sortOrder: index },
+      )));
+    },
+    {
+      onSuccess: () => queryClient.invalidateQueries(['job-function-document', selectedId]),
+      onError: (reason: Error) => setError(reason.message),
+    },
+  );
+
   const deleteActivity = useMutation(
     (sectionId: string) => apiClient.remove(`${documentUrl(selectedId)}/activity-sections/${sectionId}`),
     {
@@ -242,8 +260,8 @@ export const Component = () => {
       activeSection="functions"
       title="Référentiel des fonctions"
       breadcrumbs={[
-        { label: 'Organisation', href: '/organization/overview' },
-        { label: 'Fiches de fonction' },
+        { id: 'organization', to: '/organization/overview', label: 'Organisation' },
+        { id: 'functions', to: '/organization/functions', label: 'Fiches de fonction' },
       ]}
     >
       <Stack spacing={2.5}>
@@ -335,7 +353,7 @@ export const Component = () => {
                       <Box><Typography level="title-lg">Activités et tâches</Typography><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Chaque bloc est une section indépendante avec son propre code et son contenu.</Typography></Box>
                       <Chip variant="soft">{activities.length} section(s)</Chip>
                     </Stack>
-                    {activities.map((section) => (
+                    {activities.map((section, index) => (
                       <Card key={section.id} variant="soft" sx={{ gap: 1 }}>
                         {editingActivity?.id === section.id ? (
                           <>
@@ -352,6 +370,8 @@ export const Component = () => {
                             <Stack direction="row" justifyContent="space-between" alignItems="center">
                               <Box><Chip size="sm" color="primary" variant="soft">{section.code}</Chip><Typography level="title-md" sx={{ mt: 0.5 }}>{section.title}</Typography></Box>
                               <Stack direction="row" gap={0.5}>
+                                <Button size="sm" variant="plain" disabled={index === 0 || reorderActivity.isLoading} onClick={() => reorderActivity.mutate({ sectionId: section.id, direction: -1 })}>↑</Button>
+                                <Button size="sm" variant="plain" disabled={index === activities.length - 1 || reorderActivity.isLoading} onClick={() => reorderActivity.mutate({ sectionId: section.id, direction: 1 })}>↓</Button>
                                 <Button size="sm" variant="plain" onClick={() => setEditingActivity(section)}>Modifier</Button>
                                 <Button size="sm" variant="plain" color="danger" onClick={() => deleteActivity.mutate(section.id)}>Supprimer</Button>
                               </Stack>
