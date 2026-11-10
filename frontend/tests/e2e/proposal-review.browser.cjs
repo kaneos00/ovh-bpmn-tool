@@ -93,6 +93,8 @@ async function main() {
     await reviewerPage.getByText(
       'La contribution est approuvée et figée. Le diagramme est en lecture seule jusqu’à sa publication.',
     ).waitFor();
+    // The publication summary is mandatory; enter it before waiting for the
+    // action button to become enabled.
     await reviewerPage.getByPlaceholder('Synthèse des modifications apportées…').fill(
       'Publication de validation du parcours E2E.',
     );
