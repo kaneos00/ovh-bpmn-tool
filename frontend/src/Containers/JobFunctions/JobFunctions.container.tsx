@@ -508,7 +508,7 @@ export const Component = () => {
                             </Box>
                             <Input value={competencyDraft.description} onChange={(event) => setCompetencyDraft({ ...competencyDraft, description: event.target.value })} placeholder="Description (facultative)" aria-label="Description de compétence" />
                             <Stack direction="row" gap={1} justifyContent="flex-end">
-                              <Button size="sm" variant="plain" color="neutral" onClick={() => setCompetencyDraft({ blockId: '', code: '', name: '', description: '', referenceLevel: '' })}>Annuler</Button>
+                              <Button size="sm" variant="plain" color="neutral" onClick={() => setCompetencyDraft({ blockId: '', code: '', name: '', description: '', referenceLevel: '', category: 'technical' })}>Annuler</Button>
                               <Button size="sm" disabled={!competencyDraft.code.trim() || !competencyDraft.name.trim() || (competencyDraft.referenceLevel !== '' && (Number(competencyDraft.referenceLevel) < 1 || Number(competencyDraft.referenceLevel) > 5))} loading={createCompetency.isLoading} onClick={() => createCompetency.mutate()}>Enregistrer la compétence</Button>
                             </Stack>
                           </Stack>
