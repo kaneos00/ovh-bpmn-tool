@@ -182,7 +182,11 @@ export const Component = () => {
                       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                         <Button size="sm" variant="outlined" color="neutral"
                           disabled={!proposal.submittedContentId}
-                          onClick={() => navigate(`/compare-resources/${proposal.sourceResourceId}/${proposal.sourcePublishedContentId}/${proposal.cloneResourceId}/${proposal.submittedContentId}`)}>
+                          onClick={() => {
+                            const reviewUrl = `/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}&reviewRemarks=1${proposal.submittedContentId ? `&contentId=${proposal.submittedContentId}` : ''}`;
+                            const returnTo = encodeURIComponent(reviewUrl);
+                            navigate(`/compare-resources/${proposal.sourceResourceId}/${proposal.sourcePublishedContentId}/${proposal.cloneResourceId}/${proposal.submittedContentId}?returnTo=${returnTo}`);
+                          }}>
                           Comparer les versions
                         </Button>
                         <Button size="sm" variant="solid" color="primary"
