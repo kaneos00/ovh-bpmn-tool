@@ -32,7 +32,7 @@ export const CompareActionBar = ({
           color="neutral"
           startDecorator={<Compare fontSize="small" />}
         >
-          See changes
+          Voir les différences
         </Button>
       </Stack>
       <Stack gap={1} direction="row" justifyContent="flex-end">
