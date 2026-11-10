@@ -179,6 +179,10 @@ test('quick search uses the same unified backend search as the results page', as
   assert.match(navigation, /searchOptions\.queryKey/);
   assert.match(navigation, /searchOptions\.queryFn/);
   assert.match(navigation, /searchError/);
+  assert.match(navigation, /const \[debouncedSearch, setDebouncedSearch\] = useState\(''\)/);
+  assert.match(navigation, /setTimeout\(\(\) => setDebouncedSearch\(search\.trim\(\)\), 250\)/);
+  assert.match(navigation, /q: debouncedSearch/);
+  assert.match(navigation, /keepPreviousData: true/);
   assert.match(navigation, /resourcesQuery\(\)/);
   assert.match(navigation, /resource\.type === ResourceType\.Folder/);
   assert.doesNotMatch(navigation, /contentsQuery|getXmlContentQuery|deriveRaciMatrixFromXml/);
