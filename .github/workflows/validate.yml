@@ -303,6 +303,17 @@ jobs:
           echo "$admin_session" | grep -q '"role":"admin"'
           echo "$admin_session" | grep -q '"impersonating":false'
 
+          # Exercise the complete job-function document read path against the migrated schema.
+          created_function="$(curl --fail --silent --show-error \\
+            --cookie /tmp/bpmn-v2-ci.cookies --header 'content-type: application/json' \\
+            --data '{"code":"CI-FUNCTION-DOC","name":"Fonction de contrôle CI","description":"Smoke-test du document"}' \\
+            http://127.0.0.1:18080/bpmn-api/job-architecture/functions)"
+          function_id="$(printf '%s' "$created_function" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
+          function_document="$(curl --fail --silent --show-error \\
+            --cookie /tmp/bpmn-v2-ci.cookies \\
+            "http://127.0.0.1:18080/bpmn-api/job-architecture/functions/$function_id/document")"
+          printf '%s' "$function_document" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["id"] and d["code"] == "CI-FUNCTION-DOC"; assert isinstance(d["activitySections"], list); assert isinstance(d["customSections"], list)'
+
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-ci.cookies \
             http://127.0.0.1:18080/bpmn-api/auth/users)"
