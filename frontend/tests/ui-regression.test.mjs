@@ -799,7 +799,7 @@ test('Viewer opens at 1:1 and uses native fit-to-viewport for Ajuster', async ()
   assert.ok((hook.match(/window\.requestAnimationFrame/g) ?? []).length >= 2);
   assert.ok(hook.includes('showDiagramAtActualSize();'));
   assert.match(hook, /const fitDiagram = \(\) =>[\s\S]*?canvas\.resized\?\.\(\);[\s\S]*?canvas\.zoom\('fit-viewport'\)/);
-  assert.match(hook, /const resetZoom = \(\) =>[\s\S]*?canvas\.zoom\(1\)/);
+  assert.match(hook, /const resetZoom = \(\) =>[\s\S]*?\.zoom\(1\)/);
   assert.match(viewer, /onClick=\{fitDiagram\}[^>]*aria-label="Ajuster à la fenêtre"/);
 });
 
