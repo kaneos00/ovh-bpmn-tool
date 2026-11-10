@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, Button, Input, List, Option, Select, Sheet, Stack, Typography } from '@mui/joy';
 import { Search } from '@mui/icons-material';
 import { useActiveProject } from '../../../shared/hooks/useActiveProject';
@@ -122,6 +122,7 @@ export const WorkspaceNavigation = () => {
     return () => { mounted = false; };
   }, []);
   const navigate = useNavigate();
+  const location = useLocation();
   const [search, setSearch] = useState('');
   const [scope, setScope] = useState<SearchScope>('all');
   const [searchOpen, setSearchOpen] = useState(false);
