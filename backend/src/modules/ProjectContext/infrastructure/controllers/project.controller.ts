@@ -96,8 +96,14 @@ export class ProjectController {
     const resourceById = new Map(
       resources.map((resource) => [resource.id, resource]),
     );
+    // Proposal workspaces are linked to the project for authorization, but
+    // they are not published business processes and must stay out of the
+    // ordinary project workspace and process explorer.
+    const visibleLinks = links.filter(
+      (link) => !resourceById.get(link.resourceId)?.sourceResourceId,
+    );
     const linksByProject = new Map<string, typeof links>();
-    for (const link of links) {
+    for (const link of visibleLinks) {
       const projectLinks = linksByProject.get(link.projectId) ?? [];
       projectLinks.push(link);
       linksByProject.set(link.projectId, projectLinks);
@@ -701,9 +707,14 @@ export class ProjectController {
             resourceId: variant.id,
             content: sourceContent.content,
             pngContent: sourceContent.pngContent,
-            status: ContentStatusEnum.Draft,
-            // A variant is an independent resource with its own version history.
+            // The variant is an explicit copy of an already-published
+            // source. Publish this initial snapshot so the new variant is
+            // immediately readable in the Viewer; subsequent edits still
+            // create ordinary drafts.
+            status: ContentStatusEnum.Published,
             version: 1,
+            content: sourceContent.content,
+            pngContent: sourceContent.pngContent,
             createdBy: userId,
             updatedBy: userId,
           }),
