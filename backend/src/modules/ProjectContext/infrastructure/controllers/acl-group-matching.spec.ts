@@ -4,9 +4,23 @@ import { AclGuard } from '../../../../shared-kernel/modules/acl/infrastructure/a
 import { UserGroup } from '../../../../shared-kernel/utils/UserGroup';
 
 describe('AclGuard group matching', () => {
-  const makeGuard = (allowedGroups: UserGroup[]) => {
+  const makeGuard = (
+    handlerAllowedGroups: UserGroup[],
+    classAllowedGroups?: UserGroup[],
+  ) => {
+    const handler = {};
+    const controller = {};
     const reflector = {
-      get: jest.fn().mockReturnValue({ allowedGroups }),
+      getAllAndOverride: jest.fn((_key, targets: unknown[]) => {
+        // Mirrors Nest Reflector.getAllAndOverride: first defined metadata wins.
+        if (targets[0] === handler && handlerAllowedGroups?.length) {
+          return { allowedGroups: handlerAllowedGroups };
+        }
+        if (targets[1] === controller && classAllowedGroups?.length) {
+          return { allowedGroups: classAllowedGroups };
+        }
+        return undefined;
+      }),
     } as unknown as Reflector;
     const configService = {
       getOrThrow: jest.fn((key: string) =>
@@ -17,7 +31,8 @@ describe('AclGuard group matching', () => {
 
     const activate = (groups: string) =>
       guard.canActivate({
-        getHandler: () => ({}),
+        getHandler: () => handler,
+        getClass: () => controller,
         switchToHttp: () => ({
           getRequest: () => ({
             headers: {
@@ -61,5 +76,24 @@ describe('AclGuard group matching', () => {
     await expect(
       activate('bpmn-tool-readonly-demo, bpmn-tool-admin-demo '),
     ).resolves.toBe(true);
+  });
+
+  it('gives handler ACL metadata precedence over controller defaults', async () => {
+    const { activate, reflector } = makeGuard(
+      [UserGroup.ReadWrite],
+      [UserGroup.Admin],
+    );
+
+    await expect(activate('bpmn-tool-admin-demo')).resolves.toBe(false);
+    expect(reflector.getAllAndOverride).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.arrayContaining([expect.any(Object)]),
+    );
+  });
+
+  it('uses controller ACL metadata when the handler has no ACL metadata', async () => {
+    const { activate } = makeGuard([], [UserGroup.Admin]);
+
+    await expect(activate('bpmn-tool-admin-demo')).resolves.toBe(true);
   });
 });
