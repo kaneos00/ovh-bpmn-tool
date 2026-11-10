@@ -28,6 +28,7 @@ import { ResourceType } from '../../shared/types/BpmnResource';
 import { ProjectRaciPanel } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciPanel';
 import { ProjectRaciManager } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciManager';
 import { ProjectProcessHierarchy } from './ProjectProcessHierarchy';
+import { ProjectJobPositions } from '../../Components/BusinessComponents/ProjectJobPositions/ProjectJobPositions';
 import { WorkspacePageLayout } from '../../Components/GenericComponents/WorkspacePageLayout/WorkspacePageLayout';
 import { Header } from '../../Components/GenericComponents/Header/Header';
 import { useActiveProject } from '../../shared/hooks/useActiveProject';
@@ -122,6 +123,7 @@ export const Component = () => {
     if (tab === 'raci') return 2;
     if (tab === 'processes') return 1;
     if (tab === 'validation') return 3;
+    if (tab === 'positions') return 4;
     return 0;
   });
 
@@ -622,6 +624,7 @@ export const Component = () => {
             <Tab value={1}>Processus du projet</Tab>
             <Tab value={2}>Gestion du RACI du projet</Tab>
             <Tab value={3}>Validation</Tab>
+            <Tab value={4}>Postes organisationnels</Tab>
           </TabList>
           <TabPanel value={0} sx={{ px: 0, py: 2 }}>
           <Card variant="outlined">
@@ -803,6 +806,9 @@ export const Component = () => {
               </Button>
             </Box>
           </Card>
+          </TabPanel>
+          <TabPanel value={4} sx={{ px: 0, py: 2 }}>
+            <ProjectJobPositions projectId={projectId} />
           </TabPanel>
         </Tabs>
       </Stack>
