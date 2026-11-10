@@ -219,9 +219,12 @@ export const ProcessDetails = ({
   // Existing variants created before the initial-copy publication fix have
   // only a first draft. Keep those independent variants visible in the
   // read-only Viewer without silently publishing or changing their content.
-  const viewerContent = selectedContentId
-    ? contents.find(content => content.id === selectedContentId)
-    : (publishedContent ?? (isProjectVariant ? draftContent : undefined));
+  let viewerContent = publishedContent ?? undefined;
+  if (selectedContentId) {
+    viewerContent = contents.find(content => content.id === selectedContentId) ?? undefined;
+  } else if (!viewerContent && isProjectVariant) {
+    viewerContent = draftContent ?? undefined;
+  }
   const isUnpublishedVariantDraft = Boolean(
     !selectedContentId && !publishedContent && isProjectVariant && draftContent,
   );
