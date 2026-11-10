@@ -56,8 +56,8 @@ export const Component = () => {
     const loadProposalContext = async () => {
       try {
         const [authored, reviewable] = await Promise.all([
-          apiClient.get('/projects/me/process-change-proposals'),
-          apiClient.get('/projects/me/process-change-proposals/to-review'),
+          apiClient.get('/projects/me/process-change-proposals').catch(() => []),
+          apiClient.get('/projects/me/process-change-proposals/to-review').catch(() => []),
         ]);
         if (!active) return;
         const candidates = [
