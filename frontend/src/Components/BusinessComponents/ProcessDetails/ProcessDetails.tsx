@@ -442,9 +442,9 @@ export const ProcessDetails = ({
   }, [taskPanelWidth]);
 
   useEffect(() => {
-    // The element sheet follows the BPMN selection: open on selection,
-    // close again as soon as the selected element is cleared.
-    setTaskPanelCollapsed(!selectedElementId);
+    // Open the panel when an element is selected, but leave visibility under
+    // the user's control when selection changes or is cleared.
+    if (selectedElementId) setTaskPanelCollapsed(false);
   }, [selectedElementId]);
 
   useEffect(() => () => {
