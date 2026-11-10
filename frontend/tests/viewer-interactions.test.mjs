@@ -458,6 +458,7 @@ test('explorer actions use an accessible three-dot menu and project roles', asyn
   assert.match(tree, /setContextMenu\(\{ nodeId, anchorEl: event\.currentTarget \}\)/);
   assert.match(tree, /projects\/me\/workspace/);
   assert.match(tree, /projectModelerResourceIds\.includes\(resourceId\)/);
+  assert.match(tree, /useEffect\(\(\) => \{ setContextMenu\(null\); \}, \[activeProjectId, selectedId\]\)/);
 });
 
 test('the right element-details panel and its resize handle exist only on the BPMN diagram tab', async () => {
