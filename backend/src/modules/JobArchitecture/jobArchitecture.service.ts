@@ -371,9 +371,7 @@ export class JobArchitectureService {
     const functionLinks = await this.functionBlocks.find({
       where: { functionId: position.functionId },
     });
-    const allowedBlockIds = new Set(
-      functionLinks.map((link) => link.blockId),
-    );
+    const allowedBlockIds = new Set(functionLinks.map((link) => link.blockId));
     const seen = new Set<string>();
 
     const normalized = input.blocks.map((item, index) => {
