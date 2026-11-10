@@ -237,23 +237,26 @@ test('explorer search chevrons collapse and reopen branches using the visible ex
   assert.ok(tree.includes('setSearchCollapsedNodes([])'));
 });
 
-test('global BPMN search excludes connecting arrows and their documentation', async () => {
+test('unified BPMN search excludes connecting arrows and their documentation', async () => {
+  const backend = await read('../backend/src/modules/SearchContext/unified-search.service.ts');
   const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
 
-  assert.match(navigation, /const BPMN_CONNECTION_TYPES = new Set/);
-  assert.match(navigation, /BPMN_CONNECTION_TYPES\.has\(element\.localName\.toLocaleLowerCase\('fr'\)\)/);
-  assert.match(navigation, /BPMN_CONNECTION_TYPES\.has\(bpmnOwner\.localName\.toLocaleLowerCase\('fr'\)\)/);
+  assert.match(navigation, /unifiedSearchQuery/);
+  assert.match(backend, /const BPMN_CONNECTION_TYPES = new Set/);
+  assert.match(backend, /if \(BPMN_CONNECTION_TYPES\.has\(key\)\) return/);
 });
 
-test('quick search removes the IA Comm option and excludes technical BPMN identifiers', async () => {
+test('quick search delegates to the unified service and does not search technical identifiers', async () => {
   const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+  const backend = await read('../backend/src/modules/SearchContext/unified-search.service.ts');
 
-  assert.doesNotMatch(navigation, /<Option value="iaComm">/);
-  assert.doesNotMatch(navigation, /'iaComm'/);
-  assert.match(navigation, /return id && \(matchesTerm\(name, term\) \|\|[\s\S]*?matchesTerm\(documentation, term\)/);
-  assert.doesNotMatch(navigation, /matchesTerm\(id, term\)/);
-  assert.doesNotMatch(navigation, /matchesTerm\(activity\.elementId, term\)/);
-  assert.match(navigation, /if \(scope === 'all'\) \{/);
+  assert.doesNotMatch(navigation, /iaComm/);
+  assert.match(navigation, /unifiedSearchQuery/);
+  assert.match(navigation, /types: typeByScope\[scope\]/);
+  assert.match(backend, /const searchableFields = \[/);
+  assert.match(backend, /\{ value: name, field: 'nome' \}/);
+  assert.match(backend, /\{ value: documentation, field: 'descrizione' \}/);
+  assert.doesNotMatch(backend, /\{ value: elementId, field:/);
 });
 
 test('shared result highlighting marks the matched word for approximate searches', async () => {
@@ -284,18 +287,16 @@ test('global and full search use the same shared result row component', async ()
   assert.ok(shared.includes('level="body-xs"'));
 });
 
-test('global annotation search labels text annotations as Description and carries the BPMN element ID', async () => {
+test('unified search returns text annotations with their owning BPMN element ID', async () => {
+  const backend = await read('../backend/src/modules/SearchContext/unified-search.service.ts');
+  const fullSearch = await read('src/Containers/SearchResults/SearchResults.container.tsx');
   const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
 
-  assert.match(navigation, /if \(\/annotation BPMN\|Description\/i\.test\(detail\)\)[\s\S]*?label: 'Description'/);
-  assert.match(navigation, /const isTextAnnotation = tag === 'textannotation'/);
-  assert.match(navigation, /let bpmnOwner: Element \| null = element/);
-  assert.match(navigation, /bpmnOwner\.namespaceURI !== BPMN_MODEL_NS/);
-  assert.match(navigation, /const elementId = bpmnOwner\?\.getAttribute\('id'\) \|\| undefined/);
-  assert.match(navigation, /const tag = element\.localName\.toLocaleLowerCase\('fr'\)/);
-  assert.match(navigation, /isTextAnnotation = tag === 'textannotation'/);
-  assert.match(navigation, /isTextAnnotation \|\| tag === 'documentation'/);
-  assert.match(navigation, /resourceId: process\.id,[\s\S]*?elementId,/);
+  assert.match(backend, /textAnnotation: 'Annotazione'/);
+  assert.match(backend, /const annotationText =\s*key === 'textAnnotation'/);
+  assert.match(backend, /\{ value: annotationText, field: 'testo annotazione' \}/);
+  assert.match(backend, /elementId,/);
+  assert.match(fullSearch, /'testo annotazione': 'Texte de l’annotation'/);
   assert.match(navigation, /if \(result\.elementId\) params\.set\('elementId', result\.elementId\)/);
 });
 
@@ -356,7 +357,8 @@ test('legacy content-viewer URLs redirect to the canonical process viewer', asyn
   assert.ok(layout.includes('requestedRaciView={requestedRaciView}'));
   assert.doesNotMatch(layout, /useSearchParams|searchParams\.get\(/);
   assert.match(details, /selectedContentId\?: string \| null/);
-  assert.match(details, /const viewerContent = selectedContentId[\s\S]*?: publishedContent/);
+  assert.match(details, /let viewerContent = publishedContent \?\? undefined;/);
+  assert.match(details, /if \(selectedContentId\) \{[\s\S]*?viewerContent = contents\.find\(content => content\.id === selectedContentId\)/);
   assert.match(
     details,
     /const viewerContent = selectedContentId[\s\S]*?contents\.find\(content => content\.id === selectedContentId\)[\s\S]*?: publishedContent/,
@@ -424,8 +426,9 @@ test('search rows show process context, percentage similarity and group BPMN nam
   assert.ok(shared.includes('{similarity} %'));
   assert.ok(quick.includes('processName={result.processName}'));
   assert.ok(quick.includes('similarity={result.similarity}'));
-  assert.ok(quick.includes('matchesTerm(documentation, term)'));
-  assert.ok(quick.includes('namedElements.includes(bpmnOwner)'));
+  assert.ok(quick.includes('unifiedSearchQuery'));
+  assert.ok(quick.includes('similarity: result.matchScore'));
+  assert.ok(backend.includes('extractBpmnSearchResults'));
   assert.ok(full.includes('processName={result.processName}'));
   assert.ok(full.includes('similarity={result.matchScore}'));
   assert.ok(backend.includes('getSearchSimilarity'));
@@ -476,7 +479,8 @@ test('BPMN element selection opens the right-hand panel without forcing it close
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
 
-  assert.match(details, /setTaskPanelCollapsed\(!selectedElementId\)/);
+  assert.match(details, /if \(selectedElementId\) setTaskPanelCollapsed\(false\)/);
+  assert.doesNotMatch(details, /setTaskPanelCollapsed\(!selectedElementId\)/);
   assert.ok(hook.includes("onElementSelectRef.current?.(element.id)"));
   assert.ok(hook.includes("onElementSelectRef.current?.('')"));
   assert.match(hook, /if \(selectedIdRef\.current === element\.id\) \{[\s\S]*?onElementSelectRef\.current\?\.\(''\)/);
