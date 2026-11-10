@@ -143,12 +143,12 @@ export const usePublishResource = () => {
   useEffect(() => {
     if (actionData && !actionData.error && actionData.formAction) {
       showAlert({
-        message: 'Business Process publication success.',
+        message: 'Publication du processus réussie.',
         severity: 'success',
       });
     } else if (actionData?.error && actionData.formAction) {
       showAlert({
-        message: 'An error occurred during Business Process publication.',
+        message: 'Une erreur est survenue lors de la publication du processus.',
         severity: 'danger',
       });
     }
