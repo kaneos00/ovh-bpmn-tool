@@ -406,6 +406,12 @@ export const ProcessDetails = ({
 
   const navigate = useNavigate();
 
+  const getProposalActionLabel = () => {
+    if (!currentActiveProposal) return 'Proposer une modification';
+    if (!currentActiveProposal.cloneContentId) return 'Consulter le suivi de la demande';
+    return 'Reprendre la demande en cours';
+  };
+
   const startChangeProposal = async () => {
     if (!proposalProjectId || startingProposal || activeProposalLoading || activeProposalFetching || isHistoricalView) return;
     // Reuse the existing workflow instead of attempting to create a second
@@ -861,9 +867,7 @@ export const ProcessDetails = ({
                         onClick={startChangeProposal}
                       >
                         <EditOutlined sx={{ fontSize: 16, mr: 0.5 }} />
-                        {currentActiveProposal
-                          ? (currentActiveProposal.cloneContentId ? 'Reprendre la demande en cours' : 'Consulter le suivi de la demande')
-                          : 'Proposer une modification'}
+                        {getProposalActionLabel()}
                       </Button>
                     )}
                     {canEditDescription && (
