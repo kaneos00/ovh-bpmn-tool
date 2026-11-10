@@ -203,12 +203,28 @@ export const ProcessDetails = ({
     onContentChecked,
   } = useProcessDetails(resourceId, { onContentUpload });
 
-  // An explicit contentId is authoritative, including a draft reached through
-  // a legacy deep link. Drafts are treated as historical read-only snapshots;
-  // without an explicit ID, the canonical viewer still opens the published version.
+  const { projects, activeProject } = useActiveProject();
+  const projectsForProcess = projects.filter(project =>
+    project.processes.some(process => process.resourceId === resourceId),
+  );
+  const projectForProcess = projectsForProcess.find(
+    project => project.id === activeProject?.id,
+  ) ?? (projectsForProcess.length === 1 ? projectsForProcess[0] : undefined);
+  const isProjectVariant = projectsForProcess.some(project =>
+    project.processes.some(process =>
+      process.resourceId === resourceId && process.usage === 'variant',
+    ),
+  );
+
+  // Existing variants created before the initial-copy publication fix have
+  // only a first draft. Keep those independent variants visible in the
+  // read-only Viewer without silently publishing or changing their content.
   const viewerContent = selectedContentId
     ? contents.find(content => content.id === selectedContentId)
-    : publishedContent;
+    : (publishedContent ?? (isProjectVariant ? draftContent : undefined));
+  const isUnpublishedVariantDraft = Boolean(
+    !selectedContentId && !publishedContent && isProjectVariant && draftContent,
+  );
   const isHistoricalView = Boolean(
     selectedContentId && (!viewerContent || viewerContent.id !== publishedContent?.id),
   );
@@ -223,15 +239,6 @@ export const ProcessDetails = ({
   );
   const queryClient = useQueryClient();
   const { resource: processResource } = useResource(resourceId);
-  const { projects, activeProject } = useActiveProject();
-  const projectsForProcess = projects.filter(project =>
-    project.processes.some(process => process.resourceId === resourceId),
-  );
-  // Keep the project context explicit: prefer the active project, and infer a
-  // project only when the process belongs to exactly one accessible project.
-  const projectForProcess = projectsForProcess.find(
-    project => project.id === activeProject?.id,
-  ) ?? (projectsForProcess.length === 1 ? projectsForProcess[0] : undefined);
   const projectForRemark = projectForProcess?.canSubmitRemarks
     ? projectForProcess
     : undefined;
@@ -250,7 +257,7 @@ export const ProcessDetails = ({
     () => apiClient.get(
       `/projects/${projectForProcess!.id}/processes/${resourceId}/change-proposals/active?contentId=${encodeURIComponent(viewerContent!.id)}`,
     ),
-    { enabled: Boolean(projectForProcess && viewerContent && !isHistoricalView) },
+    { enabled: Boolean(projectForProcess && publishedContent && viewerContent && !isHistoricalView) },
   );
   const { data: viewerRemarks = EMPTY_VIEWER_REMARKS } = useQuery<ViewerRemark[]>(
     ['process-change-proposal-comments', activeProposal?.id],
@@ -260,11 +267,11 @@ export const ProcessDetails = ({
   const processUsage = projectForProcess?.processes.find(
     process => process.resourceId === resourceId,
   )?.usage;
-  const proposalProjectId = projectForProcess && (
+  const proposalProjectId = publishedContent && projectForProcess && (
     projectForProcess.role === 'admin' ||
     (projectForProcess.role === 'modeler' && processUsage !== 'common')
   ) ? projectForProcess.id : undefined;
-  const canSubmitProcessRemark = Boolean(projectForRemark?.canSubmitRemarks);
+  const canSubmitProcessRemark = Boolean(projectForRemark?.canSubmitRemarks && publishedContent);
   const [startingProposal, setStartingProposal] = useState(false);
   const [initialRemarkOpen, setInitialRemarkOpen] = useState(false);
   const [initialRemarkText, setInitialRemarkText] = useState('');
@@ -746,8 +753,10 @@ export const ProcessDetails = ({
                 >
                   <Stack spacing={0.25}>
                     <Typography level="body-xs" textColor="neutral">
-                        Published by {viewerContent.updatedBy} le {new Date(viewerContent.updatedAt).toLocaleDateString('fr-FR')}
-                      </Typography>
+                      {isUnpublishedVariantDraft
+                        ? 'Copie initiale de la variante — version non publiée'
+                        : `Publié par ${viewerContent.updatedBy} le ${new Date(viewerContent.updatedAt).toLocaleDateString('fr-FR')}`}
+                    </Typography>
                   </Stack>
                   <Stack direction="row" spacing={0.5} alignItems="center">
                     <IconButton
