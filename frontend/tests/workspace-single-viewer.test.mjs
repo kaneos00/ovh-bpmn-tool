@@ -182,3 +182,25 @@ test('quick search uses the same unified backend search as the results page', as
   assert.doesNotMatch(navigation, /resourcesQuery|contentsQuery|getXmlContentQuery|deriveRaciMatrixFromXml/);
   assert.match(results, /unifiedSearchQuery/);
 });
+
+test('legacy project variants remain visible until their first published version', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.match(details, /process\.usage === 'variant'/);
+  assert.match(details, /if \(!viewerContent && isProjectVariant\)/);
+  assert.match(details, /isUnpublishedVariantDraft/);
+  assert.match(details, /canSubmitProcessRemark = Boolean\(projectForRemark\?\.canSubmitRemarks && publishedContent\)/);
+});
+
+test('proposal modeler resolves the canonical clone workspace and source return route', async () => {
+  const container = await read('src/Containers/ContentModeler/ContentModeler.container.tsx');
+  const hook = await read('src/Containers/ContentModeler/hooks/useContentModeler.ts');
+
+  assert.match(container, /projects\/me\/process-change-proposals/);
+  assert.match(container, /projects\/me\/process-change-proposals\/to-review/);
+  assert.match(container, /proposalWorkspace\?\.cloneResourceId/);
+  assert.match(container, /params\.set\('sourceResourceId', proposalWorkspace\.sourceResourceId\)/);
+  assert.match(container, /proposalWorkspace\.cloneResourceId/);
+  assert.match(hook, /resourceIdOverride\?: string/);
+  assert.match(hook, /resourceIdOverride \?\? routeResourceId/);
+});
