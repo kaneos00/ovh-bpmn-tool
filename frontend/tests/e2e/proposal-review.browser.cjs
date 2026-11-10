@@ -109,7 +109,7 @@ async function main() {
     await publishApprovedButton.click();
     await reviewerPage.waitForURL(`**/${sourceResourceId}`);
 
-    const finalState = await reviewerPage.evaluate(async () => {
+    const finalState = await authorPage.evaluate(async () => {
       const response = await fetch('/bpmn-api/projects/me/process-change-proposals', {
         credentials: 'same-origin',
         headers: { accept: 'application/json' },
