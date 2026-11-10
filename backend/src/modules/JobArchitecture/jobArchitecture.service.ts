@@ -174,6 +174,7 @@ export class JobArchitectureService {
       name?: string;
       description?: string | null;
       referenceLevel?: number | null;
+      category?: 'technical' | 'methodological' | 'behavioral';
     },
     headers: RequestHeaders,
   ) {
@@ -185,6 +186,10 @@ export class JobArchitectureService {
     const code = this.requiredText(input.code, 'code', 64).toUpperCase();
     const name = this.requiredText(input.name, 'name', 255);
     const referenceLevel = this.validateLevel(input.referenceLevel);
+    const category = input.category ?? 'technical';
+    if (!['technical', 'methodological', 'behavioral'].includes(category)) {
+      throw new BadRequestException('Competency category is invalid');
+    }
     const createdBy = this.projectAccess.getAuthenticatedUserId(headers);
 
     try {
@@ -195,6 +200,7 @@ export class JobArchitectureService {
           name,
           description: input.description?.trim() || null,
           referenceLevel,
+          category,
           active: true,
           createdBy,
         }),
