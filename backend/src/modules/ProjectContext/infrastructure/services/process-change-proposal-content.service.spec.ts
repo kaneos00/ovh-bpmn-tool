@@ -1,5 +1,6 @@
 import { ConflictException } from '@nestjs/common';
 import { ContentStatusEnum } from '../../../ResourceContext/shared/types/Content';
+import { ResourceName } from '../../../ResourceContext/domain/Resource/ResourceName';
 import { ContentTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/content.ormEntity';
 import { ResourceTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/resource.ormEntity';
 import {
@@ -48,6 +49,7 @@ describe('process change proposal content lifecycle', () => {
     });
 
     expect(result.resource.id).toBe('workspace-1');
+    expect(ResourceName.create(result.resource.name).ok).toBeTruthy();
     expect(result.resource.sourceResourceId).toBe('source-1');
     expect(result.content.resourceId).toBe('workspace-1');
     expect(result.content.status).toBe(ContentStatusEnum.Draft);
