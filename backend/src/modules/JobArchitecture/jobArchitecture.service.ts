@@ -23,6 +23,9 @@ import { ProjectJobPositionTypeOrmEntity } from './infrastructure/entities/proje
 import { PositionRaciActorMappingTypeOrmEntity } from './infrastructure/entities/positionRaciActorMapping.ormEntity';
 import { PositionCompetencyRequirementTypeOrmEntity } from './infrastructure/entities/positionCompetencyRequirement.ormEntity';
 import { PositionActivityMappingTypeOrmEntity } from './infrastructure/entities/positionActivityMapping.ormEntity';
+import { ContentTypeOrmEntity } from '../ResourceContext/infrastructure/entities/content.ormEntity';
+import { ContentStatusEnum } from '../ResourceContext/shared/types/Content';
+import { extractBpmnActivityIds } from './infrastructure/bpmnActivityIds';
 
 type RequestHeaders = Record<string, string | undefined>;
 
@@ -53,6 +56,8 @@ export class JobArchitectureService {
     private readonly raciMappings: Repository<PositionRaciActorMappingTypeOrmEntity>,
     @InjectRepository(PositionActivityMappingTypeOrmEntity)
     private readonly activityMappings: Repository<PositionActivityMappingTypeOrmEntity>,
+    @InjectRepository(ContentTypeOrmEntity)
+    private readonly contents: Repository<ContentTypeOrmEntity>,
     @InjectRepository(PositionCompetencyRequirementTypeOrmEntity)
     private readonly competencyRequirements: Repository<PositionCompetencyRequirementTypeOrmEntity>,
   ) {}
@@ -785,6 +790,30 @@ export class JobArchitectureService {
         'Activities can only be mapped to required or optional position blocks',
       );
     }
+
+    const publishedContent = await this.contents.findOne({
+      where: { resourceId, status: ContentStatusEnum.Published },
+      order: { version: 'DESC', createdAt: 'DESC' },
+    });
+    if (!publishedContent) {
+      throw new BadRequestException(
+        'The BPMN process has no published content; publish it before mapping activities',
+      );
+    }
+
+    let publishedActivityIds: Set<string>;
+    try {
+      publishedActivityIds = extractBpmnActivityIds(publishedContent.content);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      throw new BadRequestException(detail);
+    }
+    if (!publishedActivityIds.has(taskId)) {
+      throw new BadRequestException(
+        `BPMN element "${taskId}" was not found as an activity in the latest published content`,
+      );
+    }
+
     const existing = await this.activityMappings.findOne({
       where: { projectId, positionId, resourceId, taskId, blockId },
     });
@@ -933,7 +962,7 @@ export class JobArchitectureService {
         activityMappings: activityMappings.length,
       },
       limitations: [
-        'BPMN taskId values are stored as stable element identifiers but are not yet checked against the XML resource content.',
+        'New BPMN activity mappings are checked against the latest published XML; existing mappings are not automatically revalidated when a later version is published.',
         'A RACI actor is a role label, not an individual person; this report does not infer person assignments.',
       ],
     };
