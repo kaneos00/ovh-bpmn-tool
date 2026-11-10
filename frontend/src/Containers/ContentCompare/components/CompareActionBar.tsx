@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button, Stack } from '@mui/joy';
-import { Link } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Compare, Home } from '@mui/icons-material';
 
 import { ActionBar } from '../../../Components/GenericComponents/ActionBar/ActionBar';
@@ -15,14 +15,20 @@ export const CompareActionBar = ({
   resourceId,
   onDiffsDisplay,
 }: CompareActionBarProps) => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedReturnTo = searchParams.get('returnTo');
+  const returnTo = requestedReturnTo?.startsWith('/') && !requestedReturnTo.startsWith('//')
+    ? requestedReturnTo
+    : `/${resourceId}`;
+
   return (
     <ActionBar>
       <Stack gap={1} direction="row">
         <Button
           variant="outlined"
           color="neutral"
-          component={Link}
-          to={`/${resourceId}`}
+          onClick={() => navigate(returnTo)}
         >
           <Home fontSize="small" />
         </Button>
