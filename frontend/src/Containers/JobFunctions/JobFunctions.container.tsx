@@ -10,6 +10,8 @@ import {
   FormControl,
   FormLabel,
   Input,
+  Option,
+  Select,
   Stack,
   Textarea,
   Typography,
@@ -17,12 +19,20 @@ import {
 import { apiClient } from '../../queryClient';
 import { OrganizationAdminLayout } from '../OrganizationAdmin/OrganizationAdminLayout';
 
+type CompetencyCategory = 'technical' | 'methodological' | 'behavioral';
+
+const competencyCategoryLabels: Array<{ value: CompetencyCategory; label: string }> = [
+  { value: 'technical', label: 'Compétences techniques' },
+  { value: 'methodological', label: 'Compétences méthodologiques' },
+  { value: 'behavioral', label: 'Savoir-être' },
+];
+
 type JobFunction = {
   id: string;
   code: string;
   name: string;
   description: string | null;
-  competencyBlocks?: Array<{ id: string; code: string; name: string; description: string | null; competencies: Array<{ id: string; code: string; name: string; description: string | null; referenceLevel: number | null }> }>;
+  competencyBlocks?: Array<{ id: string; code: string; name: string; description: string | null; competencies: Array<{ id: string; code: string; name: string; description: string | null; referenceLevel: number | null; category: CompetencyCategory }> }>;
 };
 
 type ActivitySection = {
@@ -72,7 +82,7 @@ export const Component = () => {
   });
   const [activityDraft, setActivityDraft] = useState({ code: '', title: '', tasks: '' });
   const [blockDraft, setBlockDraft] = useState({ code: '', name: '', description: '' });
-  const [competencyDraft, setCompetencyDraft] = useState({ blockId: '', code: '', name: '', description: '', referenceLevel: '' });
+  const [competencyDraft, setCompetencyDraft] = useState<{ blockId: string; code: string; name: string; description: string; referenceLevel: string; category: CompetencyCategory }>({ blockId: '', code: '', name: '', description: '', referenceLevel: '', category: 'technical' });
   const [editingActivity, setEditingActivity] = useState<ActivitySection | null>(null);
   const [customDraft, setCustomDraft] = useState({ sectionKey: '', title: '', content: '' });
   const [showPreview, setShowPreview] = useState(false);
@@ -160,10 +170,11 @@ export const Component = () => {
       name: competencyDraft.name.trim(),
       description: competencyDraft.description.trim() || null,
       referenceLevel: competencyDraft.referenceLevel === '' ? null : Number(competencyDraft.referenceLevel),
+      category: competencyDraft.category,
     }),
     {
       onSuccess: async () => {
-        setCompetencyDraft({ blockId: '', code: '', name: '', description: '', referenceLevel: '' });
+        setCompetencyDraft({ blockId: '', code: '', name: '', description: '', referenceLevel: '', category: 'technical' });
         setError('');
         await queryClient.invalidateQueries(['job-architecture-functions']);
       },
@@ -468,17 +479,29 @@ export const Component = () => {
                       <Card key={block.id} variant="soft" sx={{ gap: 0.75 }}>
                         <Typography level="title-md">{block.code} · {block.name}</Typography>
                         {block.description && <Typography level="body-xs" sx={{ color: 'text.secondary' }}>{block.description}</Typography>}
-                        {block.competencies.map((competency) => (
-                          <Box key={competency.id} sx={{ pl: 1.5, borderLeft: '2px solid', borderColor: 'divider' }}>
-                            <Typography level="body-sm">{competency.code} · {competency.name}{competency.referenceLevel ? ` (niveau de référence ${competency.referenceLevel}/5)` : ''}</Typography>
-                            {competency.description && <Typography level="body-xs" sx={{ color: 'text.secondary' }}>{competency.description}</Typography>}
-                          </Box>
-                        ))}
+                        {competencyCategoryLabels.map((category) => {
+                          const items = block.competencies.filter((competency) => competency.category === category.value);
+                          if (!items.length) return null;
+                          return (
+                            <Box key={category.value} sx={{ gap: 0.5, mt: 0.5 }}>
+                              <Typography level="title-sm">{category.label}</Typography>
+                              {items.map((competency) => (
+                                <Box key={competency.id} sx={{ pl: 1.5, borderLeft: '2px solid', borderColor: 'divider' }}>
+                                  <Typography level="body-sm">{competency.code} · {competency.name}{competency.referenceLevel ? ` (niveau de référence ${competency.referenceLevel}/5)` : ''}</Typography>
+                                  {competency.description && <Typography level="body-xs" sx={{ color: 'text.secondary' }}>{competency.description}</Typography>}
+                                </Box>
+                              ))}
+                            </Box>
+                          );
+                        })}
                         {block.competencies.length === 0 && <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Aucune compétence détaillée dans ce bloc.</Typography>}
                         {competencyDraft.blockId === block.id ? (
                           <Stack spacing={1} sx={{ mt: 1 }}>
                             <Typography level="body-sm">Nouvelle compétence</Typography>
-                            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '150px minmax(0, 1fr) 110px' }, gap: 1 }}>
+                            <Select value={competencyDraft.category} onChange={(_event, value) => value && setCompetencyDraft({ ...competencyDraft, category: value as CompetencyCategory })} aria-label="Catégorie de compétence">
+                              {competencyCategoryLabels.map((category) => <Option key={category.value} value={category.value}>{category.label}</Option>)}
+                            </Select>
+<Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '150px minmax(0, 1fr) 110px' }, gap: 1 }}>
                               <Input value={competencyDraft.code} onChange={(event) => setCompetencyDraft({ ...competencyDraft, code: event.target.value })} placeholder="COMP-01" aria-label="Code de compétence" />
                               <Input value={competencyDraft.name} onChange={(event) => setCompetencyDraft({ ...competencyDraft, name: event.target.value })} placeholder="Intitulé de la compétence" aria-label="Intitulé de compétence" />
                               <Input type="number" slotProps={{ input: { min: 1, max: 5 } }} value={competencyDraft.referenceLevel} onChange={(event) => setCompetencyDraft({ ...competencyDraft, referenceLevel: event.target.value })} placeholder="Niveau /5" aria-label="Niveau de référence" />
@@ -490,7 +513,7 @@ export const Component = () => {
                             </Stack>
                           </Stack>
                         ) : (
-                          <Button size="sm" variant="soft" color="neutral" sx={{ alignSelf: 'flex-start', mt: 1 }} onClick={() => setCompetencyDraft({ blockId: block.id, code: '', name: '', description: '', referenceLevel: '' })}>Ajouter une compétence</Button>
+                          <Button size="sm" variant="soft" color="neutral" sx={{ alignSelf: 'flex-start', mt: 1 }} onClick={() => setCompetencyDraft({ blockId: block.id, code: '', name: '', description: '', referenceLevel: '', category: 'technical' })}>Ajouter une compétence</Button>
                         )}
                       </Card>
                     ))}
@@ -573,7 +596,16 @@ export const Component = () => {
                     {competencyBlocks.map((block) => (
                       <Box key={block.id} sx={{ gap: 0.5 }}>
                         <Typography level="title-md">{block.code} · {block.name}</Typography>
-                        {block.competencies.map((competency) => <Typography level="body-sm" key={competency.id}>• {competency.name}{competency.referenceLevel ? ` — niveau ${competency.referenceLevel}/5` : ''}</Typography>)}
+                        {competencyCategoryLabels.map((category) => {
+                          const items = block.competencies.filter((competency) => competency.category === category.value);
+                          if (!items.length) return null;
+                          return (
+                            <Box key={category.value} sx={{ gap: 0.25 }}>
+                              <Typography level="title-sm">{category.label}</Typography>
+                              {items.map((competency) => <Typography level="body-sm" key={competency.id}>• {competency.name}{competency.referenceLevel ? ` — niveau ${competency.referenceLevel}/5` : ''}</Typography>)}
+                            </Box>
+                          );
+                        })}
                       </Box>
                     ))}
                     <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Établie par : {documentQuery.data.establishedBy || '—'} · Validée par : {documentQuery.data.validatedBy || '—'}</Typography>
