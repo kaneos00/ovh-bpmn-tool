@@ -26,7 +26,12 @@ export class JobArchitectureController {
   @Post('job-architecture/functions')
   @UseAcl([UserGroup.Admin])
   createFunction(
-    @Body() body: { code?: string; name?: string; description?: string | null },
+    @Body()
+    body: {
+      code?: string;
+      name?: string;
+      description?: string | null;
+    },
     @Headers() headers: RequestHeaders,
   ) {
     return this.jobArchitecture.createFunction(body, headers);
@@ -35,7 +40,13 @@ export class JobArchitectureController {
   @Post('job-architecture/competency-blocks')
   @UseAcl([UserGroup.Admin])
   createBlock(
-    @Body() body: { code?: string; name?: string; description?: string | null; sortOrder?: number },
+    @Body()
+    body: {
+      code?: string;
+      name?: string;
+      description?: string | null;
+      sortOrder?: number;
+    },
     @Headers() headers: RequestHeaders,
   ) {
     return this.jobArchitecture.createBlock(body, headers);
@@ -45,7 +56,13 @@ export class JobArchitectureController {
   @UseAcl([UserGroup.Admin])
   createCompetency(
     @Param('blockId') blockId: string,
-    @Body() body: { code?: string; name?: string; description?: string | null; referenceLevel?: number | null },
+    @Body()
+    body: {
+      code?: string;
+      name?: string;
+      description?: string | null;
+      referenceLevel?: number | null;
+    },
     @Headers() headers: RequestHeaders,
   ) {
     return this.jobArchitecture.createCompetency(blockId, body, headers);
@@ -58,7 +75,11 @@ export class JobArchitectureController {
     @Param('blockId') blockId: string,
     @Headers() headers: RequestHeaders,
   ) {
-    return this.jobArchitecture.addBlockToFunction(functionId, blockId, headers);
+    return this.jobArchitecture.addBlockToFunction(
+      functionId,
+      blockId,
+      headers,
+    );
   }
 
   @Get('projects/:projectId/job-positions')
@@ -74,10 +95,19 @@ export class JobArchitectureController {
   @UseAcl([UserGroup.RW])
   createProjectPosition(
     @Param('projectId') projectId: string,
-    @Body() body: { functionId?: string; title?: string; description?: string | null },
+    @Body()
+    body: {
+      functionId?: string;
+      title?: string;
+      description?: string | null;
+    },
     @Headers() headers: RequestHeaders,
   ) {
-    return this.jobArchitecture.createProjectPosition(projectId, body, headers);
+    return this.jobArchitecture.createProjectPosition(
+      projectId,
+      body,
+      headers,
+    );
   }
 
   @Patch('projects/:projectId/job-positions/:positionId/competency-blocks')
@@ -85,9 +115,25 @@ export class JobArchitectureController {
   replacePositionBlocks(
     @Param('projectId') projectId: string,
     @Param('positionId') positionId: string,
-    @Body() body: { blocks?: Array<{ blockId?: string; applicability?: 'required' | 'optional' | 'not_applicable' | 'not_assessed'; requiredLevel?: number | null }> },
+    @Body()
+    body: {
+      blocks?: Array<{
+        blockId?: string;
+        applicability?:
+          | 'required'
+          | 'optional'
+          | 'not_applicable'
+          | 'not_assessed';
+        requiredLevel?: number | null;
+      }>;
+    },
     @Headers() headers: RequestHeaders,
   ) {
-    return this.jobArchitecture.replacePositionBlocks(projectId, positionId, body, headers);
+    return this.jobArchitecture.replacePositionBlocks(
+      projectId,
+      positionId,
+      body,
+      headers,
+    );
   }
 }
