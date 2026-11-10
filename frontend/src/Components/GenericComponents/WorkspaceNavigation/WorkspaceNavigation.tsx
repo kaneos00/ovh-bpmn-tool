@@ -141,7 +141,7 @@ export const WorkspaceNavigation = () => {
   // folder supplement, but never let a folder-list failure disable process,
   // BPMN, role or RACI search.
   const resources = useQuery<Resource[]>(resourcesQuery(), {
-    enabled: search.trim().length >= 1 && (scope === 'all' || scope === 'processes'),
+    enabled: searchOpen && search.trim().length >= 1 && (scope === 'all' || scope === 'processes'),
   });
 
   const resourceResults = useMemo(() => {
@@ -192,7 +192,7 @@ export const WorkspaceNavigation = () => {
   } = useQuery(
     searchOptions.queryKey,
     searchOptions.queryFn,
-    { enabled: search.trim().length >= 2 && !projectsLoading },
+    { enabled: searchOpen && search.trim().length >= 2 && !projectsLoading },
   );
 
   const apiResults: SearchResult[] = (searchData?.results ?? []).map(result => {
