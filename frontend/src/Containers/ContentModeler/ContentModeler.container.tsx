@@ -18,6 +18,14 @@ import { ProposalRemarksPanel } from './components/ProposalRemarksPanel';
 import queryClient, { apiClient } from '../../queryClient';
 import { generatePngFromSvg } from '../../shared/utils/generatePngFromSvg';
 
+type ProposalWorkspaceContext = {
+  id: string;
+  sourceResourceId: string;
+  cloneResourceId: string;
+  cloneContentId?: string | null;
+  submittedContentId?: string | null;
+};
+
 export const Component = () => {
   // share modeler instance in order to avoid create instance in useContentModeler and useModeler
   const { getModelerInstance } = useModelerInstance();
@@ -31,7 +39,30 @@ export const Component = () => {
   const proposalId = searchParams.get('proposalId');
   const reviewRemarksMode = searchParams.get('reviewRemarks') === '1';
   const approvedProposalMode = searchParams.get('publishApproved') === '1';
-  const sourceResourceId = searchParams.get('sourceResourceId');
+  const [proposalWorkspace, setProposalWorkspace] = useState<ProposalWorkspaceContext | null>(null);
+  useEffect(() => {
+    if (!proposalId) {
+      setProposalWorkspace(null);
+      return undefined;
+    }
+    let active = true;
+    const loadProposalContext = async () => {
+      const [authored, reviewable] = await Promise.all([
+        apiClient.get('/projects/me/process-change-proposals').catch(() => []),
+        apiClient.get('/projects/me/process-change-proposals/to-review').catch(() => []),
+      ]);
+      if (!active) return;
+      const candidates = [
+        ...(Array.isArray(authored) ? authored : []),
+        ...(Array.isArray(reviewable) ? reviewable : []),
+      ] as ProposalWorkspaceContext[];
+      setProposalWorkspace(candidates.find(item => item.id === proposalId) ?? null);
+    };
+    void loadProposalContext();
+    return () => { active = false; };
+  }, [proposalId]);
+  const resolvedResourceId = proposalWorkspace?.cloneResourceId ?? routeResourceId;
+  const sourceResourceId = searchParams.get('sourceResourceId') || proposalWorkspace?.sourceResourceId || null;
   const [validationModalOpen, setValidationModalOpen] = useState(false);
   const [submissionComment, setSubmissionComment] = useState('');
   const [submissionError, setSubmissionError] = useState<string | null>(null);
@@ -42,13 +73,45 @@ export const Component = () => {
   const pendingSaveExitRef = useRef(false);
   const pendingPublishExitRef = useRef(false);
   const handledActionDataRef = useRef<typeof actionData>(undefined);
-  const { resource } = useResource(routeResourceId);
+  const { resource } = useResource(resolvedResourceId);
   const returnToUrl = proposalId && (sourceResourceId || resource?.sourceResourceId)
     ? `/${sourceResourceId || resource?.sourceResourceId}`
-    : `/${routeResourceId}`;
+    : `/${resolvedResourceId}`;
   const [raciView, setRaciView] = useState<'matrix' | 'actors' | null>(null);
 
   useCallActivityNavigation(bpmnModelerInstance);
+
+  // Older proposal links may contain the source process ID in the route
+  // instead of the private clone ID. Resolve the proposal and canonicalize the URL.
+  useEffect(() => {
+    if (!proposalId || !proposalWorkspace?.cloneResourceId) return;
+    const params = new URLSearchParams(location.search);
+    let needsRedirect = routeResourceId !== proposalWorkspace.cloneResourceId;
+    if (!params.get('sourceResourceId')) {
+      params.set('sourceResourceId', proposalWorkspace.sourceResourceId);
+      needsRedirect = true;
+    }
+    if (!params.get('contentId')) {
+      const contentId = reviewRemarksMode || approvedProposalMode
+        ? proposalWorkspace.submittedContentId
+        : proposalWorkspace.cloneContentId;
+      if (contentId) {
+        params.set('contentId', contentId);
+        needsRedirect = true;
+      }
+    }
+    if (needsRedirect) {
+      navigate(`/${proposalWorkspace.cloneResourceId}/modeler?${params.toString()}`, { replace: true });
+    }
+  }, [
+    proposalId,
+    proposalWorkspace,
+    routeResourceId,
+    location.search,
+    reviewRemarksMode,
+    approvedProposalMode,
+    navigate,
+  ]);
 
   useEffect(() => {
     const provider = getRechercheProvider();
@@ -73,7 +136,7 @@ export const Component = () => {
     onDiagramPublish,
     onCompareWithSource,
     actionData,
-  } = useContentModeler(bpmnModelerInstance);
+  } = useContentModeler(bpmnModelerInstance, resolvedResourceId);
 
   const { diagramContainerRef, diagramPropertiesRef, hasLintError, isDirty, canUndo, canRedo, undo, redo, markSaved, isModelerReady } = useModeler(bpmnModelerInstance, draftXmlContent);
   // Protect every exit from the modeler, not only the Home button target.
