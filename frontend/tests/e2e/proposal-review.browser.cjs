@@ -54,6 +54,25 @@ async function main() {
     assert.ok(created.body.cloneContentId, 'The API did not return the proposal draft');
 
     await signIn(reviewerPage, reviewerUsername, reviewerPassword);
+
+    // Exercise the header's quick search against the seeded published process.
+    // The results page uses the same API and serves as the comparison path.
+    await reviewerPage.goto(`${baseUrl}/${sourceResourceId}`);
+    const quickSearch = reviewerPage.getByRole('textbox', {
+      name: 'Rechercher dans tous les contenus',
+    });
+    await quickSearch.fill('demande');
+    await reviewerPage.getByRole('button', { name: 'Voir tous les résultats' }).waitFor();
+    await reviewerPage.getByText(/Processus BPMN/).waitFor();
+    assert.equal(
+      await reviewerPage.getByText(/Recherche indisponible pour le moment/).count(),
+      0,
+      'The header quick search returned an API error',
+    );
+    await reviewerPage.goto(`${baseUrl}/search?q=demande`);
+    await reviewerPage.getByText('Traiter une demande', { exact: true }).waitFor();
+    await reviewerPage.goto(`${baseUrl}/mes-demandes`);
+
     await reviewerPage.getByText('Traiter une demande', { exact: true }).waitFor();
     await reviewerPage.getByRole('button', { name: 'Traiter dans le modeleur' }).click();
     await reviewerPage.waitForURL(/reviewRemarks=1/);
