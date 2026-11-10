@@ -276,7 +276,16 @@ export const Component = () => {
           </Typography>
         </Box>
 
-        {error && <Alert color="danger" onClose={() => setError('')}>{error}</Alert>}
+        {error && (
+          <Alert color="danger">
+            <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1}>
+              <Typography level="body-sm">{error}</Typography>
+              <Button size="sm" variant="plain" color="danger" onClick={() => setError('')}>
+                Fermer
+              </Button>
+            </Stack>
+          </Alert>
+        )}
         {functionsQuery.isError && <Alert color="danger">Impossible de charger le référentiel des fonctions.</Alert>}
 
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(250px, 0.8fr) minmax(0, 2fr)' }, gap: 2, alignItems: 'start' }}>
