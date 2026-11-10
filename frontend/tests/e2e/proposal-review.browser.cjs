@@ -93,7 +93,21 @@ async function main() {
     const variantResourceId = createdVariant.body.resource.id;
 
     // A project variant must open its own published BPMN content, not the
-    // common source or an empty Viewer.
+    // common source or an empty Viewer. Capture the actual XML request made
+    // by the Viewer so identical initial source/variant XML cannot hide a
+    // resource-ID mix-up.
+    const variantContentResponses = [];
+    reviewerPage.on('response', response => {
+      const url = new URL(response.url());
+      if (
+        url.pathname.startsWith(
+          `/bpmn-api/resources/${variantResourceId}/contents/`,
+        ) &&
+        url.pathname.endsWith('/content')
+      ) {
+        variantContentResponses.push({ url: url.pathname, status: response.status() });
+      }
+    });
     await reviewerPage.goto(`${baseUrl}/${variantResourceId}`);
     await reviewerPage.waitForTimeout(2000);
     const variantDiagnostics = await reviewerPage.evaluate(async ({ resourceId, sourceResourceId }) => {
@@ -184,6 +198,10 @@ async function main() {
       'The variant must own a distinct content version rather than reuse the source content row',
     );
     assert.equal(variantDiagnostics.variantXmlStatus, 200, 'The variant BPMN XML could not be loaded');
+    assert.ok(
+      variantContentResponses.some(response => response.status === 200),
+      `The Viewer did not request BPMN XML through the variant resource: ${JSON.stringify(variantContentResponses)}`,
+    );
     assert.equal(variantDiagnostics.sourceXmlStatus, 200, 'The source BPMN XML could not be loaded');
     assert.equal(
       variantDiagnostics.variantXml,
