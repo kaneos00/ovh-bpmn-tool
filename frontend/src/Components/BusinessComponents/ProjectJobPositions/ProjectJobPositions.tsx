@@ -114,6 +114,7 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
     { onSuccess: async (created: Position) => {
       setTitle(''); setDescription(''); setError(''); setSelectedPositionId(created.id);
       await queryClient.invalidateQueries(positionsKey);
+      await queryClient.invalidateQueries(['job-position-diagnostics', projectId]);
     }, onError: (reason: Error) => setError(reason.message) },
   );
   const updateBlocks = useMutation(
@@ -164,6 +165,7 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
       {!canEdit && <Alert color="neutral" variant="soft">Consultation seule : seuls les membres ayant les droits de modélisation ou d’administration du projet peuvent modifier les postes et leurs correspondances.</Alert>}
       {functionsQuery.isError && <Alert color="danger">Impossible de charger le référentiel des fonctions. Vérifiez vos droits et réessayez.</Alert>}
       {positionsQuery.isError && <Alert color="danger">Impossible de charger les postes organisationnels de ce projet.</Alert>}
+      {diagnosticsQuery.isLoading && <Typography level="body-xs" sx={{ color: 'text.secondary' }}>Calcul du bilan de cohérence…</Typography>}
       {diagnosticsQuery.isError && <Alert color="warning">Le bilan de cohérence du projet n’est pas disponible pour le moment.</Alert>}
       {error && <Alert color="danger" endDecorator={<Button size="sm" variant="plain" color="danger" onClick={() => setError('')}>Fermer</Button>}>{error}</Alert>}
       {diagnosticsQuery.data && <Card variant="outlined" sx={{ gap: 1 }}>
