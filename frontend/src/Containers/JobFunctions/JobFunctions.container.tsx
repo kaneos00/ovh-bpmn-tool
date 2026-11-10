@@ -402,7 +402,16 @@ export const Component = () => {
                     <Stack direction="row" gap={1} alignItems="center"><Chip color="primary" variant="soft">Modèle commun</Chip><Button size="sm" variant={showPreview ? 'solid' : 'outlined'} onClick={() => setShowPreview(!showPreview)}>{showPreview ? 'Masquer l’aperçu' : 'Aperçu de la fiche'}</Button></Stack>
                   </Stack>
                   {documentQuery.isLoading && <Typography level="body-sm">Chargement de la fiche…</Typography>}
-                  {documentQuery.isError && <Alert color="danger">Impossible de charger le document de fonction.</Alert>}
+                  {documentQuery.isError && (
+                    <Alert color="danger">
+                      Impossible de charger le document de fonction.
+                      {(documentQuery.error as Error)?.message && (
+                        <Typography level="body-xs" sx={{ mt: 0.5 }}>
+                          Détail technique : {(documentQuery.error as Error).message}
+                        </Typography>
+                      )}
+                    </Alert>
+                  )}
                   {documentQuery.data && (
                     <>
                       <Divider />
