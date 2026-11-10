@@ -39,7 +39,7 @@ export const Component = () => {
       >
         <Await resolve={loaderData.resource}>
           <BaseModal
-            title="Business Process publication"
+            title="Publication du processus"
             open
             onClose={callbacks.onModalClose}
             sx={{ maxWidth: 1000 }}
@@ -57,14 +57,14 @@ export const Component = () => {
                   color="primary"
                   onClick={callbacks.onPublish}
                 >
-                  Publish
+                  Publier
                 </Button>
                 <Button
                   variant="plain"
                   color="neutral"
                   onClick={callbacks.onModalClose}
                 >
-                  Cancel
+                  Annuler
                 </Button>
               </DialogActions>
             </>
