@@ -29,8 +29,9 @@ export class JobFunctionDocumentController {
     @Param('functionId') functionId: string,
     @Body()
     body: {
-      attachment?: string | null;
+      reportingLine?: string | null;
       documentDate?: string | null;
+      otherTitles?: string[];
       documentVersion?: string | null;
       establishedBy?: string | null;
       validatedBy?: string | null;
