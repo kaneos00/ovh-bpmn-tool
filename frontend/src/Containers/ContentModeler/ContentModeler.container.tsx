@@ -62,7 +62,7 @@ export const Component = () => {
     return () => { active = false; };
   }, [proposalId]);
   const resolvedResourceId = proposalWorkspace?.cloneResourceId ?? routeResourceId;
-  const sourceResourceId = searchParams.get('sourceResourceId') || proposalWorkspace?.sourceResourceId || null;
+  const sourceResourceId = proposalWorkspace?.sourceResourceId || searchParams.get('sourceResourceId') || null;
   const [validationModalOpen, setValidationModalOpen] = useState(false);
   const [submissionComment, setSubmissionComment] = useState('');
   const [submissionError, setSubmissionError] = useState<string | null>(null);
@@ -87,7 +87,7 @@ export const Component = () => {
     if (!proposalId || !proposalWorkspace?.cloneResourceId) return;
     const params = new URLSearchParams(location.search);
     let needsRedirect = routeResourceId !== proposalWorkspace.cloneResourceId;
-    if (!params.get('sourceResourceId')) {
+    if (params.get('sourceResourceId') !== proposalWorkspace.sourceResourceId) {
       params.set('sourceResourceId', proposalWorkspace.sourceResourceId);
       needsRedirect = true;
     }
