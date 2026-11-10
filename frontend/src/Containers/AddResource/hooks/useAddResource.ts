@@ -46,7 +46,7 @@ export const useAddResource = () => {
         severity: 'success',
       });
     } else if (actionData?.error) {
-      const errorMessage = actionData?.error.errorResponse.message;
+      const errorMessage = actionData?.error?.errorResponse?.message ?? actionData?.error?.message;
 
       showAlert({
         message:
