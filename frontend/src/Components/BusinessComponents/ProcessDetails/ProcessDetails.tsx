@@ -860,7 +860,9 @@ export const ProcessDetails = ({
                         onClick={startChangeProposal}
                       >
                         <EditOutlined sx={{ fontSize: 16, mr: 0.5 }} />
-                        {currentActiveProposal ? 'Reprendre la demande en cours' : 'Proposer une modification'}
+                        {currentActiveProposal
+                          ? (currentActiveProposal.cloneContentId ? 'Reprendre la demande en cours' : 'Consulter le suivi de la demande')
+                          : 'Proposer une modification'}
                       </Button>
                     )}
                     {canEditDescription && (
