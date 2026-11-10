@@ -192,6 +192,7 @@ export const Component = () => {
                             </Box>
                           ) : (
                             <ProcessDetails
+                              key={resourceId}
                               resourceId={resourceId}
                               onContentUpload={callbacks.processDetails.onContentUpload}
                               onContentPublish={callbacks.processDetails.onContentPublish}
