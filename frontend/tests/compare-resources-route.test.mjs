@@ -10,6 +10,8 @@ const read = relativePath => readFile(path.join(root, relativePath), 'utf8');
 test('legacy cross-resource comparison URL remains a standalone route', async () => {
   const routes = await read('src/routes.tsx');
   const comparison = await read('src/Containers/ContentCompare/hooks/useCompareData.ts');
+  const actionBar = await read('src/Containers/ContentCompare/components/CompareActionBar.tsx');
+  const proposals = await read('src/Containers/MyProcessChangeProposals/MyProcessChangeProposals.container.tsx');
 
   assert.match(
     routes,
@@ -20,4 +22,10 @@ test('legacy cross-resource comparison URL remains a standalone route', async ()
   assert.match(comparison, /params\.rightResourceId \?\? params\.resourceId/);
   assert.match(comparison, /getXmlContentQuery\(leftResourceId, leftContentId\)/);
   assert.match(comparison, /getXmlContentQuery\(rightResourceId, rightContentId\)/);
+  assert.match(proposals, /const reviewUrl = `\\/\\$\\{proposal\.cloneResourceId\\}\\/modeler\\?proposalId=/);
+  assert.match(proposals, /returnTo=\\$\\{returnTo\\}/);
+  assert.match(actionBar, /requestedReturnTo\?\.startsWith\('\/'\)/);
+  assert.match(actionBar, /!requestedReturnTo\.startsWith\('\/\/'\)/);
+  assert.match(actionBar, /navigate\(returnTo\)/);
+  assert.match(actionBar, /: `\\/\\$\\{resourceId\\}`/);
 });
