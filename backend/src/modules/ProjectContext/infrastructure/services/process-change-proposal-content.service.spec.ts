@@ -2,13 +2,14 @@ import { ConflictException } from '@nestjs/common';
 import { ContentStatusEnum } from '../../../ResourceContext/shared/types/Content';
 import { ContentTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/content.ormEntity';
 import { ResourceTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/resource.ormEntity';
+import { ResourceName } from '../../../ResourceContext/domain/Resource/ResourceName';
 import {
   createProposalWorkspace,
   publishProposalWorkspace,
 } from './process-change-proposal-content.service';
 
 describe('process change proposal content lifecycle', () => {
-  it('creates a distinct private resource and draft copied from the published source', async () => {
+  it('creates a distinct private resource with a valid name and a draft copied from the published source', async () => {
     const source = {
       id: 'source-1',
       name: 'Processus commun',
@@ -49,6 +50,7 @@ describe('process change proposal content lifecycle', () => {
 
     expect(result.resource.id).toBe('workspace-1');
     expect(result.resource.sourceResourceId).toBe('source-1');
+    expect(ResourceName.create(result.resource.name).ok).toBeTruthy();
     expect(result.content.resourceId).toBe('workspace-1');
     expect(result.content.status).toBe(ContentStatusEnum.Draft);
     expect(result.content.content).toBe('<definitions />');
