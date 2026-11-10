@@ -780,7 +780,7 @@ describe('ProcessChangeProposalController active workspace lookup', () => {
     );
   });
 
-  it('returns submitted proposals for source-viewer remarks without exposing a resumable draft', async () => {
+  it('keeps submitted proposal workspaces frozen even when their clone still has a Draft row', async () => {
     const submitted = {
       id: 'proposal-submitted',
       projectId: 'project-1',
@@ -790,7 +790,9 @@ describe('ProcessChangeProposalController active workspace lookup', () => {
       submittedContentId: 'submitted-content-1',
       status: ProcessChangeProposalStatus.Submitted,
     };
-    const { controller } = makeController([submitted], {});
+    const { controller } = makeController([submitted], {
+      'clone-submitted': { id: 'draft-submitted' },
+    });
 
     await expect(
       controller.getActiveProposalForProcess(
