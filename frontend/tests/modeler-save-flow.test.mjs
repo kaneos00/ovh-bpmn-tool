@@ -64,6 +64,7 @@ test('published viewer loads active proposal remarks and displays per-element co
   assert.ok(details.includes("['process-change-proposal-comments', currentActiveProposal?.id]"));
   assert.ok(details.includes("queryKey: ['process-change-proposal-comments']"));
   assert.ok(details.includes('activeProposal.sourcePublishedContentId === viewerContent?.id'));
+  assert.ok(details.includes("refetchOnMount: 'always'"));
   assert.ok(details.includes('remarks={viewerRemarks}'));
   assert.ok(viewer.includes('remarks?: ProcessViewerRemark[]'));
   assert.ok(hook.includes("viewer.get('overlays')"));
