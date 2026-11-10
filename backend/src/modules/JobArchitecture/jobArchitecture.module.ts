@@ -6,7 +6,9 @@ import { ProjectRaciActorTypeOrmEntity } from '../ProjectContext/infrastructure/
 import { ProjectRaciEntryTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectRaciEntry.ormEntity';
 import { CompetencyBlockTypeOrmEntity } from './infrastructure/entities/competencyBlock.ormEntity';
 import { CompetencyTypeOrmEntity } from './infrastructure/entities/competency.ormEntity';
+import { JobFunctionActivitySectionTypeOrmEntity } from './infrastructure/entities/jobFunctionActivitySection.ormEntity';
 import { JobFunctionCompetencyBlockTypeOrmEntity } from './infrastructure/entities/jobFunctionCompetencyBlock.ormEntity';
+import { JobFunctionCustomSectionTypeOrmEntity } from './infrastructure/entities/jobFunctionCustomSection.ormEntity';
 import { JobFunctionTypeOrmEntity } from './infrastructure/entities/jobFunction.ormEntity';
 import { PositionActivityMappingTypeOrmEntity } from './infrastructure/entities/positionActivityMapping.ormEntity';
 import { PositionCompetencyBlockTypeOrmEntity } from './infrastructure/entities/positionCompetencyBlock.ormEntity';
@@ -14,13 +16,17 @@ import { PositionCompetencyRequirementTypeOrmEntity } from './infrastructure/ent
 import { PositionRaciActorMappingTypeOrmEntity } from './infrastructure/entities/positionRaciActorMapping.ormEntity';
 import { ProjectJobPositionTypeOrmEntity } from './infrastructure/entities/projectJobPosition.ormEntity';
 import { JobArchitectureController } from './infrastructure/controllers/jobArchitecture.controller';
+import { JobFunctionDocumentController } from './infrastructure/controllers/jobFunctionDocument.controller';
 import { JobArchitectureService } from './jobArchitecture.service';
+import { JobFunctionDocumentService } from './jobFunctionDocument.service';
 
 @Module({
   imports: [
     ProjectContextModule,
     TypeOrmModule.forFeature([
       JobFunctionTypeOrmEntity,
+      JobFunctionActivitySectionTypeOrmEntity,
+      JobFunctionCustomSectionTypeOrmEntity,
       CompetencyBlockTypeOrmEntity,
       CompetencyTypeOrmEntity,
       JobFunctionCompetencyBlockTypeOrmEntity,
@@ -34,8 +40,8 @@ import { JobArchitectureService } from './jobArchitecture.service';
       ProjectRaciEntryTypeOrmEntity,
     ]),
   ],
-  controllers: [JobArchitectureController],
-  providers: [JobArchitectureService],
-  exports: [JobArchitectureService],
+  controllers: [JobArchitectureController, JobFunctionDocumentController],
+  providers: [JobArchitectureService, JobFunctionDocumentService],
+  exports: [JobArchitectureService, JobFunctionDocumentService],
 })
 export class JobArchitectureModule {}
