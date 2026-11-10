@@ -942,7 +942,9 @@ test('process viewer resumes an existing open proposal and exposes its status', 
   const proposals = await read('src/Containers/MyProcessChangeProposals/MyProcessChangeProposals.container.tsx');
   const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/process-change-proposal.controller.ts');
   assert.ok(details.includes('isLoading: activeProposalLoading'));
-  assert.ok(details.includes('if (activeProposal)'));
+  assert.ok(details.includes('if (currentActiveProposal)'));
+  assert.ok(details.includes('activeProposal.sourceResourceId === resourceId'));
+  assert.ok(details.includes('activeProposal.sourcePublishedContentId === viewerContent?.id'));
   assert.ok(details.includes('cloneContentId'));
   assert.ok(proposals.includes('proposal.cloneContentId'));
   assert.ok(controller.includes('cloneDraftByResourceId.get(proposal.cloneResourceId)?.id ?? null'));
