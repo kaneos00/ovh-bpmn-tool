@@ -18,6 +18,18 @@ describe('extractBpmnActivityIds', () => {
     expect([...ids].sort()).toEqual(['Task_1', 'Task_2']);
   });
 
+  it('extracts every ID when multiple activities share the same element name', () => {
+    const ids = extractBpmnActivityIds(`
+      <definitions>
+        <process id="Process_1">
+          <userTask id="Task_1"/>
+          <userTask id="Task_2"/>
+        </process>
+      </definitions>`);
+
+    expect([...ids].sort()).toEqual(['Task_1', 'Task_2']);
+  });
+
   it('supports a default BPMN namespace and subprocess activities', () => {
     const ids = extractBpmnActivityIds(`
       <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL">
