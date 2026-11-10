@@ -482,12 +482,12 @@ export const Component = () => {
                             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '150px minmax(0, 1fr) 110px' }, gap: 1 }}>
                               <Input value={competencyDraft.code} onChange={(event) => setCompetencyDraft({ ...competencyDraft, code: event.target.value })} placeholder="COMP-01" aria-label="Code de compétence" />
                               <Input value={competencyDraft.name} onChange={(event) => setCompetencyDraft({ ...competencyDraft, name: event.target.value })} placeholder="Intitulé de la compétence" aria-label="Intitulé de compétence" />
-                              <Input type="number" slotProps={{ input: { min: 0, max: 5 } }} value={competencyDraft.referenceLevel} onChange={(event) => setCompetencyDraft({ ...competencyDraft, referenceLevel: event.target.value })} placeholder="Niveau /5" aria-label="Niveau de référence" />
+                              <Input type="number" slotProps={{ input: { min: 1, max: 5 } }} value={competencyDraft.referenceLevel} onChange={(event) => setCompetencyDraft({ ...competencyDraft, referenceLevel: event.target.value })} placeholder="Niveau /5" aria-label="Niveau de référence" />
                             </Box>
                             <Input value={competencyDraft.description} onChange={(event) => setCompetencyDraft({ ...competencyDraft, description: event.target.value })} placeholder="Description (facultative)" aria-label="Description de compétence" />
                             <Stack direction="row" gap={1} justifyContent="flex-end">
                               <Button size="sm" variant="plain" color="neutral" onClick={() => setCompetencyDraft({ blockId: '', code: '', name: '', description: '', referenceLevel: '' })}>Annuler</Button>
-                              <Button size="sm" disabled={!competencyDraft.code.trim() || !competencyDraft.name.trim() || (competencyDraft.referenceLevel !== '' && (Number(competencyDraft.referenceLevel) < 0 || Number(competencyDraft.referenceLevel) > 5))} loading={createCompetency.isLoading} onClick={() => createCompetency.mutate()}>Enregistrer la compétence</Button>
+                              <Button size="sm" disabled={!competencyDraft.code.trim() || !competencyDraft.name.trim() || (competencyDraft.referenceLevel !== '' && (Number(competencyDraft.referenceLevel) < 1 || Number(competencyDraft.referenceLevel) > 5))} loading={createCompetency.isLoading} onClick={() => createCompetency.mutate()}>Enregistrer la compétence</Button>
                             </Stack>
                           </Stack>
                         ) : (
