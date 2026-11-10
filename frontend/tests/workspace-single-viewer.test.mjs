@@ -200,12 +200,12 @@ test('proposal modeler resolves the canonical clone workspace and source return 
 
   assert.match(container, /projects\/me\/process-change-proposals/);
   assert.match(container, /projects\/me\/process-change-proposals\/to-review/);
-  assert.match(container, /proposalWorkspace\?\.cloneResourceId/);
-  assert.match(container, /proposalWorkspaceResolved/);
-  assert.match(container, /proposalResourceReady = !proposalId \|\| Boolean\(proposalWorkspace\?\.cloneResourceId\)/);
-  assert.match(container, /useContentModeler\\(bpmnModelerInstance, resolvedResourceId, proposalResourceReady\\)/);
+  assert.match(container, /proposalContext\?\.cloneResourceId/);
+  assert.match(container, /proposalContextResolved/);
+  assert.match(container, /proposalResourceReady = !proposalId \|\| Boolean\(proposalContext\?\.cloneResourceId\)/);
+  assert.match(container, /useContentModeler\(bpmnModelerInstance, resolvedResourceId, proposalResourceReady\)/);
   assert.match(container, /params\.set\('sourceResourceId', proposalContext\.sourceResourceId\)/);
-  assert.match(container, /proposalWorkspace\.cloneResourceId/);
+  assert.match(container, /proposalContext\.cloneResourceId/);
   assert.match(hook, /resourceIdOverride\?: string/);
   assert.match(hook, /resourceIdOverride \?\? routeResourceId/);
 });
