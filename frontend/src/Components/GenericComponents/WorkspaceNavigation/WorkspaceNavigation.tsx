@@ -149,7 +149,7 @@ export const WorkspaceNavigation = () => {
     },
   );
 
-  const resourceResults = useMemo(() => {
+  const resourceResults = useMemo<SearchResult[]>(() => {
     const term = search.trim();
     if (!term || (scope !== 'all' && scope !== 'processes')) return [];
     const allResources = resources.data ?? [];
