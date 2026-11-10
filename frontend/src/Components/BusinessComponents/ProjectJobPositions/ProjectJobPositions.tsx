@@ -27,6 +27,12 @@ type MappingState = {
   raciActors: Array<{ id: string; raciActorId: string }>;
   activities: Array<{ id: string; resourceId: string; taskId: string; blockId: string }>;
 };
+type ProjectDiagnostics = {
+  unmappedRaciActors: Array<{ name: string; actorId: string | null; reason: string }>;
+  requiredBlocksWithoutActivities: Array<{ positionId: string; positionTitle: string | null; blockId: string }>;
+  counts: { positions: number; raciActors: number; raciEntries: number; raciActorMappings: number; activityMappings: number };
+  limitations: string[];
+};
 
 export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string; canEdit: boolean }) => {
   const queryClient = useQueryClient();
@@ -46,6 +52,11 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
   );
   const positionsQuery = useQuery<Position[]>(
     positionsKey, () => apiClient.get(`/projects/${projectId}/job-positions`),
+    { enabled: Boolean(projectId) },
+  );
+  const diagnosticsQuery = useQuery<ProjectDiagnostics>(
+    ['job-position-diagnostics', projectId],
+    () => apiClient.get(`/projects/${projectId}/job-architecture/diagnostics`),
     { enabled: Boolean(projectId) },
   );
   const actorsQuery = useQuery<Actor[]>(
@@ -91,6 +102,7 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
   const refresh = async () => {
     await Promise.all([
       queryClient.invalidateQueries(positionsKey),
+      queryClient.invalidateQueries(['job-position-diagnostics', projectId]),
       queryClient.invalidateQueries(['job-position-mappings', projectId, selectedPositionId]),
       queryClient.invalidateQueries(['project-raci-actors', projectId]),
     ]);
@@ -150,7 +162,27 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
         </Typography>
       </Box>
       {!canEdit && <Alert color="neutral" variant="soft">Consultation seule : seuls les membres ayant les droits de modélisation ou d’administration du projet peuvent modifier les postes et leurs correspondances.</Alert>}
+      {functionsQuery.isError && <Alert color="danger">Impossible de charger le référentiel des fonctions. Vérifiez vos droits et réessayez.</Alert>}
+      {positionsQuery.isError && <Alert color="danger">Impossible de charger les postes organisationnels de ce projet.</Alert>}
+      {diagnosticsQuery.isError && <Alert color="warning">Le bilan de cohérence du projet n’est pas disponible pour le moment.</Alert>}
       {error && <Alert color="danger" endDecorator={<Button size="sm" variant="plain" color="danger" onClick={() => setError('')}>Fermer</Button>}>{error}</Alert>}
+      {diagnosticsQuery.data && <Card variant="outlined" sx={{ gap: 1 }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} gap={1}>
+          <Box><Typography level="title-lg">Bilan de cohérence</Typography><Typography level="body-xs" sx={{ color: 'text.secondary' }}>Contrôle des liens entre le registre RACI, les postes et les activités BPMN.</Typography></Box>
+          <Stack direction="row" gap={1} flexWrap="wrap">
+            <Chip size="sm" variant="soft">{diagnosticsQuery.data.counts.positions} poste(s)</Chip>
+            <Chip size="sm" variant="soft">{diagnosticsQuery.data.counts.raciActorMappings} lien(s) RACI</Chip>
+            <Chip size="sm" variant="soft">{diagnosticsQuery.data.counts.activityMappings} lien(s) BPMN</Chip>
+          </Stack>
+        </Stack>
+        {diagnosticsQuery.data.unmappedRaciActors.length > 0
+          ? <Alert color="warning"><Typography level="title-sm">Acteurs RACI sans correspondance avec un poste</Typography>{diagnosticsQuery.data.unmappedRaciActors.map((actor, index) => <Typography key={actor.name + index} level="body-sm">• {actor.name} — {actor.reason === 'actor_not_in_registry' ? 'absent du registre des acteurs' : 'non associé à un poste'}</Typography>)}</Alert>
+          : <Alert color="success">Tous les acteurs présents dans la matrice RACI sont associés à un poste.</Alert>}
+        {diagnosticsQuery.data.requiredBlocksWithoutActivities.length > 0
+          ? <Alert color="warning"><Typography level="title-sm">Blocs requis sans activité BPMN associée</Typography>{diagnosticsQuery.data.requiredBlocksWithoutActivities.map((item, index) => <Typography key={item.positionId + item.blockId + index} level="body-sm">• {item.positionTitle ?? 'Poste'} — bloc {item.blockId}</Typography>)}</Alert>
+          : <Alert color="success">Tous les blocs requis des postes disposent d’au moins une correspondance BPMN.</Alert>}
+        {diagnosticsQuery.data.limitations.map((limitation, index) => <Typography key={index} level="body-xs" sx={{ color: 'text.tertiary' }}>Limite : {limitation}</Typography>)}
+      </Card>}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(250px, 0.8fr) minmax(0, 2fr)' }, gap: 2, alignItems: 'start' }}>
         <Stack spacing={1.5}>
           <Card variant="outlined" sx={{ gap: 1 }}>
