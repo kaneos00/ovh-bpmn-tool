@@ -204,3 +204,14 @@ test('proposal modeler resolves the canonical clone workspace and source return 
   assert.match(hook, /resourceIdOverride\?: string/);
   assert.match(hook, /resourceIdOverride \?\? routeResourceId/);
 });
+
+test('open proposal notices and remarks are scoped to the exact project process version', async () => {
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/process-change-proposal.controller.ts');
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.match(controller, /projectId: proposal\.projectId,[\s\S]*?sourceResourceId: proposal\.sourceResourceId,[\s\S]*?sourcePublishedContentId: proposal\.sourcePublishedContentId/);
+  assert.match(details, /activeProposal\.projectId === projectForProcess\?\.id/);
+  assert.match(details, /activeProposal\.sourceResourceId === resourceId/);
+  assert.match(details, /activeProposal\.sourcePublishedContentId === viewerContent\?\.id/);
+  assert.match(details, /currentActiveProposal\?\.id/);
+});
