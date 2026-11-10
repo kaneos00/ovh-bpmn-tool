@@ -61,7 +61,8 @@ export const Component = () => {
   const [newName, setNewName] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [documentDraft, setDocumentDraft] = useState({
-    attachment: '',
+    reportingLine: '',
+    otherTitles: '',
     documentDate: '',
     documentVersion: 'V01',
     establishedBy: '',
@@ -93,7 +94,8 @@ export const Component = () => {
     const document = documentQuery.data;
     if (!document) return;
     setDocumentDraft({
-      attachment: document.attachment ?? '',
+      reportingLine: document.reportingLine ?? '',
+      otherTitles: (document.otherTitles ?? []).join('\n'),
       documentDate: document.documentDate?.slice(0, 10) ?? '',
       documentVersion: document.documentVersion ?? 'V01',
       establishedBy: document.establishedBy ?? '',
@@ -130,7 +132,8 @@ export const Component = () => {
 
   const saveDocument = useMutation(
     () => apiClient.patch(documentUrl(selectedId), {
-      attachment: documentDraft.attachment || null,
+      reportingLine: documentDraft.reportingLine || null,
+      otherTitles: documentDraft.otherTitles.split('\n').map((title) => title.trim()).filter(Boolean),
       documentDate: documentDraft.documentDate || null,
       documentVersion: documentDraft.documentVersion || null,
       establishedBy: documentDraft.establishedBy || null,
@@ -333,8 +336,9 @@ export const Component = () => {
                       <Divider />
                       <Typography level="title-lg">Identification et suivi documentaire</Typography>
                       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 1.5 }}>
-                        <FormControl><FormLabel>Rattachement / entité</FormLabel><Input value={documentDraft.attachment} onChange={(event) => setDocumentDraft({ ...documentDraft, attachment: event.target.value })} placeholder="Direction des Opérations" /></FormControl>
+                        <FormControl><FormLabel>Rattachement / entité</FormLabel><Input value={documentDraft.reportingLine} onChange={(event) => setDocumentDraft({ ...documentDraft, reportingLine: event.target.value })} placeholder="Direction des Opérations" /></FormControl>
                         <FormControl><FormLabel>Date</FormLabel><Input type="date" value={documentDraft.documentDate} onChange={(event) => setDocumentDraft({ ...documentDraft, documentDate: event.target.value })} /></FormControl>
+                        <FormControl><FormLabel>Autres intitulés (un par ligne)</FormLabel><Textarea minRows={2} value={documentDraft.otherTitles} onChange={(event) => setDocumentDraft({ ...documentDraft, otherTitles: event.target.value })} placeholder="Project Manager\nPM" /></FormControl>
                         <FormControl><FormLabel>Version</FormLabel><Input value={documentDraft.documentVersion} onChange={(event) => setDocumentDraft({ ...documentDraft, documentVersion: event.target.value })} placeholder="V01" /></FormControl>
                         <FormControl><FormLabel>Établie par</FormLabel><Input value={documentDraft.establishedBy} onChange={(event) => setDocumentDraft({ ...documentDraft, establishedBy: event.target.value })} /></FormControl>
                         <FormControl><FormLabel>Validée par</FormLabel><Input value={documentDraft.validatedBy} onChange={(event) => setDocumentDraft({ ...documentDraft, validatedBy: event.target.value })} /></FormControl>
