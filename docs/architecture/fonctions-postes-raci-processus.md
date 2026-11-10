@@ -27,13 +27,20 @@ Cette distinction est une règle d'architecture métier. Elle doit guider l'évo
 
 ### 3.1 Fiche de fonction — le référentiel
 
+Les compétences de référence sont classées explicitement selon trois familles :
+- **Techniques** : savoirs et capacités liés aux outils, méthodes métier, technologies et domaines professionnels.
+- **Méthodologiques** : capacité à organiser, analyser, planifier, piloter, résoudre un problème et appliquer une démarche.
+- **Comportementales (savoir-être)** : comportements professionnels observables, par exemple communication, coopération, écoute, autonomie ou leadership.
+
+Cette catégorie est portée par chaque compétence, et non déduite du seul titre du bloc. La fiche et son aperçu présentent les compétences regroupées par famille, tout en conservant les blocs de compétences comme structure de référence.
+
 La fiche de fonction décrit une fonction-type, sans titulaire ni rattachement à un projet particulier.
 
 Elle peut contenir :
 - une finalité et un périmètre ;
 - des missions et responsabilités ;
 - des blocs de compétences ordonnés ;
-- des compétences et niveaux de référence ;
+- des compétences classées en trois familles — techniques, méthodologiques et comportementales (savoir-être) — avec leurs niveaux de référence ;
 - des interfaces fonctionnelles avec d'autres fonctions.
 
 Exemple : **Chef de projet**, avec des blocs de compétences CDP1, CDP2 et CDP3.
