@@ -483,8 +483,8 @@ export class ProcessChangeProposalController {
     // returned so the source Viewer can display their remarks and the open
     // review state. cloneContentId stays null to prevent resuming a frozen
     // workspace in the modeler.
-    const submittedProposal = activeProposals.find(
-      (proposal) => Boolean(proposal.submittedContentId),
+    const submittedProposal = activeProposals.find((proposal) =>
+      Boolean(proposal.submittedContentId),
     );
     if (submittedProposal) {
       return {
