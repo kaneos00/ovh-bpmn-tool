@@ -8,6 +8,7 @@ const authorUsername = process.env.CI_READER_USERNAME || 'ci-reader';
 const authorPassword = process.env.CI_READER_PASSWORD;
 const projectId = '10000000-0000-4000-8000-000000000001';
 const sourceResourceId = '20000000-0000-4000-8000-000000000002';
+const variantResourceId = '20000000-0000-4000-8000-000000000004';
 
 async function signIn(page, username, password) {
   await page.goto(`${baseUrl}/login?next=%2Fmes-demandes`);
@@ -64,6 +65,18 @@ async function main() {
     ).waitFor();
 
     await signIn(reviewerPage, reviewerUsername, reviewerPassword);
+
+    // A project variant must open its own published BPMN content, not the
+    // common source or an empty Viewer.
+    await reviewerPage.goto(`${baseUrl}/${variantResourceId}`);
+    await reviewerPage.waitForFunction(() =>
+      Boolean(document.querySelector('[data-element-id="Task_ReviewRequest"]')),
+    );
+    assert.equal(
+      await reviewerPage.getByText(/Le diagramme BPMN ne peut pas être affiché/).count(),
+      0,
+      'The project variant failed to import in the Viewer',
+    );
 
     // Exercise the header's quick search against the seeded published process.
     // The results page uses the same API and serves as the comparison path.
