@@ -140,16 +140,21 @@ export const WorkspaceNavigation = () => {
   // Folder names are not part of the unified BPMN endpoint. Keep the small
   // folder supplement, but never let a folder-list failure disable process,
   // BPMN, role or RACI search.
-  const resources = useQuery<Resource[]>(resourcesQuery(), {
-    enabled: searchOpen && search.trim().length >= 1 && (scope === 'all' || scope === 'processes'),
-  });
+  const resourcesOptions = resourcesQuery();
+  const resources = useQuery<Resource[]>(
+    resourcesOptions.queryKey,
+    resourcesOptions.queryFn,
+    {
+      enabled: searchOpen && search.trim().length >= 1 && (scope === 'all' || scope === 'processes'),
+    },
+  );
 
   const resourceResults = useMemo(() => {
     const term = search.trim();
     if (!term || (scope !== 'all' && scope !== 'processes')) return [];
     const allResources = resources.data ?? [];
     const allowedIds = new Set(projectProcessIds);
-    const byId = new Map(allResources.map(resource => [resource.id, resource] as const));
+    const byId = new Map<string, Resource>(allResources.map(resource => [resource.id, resource]));
     projectProcessIds.forEach(id => {
       let current = byId.get(id);
       while (current?.parentId) {
