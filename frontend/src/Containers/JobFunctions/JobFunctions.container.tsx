@@ -71,6 +71,8 @@ export const Component = () => {
     mission: '',
   });
   const [activityDraft, setActivityDraft] = useState({ code: '', title: '', tasks: '' });
+  const [blockDraft, setBlockDraft] = useState({ code: '', name: '', description: '' });
+  const [competencyDraft, setCompetencyDraft] = useState({ blockId: '', code: '', name: '', description: '', referenceLevel: '' });
   const [editingActivity, setEditingActivity] = useState<ActivitySection | null>(null);
   const [customDraft, setCustomDraft] = useState({ sectionKey: '', title: '', content: '' });
   const [showPreview, setShowPreview] = useState(false);
@@ -127,6 +129,43 @@ export const Component = () => {
         setNewDescription('');
         await queryClient.invalidateQueries(['job-architecture-functions']);
         setSelectedId(created.id);
+      },
+      onError: (reason: Error) => setError(reason.message),
+    },
+  );
+
+  const createBlock = useMutation(
+    async () => {
+      const block = await apiClient.post('/job-architecture/competency-blocks', {
+        code: blockDraft.code.trim(),
+        name: blockDraft.name.trim(),
+        description: blockDraft.description.trim() || null,
+      });
+      await apiClient.post(`/job-architecture/functions/${selectedId}/blocks/${block.id}`, {});
+      return block;
+    },
+    {
+      onSuccess: async () => {
+        setBlockDraft({ code: '', name: '', description: '' });
+        setError('');
+        await queryClient.invalidateQueries(['job-architecture-functions']);
+      },
+      onError: (reason: Error) => setError(reason.message),
+    },
+  );
+
+  const createCompetency = useMutation(
+    () => apiClient.post(`/job-architecture/competency-blocks/${competencyDraft.blockId}/competencies`, {
+      code: competencyDraft.code.trim(),
+      name: competencyDraft.name.trim(),
+      description: competencyDraft.description.trim() || null,
+      referenceLevel: competencyDraft.referenceLevel === '' ? null : Number(competencyDraft.referenceLevel),
+    }),
+    {
+      onSuccess: async () => {
+        setCompetencyDraft({ blockId: '', code: '', name: '', description: '', referenceLevel: '' });
+        setError('');
+        await queryClient.invalidateQueries(['job-architecture-functions']);
       },
       onError: (reason: Error) => setError(reason.message),
     },
@@ -437,8 +476,34 @@ export const Component = () => {
                           </Box>
                         ))}
                         {block.competencies.length === 0 && <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Aucune compétence détaillée dans ce bloc.</Typography>}
+                        {competencyDraft.blockId === block.id ? (
+                          <Stack spacing={1} sx={{ mt: 1 }}>
+                            <Typography level="body-sm">Nouvelle compétence</Typography>
+                            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '150px minmax(0, 1fr) 110px' }, gap: 1 }}>
+                              <Input value={competencyDraft.code} onChange={(event) => setCompetencyDraft({ ...competencyDraft, code: event.target.value })} placeholder="COMP-01" aria-label="Code de compétence" />
+                              <Input value={competencyDraft.name} onChange={(event) => setCompetencyDraft({ ...competencyDraft, name: event.target.value })} placeholder="Intitulé de la compétence" aria-label="Intitulé de compétence" />
+                              <Input type="number" slotProps={{ input: { min: 0, max: 5 } }} value={competencyDraft.referenceLevel} onChange={(event) => setCompetencyDraft({ ...competencyDraft, referenceLevel: event.target.value })} placeholder="Niveau /5" aria-label="Niveau de référence" />
+                            </Box>
+                            <Input value={competencyDraft.description} onChange={(event) => setCompetencyDraft({ ...competencyDraft, description: event.target.value })} placeholder="Description (facultative)" aria-label="Description de compétence" />
+                            <Stack direction="row" gap={1} justifyContent="flex-end">
+                              <Button size="sm" variant="plain" color="neutral" onClick={() => setCompetencyDraft({ blockId: '', code: '', name: '', description: '', referenceLevel: '' })}>Annuler</Button>
+                              <Button size="sm" disabled={!competencyDraft.code.trim() || !competencyDraft.name.trim() || (competencyDraft.referenceLevel !== '' && (Number(competencyDraft.referenceLevel) < 0 || Number(competencyDraft.referenceLevel) > 5))} loading={createCompetency.isLoading} onClick={() => createCompetency.mutate()}>Enregistrer la compétence</Button>
+                            </Stack>
+                          </Stack>
+                        ) : (
+                          <Button size="sm" variant="soft" color="neutral" sx={{ alignSelf: 'flex-start', mt: 1 }} onClick={() => setCompetencyDraft({ blockId: block.id, code: '', name: '', description: '', referenceLevel: '' })}>Ajouter une compétence</Button>
+                        )}
                       </Card>
                     ))}
+                    <Divider />
+                    <Typography level="title-md">Créer et associer un bloc de compétences</Typography>
+                    <Typography level="body-xs" sx={{ color: 'text.secondary' }}>Le bloc est créé dans le référentiel commun puis rattaché à cette fiche de fonction.</Typography>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '150px minmax(0, 1fr)' }, gap: 1 }}>
+                      <Input value={blockDraft.code} onChange={(event) => setBlockDraft({ ...blockDraft, code: event.target.value })} placeholder="CDP-COMP" aria-label="Code du bloc" />
+                      <Input value={blockDraft.name} onChange={(event) => setBlockDraft({ ...blockDraft, name: event.target.value })} placeholder="Compétences de pilotage" aria-label="Nom du bloc" />
+                    </Box>
+                    <Input value={blockDraft.description} onChange={(event) => setBlockDraft({ ...blockDraft, description: event.target.value })} placeholder="Description du bloc (facultative)" aria-label="Description du bloc" />
+                    <Stack direction="row" justifyContent="flex-end"><Button disabled={!blockDraft.code.trim() || !blockDraft.name.trim()} loading={createBlock.isLoading} onClick={() => createBlock.mutate()}>Créer et associer le bloc</Button></Stack>
                   </Card>
                 )}
 
