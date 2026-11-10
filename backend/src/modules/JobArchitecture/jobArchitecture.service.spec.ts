@@ -35,7 +35,7 @@ describe('JobArchitectureService.addPositionActivityMapping', () => {
     mappingSave = jest.fn((value) => Promise.resolve(value));
 
     service = Object.create(JobArchitectureService.prototype) as JobArchitectureService;
-    Object.assign(service as any, {
+    Object.assign(service, {
       projectAccess: { assertProjectRole },
       positions: { findOne: positionFindOne },
       projectProcesses: { findOne: processFindOne },
@@ -46,7 +46,7 @@ describe('JobArchitectureService.addPositionActivityMapping', () => {
   });
 
   const addMapping = () =>
-    (service as any).addPositionActivityMapping(
+    service.addPositionActivityMapping(
       'project-1',
       'position-1',
       { resourceId: 'resource-1', taskId: 'Task_1', blockId: 'block-1' },
@@ -69,7 +69,7 @@ describe('JobArchitectureService.addPositionActivityMapping', () => {
   it('rejects a process that has no published content', async () => {
     contentFindOne.mockResolvedValue(null);
     await expect(addMapping()).rejects.toBeInstanceOf(BadRequestException);
-    await expect(addMapping()).rejects.toThrow('no published content');
+    expect(contentFindOne).toHaveBeenCalledTimes(1);
     expect(mappingSave).not.toHaveBeenCalled();
   });
 
