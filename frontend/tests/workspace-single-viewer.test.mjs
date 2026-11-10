@@ -228,5 +228,5 @@ test('open proposal notices and remarks are scoped to the exact project process 
 test('the modeler export menu is reset when navigating to another process', async () => {
   const actionBar = await read('src/Containers/ContentModeler/components/ModelerActionBar.tsx');
 
-  assert.match(actionBar, /<Dropdown key=\\{\\`export-menu:\\$\\{resourceId\\}\\`\\}>/);
+  assert.ok(actionBar.includes('<Dropdown key={`export-menu:${resourceId}`}>'));
 });
