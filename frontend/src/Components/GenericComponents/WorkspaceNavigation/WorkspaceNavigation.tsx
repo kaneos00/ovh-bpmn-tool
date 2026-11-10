@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, Button, Input, List, Option, Select, Sheet, Stack, Typography } from '@mui/joy';
 import { Search } from '@mui/icons-material';
@@ -6,11 +6,20 @@ import { useActiveProject } from '../../../shared/hooks/useActiveProject';
 import { useQuery } from 'react-query';
 
 import { unifiedSearchQuery, type UnifiedSearchType } from '../../../api/search/search.queries';
+import { resourcesQuery } from '../../../api/resources/resources.queries';
+import { type Resource } from '../../../Types';
+import { ResourceType } from '../../../shared/types/BpmnResource';
 import { UserAccountMenu } from '../UserAccountMenu/UserAccountMenu';
 import { SearchResultItem } from '../SearchResultItem/SearchResultItem';
 import { getProjectTrigram } from '../../../shared/helpers/projectTrigram';
 
 type SearchScope = 'all' | 'processes' | 'bpmn' | 'roles' | 'raci';
+const normalizeSearch = (value: string) =>
+  value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase('fr').trim();
+
+const matchesTerm = (value: string, term: string) =>
+  normalizeSearch(value).includes(normalizeSearch(term));
+
 type SearchResult = {
   key: string;
   title: string;
@@ -127,7 +136,41 @@ export const WorkspaceNavigation = () => {
   const [scope, setScope] = useState<SearchScope>('all');
   const [searchOpen, setSearchOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement | null>(null);
-  const { projects, activeProject, activeProjectId, setActiveProject, isLoading: projectsLoading } = useActiveProject();
+  const { projects, activeProject, activeProjectId, setActiveProject, projectProcessIds, isLoading: projectsLoading } = useActiveProject();
+  // Folder names are not part of the unified BPMN endpoint. Keep the small
+  // folder supplement, but never let a folder-list failure disable process,
+  // BPMN, role or RACI search.
+  const resources = useQuery<Resource[]>(resourcesQuery(), {
+    enabled: search.trim().length >= 1 && (scope === 'all' || scope === 'processes'),
+  });
+
+  const resourceResults = useMemo(() => {
+    const term = search.trim();
+    if (!term || (scope !== 'all' && scope !== 'processes')) return [];
+    const allResources = resources.data ?? [];
+    const allowedIds = new Set(projectProcessIds);
+    const byId = new Map(allResources.map(resource => [resource.id, resource]));
+    projectProcessIds.forEach(id => {
+      let current = byId.get(id);
+      while (current?.parentId) {
+        allowedIds.add(current.parentId);
+        current = byId.get(current.parentId);
+      }
+    });
+    return allResources
+      .filter(resource => resource.type === ResourceType.Folder && allowedIds.has(resource.id) &&
+        (matchesTerm(resource.name, term) || matchesTerm(resource.description ?? '', term)))
+      .sort((left, right) => left.name.localeCompare(right.name, 'fr'))
+      .slice(0, 5)
+      .map(resource => ({
+        key: resource.id,
+        title: resource.name,
+        detail: `Dossier du référentiel · ${resource.description || 'Dossier'}`,
+        resourceId: resource.id,
+        description: resource.description || undefined,
+        similarity: matchesTerm(resource.name, term) ? 100 : 80,
+      }));
+  }, [resources.data, search, scope, projectProcessIds]);
 
   const typeByScope: Partial<Record<SearchScope, UnifiedSearchType>> = {
     processes: 'process',
@@ -152,7 +195,7 @@ export const WorkspaceNavigation = () => {
     { enabled: search.trim().length >= 2 && !projectsLoading },
   );
 
-  const results: SearchResult[] = (searchData?.results ?? []).map(result => {
+  const apiResults: SearchResult[] = (searchData?.results ?? []).map(result => {
     const detailByType: Record<UnifiedSearchType, string> = {
       process: 'Processus BPMN',
       bpmn: 'Élément BPMN',
@@ -175,6 +218,11 @@ export const WorkspaceNavigation = () => {
       openRaci: result.type === 'raci' || result.type === 'actor',
     };
   });
+
+  const results = [...resourceResults, ...apiResults]
+    .filter((result, index, all) => all.findIndex(candidate => candidate.key === result.key) === index)
+    .sort((left, right) => (right.similarity ?? 0) - (left.similarity ?? 0))
+    .slice(0, 10);
 
   useEffect(() => {
     const onShortcut = (event: KeyboardEvent) => {
@@ -220,7 +268,8 @@ export const WorkspaceNavigation = () => {
     navigate(`/search?${params.toString()}`);
   };
 
-  const isLoading = projectsLoading || deepSearchLoading;
+  const isLoading = projectsLoading || deepSearchLoading ||
+    ((scope === 'all' || scope === 'processes') && resources.isLoading);
 
   return (
     <Box className="workspace-navigation" sx={{ mb: 1.5, p: { xs: 1.25, md: 1.75 }, borderRadius: '10px', bgcolor: '#152b45', color: '#fff', border: '1px solid #152b45', boxShadow: '0 2px 8px rgba(21,43,69,.08)' }}>
