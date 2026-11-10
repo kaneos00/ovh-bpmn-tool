@@ -734,11 +734,17 @@ describe('ProcessChangeProposalController active workspace lookup', () => {
   it('returns the newest resumable workspace and keeps the project/process/version scope', async () => {
     const older = {
       id: 'proposal-old',
+      projectId: 'project-1',
+      sourceResourceId: 'source-1',
+      sourcePublishedContentId: 'published-1',
       cloneResourceId: 'clone-old',
       status: ProcessChangeProposalStatus.Submitted,
     };
     const newer = {
       id: 'proposal-new',
+      projectId: 'project-1',
+      sourceResourceId: 'source-1',
+      sourcePublishedContentId: 'published-1',
       cloneResourceId: 'clone-new',
       status: ProcessChangeProposalStatus.Draft,
     };
