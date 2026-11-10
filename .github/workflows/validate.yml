@@ -320,7 +320,7 @@ jobs:
 
           # Give the isolated CI reader account explicit permission to submit Viewer remarks.
           docker exec bpmn-v2-demo-db-ci psql -v ON_ERROR_STOP=1 -U "$DATABASE_USER" -d "$DATABASE_NAME" -c \
-            "INSERT INTO project_members (id, \"createdBy\", \"projectId\", \"userId\", role, \"canSubmitRemarks\") VALUES ('71000000-0000-4000-8000-000000000001', 'ci-e2e', '10000000-0000-4000-8000-000000000001', 'ci-reader', 'viewer', TRUE) ON CONFLICT (\"projectId\", \"userId\") DO UPDATE SET role = EXCLUDED.role, \"canSubmitRemarks\" = TRUE"
+            "INSERT INTO project_members (id, \"createdBy\", \"projectId\", \"userId\", role, \"canSubmitRemarks\") VALUES (uuid_generate_v4(), 'ci-e2e', '10000000-0000-4000-8000-000000000001', 'ci-reader', 'viewer', TRUE) ON CONFLICT (\"projectId\", \"userId\") DO UPDATE SET role = EXCLUDED.role, \"canSubmitRemarks\" = TRUE"
 
           workspace_payload="$(curl --fail --silent --show-error \
             --cookie /tmp/bpmn-v2-ci.cookies \

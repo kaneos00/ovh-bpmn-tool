@@ -8,9 +8,6 @@ export type ProjectRaciActorOrigin = 'manual' | 'bpmn';
   unique: true,
 })
 @Index('project_raci_actors_project_active_idx', ['projectId', 'active'])
-@Index('project_raci_actors_project_id_unique', ['projectId', 'id'], {
-  unique: true,
-})
 export class ProjectRaciActorTypeOrmEntity extends AbstractEntity {
   @Column('uuid')
   projectId: string;
