@@ -512,7 +512,7 @@ test('proposal review opens and edits only the exact submitted BPMN snapshot', a
   assert.match(modeler, /<ProposalRemarksPanel[\s\S]*?proposalId=\{proposalId\}[\s\S]*?canDecide=\{reviewRemarksMode\}/);
 
   assert.match(contentHook, /getContentQuery\(resourceId, requestedContentId \?\? ''\)/);
-  assert.match(contentHook, /enabled: Boolean\(proposalId && requestedContentId\)/);
+  assert.match(contentHook, /enabled: enabled && Boolean\(proposalId && requestedContentId\)/);
   assert.match(contentHook, /if \(listedContent\) return listedContent;[\s\S]*?if \(proposalId\) return requestedContent/);
   assert.match(contentHook, /getXmlContentQuery\(resourceId, selectedContent\?\.id as string\)/);
   assert.match(contentHook, /proposalContentLookupFailed = Boolean\([\s\S]*?proposalId &&[\s\S]*?requestedContentId[\s\S]*?!selectedContent[\s\S]*?requestedContentIsError/);
