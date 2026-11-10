@@ -12,8 +12,7 @@ describe('extractBpmnActivityIds', () => {
           <bpmn:exclusiveGateway id="Gateway_1"/>
           <bpmn:sequenceFlow id="Flow_1"/>
         </bpmn:process>
-      </bpmn:definitions>`
-    );
+      </bpmn:definitions>`);
 
     expect([...ids].sort()).toEqual(['Task_1', 'Task_2']);
   });
@@ -38,8 +37,7 @@ describe('extractBpmnActivityIds', () => {
           <subProcess id="SubProcess_1"/>
           <callActivity id="Call_1"/>
         </process>
-      </definitions>`
-    );
+      </definitions>`);
 
     expect([...ids].sort()).toEqual(['Call_1', 'SubProcess_1', 'Task_1']);
   });
@@ -57,8 +55,7 @@ describe('extractBpmnActivityIds', () => {
           <startEvent id="Start_1"/>
           <exclusiveGateway id="Gateway_1"/>
         </process>
-      </definitions>`,
-    );
+      </definitions>`);
 
     expect(ids.has('Start_1')).toBe(false);
     expect(ids.has('Gateway_1')).toBe(false);
