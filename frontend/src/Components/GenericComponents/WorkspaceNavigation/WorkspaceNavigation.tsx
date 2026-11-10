@@ -154,7 +154,7 @@ export const WorkspaceNavigation = () => {
     if (!term || (scope !== 'all' && scope !== 'processes')) return [];
     const allResources = resources.data ?? [];
     const allowedIds = new Set(projectProcessIds);
-    const byId = new Map<string, Resource>(allResources.map(resource => [resource.id, resource]));
+    const byId = new Map<string, Resource>(allResources.map(resource => [resource.id, resource] as const));
     projectProcessIds.forEach(id => {
       let current = byId.get(id);
       while (current?.parentId) {
