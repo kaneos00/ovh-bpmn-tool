@@ -70,12 +70,18 @@ async function main() {
     // common source or an empty Viewer.
     await reviewerPage.goto(`${baseUrl}/${variantResourceId}`);
     await reviewerPage.waitForFunction(() =>
-      Boolean(document.querySelector('[data-element-id="Task_ReviewRequest"]')),
+      document.querySelectorAll('.djs-container text').length > 0 ||
+      document.body.innerText.includes('Le diagramme BPMN ne peut pas être affiché'),
     );
-    assert.equal(
-      await reviewerPage.getByText(/Le diagramme BPMN ne peut pas être affiché/).count(),
-      0,
-      'The project variant failed to import in the Viewer',
+    const variantDiagramText = await reviewerPage.evaluate(() =>
+      Array.from(document.querySelectorAll('.djs-container text'))
+        .map(element => element.textContent || '')
+        .join(' '),
+    );
+    assert.match(
+      variantDiagramText,
+      /Revoir la demande/,
+      `The project variant did not render its own BPMN labels. Viewer text: ${await reviewerPage.locator('body').innerText()}`,
     );
 
     // Exercise the header's quick search against the seeded published process.
