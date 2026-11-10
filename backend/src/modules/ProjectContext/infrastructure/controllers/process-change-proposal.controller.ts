@@ -468,6 +468,9 @@ export class ProcessChangeProposalController {
       if (cloneDraft) {
         return {
           id: proposal.id,
+          projectId: proposal.projectId,
+          sourceResourceId: proposal.sourceResourceId,
+          sourcePublishedContentId: proposal.sourcePublishedContentId,
           status: proposal.status,
           cloneResourceId: proposal.cloneResourceId,
           cloneContentId: cloneDraft.id,
