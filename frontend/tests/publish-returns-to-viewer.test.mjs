@@ -28,3 +28,11 @@ test('failed publication stays on the confirmation screen for retry', () => {
   assert.match(source, /failed publication must remain on the confirmation screen/);
   assert.match(action, /catch \(error\) \{[\s\S]*?formAction,[\s\S]*?error,[\s\S]*?\};/);
 });
+
+test('publication confirmation and feedback are displayed in French', () => {
+  assert.ok(source.includes('title="Publication du processus"'));
+  assert.ok(source.includes('Publier'));
+  assert.ok(source.includes('Annuler'));
+  assert.ok(hook.includes("Publication du processus réussie."));
+  assert.ok(hook.includes('Une erreur est survenue lors de la publication du processus.'));
+});
