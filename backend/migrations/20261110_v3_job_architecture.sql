@@ -88,9 +88,6 @@ CREATE TABLE IF NOT EXISTS position_competency_blocks (
 CREATE UNIQUE INDEX IF NOT EXISTS position_competency_blocks_unique
   ON position_competency_blocks ("positionId", "blockId");
 
-CREATE UNIQUE INDEX IF NOT EXISTS project_raci_actors_project_id_unique
-  ON project_raci_actors ("projectId", id);
-
 CREATE TABLE IF NOT EXISTS position_raci_actor_mappings (
   id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
   "createdBy" varchar(64) NOT NULL DEFAULT 'system',
@@ -98,10 +95,7 @@ CREATE TABLE IF NOT EXISTS position_raci_actor_mappings (
   "updatedAt" timestamptz NOT NULL DEFAULT now(),
   "projectId" uuid NOT NULL,
   "positionId" uuid NOT NULL,
-  "raciActorId" uuid NOT NULL,
-  CONSTRAINT position_raci_actor_mappings_actor_fk
-    FOREIGN KEY ("projectId", "raciActorId")
-    REFERENCES project_raci_actors ("projectId", id) ON DELETE RESTRICT,
+  "raciActorId" uuid NOT NULL REFERENCES project_raci_actors(id) ON DELETE RESTRICT,
   CONSTRAINT position_raci_actor_mappings_position_fk
     FOREIGN KEY ("projectId", "positionId")
     REFERENCES project_job_positions ("projectId", id) ON DELETE CASCADE
@@ -133,3 +127,29 @@ CREATE UNIQUE INDEX IF NOT EXISTS position_activity_mappings_unique
   ON position_activity_mappings ("positionId", "resourceId", "taskId", "blockId");
 CREATE INDEX IF NOT EXISTS position_activity_mappings_project_process_idx
   ON position_activity_mappings ("projectId", "resourceId");
+
+-- Keep the RACI source schema untouched while enforcing project scope on
+-- every write to this module-owned mapping table.
+CREATE OR REPLACE FUNCTION enforce_position_raci_actor_project()
+RETURNS trigger AS $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM project_raci_actors actor
+    WHERE actor.id = NEW."raciActorId"
+      AND actor."projectId" = NEW."projectId"
+  ) THEN
+    RAISE EXCEPTION 'RACI actor must belong to the same project as the position'
+      USING ERRCODE = '23503';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS position_raci_actor_project_guard
+  ON position_raci_actor_mappings;
+CREATE TRIGGER position_raci_actor_project_guard
+  BEFORE INSERT OR UPDATE OF "projectId", "raciActorId"
+  ON position_raci_actor_mappings
+  FOR EACH ROW
+  EXECUTE FUNCTION enforce_position_raci_actor_project();
