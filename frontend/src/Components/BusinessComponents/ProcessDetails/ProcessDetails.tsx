@@ -305,7 +305,9 @@ export const ProcessDetails = ({
   // Guard the Viewer against stale or cross-process proposal data: the
   // warning and remark count must belong to this exact project, process and
   // published content version.
-  const currentActiveProposal = activeProposal &&
+  // A failed refresh must not leave a cached proposal looking current:
+  // otherwise a stale response can display a false "already open" warning.
+  const currentActiveProposal = !activeProposalError && activeProposal &&
     activeProposal.projectId === projectForProcess?.id &&
     activeProposal.sourceResourceId === resourceId &&
     activeProposal.sourcePublishedContentId === viewerContent?.id
@@ -409,10 +411,9 @@ export const ProcessDetails = ({
     // proposal for the same published process version.
     if (currentActiveProposal) {
       if (!currentActiveProposal.cloneContentId) {
-        showAlert({
-          message: 'Le brouillon de la demande en cours est introuvable. La demande doit être vérifiée avant de pouvoir être reprise.',
-          severity: 'danger',
-        });
+        // Submitted proposals are intentionally frozen. Open the tracking
+        // workspace instead of sending the user back into a non-editable clone.
+        navigate('/mes-demandes');
         return;
       }
       navigate(`/${currentActiveProposal.cloneResourceId}/modeler?proposalId=${currentActiveProposal.id}&contentId=${currentActiveProposal.cloneContentId}&sourceResourceId=${resourceId}`);
@@ -838,7 +839,7 @@ export const ProcessDetails = ({
                         Ajouter une remarque
                       </Button>
                     )}
-                    {proposalProjectId && currentActiveProposal && !activeProposalFetching && !isHistoricalView && (
+                    {proposalProjectId && currentActiveProposal && !activeProposalFetching && !activeProposalError && !isHistoricalView && (
                       <Alert color="warning" variant="soft" size="sm">
                         Une demande de modification est déjà ouverte pour cette version
                         (statut : {currentActiveProposal.status}). Vous pouvez la retrouver avec le bouton ci-dessous.
