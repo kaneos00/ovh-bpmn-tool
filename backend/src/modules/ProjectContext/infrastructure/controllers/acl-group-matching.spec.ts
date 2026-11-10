@@ -43,7 +43,7 @@ describe('AclGuard group matching', () => {
         }),
       } as never);
 
-    return { guard, activate, reflector };
+    return { guard, activate, reflector, handler, controller };
   };
 
   it('accepts the exact organization administrator group', async () => {
@@ -79,15 +79,15 @@ describe('AclGuard group matching', () => {
   });
 
   it('gives handler ACL metadata precedence over controller defaults', async () => {
-    const { activate, reflector } = makeGuard(
-      [UserGroup.ReadWrite],
+    const { activate, reflector, handler, controller } = makeGuard(
+      [UserGroup.RW],
       [UserGroup.Admin],
     );
 
     await expect(activate('bpmn-tool-admin-demo')).resolves.toBe(false);
     expect(reflector.getAllAndOverride).toHaveBeenCalledWith(
       expect.any(String),
-      expect.arrayContaining([expect.any(Object)]),
+      [handler, controller],
     );
   });
 
