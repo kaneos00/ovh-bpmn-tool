@@ -116,19 +116,34 @@ export const Component = () => {
     headerDescription = resource?.description;
   }
 
+  const canCreateFolder = Boolean(
+    activeProjectId && (sessionRole === 'admin' || sessionRole === 'modeler'),
+  );
+  const canCreateProcess = Boolean(
+    activeProjectId &&
+    (
+      sessionRole === 'admin' ||
+      (sessionRole === 'modeler' && (
+        activeProject?.role === 'admin' || activeProject?.role === 'modeler'
+      ))
+    ),
+  );
+
   const actions = useMemo(() => {
     const isRootFolder = isRoot(resourceId);
 
-    if (isRootFolder) {
-      return <FolderActions />;
+    if (isRootFolder || resource?.type === ResourceType.Folder) {
+      return (
+        <FolderActions
+          projectId={activeProjectId}
+          canCreateFolder={canCreateFolder}
+          canCreateProcess={canCreateProcess}
+        />
+      );
     }
 
     if (!resource) {
       return <></>;
-    }
-
-    if (resource.type === ResourceType.Folder) {
-      return <FolderActions />;
     }
 
     // The modeler entry point is reserved for authenticated editing roles.
@@ -137,7 +152,15 @@ export const Component = () => {
         onModelerBtnClick={callbacks.header.onModelerBtnClick}
       />
     ) : <></>;
-  }, [resourceId, resource, contents, sessionRole]);
+  }, [
+    resourceId,
+    resource,
+    sessionRole,
+    activeProjectId,
+    canCreateFolder,
+    canCreateProcess,
+    callbacks.header.onModelerBtnClick,
+  ]);
 
   return (
     <div
