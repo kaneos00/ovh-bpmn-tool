@@ -76,6 +76,28 @@ type ActiveProcessProposal = {
   cloneContentId: string | null;
 };
 
+const getRemarkStatusColor = (status: ViewerRemark['status']): 'warning' | 'success' | 'danger' => {
+  switch (status) {
+    case 'accepted':
+      return 'success';
+    case 'rejected':
+      return 'danger';
+    default:
+      return 'warning';
+  }
+};
+
+const getRemarkStatusLabel = (status: ViewerRemark['status']): string => {
+  switch (status) {
+    case 'accepted':
+      return 'Accolta';
+    case 'rejected':
+      return 'Respinta';
+    default:
+      return 'In attesa';
+  }
+};
+
 const EMPTY_VIEWER_REMARKS: ViewerRemark[] = [];
 
 type ProcessDetailsProps = {
