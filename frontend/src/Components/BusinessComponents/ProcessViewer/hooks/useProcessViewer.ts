@@ -7,7 +7,6 @@ import { useCallActivityNavigation } from '../../../../shared/hooks/useCallActiv
 import type { ProcessViewerRemark } from '../ProcessViewer';
 
 const ZOOM_STEP = 1.2;
-const DIAGRAM_PADDING = 24;
 
 export const useProcessViewer = (
   resourceId: string,
@@ -72,92 +71,65 @@ export const useProcessViewer = (
     if (!importedRef.current) return;
 
     const canvas = viewer.get('canvas') as any;
-    const elementRegistry = viewer.get('elementRegistry') as any;
     canvas.resized?.();
+    // Use diagram-js' native fit-to-viewport calculation. It accounts for the
+    // complete diagram bounds and avoids maintaining a second, fragile bbox
+    // implementation in the application.
+    canvas.zoom('fit-viewport');
+  };
 
+  const showDiagramAtActualSize = () => {
+    if (!importedRef.current) return;
+
+    const canvas = viewer.get('canvas') as any;
+    canvas.resized?.();
+    const bounds = canvas.getBBox?.();
     const container = canvas.getContainer();
-    const { width: containerWidth, height: containerHeight } = container.getBoundingClientRect();
-    const availableWidth = containerWidth - DIAGRAM_PADDING * 2;
-    const availableHeight = containerHeight - DIAGRAM_PADDING * 2;
-    if (availableWidth <= 0 || availableHeight <= 0) return;
+    const { width, height } = container.getBoundingClientRect();
+    if (
+      !bounds ||
+      !Number.isFinite(bounds.x) ||
+      !Number.isFinite(bounds.y) ||
+      !Number.isFinite(bounds.width) ||
+      !Number.isFinite(bounds.height) ||
+      width <= 0 ||
+      height <= 0
+    ) return;
 
-    // Include shapes, labels and connections in the visual bounds, then fit
-    // the complete BPMN geometry while preserving its aspect ratio.
-    // The smaller of the width and height scales is the limiting dimension.
-    const bounds = elementRegistry.getAll()
-      .flatMap((element: any) => {
-        if (!element) return [];
-
-        // Connections can be horizontal or vertical (zero width/height), so
-        // include their waypoints directly instead of relying on their bbox.
-        if (Array.isArray(element.waypoints) && element.waypoints.length > 0) {
-          const points = element.waypoints.filter((point: any) =>
-            Number.isFinite(point.x) && Number.isFinite(point.y),
-          );
-          if (points.length > 0) {
-            const xs = points.map((point: any) => point.x);
-            const ys = points.map((point: any) => point.y);
-            const minX = Math.min(...xs);
-            const minY = Math.min(...ys);
-            const maxX = Math.max(...xs);
-            const maxY = Math.max(...ys);
-            return [{
-              x: minX,
-              y: minY,
-              width: Math.max(1, maxX - minX),
-              height: Math.max(1, maxY - minY),
-            }];
-          }
-        }
-
-        if (
-          !Number.isFinite(element.x) ||
-          !Number.isFinite(element.y) ||
-          element.width <= 0 ||
-          element.height <= 0
-        ) return [];
-
-        return [canvas.getAbsoluteBBox(element)];
-      })
-      .filter((bbox: any) =>
-        bbox &&
-        Number.isFinite(bbox.x) &&
-        Number.isFinite(bbox.y) &&
-        Number.isFinite(bbox.width) &&
-        Number.isFinite(bbox.height) &&
-        bbox.width > 0 &&
-        bbox.height > 0,
-      );
-
-    if (!bounds.length) return;
-
-    const minX = Math.min(...bounds.map((bbox: any) => bbox.x));
-    const minY = Math.min(...bounds.map((bbox: any) => bbox.y));
-    const maxX = Math.max(...bounds.map((bbox: any) => bbox.x + bbox.width));
-    const maxY = Math.max(...bounds.map((bbox: any) => bbox.y + bbox.height));
-    const diagramWidth = maxX - minX;
-    const diagramHeight = maxY - minY;
-    if (diagramWidth <= 0 || diagramHeight <= 0) return;
-
-    const scale = Math.min(
-      availableWidth / diagramWidth,
-      availableHeight / diagramHeight,
-    );
-    if (!Number.isFinite(scale) || scale <= 0) return;
-
-    // canvas.viewbox works in diagram coordinates. Convert the screen-space
-    // padding back through the selected scale so neither edge is clipped.
+    // One diagram unit per screen pixel: the initial Viewer scale is exactly
+    // 1:1, centered on the complete process. Larger diagrams can be panned.
+    const centerX = bounds.x + bounds.width / 2;
+    const centerY = bounds.y + bounds.height / 2;
     canvas.viewbox({
-      x: minX - DIAGRAM_PADDING / scale,
-      y: minY - DIAGRAM_PADDING / scale,
-      width: containerWidth / scale,
-      height: containerHeight / scale,
+      x: centerX - width / 2,
+      y: centerY - height / 2,
+      width,
+      height,
     });
   };
 
   const resizeDiagram = () => {
     if (!importedRef.current) return;
-    fitDiagram();
+
+    const canvas = viewer.get('canvas') as any;
+    const previousViewbox = canvas.viewbox();
+    const previousZoom = canvas.zoom();
+    const centerX = previousViewbox.x + previousViewbox.width / 2;
+    const centerY = previousViewbox.y + previousViewbox.height / 2;
+
+    canvas.resized?.();
+    const container = canvas.getContainer();
+    const { width, height } = container.getBoundingClientRect();
+    if (width <= 0 || height <= 0 || !Number.isFinite(previousZoom) || previousZoom <= 0) return;
+
+    // Keep the user's current zoom and diagram center when the workspace or
+    // fullscreen viewport changes size; resizing must not silently "fit" it.
+    canvas.viewbox({
+      x: centerX - width / previousZoom / 2,
+      y: centerY - height / previousZoom / 2,
+      width: width / previousZoom,
+      height: height / previousZoom,
+    });
   };
 
   const applySelection = () => {
@@ -345,12 +317,12 @@ export const useProcessViewer = (
           }
         });
         importedRef.current = true;
-        // Wait for the Viewer canvas to receive its final flex layout before
-        // calculating the initial fit. A 1:1 zoom crops larger processes until refresh.
+        // Wait for the Viewer canvas to receive its final flex layout,
+        // then center the process at the requested default scale of 1:1.
         window.requestAnimationFrame(() => {
           window.requestAnimationFrame(() => {
             if (cancelled || generation !== importGenerationRef.current) return;
-            fitDiagram();
+            showDiagramAtActualSize();
           });
         });
         setIsImporting(false);
