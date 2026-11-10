@@ -151,3 +151,22 @@ test('organization-wide search is explicit and project scope remains the default
   assert.match(users, /project\.projectId === projectFilter/);
   assert.match(users, /<FormLabel>Projet<\/FormLabel>/);
 });
+
+
+test('proposal workspaces remain authorized resources but are excluded from the ordinary project explorer', async () => {
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project.controller.ts');
+
+  assert.match(controller, /const visibleLinks = links\.filter\([\s\S]*?!resourceById\.get\(link\.resourceId\)\?\.sourceResourceId/);
+  assert.match(controller, /for \(const link of visibleLinks\)/);
+  assert.match(controller, /links\.create\([\s\S]*?resourceId: savedClone\.id[\s\S]*?sourceResourceId/);
+});
+
+test('a newly created process variant starts with a published copy of its source BPMN', async () => {
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project.controller.ts');
+  const variantHandler = controller.slice(controller.indexOf("@Post(':projectId/processes/variants')"));
+
+  assert.match(variantHandler, /content: sourceContent\.content/);
+  assert.match(variantHandler, /pngContent: sourceContent\.pngContent/);
+  assert.match(variantHandler, /status: ContentStatusEnum\.Published/);
+  assert.match(variantHandler, /version: 1/);
+});
