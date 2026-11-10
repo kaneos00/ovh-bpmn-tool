@@ -8,7 +8,6 @@ const authorUsername = process.env.CI_READER_USERNAME || 'ci-reader';
 const authorPassword = process.env.CI_READER_PASSWORD;
 const projectId = '10000000-0000-4000-8000-000000000001';
 const sourceResourceId = '20000000-0000-4000-8000-000000000002';
-const variantResourceId = '20000000-0000-4000-8000-000000000004';
 
 async function signIn(page, username, password) {
   await page.goto(`${baseUrl}/login?next=%2Fmes-demandes`);
@@ -65,6 +64,33 @@ async function main() {
     ).waitFor();
 
     await signIn(reviewerPage, reviewerUsername, reviewerPassword);
+
+    // Create a real project variant through the public workflow endpoint.
+    // This avoids relying on a static fixture that can silently drift from
+    // the database seed and also exercises variant creation end to end.
+    const createdVariant = await reviewerPage.evaluate(async ({ projectId, sourceResourceId }) => {
+      const response = await fetch(`/bpmn-api/projects/${projectId}/processes/variants`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          sourceResourceId,
+          name: 'CI E2E — variante partenaire',
+        }),
+      });
+      const body = await response.json().catch(() => null);
+      return { status: response.status, body };
+    }, { projectId, sourceResourceId });
+    assert.equal(
+      createdVariant.status,
+      201,
+      `Variant creation failed: ${JSON.stringify(createdVariant.body)}`,
+    );
+    assert.ok(
+      createdVariant.body?.resource?.id,
+      `Variant creation returned no resource id: ${JSON.stringify(createdVariant.body)}`,
+    );
+    const variantResourceId = createdVariant.body.resource.id;
 
     // A project variant must open its own published BPMN content, not the
     // common source or an empty Viewer.
