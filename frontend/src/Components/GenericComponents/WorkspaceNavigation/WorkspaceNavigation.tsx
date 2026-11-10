@@ -172,6 +172,7 @@ export const WorkspaceNavigation = () => {
         title: resource.name,
         detail: `Dossier du référentiel · ${resource.description || 'Dossier'}`,
         resourceId: resource.id,
+        processName: undefined,
         description: resource.description || undefined,
         similarity: matchesTerm(resource.name, term) ? 100 : 80,
       }));
