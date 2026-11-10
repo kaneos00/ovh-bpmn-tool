@@ -332,6 +332,8 @@ jobs:
             BPMN_E2E_BASE_URL=http://127.0.0.1:18080 \
             DEMO_AUTH_USER="$DEMO_AUTH_USER" \
             DEMO_AUTH_PASSWORD="$DEMO_AUTH_PASSWORD" \
+            CI_READER_USERNAME=ci-reader \
+            CI_READER_PASSWORD=ci-reader-final-password \
             node frontend/tests/e2e/proposal-review.browser.cjs
 
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
