@@ -2,8 +2,7 @@ import { extractBpmnActivityIds } from './bpmnActivityIds';
 
 describe('extractBpmnActivityIds', () => {
   it('extracts task IDs using a BPMN namespace prefix', () => {
-    const ids = extractBpmnActivityIds(`
-      <?xml version="1.0"?>
+    const ids = extractBpmnActivityIds(`<?xml version="1.0"?>
       <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
         <bpmn:process id="Process_1">
           <bpmn:startEvent id="Start_1"/>
