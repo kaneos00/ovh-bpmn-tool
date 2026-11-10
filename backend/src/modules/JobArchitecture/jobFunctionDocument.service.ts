@@ -319,11 +319,7 @@ export class JobFunctionDocumentService {
     return jobFunction;
   }
 
-  private requiredText(
-    value: unknown,
-    field: string,
-    max: number,
-  ): string {
+  private requiredText(value: unknown, field: string, max: number): string {
     if (typeof value !== 'string' || !value.trim()) {
       throw new BadRequestException(`${field} is required`);
     }
@@ -341,9 +337,7 @@ export class JobFunctionDocumentService {
       return null;
     }
     if (value.trim().length > max) {
-      throw new BadRequestException(
-        `Text must be ${max} characters or fewer`,
-      );
+      throw new BadRequestException(`Text must be ${max} characters or fewer`);
     }
     return value.trim();
   }
