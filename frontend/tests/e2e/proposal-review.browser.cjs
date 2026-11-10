@@ -107,7 +107,9 @@ async function main() {
     await publishApprovedButton.click();
     await reviewerPage.waitForURL(`**/${sourceResourceId}`);
 
-    const finalState = await reviewerPage.evaluate(async () => {
+    // The personal proposal history is intentionally scoped to its author.
+    // Query it from the author's session, not from the administrator reviewer.
+    const finalState = await authorPage.evaluate(async () => {
       const response = await fetch('/bpmn-api/projects/me/process-change-proposals', {
         credentials: 'same-origin',
         headers: { accept: 'application/json' },
@@ -117,7 +119,7 @@ async function main() {
     });
     assert.ok(
       finalState.some(proposal => proposal.id === created.body.id && proposal.status === 'published'),
-      'The proposal did not reach the published state',
+      `The proposal did not reach the published state in the author's history: ${JSON.stringify(finalState)}`,
     );
 
     process.stdout.write('Browser E2E passed: Viewer author → validator clarification → author response → remark decision → proposal approval → approved snapshot publication.\\n');
