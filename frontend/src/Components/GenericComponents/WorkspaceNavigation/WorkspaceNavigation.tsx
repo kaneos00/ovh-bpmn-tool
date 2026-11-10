@@ -133,7 +133,12 @@ export const WorkspaceNavigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [scope, setScope] = useState<SearchScope>('all');
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedSearch(search.trim()), 250);
+    return () => window.clearTimeout(timeout);
+  }, [search]);
   const [searchOpen, setSearchOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement | null>(null);
   const { projects, activeProject, activeProjectId, setActiveProject, projectProcessIds, isLoading: projectsLoading } = useActiveProject();
@@ -145,12 +150,12 @@ export const WorkspaceNavigation = () => {
     resourcesOptions.queryKey,
     resourcesOptions.queryFn,
     {
-      enabled: searchOpen && search.trim().length >= 1 && (scope === 'all' || scope === 'processes'),
+      enabled: searchOpen && debouncedSearch.length >= 1 && (scope === 'all' || scope === 'processes'),
     },
   );
 
   const resourceResults = useMemo<SearchResult[]>(() => {
-    const term = search.trim();
+    const term = debouncedSearch;
     if (!term || (scope !== 'all' && scope !== 'processes')) return [];
     const allResources = resources.data ?? [];
     const allowedIds = new Set(projectProcessIds);
@@ -176,7 +181,7 @@ export const WorkspaceNavigation = () => {
         description: resource.description || undefined,
         similarity: matchesTerm(resource.name, term) ? 100 : 80,
       }));
-  }, [resources.data, search, scope, projectProcessIds]);
+  }, [resources.data, debouncedSearch, scope, projectProcessIds]);
 
   const typeByScope: Partial<Record<SearchScope, UnifiedSearchType>> = {
     processes: 'process',
@@ -185,7 +190,7 @@ export const WorkspaceNavigation = () => {
     raci: 'raci',
   };
   const searchOptions = unifiedSearchQuery({
-    q: search.trim(),
+    q: debouncedSearch,
     types: typeByScope[scope] ? [typeByScope[scope]!] : undefined,
     projectId: activeProjectId ?? undefined,
     limit: 20,
@@ -198,7 +203,7 @@ export const WorkspaceNavigation = () => {
   } = useQuery(
     searchOptions.queryKey,
     searchOptions.queryFn,
-    { enabled: searchOpen && search.trim().length >= 2 && !projectsLoading },
+    { enabled: searchOpen && debouncedSearch.length >= 2 && !projectsLoading, keepPreviousData: true },
   );
 
   const apiResults: SearchResult[] = (searchData?.results ?? []).map(result => {
