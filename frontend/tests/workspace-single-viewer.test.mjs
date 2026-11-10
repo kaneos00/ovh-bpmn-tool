@@ -179,7 +179,9 @@ test('quick search uses the same unified backend search as the results page', as
   assert.match(navigation, /searchOptions\.queryKey/);
   assert.match(navigation, /searchOptions\.queryFn/);
   assert.match(navigation, /searchError/);
-  assert.doesNotMatch(navigation, /resourcesQuery|contentsQuery|getXmlContentQuery|deriveRaciMatrixFromXml/);
+  assert.match(navigation, /resourcesQuery\(\)/);
+  assert.match(navigation, /resource\.type === ResourceType\.Folder/);
+  assert.doesNotMatch(navigation, /contentsQuery|getXmlContentQuery|deriveRaciMatrixFromXml/);
   assert.match(results, /unifiedSearchQuery/);
 });
 
