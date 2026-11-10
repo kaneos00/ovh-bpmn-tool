@@ -81,8 +81,9 @@ export const Component = () => {
     void loadProposalContext();
     return () => { active = false; };
   }, [proposalId]);
-  const resolvedResourceId = proposalWorkspace?.cloneResourceId ?? routeResourceId;
-  const sourceResourceId = proposalWorkspace?.sourceResourceId || searchParams.get('sourceResourceId') || null;
+  const proposalContext = proposalWorkspace?.id === proposalId ? proposalWorkspace : null;
+  const resolvedResourceId = proposalContext?.cloneResourceId ?? routeResourceId;
+  const sourceResourceId = proposalContext?.sourceResourceId || searchParams.get('sourceResourceId') || null;
   const [validationModalOpen, setValidationModalOpen] = useState(false);
   const [submissionComment, setSubmissionComment] = useState('');
   const [submissionError, setSubmissionError] = useState<string | null>(null);
@@ -93,7 +94,7 @@ export const Component = () => {
   const pendingSaveExitRef = useRef(false);
   const pendingPublishExitRef = useRef(false);
   const handledActionDataRef = useRef<typeof actionData>(undefined);
-  const proposalResourceReady = !proposalId || Boolean(proposalWorkspace?.cloneResourceId);
+  const proposalResourceReady = !proposalId || Boolean(proposalContext?.cloneResourceId);
   const { resource } = useResource(resolvedResourceId, proposalResourceReady);
   const returnToUrl = proposalId && (sourceResourceId || resource?.sourceResourceId)
     ? `/${sourceResourceId || resource?.sourceResourceId}`
@@ -105,28 +106,28 @@ export const Component = () => {
   // Older proposal links may contain the source process ID in the route
   // instead of the private clone ID. Resolve the proposal and canonicalize the URL.
   useEffect(() => {
-    if (!proposalId || !proposalWorkspace?.cloneResourceId) return;
+    if (!proposalId || !proposalContext?.cloneResourceId) return;
     const params = new URLSearchParams(location.search);
-    let needsRedirect = routeResourceId !== proposalWorkspace.cloneResourceId;
-    if (params.get('sourceResourceId') !== proposalWorkspace.sourceResourceId) {
+    let needsRedirect = routeResourceId !== proposalContext.cloneResourceId;
+    if (params.get('sourceResourceId') !== proposalContext.sourceResourceId) {
       params.set('sourceResourceId', proposalWorkspace.sourceResourceId);
       needsRedirect = true;
     }
     if (!params.get('contentId')) {
       const contentId = reviewRemarksMode || approvedProposalMode
-        ? proposalWorkspace.submittedContentId
-        : proposalWorkspace.cloneContentId;
+        ? proposalContext.submittedContentId
+        : proposalContext.cloneContentId;
       if (contentId) {
         params.set('contentId', contentId);
         needsRedirect = true;
       }
     }
     if (needsRedirect) {
-      navigate(`/${proposalWorkspace.cloneResourceId}/modeler?${params.toString()}`, { replace: true });
+      navigate(`/${proposalContext.cloneResourceId}/modeler?${params.toString()}`, { replace: true });
     }
   }, [
     proposalId,
-    proposalWorkspace,
+    proposalContext,
     routeResourceId,
     location.search,
     reviewRemarksMode,
