@@ -39,6 +39,16 @@ export function extractBpmnActivityIds(xml: string): Set<string> {
   }
 
   const ids = new Set<string>();
+  const collectIds = (value: unknown): void => {
+    if (Array.isArray(value)) {
+      value.forEach(collectIds);
+      return;
+    }
+    if (!value || typeof value !== 'object') return;
+    const id = (value as Record<string, unknown>)['@_id'];
+    if (typeof id === 'string' && id.trim()) ids.add(id);
+  };
+
   const visit = (value: unknown): void => {
     if (Array.isArray(value)) {
       value.forEach(visit);
@@ -50,14 +60,7 @@ export function extractBpmnActivityIds(xml: string): Set<string> {
       value as Record<string, unknown>,
     )) {
       const localName = qualifiedName.split(':').pop() ?? qualifiedName;
-      if (
-        BPMN_ACTIVITY_NAMES.has(localName) &&
-        child &&
-        typeof child === 'object'
-      ) {
-        const id = (child as Record<string, unknown>)['@_id'];
-        if (typeof id === 'string' && id.trim()) ids.add(id);
-      }
+      if (BPMN_ACTIVITY_NAMES.has(localName)) collectIds(child);
       visit(child);
     }
   };
