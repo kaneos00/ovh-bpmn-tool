@@ -134,10 +134,7 @@ export class JobArchitectureController {
     );
   }
 
-
-  @Get(
-    'projects/:projectId/job-positions/:positionId/competency-requirements',
-  )
+  @Get('projects/:projectId/job-positions/:positionId/competency-requirements')
   @UseAcl()
   getPositionCompetencyRequirements(
     @Param('projectId') projectId: string,

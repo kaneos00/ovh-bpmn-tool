@@ -488,7 +488,6 @@ export class JobArchitectureService {
     });
   }
 
-
   async getPositionCompetencyRequirements(
     projectId: string,
     positionId: string,
@@ -532,13 +531,16 @@ export class JobArchitectureService {
         block !== undefined &&
         ['required', 'optional'].includes(block.applicability);
       const requiredLevel = isApplicable
-        ? (override?.requiredLevel ?? block.requiredLevel ?? competency.referenceLevel)
+        ? (override?.requiredLevel ??
+          block.requiredLevel ??
+          competency.referenceLevel)
         : null;
-      const levelSource = override?.requiredLevel != null
-        ? 'position'
-        : block?.requiredLevel != null
-          ? 'block'
-          : 'function';
+      const levelSource =
+        override?.requiredLevel != null
+          ? 'position'
+          : block?.requiredLevel != null
+            ? 'block'
+            : 'function';
 
       return {
         ...competency,
@@ -621,10 +623,7 @@ export class JobArchitectureService {
         );
       }
       const block = blockById.get(competency.blockId);
-      if (
-        !block ||
-        !['required', 'optional'].includes(block.applicability)
-      ) {
+      if (!block || !['required', 'optional'].includes(block.applicability)) {
         throw new BadRequestException(
           'Competency overrides require a required or optional position block',
         );
