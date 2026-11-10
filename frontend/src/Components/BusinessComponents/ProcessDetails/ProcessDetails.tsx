@@ -305,9 +305,10 @@ export const ProcessDetails = ({
   // Guard the Viewer against stale or cross-process proposal data: the
   // warning and remark count must belong to this exact project, process and
   // published content version.
-  // A failed refresh must not leave a cached proposal looking current:
-  // otherwise a stale response can display a false "already open" warning.
-  const currentActiveProposal = !activeProposalError && activeProposal &&
+  // Never expose cached proposal data while its exact process/version lookup
+  // is refreshing or has failed. This also prevents stale remarks from leaking
+  // into the side panel when navigating between processes.
+  const currentActiveProposal = !activeProposalFetching && !activeProposalError && activeProposal &&
     activeProposal.projectId === projectForProcess?.id &&
     activeProposal.sourceResourceId === resourceId &&
     activeProposal.sourcePublishedContentId === viewerContent?.id
