@@ -36,8 +36,10 @@ CREATE TABLE IF NOT EXISTS competencies (
   name varchar(255) NOT NULL,
   description text,
   "referenceLevel" smallint,
+  category varchar(24) NOT NULL DEFAULT 'technical',
   active boolean NOT NULL DEFAULT true,
-  CONSTRAINT competencies_reference_level_check CHECK ("referenceLevel" IS NULL OR "referenceLevel" BETWEEN 1 AND 5)
+  CONSTRAINT competencies_reference_level_check CHECK ("referenceLevel" IS NULL OR "referenceLevel" BETWEEN 1 AND 5),
+  CONSTRAINT competencies_category_check CHECK (category IN ('technical', 'methodological', 'behavioral'))
 );
 CREATE UNIQUE INDEX IF NOT EXISTS competencies_block_code_unique ON competencies ("blockId", code);
 CREATE UNIQUE INDEX IF NOT EXISTS competencies_block_id_unique
