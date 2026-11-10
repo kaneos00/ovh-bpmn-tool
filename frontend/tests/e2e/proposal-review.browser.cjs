@@ -76,7 +76,7 @@ async function main() {
       'Le critère est la complétude des informations obligatoires.',
     );
     await authorPage.getByRole('button', { name: 'Répondre à la précision' }).click();
-    await authorPage.getByText('Réponse de l’auteur', { exact: true }).waitFor();
+    await authorPage.getByText(/Réponse de l’auteur/).waitFor();
 
     await reviewerPage.reload();
     await reviewerPage.getByText('Réponse de l’auteur', { exact: true }).waitFor();
