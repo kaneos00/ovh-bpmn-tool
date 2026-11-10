@@ -219,7 +219,11 @@ test('open proposal notices and remarks are scoped to the exact project process 
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
 
   assert.match(controller, /projectId: proposal\.projectId,[\s\S]*?sourceResourceId: proposal\.sourceResourceId,[\s\S]*?sourcePublishedContentId: proposal\.sourcePublishedContentId/);
+  assert.match(controller, /const submittedProposal = activeProposals\.find\([\s\S]*?proposal\.submittedContentId/);
+  assert.match(controller, /cloneContentId: null/);
   assert.match(details, /activeProposal\.projectId === projectForProcess\?\.id/);
+  assert.match(details, /process-change-proposal-comments/);
+  assert.match(details, /remark\.comment \|\| 'Texte de remarque indisponible\.'/);
   assert.match(details, /activeProposal\.sourceResourceId === resourceId/);
   assert.match(details, /activeProposal\.sourcePublishedContentId === viewerContent\?\.id/);
   assert.match(details, /currentActiveProposal\?\.id/);
