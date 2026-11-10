@@ -78,6 +78,28 @@ describe('ProjectResourceAccessService proposal editing', () => {
     ).resolves.toBeUndefined();
   });
 
+  it('blocks an assigned validator after project membership is removed', async () => {
+    processChangeProposals.findOne.mockResolvedValue({
+      projectId: 'project-1',
+      sourceResourceId: 'source-1',
+      cloneResourceId: 'clone-1',
+      validatorUserId: 'validator-1',
+      status: ProcessChangeProposalStatus.Submitted,
+    });
+    projectMembers.findOne.mockResolvedValue(null);
+    projectProcesses.findOne.mockResolvedValue({
+      usage: ProjectProcessUsage.ProjectSpecific,
+    });
+    dataSource.query.mockResolvedValue([{ id: 'validator-1' }]);
+
+    await expect(
+      service.assertCanEditProposalResource('clone-1', {
+        'x-user': 'validator-1',
+        'x-groups': 'bpmn-tool-viewer-org',
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
   it('blocks editing an approved proposal snapshot, including for organization administrators', async () => {
     processChangeProposals.findOne.mockResolvedValue({
       projectId: 'project-1',

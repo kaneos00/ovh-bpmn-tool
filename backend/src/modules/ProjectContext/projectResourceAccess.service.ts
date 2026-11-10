@@ -291,6 +291,15 @@ export class ProjectResourceAccessService {
       );
     }
 
+    // An explicit validator assignment does not survive removal from the
+    // project. Keep the assignment independent of the member's role, but
+    // require current membership before granting workspace edit access.
+    if (!membership) {
+      throw new ForbiddenException(
+        'Editing this proposal requires current project membership',
+      );
+    }
+
     if (sourceLink.usage === ProjectProcessUsage.Common) {
       if (membership?.role !== ProjectMemberRole.Admin) {
         throw new ForbiddenException(
