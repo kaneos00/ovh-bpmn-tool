@@ -176,11 +176,6 @@ jobs:
           test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.columns WHERE table_name='projects' AND column_name='defaultValidatorUserId'")" = "1"
           test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.columns WHERE table_name='projects' AND column_name='trigram'")" = "1"
 
-          # The demo project member must be allowed to submit Viewer remarks.
-          remark_permission_count="$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc \
-            "WITH updated AS (UPDATE project_members SET \"canSubmitRemarks\" = TRUE WHERE \"projectId\" = '10000000-0000-4000-8000-000000000001' AND \"userId\" = '$DEMO_AUTH_USER' RETURNING 1) SELECT COUNT(*) FROM updated")"
-          test "$remark_permission_count" = "1"
-
           docker run --detach --name bpmn-v2-demo-backend-ci --network bpmn-v2-ci --network-alias backend \
             --env NODE_ENV=production --env NODE_PORT=3000 \
             --env USER_HEADER=remote-user --env USER_GROUPS_HEADER=remote-user-groups \
@@ -320,6 +315,10 @@ jobs:
             --data '{"username":"ci-reader","password":"ci-reader-final-password"}' \
             http://127.0.0.1:18080/bpmn-api/auth/login)"
           assert_status "200" "$status" "frontend reader password login"
+
+          # Give the isolated CI reader account explicit permission to submit Viewer remarks.
+          docker exec bpmn-v2-demo-db-ci psql -v ON_ERROR_STOP=1 -U "$DATABASE_USER" -d "$DATABASE_NAME" -c \
+            "INSERT INTO project_members (id, \"createdBy\", \"projectId\", \"userId\", role, \"canSubmitRemarks\") VALUES ('71000000-0000-4000-8000-000000000001', 'ci-e2e', '10000000-0000-4000-8000-000000000001', 'ci-reader', 'viewer', TRUE) ON CONFLICT (\"projectId\", \"userId\") DO UPDATE SET role = EXCLUDED.role, \"canSubmitRemarks\" = TRUE"
 
           workspace_payload="$(curl --fail --silent --show-error \
             --cookie /tmp/bpmn-v2-ci.cookies \
