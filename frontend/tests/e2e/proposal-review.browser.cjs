@@ -79,7 +79,7 @@ async function main() {
     await authorPage.getByText(/Réponse de l’auteur/).waitFor();
 
     await reviewerPage.reload();
-    await reviewerPage.getByText('Réponse de l’auteur', { exact: true }).waitFor();
+    await reviewerPage.getByText(/Réponse de l’auteur/).waitFor();
     await reviewerPage.getByRole('button', { name: 'Accepter', exact: true }).click();
     await reviewerPage.getByText('Acceptée', { exact: true }).waitFor();
 
