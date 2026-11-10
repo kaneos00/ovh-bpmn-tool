@@ -382,7 +382,7 @@ export const Component = () => {
                               </Stack>
                             </Stack>
                             <Stack component="ol" sx={{ m: 0, pl: 3, gap: 0.5 }}>
-                              {section.tasks.map((task, index) => <Typography component="li" level="body-sm" key={index}>{task}</Typography>)}
+                              {section.tasks.map((task, taskIndex) => <Typography component="li" level="body-sm" key={taskIndex}>{task}</Typography>)}
                             </Stack>
                           </>
                         )}
