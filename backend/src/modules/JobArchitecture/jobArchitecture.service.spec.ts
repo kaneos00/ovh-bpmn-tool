@@ -34,14 +34,20 @@ describe('JobArchitectureService.addPositionActivityMapping', () => {
     mappingCreate = jest.fn((value) => value);
     mappingSave = jest.fn((value) => Promise.resolve(value));
 
-    service = Object.create(JobArchitectureService.prototype) as JobArchitectureService;
+    service = Object.create(
+      JobArchitectureService.prototype,
+    ) as JobArchitectureService;
     Object.assign(service, {
       projectAccess: { assertProjectRole },
       positions: { findOne: positionFindOne },
       projectProcesses: { findOne: processFindOne },
       positionBlocks: { findOne: positionBlockFindOne },
       contents: { findOne: contentFindOne },
-      activityMappings: { findOne: mappingFindOne, create: mappingCreate, save: mappingSave },
+      activityMappings: {
+        findOne: mappingFindOne,
+        create: mappingCreate,
+        save: mappingSave,
+      },
     });
   });
 
@@ -93,7 +99,10 @@ describe('JobArchitectureService.addPositionActivityMapping', () => {
 
   it('rejects an existing BPMN element when it is not an activity', async () => {
     contentFindOne.mockResolvedValue({
-      content: validXml.replace('<userTask id="Task_1"/>', '<exclusiveGateway id="Task_1"/>'),
+      content: validXml.replace(
+        '<userTask id="Task_1"/>',
+        '<exclusiveGateway id="Task_1"/>',
+      ),
       version: 3,
     });
     await expect(addMapping()).rejects.toThrow('not found as an activity');
