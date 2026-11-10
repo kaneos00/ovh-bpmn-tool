@@ -7,10 +7,10 @@ import { AbstractEntity } from '../../../../shared-kernel/modules/infrastructure
   ['functionId', 'sectionKey'],
   { unique: true },
 )
-@Index(
-  'job_function_custom_sections_function_order_idx',
-  ['functionId', 'sortOrder'],
-)
+@Index('job_function_custom_sections_function_order_idx', [
+  'functionId',
+  'sortOrder',
+])
 export class JobFunctionCustomSectionTypeOrmEntity extends AbstractEntity {
   @Column('uuid')
   functionId: string;
