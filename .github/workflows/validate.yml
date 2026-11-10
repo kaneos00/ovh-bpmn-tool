@@ -74,7 +74,7 @@ jobs:
 
   coolify-demo:
     name: Coolify demo images and Compose config
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       DATABASE_NAME: bpmn_v2_demo
