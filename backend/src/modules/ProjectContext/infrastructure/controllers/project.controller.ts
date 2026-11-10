@@ -713,8 +713,6 @@ export class ProjectController {
             // create ordinary drafts.
             status: ContentStatusEnum.Published,
             version: 1,
-            content: sourceContent.content,
-            pngContent: sourceContent.pngContent,
             createdBy: userId,
             updatedBy: userId,
           }),
