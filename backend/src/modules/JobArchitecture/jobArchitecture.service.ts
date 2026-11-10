@@ -8,6 +8,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { ProjectMemberRole } from '../ProjectContext/infrastructure/entities/projectMember.ormEntity';
 import { ProjectResourceAccessService } from '../ProjectContext/projectResourceAccess.service';
+import { ProjectProcessTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectProcess.ormEntity';
+import { ProjectRaciActorTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectRaciActor.ormEntity';
+import { ProjectRaciEntryTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectRaciEntry.ormEntity';
 import { CompetencyBlockTypeOrmEntity } from './infrastructure/entities/competencyBlock.ormEntity';
 import { CompetencyTypeOrmEntity } from './infrastructure/entities/competency.ormEntity';
 import { JobFunctionCompetencyBlockTypeOrmEntity } from './infrastructure/entities/jobFunctionCompetencyBlock.ormEntity';
@@ -17,6 +20,8 @@ import {
   PositionCompetencyBlockTypeOrmEntity,
 } from './infrastructure/entities/positionCompetencyBlock.ormEntity';
 import { ProjectJobPositionTypeOrmEntity } from './infrastructure/entities/projectJobPosition.ormEntity';
+import { PositionRaciActorMappingTypeOrmEntity } from './infrastructure/entities/positionRaciActorMapping.ormEntity';
+import { PositionActivityMappingTypeOrmEntity } from './infrastructure/entities/positionActivityMapping.ormEntity';
 
 type RequestHeaders = Record<string, string | undefined>;
 
@@ -37,6 +42,16 @@ export class JobArchitectureService {
     private readonly positions: Repository<ProjectJobPositionTypeOrmEntity>,
     @InjectRepository(PositionCompetencyBlockTypeOrmEntity)
     private readonly positionBlocks: Repository<PositionCompetencyBlockTypeOrmEntity>,
+    @InjectRepository(ProjectRaciActorTypeOrmEntity)
+    private readonly raciActors: Repository<ProjectRaciActorTypeOrmEntity>,
+    @InjectRepository(ProjectRaciEntryTypeOrmEntity)
+    private readonly raciEntries: Repository<ProjectRaciEntryTypeOrmEntity>,
+    @InjectRepository(ProjectProcessTypeOrmEntity)
+    private readonly projectProcesses: Repository<ProjectProcessTypeOrmEntity>,
+    @InjectRepository(PositionRaciActorMappingTypeOrmEntity)
+    private readonly raciMappings: Repository<PositionRaciActorMappingTypeOrmEntity>,
+    @InjectRepository(PositionActivityMappingTypeOrmEntity)
+    private readonly activityMappings: Repository<PositionActivityMappingTypeOrmEntity>,
   ) {}
 
   async listFunctions() {
@@ -440,6 +455,196 @@ export class JobArchitectureService {
       await repository.delete({ positionId });
       return repository.save(repository.create(rows));
     });
+  }
+
+  async listPositionMappings(
+    projectId: string,
+    positionId: string,
+    headers: RequestHeaders,
+  ) {
+    await this.projectAccess.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Viewer,
+    );
+    const position = await this.positions.findOne({
+      where: { id: positionId, projectId, active: true },
+    });
+    if (!position) throw new NotFoundException('Project job position not found');
+    const [raciActors, activities] = await Promise.all([
+      this.raciMappings.find({ where: { projectId, positionId } }),
+      this.activityMappings.find({ where: { projectId, positionId } }),
+    ]);
+    return { raciActors, activities };
+  }
+
+  async addPositionRaciActor(
+    projectId: string,
+    positionId: string,
+    raciActorId: string,
+    headers: RequestHeaders,
+  ) {
+    const userId = await this.projectAccess.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Modeler,
+    );
+    const [position, actor] = await Promise.all([
+      this.positions.findOne({
+        where: { id: positionId, projectId, active: true },
+      }),
+      this.raciActors.findOne({
+        where: { id: raciActorId, projectId, active: true },
+      }),
+    ]);
+    if (!position) throw new NotFoundException('Project job position not found');
+    if (!actor) {
+      throw new NotFoundException('Active RACI actor not found in this project');
+    }
+    const existing = await this.raciMappings.findOne({
+      where: { projectId, positionId, raciActorId },
+    });
+    if (existing) {
+      throw new ConflictException('This RACI actor is already linked to the position');
+    }
+    return this.raciMappings.save(
+      this.raciMappings.create({
+        projectId,
+        positionId,
+        raciActorId,
+        createdBy: userId,
+      }),
+    );
+  }
+
+  async addPositionActivityMapping(
+    projectId: string,
+    positionId: string,
+    input: { resourceId?: string; taskId?: string; blockId?: string },
+    headers: RequestHeaders,
+  ) {
+    const userId = await this.projectAccess.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Modeler,
+    );
+    const position = await this.positions.findOne({
+      where: { id: positionId, projectId, active: true },
+    });
+    if (!position) throw new NotFoundException('Project job position not found');
+
+    const resourceId = this.requiredText(input.resourceId, 'resourceId', 36);
+    const taskId = this.requiredText(input.taskId, 'taskId', 255);
+    const blockId = this.requiredText(input.blockId, 'blockId', 36);
+    const [process, positionBlock] = await Promise.all([
+      this.projectProcesses.findOne({ where: { projectId, resourceId } }),
+      this.positionBlocks.findOne({ where: { positionId, blockId } }),
+    ]);
+    if (!process) {
+      throw new NotFoundException('BPMN process is not linked to this project');
+    }
+    if (
+      !positionBlock ||
+      !['required', 'optional'].includes(positionBlock.applicability)
+    ) {
+      throw new BadRequestException(
+        'Activities can only be mapped to required or optional position blocks',
+      );
+    }
+    const existing = await this.activityMappings.findOne({
+      where: { projectId, positionId, resourceId, taskId, blockId },
+    });
+    if (existing) {
+      throw new ConflictException('This activity is already mapped to this block');
+    }
+    return this.activityMappings.save(
+      this.activityMappings.create({
+        projectId,
+        positionId,
+        resourceId,
+        taskId,
+        blockId,
+        createdBy: userId,
+      }),
+    );
+  }
+
+  async getProjectConsistencyDiagnostics(
+    projectId: string,
+    headers: RequestHeaders,
+  ) {
+    await this.projectAccess.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Viewer,
+    );
+    const [positions, actors, raciEntries, raciMappings, activityMappings, blocks] =
+      await Promise.all([
+        this.positions.find({ where: { projectId, active: true } }),
+        this.raciActors.find({ where: { projectId, active: true } }),
+        this.raciEntries.find({ where: { projectId } }),
+        this.raciMappings.find({ where: { projectId } }),
+        this.activityMappings.find({ where: { projectId } }),
+        positions.length
+          ? this.positionBlocks.find({
+              where: positions.map((position) => ({
+                positionId: position.id,
+              })),
+            })
+          : Promise.resolve([]),
+      ]);
+
+    const mappedActorIds = new Set(raciMappings.map((mapping) => mapping.raciActorId));
+    const actorByNormalizedName = new Map(
+      actors.map((actor) => [actor.normalizedName, actor]),
+    );
+    const raciActorNames = [
+      ...new Set(raciEntries.map((entry) => entry.actorName.trim())),
+    ];
+    const unmappedRaciActors = raciActorNames
+      .map((name) => ({
+        name,
+        actor: actorByNormalizedName.get(name.toLocaleLowerCase()),
+      }))
+      .filter(({ actor }) => !actor || !mappedActorIds.has(actor.id))
+      .map(({ name, actor }) => ({
+        name,
+        actorId: actor?.id ?? null,
+        reason: actor ? 'actor_not_linked_to_a_position' : 'actor_not_in_registry',
+      }));
+
+    const activityKeys = new Set(
+      activityMappings.map((mapping) => `${mapping.positionId}:${mapping.blockId}`),
+    );
+    const positionById = new Map(positions.map((position) => [position.id, position]));
+    const requiredBlocksWithoutActivities = blocks
+      .filter((block) =>
+        positionById.has(block.positionId) &&
+        block.applicability === 'required' &&
+        !activityKeys.has(`${block.positionId}:${block.blockId}`),
+      )
+      .map((block) => ({
+        positionId: block.positionId,
+        positionTitle: positionById.get(block.positionId)?.title ?? null,
+        blockId: block.blockId,
+      }));
+
+    return {
+      projectId,
+      unmappedRaciActors,
+      requiredBlocksWithoutActivities,
+      counts: {
+        positions: positions.length,
+        raciActors: actors.length,
+        raciEntries: raciEntries.length,
+        raciActorMappings: raciMappings.length,
+        activityMappings: activityMappings.length,
+      },
+      limitations: [
+        'BPMN taskId values are stored as stable element identifiers but are not yet checked against the XML resource content.',
+        'A RACI actor is a role label, not an individual person; this report does not infer person assignments.',
+      ],
+    };
   }
 
   private requiredText(

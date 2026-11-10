@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProjectContextModule } from '../ProjectContext/projectContext.module';
+import { ProjectProcessTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectProcess.ormEntity';
+import { ProjectRaciActorTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectRaciActor.ormEntity';
+import { ProjectRaciEntryTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectRaciEntry.ormEntity';
 import { CompetencyBlockTypeOrmEntity } from './infrastructure/entities/competencyBlock.ormEntity';
 import { CompetencyTypeOrmEntity } from './infrastructure/entities/competency.ormEntity';
 import { JobFunctionCompetencyBlockTypeOrmEntity } from './infrastructure/entities/jobFunctionCompetencyBlock.ormEntity';
@@ -24,6 +27,9 @@ import { JobArchitectureService } from './jobArchitecture.service';
       PositionCompetencyBlockTypeOrmEntity,
       PositionRaciActorMappingTypeOrmEntity,
       PositionActivityMappingTypeOrmEntity,
+      ProjectProcessTypeOrmEntity,
+      ProjectRaciActorTypeOrmEntity,
+      ProjectRaciEntryTypeOrmEntity,
     ]),
   ],
   controllers: [JobArchitectureController],

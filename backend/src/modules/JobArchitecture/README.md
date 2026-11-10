@@ -30,3 +30,14 @@ A new project position initializes every block defined for its reference functio
 - `PATCH /projects/:projectId/job-positions/:positionId/competency-blocks` (project modeler/administrator)
 
 RACI and BPMN mapping tables are introduced in the foundation migration. Their write APIs and consistency diagnostics are a subsequent implementation slice.
+
+## RACI and BPMN links (initial API)
+
+- `GET /projects/:projectId/job-positions/:positionId/mappings`
+- `POST /projects/:projectId/job-positions/:positionId/raci-actors` with `raciActorId`
+- `POST /projects/:projectId/job-positions/:positionId/activity-mappings` with `resourceId`, `taskId` and `blockId`
+- `GET /projects/:projectId/job-architecture/diagnostics`
+
+A RACI actor must already exist and be active in the same project. An activity mapping must target a process linked to the same project and a block marked required or optional on the position. Composite foreign keys enforce project and position boundaries at database level.
+
+Current limitation: the supplied BPMN `taskId` is stored as the stable BPMN element identifier but is not yet checked against the BPMN XML payload. Diagnostics therefore identify missing RACI-to-position links and required blocks without activity mappings; they do not claim to validate XML element existence. Person assignment remains out of scope for this slice.

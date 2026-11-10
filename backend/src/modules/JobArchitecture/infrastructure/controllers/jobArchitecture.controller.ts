@@ -82,6 +82,58 @@ export class JobArchitectureController {
     );
   }
 
+
+  @Get('projects/:projectId/job-positions/:positionId/mappings')
+  @UseAcl()
+  listPositionMappings(
+    @Param('projectId') projectId: string,
+    @Param('positionId') positionId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    return this.jobArchitecture.listPositionMappings(projectId, positionId, headers);
+  }
+
+  @Post('projects/:projectId/job-positions/:positionId/raci-actors')
+  @UseAcl([UserGroup.RW])
+  addPositionRaciActor(
+    @Param('projectId') projectId: string,
+    @Param('positionId') positionId: string,
+    @Body() body: { raciActorId?: string },
+    @Headers() headers: RequestHeaders,
+  ) {
+    return this.jobArchitecture.addPositionRaciActor(
+      projectId,
+      positionId,
+      body.raciActorId ?? '',
+      headers,
+    );
+  }
+
+  @Post('projects/:projectId/job-positions/:positionId/activity-mappings')
+  @UseAcl([UserGroup.RW])
+  addPositionActivityMapping(
+    @Param('projectId') projectId: string,
+    @Param('positionId') positionId: string,
+    @Body() body: { resourceId?: string; taskId?: string; blockId?: string },
+    @Headers() headers: RequestHeaders,
+  ) {
+    return this.jobArchitecture.addPositionActivityMapping(
+      projectId,
+      positionId,
+      body,
+      headers,
+    );
+  }
+
+  @Get('projects/:projectId/job-architecture/diagnostics')
+  @UseAcl()
+  getProjectConsistencyDiagnostics(
+    @Param('projectId') projectId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    return this.jobArchitecture.getProjectConsistencyDiagnostics(projectId, headers);
+  }
+
   @Get('projects/:projectId/job-positions')
   @UseAcl()
   listProjectPositions(
