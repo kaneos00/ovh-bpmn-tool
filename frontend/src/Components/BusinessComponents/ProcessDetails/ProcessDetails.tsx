@@ -293,6 +293,7 @@ export const ProcessDetails = ({
   const {
     data: activeProposal,
     isLoading: activeProposalLoading,
+    isFetching: activeProposalFetching,
     isError: activeProposalError,
   } = useQuery<ActiveProcessProposal | null>(
     activeProposalQueryKey,
@@ -403,7 +404,7 @@ export const ProcessDetails = ({
   const navigate = useNavigate();
 
   const startChangeProposal = async () => {
-    if (!proposalProjectId || startingProposal || activeProposalLoading || isHistoricalView) return;
+    if (!proposalProjectId || startingProposal || activeProposalLoading || activeProposalFetching || isHistoricalView) return;
     // Reuse the existing workflow instead of attempting to create a second
     // proposal for the same published process version.
     if (currentActiveProposal) {
@@ -837,7 +838,7 @@ export const ProcessDetails = ({
                         Ajouter une remarque
                       </Button>
                     )}
-                    {proposalProjectId && currentActiveProposal && !isHistoricalView && (
+                    {proposalProjectId && currentActiveProposal && !activeProposalFetching && !isHistoricalView && (
                       <Alert color="warning" variant="soft" size="sm">
                         Une demande de modification est déjà ouverte pour cette version
                         (statut : {currentActiveProposal.status}). Vous pouvez la retrouver avec le bouton ci-dessous.
@@ -854,7 +855,7 @@ export const ProcessDetails = ({
                         variant="soft"
                         color="primary"
                         loading={startingProposal || activeProposalLoading}
-                        disabled={startingProposal || activeProposalLoading || Boolean(activeProposalError)}
+                        disabled={startingProposal || activeProposalLoading || activeProposalFetching || Boolean(activeProposalError)}
                         onClick={startChangeProposal}
                       >
                         <EditOutlined sx={{ fontSize: 16, mr: 0.5 }} />
