@@ -144,14 +144,14 @@ export const Component = () => {
                 <Chip size="sm" color="warning" variant="soft">{reviews.filter(proposal => proposal.status === 'submitted').length} en attente · {reviews.filter(proposal => proposal.status === 'approved').length} à publier</Chip>
               </Stack>
             </Box>
-            {reviewsLoading && <Box sx={{ p: 2 }}><Typography level="body-sm">Caricamento delle richieste…</Typography></Box>}
+            {reviewsLoading && <Box sx={{ p: 2 }}><Typography level="body-sm">Chargement des demandes…</Typography></Box>}
             {reviewError && <Alert color="danger" sx={{ m: 2 }}>{reviewError}</Alert>}
             {reviewsError && <Stack direction="row" spacing={1} alignItems="center" sx={{ p: 2 }}>
               <Typography level="body-sm" color="danger">Impossibile caricare le richieste da validare.</Typography>
-              <Button size="sm" variant="outlined" onClick={() => refetchReviews()}>Riprova</Button>
+              <Button size="sm" variant="outlined" onClick={() => refetchReviews()}>Réessayer</Button>
             </Stack>}
             {!reviewsLoading && !reviewsError && reviews.length === 0 && (
-              <Box sx={{ p: 2.5 }}><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Nessuna richiesta in attesa di validazione.</Typography></Box>
+              <Box sx={{ p: 2.5 }}><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Aucune demande en attente de validation.</Typography></Box>
             )}
             {!reviewsLoading && !reviewsError && reviews.length > 0 && (
               <Stack divider={<Box sx={{ borderTop: '1px solid', borderColor: 'divider' }} />}>
