@@ -40,6 +40,7 @@ export const Component = () => {
   const reviewRemarksMode = searchParams.get('reviewRemarks') === '1';
   const approvedProposalMode = searchParams.get('publishApproved') === '1';
   const [proposalWorkspace, setProposalWorkspace] = useState<ProposalWorkspaceContext | null>(null);
+  const [proposalWorkspaceLoaded, setProposalWorkspaceLoaded] = useState(!proposalId);
   const [proposalWorkspaceResolved, setProposalWorkspaceResolved] = useState(!proposalId);
   const [proposalWorkspaceError, setProposalWorkspaceError] = useState<string | null>(null);
   useEffect(() => {
@@ -82,6 +83,7 @@ export const Component = () => {
     return () => { active = false; };
   }, [proposalId]);
   const resolvedResourceId = proposalWorkspace?.cloneResourceId ?? routeResourceId;
+  const resourceContextReady = !proposalId || proposalWorkspaceLoaded;
   const sourceResourceId = proposalWorkspace?.sourceResourceId || searchParams.get('sourceResourceId') || null;
   const [validationModalOpen, setValidationModalOpen] = useState(false);
   const [submissionComment, setSubmissionComment] = useState('');
