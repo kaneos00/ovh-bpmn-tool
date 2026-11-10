@@ -478,6 +478,41 @@ export const Component = () => {
                     <Stack direction="row" justifyContent="flex-end"><Button disabled={!customDraft.sectionKey.trim() || !customDraft.title.trim() || !customDraft.content.trim()} loading={createCustom.isLoading} onClick={() => createCustom.mutate()}>Ajouter la rubrique</Button></Stack>
                   </Card>
                 )}
+                {showPreview && documentQuery.data && (
+                  <Card variant="outlined" sx={{ gap: 1.5 }}>
+                    <Typography level="h2">Aperçu de la fiche · {selectedFunction.name}</Typography>
+                    <Typography level="body-xs" sx={{ color: 'text.secondary' }}>Version {documentQuery.data.documentVersion || 'non renseignée'} · {documentQuery.data.documentDate || 'Date non renseignée'}</Typography>
+                    <Divider />
+                    <Typography level="title-lg">Identification</Typography>
+                    <Typography level="body-sm">Rattachement : {documentQuery.data.reportingLine || 'Non renseigné'}</Typography>
+                    <Typography level="body-sm">Autres intitulés : {(documentQuery.data.otherTitles || []).join(', ') || 'Non renseignés'}</Typography>
+                    <Typography level="title-lg">Mission</Typography>
+                    <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>{documentQuery.data.mission || 'Mission non renseignée'}</Typography>
+                    <Typography level="title-lg">Activités et tâches</Typography>
+                    {activities.map((section) => (
+                      <Box key={section.id} sx={{ gap: 0.5 }}>
+                        <Typography level="title-md">{section.code} · {section.title}</Typography>
+                        <Stack component="ol" sx={{ m: 0, pl: 3 }}>
+                          {section.tasks.map((task, index) => <Typography component="li" level="body-sm" key={index}>{task}</Typography>)}
+                        </Stack>
+                      </Box>
+                    ))}
+                    {customSections.map((section) => (
+                      <Box key={section.id} sx={{ gap: 0.5 }}>
+                        <Typography level="title-md">{section.title}</Typography>
+                        <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>{String(section.content?.text ?? '')}</Typography>
+                      </Box>
+                    ))}
+                    <Typography level="title-lg">Compétences de référence</Typography>
+                    {competencyBlocks.map((block) => (
+                      <Box key={block.id} sx={{ gap: 0.5 }}>
+                        <Typography level="title-md">{block.code} · {block.name}</Typography>
+                        {block.competencies.map((competency) => <Typography level="body-sm" key={competency.id}>• {competency.name}{competency.referenceLevel ? ` — niveau ${competency.referenceLevel}/5` : ''}</Typography>)}
+                      </Box>
+                    ))}
+                    <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Établie par : {documentQuery.data.establishedBy || '—'} · Validée par : {documentQuery.data.validatedBy || '—'}</Typography>
+                  </Card>
+                )}
               </>
             )}
           </Stack>
