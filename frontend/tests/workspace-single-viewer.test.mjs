@@ -158,7 +158,7 @@ test('proposal workspaces remain authorized resources but are excluded from the 
 
   assert.match(controller, /const visibleLinks = links\.filter\([\s\S]*?!resourceById\.get\(link\.resourceId\)\?\.sourceResourceId/);
   assert.match(controller, /for \(const link of visibleLinks\)/);
-  assert.match(controller, /links\.create\([\s\S]*?resourceId: savedClone\.id[\s\S]*?sourceResourceId/);
+  assert.match(controller, /projectProcesses\.create\([\s\S]*?resourceId: variant\.id[\s\S]*?sourceResourceId: source\.id/);
 });
 
 test('a newly created process variant starts with a published copy of its source BPMN', async () => {
