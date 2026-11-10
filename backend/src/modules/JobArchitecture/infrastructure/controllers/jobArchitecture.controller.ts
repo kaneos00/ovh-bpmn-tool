@@ -63,6 +63,7 @@ export class JobArchitectureController {
       name?: string;
       description?: string | null;
       referenceLevel?: number | null;
+      category?: 'technical' | 'methodological' | 'behavioral';
     },
     @Headers() headers: RequestHeaders,
   ) {
