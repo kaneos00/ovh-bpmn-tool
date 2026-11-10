@@ -88,6 +88,9 @@ CREATE TABLE IF NOT EXISTS position_competency_blocks (
 CREATE UNIQUE INDEX IF NOT EXISTS position_competency_blocks_unique
   ON position_competency_blocks ("positionId", "blockId");
 
+CREATE UNIQUE INDEX IF NOT EXISTS project_raci_actors_project_id_unique
+  ON project_raci_actors ("projectId", id);
+
 CREATE TABLE IF NOT EXISTS position_raci_actor_mappings (
   id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
   "createdBy" varchar(64) NOT NULL DEFAULT 'system',
@@ -95,7 +98,10 @@ CREATE TABLE IF NOT EXISTS position_raci_actor_mappings (
   "updatedAt" timestamptz NOT NULL DEFAULT now(),
   "projectId" uuid NOT NULL,
   "positionId" uuid NOT NULL,
-  "raciActorId" uuid NOT NULL REFERENCES project_raci_actors(id) ON DELETE RESTRICT,
+  "raciActorId" uuid NOT NULL,
+  CONSTRAINT position_raci_actor_mappings_actor_fk
+    FOREIGN KEY ("projectId", "raciActorId")
+    REFERENCES project_raci_actors ("projectId", id) ON DELETE RESTRICT,
   CONSTRAINT position_raci_actor_mappings_position_fk
     FOREIGN KEY ("projectId", "positionId")
     REFERENCES project_job_positions ("projectId", id) ON DELETE CASCADE
@@ -112,7 +118,10 @@ CREATE TABLE IF NOT EXISTS position_activity_mappings (
   "positionId" uuid NOT NULL,
   "resourceId" uuid NOT NULL,
   "taskId" varchar(255) NOT NULL,
-  "blockId" uuid NOT NULL REFERENCES competency_blocks(id) ON DELETE RESTRICT,
+  "blockId" uuid NOT NULL,
+  CONSTRAINT position_activity_mappings_position_block_fk
+    FOREIGN KEY ("positionId", "blockId")
+    REFERENCES position_competency_blocks ("positionId", "blockId") ON DELETE CASCADE,
   CONSTRAINT position_activity_mappings_position_fk
     FOREIGN KEY ("projectId", "positionId")
     REFERENCES project_job_positions ("projectId", id) ON DELETE CASCADE,
