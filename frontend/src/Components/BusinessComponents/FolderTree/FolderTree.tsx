@@ -81,7 +81,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
   const [contextMenu, setContextMenu] = useState<{ nodeId: string; anchorEl: HTMLElement } | null>(null);
   const canModifyBpmn = (resourceId: string) => sessionRole === 'admin' || sessionRole === 'modeler' || projectModelerResourceIds.includes(resourceId);
 
-  useEffect(() => { setContextMenu(null); }, [activeProjectId]);
+  useEffect(() => { setContextMenu(null); }, [activeProjectId, selectedId]);
 
   useEffect(() => {
     let mounted = true;
