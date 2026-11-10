@@ -28,7 +28,7 @@ type MappingState = {
   activities: Array<{ id: string; resourceId: string; taskId: string; blockId: string }>;
 };
 
-export const ProjectJobPositions = ({ projectId }: { projectId: string }) => {
+export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string; canEdit: boolean }) => {
   const queryClient = useQueryClient();
   const [selectedPositionId, setSelectedPositionId] = useState('');
   const [functionId, setFunctionId] = useState('');
@@ -149,6 +149,7 @@ export const ProjectJobPositions = ({ projectId }: { projectId: string }) => {
           Déclinaison des fonctions de référence dans ce projet. Les associations relient le poste aux rôles RACI et aux activités publiées, sans modifier les diagrammes ni les affectations existantes.
         </Typography>
       </Box>
+      {!canEdit && <Alert color="neutral" variant="soft">Consultation seule : seuls les membres ayant les droits de modélisation ou d’administration du projet peuvent modifier les postes et leurs correspondances.</Alert>}
       {error && <Alert color="danger" endDecorator={<Button size="sm" variant="plain" color="danger" onClick={() => setError('')}>Fermer</Button>}>{error}</Alert>}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(250px, 0.8fr) minmax(0, 2fr)' }, gap: 2, alignItems: 'start' }}>
         <Stack spacing={1.5}>
@@ -172,7 +173,7 @@ export const ProjectJobPositions = ({ projectId }: { projectId: string }) => {
             {!positionsQuery.isLoading && !(positionsQuery.data ?? []).length &&
               <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Aucun poste organisationnel n’a encore été créé pour ce projet.</Typography>}
           </Card>
-          <Card variant="outlined" sx={{ gap: 1.25 }}>
+          {canEdit && <Card variant="outlined" sx={{ gap: 1.25 }}>
             <Typography level="title-lg">Créer un poste</Typography>
             <FormControl>
               <FormLabel>Fonction de référence</FormLabel>
@@ -189,7 +190,7 @@ export const ProjectJobPositions = ({ projectId }: { projectId: string }) => {
               <Input value={description} onChange={event => setDescription(event.target.value)} placeholder="Périmètre propre au projet (facultatif)" />
             </FormControl>
             <Button loading={createPosition.isLoading} disabled={!functionId || !title.trim()} onClick={() => createPosition.mutate()}>Créer le poste</Button>
-          </Card>
+          </Card>}
         </Stack>
 
         <Stack spacing={1.5}>
@@ -208,7 +209,7 @@ export const ProjectJobPositions = ({ projectId }: { projectId: string }) => {
                 const current = selectedPosition.competencyBlocks.find(item => item.blockId === block.id);
                 return <Stack key={block.id} direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" gap={1}>
                   <Box sx={{ flex: 1 }}><Typography level="body-sm">{block.code} — {block.name}</Typography></Box>
-                  <Select size="sm" value={current?.applicability ?? 'not_assessed'} sx={{ minWidth: 210 }}
+                  <Select size="sm" value={current?.applicability ?? 'not_assessed'} disabled={!canEdit || updateBlocks.isLoading} sx={{ minWidth: 210 }}
                     onChange={(_event, value) => {
                       const next = (selectedFunction?.competencyBlocks ?? []).map(item => {
                         const previous = selectedPosition.competencyBlocks.find(row => row.blockId === item.id);
@@ -228,17 +229,17 @@ export const ProjectJobPositions = ({ projectId }: { projectId: string }) => {
               <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Associez le poste à un ou plusieurs rôles déjà présents dans le registre RACI de ce projet. Cela ne modifie aucune affectation RACI.</Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} gap={1}>
                 <FormControl sx={{ flex: 1 }}><FormLabel>Rôle RACI du projet</FormLabel>
-                  <Select value={actorId || null} onChange={(_event, value) => setActorId(value ?? '')} placeholder="Choisir un rôle">
+                  <Select value={actorId || null} disabled={!canEdit} onChange={(_event, value) => setActorId(value ?? '')} placeholder="Choisir un rôle">
                     {activeActors.filter(actor => !mappedActorIds.has(actor.id)).map(actor => <Option key={actor.id} value={actor.id}>{actor.name}</Option>)}
                   </Select>
                 </FormControl>
-                <Button sx={{ alignSelf: { sm: 'flex-end' } }} disabled={!actorId} loading={addActor.isLoading} onClick={() => addActor.mutate()}>Associer</Button>
+                <Button sx={{ alignSelf: { sm: 'flex-end' } }} disabled={!canEdit || !actorId} loading={addActor.isLoading} onClick={() => addActor.mutate()}>Associer</Button>
               </Stack>
               {mappings.raciActors.map(mapping => {
                 const actor = actorsQuery.data?.find(item => item.id === mapping.raciActorId);
                 return <Stack key={mapping.id} direction="row" alignItems="center" justifyContent="space-between" sx={{ p: 1, borderRadius: 'sm', bgcolor: 'background.level1' }}>
                   <Typography level="body-sm">{actor?.name ?? 'Rôle RACI indisponible'}</Typography>
-                  <Button size="sm" color="danger" variant="plain" loading={removeActor.isLoading} onClick={() => removeActor.mutate(mapping.id)}>Retirer</Button>
+                  <Button size="sm" color="danger" variant="plain" loading={removeActor.isLoading} disabled={!canEdit} onClick={() => removeActor.mutate(mapping.id)}>Retirer</Button>
                 </Stack>;
               })}
               {!mappings.raciActors.length && <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Aucun rôle RACI associé.</Typography>}
@@ -248,22 +249,22 @@ export const ProjectJobPositions = ({ projectId }: { projectId: string }) => {
               <Stack direction="row" justifyContent="space-between" alignItems="center"><Typography level="title-lg">Correspondances avec les activités BPMN</Typography><Chip size="sm" variant="soft">{mappings.activities.length}</Chip></Stack>
               <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Reliez un bloc applicable à une activité d’un processus publié du projet. Le serveur vérifie l’identifiant technique de l’activité dans la dernière version publiée.</Typography>
               <FormControl><FormLabel>Bloc de compétences</FormLabel>
-                <Select value={blockId || null} onChange={(_event, value) => setBlockId(value ?? '')} placeholder="Choisir un bloc">
+                <Select value={blockId || null} disabled={!canEdit} onChange={(_event, value) => setBlockId(value ?? '')} placeholder="Choisir un bloc">
                   {(selectedFunction?.competencyBlocks ?? []).filter(block => ['required','optional'].includes(selectedPosition.competencyBlocks.find(item => item.blockId === block.id)?.applicability ?? '')).map(block => <Option key={block.id} value={block.id}>{block.code} — {block.name}</Option>)}
                 </Select>
               </FormControl>
               <FormControl><FormLabel>Activité BPMN publiée</FormLabel>
-                <Select value={taskKey || null} onChange={(_event, value) => setTaskKey(value ?? '')} placeholder={tasksQuery.isLoading ? 'Chargement des activités…' : 'Choisir une activité'}>
+                <Select value={taskKey || null} disabled={!canEdit} onChange={(_event, value) => setTaskKey(value ?? '')} placeholder={tasksQuery.isLoading ? 'Chargement des activités…' : 'Choisir une activité'}>
                   {(tasksQuery.data ?? []).filter(task => !mappedActivityKeys.has(`${task.resourceId}::${task.taskId}::${blockId}`)).map(task => <Option key={`${task.resourceId}::${task.taskId}`} value={`${task.resourceId}::${task.taskId}`}>{task.processName} — {task.taskName} ({task.taskId})</Option>)}
                 </Select>
               </FormControl>
-              <Button disabled={!blockId || !taskKey} loading={addActivity.isLoading} onClick={() => addActivity.mutate()}>Associer l’activité</Button>
+              <Button disabled={!canEdit || !blockId || !taskKey} loading={addActivity.isLoading} onClick={() => addActivity.mutate()}>Associer l’activité</Button>
               {mappings.activities.map(mapping => {
                 const block = selectedFunction?.competencyBlocks.find(item => item.id === mapping.blockId);
                 const task = tasksQuery.data?.find(item => item.resourceId === mapping.resourceId && item.taskId === mapping.taskId);
                 return <Stack key={mapping.id} direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" gap={1} sx={{ p: 1, borderRadius: 'sm', bgcolor: 'background.level1' }}>
                   <Box sx={{ flex: 1 }}><Typography level="body-sm">{task?.taskName ?? mapping.taskId}</Typography><Typography level="body-xs" sx={{ color: 'text.secondary' }}>{task?.processName ?? mapping.resourceId} · {block?.code ?? 'Bloc'}</Typography></Box>
-                  <Button size="sm" color="danger" variant="plain" loading={removeActivity.isLoading} onClick={() => removeActivity.mutate(mapping.id)}>Retirer</Button>
+                  <Button size="sm" color="danger" variant="plain" loading={removeActivity.isLoading} disabled={!canEdit} onClick={() => removeActivity.mutate(mapping.id)}>Retirer</Button>
                 </Stack>;
               })}
               {!mappings.activities.length && <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Aucune activité BPMN associée.</Typography>}
