@@ -308,7 +308,6 @@ export const Component = () => {
   );
 
   const activities = documentQuery.data?.activitySections ?? [];
-  const customSections = documentQuery.data?.customSections ?? [];
   const competencyBlocks = selectedFunction?.competencyBlocks ?? [];
 
   return (
