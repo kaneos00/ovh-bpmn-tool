@@ -68,6 +68,9 @@ type ViewerRemark = {
 
 type ActiveProcessProposal = {
   id: string;
+  projectId: string;
+  sourceResourceId: string;
+  sourcePublishedContentId: string;
   status: string;
   cloneResourceId: string;
   cloneContentId: string | null;
@@ -262,10 +265,19 @@ export const ProcessDetails = ({
     ),
     { enabled: Boolean(projectForProcess && publishedContent && viewerContent && !isHistoricalView) },
   );
+  // Guard the Viewer against stale or cross-process proposal data: the
+  // warning and remark count must belong to this exact project, process and
+  // published content version.
+  const currentActiveProposal = activeProposal &&
+    activeProposal.projectId === projectForProcess?.id &&
+    activeProposal.sourceResourceId === resourceId &&
+    activeProposal.sourcePublishedContentId === viewerContent?.id
+    ? activeProposal
+    : null;
   const { data: viewerRemarks = EMPTY_VIEWER_REMARKS } = useQuery<ViewerRemark[]>(
-    ['process-change-proposal-comments', activeProposal?.id],
-    () => apiClient.get(`/projects/process-change-proposals/${activeProposal!.id}/comments`),
-    { enabled: Boolean(activeProposal?.id && !isHistoricalView) },
+    ['process-change-proposal-comments', currentActiveProposal?.id],
+    () => apiClient.get(`/projects/process-change-proposals/${currentActiveProposal!.id}/comments`),
+    { enabled: Boolean(currentActiveProposal?.id && !isHistoricalView) },
   );
   const processUsage = projectForProcess?.processes.find(
     process => process.resourceId === resourceId,
@@ -358,15 +370,15 @@ export const ProcessDetails = ({
     if (!proposalProjectId || startingProposal || activeProposalLoading || isHistoricalView) return;
     // Reuse the existing workflow instead of attempting to create a second
     // proposal for the same published process version.
-    if (activeProposal) {
-      if (!activeProposal.cloneContentId) {
+    if (currentActiveProposal) {
+      if (!currentActiveProposal.cloneContentId) {
         showAlert({
           message: 'Le brouillon de la demande en cours est introuvable. La demande doit être vérifiée avant de pouvoir être reprise.',
           severity: 'danger',
         });
         return;
       }
-      navigate(`/${activeProposal.cloneResourceId}/modeler?proposalId=${activeProposal.id}&contentId=${activeProposal.cloneContentId}`);
+      navigate(`/${currentActiveProposal.cloneResourceId}/modeler?proposalId=${currentActiveProposal.id}&contentId=${currentActiveProposal.cloneContentId}&sourceResourceId=${resourceId}`);
       return;
     }
     setStartingProposal(true);
@@ -786,10 +798,10 @@ export const ProcessDetails = ({
                         Ajouter une remarque
                       </Button>
                     )}
-                    {proposalProjectId && activeProposal && !isHistoricalView && (
+                    {proposalProjectId && currentActiveProposal && !isHistoricalView && (
                       <Alert color="warning" variant="soft" size="sm">
                         Une demande de modification est déjà ouverte pour cette version
-                        (statut : {activeProposal.status}). Vous pouvez la retrouver avec le bouton ci-dessous.
+                        (statut : {currentActiveProposal.status}). Vous pouvez la retrouver avec le bouton ci-dessous.
                       </Alert>
                     )}
                     {proposalProjectId && activeProposalError && !isHistoricalView && (
@@ -807,7 +819,7 @@ export const ProcessDetails = ({
                         onClick={startChangeProposal}
                       >
                         <EditOutlined sx={{ fontSize: 16, mr: 0.5 }} />
-                        {activeProposal ? 'Reprendre la demande en cours' : 'Proposer une modification'}
+                        {currentActiveProposal ? 'Reprendre la demande en cours' : 'Proposer une modification'}
                       </Button>
                     )}
                     {canEditDescription && (
