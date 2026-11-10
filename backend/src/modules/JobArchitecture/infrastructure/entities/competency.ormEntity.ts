@@ -3,6 +3,7 @@ import { AbstractEntity } from '../../../../shared-kernel/modules/infrastructure
 
 @Entity('competencies')
 @Index('competencies_block_code_unique', ['blockId', 'code'], { unique: true })
+@Index('competencies_block_id_unique', ['blockId', 'id'], { unique: true })
 export class CompetencyTypeOrmEntity extends AbstractEntity {
   @Column('uuid')
   blockId: string;

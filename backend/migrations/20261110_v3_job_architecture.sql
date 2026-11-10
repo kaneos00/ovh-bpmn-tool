@@ -40,6 +40,8 @@ CREATE TABLE IF NOT EXISTS competencies (
   CONSTRAINT competencies_reference_level_check CHECK ("referenceLevel" IS NULL OR "referenceLevel" BETWEEN 1 AND 5)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS competencies_block_code_unique ON competencies ("blockId", code);
+CREATE UNIQUE INDEX IF NOT EXISTS competencies_block_id_unique
+  ON competencies ("blockId", id);
 
 CREATE TABLE IF NOT EXISTS job_function_competency_blocks (
   id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
@@ -87,6 +89,28 @@ CREATE TABLE IF NOT EXISTS position_competency_blocks (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS position_competency_blocks_unique
   ON position_competency_blocks ("positionId", "blockId");
+
+CREATE TABLE IF NOT EXISTS position_competency_requirements (
+  id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,
+  "createdBy" varchar(64) NOT NULL DEFAULT 'system',
+  "createdAt" timestamptz NOT NULL DEFAULT now(),
+  "updatedAt" timestamptz NOT NULL DEFAULT now(),
+  "positionId" uuid NOT NULL,
+  "blockId" uuid NOT NULL,
+  "competencyId" uuid NOT NULL,
+  "requiredLevel" smallint,
+  CONSTRAINT position_competency_requirements_position_block_fk
+    FOREIGN KEY ("positionId", "blockId")
+    REFERENCES position_competency_blocks ("positionId", "blockId") ON DELETE CASCADE,
+  CONSTRAINT position_competency_requirements_competency_fk
+    FOREIGN KEY ("blockId", "competencyId")
+    REFERENCES competencies ("blockId", id) ON DELETE CASCADE,
+  CONSTRAINT position_competency_requirements_level_check
+    CHECK ("requiredLevel" IS NULL OR "requiredLevel" BETWEEN 1 AND 5)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS position_competency_requirements_unique
+  ON position_competency_requirements ("positionId", "competencyId");
+
 
 CREATE TABLE IF NOT EXISTS position_raci_actor_mappings (
   id uuid DEFAULT uuid_generate_v4() NOT NULL PRIMARY KEY,

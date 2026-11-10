@@ -21,6 +21,7 @@ import {
 } from './infrastructure/entities/positionCompetencyBlock.ormEntity';
 import { ProjectJobPositionTypeOrmEntity } from './infrastructure/entities/projectJobPosition.ormEntity';
 import { PositionRaciActorMappingTypeOrmEntity } from './infrastructure/entities/positionRaciActorMapping.ormEntity';
+import { PositionCompetencyRequirementTypeOrmEntity } from './infrastructure/entities/positionCompetencyRequirement.ormEntity';
 import { PositionActivityMappingTypeOrmEntity } from './infrastructure/entities/positionActivityMapping.ormEntity';
 
 type RequestHeaders = Record<string, string | undefined>;
@@ -52,6 +53,8 @@ export class JobArchitectureService {
     private readonly raciMappings: Repository<PositionRaciActorMappingTypeOrmEntity>,
     @InjectRepository(PositionActivityMappingTypeOrmEntity)
     private readonly activityMappings: Repository<PositionActivityMappingTypeOrmEntity>,
+    @InjectRepository(PositionCompetencyRequirementTypeOrmEntity)
+    private readonly competencyRequirements: Repository<PositionCompetencyRequirementTypeOrmEntity>,
   ) {}
 
   async listFunctions() {
@@ -482,6 +485,194 @@ export class JobArchitectureService {
           : repository.create(row);
       });
       return repository.save(rowsToSave);
+    });
+  }
+
+
+  async getPositionCompetencyRequirements(
+    projectId: string,
+    positionId: string,
+    headers: RequestHeaders,
+  ) {
+    await this.projectAccess.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Viewer,
+    );
+    const position = await this.positions.findOne({
+      where: { id: positionId, projectId, active: true },
+    });
+    if (!position) {
+      throw new NotFoundException('Project job position not found');
+    }
+
+    const positionBlocks = await this.positionBlocks.find({
+      where: { positionId },
+    });
+    if (!positionBlocks.length) return [];
+    const blockIds = positionBlocks.map((block) => block.blockId);
+    const [competencies, overrides] = await Promise.all([
+      this.competencies.find({
+        where: blockIds.map((blockId) => ({ blockId, active: true })),
+        order: { code: 'ASC' },
+      }),
+      this.competencyRequirements.find({ where: { positionId } }),
+    ]);
+    const blockById = new Map(
+      positionBlocks.map((block) => [block.blockId, block]),
+    );
+    const overrideByCompetencyId = new Map(
+      overrides.map((override) => [override.competencyId, override]),
+    );
+
+    return competencies.map((competency) => {
+      const block = blockById.get(competency.blockId);
+      const override = overrideByCompetencyId.get(competency.id);
+      const isApplicable =
+        block !== undefined &&
+        ['required', 'optional'].includes(block.applicability);
+      const requiredLevel = isApplicable
+        ? (override?.requiredLevel ?? block.requiredLevel ?? competency.referenceLevel)
+        : null;
+      const levelSource = override?.requiredLevel != null
+        ? 'position'
+        : block?.requiredLevel != null
+          ? 'block'
+          : 'function';
+
+      return {
+        ...competency,
+        applicability: block?.applicability ?? 'not_assessed',
+        blockRequiredLevel: block?.requiredLevel ?? null,
+        competencyLevelOverride: override?.requiredLevel ?? null,
+        requiredLevel,
+        levelSource: isApplicable ? levelSource : 'not_applicable',
+      };
+    });
+  }
+
+  async updatePositionCompetencyRequirements(
+    projectId: string,
+    positionId: string,
+    input: {
+      competencies?: Array<{
+        competencyId?: string;
+        requiredLevel?: number | null;
+      }>;
+    },
+    headers: RequestHeaders,
+  ) {
+    const userId = await this.projectAccess.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Modeler,
+    );
+    const position = await this.positions.findOne({
+      where: { id: positionId, projectId, active: true },
+    });
+    if (!position) {
+      throw new NotFoundException('Project job position not found');
+    }
+    if (!Array.isArray(input.competencies)) {
+      throw new BadRequestException('competencies must be an array');
+    }
+
+    const positionBlocks = await this.positionBlocks.find({
+      where: { positionId },
+    });
+    const blockById = new Map(
+      positionBlocks.map((block) => [block.blockId, block]),
+    );
+    const seen = new Set<string>();
+    const normalized = input.competencies.map((item, index) => {
+      const competencyId = this.requiredText(
+        item.competencyId,
+        `competencies[${index}].competencyId`,
+        36,
+      );
+      if (seen.has(competencyId)) {
+        throw new BadRequestException(
+          `Competency ${competencyId} is duplicated`,
+        );
+      }
+      seen.add(competencyId);
+      return {
+        competencyId,
+        requiredLevel: this.validateLevel(item.requiredLevel),
+      };
+    });
+
+    const competencyRows = normalized.length
+      ? await this.competencies.find({
+          where: normalized.map((item) => ({
+            id: item.competencyId,
+            active: true,
+          })),
+        })
+      : [];
+    const competencyById = new Map(
+      competencyRows.map((competency) => [competency.id, competency]),
+    );
+    const validated = normalized.map((item) => {
+      const competency = competencyById.get(item.competencyId);
+      if (!competency) {
+        throw new NotFoundException(
+          `Active competency ${item.competencyId} not found`,
+        );
+      }
+      const block = blockById.get(competency.blockId);
+      if (
+        !block ||
+        !['required', 'optional'].includes(block.applicability)
+      ) {
+        throw new BadRequestException(
+          'Competency overrides require a required or optional position block',
+        );
+      }
+      return {
+        competencyId: competency.id,
+        blockId: competency.blockId,
+        requiredLevel: item.requiredLevel,
+      };
+    });
+
+    return this.dataSource.transaction(async (manager) => {
+      const repository = manager.getRepository(
+        PositionCompetencyRequirementTypeOrmEntity,
+      );
+      const existingRows = await repository.find({ where: { positionId } });
+      const existingByCompetencyId = new Map(
+        existingRows.map((row) => [row.competencyId, row]),
+      );
+      const rowsToSave = validated
+        .filter((item) => item.requiredLevel !== null)
+        .map((item) => {
+          const existing = existingByCompetencyId.get(item.competencyId);
+          return existing
+            ? repository.merge(existing, {
+                requiredLevel: item.requiredLevel,
+                createdBy: userId,
+              })
+            : repository.create({
+                positionId,
+                blockId: item.blockId,
+                competencyId: item.competencyId,
+                requiredLevel: item.requiredLevel,
+                createdBy: userId,
+              });
+        });
+      const inheritedCompetencyIds = validated
+        .filter((item) => item.requiredLevel === null)
+        .map((item) => item.competencyId);
+      if (inheritedCompetencyIds.length) {
+        await repository.delete(
+          inheritedCompetencyIds.map((competencyId) => ({
+            positionId,
+            competencyId,
+          })),
+        );
+      }
+      return rowsToSave.length ? repository.save(rowsToSave) : [];
     });
   }
 

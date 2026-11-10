@@ -134,6 +134,47 @@ export class JobArchitectureController {
     );
   }
 
+
+  @Get(
+    'projects/:projectId/job-positions/:positionId/competency-requirements',
+  )
+  @UseAcl()
+  getPositionCompetencyRequirements(
+    @Param('projectId') projectId: string,
+    @Param('positionId') positionId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    return this.jobArchitecture.getPositionCompetencyRequirements(
+      projectId,
+      positionId,
+      headers,
+    );
+  }
+
+  @Patch(
+    'projects/:projectId/job-positions/:positionId/competency-requirements',
+  )
+  @UseAcl([UserGroup.RW])
+  updatePositionCompetencyRequirements(
+    @Param('projectId') projectId: string,
+    @Param('positionId') positionId: string,
+    @Body()
+    body: {
+      competencies?: Array<{
+        competencyId?: string;
+        requiredLevel?: number | null;
+      }>;
+    },
+    @Headers() headers: RequestHeaders,
+  ) {
+    return this.jobArchitecture.updatePositionCompetencyRequirements(
+      projectId,
+      positionId,
+      body,
+      headers,
+    );
+  }
+
   @Get('projects/:projectId/job-positions/:positionId/mappings')
   @UseAcl()
   listPositionMappings(
