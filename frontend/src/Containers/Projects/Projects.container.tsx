@@ -808,7 +808,7 @@ export const Component = () => {
           </Card>
           </TabPanel>
           <TabPanel value={4} sx={{ px: 0, py: 2 }}>
-            <ProjectJobPositions projectId={projectId} />
+            <ProjectJobPositions projectId={projectId} canEdit={projectMembership?.role === 'modeler' || projectMembership?.role === 'admin'} />
           </TabPanel>
         </Tabs>
       </Stack>
