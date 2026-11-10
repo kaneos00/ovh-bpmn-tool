@@ -15,7 +15,7 @@ import { getProjectTrigram } from '../../../shared/helpers/projectTrigram';
 
 type SearchScope = 'all' | 'processes' | 'bpmn' | 'roles' | 'raci';
 const normalizeSearch = (value: string) =>
-  value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase('fr').trim();
+  value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr').trim();
 
 const matchesTerm = (value: string, term: string) =>
   normalizeSearch(value).includes(normalizeSearch(term));
