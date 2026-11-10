@@ -55,19 +55,29 @@ export const Component = () => {
     setProposalWorkspaceError(null);
     const loadProposalContext = async () => {
       try {
-        const [authored, reviewable] = await Promise.all([
-          apiClient.get('/projects/me/process-change-proposals').catch(() => []),
-          apiClient.get('/projects/me/process-change-proposals/to-review').catch(() => []),
+        const [authoredResult, reviewableResult] = await Promise.allSettled([
+          apiClient.get('/projects/me/process-change-proposals'),
+          apiClient.get('/projects/me/process-change-proposals/to-review'),
         ]);
         if (!active) return;
-        const candidates = [
-          ...(Array.isArray(authored) ? authored : []),
-          ...(Array.isArray(reviewable) ? reviewable : []),
-        ] as ProposalWorkspaceContext[];
+        const authored = authoredResult.status === 'fulfilled' && Array.isArray(authoredResult.value)
+          ? authoredResult.value as ProposalWorkspaceContext[]
+          : [];
+        const reviewable = reviewableResult.status === 'fulfilled' && Array.isArray(reviewableResult.value)
+          ? reviewableResult.value as ProposalWorkspaceContext[]
+          : [];
+        if (authoredResult.status === 'rejected' && reviewableResult.status === 'rejected') {
+          throw authoredResult.reason ?? reviewableResult.reason;
+        }
+        const candidates = [...authored, ...reviewable];
         const match = candidates.find(item => item.id === proposalId) ?? null;
         setProposalWorkspace(match);
         if (!match) {
-          setProposalWorkspaceError('La demande est introuvable ou vous ne disposez pas des droits pour y accéder.');
+          const endpointFailed =
+            authoredResult.status === 'rejected' || reviewableResult.status === 'rejected';
+          setProposalWorkspaceError(endpointFailed
+            ? 'Impossible de vérifier les droits d’accès à cette demande.'
+            : 'La demande est introuvable ou vous ne disposez pas des droits pour y accéder.');
         }
       } catch (error) {
         if (!active) return;
