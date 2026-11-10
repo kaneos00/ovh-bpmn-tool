@@ -755,6 +755,9 @@ describe('ProcessChangeProposalController active workspace lookup', () => {
       ),
     ).resolves.toEqual({
       id: 'proposal-new',
+      projectId: 'project-1',
+      sourceResourceId: 'source-1',
+      sourcePublishedContentId: 'published-1',
       status: ProcessChangeProposalStatus.Draft,
       cloneResourceId: 'clone-new',
       cloneContentId: 'draft-new',
