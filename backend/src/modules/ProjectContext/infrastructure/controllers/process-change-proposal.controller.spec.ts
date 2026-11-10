@@ -780,6 +780,36 @@ describe('ProcessChangeProposalController active workspace lookup', () => {
     );
   });
 
+  it('returns submitted proposals for source-viewer remarks without exposing a resumable draft', async () => {
+    const submitted = {
+      id: 'proposal-submitted',
+      projectId: 'project-1',
+      sourceResourceId: 'source-1',
+      sourcePublishedContentId: 'published-1',
+      cloneResourceId: 'clone-submitted',
+      submittedContentId: 'submitted-content-1',
+      status: ProcessChangeProposalStatus.Submitted,
+    };
+    const { controller } = makeController([submitted], {});
+
+    await expect(
+      controller.getActiveProposalForProcess(
+        'project-1',
+        'source-1',
+        'published-1',
+        {},
+      ),
+    ).resolves.toEqual({
+      id: 'proposal-submitted',
+      projectId: 'project-1',
+      sourceResourceId: 'source-1',
+      sourcePublishedContentId: 'published-1',
+      status: ProcessChangeProposalStatus.Submitted,
+      cloneResourceId: 'clone-submitted',
+      cloneContentId: null,
+    });
+  });
+
   it('ignores active records whose proposal workspace no longer has a draft', async () => {
     const { controller } = makeController(
       [
