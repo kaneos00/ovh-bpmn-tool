@@ -53,6 +53,16 @@ async function main() {
     assert.ok(created.body.cloneResourceId, 'The API did not return a proposal workspace');
     assert.ok(created.body.cloneContentId, 'The API did not return the proposal draft');
 
+    // A submitted Viewer remark must remain visible on the source process
+    // even though its proposal workspace is frozen and has no editable draft.
+    await authorPage.goto(
+      `${baseUrl}/${sourceResourceId}?elementId=Task_ProcessRequest`,
+    );
+    await authorPage.getByText(
+      'CI E2E — vérifier la qualification de la demande',
+      { exact: true },
+    ).waitFor();
+
     await signIn(reviewerPage, reviewerUsername, reviewerPassword);
 
     // Exercise the header's quick search against the seeded published process.
