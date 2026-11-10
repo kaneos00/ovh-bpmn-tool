@@ -14,7 +14,10 @@ export class JobFunctionTypeOrmEntity extends AbstractEntity {
   description: string | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  attachment: string | null;
+  reportingLine: string | null;
+
+  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  otherTitles: string[];
 
   @Column({ type: 'date', nullable: true })
   documentDate: string | null;
