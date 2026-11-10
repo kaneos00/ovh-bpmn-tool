@@ -19,7 +19,7 @@ export class JobArchitectureController {
   constructor(private readonly jobArchitecture: JobArchitectureService) {}
 
   @Get('job-architecture/functions')
-  @UseAcl([UserGroup.Admin])
+  @UseAcl()
   listFunctions() {
     return this.jobArchitecture.listFunctions();
   }
