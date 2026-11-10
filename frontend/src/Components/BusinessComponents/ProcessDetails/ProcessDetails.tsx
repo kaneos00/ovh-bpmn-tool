@@ -1066,10 +1066,10 @@ export const ProcessDetails = ({
                                 </Typography>
                                 <Chip
                                   size="sm"
-                                  color={remark.status === 'accepted' ? 'success' : remark.status === 'rejected' ? 'danger' : 'warning'}
+                                  color={getRemarkStatusColor(remark.status)}
                                   variant="soft"
                                 >
-                                  {remark.status === 'accepted' ? 'Acceptée' : remark.status === 'rejected' ? 'Refusée' : 'À traiter'}
+                                  {getRemarkStatusLabel(remark.status)}
                                 </Chip>
                               </Stack>
                               <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', mt: 0.75 }}>
