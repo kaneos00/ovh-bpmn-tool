@@ -72,7 +72,8 @@ test('detail panel starts collapsed and follows the selected BPMN element', asyn
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
 
   assert.match(details, /const \[taskPanelCollapsed, setTaskPanelCollapsed\] = useState\(true\)/);
-  assert.match(details, /setTaskPanelCollapsed\(!selectedElementId\)/);
+  assert.match(details, /if \(selectedElementId\) setTaskPanelCollapsed\(false\)/);
+  assert.doesNotMatch(details, /setTaskPanelCollapsed\(!selectedElementId\)/);
   assert.match(details, /externalUrl:\s*Array\.from\(element\.attributes\)[\s\S]*?attribute\.localName === 'link'/);
 });
 
@@ -471,7 +472,7 @@ test('the right element-details panel and its resize handle exist only on the BP
 });
 
 
-test('BPMN element selection opens and closes the right-hand element panel', async () => {
+test('BPMN element selection opens the right-hand panel without forcing it closed', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
 
