@@ -40,23 +40,43 @@ export const Component = () => {
   const reviewRemarksMode = searchParams.get('reviewRemarks') === '1';
   const approvedProposalMode = searchParams.get('publishApproved') === '1';
   const [proposalWorkspace, setProposalWorkspace] = useState<ProposalWorkspaceContext | null>(null);
+  const [proposalWorkspaceResolved, setProposalWorkspaceResolved] = useState(!proposalId);
+  const [proposalWorkspaceError, setProposalWorkspaceError] = useState<string | null>(null);
   useEffect(() => {
     if (!proposalId) {
       setProposalWorkspace(null);
+      setProposalWorkspaceResolved(true);
+      setProposalWorkspaceError(null);
       return undefined;
     }
     let active = true;
+    setProposalWorkspace(null);
+    setProposalWorkspaceResolved(false);
+    setProposalWorkspaceError(null);
     const loadProposalContext = async () => {
-      const [authored, reviewable] = await Promise.all([
-        apiClient.get('/projects/me/process-change-proposals').catch(() => []),
-        apiClient.get('/projects/me/process-change-proposals/to-review').catch(() => []),
-      ]);
-      if (!active) return;
-      const candidates = [
-        ...(Array.isArray(authored) ? authored : []),
-        ...(Array.isArray(reviewable) ? reviewable : []),
-      ] as ProposalWorkspaceContext[];
-      setProposalWorkspace(candidates.find(item => item.id === proposalId) ?? null);
+      try {
+        const [authored, reviewable] = await Promise.all([
+          apiClient.get('/projects/me/process-change-proposals'),
+          apiClient.get('/projects/me/process-change-proposals/to-review'),
+        ]);
+        if (!active) return;
+        const candidates = [
+          ...(Array.isArray(authored) ? authored : []),
+          ...(Array.isArray(reviewable) ? reviewable : []),
+        ] as ProposalWorkspaceContext[];
+        const match = candidates.find(item => item.id === proposalId) ?? null;
+        setProposalWorkspace(match);
+        if (!match) {
+          setProposalWorkspaceError('La demande est introuvable ou vous ne disposez pas des droits pour y accéder.');
+        }
+      } catch (error) {
+        if (!active) return;
+        setProposalWorkspaceError(
+          error instanceof Error ? error.message : 'Impossible de charger les informations de la demande.',
+        );
+      } finally {
+        if (active) setProposalWorkspaceResolved(true);
+      }
     };
     void loadProposalContext();
     return () => { active = false; };
@@ -73,7 +93,8 @@ export const Component = () => {
   const pendingSaveExitRef = useRef(false);
   const pendingPublishExitRef = useRef(false);
   const handledActionDataRef = useRef<typeof actionData>(undefined);
-  const { resource } = useResource(resolvedResourceId);
+  const proposalResourceReady = !proposalId || Boolean(proposalWorkspace?.cloneResourceId);
+  const { resource } = useResource(resolvedResourceId, proposalResourceReady);
   const returnToUrl = proposalId && (sourceResourceId || resource?.sourceResourceId)
     ? `/${sourceResourceId || resource?.sourceResourceId}`
     : `/${resolvedResourceId}`;
@@ -136,7 +157,7 @@ export const Component = () => {
     onDiagramPublish,
     onCompareWithSource,
     actionData,
-  } = useContentModeler(bpmnModelerInstance, resolvedResourceId);
+  } = useContentModeler(bpmnModelerInstance, resolvedResourceId, proposalResourceReady);
 
   const { diagramContainerRef, diagramPropertiesRef, hasLintError, isDirty, canUndo, canRedo, undo, redo, markSaved, isModelerReady } = useModeler(bpmnModelerInstance, draftXmlContent);
   // Protect every exit from the modeler, not only the Home button target.
@@ -249,6 +270,11 @@ export const Component = () => {
         publishApprovedLoading={publishingApprovedProposal}
         readOnly={approvedProposalMode}
       />
+      {proposalId && proposalWorkspaceResolved && proposalWorkspaceError && (
+        <Alert color="danger" sx={{ mx: 2, my: 1 }}>
+          {proposalWorkspaceError}
+        </Alert>
+      )}
       {draftXmlContentErrorMessage && (
         <Alert color="danger" sx={{ mx: 2, my: 1 }}>
           Impossible de charger le diagramme BPMN de cette demande : {draftXmlContentErrorMessage}
