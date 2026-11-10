@@ -454,10 +454,30 @@ export class ProcessChangeProposalController {
     if (!activeProposals.length) return null;
 
     const contents = this.dataSource.getRepository(ContentTypeOrmEntity);
-    // A proposal is resumable only when its own workspace still contains a
-    // draft. Skip orphaned historical rows instead of letting the oldest
-    // missing workspace mask a newer, usable request for the same version.
+    // Respect workflow state before inspecting the clone contents. A Viewer
+    // remark is submitted with a Draft row that is frozen by proposal state,
+    // not by changing the content status; that row must never be resumable.
     for (const proposal of activeProposals) {
+      if (
+        [
+          ProcessChangeProposalStatus.Submitted,
+          ProcessChangeProposalStatus.Approved,
+        ].includes(proposal.status) &&
+        proposal.submittedContentId
+      ) {
+        return {
+          id: proposal.id,
+          projectId: proposal.projectId,
+          sourceResourceId: proposal.sourceResourceId,
+          sourcePublishedContentId: proposal.sourcePublishedContentId,
+          status: proposal.status,
+          cloneResourceId: proposal.cloneResourceId,
+          cloneContentId: null,
+        };
+      }
+
+      // Draft and changes-requested proposals are resumable only when their
+      // own workspace contains a draft. Skip orphaned historical rows.
       const cloneDraft = await contents.findOne({
         where: {
           resourceId: proposal.cloneResourceId,
@@ -478,29 +498,8 @@ export class ProcessChangeProposalController {
       }
     }
 
-    // Submitted proposals no longer have a Draft content row: their editable
-    // workspace has been frozen into submittedContentId. They must still be
-    // returned so the source Viewer can display their remarks and the open
-    // review state. cloneContentId stays null to prevent resuming a frozen
-    // workspace in the modeler.
-    const submittedProposal = activeProposals.find((proposal) =>
-      Boolean(proposal.submittedContentId),
-    );
-    if (submittedProposal) {
-      return {
-        id: submittedProposal.id,
-        projectId: submittedProposal.projectId,
-        sourceResourceId: submittedProposal.sourceResourceId,
-        sourcePublishedContentId: submittedProposal.sourcePublishedContentId,
-        status: submittedProposal.status,
-        cloneResourceId: submittedProposal.cloneResourceId,
-        cloneContentId: null,
-      };
-    }
-
-    // An active row without either a draft or a submitted version is orphaned.
-    // Return no active workspace; createProposal will close it with an audit
-    // event before creating a replacement.
+    // An active row without a resumable draft or a frozen submitted version
+    // is orphaned. Return no active workspace so it can be recovered safely.
     return null;
   }
 
