@@ -200,6 +200,8 @@ export const WorkspaceNavigation = () => {
     data: searchData,
     isLoading: deepSearchLoading,
     isError: searchError,
+    error: deepSearchError,
+    refetch: retryDeepSearch,
   } = useQuery(
     searchOptions.queryKey,
     searchOptions.queryFn,
@@ -411,7 +413,17 @@ export const WorkspaceNavigation = () => {
               )}
               <Box sx={{ overflowY: 'auto', minHeight: 0, flex: 1 }}>
               {isLoading && <Typography level="body-sm" sx={{ p: 1.5 }}>Recherche dans les contenus…</Typography>}
-              {searchError && <Typography level="body-sm" color="danger" sx={{ p: 1.5 }}>Recherche indisponible pour le moment. Réessayez ou ouvrez la page de résultats.</Typography>}
+              {searchError && (
+                <Stack spacing={0.75} sx={{ p: 1.5 }}>
+                  <Typography level="body-sm" color="danger">
+                    Recherche indisponible pour le moment.
+                    {deepSearchError instanceof Error ? ` ${deepSearchError.message}` : ''}
+                  </Typography>
+                  <Button size="sm" variant="outlined" color="neutral" onClick={() => void retryDeepSearch()}>
+                    Réessayer
+                  </Button>
+                </Stack>
+              )}
               {!isLoading && results.length === 0 && (
                 <Typography level="body-sm" sx={{ p: 1.5 }}>
                   Aucun résultat correspondant dans ce type de contenu.
