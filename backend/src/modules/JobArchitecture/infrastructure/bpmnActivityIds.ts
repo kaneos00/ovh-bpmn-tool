@@ -50,7 +50,11 @@ export function extractBpmnActivityIds(xml: string): Set<string> {
       value as Record<string, unknown>,
     )) {
       const localName = qualifiedName.split(':').pop() ?? qualifiedName;
-      if (BPMN_ACTIVITY_NAMES.has(localName) && child && typeof child === 'object') {
+      if (
+        BPMN_ACTIVITY_NAMES.has(localName) &&
+        child &&
+        typeof child === 'object'
+      ) {
         const id = (child as Record<string, unknown>)['@_id'];
         if (typeof id === 'string' && id.trim()) ids.add(id);
       }
