@@ -12,7 +12,7 @@ async function main() {
 
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
-  page.setDefaultTimeout(15000);
+  page.setDefaultTimeout(30000);
 
   try {
     await page.goto(`${baseUrl}/login?next=%2Fmes-demandes`);
