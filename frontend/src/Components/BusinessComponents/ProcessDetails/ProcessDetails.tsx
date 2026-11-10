@@ -58,6 +58,12 @@ type ViewerRemark = {
   id: string;
   elementId: string;
   status: 'pending' | 'accepted' | 'rejected';
+  comment?: string;
+  authorName?: string;
+  createdAt?: string;
+  decisionComment?: string | null;
+  decisionByName?: string | null;
+  awaitingAuthorResponse?: boolean;
 };
 
 type ActiveProcessProposal = {
@@ -436,9 +442,9 @@ export const ProcessDetails = ({
   }, [taskPanelWidth]);
 
   useEffect(() => {
-    // The element sheet follows the BPMN selection: open on selection,
-    // close again as soon as the selected element is cleared.
-    setTaskPanelCollapsed(!selectedElementId);
+    // Open the right panel when an element is selected, but do not collapse it
+    // when the selection is cleared or changed. The user controls its visibility.
+    if (selectedElementId) setTaskPanelCollapsed(false);
   }, [selectedElementId]);
 
   useEffect(() => () => {
@@ -514,6 +520,9 @@ export const ProcessDetails = ({
   );
   const selectedTaskRaciCells =
     selectedTaskRaci?.cells.filter(cell => cell.codes.length) ?? [];
+  const selectedElementRemarks = selectedElementId
+    ? viewerRemarks.filter(remark => remark.elementId === selectedElementId)
+    : viewerRemarks;
 
   useEffect(() => {
     setIsEditingDescription(false);
@@ -1035,6 +1044,48 @@ export const ProcessDetails = ({
                         )}
                         {!isEditingDescription && !selectedTask.externalUrl && (
                           <Typography level="body-sm" textColor="neutral">Aucune URL renseignée.</Typography>
+                        )}
+                      </Stack>
+
+                      <Divider />
+                      <Stack spacing={1}>
+                        <Typography level="title-sm">
+                          4. Remarques ({selectedElementRemarks.length})
+                        </Typography>
+                        {selectedElementRemarks.length > 0 ? (
+                          selectedElementRemarks.map(remark => (
+                            <Sheet key={remark.id} variant="soft" sx={{ p: 1.25, borderRadius: 'sm' }}>
+                              <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+                                <Typography level="body-xs" textColor="neutral">
+                                  {remark.authorName || 'Auteur'}{remark.createdAt ? ` · ${new Date(remark.createdAt).toLocaleString('fr-FR')}` : ''}
+                                </Typography>
+                                <Chip
+                                  size="sm"
+                                  color={remark.status === 'accepted' ? 'success' : remark.status === 'rejected' ? 'danger' : 'warning'}
+                                  variant="soft"
+                                >
+                                  {remark.status === 'accepted' ? 'Acceptée' : remark.status === 'rejected' ? 'Refusée' : 'À traiter'}
+                                </Chip>
+                              </Stack>
+                              <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', mt: 0.75 }}>
+                                {remark.comment || 'Texte de remarque indisponible.'}
+                              </Typography>
+                              {remark.awaitingAuthorResponse && (
+                                <Typography level="body-xs" color="warning" sx={{ mt: 0.75 }}>
+                                  Précision demandée : en attente de la réponse de l’auteur.
+                                </Typography>
+                              )}
+                              {remark.decisionComment && (
+                                <Typography level="body-xs" textColor="neutral" sx={{ mt: 0.75, whiteSpace: 'pre-wrap' }}>
+                                  Décision{remark.decisionByName ? ` de ${remark.decisionByName}` : ''} : {remark.decisionComment}
+                                </Typography>
+                              )}
+                            </Sheet>
+                          ))
+                        ) : (
+                          <Typography level="body-sm" textColor="neutral">
+                            Aucune remarque pour cet élément.
+                          </Typography>
                         )}
                       </Stack>
                     </>
