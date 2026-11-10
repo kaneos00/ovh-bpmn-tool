@@ -110,7 +110,7 @@ export const Component = () => {
     const params = new URLSearchParams(location.search);
     let needsRedirect = routeResourceId !== proposalContext.cloneResourceId;
     if (params.get('sourceResourceId') !== proposalContext.sourceResourceId) {
-      params.set('sourceResourceId', proposalWorkspace.sourceResourceId);
+      params.set('sourceResourceId', proposalContext.sourceResourceId);
       needsRedirect = true;
     }
     if (!params.get('contentId')) {
