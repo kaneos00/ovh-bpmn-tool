@@ -42,7 +42,8 @@ type CustomSection = {
 };
 
 type FunctionDocument = JobFunction & {
-  attachment: string | null;
+  reportingLine: string | null;
+  otherTitles: string[];
   documentDate: string | null;
   documentVersion: string | null;
   establishedBy: string | null;
