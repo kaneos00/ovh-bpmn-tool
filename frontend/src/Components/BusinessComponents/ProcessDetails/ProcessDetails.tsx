@@ -116,6 +116,20 @@ type ProcessDetailsProps = {
   requestedRaciView?: boolean;
 };
 
+const BPMN_ACTIVITY_TYPES = new Set([
+  'task',
+  'userTask',
+  'serviceTask',
+  'manualTask',
+  'scriptTask',
+  'businessRuleTask',
+  'sendTask',
+  'receiveTask',
+  'callActivity',
+  'subProcess',
+  'transaction',
+]);
+
 const PROCESS_METADATA_NS = 'https://ovh-bpmn-tool.local/schema/process-metadata';
 const PROCESS_TYPES = [
   { value: 'management', label: 'Management', color: 'primary' as const },
@@ -561,6 +575,9 @@ export const ProcessDetails = ({
   const selectedTaskRaci = useMemo(
     () => raciMatrix.activities.find(activity => activity.elementId === selectedElementId),
     [raciMatrix.activities, selectedElementId],
+  );
+  const selectedTaskIsBpmnActivity = Boolean(
+    selectedTask && BPMN_ACTIVITY_TYPES.has(selectedTask.type),
   );
   const selectedTaskRaciCells =
     selectedTaskRaci?.cells.filter(cell => cell.codes.length) ?? [];
@@ -1042,7 +1059,7 @@ export const ProcessDetails = ({
                             </Stack>
                           </Stack>
                         ))}
-                        {isEditingDescription && !selectedTaskRaci && (
+                        {isEditingDescription && !selectedTaskIsBpmnActivity && (
                           <Typography level="body-sm" textColor="neutral">Le RACI est disponible pour les activités BPMN.</Typography>
                         )}
                         {isEditingDescription && selectedTaskRaci && raciMatrix.roles.length === 0 && (
@@ -1054,12 +1071,12 @@ export const ProcessDetails = ({
                             <Typography level="title-sm">{cell.codes.join(' / ')}</Typography>
                           </Stack>
                         ))}
-                        {!isEditingDescription && !selectedTaskRaci && (
+                        {!isEditingDescription && !selectedTaskIsBpmnActivity && (
                           <Typography level="body-sm" textColor="neutral">
                             Le RACI n'est disponible que pour les activités BPMN.
                           </Typography>
                         )}
-                        {!isEditingDescription && selectedTaskRaci && selectedTaskRaciCells.length === 0 && (
+                        {!isEditingDescription && selectedTaskIsBpmnActivity && selectedTaskRaciCells.length === 0 && (
                           <Typography level="body-sm" textColor="neutral">
                             Aucun rôle RACI renseigné pour cette activité.
                           </Typography>
