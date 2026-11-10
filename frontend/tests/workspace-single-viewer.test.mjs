@@ -219,4 +219,7 @@ test('open proposal notices and remarks are scoped to the exact project process 
   assert.match(details, /activeProposal\.sourceResourceId === resourceId/);
   assert.match(details, /activeProposal\.sourcePublishedContentId === viewerContent\?\.id/);
   assert.match(details, /currentActiveProposal\?\.id/);
+  assert.match(details, /isFetching: activeProposalFetching/);
+  assert.match(details, /currentActiveProposal && !activeProposalFetching && !isHistoricalView/);
+  assert.match(details, /activeProposalFetching \|\| isHistoricalView/);
 });
