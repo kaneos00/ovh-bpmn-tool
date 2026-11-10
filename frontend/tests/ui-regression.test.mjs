@@ -345,7 +345,10 @@ test('V3 explorer exposes administrator management actions and their routes', as
   assert.ok(processActions.includes('Ouvrir le modeleur BPMN'));
   assert.ok(!processActions.includes('Comments'));
   assert.ok(!processActions.includes('Edit Business Process'));
-  assert.ok(folderActions.includes('=> null'));
+  assert.ok(folderActions.includes('Nouveau dossier'));
+  assert.ok(folderActions.includes('Nouveau processus'));
+  assert.ok(folderActions.includes('canCreateFolder &&'));
+  assert.ok(folderActions.includes('canCreateProcess && projectId'));
 });
 
 
@@ -396,7 +399,8 @@ test('viewer keeps the explorer left of the tabs and the element sheet beside th
   assert.ok(processWorkspace > processTab && diagram > processWorkspace && taskPanel > diagram && workspaceClose > taskPanel && processTabClose > workspaceClose, 'the BPMN diagram and element sheet must be siblings inside the Vue du processus tab');
   assert.ok(details.slice(processTab, processTabClose).includes('className="processViewerResizeHandle"'), 'the element sheet resize handle must stay with the process workspace');
   assert.ok(details.includes('const [taskPanelCollapsed, setTaskPanelCollapsed] = useState(true)'), 'element sheet must start collapsed');
-  assert.ok(details.includes('setTaskPanelCollapsed(!selectedElementId)'), 'element sheet must open for a selected BPMN element and close when selection clears');
+  assert.ok(details.includes('if (selectedElementId) setTaskPanelCollapsed(false)'), 'selecting a BPMN element must open the element sheet');
+  assert.ok(!details.includes('setTaskPanelCollapsed(!selectedElementId)'), 'clearing selection must not override the user-controlled panel visibility');
   const styles = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.scss');
   const processWorkspaceStyles = styles.slice(styles.indexOf('.processViewerProcessWorkspace {'), styles.indexOf('.processViewerDiagram {'));
   const diagramStyles = styles.slice(styles.indexOf('.processViewerDiagram {'), styles.indexOf('.processViewerDiagramHeader {'));
@@ -547,8 +551,8 @@ test('legacy content-viewer URLs preserve the requested version in the canonical
   assert.match(routes, /path: '\/:resourceId\/viewer\/:contentId'[\s\S]*?loader:/);
   assert.ok(routes.includes("url.searchParams.set('contentId', params.contentId ?? '')"));
   assert.ok(routes.includes('url.searchParams.toString()'));
-  assert.match(details, /const viewerContent = selectedContentId\s*\?\s*contents\.find\(/);
-  assert.match(details, /:\s*publishedContent;/);
+  assert.match(details, /let viewerContent = publishedContent \?\? undefined;/);
+  assert.match(details, /if \(selectedContentId\) \{[\s\S]*?viewerContent = contents\.find\(content => content\.id === selectedContentId\)/);
   assert.match(details, /selectedContentId && \(!viewerContent \|\| viewerContent\.id !== publishedContent\?\.id\)/);
   assert.ok(!details.includes(') ?? publishedContent;'));
 });
@@ -565,10 +569,9 @@ test('ProcessDetails distinguishes an unavailable requested version from a proce
 test('ProcessDetails never falls back to latest published content for an explicit missing or historical contentId', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
 
-  assert.match(details, /const viewerContent = selectedContentId\s*\?\s*contents\.find\(/);
-  assert.match(details, /:\s*publishedContent;/);
-  assert.match(details, /selectedContentId && \(!viewerContent \|\| viewerContent\.id !== publishedContent\?\.id\)/);
-  assert.ok(!details.includes(') ?? publishedContent;'));
+  assert.match(details, /if \(selectedContentId\) \{[\s\S]*?viewerContent = contents\.find\(content => content\.id === selectedContentId\)/);
+  assert.match(details, /const isHistoricalView = Boolean\([\s\S]*?selectedContentId && \(!viewerContent \|\| viewerContent\.id !== publishedContent\?\.id\)/);
+  assert.match(details, /else if \(!viewerContent && isProjectVariant\)/);
 });
 
 test('V3 exposes one process viewer and redirects legacy content-viewer URLs', async () => {
