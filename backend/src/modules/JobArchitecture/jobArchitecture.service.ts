@@ -527,7 +527,9 @@ export class JobArchitectureService {
         where: { id: raciActorId, projectId, active: true },
       }),
     ]);
-    if (!position) throw new NotFoundException('Project job position not found');
+    if (!position) {
+      throw new NotFoundException('Project job position not found');
+    }
     if (!actor) {
       throw new NotFoundException(
         'Active RACI actor not found in this project',
@@ -565,7 +567,9 @@ export class JobArchitectureService {
     const position = await this.positions.findOne({
       where: { id: positionId, projectId, active: true },
     });
-    if (!position) throw new NotFoundException('Project job position not found');
+    if (!position) {
+      throw new NotFoundException('Project job position not found');
+    }
 
     const resourceId = this.requiredText(input.resourceId, 'resourceId', 36);
     const taskId = this.requiredText(input.taskId, 'taskId', 255);
@@ -575,9 +579,7 @@ export class JobArchitectureService {
       this.positionBlocks.findOne({ where: { positionId, blockId } }),
     ]);
     if (!process) {
-      throw new NotFoundException(
-        'BPMN process is not linked to this project',
-      );
+      throw new NotFoundException('BPMN process is not linked to this project');
     }
     if (
       !positionBlock ||
