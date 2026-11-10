@@ -10,7 +10,7 @@ export const nameValidation = z
   .trim()
   .min(1)
   .max(255)
-  .regex(/^[\\p{L}\\p{M}\\p{N} .,:%_*|+=\\/&@$#<>’'()[\\]{}!?;–—-]+$/u);
+  .regex(/^[\p{L}\p{M}\p{N} .,:%_*|+=\/&@$#<>’'()[\]{}!?;–—-]+$/u);
 
 export interface ResourceNameProps {
   value: string;
