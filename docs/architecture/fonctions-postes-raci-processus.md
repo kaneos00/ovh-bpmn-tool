@@ -128,19 +128,18 @@ La première tranche de développement de la PR #167 fournit une base utile, mai
 | `JobFunction` | À conserver comme référentiel de **fiche de fonction**. |
 | `ProjectJobPosition` | À comprendre et, si nécessaire, renommer conceptuellement en **poste organisationnel de projet**. Ce n'est pas une fiche de poste RH individuelle. |
 | `PositionCompetencyBlocks` et exigences de compétences | À conserver pour la déclinaison contextualisée des blocs et niveaux attendus. |
-| `PositionRaciActorMapping` | Point à revoir : le RACI doit être rattaché sémantiquement aux fonctions ou rôles organisationnels. Le lien actuel avec les acteurs RACI existants peut servir de correspondance de transition, mais ne doit pas faire du poste individuel ou du titulaire la source des responsabilités. |
+| `PositionRaciActorMapping` | Correspondance explicite entre un poste organisationnel de projet et un acteur (rôle/libellé) du registre RACI du même projet. Plusieurs postes peuvent référencer le même acteur ; un même poste peut référencer plusieurs acteurs. Ce mapping ne crée ni ne modifie les affectations RACI aux tâches et ne désigne aucun titulaire. |
 | `PositionActivityMapping` | À conserver comme association explicite entre un poste/rôle organisationnel, un bloc applicable et une activité BPMN. Vérifier la cohérence avec le RACI sans modifier les XML sources. |
 | Affectation nominative | À ajouter dans un modèle distinct de gestion des affectations et fiches de poste individuelles. |
 | Organigramme | À ajouter comme capacité distincte représentant les relations hiérarchiques entre postes organisationnels. |
 
 ### Point d'attention sur le RACI existant
 
-Le modèle actuel de la PR #167 relie une déclinaison de poste projet à un acteur RACI du projet. Ce mécanisme est une correspondance technique avec l'existant, mais il ne suffit pas à définir la bonne sémantique cible.
+Le modèle de la PR #167 relie un poste organisationnel de projet à un acteur du registre RACI du même projet. L'acteur est un rôle/libellé (et non une personne), utilisé par les lignes RACI pour désigner les responsabilités sur les tâches. La correspondance est explicite et indépendante des affectations aux tâches.
 
-Il faudra vérifier comment les acteurs RACI existants représentent aujourd'hui les fonctions ou rôles, puis faire évoluer le mapping pour que :
-- la responsabilité RACI reste portée par une fonction ou un rôle organisationnel ;
-- un poste organisationnel contextualise ce rôle dans un projet si nécessaire ;
-- une personne puisse être affectée ou remplacée sans réécriture du RACI.
+La cardinalité est volontairement plusieurs-à-plusieurs : un poste peut être associé à plusieurs acteurs RACI et un même acteur peut être partagé par plusieurs postes organisationnels. Cette possibilité évite de dupliquer artificiellement un rôle commun. Le mapping ne modifie ni les acteurs, ni les lignes de la matrice RACI, ni les titulaires des postes.
+
+Cette correspondance constitue une déclinaison de projet du rôle organisationnel ; elle ne remplace pas à elle seule le référentiel commun des fonctions. Une personne pourra être affectée ou remplacée sans réécriture du RACI.
 
 Aucune modification des tables RACI existantes ni des XML BPMN ne doit être introduite implicitement dans ce travail.
 
