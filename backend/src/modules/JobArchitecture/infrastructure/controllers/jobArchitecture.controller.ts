@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
   Param,
@@ -82,6 +83,39 @@ export class JobArchitectureController {
     );
   }
 
+
+
+  @Delete('projects/:projectId/job-positions/:positionId/raci-actors/:mappingId')
+  @UseAcl([UserGroup.RW])
+  removePositionRaciActor(
+    @Param('projectId') projectId: string,
+    @Param('positionId') positionId: string,
+    @Param('mappingId') mappingId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    return this.jobArchitecture.removePositionRaciActor(
+      projectId,
+      positionId,
+      mappingId,
+      headers,
+    );
+  }
+
+  @Delete('projects/:projectId/job-positions/:positionId/activity-mappings/:mappingId')
+  @UseAcl([UserGroup.RW])
+  removePositionActivityMapping(
+    @Param('projectId') projectId: string,
+    @Param('positionId') positionId: string,
+    @Param('mappingId') mappingId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    return this.jobArchitecture.removePositionActivityMapping(
+      projectId,
+      positionId,
+      mappingId,
+      headers,
+    );
+  }
 
   @Get('projects/:projectId/job-positions/:positionId/mappings')
   @UseAcl()

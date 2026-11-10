@@ -436,6 +436,22 @@ export class JobArchitectureService {
       };
     });
 
+    const excludedBlockIds = normalized
+      .filter((item) =>
+        ['not_applicable', 'not_assessed'].includes(item.applicability),
+      )
+      .map((item) => item.blockId);
+    if (excludedBlockIds.length) {
+      const linkedActivities = await this.activityMappings.find({
+        where: excludedBlockIds.map((blockId) => ({ positionId, blockId })),
+      });
+      if (linkedActivities.length) {
+        throw new BadRequestException(
+          'Remove activity mappings before marking their competency block as non-applicable or not assessed',
+        );
+      }
+    }
+
     const byBlockId = new Map(normalized.map((item) => [item.blockId, item]));
     const rows = functionLinks.map(
       (link) =>
@@ -452,8 +468,20 @@ export class JobArchitectureService {
       const repository = manager.getRepository(
         PositionCompetencyBlockTypeOrmEntity,
       );
-      await repository.delete({ positionId });
-      return repository.save(repository.create(rows));
+      const existingRows = await repository.find({ where: { positionId } });
+      const existingByBlockId = new Map(
+        existingRows.map((row) => [row.blockId, row]),
+      );
+      const rowsToSave = rows.map((row) => {
+        const existing = existingByBlockId.get(row.blockId);
+        return existing
+          ? repository.merge(existing, {
+              applicability: row.applicability,
+              requiredLevel: row.requiredLevel,
+            })
+          : repository.create(row);
+      });
+      return repository.save(rowsToSave);
     });
   }
 
@@ -567,6 +595,51 @@ export class JobArchitectureService {
         createdBy: userId,
       }),
     );
+  }
+
+
+  async removePositionRaciActor(
+    projectId: string,
+    positionId: string,
+    mappingId: string,
+    headers: RequestHeaders,
+  ) {
+    await this.projectAccess.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Modeler,
+    );
+    const result = await this.raciMappings.delete({
+      id: mappingId,
+      projectId,
+      positionId,
+    });
+    if (!result.affected) {
+      throw new NotFoundException('RACI actor mapping not found');
+    }
+    return { deleted: true };
+  }
+
+  async removePositionActivityMapping(
+    projectId: string,
+    positionId: string,
+    mappingId: string,
+    headers: RequestHeaders,
+  ) {
+    await this.projectAccess.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Modeler,
+    );
+    const result = await this.activityMappings.delete({
+      id: mappingId,
+      projectId,
+      positionId,
+    });
+    if (!result.affected) {
+      throw new NotFoundException('Activity mapping not found');
+    }
+    return { deleted: true };
   }
 
   async getProjectConsistencyDiagnostics(
