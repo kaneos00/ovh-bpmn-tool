@@ -8,6 +8,7 @@ This bounded context owns structured job-function documents, competency definiti
 - Project positions and their competency applicability are owned by this module.
 - Project membership and authorization are delegated to the existing ProjectContext access service.
 - RACI actors and BPMN resources remain owned by their existing modules. Mapping entities hold references only; they do not copy or update source records or BPMN XML.
+- A new BPMN activity mapping is accepted only when its `taskId` exists as an activity ID in the latest published XML for the linked resource. Missing publication, malformed XML, unknown IDs and IDs belonging to non-activity elements are rejected.
 - The function document is independent of a named incumbent and of a specific project.
 
 ## Structured function document
