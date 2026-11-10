@@ -2,7 +2,8 @@
 -- Additive migration. Version approval workflow and document exports remain phase 2.
 
 ALTER TABLE job_functions
-  ADD COLUMN IF NOT EXISTS attachment varchar(255),
+  ADD COLUMN IF NOT EXISTS "reportingLine" varchar(255),
+  ADD COLUMN IF NOT EXISTS "otherTitles" jsonb NOT NULL DEFAULT '[]'::jsonb,
   ADD COLUMN IF NOT EXISTS "documentDate" date,
   ADD COLUMN IF NOT EXISTS "documentVersion" varchar(32),
   ADD COLUMN IF NOT EXISTS "establishedBy" varchar(255),
