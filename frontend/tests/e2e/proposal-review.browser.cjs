@@ -96,15 +96,52 @@ async function main() {
     // common source or an empty Viewer.
     await reviewerPage.goto(`${baseUrl}/${variantResourceId}`);
     await reviewerPage.waitForTimeout(2000);
-    const variantDiagnostics = await reviewerPage.evaluate(async resourceId => {
-      const [resourceResponse, contentsResponse] = await Promise.all([
+    const variantDiagnostics = await reviewerPage.evaluate(async ({ resourceId, sourceResourceId }) => {
+      const [resourceResponse, contentsResponse, sourceContentsResponse] = await Promise.all([
         fetch(`/bpmn-api/resources/${resourceId}`, { credentials: 'same-origin' }),
         fetch(`/bpmn-api/resources/${resourceId}/contents`, { credentials: 'same-origin' }),
+        fetch(`/bpmn-api/resources/${sourceResourceId}/contents`, { credentials: 'same-origin' }),
       ]);
-      const [resource, contents] = await Promise.all([
+      const [resource, contents, sourceContents] = await Promise.all([
         resourceResponse.json().catch(() => null),
         contentsResponse.json().catch(() => null),
+        sourceContentsResponse.json().catch(() => null),
       ]);
+      const variantPublished = Array.isArray(contents)
+        ? contents.find(content => content.status === 'published')
+        : null;
+      const sourcePublished = Array.isArray(sourceContents)
+        ? sourceContents.find(content => content.status === 'published')
+        : null;
+      const readXml = async (id, contentId) => {
+        const response = await fetch(
+          `/bpmn-api/resources/${id}/contents/${contentId}/content`,
+          { credentials: 'same-origin' },
+        );
+        const body = await response.text();
+        let xml = body;
+        try {
+          const parsed = JSON.parse(body);
+          if (typeof parsed === 'string') xml = parsed;
+        } catch {
+          // The endpoint may return the BPMN XML directly as text.
+        }
+        return { status: response.status, xml };
+      };
+      const [variantXml, sourceXml] = variantPublished && sourcePublished
+        ? await Promise.all([
+          readXml(resourceId, variantPublished.id),
+          readXml(sourceResourceId, sourcePublished.id),
+        ])
+        : [null, null];
+      const parsedXml = variantXml?.xml
+        ? new DOMParser().parseFromString(variantXml.xml, 'application/xml')
+        : null;
+      const expectedLabels = parsedXml
+        ? Array.from(parsedXml.getElementsByTagName('*'))
+          .map(element => element.getAttribute('name'))
+          .filter(Boolean)
+        : [];
       return {
         resourceStatus: resourceResponse.status,
         resourceName: resource?.name ?? null,
@@ -112,6 +149,13 @@ async function main() {
         contentVersions: Array.isArray(contents)
           ? contents.map(content => ({ id: content.id, status: content.status, version: content.version }))
           : contents,
+        variantContentId: variantPublished?.id ?? null,
+        sourceContentId: sourcePublished?.id ?? null,
+        variantXmlStatus: variantXml?.status ?? null,
+        sourceXmlStatus: sourceXml?.status ?? null,
+        variantXml: variantXml?.xml ?? null,
+        sourceXml: sourceXml?.xml ?? null,
+        expectedLabels,
         canvasCount: document.querySelectorAll('.djs-container').length,
         elementCount: document.querySelectorAll('.djs-element').length,
         diagramText: Array.from(document.querySelectorAll('.djs-container text'))
@@ -119,7 +163,7 @@ async function main() {
           .join(' '),
         bodyText: document.body.innerText.slice(0, 3000),
       };
-    }, variantResourceId);
+    }, { resourceId: variantResourceId, sourceResourceId });
     assert.equal(
       variantDiagnostics.resourceStatus,
       200,
@@ -130,11 +174,32 @@ async function main() {
       200,
       `Variant contents lookup failed: ${JSON.stringify(variantDiagnostics)}`,
     );
-    assert.match(
-      variantDiagnostics.diagramText,
-      /Revoir la demande/,
-      `The project variant did not render its own BPMN labels: ${JSON.stringify(variantDiagnostics)}`,
+    assert.ok(
+      variantDiagnostics.variantContentId,
+      `The variant has no published BPMN content: ${JSON.stringify(variantDiagnostics)}`,
     );
+    assert.notEqual(
+      variantDiagnostics.variantContentId,
+      variantDiagnostics.sourceContentId,
+      'The variant must own a distinct content version rather than reuse the source content row',
+    );
+    assert.equal(variantDiagnostics.variantXmlStatus, 200, 'The variant BPMN XML could not be loaded');
+    assert.equal(variantDiagnostics.sourceXmlStatus, 200, 'The source BPMN XML could not be loaded');
+    assert.equal(
+      variantDiagnostics.variantXml,
+      variantDiagnostics.sourceXml,
+      'A newly created variant must begin as an exact copy of the published source BPMN',
+    );
+    assert.ok(
+      variantDiagnostics.expectedLabels.length > 0,
+      'The copied variant BPMN contains no named elements',
+    );
+    for (const label of variantDiagnostics.expectedLabels) {
+      assert.ok(
+        variantDiagnostics.diagramText.includes(label),
+        `The Viewer did not render the variant BPMN label "${label}": ${JSON.stringify(variantDiagnostics)}`,
+      );
+    }
 
     // Exercise the header's quick search against the seeded published process.
     // The results page uses the same API and serves as the comparison path.
