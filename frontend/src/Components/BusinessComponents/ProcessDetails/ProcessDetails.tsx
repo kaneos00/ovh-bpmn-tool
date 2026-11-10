@@ -1008,9 +1008,14 @@ export const ProcessDetails = ({
                             <Typography level="title-sm">{cell.codes.join(' / ')}</Typography>
                           </Stack>
                         ))}
-                        {!isEditingDescription && selectedTaskRaciCells.length === 0 && (
+                        {!isEditingDescription && !selectedTaskRaci && (
                           <Typography level="body-sm" textColor="neutral">
-                            Aucun rôle RACI détecté pour cette tâche.
+                            Le RACI n'est disponible que pour les activités BPMN.
+                          </Typography>
+                        )}
+                        {!isEditingDescription && selectedTaskRaci && selectedTaskRaciCells.length === 0 && (
+                          <Typography level="body-sm" textColor="neutral">
+                            Aucun rôle RACI renseigné pour cette activité.
                           </Typography>
                         )}
                         <Typography level="body-xs" textColor="neutral">
