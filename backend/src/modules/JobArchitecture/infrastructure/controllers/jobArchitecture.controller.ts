@@ -103,11 +103,7 @@ export class JobArchitectureController {
     },
     @Headers() headers: RequestHeaders,
   ) {
-    return this.jobArchitecture.createProjectPosition(
-      projectId,
-      body,
-      headers,
-    );
+    return this.jobArchitecture.createProjectPosition(projectId, body, headers);
   }
 
   @Patch('projects/:projectId/job-positions/:positionId/competency-blocks')

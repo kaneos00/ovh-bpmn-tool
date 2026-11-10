@@ -78,8 +78,8 @@ export class JobArchitectureService {
       ...jobFunction,
       competencyBlocks: (linksByFunction.get(jobFunction.id) ?? [])
         .map((link) => blockById.get(link.blockId))
-        .filter(
-          (block): block is CompetencyBlockTypeOrmEntity => Boolean(block),
+        .filter((block): block is CompetencyBlockTypeOrmEntity =>
+          Boolean(block),
         )
         .map((block) => ({
           ...block,
@@ -108,9 +108,7 @@ export class JobArchitectureService {
       );
     } catch (error) {
       if ((error as { code?: string }).code === '23505') {
-        throw new ConflictException(
-          'A function with this code already exists',
-        );
+        throw new ConflictException('A function with this code already exists');
       }
       throw error;
     }
@@ -227,10 +225,7 @@ export class JobArchitectureService {
     }
   }
 
-  async listProjectPositions(
-    projectId: string,
-    headers: RequestHeaders,
-  ) {
+  async listProjectPositions(projectId: string, headers: RequestHeaders) {
     await this.projectAccess.assertProjectRole(
       projectId,
       headers,
