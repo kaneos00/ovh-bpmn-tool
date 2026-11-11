@@ -32,6 +32,14 @@ test('modeler remark descriptions show BPMN element names while retaining IDs as
   assert.match(remarks, /title=\{remark\.elementId\}/);
 });
 
+test('proposal publication surfaces precise API validation and permission errors', async () => {
+  const container = await read('src/Containers/ContentModeler/ContentModeler.container.tsx');
+
+  assert.match(container, /const getApiErrorMessage = \(error: unknown, fallback: string\)/);
+  assert.match(container, /errorResponse\?\.message/);
+  assert.match(container, /getApiErrorMessage\(error, 'Impossible de publier la version approuvée\.'/);
+});
+
 test('remark workflow preserves proposal scope, BPMN element identity and event-thread history', () => {
   assert.match(remarks, /process-change-proposals\/\$\{proposalId\}\/comments/);
   assert.match(remarks, /elementId: selectedElementId/);
