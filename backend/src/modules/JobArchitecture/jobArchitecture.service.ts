@@ -909,9 +909,14 @@ export class JobArchitectureService {
       : [];
 
     const activePositionIds = new Set(positions.map((position) => position.id));
-    // A mapping to an archived position cannot establish current RACI coverage.
-    const currentRaciMappings = raciMappings.filter((mapping) =>
-      activePositionIds.has(mapping.positionId),
+    const activeActorIds = new Set(
+      actors.filter((actor) => actor.active).map((actor) => actor.id),
+    );
+    // Only links to active positions and active registry actors establish current coverage.
+    const currentRaciMappings = raciMappings.filter(
+      (mapping) =>
+        activePositionIds.has(mapping.positionId) &&
+        activeActorIds.has(mapping.raciActorId),
     );
     const mappedActorIds = new Set(
       currentRaciMappings.map((mapping) => mapping.raciActorId),
