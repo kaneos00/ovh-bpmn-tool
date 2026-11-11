@@ -40,8 +40,12 @@ export class ResourceTypeOrmRepository implements ResourceRepository {
 
   async delete(resourceId: string): Promise<Result<boolean, Error>> {
     try {
-      const resourceTree: Array<{ id: string }> =
-        await this.resourceRepository.query(
+      // Project-process links use ON DELETE RESTRICT in the shared-process
+      // schema. Remove links for the complete descendant tree in the same
+      // transaction as the resources, so a failed delete cannot orphan the
+      // project workspace or leave a resource half-deleted.
+      await this.resourceRepository.manager.transaction(async (manager) => {
+        const resourceTree: Array<{ id: string }> = await manager.query(
           `WITH RECURSIVE resource_tree AS (
              SELECT id
              FROM resources
@@ -56,23 +60,31 @@ export class ResourceTypeOrmRepository implements ResourceRepository {
           [resourceId],
         );
 
-      if (!resourceTree?.length) {
-        return fail(new Error('Error while deleting resource'));
-      }
+        if (!resourceTree?.length) {
+          throw new Error('Resource not found');
+        }
 
-      const deletedResource = await this.resourceRepository.delete(
-        resourceTree.map(({ id }) => id),
-      );
+        const resourceIds = resourceTree.map(({ id }) => id);
+        await manager.query(
+          'DELETE FROM project_processes WHERE "resourceId" = ANY($1::uuid[])',
+          [resourceIds],
+        );
+        const deletedResources: Array<{ id: string }> = await manager.query(
+          'DELETE FROM resources WHERE id = ANY($1::uuid[]) RETURNING id',
+          [resourceIds],
+        );
 
-      if (!deletedResource?.affected || deletedResource.affected < 1) {
-        return fail(new Error('Error while deleting resource'));
-      }
+        if (!deletedResources?.length) {
+          throw new Error('Error while deleting resource');
+        }
+      });
 
       return ok(true);
     } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
       const errorMsg = 'Error while deleting resource';
-      this.logger.error(`${errorMsg}:`, error);
-      return fail(new Error(errorMsg));
+      this.logger.error(`${errorMsg}: ${detail}`, error);
+      return fail(new Error(`${errorMsg}: ${detail}`));
     }
   }
 
