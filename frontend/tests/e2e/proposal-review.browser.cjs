@@ -64,6 +64,13 @@ async function main() {
     ).waitFor();
 
     await signIn(reviewerPage, reviewerUsername, reviewerPassword);
+    // The source process can be shared by multiple projects. Keep the test in
+    // the project whose variant is being exercised, as a real user would after
+    // selecting that project in the workspace.
+    await reviewerPage.evaluate(
+      projectId => localStorage.setItem('bpmn-tool:active-project', projectId),
+      projectId,
+    );
 
     // Create a real project variant through the public workflow endpoint.
     // This avoids relying on a static fixture that can silently drift from
