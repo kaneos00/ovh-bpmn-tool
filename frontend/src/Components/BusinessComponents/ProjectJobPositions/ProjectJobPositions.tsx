@@ -47,7 +47,7 @@ type ProjectDiagnostics = {
 
 const overlapScore = (left: string, right: string) => {
   const stopWords = new Set(['della', 'delle', 'dello', 'dell', 'degli', 'dalla', 'dalle', 'dallo', 'dai', 'dagli', 'per', 'con', 'una', 'uno', 'che', 'del', 'dei', 'nel', 'nella', 'nelle', 'nello', 'alla', 'alle', 'allo', 'agli', 'the', 'and']);
-  const tokens = (value: string) => new Set(value.toLocaleLowerCase('it').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').split(/[^a-z0-9]+/).filter(token => token.length > 3 && !stopWords.has(token)));
+  const tokens = (value: string) => new Set(value.toLocaleLowerCase('it').normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[^a-z0-9]+/).filter(token => token.length > 3 && !stopWords.has(token)));
   const leftTokens = tokens(left);
   return [...tokens(right)].filter(token => leftTokens.has(token)).length;
 };
@@ -288,11 +288,11 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
               {!(functionsQuery.data ?? []).length && <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Il referenziale non contiene ancora funzioni attive.</Typography>}
             </Stack>
             <Button disabled={!selectedFunctionIds.length || createSelectedPositions.isLoading} loading={createSelectedPositions.isLoading} onClick={() => createSelectedPositions.mutate()}>
-              Aggiungi {selectedFunctionIds.length || ''} funzione/i selezionata/e
+              Ajouter {selectedFunctionIds.length} fonction(s) sélectionnée(s)
             </Button>
           </Card>}
           {canEdit && <Card variant="outlined" sx={{ gap: 1.25 }}>
-            <Typography level="title-lg">Aggiungere un altro poste personnalisé</Typography>
+            <Typography level="title-lg">Ajouter un poste personnalisé</Typography>
             <FormControl>
               <FormLabel>Fonction de référence</FormLabel>
               <Select value={functionId || null} onChange={(_event, value) => {
