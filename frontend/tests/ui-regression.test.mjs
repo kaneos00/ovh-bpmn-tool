@@ -400,8 +400,8 @@ test('viewer keeps the explorer left of the tabs and the element sheet beside th
   assert.ok(processWorkspace > processTab && diagram > processWorkspace && taskPanel > diagram && workspaceClose > taskPanel && processTabClose > workspaceClose, 'the BPMN diagram and element sheet must be siblings inside the Vue du processus tab');
   assert.ok(details.slice(processTab, processTabClose).includes('className="processViewerResizeHandle"'), 'the element sheet resize handle must stay with the process workspace');
   assert.ok(details.includes('const [taskPanelCollapsed, setTaskPanelCollapsed] = useState(true)'), 'element sheet must start collapsed');
-  assert.ok(details.includes('if (selectedElementId) setTaskPanelCollapsed(false)'), 'selecting a BPMN element must open the element sheet');
-  assert.ok(!details.includes('setTaskPanelCollapsed(!selectedElementId)'), 'clearing selection must not override the user-controlled panel visibility');
+  assert.ok(details.includes('setTaskPanelCollapsed(!selectedElementId)'), 'clearing the selection on a second click must close the element sheet');
+  assert.ok(details.includes('second click on the same BPMN element'), 'the panel behavior must preserve the previous second-click interaction');
   const styles = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.scss');
   const processWorkspaceStyles = styles.slice(styles.indexOf('.processViewerProcessWorkspace {'), styles.indexOf('.processViewerDiagram {'));
   const diagramStyles = styles.slice(styles.indexOf('.processViewerDiagram {'), styles.indexOf('.processViewerDiagramHeader {'));
