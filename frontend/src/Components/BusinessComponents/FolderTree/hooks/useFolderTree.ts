@@ -64,7 +64,10 @@ export const useFolderTree = (selectedResourceId: string) => {
   );
 
   const scopedResources = useMemo(() => {
-    if (!effectiveProjectId) return [];
+    // The folder hierarchy is shared, while process visibility is project-scoped.
+    // Keep folders visible even before a project is selected so a successfully
+    // created root folder is not hidden by the empty project scope.
+    if (!effectiveProjectId) return (resources ?? []).filter(item => item.type === ResourceType.Folder);
 
     // The workspace endpoint is the authoritative list of processes attached
     // to a project. The explorer endpoint supplies their folder hierarchy and
@@ -88,6 +91,12 @@ export const useFolderTree = (selectedResourceId: string) => {
 
     const allResources = Array.from(byId.values());
     const allowedIds = new Set(effectiveProcessIds);
+    // Root folders are global navigation nodes, not project-owned resources.
+    // Include them in every project tree; process entries remain restricted to
+    // the selected project's workspace membership.
+    allResources
+      .filter(item => item.type === ResourceType.Folder)
+      .forEach(folder => allowedIds.add(folder.id));
     effectiveProcessIds.forEach(id => {
       let current = byId.get(id);
       while (current?.parentId) {
