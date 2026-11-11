@@ -96,11 +96,15 @@ export class ProjectController {
     const resourceById = new Map(
       resources.map((resource) => [resource.id, resource]),
     );
-    // Proposal workspaces are linked to the project for authorization, but
-    // they are not published business processes and must stay out of the
-    // ordinary project workspace and process explorer.
+    // Proposal workspaces are linked as project-specific resources and point
+    // back to their source resource. Published project variants also carry a
+    // sourceResourceId, but must remain visible in their project workspace.
+    // Exclude only source-linked project-specific proposal workspaces.
     const visibleLinks = links.filter(
-      (link) => !resourceById.get(link.resourceId)?.sourceResourceId,
+      (link) => !(
+        link.usage === ProjectProcessUsage.ProjectSpecific &&
+        resourceById.get(link.resourceId)?.sourceResourceId
+      ),
     );
     const linksByProject = new Map<string, typeof links>();
     for (const link of visibleLinks) {
