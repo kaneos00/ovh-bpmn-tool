@@ -259,6 +259,65 @@ export const useProcessViewer = (
       off: (event: string, listener: (event: any) => void) => void;
     };
     let clickListenerAttached = false;
+    let subprocessPreviewOverlayId: string | number | undefined;
+    const hideSubprocessPreview = () => {
+      if (subprocessPreviewOverlayId === undefined) return;
+      try {
+        (viewer.get('overlays') as any).remove(subprocessPreviewOverlayId);
+      } catch {
+        // The overlay may already have been cleared with the previous import.
+      }
+      subprocessPreviewOverlayId = undefined;
+    };
+    const onElementHover = (event: any) => {
+      const element = event?.element?.labelTarget ?? event?.element;
+      const type = element?.businessObject?.$type ?? element?.type;
+      if (type !== 'bpmn:SubProcess' && type !== 'bpmn:Transaction') return;
+      hideSubprocessPreview();
+
+      const preview = document.createElement('div');
+      preview.className = 'bpmn-subprocess-preview';
+      const title = document.createElement('div');
+      title.className = 'bpmn-subprocess-preview__title';
+      title.textContent = String(element.businessObject?.name || element.id || 'Sous-processus');
+      preview.appendChild(title);
+
+      const containedElements = Array.from(element.businessObject?.flowElements ?? [])
+        .filter((item: any) => item?.$type && !String(item.$type).endsWith('SequenceFlow'));
+      if (containedElements.length) {
+        const list = document.createElement('ol');
+        list.className = 'bpmn-subprocess-preview__list';
+        containedElements.slice(0, 8).forEach((item: any) => {
+          const entry = document.createElement('li');
+          const rawType = String(item.$type).replace(/^bpmn:/, '');
+          entry.textContent = String(item.name || rawType);
+          list.appendChild(entry);
+        });
+        preview.appendChild(list);
+        if (containedElements.length > 8) {
+          const more = document.createElement('div');
+          more.className = 'bpmn-subprocess-preview__more';
+          more.textContent = `+ ${containedElements.length - 8} autres éléments`;
+          preview.appendChild(more);
+        }
+      } else {
+        const empty = document.createElement('div');
+        empty.className = 'bpmn-subprocess-preview__empty';
+        empty.textContent = 'Aucun détail interne disponible dans ce diagramme.';
+        preview.appendChild(empty);
+      }
+
+      const overlays = viewer.get('overlays') as any;
+      subprocessPreviewOverlayId = overlays.add(element, 'subprocess-preview', {
+        position: { top: 0, left: Math.max(0, Number(element.width) + 10) },
+        html: preview,
+      });
+    };
+    const onElementOut = (event: any) => {
+      const element = event?.element?.labelTarget ?? event?.element;
+      const type = element?.businessObject?.$type ?? element?.type;
+      if (type === 'bpmn:SubProcess' || type === 'bpmn:Transaction') hideSubprocessPreview();
+    };
     const onElementClick = (event: any) => {
       const clickedElement = event?.element;
       // diagram-js emits clicks on BPMN labels as separate elements. Resolve
@@ -325,6 +384,8 @@ export const useProcessViewer = (
         // Run before the Viewer drilldown handlers so collapsed SubProcess clicks are not consumed first.
         eventBus.on('element.click', 1500, onElementClick);
         eventBus.on('element.dblclick', onElementDoubleClick);
+        eventBus.on('element.hover', onElementHover);
+        eventBus.on('element.out', onElementOut);
         clickListenerAttached = true;
         const canvas = viewer.get('canvas') as any;
         const elementRegistry = viewer.get('elementRegistry') as any;
@@ -386,7 +447,10 @@ export const useProcessViewer = (
       if (clickListenerAttached) {
         eventBus.off('element.click', onElementClick);
         eventBus.off('element.dblclick', onElementDoubleClick);
+        eventBus.off('element.hover', onElementHover);
+        eventBus.off('element.out', onElementOut);
       }
+      hideSubprocessPreview();
     };
   }, [xmlContent, resourceId, contentId, viewer, isXmlLoading, isXmlError, setMinimapVisibility]);
 
