@@ -83,6 +83,13 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
   // Folders belong to the shared resource hierarchy, so their root-level
   // creation does not depend on a project being selected.
   const canCreateFolderAtRoot = sessionRole === 'admin' || sessionRole === 'modeler';
+  const canCreateFolder = canCreateFolderAtRoot;
+  const canCreateProcess = Boolean(
+    activeProjectId && (
+      sessionRole === 'admin' ||
+      (sessionRole === 'modeler' && (activeProject?.role === 'admin' || activeProject?.role === 'modeler'))
+    ),
+  );
   const canCreateProcessAtRoot = Boolean(
     activeProjectId &&
     (
@@ -339,33 +346,45 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
           Tous les projets
         </Button>
       </Box>
-      {(canCreateFolderAtRoot || canCreateProcessAtRoot) && (
-        <Box sx={{ display: 'flex', gap: 0.75, mb: 1, flexWrap: 'wrap' }}>
-          {canCreateFolderAtRoot && (
-            <Button
-              size="sm"
-              variant="outlined"
-              color="neutral"
-              startDecorator={<CreateNewFolder fontSize="small" />}
-              onClick={() => navigate('/root/add?type=folder')}
-            >
-              Nouveau dossier racine
-            </Button>
-          )}
-          {canCreateProcessAtRoot && activeProjectId && (
-            <Button
-              size="sm"
-              variant="outlined"
-              color="neutral"
-              startDecorator={<AddCircleOutline fontSize="small" />}
-              onClick={() => navigate(`/root/add?type=process&projectId=${encodeURIComponent(activeProjectId)}`)}
-            >
-              Nouveau processus racine
-            </Button>
-          )}
+
+      {view === 'tree' && (
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.75,
+            px: 1,
+            py: 0.85,
+            mb: 0.75,
+            borderRadius: '8px',
+            bgcolor: 'background.level1',
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <FolderOutlined color="primary" fontSize="small" />
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography level="title-sm" noWrap>
+              {activeProject?.name ?? 'Répertoire du projet'}
+            </Typography>
+            <Typography level="body-xs" color="neutral">/root</Typography>
+          </Box>
+          <IconButton
+            size="sm"
+            variant="plain"
+            color="neutral"
+            title="Actions du répertoire du projet"
+            aria-label="Ouvrir les actions du répertoire du projet"
+            onClick={event => {
+              event.preventDefault();
+              event.stopPropagation();
+              setContextMenu({ nodeId: 'root', anchorEl: event.currentTarget });
+            }}
+          >
+            <MoreVert fontSize="small" />
+          </IconButton>
         </Box>
       )}
-
       <Box sx={{ display: 'flex', gap: 0.5, p: 0.5, mb: 1, bgcolor: 'background.level1', borderRadius: '8px' }}>
         {([
           ['tree', 'Arborescence'],
@@ -580,7 +599,36 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
         zIndex: 1500,
       }}
     >
-      {contextMenu && (visibleNodes.find(item => item.id === contextMenu.nodeId) ?? nodeById.get(contextMenu.nodeId)) && (() => {
+      {contextMenu?.nodeId === 'root' && (
+        <>
+          <MenuItem sx={{ gap: 1.25, px: 1.25, py: 0.75, fontSize: 13 }} onClick={() => {
+            setContextMenu(null);
+            onNodeClick('root');
+          }}>
+            <OpenInNew fontSize="small" />
+            Ouvrir le répertoire
+          </MenuItem>
+          {canCreateFolder && (
+            <MenuItem sx={{ gap: 1.25, px: 1.25, py: 0.75, fontSize: 13 }} onClick={() => {
+              setContextMenu(null);
+              navigate('/root/add?type=folder');
+            }}>
+              <CreateNewFolder fontSize="small" />
+              Créer un sous-répertoire
+            </MenuItem>
+          )}
+          {canCreateProcess && activeProjectId && (
+            <MenuItem sx={{ gap: 1.25, px: 1.25, py: 0.75, fontSize: 13 }} onClick={() => {
+              setContextMenu(null);
+              navigate(`/root/add?type=process&projectId=${encodeURIComponent(activeProjectId)}`);
+            }}>
+              <AddCircleOutline fontSize="small" />
+              Créer un processus
+            </MenuItem>
+          )}
+        </>
+      )}
+      {contextMenu?.nodeId !== 'root' && contextMenu && (visibleNodes.find(item => item.id === contextMenu.nodeId) ?? nodeById.get(contextMenu.nodeId)) && (() => {
         const node = (visibleNodes.find(item => item.id === contextMenu.nodeId) ?? nodeById.get(contextMenu.nodeId))!;
         const resourceId = node.targetId ?? node.id;
         const isBpmn = node.type === 'process' || node.type === 'linked-process';
@@ -617,7 +665,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                 Modifier dans le modeleur
               </MenuItem>
             )}
-            {isFolder && isAdmin && (
+            {isFolder && canCreateFolder && (
               <>
                 <Divider sx={{ my: 0.5, mx: 0.75 }} />
                 <MenuItem sx={menuItemSx} onClick={() => {
@@ -625,15 +673,17 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                   navigate(`/${resourceId}/add?type=folder`);
                 }}>
                   <CreateNewFolder fontSize="small" />
-                  Créer un répertoire
+                  Créer un sous-répertoire
                 </MenuItem>
-                <MenuItem sx={menuItemSx} onClick={() => {
-                  setContextMenu(null);
-                  navigate(`/${resourceId}/add?type=process`);
-                }}>
-                  <AddCircleOutline fontSize="small" />
-                  Créer un processus
-                </MenuItem>
+                {canCreateProcess && (
+                  <MenuItem sx={menuItemSx} onClick={() => {
+                    setContextMenu(null);
+                    navigate(`/${resourceId}/add?type=process&projectId=${encodeURIComponent(activeProjectId!)}`);
+                  }}>
+                    <AddCircleOutline fontSize="small" />
+                    Créer un processus
+                  </MenuItem>
+                )}
               </>
             )}
             {node.type !== 'folder' && (
