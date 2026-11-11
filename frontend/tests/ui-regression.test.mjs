@@ -276,7 +276,8 @@ test('V3 viewer three-dot menu exposes role-appropriate resource management acti
   assert.ok(tree.includes("const isAdmin = sessionRole === 'admin'"));
   assert.ok(tree.includes('navigate(`/${resourceId}/add?type=folder`)'));
   assert.ok(tree.includes('Créer un sous-répertoire'));
-  assert.ok(tree.includes('navigate(`/${resourceId}/add?type=process`)'));
+  assert.ok(tree.includes('navigate(`/root/add?type=process&projectId=${encodeURIComponent(activeProjectId)}`)'));
+  assert.ok(tree.includes('navigate(`/${resourceId}/add?type=process&projectId=${encodeURIComponent(activeProjectId!)}`)'));
   assert.ok(tree.includes('Créer un processus'));
   assert.ok(tree.includes('Supprimer'));
   assert.doesNotMatch(routes, /lazy: \(\) => import\('\.\/Containers\/ContentViewer'\)/);
