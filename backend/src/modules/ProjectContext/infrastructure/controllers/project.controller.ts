@@ -101,10 +101,11 @@ export class ProjectController {
     // sourceResourceId, but must remain visible in their project workspace.
     // Exclude only source-linked project-specific proposal workspaces.
     const visibleLinks = links.filter(
-      (link) => !(
-        link.usage === ProjectProcessUsage.ProjectSpecific &&
-        resourceById.get(link.resourceId)?.sourceResourceId
-      ),
+      (link) =>
+        !(
+          link.usage === ProjectProcessUsage.ProjectSpecific &&
+          resourceById.get(link.resourceId)?.sourceResourceId
+        ),
     );
     const linksByProject = new Map<string, typeof links>();
     for (const link of visibleLinks) {
