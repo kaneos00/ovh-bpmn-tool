@@ -68,10 +68,37 @@ test('Viewer opens at 1:1 with the BPMN upper-left corner aligned to the viewpor
   const component = await read('src/Components/BusinessComponents/ProcessViewer/ProcessViewer.tsx');
 
   assert.match(hook, /canvas\.viewbox\(\{\s*x: bounds\.x,\s*y: bounds\.y,\s*width,\s*height,\s*\}\)/);
-  assert.match(hook, /showDiagramAtActualSize\(\);[\s\S]*?applySelectionRef\.current\(\);/);
+  assert.match(hook, /initialViewportAppliedRef\.current = showDiagramAtActualSize\(\);[\s\S]*?applySelectionRef\.current\(\);/);
+  assert.match(hook, /new ResizeObserver\([\s\S]*?initialViewportAppliedRef\.current = showDiagramAtActualSizeRef\.current\(\)/);
+  assert.match(hook, /const resetZoom = \(\) => \{[\s\S]*?showDiagramAtActualSizeRef\.current\(\)/);
   assert.match(hook, /const fitDiagram = \(\) => \{[\s\S]*?canvas\.zoom\('fit-viewport'\)/);
   assert.match(component, /onClick=\{fitDiagram\}/);
   assert.match(component, /aria-label="Ajuster à la fenêtre"/);
+});
+
+test('Viewer retries its initial BPMN viewport when a hidden tab becomes visible', async () => {
+  const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+
+  assert.match(hook, /initialViewportAppliedRef = useRef\(false\)/);
+  assert.match(hook, /new ResizeObserver\(entries =>/);
+  assert.match(hook, /entry\.contentRect\.width <= 0 \|\| entry\.contentRect\.height <= 0/);
+  assert.match(hook, /observer\.observe\(host\)/);
+  assert.match(hook, /observer\.disconnect\(\)/);
+  assert.match(hook, /initialViewportAppliedRef\.current = false/);
+});
+
+test('Viewer previews nested SubProcess elements on hover and removes the preview on pointer exit', async () => {
+  const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+  const css = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
+
+  assert.match(hook, /eventBus\.on\('element\.hover', onElementHover\)/);
+  assert.match(hook, /eventBus\.on\('element\.out', onElementOut\)/);
+  assert.match(hook, /element\.businessObject\?\.flowElements/);
+  assert.match(hook, /overlays\.add\(element, 'subprocess-preview'/);
+  assert.match(hook, /eventBus\.off\('element\.hover', onElementHover\)/);
+  assert.match(hook, /eventBus\.off\('element\.out', onElementOut\)/);
+  assert.match(css, /\.bpmn-subprocess-preview\s*\{/);
+  assert.match(css, /\.bpmn-subprocess-preview__list\s*\{/);
 });
 
 test('viewer delegates called-process navigation to the shared hook', async () => {
