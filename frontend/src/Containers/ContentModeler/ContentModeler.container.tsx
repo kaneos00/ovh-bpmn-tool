@@ -26,6 +26,18 @@ type ProposalWorkspaceContext = {
   submittedContentId?: string | null;
 };
 
+const getApiErrorMessage = (error: unknown, fallback: string) => {
+  const responseMessage = (
+    error as { errorResponse?: { message?: unknown } } | null
+  )?.errorResponse?.message;
+  if (Array.isArray(responseMessage)) return responseMessage.join(', ');
+  if (typeof responseMessage === 'string' && responseMessage.trim()) {
+    return responseMessage;
+  }
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
+};
+
 export const Component = () => {
   // share modeler instance in order to avoid create instance in useContentModeler and useModeler
   const { getModelerInstance } = useModelerInstance();
@@ -204,7 +216,7 @@ export const Component = () => {
       navigate(sourceResourceId ? `/${sourceResourceId}` : '/mes-demandes');
     } catch (error) {
       setPublicationError(
-        error instanceof Error ? error.message : 'Impossible de publier la version approuvée.',
+        getApiErrorMessage(error, 'Impossible de publier la version approuvée.'),
       );
     } finally {
       setPublishingApprovedProposal(false);
@@ -383,7 +395,7 @@ export const Component = () => {
                   setValidationModalOpen(false);
                   navigate('/mes-demandes');
                 } catch (error) {
-                  setSubmissionError(error instanceof Error ? error.message : 'Impossible de soumettre la demande.');
+                  setSubmissionError(getApiErrorMessage(error, 'Impossible de soumettre la demande.'));
                 } finally {
                   setSubmittingProposal(false);
                 }
