@@ -33,7 +33,7 @@ test('modeler remark descriptions show BPMN element names while retaining IDs as
 });
 
 test('proposal publication surfaces precise API validation and permission errors', async () => {
-  const container = await read('src/Containers/ContentModeler/ContentModeler.container.tsx');
+  const container = await read('../src/Containers/ContentModeler/ContentModeler.container.tsx');
 
   assert.match(container, /const getApiErrorMessage = \(error: unknown, fallback: string\)/);
   assert.match(container, /errorResponse\?\.message/);
