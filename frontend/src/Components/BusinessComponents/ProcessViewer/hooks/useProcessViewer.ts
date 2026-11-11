@@ -26,6 +26,9 @@ export const useProcessViewer = (
   const [isImporting, setIsImporting] = useState(false);
   const [minimapVisible, setMinimapVisible] = useState(false);
   const importGenerationRef = useRef(0);
+  const initialViewportAppliedRef = useRef(false);
+  const showDiagramAtActualSizeRef = useRef<() => boolean>(() => false);
+  const resizeDiagramRef = useRef<() => void>(() => undefined);
   const importQueueRef = useRef<Promise<unknown>>(Promise.resolve());
 
   selectedIdRef.current = selectedElementId;
@@ -78,8 +81,8 @@ export const useProcessViewer = (
     canvas.zoom('fit-viewport');
   };
 
-  const showDiagramAtActualSize = () => {
-    if (!importedRef.current) return;
+  const showDiagramAtActualSize = (): boolean => {
+    if (!importedRef.current) return false;
 
     const canvas = viewer.get('canvas') as any;
     canvas.resized?.();
@@ -93,8 +96,10 @@ export const useProcessViewer = (
       !Number.isFinite(bounds.width) ||
       !Number.isFinite(bounds.height) ||
       width <= 0 ||
-      height <= 0
-    ) return;
+      height <= 0 ||
+      bounds.width <= 0 ||
+      bounds.height <= 0
+    ) return false;
 
     // One diagram unit per screen pixel: the initial Viewer scale is exactly
     // 1:1, with the diagram's upper-left corner aligned to the viewport's
@@ -105,6 +110,7 @@ export const useProcessViewer = (
       width,
       height,
     });
+    return true;
   };
 
   const resizeDiagram = () => {
@@ -130,6 +136,28 @@ export const useProcessViewer = (
       height: height / previousZoom,
     });
   };
+
+  showDiagramAtActualSizeRef.current = showDiagramAtActualSize;
+  resizeDiagramRef.current = resizeDiagram;
+
+  // The Viewer can be imported while its tab is hidden (zero-sized). Observe
+  // the real canvas container and apply its initial viewport as soon as the
+  // tab becomes visible, without requiring a manual page reload.
+  useEffect(() => {
+    const host = viewerRef.current;
+    if (!host || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(entries => {
+      const entry = entries[entries.length - 1];
+      if (!entry || entry.contentRect.width <= 0 || entry.contentRect.height <= 0 || !importedRef.current) return;
+      if (!initialViewportAppliedRef.current) {
+        initialViewportAppliedRef.current = showDiagramAtActualSizeRef.current();
+      } else {
+        resizeDiagramRef.current();
+      }
+    });
+    observer.observe(host);
+    return () => observer.disconnect();
+  }, [viewer]);
 
   const applySelection = () => {
     if (!importedRef.current) return;
@@ -221,6 +249,7 @@ export const useProcessViewer = (
     }
 
     setIsImporting(true);
+    initialViewportAppliedRef.current = false;
     // Close the actual minimap service as well as hiding its React wrapper.
     setMinimapVisibility(false);
     setImportError(null);
@@ -326,7 +355,7 @@ export const useProcessViewer = (
         window.requestAnimationFrame(() => {
           window.requestAnimationFrame(() => {
             if (cancelled || generation !== importGenerationRef.current) return;
-            showDiagramAtActualSize();
+            initialViewportAppliedRef.current = showDiagramAtActualSize();
             // Reapply the route-driven selection after the final canvas layout.
             // This avoids losing the blue marker when a process is opened through
             // explorer navigation while its XML and selection state resolve.
