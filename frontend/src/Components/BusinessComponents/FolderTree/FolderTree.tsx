@@ -80,9 +80,9 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
   const [projectModelerResourceIds, setProjectModelerResourceIds] = useState<string[]>([]);
   const [contextMenu, setContextMenu] = useState<{ nodeId: string; anchorEl: HTMLElement } | null>(null);
   const canModifyBpmn = (resourceId: string) => sessionRole === 'admin' || sessionRole === 'modeler' || projectModelerResourceIds.includes(resourceId);
-  const canCreateFolderAtRoot = Boolean(
-    activeProjectId && (sessionRole === 'admin' || sessionRole === 'modeler'),
-  );
+  // Folders belong to the shared resource hierarchy, so their root-level
+  // creation does not depend on a project being selected.
+  const canCreateFolderAtRoot = sessionRole === 'admin' || sessionRole === 'modeler';
   const canCreateProcessAtRoot = Boolean(
     activeProjectId &&
     (
