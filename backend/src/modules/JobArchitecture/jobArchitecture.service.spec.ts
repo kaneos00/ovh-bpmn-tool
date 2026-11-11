@@ -110,22 +110,35 @@ describe('JobArchitectureService.addPositionActivityMapping', () => {
   });
 });
 
-
 describe('JobArchitectureService.getProjectConsistencyDiagnostics', () => {
   it('distinguishes inactive, unlinked, and missing RACI actors and ignores archived links', async () => {
     const service = Object.create(
       JobArchitectureService.prototype,
     ) as JobArchitectureService;
     Object.assign(service, {
-      projectAccess: { assertProjectRole: jest.fn().mockResolvedValue('user-1') },
+      projectAccess: {
+        assertProjectRole: jest.fn().mockResolvedValue('user-1'),
+      },
       positions: {
-        find: jest.fn().mockResolvedValue([{ id: 'position-active', title: 'Responsable projet' }]),
+        find: jest
+          .fn()
+          .mockResolvedValue([
+            { id: 'position-active', title: 'Responsable projet' },
+          ]),
       },
       raciActors: {
         find: jest.fn().mockResolvedValue([
           { id: 'actor-linked', normalizedName: 'responsable', active: true },
-          { id: 'actor-archived-link', normalizedName: 'chef de projet', active: true },
-          { id: 'actor-inactive', normalizedName: 'ancien rôle', active: false },
+          {
+            id: 'actor-archived-link',
+            normalizedName: 'chef de projet',
+            active: true,
+          },
+          {
+            id: 'actor-inactive',
+            normalizedName: 'ancien rôle',
+            active: false,
+          },
         ]),
       },
       raciEntries: {
@@ -139,7 +152,10 @@ describe('JobArchitectureService.getProjectConsistencyDiagnostics', () => {
       raciMappings: {
         find: jest.fn().mockResolvedValue([
           { positionId: 'position-active', raciActorId: 'actor-linked' },
-          { positionId: 'position-archived', raciActorId: 'actor-archived-link' },
+          {
+            positionId: 'position-archived',
+            raciActorId: 'actor-archived-link',
+          },
           { positionId: 'position-active', raciActorId: 'actor-inactive' },
         ]),
       },
@@ -147,10 +163,9 @@ describe('JobArchitectureService.getProjectConsistencyDiagnostics', () => {
       positionBlocks: { find: jest.fn().mockResolvedValue([]) },
     });
 
-    const result = await service.getProjectConsistencyDiagnostics(
-      'project-1',
-      { authorization: 'test' },
-    );
+    const result = await service.getProjectConsistencyDiagnostics('project-1', {
+      authorization: 'test',
+    });
 
     expect(result.unmappedRaciActors).toEqual([
       {
