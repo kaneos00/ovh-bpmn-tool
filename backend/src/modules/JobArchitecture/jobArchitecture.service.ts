@@ -932,7 +932,9 @@ export class JobArchitectureService {
         name,
         actor: actorByNormalizedName.get(name.toLocaleLowerCase()),
       }))
-      .filter(({ actor }) => !actor || !actor.active || !mappedActorIds.has(actor.id))
+      .filter(
+        ({ actor }) => !actor || !actor.active || !mappedActorIds.has(actor.id),
+      )
       .map(({ name, actor }) => ({
         name,
         actorId: actor?.id ?? null,
