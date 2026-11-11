@@ -3,7 +3,7 @@ import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry, themeQuartz, type ColDef } from 'ag-grid-community';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import {
-  Alert, Box, Button, Card, Chip, Divider, FormControl, FormLabel,
+  Alert, Box, Button, Card, Checkbox, Chip, Divider, FormControl, FormLabel,
   Input, Option, Select, Stack, Typography,
 } from '@mui/joy';
 import { apiClient } from '../../../queryClient';
@@ -16,7 +16,7 @@ import { deriveRaciMatrixFromXml } from '../../../extensions/raci-viewer';
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 type JobFunction = {
-  id: string; code: string; name: string;
+  id: string; code: string; name: string; description?: string | null;
   competencyBlocks: Array<{ id: string; code: string; name: string }>;
 };
 type Position = {
@@ -45,10 +45,18 @@ type ProjectDiagnostics = {
   limitations: string[];
 };
 
+const overlapScore = (left: string, right: string) => {
+  const stopWords = new Set(['della', 'delle', 'dello', 'dell', 'degli', 'dalla', 'dalle', 'dallo', 'dai', 'dagli', 'per', 'con', 'una', 'uno', 'che', 'del', 'dei', 'nel', 'nella', 'nelle', 'nello', 'alla', 'alle', 'allo', 'agli', 'the', 'and']);
+  const tokens = (value: string) => new Set(value.toLocaleLowerCase('it').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').split(/[^a-z0-9]+/).filter(token => token.length > 3 && !stopWords.has(token)));
+  const leftTokens = tokens(left);
+  return [...tokens(right)].filter(token => leftTokens.has(token)).length;
+};
+
 export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string; canEdit: boolean }) => {
   const queryClient = useQueryClient();
   const [selectedPositionId, setSelectedPositionId] = useState('');
   const [functionId, setFunctionId] = useState('');
+  const [selectedFunctionIds, setSelectedFunctionIds] = useState<string[]>([]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [actorId, setActorId] = useState('');
@@ -143,6 +151,24 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
       await queryClient.invalidateQueries(['job-position-diagnostics', projectId]);
     }, onError: (reason: Error) => setError(reason.message) },
   );
+  const createSelectedPositions = useMutation(
+    async () => {
+      const selected = (functionsQuery.data ?? []).filter(item => selectedFunctionIds.includes(item.id));
+      const created: Position[] = [];
+      for (const item of selected) {
+        created.push(await apiClient.post(`/projects/${projectId}/job-positions`, {
+          functionId: item.id, title: item.name, description: item.description?.trim() || null,
+        }));
+      }
+      return created;
+    },
+    { onSuccess: async (created: Position[]) => {
+      setSelectedFunctionIds([]); setError('');
+      if (created.length) setSelectedPositionId(created[0].id);
+      await queryClient.invalidateQueries(positionsKey);
+      await queryClient.invalidateQueries(['job-position-diagnostics', projectId]);
+    }, onError: (reason: Error) => setError(reason.message) },
+  );
   const updateBlocks = useMutation(
     (blocks: Position['competencyBlocks']) => apiClient.patch(
       `/projects/${projectId}/job-positions/${selectedPositionId}/competency-blocks`, { blocks },
@@ -150,7 +176,7 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
     { onSuccess: refresh, onError: (reason: Error) => setError(reason.message) },
   );
   const addActor = useMutation(
-    () => apiClient.post(`/projects/${projectId}/job-positions/${selectedPositionId}/raci-actors`, { raciActorId: actorId }),
+    (selectedActorId: string) => apiClient.post(`/projects/${projectId}/job-positions/${selectedPositionId}/raci-actors`, { raciActorId: selectedActorId }),
     { onSuccess: async () => { setActorId(''); setError(''); await refresh(); }, onError: (reason: Error) => setError(reason.message) },
   );
   const removeActor = useMutation(
@@ -158,12 +184,9 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
     { onSuccess: refresh, onError: (reason: Error) => setError(reason.message) },
   );
   const addActivity = useMutation(
-    () => {
-      const [resourceId, taskId] = taskKey.split('::');
-      return apiClient.post(`/projects/${projectId}/job-positions/${selectedPositionId}/activity-mappings`, {
-        resourceId, taskId, blockId,
-      });
-    },
+    (selection: { resourceId: string; taskId: string; blockId: string }) => apiClient.post(
+      `/projects/${projectId}/job-positions/${selectedPositionId}/activity-mappings`, selection,
+    ),
     { onSuccess: async () => { setTaskKey(''); setBlockId(''); setError(''); await refresh(); }, onError: (reason: Error) => setError(reason.message) },
   );
   const removeActivity = useMutation(
@@ -179,6 +202,21 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
   const mappings = mappingsQuery.data ?? { raciActors: [], activities: [] };
   const mappedActorIds = new Set(mappings.raciActors.map(item => item.raciActorId));
   const mappedActivityKeys = new Set(mappings.activities.map(item => `${item.resourceId}::${item.taskId}::${item.blockId}`));
+  const suggestedActors = activeActors
+    .filter(actor => !mappedActorIds.has(actor.id))
+    .map(actor => ({ actor, score: overlapScore(`${selectedPosition?.title ?? ''} ${selectedFunction?.name ?? ''}`, actor.name) }))
+    .filter(item => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+  const applicableBlocks = (selectedFunction?.competencyBlocks ?? []).filter(block =>
+    ['required', 'optional'].includes(selectedPosition?.competencyBlocks.find(item => item.blockId === block.id)?.applicability ?? ''),
+  );
+  const suggestedActivities = applicableBlocks.flatMap(block => (tasksQuery.data ?? [])
+    .filter(task => !mappedActivityKeys.has(`${task.resourceId}::${task.taskId}::${block.id}`))
+    .map(task => ({ block, task, score: overlapScore(block.name, task.taskName) })))
+    .filter(item => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
 
   return (
     <Stack spacing={2}>
@@ -238,10 +276,29 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
               <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Aucun poste organisationnel n’a encore été créé pour ce projet.</Typography>}
           </Card>
           {canEdit && <Card variant="outlined" sx={{ gap: 1.25 }}>
-            <Typography level="title-lg">Créer un poste</Typography>
+            <Typography level="title-lg">Ajouter les fonctions nécessaires au projet</Typography>
+            <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Sélectionnez les fonctions du référentiel à intégrer. Un poste est créé pour chacune, avec l’intitulé et la description déjà repris de la fiche de fonction. Vous pourrez ensuite préciser les blocs et les correspondances.</Typography>
+            <Stack spacing={0.75}>
+              {(functionsQuery.data ?? []).map(item => {
+                const alreadyAdded = existingFunctionIds.has(item.id);
+                return <Checkbox key={item.id} checked={selectedFunctionIds.includes(item.id)} disabled={alreadyAdded || createSelectedPositions.isLoading}
+                  onChange={event => setSelectedFunctionIds(current => event.target.checked ? [...current, item.id] : current.filter(id => id !== item.id))}
+                  label={<Box><Typography level="body-sm">{item.code} — {item.name}</Typography>{alreadyAdded && <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Già presente nel progetto</Typography>}</Box>} />;
+              })}
+              {!(functionsQuery.data ?? []).length && <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Il referenziale non contiene ancora funzioni attive.</Typography>}
+            </Stack>
+            <Button disabled={!selectedFunctionIds.length || createSelectedPositions.isLoading} loading={createSelectedPositions.isLoading} onClick={() => createSelectedPositions.mutate()}>
+              Aggiungi {selectedFunctionIds.length || ''} funzione/i selezionata/e
+            </Button>
+          </Card>}
+          {canEdit && <Card variant="outlined" sx={{ gap: 1.25 }}>
+            <Typography level="title-lg">Aggiungere un altro poste personnalisé</Typography>
             <FormControl>
               <FormLabel>Fonction de référence</FormLabel>
-              <Select value={functionId || null} onChange={(_event, value) => setFunctionId(value ?? '')} placeholder="Choisir une fonction">
+              <Select value={functionId || null} onChange={(_event, value) => {
+                const selected = (functionsQuery.data ?? []).find(item => item.id === value);
+                setFunctionId(value ?? ''); setTitle(selected?.name ?? ''); setDescription(selected?.description ?? '');
+              }} placeholder="Choisir une fonction">
                 {(functionsQuery.data ?? []).map(item => <Option key={item.id} value={item.id}>{item.code} — {item.name}</Option>)}
               </Select>
             </FormControl>
@@ -253,7 +310,7 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
               <FormLabel>Description</FormLabel>
               <Input value={description} onChange={event => setDescription(event.target.value)} placeholder="Périmètre propre au projet (facultatif)" />
             </FormControl>
-            <Button loading={createPosition.isLoading} disabled={!functionId || !title.trim()} onClick={() => createPosition.mutate()}>Créer le poste</Button>
+            <Button loading={createPosition.isLoading} disabled={!functionId || !title.trim()} onClick={() => createPosition.mutate()}>Créer le poste personnalisé</Button>
           </Card>}
         </Stack>
 
@@ -267,8 +324,13 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
               </Stack>
               {selectedPosition.description && <Typography level="body-sm">{selectedPosition.description}</Typography>}
               <Divider />
-              <Typography level="title-md">Blocs de compétences applicables</Typography>
-              <Typography level="body-xs" sx={{ color: 'text.secondary' }}>Précisez quels blocs de la fonction sont requis ou facultatifs dans ce poste.</Typography>
+              <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} gap={1}>
+                <Box><Typography level="title-md">Blocs de compétences applicables</Typography><Typography level="body-xs" sx={{ color: 'text.secondary' }}>Les blocs sont déjà repris de la fonction. Vous pouvez les définir tous comme requis, puis ajuster les exceptions.</Typography></Box>
+                <Button size="sm" variant="soft" color="neutral" disabled={!canEdit || updateBlocks.isLoading || !(selectedFunction?.competencyBlocks ?? []).length}
+                  onClick={() => updateBlocks.mutate((selectedFunction?.competencyBlocks ?? []).map(block => ({ blockId: block.id, applicability: 'required', requiredLevel: selectedPosition.competencyBlocks.find(item => item.blockId === block.id)?.requiredLevel ?? null })))}>
+                  Définir tous comme requis
+                </Button>
+              </Stack>
               {(selectedFunction?.competencyBlocks ?? []).map(block => {
                 const current = selectedPosition.competencyBlocks.find(item => item.blockId === block.id);
                 return <Stack key={block.id} direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" gap={1}>
@@ -290,14 +352,21 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
 
             <Card variant="outlined" sx={{ gap: 1.25 }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center"><Typography level="title-lg">Correspondances avec le RACI</Typography><Chip size="sm" variant="soft">{mappings.raciActors.length}</Chip></Stack>
-              <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Associez le poste à un ou plusieurs rôles déjà présents dans le registre RACI de ce projet. Cela ne modifie aucune affectation RACI.</Typography>
+              <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Les rôles déjà présents dans le registre RACI sont proposés lorsqu’un intitulé partage des termes avec ce poste. Chaque proposition doit être confirmée ; les affectations RACI ne sont jamais modifiées.</Typography>
+              {suggestedActors.length > 0 && <Card variant="soft" sx={{ gap: 0.75 }}>
+                <Typography level="title-sm">Rôles pouvant correspondre — à confirmer</Typography>
+                {suggestedActors.map(({ actor }) => <Stack key={actor.id} direction="row" justifyContent="space-between" alignItems="center" gap={1}>
+                  <Typography level="body-sm">{actor.name}</Typography>
+                  <Button size="sm" variant="soft" disabled={!canEdit || addActor.isLoading} onClick={() => addActor.mutate(actor.id)}>Confirmer</Button>
+                </Stack>)}
+              </Card>}
               <Stack direction={{ xs: 'column', sm: 'row' }} gap={1}>
                 <FormControl sx={{ flex: 1 }}><FormLabel>Rôle RACI du projet</FormLabel>
                   <Select value={actorId || null} disabled={!canEdit} onChange={(_event, value) => setActorId(value ?? '')} placeholder="Choisir un rôle">
                     {activeActors.filter(actor => !mappedActorIds.has(actor.id)).map(actor => <Option key={actor.id} value={actor.id}>{actor.name}</Option>)}
                   </Select>
                 </FormControl>
-                <Button sx={{ alignSelf: { sm: 'flex-end' } }} disabled={!canEdit || !actorId} loading={addActor.isLoading} onClick={() => addActor.mutate()}>Associer</Button>
+                <Button sx={{ alignSelf: { sm: 'flex-end' } }} disabled={!canEdit || !actorId} loading={addActor.isLoading} onClick={() => addActor.mutate(actorId)}>Associer</Button>
               </Stack>
               {mappings.raciActors.map(mapping => {
                 const actor = actorsQuery.data?.find(item => item.id === mapping.raciActorId);
@@ -311,7 +380,14 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
 
             <Card variant="outlined" sx={{ gap: 1.25 }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center"><Typography level="title-lg">Correspondances avec les activités BPMN</Typography><Chip size="sm" variant="soft">{mappings.activities.length}</Chip></Stack>
-              <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Reliez un bloc applicable à une activité d’un processus publié du projet. Le serveur vérifie l’identifiant technique de l’activité dans la dernière version publiée.</Typography>
+              <Typography level="body-sm" sx={{ color: 'text.secondary' }}>L’application compare les intitulés des blocs avec les activités des processus publiés pour faire ressortir des pistes. Les propositions restent à confirmer et ne modifient jamais le BPMN.</Typography>
+              {suggestedActivities.length > 0 && <Card variant="soft" sx={{ gap: 0.75 }}>
+                <Typography level="title-sm">Activités pouvant correspondre — à confirmer</Typography>
+                {suggestedActivities.map(({ block, task }) => <Stack key={`${task.resourceId}::${task.taskId}::${block.id}`} direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} gap={1}>
+                  <Box sx={{ flex: 1 }}><Typography level="body-sm">{block.name} ← {task.taskName}</Typography><Typography level="body-xs" sx={{ color: 'text.secondary' }}>{task.processName}</Typography></Box>
+                  <Button size="sm" variant="soft" disabled={!canEdit || addActivity.isLoading} onClick={() => addActivity.mutate({ resourceId: task.resourceId, taskId: task.taskId, blockId: block.id })}>Confirmer</Button>
+                </Stack>)}
+              </Card>}
               <FormControl><FormLabel>Bloc de compétences</FormLabel>
                 <Select value={blockId || null} disabled={!canEdit} onChange={(_event, value) => setBlockId(value ?? '')} placeholder="Choisir un bloc">
                   {(selectedFunction?.competencyBlocks ?? []).filter(block => ['required','optional'].includes(selectedPosition.competencyBlocks.find(item => item.blockId === block.id)?.applicability ?? '')).map(block => <Option key={block.id} value={block.id}>{block.code} — {block.name}</Option>)}
@@ -322,7 +398,7 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
                   {(tasksQuery.data ?? []).filter(task => !mappedActivityKeys.has(`${task.resourceId}::${task.taskId}::${blockId}`)).map(task => <Option key={`${task.resourceId}::${task.taskId}`} value={`${task.resourceId}::${task.taskId}`}>{task.processName} — {task.taskName} ({task.taskId})</Option>)}
                 </Select>
               </FormControl>
-              <Button disabled={!canEdit || !blockId || !taskKey} loading={addActivity.isLoading} onClick={() => addActivity.mutate()}>Associer l’activité</Button>
+              <Button disabled={!canEdit || !blockId || !taskKey} loading={addActivity.isLoading} onClick={() => { const [resourceId, taskId] = taskKey.split('::'); addActivity.mutate({ resourceId, taskId, blockId }); }}>Associer l’activité</Button>
               {mappings.activities.map(mapping => {
                 const block = selectedFunction?.competencyBlocks.find(item => item.id === mapping.blockId);
                 const task = tasksQuery.data?.find(item => item.resourceId === mapping.resourceId && item.taskId === mapping.taskId);
