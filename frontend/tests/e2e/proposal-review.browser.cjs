@@ -31,38 +31,6 @@ async function main() {
     // Separate authenticated browser contexts are intentional: a Viewer
     // submits the remark, while the global administrator reviews it.
     await signIn(authorPage, authorUsername, authorPassword);
-    const created = await authorPage.evaluate(async ({ projectId, sourceResourceId }) => {
-      const response = await fetch(
-        `/bpmn-api/projects/${projectId}/processes/${sourceResourceId}/change-proposals`,
-        {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            elementId: 'Task_ProcessRequest',
-            comment: 'CI E2E — vérifier la qualification de la demande',
-          }),
-        },
-      );
-      const body = await response.json();
-      return { status: response.status, body };
-    }, { projectId, sourceResourceId });
-
-    assert.equal(created.status, 201, `Proposal creation failed: ${JSON.stringify(created.body)}`);
-    assert.ok(created.body.id, 'The API did not return a proposal id');
-    assert.ok(created.body.cloneResourceId, 'The API did not return a proposal workspace');
-    assert.ok(created.body.cloneContentId, 'The API did not return the proposal draft');
-
-    // A submitted Viewer remark must remain visible on the source process
-    // even though its proposal workspace is frozen and has no editable draft.
-    await authorPage.goto(
-      `${baseUrl}/${sourceResourceId}?elementId=Task_ProcessRequest`,
-    );
-    await authorPage.getByText(
-      'CI E2E — vérifier la qualification de la demande',
-      { exact: true },
-    ).waitFor();
-
     await signIn(reviewerPage, reviewerUsername, reviewerPassword);
     // The source process can be shared by multiple projects. Keep the test in
     // the project whose variant is being exercised, as a real user would after
@@ -98,6 +66,44 @@ async function main() {
       `Variant creation returned no resource id: ${JSON.stringify(createdVariant.body)}`,
     );
     const variantResourceId = createdVariant.body.resource.id;
+
+    // Submit the remark against the variant itself, not the common source.
+    // This exercises the exact variant → proposal workspace → approved
+    // publication path reported during manual testing.
+    await authorPage.evaluate(
+      projectId => localStorage.setItem('bpmn-tool:active-project', projectId),
+      projectId,
+    );
+    const created = await authorPage.evaluate(async ({ projectId, resourceId }) => {
+      const response = await fetch(
+        `/bpmn-api/projects/${projectId}/processes/${resourceId}/change-proposals`,
+        {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            elementId: 'Task_ProcessRequest',
+            comment: 'CI E2E — vérifier la qualification de la demande',
+          }),
+        },
+      );
+      const body = await response.json();
+      return { status: response.status, body };
+    }, { projectId, resourceId: variantResourceId });
+
+    assert.equal(created.status, 201, `Proposal creation failed: ${JSON.stringify(created.body)}`);
+    assert.ok(created.body.id, 'The API did not return a proposal id');
+    assert.ok(created.body.cloneResourceId, 'The API did not return a proposal workspace');
+    assert.ok(created.body.cloneContentId, 'The API did not return the proposal draft');
+
+    // The author's remark must be visible on the variant in its own project context.
+    await authorPage.goto(
+      `${baseUrl}/${variantResourceId}?elementId=Task_ProcessRequest`,
+    );
+    await authorPage.getByText(
+      'CI E2E — vérifier la qualification de la demande',
+      { exact: true },
+    ).waitFor();
 
     // A project variant must open its own published BPMN content, not the
     // common source or an empty Viewer. Capture the actual XML request made
@@ -317,7 +323,7 @@ async function main() {
       return Boolean(button && !button.disabled);
     });
     await publishApprovedButton.click();
-    await reviewerPage.waitForURL(`**/${sourceResourceId}`);
+    await reviewerPage.waitForURL(`**/${variantResourceId}`);
 
     const finalState = await authorPage.evaluate(async () => {
       const response = await fetch('/bpmn-api/projects/me/process-change-proposals', {
