@@ -237,6 +237,14 @@ async function main() {
     // This catches stale project context, missing variant entries and Viewer
     // imports that only recover after a full page reload.
     await reviewerPage.goto(`${baseUrl}/${sourceResourceId}`);
+    // The variant shares the source folder, which may be collapsed in the
+    // persisted explorer state. Search the tree rather than assuming that
+    // its parent folder happens to be expanded in this browser context.
+    await reviewerPage.getByRole('button', { name: 'Arborescence', exact: true }).click();
+    const explorerSearch = reviewerPage.getByRole('textbox', {
+      name: 'Rechercher dans l’arborescence, les récents et les favoris',
+    });
+    await explorerSearch.fill('CI E2E — variante partenaire');
     const variantTreeEntry = reviewerPage.getByText('CI E2E — variante partenaire', { exact: true }).first();
     await variantTreeEntry.waitFor();
     await variantTreeEntry.click();
