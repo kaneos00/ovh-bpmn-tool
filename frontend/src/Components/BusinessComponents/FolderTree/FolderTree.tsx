@@ -90,15 +90,6 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
       (sessionRole === 'modeler' && (activeProject?.role === 'admin' || activeProject?.role === 'modeler'))
     ),
   );
-  const canCreateProcessAtRoot = Boolean(
-    activeProjectId &&
-    (
-      sessionRole === 'admin' ||
-      (sessionRole === 'modeler' && (
-        activeProject?.role === 'admin' || activeProject?.role === 'modeler'
-      ))
-    ),
-  );
 
   useEffect(() => { setContextMenu(null); }, [activeProjectId, selectedId]);
 
