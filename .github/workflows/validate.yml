@@ -101,7 +101,7 @@ jobs:
       - name: Install Playwright Chromium for browser workflow
         run: |
           npm install --prefix /tmp/bpmn-playwright --no-save playwright@1.55.0
-          node /tmp/bpmn-playwright/node_modules/playwright/cli.js install --with-deps chromium
+          node /tmp/bpmn-playwright/node_modules/playwright/cli.js install chromium
       - name: Smoke-test database, login, session and protected API
         run: |
           docker network create bpmn-v2-ci
