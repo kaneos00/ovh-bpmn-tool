@@ -275,7 +275,12 @@ async function main() {
     });
     await quickSearch.fill('demande');
     await reviewerPage.getByRole('button', { name: 'Voir tous les résultats' }).waitFor();
-    await reviewerPage.getByText(/Processus BPMN/).first().waitFor();
+    const quickSearchResult = reviewerPage
+      .locator('.workspace-navigation')
+      .getByRole('listitem')
+      .filter({ hasText: /Processus BPMN/ })
+      .first();
+    await quickSearchResult.waitFor({ state: 'visible' });
     assert.equal(
       await reviewerPage.getByText(/Recherche indisponible pour le moment/).count(),
       0,
