@@ -67,6 +67,11 @@ async function main() {
     );
     const variantResourceId = createdVariant.body.resource.id;
 
+    // The variant is created through the API rather than the UI. Reload so
+    // the workspace query is fetched again instead of reusing the pre-create
+    // project-process list cached during sign-in.
+    await reviewerPage.reload();
+
     // Submit the remark against the variant itself, not the common source.
     // This exercises the exact variant → proposal workspace → approved
     // publication path reported during manual testing.
