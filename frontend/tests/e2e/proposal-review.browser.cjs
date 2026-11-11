@@ -265,7 +265,7 @@ async function main() {
     await reviewerPage.getByText('Traiter une demande', { exact: true }).first().waitFor();
     await reviewerPage.goto(`${baseUrl}/mes-demandes`);
 
-    await reviewerPage.getByText('Traiter une demande', { exact: true }).first().waitFor();
+    await reviewerPage.getByText('CI E2E — variante partenaire', { exact: true }).first().waitFor();
     await reviewerPage.getByRole('button', { name: 'Traiter dans le modeleur' }).click();
     await reviewerPage.waitForURL(/reviewRemarks=1/);
     await reviewerPage.waitForURL(/contentId=/);
@@ -301,7 +301,7 @@ async function main() {
 
     // Validate the proposal, then publish exactly the approved frozen snapshot.
     await reviewerPage.goto(`${baseUrl}/mes-demandes`);
-    await reviewerPage.getByText('Traiter une demande', { exact: true }).first().waitFor();
+    await reviewerPage.getByText('CI E2E — variante partenaire', { exact: true }).first().waitFor();
     await reviewerPage.getByRole('button', { name: 'Approuver', exact: true }).click();
     await reviewerPage.getByRole('button', { name: 'Publier la version approuvée' }).waitFor();
     await reviewerPage.getByRole('button', { name: 'Publier la version approuvée' }).click();
