@@ -27,7 +27,7 @@ import {
   Typography,
 } from '@mui/joy';
 import { Compare, FileCopy, ChevronLeft, ChevronRight, EditOutlined, CenterFocusStrong } from '@mui/icons-material';
-import { useQuery, useQueryClient } from 'react-query';
+import { useQueries, useQuery, useQueryClient } from 'react-query';
 
 import { useProcessDetails } from './hooks/useProcessDetails';
 import { ProcessContentList } from '../ProcessContentList/ProcessContentList';
@@ -48,7 +48,7 @@ import { useViewerRaciAnalysis } from '../../../shared/hooks/useViewerRaciAnalys
 import { useViewerRaciFilters } from '../../../shared/hooks/useViewerRaciFilters';
 import { ConditionalRender } from '../../../Components/GenericComponents/ConditionalRender/ConditionalRender';
 import { DropZone } from '../../../Components/GenericComponents/DropZone/DropZone';
-import { ContentStatusEnum } from '../../../Types';
+import { ContentStatusEnum, type Content } from '../../../Types';
 
 import '../../../raci.css';
 import { DataInventory } from './DataInventory';
@@ -254,6 +254,15 @@ export const ProcessDetails = ({
       process.resourceId === resourceId && process.usage === 'variant',
     ),
   );
+
+  // Variants are separate resources. Load their version lists alongside the
+  // source process so draft variants are discoverable from the source history.
+  const projectVariants = (projectForProcess?.processes ?? []).filter(
+    process => process.usage === 'variant' && process.sourceResourceId === resourceId,
+  );
+  const projectVariantContentQueries = useQueries(
+    projectVariants.map(variant => contentsQuery(variant.resourceId)),
+  ) as Array<{ data?: Content[] }>;
 
   // Existing variants created before the initial-copy publication fix have
   // only a first draft. Keep those independent variants visible in the
@@ -1331,6 +1340,40 @@ export const ProcessDetails = ({
             </Stack>
             <Divider />
             <Stack spacing={1} padding={1}>
+              {projectVariants.length > 0 && (
+                <Sheet variant="soft" sx={{ p: 1.5, borderRadius: 'sm' }}>
+                  <Typography level="title-sm">Variantes de ce processus</Typography>
+                  <Typography level="body-xs" textColor="neutral">
+                    Les brouillons restent indépendants du processus de référence et doivent être validés dans leur propre espace.
+                  </Typography>
+                  <Stack spacing={1} sx={{ mt: 1 }}>
+                    {projectVariants.map((variant, index) => {
+                      const variantContents = projectVariantContentQueries[index]?.data ?? [];
+                      const variantDraft = variantContents.find(content => content.status === ContentStatusEnum.Draft);
+                      const variantPublished = variantContents.find(content => content.status === ContentStatusEnum.Published);
+                      const status = variantDraft ? 'Brouillon à valider' : variantPublished ? 'Publiée' : 'Sans version';
+                      return (
+                        <Stack key={variant.resourceId} direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                          <Stack spacing={0.25} sx={{ minWidth: 0 }}>
+                            <Typography level="body-sm" fontWeight="md">{variant.name}</Typography>
+                            <Chip size="sm" variant="soft" color={variantDraft ? 'warning' : variantPublished ? 'success' : 'neutral'}>
+                              {status}
+                            </Chip>
+                          </Stack>
+                          <Button
+                            size="sm"
+                            variant={variantDraft ? 'solid' : 'outlined'}
+                            color={variantDraft ? 'warning' : 'neutral'}
+                            onClick={() => navigate(`/${variant.resourceId}`)}
+                          >
+                            {variantDraft ? 'Ouvrir pour valider' : 'Ouvrir'}
+                          </Button>
+                        </Stack>
+                      );
+                    })}
+                  </Stack>
+                </Sheet>
+              )}
               {readOnlyShell && !canManageVersions ? (
                 <>
                   <Stack direction="row" alignItems="center" justifyContent="flex-end">
