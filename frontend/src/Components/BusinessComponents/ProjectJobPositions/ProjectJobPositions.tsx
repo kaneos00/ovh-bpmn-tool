@@ -228,7 +228,7 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
                   columnDefs={gridColumns}
                   defaultColDef={{ sortable: true, filter: true, resizable: true }}
                   getRowId={params => params.data.id}
-                  onRowClicked={event => { setSelectedPositionId(event.data.id); setError(''); }}
+                  onRowClicked={event => { if (!event.data) return; setSelectedPositionId(event.data.id); setError(''); }}
                   animateRows
                   overlayNoRowsTemplate="Aucun poste organisationnel pour ce projet."
                 />
