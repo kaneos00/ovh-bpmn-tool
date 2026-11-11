@@ -263,8 +263,8 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
             { label: '3. RACI', hint: selectedPosition ? `${mappings.raciActors.length} association(s)` : 'Choisir un poste' },
             { label: '4. Processus', hint: selectedPosition ? `${mappings.activities.length} association(s)` : 'Choisir un poste' },
           ].map((step, index) => (
-            <Button key={step.label} fullWidth variant={activeStep === index ? 'solid' : 'soft'} color={activeStep === index ? 'primary' : 'neutral'}
-              onClick={() => setActiveStep(index)} sx={{ alignItems: 'flex-start', flexDirection: 'column', gap: 0.25 }}>
+            <Button key={step.label} variant={activeStep === index ? 'solid' : 'soft'} color={activeStep === index ? 'primary' : 'neutral'}
+              onClick={() => setActiveStep(index)} sx={{ flex: 1, minWidth: 0, alignItems: 'flex-start', flexDirection: 'column', gap: 0.25 }}>
               <Typography level="title-sm" sx={{ color: 'inherit' }}>{step.label}</Typography>
               <Typography level="body-xs" sx={{ color: 'inherit', opacity: 0.8 }}>{step.hint}</Typography>
             </Button>
