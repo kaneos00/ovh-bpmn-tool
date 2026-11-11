@@ -358,7 +358,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
               variant="outlined"
               color="neutral"
               startDecorator={<AddCircleOutline fontSize="small" />}
-              onClick={() => navigate('/root/add?type=process&projectId=' + encodeURIComponent(activeProjectId))}
+              onClick={() => navigate(`/root/add?type=process&projectId=${encodeURIComponent(activeProjectId)}`)}
             >
               Nouveau processus racine
             </Button>

@@ -59,6 +59,16 @@ const formatDate = (value?: string | null) =>
       }).format(new Date(value))
     : '—';
 
+const getElementDisplayName = (modeler: Modeler, elementId: string) => {
+  try {
+    const element = (modeler.get('elementRegistry') as any)?.get(elementId);
+    const name = String(element?.businessObject?.name ?? element?.name ?? '').trim();
+    return name || elementId;
+  } catch {
+    return elementId;
+  }
+};
+
 export const ProposalRemarksPanel = ({
   modeler,
   proposalId,
