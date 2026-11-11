@@ -220,6 +220,20 @@ async function main() {
       );
     }
 
+    // Navigate from the source process to its variant through the live explorer.
+    // This catches stale project context, missing variant entries and Viewer
+    // imports that only recover after a full page reload.
+    await reviewerPage.goto(`${baseUrl}/${sourceResourceId}`);
+    const variantTreeEntry = reviewerPage.getByText('CI E2E — variante partenaire', { exact: true }).first();
+    await variantTreeEntry.waitFor();
+    await variantTreeEntry.click();
+    await reviewerPage.waitForURL(`**/${variantResourceId}`);
+    await reviewerPage.locator('.djs-element[data-element-id="Task_ProcessRequest"]').waitFor();
+    await reviewerPage.waitForFunction(() => {
+      const element = document.querySelector('.djs-element[data-element-id="Task_ProcessRequest"]');
+      return Boolean(element && element.classList.contains('task-selected'));
+    });
+
     // Exercise the header's quick search against the seeded published process.
     // The results page uses the same API and serves as the comparison path.
     await reviewerPage.goto(`${baseUrl}/${sourceResourceId}`);
