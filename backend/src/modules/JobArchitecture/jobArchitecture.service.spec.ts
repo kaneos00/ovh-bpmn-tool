@@ -109,3 +109,72 @@ describe('JobArchitectureService.addPositionActivityMapping', () => {
     expect(mappingSave).not.toHaveBeenCalled();
   });
 });
+
+
+describe('JobArchitectureService.getProjectConsistencyDiagnostics', () => {
+  it('distinguishes inactive, unlinked, and missing RACI actors and ignores archived links', async () => {
+    const service = Object.create(
+      JobArchitectureService.prototype,
+    ) as JobArchitectureService;
+    Object.assign(service, {
+      projectAccess: { assertProjectRole: jest.fn().mockResolvedValue('user-1') },
+      positions: {
+        find: jest.fn().mockResolvedValue([{ id: 'position-active', title: 'Responsable projet' }]),
+      },
+      raciActors: {
+        find: jest.fn().mockResolvedValue([
+          { id: 'actor-linked', normalizedName: 'responsable', active: true },
+          { id: 'actor-archived-link', normalizedName: 'chef de projet', active: true },
+          { id: 'actor-inactive', normalizedName: 'ancien rôle', active: false },
+        ]),
+      },
+      raciEntries: {
+        find: jest.fn().mockResolvedValue([
+          { actorName: 'Responsable' },
+          { actorName: 'Chef de projet' },
+          { actorName: 'Ancien rôle' },
+          { actorName: 'Rôle inconnu' },
+        ]),
+      },
+      raciMappings: {
+        find: jest.fn().mockResolvedValue([
+          { positionId: 'position-active', raciActorId: 'actor-linked' },
+          { positionId: 'position-archived', raciActorId: 'actor-archived-link' },
+          { positionId: 'position-active', raciActorId: 'actor-inactive' },
+        ]),
+      },
+      activityMappings: { find: jest.fn().mockResolvedValue([]) },
+      positionBlocks: { find: jest.fn().mockResolvedValue([]) },
+    });
+
+    const result = await service.getProjectConsistencyDiagnostics(
+      'project-1',
+      { authorization: 'test' },
+    );
+
+    expect(result.unmappedRaciActors).toEqual([
+      {
+        name: 'Chef de projet',
+        actorId: 'actor-archived-link',
+        reason: 'actor_not_linked_to_a_position',
+      },
+      {
+        name: 'Ancien rôle',
+        actorId: 'actor-inactive',
+        reason: 'actor_inactive',
+      },
+      {
+        name: 'Rôle inconnu',
+        actorId: null,
+        reason: 'actor_not_in_registry',
+      },
+    ]);
+    expect(result.counts).toMatchObject({
+      positions: 1,
+      raciActors: 2,
+      raciEntries: 4,
+      raciActorMappings: 1,
+      activityMappings: 0,
+    });
+  });
+});
