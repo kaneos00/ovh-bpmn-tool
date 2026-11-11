@@ -1352,12 +1352,24 @@ export const ProcessDetails = ({
                       const variantDraft = variantContents.find(content => content.status === ContentStatusEnum.Draft);
                       const variantPublished = variantContents.find(content => content.status === ContentStatusEnum.Published);
                       const variantQuery = projectVariantContentQueries[index];
-                      const status = variantQuery?.isLoading ? 'Chargement…' : variantQuery?.isError ? 'Indisponible' : variantDraft ? 'Brouillon à valider' : variantPublished ? 'Publiée' : 'Sans version';
+                      let status = 'Sans version';
+                      let statusColor: 'warning' | 'success' | 'neutral' = 'neutral';
+                      if (variantQuery?.isLoading) {
+                        status = 'Chargement…';
+                      } else if (variantQuery?.isError) {
+                        status = 'Indisponible';
+                      } else if (variantDraft) {
+                        status = 'Brouillon à valider';
+                        statusColor = 'warning';
+                      } else if (variantPublished) {
+                        status = 'Publiée';
+                        statusColor = 'success';
+                      }
                       return (
                         <Stack key={variant.resourceId} direction="row" spacing={1} alignItems="center" justifyContent="space-between">
                           <Stack spacing={0.25} sx={{ minWidth: 0 }}>
                             <Typography level="body-sm" fontWeight="md">{variant.name}</Typography>
-                            <Chip size="sm" variant="soft" color={variantDraft ? 'warning' : variantPublished ? 'success' : 'neutral'}>
+                            <Chip size="sm" variant="soft" color={statusColor}>
                               {status}
                             </Chip>
                           </Stack>
