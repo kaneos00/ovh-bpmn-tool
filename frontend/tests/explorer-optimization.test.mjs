@@ -69,3 +69,21 @@ test('explorer endpoint is a single batched metadata request, not a per-process 
   assert.match(query, /ELSE '<definitions \/>'::xml/);
   assert.doesNotMatch(query, /getXmlContent|findOne\(/);
 });
+
+
+test('shared root folders remain visible without an active project and alongside project processes', async () => {
+  const hook = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
+
+  assert.match(hook, /if \(!effectiveProjectId\) return \(resources \?\? \[\]\)\.filter\(item => item\.type === ResourceType\.Folder\)/);
+  assert.match(hook, /Root folders are global navigation nodes/);
+  assert.match(hook, /allResources[\s\S]*?filter\(item => item\.type === ResourceType\.Folder\)[\s\S]*?allowedIds\.add\(folder\.id\)/);
+  assert.match(hook, /return allResources\.filter\(item => allowedIds\.has\(item\.id\)\)/);
+});
+
+test('creating a root folder invalidates both resource and explorer snapshots', async () => {
+  const action = await read('src/Containers/AddResource/AddResource.action.ts');
+
+  assert.match(action, /createResource\(resourceData\)/);
+  assert.match(action, /queryClient\.invalidateQueries\(\{ queryKey: \[resourceQueryKey\] \}\)/);
+  assert.match(action, /queryClient\.invalidateQueries\(\{ queryKey: \[resourceQueryKey, 'explorer'\] \}\)/);
+});
