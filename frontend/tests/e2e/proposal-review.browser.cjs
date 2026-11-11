@@ -17,6 +17,18 @@ async function signIn(page, username, password) {
   await page.waitForURL('**/mes-demandes');
 }
 
+async function openProjectWorkspace(page) {
+  // Select the project through the real workspace navigation rather than
+  // writing the active-project key directly into localStorage. The project
+  // page's Référentiel action is the supported entry point to /root.
+  await page.goto(`${baseUrl}/projects/${projectId}`);
+  const openWorkspace = page.getByRole('button', { name: 'Référentiel', exact: true });
+  await openWorkspace.waitFor();
+  await openWorkspace.click();
+  await page.waitForURL('**/root');
+  await page.getByText('Processus du projet', { exact: true }).waitFor();
+}
+
 async function main() {
   assert.ok(reviewerPassword, 'DEMO_AUTH_PASSWORD is required for the reviewer');
   assert.ok(authorPassword, 'CI_READER_PASSWORD is required for the remark author');
@@ -32,13 +44,9 @@ async function main() {
     // submits the remark, while the global administrator reviews it.
     await signIn(authorPage, authorUsername, authorPassword);
     await signIn(reviewerPage, reviewerUsername, reviewerPassword);
-    // The source process can be shared by multiple projects. Keep the test in
-    // the project whose variant is being exercised, as a real user would after
-    // selecting that project in the workspace.
-    await reviewerPage.evaluate(
-      projectId => localStorage.setItem('bpmn-tool:active-project', projectId),
-      projectId,
-    );
+    // Enter the target project through its visible UI entry point. This keeps
+    // the E2E aligned with the same project-selection flow used by real users.
+    await openProjectWorkspace(reviewerPage);
 
     // Create a real project variant through the public workflow endpoint.
     // This avoids relying on a static fixture that can silently drift from
@@ -67,18 +75,14 @@ async function main() {
     );
     const variantResourceId = createdVariant.body.resource.id;
 
-    // The variant is created through the API rather than the UI. Reload so
-    // the workspace query is fetched again instead of reusing the pre-create
-    // project-process list cached during sign-in.
-    await reviewerPage.reload();
+    // Re-enter the project through the supported UI action so the workspace
+    // is reloaded with the newly created variant in its project context.
+    await openProjectWorkspace(reviewerPage);
 
     // Submit the remark against the variant itself, not the common source.
     // This exercises the exact variant → proposal workspace → approved
     // publication path reported during manual testing.
-    await authorPage.evaluate(
-      projectId => localStorage.setItem('bpmn-tool:active-project', projectId),
-      projectId,
-    );
+    await openProjectWorkspace(authorPage);
     const created = await authorPage.evaluate(async ({ projectId, resourceId }) => {
       const response = await fetch(
         `/bpmn-api/projects/${projectId}/processes/${resourceId}/change-proposals`,
