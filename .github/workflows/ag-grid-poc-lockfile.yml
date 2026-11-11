@@ -1,0 +1,56 @@
+name: AG Grid POC dependency bootstrap
+
+on:
+  push:
+    branches:
+      - feat/job-functions-positions-ag-grid-poc
+
+permissions:
+  contents: write
+
+jobs:
+  resolve-and-validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout isolated prototype branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/job-functions-positions-ag-grid-poc
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.3
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Resolve AG Grid dependencies and generate lockfile
+        working-directory: frontend
+        run: pnpm add ag-grid-react@35.3.1 ag-grid-community@35.3.1 --lockfile-only
+      - name: Commit generated package manifest and lockfile
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/package.json frontend/pnpm-lock.yaml
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(job-architecture): add AG Grid Community dependencies"
+            git push origin HEAD:feat/job-functions-positions-ag-grid-poc
+          fi
+      - name: Install with frozen lockfile
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+      - name: Frontend lint
+        working-directory: frontend
+        run: pnpm lint
+      - name: Frontend build
+        working-directory: frontend
+        run: pnpm build
+      - name: Remove temporary bootstrap workflow
+        if: success()
+        run: |
+          git rm .github/workflows/ag-grid-poc-lockfile.yml
+          git commit -m "chore(ci): remove temporary AG Grid bootstrap workflow"
+          git push origin HEAD:feat/job-functions-positions-ag-grid-poc
