@@ -24,7 +24,7 @@ test('explorer provides root-level creation actions without requiring a folder s
   const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
 
   assert.match(tree, /navigate\('\/root\/add\?type=folder'\)/);
-  assert.match(tree, /navigate\('\/root\/add\?type=process&projectId=' \+ encodeURIComponent\(activeProjectId\)\)/);
+  assert.ok(tree.includes('navigate(`/root/add?type=process&projectId=${encodeURIComponent(activeProjectId)}`)'));
 });
 
 test('explorer loads its resource snapshot and BPMN link metadata through one API request', async () => {

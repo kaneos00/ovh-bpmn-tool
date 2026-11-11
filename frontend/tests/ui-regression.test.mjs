@@ -210,12 +210,12 @@ test('Start/End events and data references keep their semantic markers and style
 });
 
 
-test('detail panel starts collapsed, opens on selection and keeps visibility under user control', async () => {
+test('detail panel starts collapsed, opens on selection and closes when the selection is cleared', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
 
   assert.match(details, /useState\(true\);[\s\S]*?taskPanelCollapsed/);
-  assert.match(details, /if \(selectedElementId\) setTaskPanelCollapsed\(false\)/);
-  assert.doesNotMatch(details, /setTaskPanelCollapsed\(!selectedElementId\)/);
+  assert.match(details, /setTaskPanelCollapsed\(!selectedElementId\)/);
+  assert.match(details, /second click on the same BPMN element/);
   assert.match(details, /className="viewerPanelHeader processTaskPanelHeader"[\s\S]*?onClick=\{\(\) => setTaskPanelCollapsed\(value => !value\)\}/);
   assert.match(details, /aria-label=\{taskPanelCollapsed \? 'Développer le panneau de tâche' : 'Replier le panneau de tâche'\}/);
   const taskInfo = details.indexOf('1. Description de la tâche');
