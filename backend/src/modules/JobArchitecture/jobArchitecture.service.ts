@@ -893,7 +893,9 @@ export class JobArchitectureService {
     });
     const [actors, raciEntries, raciMappings, activityMappings] =
       await Promise.all([
-        this.raciActors.find({ where: { projectId, active: true } }),
+        // Keep inactive actors in the lookup: existing RACI entries may still
+        // reference them and must not be reported as actors missing from the registry.
+        this.raciActors.find({ where: { projectId } }),
         this.raciEntries.find({ where: { projectId } }),
         this.raciMappings.find({ where: { projectId } }),
         this.activityMappings.find({ where: { projectId } }),
@@ -906,8 +908,13 @@ export class JobArchitectureService {
         })
       : [];
 
+    const activePositionIds = new Set(positions.map((position) => position.id));
+    // A mapping to an archived position cannot establish current RACI coverage.
+    const currentRaciMappings = raciMappings.filter((mapping) =>
+      activePositionIds.has(mapping.positionId),
+    );
     const mappedActorIds = new Set(
-      raciMappings.map((mapping) => mapping.raciActorId),
+      currentRaciMappings.map((mapping) => mapping.raciActorId),
     );
     const actorByNormalizedName = new Map(
       actors.map((actor) => [actor.normalizedName, actor]),
@@ -920,17 +927,25 @@ export class JobArchitectureService {
         name,
         actor: actorByNormalizedName.get(name.toLocaleLowerCase()),
       }))
-      .filter(({ actor }) => !actor || !mappedActorIds.has(actor.id))
+      .filter(
+        ({ actor }) =>
+          !actor || !actor.active || !mappedActorIds.has(actor.id),
+      )
       .map(({ name, actor }) => ({
         name,
         actorId: actor?.id ?? null,
-        reason: actor
-          ? 'actor_not_linked_to_a_position'
-          : 'actor_not_in_registry',
+        reason: !actor
+          ? 'actor_not_in_registry'
+          : !actor.active
+            ? 'actor_inactive'
+            : 'actor_not_linked_to_a_position',
       }));
 
+    const currentActivityMappings = activityMappings.filter((mapping) =>
+      activePositionIds.has(mapping.positionId),
+    );
     const activityKeys = new Set(
-      activityMappings.map(
+      currentActivityMappings.map(
         (mapping) => `${mapping.positionId}:${mapping.blockId}`,
       ),
     );
@@ -956,10 +971,10 @@ export class JobArchitectureService {
       requiredBlocksWithoutActivities,
       counts: {
         positions: positions.length,
-        raciActors: actors.length,
+        raciActors: actors.filter((actor) => actor.active).length,
         raciEntries: raciEntries.length,
-        raciActorMappings: raciMappings.length,
-        activityMappings: activityMappings.length,
+        raciActorMappings: currentRaciMappings.length,
+        activityMappings: currentActivityMappings.length,
       },
       limitations: [
         'New BPMN activity mappings are checked against the latest published XML; existing mappings are not automatically revalidated when a later version is published.',
