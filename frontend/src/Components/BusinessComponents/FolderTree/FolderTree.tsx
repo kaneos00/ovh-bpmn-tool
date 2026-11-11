@@ -74,12 +74,24 @@ const readView = (): ExplorerView => {
 
 export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
   const { dataTree, expandedNodes, setExpandedNodes, isLoading, activeProjectId } = useFolderTree(selectedId);
-  const { projects, setActiveProject } = useActiveProject();
+  const { projects, activeProject, setActiveProject } = useActiveProject();
   const navigate = useNavigate();
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
   const [projectModelerResourceIds, setProjectModelerResourceIds] = useState<string[]>([]);
   const [contextMenu, setContextMenu] = useState<{ nodeId: string; anchorEl: HTMLElement } | null>(null);
   const canModifyBpmn = (resourceId: string) => sessionRole === 'admin' || sessionRole === 'modeler' || projectModelerResourceIds.includes(resourceId);
+  const canCreateFolderAtRoot = Boolean(
+    activeProjectId && (sessionRole === 'admin' || sessionRole === 'modeler'),
+  );
+  const canCreateProcessAtRoot = Boolean(
+    activeProjectId &&
+    (
+      sessionRole === 'admin' ||
+      (sessionRole === 'modeler' && (
+        activeProject?.role === 'admin' || activeProject?.role === 'modeler'
+      ))
+    ),
+  );
 
   useEffect(() => { setContextMenu(null); }, [activeProjectId, selectedId]);
 
@@ -423,6 +435,11 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                   >
                     {node?.type === 'folder' ? <FolderOutlined fontSize="small" /> : <DescriptionOutlined fontSize="small" />}
                     <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</Box>
+                    {node?.usage === 'variant' && (
+                      <Chip size="sm" variant="soft" color="primary" title="Variante de processus">
+                        Variante
+                      </Chip>
+                    )}
                     {Boolean(node?.children?.length) && (
                       <IconButton
                         size="sm"

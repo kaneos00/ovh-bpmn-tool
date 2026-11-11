@@ -97,12 +97,11 @@ export const useProcessViewer = (
     ) return;
 
     // One diagram unit per screen pixel: the initial Viewer scale is exactly
-    // 1:1, centered on the complete process. Larger diagrams can be panned.
-    const centerX = bounds.x + bounds.width / 2;
-    const centerY = bounds.y + bounds.height / 2;
+    // 1:1, with the diagram's upper-left corner aligned to the viewport's
+    // upper-left corner. Larger diagrams can be panned to inspect the rest.
     canvas.viewbox({
-      x: centerX - width / 2,
-      y: centerY - height / 2,
+      x: bounds.x,
+      y: bounds.y,
       width,
       height,
     });

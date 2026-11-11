@@ -83,8 +83,8 @@ test('detail panel starts collapsed and follows the selected BPMN element', asyn
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
 
   assert.match(details, /const \[taskPanelCollapsed, setTaskPanelCollapsed\] = useState\(true\)/);
-  assert.match(details, /if \(selectedElementId\) setTaskPanelCollapsed\(false\)/);
-  assert.doesNotMatch(details, /setTaskPanelCollapsed\(!selectedElementId\)/);
+  assert.match(details, /setTaskPanelCollapsed\(!selectedElementId\)/);
+  assert.match(details, /second click on the same BPMN element/);
   assert.match(details, /externalUrl:\s*Array\.from\(element\.attributes\)[\s\S]*?attribute\.localName === 'link'/);
 });
 

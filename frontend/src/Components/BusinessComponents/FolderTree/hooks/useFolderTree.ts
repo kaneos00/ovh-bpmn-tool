@@ -40,27 +40,27 @@ export const useFolderTree = (selectedResourceId: string) => {
   const {
     projects,
     activeProject,
-    activeProjectId,
-    projectProcessIds,
     isLoading: areProjectsLoading,
   } = useActiveProject();
 
-  // A process can be reached directly from a project even when the active
-  // project has not yet been restored from local storage. Infer it only when
-  // the current resource belongs to exactly one project; never guess when it
-  // is shared by several projects.
+  // Resolve the project from the process currently open, not blindly from a
+  // previously selected project. This matters when navigating between projects
+  // and when the same process is shared by several projects.
   const projectForTree = useMemo(() => {
-    if (activeProject) return activeProject;
     const matchingProjects = projects.filter(project =>
       project.processes.some(process => process.resourceId === selectedResourceId),
     );
-    return matchingProjects.length === 1 ? matchingProjects[0] : null;
+    if (matchingProjects.length === 1) return matchingProjects[0];
+    if (matchingProjects.length > 1) {
+      return matchingProjects.find(project => project.id === activeProject?.id) ?? null;
+    }
+    return activeProject;
   }, [activeProject, projects, selectedResourceId]);
 
-  const effectiveProjectId = activeProjectId ?? projectForTree?.id ?? null;
+  const effectiveProjectId = projectForTree?.id ?? null;
   const effectiveProcessIds = useMemo(
-    () => new Set(projectForTree?.processes.map(process => process.resourceId) ?? projectProcessIds),
-    [projectForTree, projectProcessIds],
+    () => new Set(projectForTree?.processes.map(process => process.resourceId) ?? []),
+    [projectForTree],
   );
 
   const scopedResources = useMemo(() => {
@@ -191,7 +191,7 @@ export const useFolderTree = (selectedResourceId: string) => {
       type: 'folder',
       children: createChildren('root'),
     };
-  }, [scopedResources, linkedChildrenByResource, linkedTargetIds]);
+  }, [scopedResources, linkedChildrenByResource, linkedTargetIds, projectForTree]);
 
   useEffect(() => {
     if (!scopedResources.length || !resource || !scopedResources.some(item => item.id === resource.id)) return;
