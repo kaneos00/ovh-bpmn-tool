@@ -9,14 +9,20 @@ export const action = async ({ request }: { request: Request }) => {
   const url = new URL(request.url);
   const targetResourceId = url.searchParams.get('targetResourceId');
 
+  if (!targetResourceId) {
+    return { error: new Error('Identifiant du processus à supprimer manquant.') };
+  }
+
   const formData = await request.formData();
   const deletedResourceType = formData.get('resourceType') as ResourceType;
 
   try {
-    await deleteResource(targetResourceId as string);
-    queryClient.invalidateQueries({
-      queryKey: [resourceQueryKey],
-    });
+    await deleteResource(targetResourceId);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: [resourceQueryKey] }),
+      queryClient.invalidateQueries({ queryKey: [resourceQueryKey, 'explorer'] }),
+      queryClient.invalidateQueries({ queryKey: ['my-workspace'] }),
+    ]);
 
     return {
       deletedResourceType,
