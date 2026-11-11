@@ -55,6 +55,7 @@ const overlapScore = (left: string, right: string) => {
 export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string; canEdit: boolean }) => {
   const queryClient = useQueryClient();
   const [selectedPositionId, setSelectedPositionId] = useState('');
+  const [activeStep, setActiveStep] = useState(0);
   const [functionId, setFunctionId] = useState('');
   const [selectedFunctionIds, setSelectedFunctionIds] = useState<string[]>([]);
   const [title, setTitle] = useState('');
@@ -250,8 +251,36 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
           : <Alert color="success">Tous les blocs requis des postes disposent d’au moins une correspondance BPMN.</Alert>}
         {diagnosticsQuery.data.limitations.map((limitation, index) => <Typography key={index} level="body-xs" sx={{ color: 'text.tertiary' }}>Limite : {limitation}</Typography>)}
       </Card>}
+      <Card variant="outlined" sx={{ gap: 1.25 }}>
+        <Typography level="title-lg">Parcours de configuration</Typography>
+        <Typography level="body-sm" sx={{ color: 'text.secondary' }}>
+          Vous pouvez passer librement d’une étape à l’autre. Les modifications enregistrées sont conservées lorsque vous revenez sur une étape.
+        </Typography>
+        <Stack direction={{ xs: 'column', sm: 'row' }} gap={1}>
+          {[
+            { label: '1. Postes', hint: `${positionsQuery.data?.length ?? 0} créé(s)` },
+            { label: '2. Compétences', hint: selectedPosition ? `${selectedPosition.competencyBlocks.filter(item => ['required', 'optional'].includes(item.applicability)).length} applicable(s)` : 'Choisir un poste' },
+            { label: '3. RACI', hint: selectedPosition ? `${mappings.raciActors.length} association(s)` : 'Choisir un poste' },
+            { label: '4. Processus', hint: selectedPosition ? `${mappings.activities.length} association(s)` : 'Choisir un poste' },
+          ].map((step, index) => (
+            <Button key={step.label} fullWidth variant={activeStep === index ? 'solid' : 'soft'} color={activeStep === index ? 'primary' : 'neutral'}
+              onClick={() => setActiveStep(index)} sx={{ alignItems: 'flex-start', flexDirection: 'column', gap: 0.25 }}>
+              <Typography level="title-sm" sx={{ color: 'inherit' }}>{step.label}</Typography>
+              <Typography level="body-xs" sx={{ color: 'inherit', opacity: 0.8 }}>{step.hint}</Typography>
+            </Button>
+          ))}
+        </Stack>
+        {activeStep > 0 && (
+          <FormControl>
+            <FormLabel>Poste en cours de configuration</FormLabel>
+            <Select value={selectedPositionId || null} onChange={(_event, value) => { setSelectedPositionId(value ?? ''); setError(''); }} placeholder="Choisir un poste du projet">
+              {(positionsQuery.data ?? []).map(position => <Option key={position.id} value={position.id}>{position.title}</Option>)}
+            </Select>
+          </FormControl>
+        )}
+      </Card>
       <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 2, alignItems: 'start' }}>
-        <Stack spacing={1.5}>
+        <Stack spacing={1.5} sx={{ display: activeStep === 0 ? 'flex' : 'none' }}>
           <Card variant="outlined" sx={{ gap: 1 }}>
             <Stack direction="row" alignItems="center" justifyContent="space-between">
               <Typography level="title-lg">Postes du projet</Typography>
@@ -315,10 +344,10 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
           </Card>}
         </Stack>
 
-        <Stack spacing={1.5}>
-          {!selectedPosition && <Card variant="outlined"><Typography level="title-md">Sélectionnez un poste</Typography><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Choisissez un poste existant ou créez-en un nouveau pour définir ses correspondances.</Typography></Card>}
+        <Stack spacing={1.5} sx={{ display: activeStep === 0 ? 'none' : 'flex' }}>
+          {activeStep > 0 && !selectedPosition && <Card variant="outlined"><Typography level="title-md">Sélectionnez un poste</Typography><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Choisissez un poste existant ou créez-en un nouveau pour définir ses correspondances.</Typography></Card>}
           {selectedPosition && <>
-            <Card variant="outlined" sx={{ gap: 1 }}>
+            <Card variant="outlined" sx={{ gap: 1, display: activeStep === 1 ? 'flex' : 'none' }}>
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1}>
                 <Box><Typography level="h2">{selectedPosition.title}</Typography><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Fonction de référence : {selectedFunction?.name ?? selectedPosition.function?.name ?? '—'}</Typography></Box>
                 <Chip color="primary" variant="soft">Poste du projet</Chip>
@@ -351,7 +380,7 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
               {!(selectedFunction?.competencyBlocks ?? []).length && <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Cette fonction ne comporte aucun bloc de compétences.</Typography>}
             </Card>
 
-            <Card variant="outlined" sx={{ gap: 1.25 }}>
+            <Card variant="outlined" sx={{ gap: 1.25, display: activeStep === 2 ? 'flex' : 'none' }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center"><Typography level="title-lg">Correspondances avec le RACI</Typography><Chip size="sm" variant="soft">{mappings.raciActors.length}</Chip></Stack>
               <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Les rôles déjà présents dans le registre RACI sont proposés lorsqu’un intitulé partage des termes avec ce poste. Chaque proposition doit être confirmée ; les affectations RACI ne sont jamais modifiées.</Typography>
               {suggestedActors.length > 0 && <Card variant="soft" sx={{ gap: 0.75 }}>
@@ -379,7 +408,7 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
               {!mappings.raciActors.length && <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Aucun rôle RACI associé.</Typography>}
             </Card>
 
-            <Card variant="outlined" sx={{ gap: 1.25 }}>
+            <Card variant="outlined" sx={{ gap: 1.25, display: activeStep === 3 ? 'flex' : 'none' }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center"><Typography level="title-lg">Correspondances avec les activités BPMN</Typography><Chip size="sm" variant="soft">{mappings.activities.length}</Chip></Stack>
               <Typography level="body-sm" sx={{ color: 'text.secondary' }}>L’application compare les intitulés des blocs avec les activités des processus publiés pour faire ressortir des pistes. Les propositions restent à confirmer et ne modifient jamais le BPMN.</Typography>
               {suggestedActivities.length > 0 && <Card variant="soft" sx={{ gap: 0.75 }}>
