@@ -262,7 +262,7 @@ export const ProcessDetails = ({
   );
   const projectVariantContentQueries = useQueries(
     projectVariants.map(variant => contentsQuery(variant.resourceId)),
-  ) as Array<{ data?: Content[] }>;
+  ) as Array<{ data?: Content[]; isLoading?: boolean; isError?: boolean }>;
 
   // Existing variants created before the initial-copy publication fix have
   // only a first draft. Keep those independent variants visible in the
@@ -1351,7 +1351,8 @@ export const ProcessDetails = ({
                       const variantContents = projectVariantContentQueries[index]?.data ?? [];
                       const variantDraft = variantContents.find(content => content.status === ContentStatusEnum.Draft);
                       const variantPublished = variantContents.find(content => content.status === ContentStatusEnum.Published);
-                      const status = variantDraft ? 'Brouillon à valider' : variantPublished ? 'Publiée' : 'Sans version';
+                      const variantQuery = projectVariantContentQueries[index];
+                      const status = variantQuery?.isLoading ? 'Chargement…' : variantQuery?.isError ? 'Indisponible' : variantDraft ? 'Brouillon à valider' : variantPublished ? 'Publiée' : 'Sans version';
                       return (
                         <Stack key={variant.resourceId} direction="row" spacing={1} alignItems="center" justifyContent="space-between">
                           <Stack spacing={0.25} sx={{ minWidth: 0 }}>
