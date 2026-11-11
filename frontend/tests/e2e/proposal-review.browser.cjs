@@ -246,7 +246,13 @@ async function main() {
     // canonical project-scoped entry point; searching the global folder tree
     // is not a reliable way to find a newly linked project variant.
     await reviewerPage.goto(`${baseUrl}/root`);
-    const variantEntry = reviewerPage.getByRole('button', {
+    // The project overview contains one process-list row and a separate
+    // recent-changes row for the same resource. Scope the action to the
+    // process row (which also exposes its usage and published version).
+    const variantRow = reviewerPage.getByRole('row', {
+      name: /CI E2E — variante partenaire Variante V1/,
+    });
+    const variantEntry = variantRow.getByRole('button', {
       name: 'CI E2E — variante partenaire',
       exact: true,
     });
