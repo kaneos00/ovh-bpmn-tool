@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from 'react';
+import { AgGridReact } from 'ag-grid-react';
+import { AllCommunityModule, ModuleRegistry, themeQuartz, type ColDef } from 'ag-grid-community';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import {
   Alert, Box, Button, Card, Chip, Divider, FormControl, FormLabel,
@@ -11,6 +13,8 @@ import { ContentStatusEnum } from '../../../Types';
 import { ResourceType } from '../../../shared/types/BpmnResource';
 import { deriveRaciMatrixFromXml } from '../../../extensions/raci-viewer';
 
+ModuleRegistry.registerModules([AllCommunityModule]);
+
 type JobFunction = {
   id: string; code: string; name: string;
   competencyBlocks: Array<{ id: string; code: string; name: string }>;
@@ -19,6 +23,13 @@ type Position = {
   id: string; functionId: string; title: string; description: string | null;
   function?: JobFunction | null;
   competencyBlocks: Array<{ blockId: string; applicability: string; requiredLevel: number | null }>;
+};
+type PositionGridRow = {
+  id: string;
+  title: string;
+  functionName: string;
+  description: string;
+  competencyBlockCount: number;
 };
 type Actor = { id: string; name: string; active: boolean };
 type ProcessLink = { resourceId: string; resource: Resource | null };
@@ -69,6 +80,21 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
     () => apiClient.get(`/projects/${projectId}/processes`),
     { enabled: Boolean(projectId) },
   );
+  const gridRows = useMemo<PositionGridRow[]>(() => (positionsQuery.data ?? []).map(position => ({
+    id: position.id,
+    title: position.title,
+    functionName: position.function?.name ?? functionsQuery.data?.find(item => item.id === position.functionId)?.name ?? 'Fonction de référence',
+    description: position.description ?? '',
+    competencyBlockCount: position.function?.competencyBlocks?.length
+      ?? functionsQuery.data?.find(item => item.id === position.functionId)?.competencyBlocks?.length
+      ?? position.competencyBlocks.length,
+  })), [positionsQuery.data, functionsQuery.data]);
+  const gridColumns = useMemo<ColDef<PositionGridRow>[]>(() => [
+    { field: 'title', headerName: 'Poste', flex: 1.3, minWidth: 180 },
+    { field: 'functionName', headerName: 'Fonction de référence', flex: 1.2, minWidth: 190 },
+    { field: 'competencyBlockCount', headerName: 'Blocs', width: 105, type: 'numericColumn' },
+    { field: 'description', headerName: 'Description', flex: 1.5, minWidth: 180 },
+  ], []);
   const selectedPosition = (positionsQuery.data ?? []).find(item => item.id === selectedPositionId) ?? null;
   const mappingsQuery = useQuery<MappingState>(
     ['job-position-mappings', projectId, selectedPositionId],
@@ -193,18 +219,22 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
               <Chip size="sm" variant="soft">{positionsQuery.data?.length ?? 0}</Chip>
             </Stack>
             {positionsQuery.isLoading && <Typography level="body-sm">Chargement des postes…</Typography>}
-            {(positionsQuery.data ?? []).map(position => (
-              <Button key={position.id} variant={selectedPositionId === position.id ? 'soft' : 'plain'}
-                color={selectedPositionId === position.id ? 'primary' : 'neutral'}
-                sx={{ justifyContent: 'flex-start', textAlign: 'left' }}
-                onClick={() => { setSelectedPositionId(position.id); setError(''); }}>
-                <Stack alignItems="flex-start" spacing={0}>
-                  <Typography level="title-sm">{position.title}</Typography>
-                  <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>{position.function?.name ?? functionsQuery.data?.find(item => item.id === position.functionId)?.name ?? 'Fonction de référence'}</Typography>
-                </Stack>
-              </Button>
-            ))}
-            {!positionsQuery.isLoading && !(positionsQuery.data ?? []).length &&
+            {positionsQuery.isError && <Alert color="danger">La liste des postes n’est pas disponible.</Alert>}
+            {!positionsQuery.isLoading && !positionsQuery.isError && gridRows.length > 0 && (
+              <Box sx={{ width: '100%', height: 360, minWidth: 0 }}>
+                <AgGridReact<PositionGridRow>
+                  theme={themeQuartz}
+                  rowData={gridRows}
+                  columnDefs={gridColumns}
+                  defaultColDef={{ sortable: true, filter: true, resizable: true }}
+                  getRowId={params => params.data.id}
+                  onRowClicked={event => { setSelectedPositionId(event.data.id); setError(''); }}
+                  animateRows
+                  overlayNoRowsTemplate="Aucun poste organisationnel pour ce projet."
+                />
+              </Box>
+            )}
+            {!positionsQuery.isLoading && !positionsQuery.isError && !gridRows.length &&
               <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Aucun poste organisationnel n’a encore été créé pour ce projet.</Typography>}
           </Card>
           {canEdit && <Card variant="outlined" sx={{ gap: 1.25 }}>
