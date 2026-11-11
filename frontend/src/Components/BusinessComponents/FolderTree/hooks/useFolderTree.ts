@@ -161,11 +161,17 @@ export const useFolderTree = (selectedResourceId: string) => {
         nodeType = 'linked-process';
       }
 
+      const projectProcess = projectForTree?.processes.find(
+        process => process.resourceId === item.id,
+      );
+
       return {
         id: treeId,
         name: item.name,
         type: nodeType,
         targetId,
+        usage: projectProcess?.usage,
+        sourceResourceId: projectProcess?.sourceResourceId,
         children,
       } as RenderTree;
     };

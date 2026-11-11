@@ -99,11 +99,29 @@ export const Component = () => {
   }
 
   useEffect(() => {
-    if (activeProjectId || projectsLoading || !resourceId) return;
+    if (projectsLoading || !resourceId || isRoot(resourceId)) return;
     const matchingProjects = projects.filter(project =>
       project.processes.some(process => process.resourceId === resourceId),
     );
-    if (matchingProjects.length === 1) setActiveProject(matchingProjects[0].id);
+
+    // Keep the explorer context aligned with the process currently opened,
+    // including when navigation crosses from one project to another.
+    if (matchingProjects.length === 1) {
+      if (matchingProjects[0].id !== activeProjectId) {
+        setActiveProject(matchingProjects[0].id);
+      }
+      return;
+    }
+
+    // A process shared by several projects needs an explicit project context.
+    // Do not keep showing an unrelated project's tree after cross-project navigation.
+    if (
+      matchingProjects.length > 1 &&
+      activeProjectId &&
+      !matchingProjects.some(project => project.id === activeProjectId)
+    ) {
+      setActiveProject(null);
+    }
   }, [activeProjectId, projectsLoading, projects, resourceId, setActiveProject]);
   const { getBreadCrumbs } = useBpmnLayoutBreadcrumbs();
 

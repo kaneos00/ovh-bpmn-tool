@@ -323,6 +323,10 @@ export const useProcessViewer = (
           window.requestAnimationFrame(() => {
             if (cancelled || generation !== importGenerationRef.current) return;
             showDiagramAtActualSize();
+            // Reapply the route-driven selection after the final canvas layout.
+            // This avoids losing the blue marker when a process is opened through
+            // explorer navigation while its XML and selection state resolve.
+            applySelectionRef.current();
           });
         });
         setIsImporting(false);

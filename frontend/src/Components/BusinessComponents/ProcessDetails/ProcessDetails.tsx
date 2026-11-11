@@ -509,9 +509,10 @@ export const ProcessDetails = ({
   }, [taskPanelWidth]);
 
   useEffect(() => {
-    // Open the panel when an element is selected, but leave visibility under
-    // the user's control when selection changes or is cleared.
-    if (selectedElementId) setTaskPanelCollapsed(false);
+    // Selecting an element opens its details. Clearing the selection (including
+    // a second click on the same BPMN element) restores the previous collapsed
+    // state; the panel header remains available for manual open/close control.
+    setTaskPanelCollapsed(!selectedElementId);
   }, [selectedElementId]);
 
   useEffect(() => () => {
