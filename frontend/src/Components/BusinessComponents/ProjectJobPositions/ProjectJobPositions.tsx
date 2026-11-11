@@ -49,7 +49,7 @@ const overlapScore = (left: string, right: string) => {
   const stopWords = new Set(['della', 'delle', 'dello', 'dell', 'degli', 'dalla', 'dalle', 'dallo', 'dai', 'dagli', 'per', 'con', 'una', 'uno', 'che', 'del', 'dei', 'nel', 'nella', 'nelle', 'nello', 'alla', 'alle', 'allo', 'agli', 'the', 'and']);
   const tokens = (value: string) => new Set(value.toLocaleLowerCase('it').normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[^a-z0-9]+/).filter(token => token.length > 3 && !stopWords.has(token)));
   const leftTokens = tokens(left);
-  return [...tokens(right)].filter(token => leftTokens.has(token)).length;
+  return Array.from(tokens(right)).filter(token => leftTokens.has(token)).length;
 };
 
 export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string; canEdit: boolean }) => {
@@ -97,6 +97,7 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
       ?? functionsQuery.data?.find(item => item.id === position.functionId)?.competencyBlocks?.length
       ?? position.competencyBlocks.length,
   })), [positionsQuery.data, functionsQuery.data]);
+  const existingFunctionIds = new Set((positionsQuery.data ?? []).map(position => position.functionId));
   const gridColumns = useMemo<ColDef<PositionGridRow>[]>(() => [
     { field: 'title', headerName: 'Poste', flex: 1.3, minWidth: 180 },
     { field: 'functionName', headerName: 'Fonction de référence', flex: 1.2, minWidth: 190 },
