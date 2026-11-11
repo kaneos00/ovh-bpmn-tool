@@ -483,12 +483,12 @@ test('the right element-details panel and its resize handle exist only on the BP
 });
 
 
-test('BPMN element selection opens the right-hand panel without forcing it closed', async () => {
+test('BPMN element selection opens the right-hand panel and a second click closes it', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
 
-  assert.match(details, /if \(selectedElementId\) setTaskPanelCollapsed\(false\)/);
-  assert.doesNotMatch(details, /setTaskPanelCollapsed\(!selectedElementId\)/);
+  assert.match(details, /setTaskPanelCollapsed\(!selectedElementId\)/);
+  assert.match(details, /second click on the same BPMN element/);
   assert.ok(hook.includes("onElementSelectRef.current?.(element.id)"));
   assert.ok(hook.includes("onElementSelectRef.current?.('')"));
   assert.match(hook, /if \(selectedIdRef\.current === element\.id\) \{[\s\S]*?onElementSelectRef\.current\?\.\(''\)/);
