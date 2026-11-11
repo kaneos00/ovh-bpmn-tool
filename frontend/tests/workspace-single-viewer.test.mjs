@@ -156,7 +156,10 @@ test('organization-wide search is explicit and project scope remains the default
 test('proposal workspaces remain authorized resources but are excluded from the ordinary project explorer', async () => {
   const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project.controller.ts');
 
-  assert.match(controller, /const visibleLinks = links\.filter\([\s\S]*?!resourceById\.get\(link\.resourceId\)\?\.sourceResourceId/);
+  assert.match(
+    controller,
+    /const visibleLinks = links\.filter\(\s*\(link\) => !\(\s*link\.usage === ProjectProcessUsage\.ProjectSpecific &&\s*resourceById\.get\(link\.resourceId\)\?\.sourceResourceId\s*\),\s*\);/,
+  );
   assert.match(controller, /for \(const link of visibleLinks\)/);
   assert.match(controller, /projectProcesses\.create\([\s\S]*?resourceId: variant\.id[\s\S]*?sourceResourceId: source\.id/);
 });
