@@ -364,7 +364,7 @@ test('selection outline follows BPMN geometry and excludes separate labels', asy
 test('administrator explorer context menu restores folder and resource actions', async () => {
   const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
   assert.ok(tree.includes("const isAdmin = sessionRole === 'admin';"));
-  assert.ok(tree.includes('Créer un répertoire'));
+  assert.ok(tree.includes('Créer un sous-répertoire'));
   assert.ok(tree.includes('type=folder'));
   assert.ok(tree.includes('Créer un processus'));
   assert.ok(tree.includes('type=process'));
