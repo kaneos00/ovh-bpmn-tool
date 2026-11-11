@@ -38,6 +38,8 @@
     "@react-spring/rafz": "^9.7.4",
     "@react-spring/web": "^9.7.4",
     "@tanstack/react-table": "^8.10.1",
+    "ag-grid-community": "35.3.1",
+    "ag-grid-react": "35.3.1",
     "bpmn-js": "^16.4.0",
     "bpmn-js-color-picker": "^0.7.0",
     "bpmn-js-differ": "^2.0.2",
@@ -48,15 +50,15 @@
     "date-fns": "^2.30.0",
     "diagram-js-minimap": "^4.1.0",
     "react": "^18.3.1",
+    "react-complex-tree": "^2.5.1",
+    "react-d3-tree": "^3.6.6",
     "react-hook-form": "^7.53.0",
     "react-query": "^3.39.3",
     "react-router-dom": "^6.26.1",
     "react-virtuoso": "^4.10.1",
     "react-window": "^1.8.10",
     "styled-components": "^6.1.12",
-    "uuid": "^9.0.0",
-    "react-complex-tree": "^2.5.1",
-    "react-d3-tree": "^3.6.6"
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@spotify/eslint-config": "^15.0.0",
