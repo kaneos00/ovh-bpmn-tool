@@ -87,3 +87,15 @@ test('creating a root folder invalidates both resource and explorer snapshots', 
   assert.match(action, /queryClient\.invalidateQueries\(\{ queryKey: \[resourceQueryKey\] \}\)/);
   assert.match(action, /queryClient\.invalidateQueries\(\{ queryKey: \[resourceQueryKey, 'explorer'\] \}\)/);
 });
+
+
+test('deleting a process refreshes resource, explorer and project workspace snapshots', async () => {
+  const action = await read('src/Containers/DeleteResource/DeleteResource.action.ts');
+
+  assert.match(action, /if \(!targetResourceId\)/);
+  assert.match(action, /await deleteResource\(targetResourceId\)/);
+  assert.match(action, /queryClient\.invalidateQueries\(\{ queryKey: \[resourceQueryKey\] \}\)/);
+  assert.match(action, /queryClient\.invalidateQueries\(\{ queryKey: \[resourceQueryKey, 'explorer'\] \}\)/);
+  assert.match(action, /queryClient\.invalidateQueries\(\{ queryKey: \['my-workspace'\] \}\)/);
+});
+
