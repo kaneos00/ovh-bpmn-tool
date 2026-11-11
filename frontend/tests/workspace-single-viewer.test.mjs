@@ -249,3 +249,14 @@ test('the modeler export menu is reset when navigating to another process', asyn
 
   assert.ok(actionBar.includes('<Dropdown key={`export-menu:${resourceId}`}>'));
 });
+
+test('source process history lists project variants and exposes draft variants for validation', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.match(details, /const projectVariants = \\(projectForProcess\\?\\.processes \\?\\? \\[\\]\\)\\.filter/);
+  assert.match(details, /process\\.usage === 'variant' && process\\.sourceResourceId === resourceId/);
+  assert.match(details, /useQueries\\([\\s\\S]*?contentsQuery\\(variant\\.resourceId\\)/);
+  assert.match(details, /variantContents\\.find\\(content => content\\.status === ContentStatusEnum\\.Draft\\)/);
+  assert.match(details, /Brouillon à valider/);
+  assert.ok(details.includes('Ouvrir pour valider'));
+});
