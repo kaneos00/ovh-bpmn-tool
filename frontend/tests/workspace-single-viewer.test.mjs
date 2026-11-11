@@ -158,7 +158,7 @@ test('proposal workspaces remain authorized resources but are excluded from the 
 
   assert.match(
     controller,
-    /const visibleLinks = links\.filter\(\s*\(link\) => !\(\s*link\.usage === ProjectProcessUsage\.ProjectSpecific &&\s*resourceById\.get\(link\.resourceId\)\?\.sourceResourceId\s*\),\s*\);/,
+    /const visibleLinks = links\.filter\(\s*\(link\)\s*=>\s*!\(\s*link\.usage === ProjectProcessUsage\.ProjectSpecific &&\s*resourceById\.get\(link\.resourceId\)\?\.sourceResourceId\s*\),\s*\);/,
   );
   assert.match(controller, /for \(const link of visibleLinks\)/);
   assert.match(controller, /projectProcesses\.create\([\s\S]*?resourceId: variant\.id[\s\S]*?sourceResourceId: source\.id/);
