@@ -73,8 +73,8 @@ const readView = (): ExplorerView => {
 };
 
 export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
-  const { dataTree, expandedNodes, setExpandedNodes, isLoading, activeProjectId } = useFolderTree(selectedId);
-  const { projects, activeProject, setActiveProject } = useActiveProject();
+  const { dataTree, expandedNodes, setExpandedNodes, isLoading, activeProjectId, activeProject } = useFolderTree(selectedId);
+  const { projects, setActiveProject } = useActiveProject();
   const navigate = useNavigate();
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
   const [projectModelerResourceIds, setProjectModelerResourceIds] = useState<string[]>([]);

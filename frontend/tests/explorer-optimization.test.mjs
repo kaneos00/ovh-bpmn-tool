@@ -15,6 +15,7 @@ test('explorer follows the process currently open instead of retaining an unrela
 
   assert.match(hook, /if \(matchingProjects\.length === 1\) return matchingProjects\[0\]/);
   assert.match(hook, /matchingProjects\.find\(project => project\.id === activeProject\?\.id\) \?\? null/);
+  assert.match(hook, /activeProject: projectForTree/);
   assert.match(layout, /matchingProjects\.length === 1[\s\S]*?setActiveProject\(matchingProjects\[0\]\.id\)/);
   assert.match(treeType, /usage\?: 'common' \| 'variant' \| 'project-specific'/);
   assert.match(tree, /node\?\.usage === 'variant'/);

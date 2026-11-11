@@ -228,5 +228,6 @@ export const useFolderTree = (selectedResourceId: string) => {
     setExpandedNodes,
     isLoading: isExplorerLoading || areProjectsLoading,
     activeProjectId: effectiveProjectId,
+    activeProject: projectForTree,
   };
 };
