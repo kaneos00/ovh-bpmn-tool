@@ -142,12 +142,14 @@ describe('JobArchitectureService.getProjectConsistencyDiagnostics', () => {
         ]),
       },
       raciEntries: {
-        find: jest.fn().mockResolvedValue([
-          { actorName: 'Responsable' },
-          { actorName: 'Chef de projet' },
-          { actorName: 'Ancien rôle' },
-          { actorName: 'Rôle inconnu' },
-        ]),
+        find: jest
+          .fn()
+          .mockResolvedValue([
+            { actorName: 'Responsable' },
+            { actorName: 'Chef de projet' },
+            { actorName: 'Ancien rôle' },
+            { actorName: 'Rôle inconnu' },
+          ]),
       },
       raciMappings: {
         find: jest.fn().mockResolvedValue([
