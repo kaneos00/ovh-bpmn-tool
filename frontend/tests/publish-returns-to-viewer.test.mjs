@@ -8,6 +8,13 @@ const routes = read('../src/routes.tsx');
 const hook = read('../src/Containers/PublishResource/hooks/usePublishResource.ts');
 const action = read('../src/Containers/PublishResource/PublishResource.action.ts');
 
+test('publication waits for a draft and surfaces the backend error', () => {
+  assert.match(hook, /isLoading: isContentsLoading/);
+  assert.match(hook, /const canPublish = !isContentsLoading && Boolean\(draftContent\?\.id\)/);
+  assert.match(hook, /getPublishErrorMessage\(actionData\.error\)/);
+  assert.match(source, /disabled=\{!canPublish\}/);
+});
+
 test('the process page and Modeler share the same publication module', () => {
   assert.match(routes, /path: '\/:resourceId\/publish',[\s\S]*?import\('\.\/Containers\/PublishResource'\)/);
   assert.match(routes, /path: '\/:resourceId\/modeler'[\s\S]*?path: 'publish',[\s\S]*?import\('\.\/Containers\/PublishResource'\)/);

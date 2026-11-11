@@ -9,7 +9,7 @@ import { PublishContent } from './components/PublishContent';
 import { Button, DialogActions } from '@mui/joy';
 
 export const Component = () => {
-  const { loaderData, resource, base64Png, actionData, viewerRef, callbacks } =
+  const { loaderData, resource, base64Png, actionData, viewerRef, canPublish, callbacks } =
     usePublishResource();
 
   // A failed publication must remain on the confirmation screen so the
@@ -55,6 +55,7 @@ export const Component = () => {
                 <Button
                   variant="solid"
                   color="primary"
+                  disabled={!canPublish}
                   onClick={callbacks.onPublish}
                 >
                   Publier
