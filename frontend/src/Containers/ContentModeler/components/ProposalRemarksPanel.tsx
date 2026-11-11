@@ -412,7 +412,9 @@ export const ProposalRemarksPanel = ({
               <Sheet key={remark.id} variant="soft" sx={{ p: 1.25, borderRadius: 'sm' }}>
                 <Stack spacing={0.75}>
                   <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
-                    <Typography level="title-sm">{remark.elementId}</Typography>
+                    <Typography level="title-sm" title={remark.elementId}>
+                      {getElementDisplayName(modeler, remark.elementId)}
+                    </Typography>
                     <Chip size="sm" variant="soft" color={statusColor[remark.status]}>
                       {statusLabel[remark.status]}
                     </Chip>

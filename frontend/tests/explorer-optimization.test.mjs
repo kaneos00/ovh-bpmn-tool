@@ -7,6 +7,26 @@ import path from 'node:path';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = relativePath => readFile(path.join(root, relativePath), 'utf8');
 
+test('explorer follows the process currently open instead of retaining an unrelated active project', async () => {
+  const hook = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
+  const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
+  const treeType = await read('src/Components/BusinessComponents/FolderTree/index.ts');
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+
+  assert.match(hook, /if \(matchingProjects\.length === 1\) return matchingProjects\[0\]/);
+  assert.match(hook, /matchingProjects\.find\(project => project\.id === activeProject\?\.id\) \?\? null/);
+  assert.match(layout, /matchingProjects\.length === 1[\s\S]*?setActiveProject\(matchingProjects\[0\]\.id\)/);
+  assert.match(treeType, /usage\?: 'common' \| 'variant' \| 'project-specific'/);
+  assert.match(tree, /node\?\.usage === 'variant'/);
+});
+
+test('explorer provides root-level creation actions without requiring a folder selection', async () => {
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+
+  assert.match(tree, /navigate\('\/root\/add\?type=folder'\)/);
+  assert.match(tree, /navigate\('\/root\/add\?type=process&projectId=' \+ encodeURIComponent\(activeProjectId\)\)/);
+});
+
 test('explorer loads its resource snapshot and BPMN link metadata through one API request', async () => {
   const queries = await read('src/api/resources/resources.queries.ts');
   const hook = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');

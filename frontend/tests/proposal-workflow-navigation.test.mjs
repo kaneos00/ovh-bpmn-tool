@@ -25,6 +25,13 @@ test('approved proposal publication uses the approved snapshot and remains a dis
   assert.match(controller, /publishProposalWorkspace/);
 });
 
+test('modeler remark descriptions show BPMN element names while retaining IDs as fallback/tooltips', () => {
+  assert.match(remarks, /const getElementDisplayName = \(modeler: Modeler, elementId: string\)/);
+  assert.match(remarks, /element\?\.businessObject\?\.name \?\? element\?\.name/);
+  assert.match(remarks, /getElementDisplayName\(modeler, remark\.elementId\)/);
+  assert.match(remarks, /title=\{remark\.elementId\}/);
+});
+
 test('remark workflow preserves proposal scope, BPMN element identity and event-thread history', () => {
   assert.match(remarks, /process-change-proposals\/\$\{proposalId\}\/comments/);
   assert.match(remarks, /elementId: selectedElementId/);

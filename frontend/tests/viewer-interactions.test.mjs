@@ -61,6 +61,17 @@ test('selection marker is removed before the next selection is applied', async (
   assert.match(hook, /useEffect\(\(\) => \{\s*applySelectionRef\.current\(\);\s*\}, \[selectedElementId\]\)/);
 });
 
+test('Viewer opens at 1:1 with the BPMN upper-left corner aligned to the viewport', async () => {
+  const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+  const component = await read('src/Components/BusinessComponents/ProcessViewer/ProcessViewer.tsx');
+
+  assert.match(hook, /canvas\.viewbox\(\{\s*x: bounds\.x,\s*y: bounds\.y,\s*width,\s*height,\s*\}\)/);
+  assert.match(hook, /showDiagramAtActualSize\(\);[\s\S]*?applySelectionRef\.current\(\);/);
+  assert.match(hook, /const fitDiagram = \(\) => \{[\s\S]*?canvas\.zoom\('fit-viewport'\)/);
+  assert.match(component, /onClick=\{fitDiagram\}/);
+  assert.match(component, /aria-label="Ajuster à la fenêtre"/);
+});
+
 test('viewer delegates called-process navigation to the shared hook', async () => {
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
 
