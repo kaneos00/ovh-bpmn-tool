@@ -62,6 +62,7 @@ export const action = async ({
 
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: [resourceQueryKey] }),
+      queryClient.invalidateQueries({ queryKey: [resourceQueryKey, 'explorer'] }),
       queryClient.invalidateQueries({ queryKey: ['my-workspace'] }),
     ]);
     return response;
