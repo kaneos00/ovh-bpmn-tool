@@ -819,7 +819,10 @@ export class ProcessChangeProposalController {
             projectId,
             resourceId: savedClone.id,
             usage: ProjectProcessUsage.ProjectSpecific,
-            sourceResourceId,
+            // This is a private proposal workspace, not a project variant.
+            // The workspace's provenance is stored on resources.sourceResourceId;
+            // project_processes.sourceResourceId is reserved for usage='variant'.
+            sourceResourceId: null,
             createdBy: authorUsername,
           }),
         );
