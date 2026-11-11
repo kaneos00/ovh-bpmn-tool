@@ -99,3 +99,21 @@ test('deleting a process refreshes resource, explorer and project workspace snap
   assert.match(action, /queryClient\.invalidateQueries\(\{ queryKey: \['my-workspace'\] \}\)/);
 });
 
+
+test('project root is the explorer entry point and owns creation actions in its context menu', async () => {
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+
+  assert.match(tree, /activeProject\\?\\.name \\?\\? 'Répertoire du projet'/);
+  assert.match(tree, /<Typography level="body-xs" color="neutral">\\/root<\\/Typography>/);
+  assert.match(tree, /setContextMenu\\(\\{ nodeId: 'root', anchorEl: event\\.currentTarget \\}\\)/);
+  assert.ok(tree.includes("navigate('/root/add?type=folder')"));
+  assert.ok(tree.includes('Nouveau dossier racine') === false);
+  assert.ok(tree.includes('Nouveau processus racine') === false);
+});
+
+test('folder context menu creates child folders and project-linked processes in that folder', async () => {
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+
+  assert.ok(tree.includes('type=process&projectId=${encodeURIComponent(activeProjectId!)}'));
+  assert.ok(tree.includes('Créer un sous-répertoire'));
+});
