@@ -67,7 +67,7 @@ export const useProcessViewer = (
 
   const resetZoom = () => {
     if (!importedRef.current) return;
-    (viewer.get('canvas') as any).zoom(1);
+    initialViewportAppliedRef.current = showDiagramAtActualSizeRef.current();
   };
 
   const fitDiagram = () => {
