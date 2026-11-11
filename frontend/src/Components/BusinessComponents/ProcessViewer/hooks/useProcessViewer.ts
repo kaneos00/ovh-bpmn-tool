@@ -257,6 +257,11 @@ export const useProcessViewer = (
         !Array.isArray(element.waypoints);
       if (!isSelectableElement) return;
 
+      // Selection is controlled by the React route/panel state below. Stop
+      // diagram-js' lower-priority default click selector from racing that
+      // state update (notably when the same element is clicked to deselect it).
+      event?.stopPropagation?.();
+
       // Every click toggles the same element immediately. Do not interpret a
       // second click as a double-click exception: users expect it to deselect
       // the element and close its information panel.
