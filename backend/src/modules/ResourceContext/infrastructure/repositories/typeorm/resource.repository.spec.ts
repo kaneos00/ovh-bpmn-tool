@@ -6,7 +6,9 @@ describe('ResourceTypeOrmRepository.delete', () => {
   };
   const resourceRepository = {
     manager: {
-      transaction: jest.fn(async (work: (tx: typeof manager) => Promise<void>) => work(manager)),
+      transaction: jest.fn(
+        async (work: (tx: typeof manager) => Promise<void>) => work(manager),
+      ),
     },
     find: jest.fn(),
   };
