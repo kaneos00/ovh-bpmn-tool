@@ -45,6 +45,12 @@ type ProjectDiagnostics = {
   limitations: string[];
 };
 
+const raciActorReasonLabel = (reason: string) => {
+  if (reason === 'actor_not_in_registry') return 'absent du registre des acteurs';
+  if (reason === 'actor_inactive') return 'acteur désactivé dans le registre RACI';
+  return 'non associé à un poste actif';
+};
+
 const overlapScore = (left: string, right: string) => {
   const stopWords = new Set(['della', 'delle', 'dello', 'dell', 'degli', 'dalla', 'dalle', 'dallo', 'dai', 'dagli', 'per', 'con', 'una', 'uno', 'che', 'del', 'dei', 'nel', 'nella', 'nelle', 'nello', 'alla', 'alle', 'allo', 'agli', 'the', 'and']);
   const tokens = (value: string) => new Set(value.toLocaleLowerCase('it').normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[^a-z0-9]+/).filter(token => token.length > 3 && !stopWords.has(token)));
@@ -244,7 +250,7 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
           </Stack>
         </Stack>
         {diagnosticsQuery.data.unmappedRaciActors.length > 0
-          ? <Alert color="warning"><Typography level="title-sm">Acteurs RACI sans correspondance avec un poste</Typography>{diagnosticsQuery.data.unmappedRaciActors.map((actor, index) => <Typography key={actor.name + index} level="body-sm">• {actor.name} — {actor.reason === 'actor_not_in_registry' ? 'absent du registre des acteurs' : actor.reason === 'actor_inactive' ? 'acteur désactivé dans le registre RACI' : 'non associé à un poste actif'}</Typography>)}</Alert>
+          ? <Alert color="warning"><Typography level="title-sm">Acteurs RACI sans correspondance avec un poste</Typography>{diagnosticsQuery.data.unmappedRaciActors.map((actor, index) => <Typography key={actor.name + index} level="body-sm">• {actor.name} — {raciActorReasonLabel(actor.reason)}</Typography>)}</Alert>
           : <Alert color="success">Tous les acteurs présents dans la matrice RACI sont associés à un poste.</Alert>}
         {diagnosticsQuery.data.requiredBlocksWithoutActivities.length > 0
           ? <Alert color="warning"><Typography level="title-sm">Blocs requis sans activité BPMN associée</Typography>{diagnosticsQuery.data.requiredBlocksWithoutActivities.map((item, index) => <Typography key={item.positionId + item.blockId + index} level="body-sm">• {item.positionTitle ?? 'Poste'} — bloc {item.blockId}</Typography>)}</Alert>
