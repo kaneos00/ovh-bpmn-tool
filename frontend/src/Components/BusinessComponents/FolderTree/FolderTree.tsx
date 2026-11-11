@@ -327,6 +327,32 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
           Tous les projets
         </Button>
       </Box>
+      {(canCreateFolderAtRoot || canCreateProcessAtRoot) && (
+        <Box sx={{ display: 'flex', gap: 0.75, mb: 1, flexWrap: 'wrap' }}>
+          {canCreateFolderAtRoot && (
+            <Button
+              size="sm"
+              variant="outlined"
+              color="neutral"
+              startDecorator={<CreateNewFolder fontSize="small" />}
+              onClick={() => navigate('/root/add?type=folder')}
+            >
+              Nouveau dossier racine
+            </Button>
+          )}
+          {canCreateProcessAtRoot && activeProjectId && (
+            <Button
+              size="sm"
+              variant="outlined"
+              color="neutral"
+              startDecorator={<AddCircleOutline fontSize="small" />}
+              onClick={() => navigate('/root/add?type=process&projectId=' + encodeURIComponent(activeProjectId))}
+            >
+              Nouveau processus racine
+            </Button>
+          )}
+        </Box>
+      )}
 
       <Box sx={{ display: 'flex', gap: 0.5, p: 0.5, mb: 1, bgcolor: 'background.level1', borderRadius: '8px' }}>
         {([
