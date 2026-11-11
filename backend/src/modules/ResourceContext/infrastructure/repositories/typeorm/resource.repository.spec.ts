@@ -1,59 +1,84 @@
 import { ResourceTypeOrmRepository } from './resource.repository';
 
 describe('ResourceTypeOrmRepository.delete', () => {
-  const resourceRepository = {
+  const manager = {
     query: jest.fn(),
-    delete: jest.fn(),
+  };
+  const resourceRepository = {
+    manager: {
+      transaction: jest.fn(async (work: (tx: typeof manager) => Promise<void>) => work(manager)),
+    },
     find: jest.fn(),
   };
   let repository: ResourceTypeOrmRepository;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    manager.query.mockReset();
+    resourceRepository.manager.transaction.mockImplementation(
+      async (work: (tx: typeof manager) => Promise<void>) => work(manager),
+    );
     repository = new ResourceTypeOrmRepository(resourceRepository as never);
   });
 
-  it('deletes the complete resource descendant tree', async () => {
-    resourceRepository.query.mockResolvedValue([
-      { id: 'root' },
-      { id: 'child' },
-      { id: 'grandchild' },
-    ]);
-    resourceRepository.delete.mockResolvedValue({ affected: 3 });
+  it('deletes project links and the complete resource descendant tree atomically', async () => {
+    manager.query
+      .mockResolvedValueOnce([
+        { id: 'root' },
+        { id: 'child' },
+        { id: 'grandchild' },
+      ])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        { id: 'root' },
+        { id: 'child' },
+        { id: 'grandchild' },
+      ]);
 
     await expect(repository.delete('root')).resolves.toEqual({
       ok: true,
       fail: null,
     });
-    expect(resourceRepository.query).toHaveBeenCalledWith(
+    expect(resourceRepository.manager.transaction).toHaveBeenCalledTimes(1);
+    expect(manager.query).toHaveBeenNthCalledWith(
+      1,
       expect.stringContaining('WITH RECURSIVE resource_tree'),
       ['root'],
     );
-    expect(resourceRepository.delete).toHaveBeenCalledWith([
-      'root',
-      'child',
-      'grandchild',
-    ]);
+    expect(manager.query).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('DELETE FROM project_processes'),
+      [['root', 'child', 'grandchild']],
+    );
+    expect(manager.query).toHaveBeenNthCalledWith(
+      3,
+      expect.stringContaining('DELETE FROM resources'),
+      [['root', 'child', 'grandchild']],
+    );
   });
 
-  it('returns a failure when the requested resource does not exist', async () => {
-    resourceRepository.query.mockResolvedValue([]);
+  it('does not remove project links when the requested resource does not exist', async () => {
+    manager.query.mockResolvedValueOnce([]);
 
     const result = await repository.delete('missing');
 
     expect(result.ok).toBeNull();
     expect(result.fail).toBeInstanceOf(Error);
-    expect(resourceRepository.delete).not.toHaveBeenCalled();
+    expect(manager.query).toHaveBeenCalledTimes(1);
   });
 
-  it('returns a failure when the database does not delete any resource', async () => {
-    resourceRepository.query.mockResolvedValue([{ id: 'root' }]);
-    resourceRepository.delete.mockResolvedValue({ affected: 0 });
+  it('rolls back the transaction when resource deletion fails', async () => {
+    manager.query
+      .mockResolvedValueOnce([{ id: 'root' }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
 
     const result = await repository.delete('root');
 
     expect(result.ok).toBeNull();
     expect(result.fail).toBeInstanceOf(Error);
+    expect(resourceRepository.manager.transaction).toHaveBeenCalledTimes(1);
+    expect(manager.query).toHaveBeenCalledTimes(3);
   });
 });
 
