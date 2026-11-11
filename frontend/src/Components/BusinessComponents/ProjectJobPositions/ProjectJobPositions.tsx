@@ -211,7 +211,7 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
           : <Alert color="success">Tous les blocs requis des postes disposent d’au moins une correspondance BPMN.</Alert>}
         {diagnosticsQuery.data.limitations.map((limitation, index) => <Typography key={index} level="body-xs" sx={{ color: 'text.tertiary' }}>Limite : {limitation}</Typography>)}
       </Card>}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(250px, 0.8fr) minmax(0, 2fr)' }, gap: 2, alignItems: 'start' }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 2, alignItems: 'start' }}>
         <Stack spacing={1.5}>
           <Card variant="outlined" sx={{ gap: 1 }}>
             <Stack direction="row" alignItems="center" justifyContent="space-between">
