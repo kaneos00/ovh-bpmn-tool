@@ -238,23 +238,20 @@ async function main() {
       );
     }
 
-    // Navigate from the source process to its variant through the live explorer.
-    // This catches stale project context, missing variant entries and Viewer
-    // imports that only recover after a full page reload.
-    await reviewerPage.goto(`${baseUrl}/${sourceResourceId}`);
-    // The variant shares the source folder, which may be collapsed in the
-    // persisted explorer state. Search the tree rather than assuming that
-    // its parent folder happens to be expanded in this browser context.
-    await reviewerPage.getByRole('button', { name: 'Arborescence', exact: true }).click();
-    const explorerSearch = reviewerPage.getByRole('textbox', {
-      name: 'Rechercher dans l’arborescence, les récents et les favoris',
+    // Open the project home and use its explicit process list. This is the
+    // canonical project-scoped entry point; searching the global folder tree
+    // is not a reliable way to find a newly linked project variant.
+    await reviewerPage.goto(`${baseUrl}/root`);
+    const variantEntry = reviewerPage.getByRole('button', {
+      name: 'CI E2E — variante partenaire',
+      exact: true,
     });
-    await explorerSearch.fill('CI E2E — variante partenaire');
-    const variantTreeEntry = reviewerPage.getByText('CI E2E — variante partenaire', { exact: true }).first();
-    await variantTreeEntry.waitFor();
-    await variantTreeEntry.click();
+    await variantEntry.waitFor();
+    await variantEntry.click();
     await reviewerPage.waitForURL(`**/${variantResourceId}`);
-    await reviewerPage.locator('.djs-element[data-element-id="Task_ProcessRequest"]').waitFor();
+    const variantTask = reviewerPage.locator('.djs-element[data-element-id="Task_ProcessRequest"]');
+    await variantTask.waitFor();
+    await variantTask.click();
     await reviewerPage.waitForFunction(() => {
       const element = document.querySelector('.djs-element[data-element-id="Task_ProcessRequest"]');
       return Boolean(element && element.classList.contains('task-selected'));
