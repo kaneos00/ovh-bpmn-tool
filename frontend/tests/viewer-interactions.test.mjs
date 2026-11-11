@@ -28,6 +28,8 @@ test('element selection toggles immediately on every click while double-click na
   assert.ok(hook.includes("if (selectedIdRef.current === element.id)"));
   assert.ok(hook.includes("onElementSelectRef.current?.('')"));
   assert.ok(hook.includes("onElementSelectRef.current?.(element.id)"));
+  assert.match(hook, /if \(!isSelectableElement\) return;[\s\S]*?event\?\.stopPropagation\?\.\(\);[\s\S]*?if \(selectedIdRef\.current === element\.id\)/);
+  assert.ok(hook.includes('lower-priority default click selector'));
   assert.ok(hook.includes('Every click toggles the same element immediately'));
   assert.doesNotMatch(hook, /pendingSelectionTimer|lastClickAt|cancelPendingSelection/);
   assert.ok(hook.includes("eventBus.off('element.click', onElementClick)"));
