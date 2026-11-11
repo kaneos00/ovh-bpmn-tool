@@ -281,6 +281,11 @@ async function main() {
     await reviewerPage.getByRole('button', { name: 'Accepter', exact: true }).click();
     await reviewerPage.getByText('Acceptée', { exact: true }).waitFor();
 
+    // The reviewer must still be able to save the proposal workspace after
+    // accepting the individual remarks and before the final proposal approval.
+    await reviewerPage.getByRole('button', { name: 'Save', exact: true }).click();
+    await reviewerPage.getByText('Content has been saved successfully.', { exact: true }).waitFor();
+
     // Validate the proposal, then publish exactly the approved frozen snapshot.
     await reviewerPage.goto(`${baseUrl}/mes-demandes`);
     await reviewerPage.getByText('Traiter une demande', { exact: true }).first().waitFor();
