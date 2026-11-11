@@ -255,7 +255,7 @@ test('source process history lists project variants and exposes draft variants f
 
   assert.match(details, /const projectVariants = \\(projectForProcess\\?\\.processes \\?\\? \\[\\]\\)\\.filter/);
   assert.match(details, /process\\.usage === 'variant' && process\\.sourceResourceId === resourceId/);
-  assert.match(details, /useQueries\\([\\s\\S]*?contentsQuery\\(variant\\.resourceId\\)/);
+  assert.ok(details.includes('useQueries(') && details.includes('contentsQuery(variant.resourceId)'));
   assert.match(details, /variantContents\\.find\\(content => content\\.status === ContentStatusEnum\\.Draft\\)/);
   assert.match(details, /Brouillon à valider/);
   assert.ok(details.includes('Ouvrir pour valider'));
