@@ -460,7 +460,7 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
                   <Chip size="sm" variant="outlined">
                     {selectedPositionValidation.counts.raciAssignmentsWithoutActivity} affectation(s) RACI sans lien BPMN
                   </Chip>
-                          <Chip size="sm" variant="outlined">
+                  <Chip size="sm" variant="outlined">
                     {selectedPositionValidation.counts.requiredBlocksWithoutActivities} bloc(s) requis sans activité
                   </Chip>
                   <Chip size="sm" variant="outlined">
