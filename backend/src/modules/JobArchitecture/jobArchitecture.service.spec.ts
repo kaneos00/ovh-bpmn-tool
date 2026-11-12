@@ -110,6 +110,11 @@ describe('JobArchitectureService.addPositionActivityMapping', () => {
   });
 });
 
+const diagnosticsPublishedXml = `
+  <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL">
+    <process id="Process_1"><userTask id="Task_1"/></process>
+  </definitions>`;
+
 describe('JobArchitectureService.getProjectConsistencyDiagnostics', () => {
   it('distinguishes inactive, unlinked, and missing RACI actors and ignores archived links', async () => {
     const service = Object.create(
@@ -257,7 +262,7 @@ describe('JobArchitectureService.getProjectConsistencyDiagnostics', () => {
         find: jest
           .fn()
           .mockResolvedValue([
-            { resourceId: 'process-1', content: validXml, version: 2 },
+            { resourceId: 'process-1', content: diagnosticsPublishedXml, version: 2 },
           ]),
       },
       positionBlocks: { find: jest.fn().mockResolvedValue([]) },
@@ -357,7 +362,7 @@ describe('JobArchitectureService.getProjectConsistencyDiagnostics', () => {
         find: jest
           .fn()
           .mockResolvedValue([
-            { resourceId: 'process-1', content: validXml, version: 2 },
+            { resourceId: 'process-1', content: diagnosticsPublishedXml, version: 2 },
           ]),
       },
       positionBlocks: {
@@ -493,7 +498,7 @@ describe('JobArchitectureService.getProjectConsistencyDiagnostics', () => {
         find: jest.fn().mockResolvedValue([
           {
             resourceId: 'process-1',
-            content: validXml.replace('Task_1', 'Task_renamed'),
+            content: diagnosticsPublishedXml.replace('Task_1', 'Task_renamed'),
             version: 3,
           },
         ]),
