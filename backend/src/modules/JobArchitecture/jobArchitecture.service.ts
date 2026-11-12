@@ -989,6 +989,7 @@ export class JobArchitectureService {
         return !publishedIds?.has(mapping.taskId);
       })
       .map((mapping) => ({
+        id: mapping.id,
         positionId: mapping.positionId,
         resourceId: mapping.resourceId,
         taskId: mapping.taskId,
@@ -1000,13 +1001,10 @@ export class JobArchitectureService {
             : 'activity_not_in_latest_published_version',
       }));
     const staleActivityMappingIds = new Set(
-      staleActivityMappings.map((mapping) => mapping.taskId + mapping.positionId + mapping.resourceId + mapping.blockId),
+      staleActivityMappings.map((mapping) => mapping.id),
     );
     const validatedActivityMappings = currentActivityMappings.filter(
-      (mapping) =>
-        !staleActivityMappingIds.has(
-          mapping.taskId + mapping.positionId + mapping.resourceId + mapping.blockId,
-        ),
+      (mapping) => !staleActivityMappingIds.has(mapping.id),
     );
     const activityKeys = new Set(
       validatedActivityMappings.map(
