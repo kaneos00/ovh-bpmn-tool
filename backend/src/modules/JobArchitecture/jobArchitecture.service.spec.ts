@@ -265,7 +265,6 @@ describe('JobArchitectureService.getProjectConsistencyDiagnostics', () => {
         resourceId: 'process-1',
         role: 'A',
         positionTitles: ['Responsable projet'],
-        reason: 'position_not_linked_to_activity',
       },
     ]);
   });
