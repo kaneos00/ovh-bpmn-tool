@@ -259,15 +259,13 @@ describe('JobArchitectureService.getProjectConsistencyDiagnostics', () => {
         ]),
       },
       contents: {
-        find: jest
-          .fn()
-          .mockResolvedValue([
-            {
-              resourceId: 'process-1',
-              content: diagnosticsPublishedXml,
-              version: 2,
-            },
-          ]),
+        find: jest.fn().mockResolvedValue([
+          {
+            resourceId: 'process-1',
+            content: diagnosticsPublishedXml,
+            version: 2,
+          },
+        ]),
       },
       positionBlocks: { find: jest.fn().mockResolvedValue([]) },
     });
@@ -363,15 +361,13 @@ describe('JobArchitectureService.getProjectConsistencyDiagnostics', () => {
         ]),
       },
       contents: {
-        find: jest
-          .fn()
-          .mockResolvedValue([
-            {
-              resourceId: 'process-1',
-              content: diagnosticsPublishedXml,
-              version: 2,
-            },
-          ]),
+        find: jest.fn().mockResolvedValue([
+          {
+            resourceId: 'process-1',
+            content: diagnosticsPublishedXml,
+            version: 2,
+          },
+        ]),
       },
       positionBlocks: {
         find: jest.fn().mockResolvedValue([
