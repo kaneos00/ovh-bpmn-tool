@@ -1039,8 +1039,7 @@ export class JobArchitectureService {
     }
     const blocksByPositionId = new Map<string, typeof blocks>();
     for (const block of blocks) {
-      const positionBlocks =
-        blocksByPositionId.get(block.positionId) ?? [];
+      const positionBlocks = blocksByPositionId.get(block.positionId) ?? [];
       positionBlocks.push(block);
       blocksByPositionId.set(block.positionId, positionBlocks);
     }
@@ -1063,8 +1062,10 @@ export class JobArchitectureService {
       const missingRequiredBlockIds = requiredBlocksWithoutActivities
         .filter((item) => item.positionId === position.id)
         .map((item) => item.blockId);
-      const assignmentsWithoutActivity = raciAssignmentsWithoutPositionActivity
-        .filter((item) => item.positionIds.includes(position.id)).length;
+      const assignmentsWithoutActivity =
+        raciAssignmentsWithoutPositionActivity.filter(
+          (item) => item.positionIds.includes(position.id),
+        ).length;
       const status =
         unassessedBlockIds.length > 0 || positionRaciActorIds.length === 0
           ? 'to_complete'
