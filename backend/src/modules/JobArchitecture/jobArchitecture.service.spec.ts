@@ -194,4 +194,80 @@ describe('JobArchitectureService.getProjectConsistencyDiagnostics', () => {
       activityMappings: 0,
     });
   });
+
+  it('flags RACI assignments whose actor is linked to a position but whose activity is not linked to that position', async () => {
+    const service = Object.create(
+      JobArchitectureService.prototype,
+    ) as JobArchitectureService;
+    Object.assign(service, {
+      projectAccess: {
+        assertProjectRole: jest.fn().mockResolvedValue('user-1'),
+      },
+      positions: {
+        find: jest
+          .fn()
+          .mockResolvedValue([
+            { id: 'position-1', title: 'Responsable projet' },
+          ]),
+      },
+      raciActors: {
+        find: jest.fn().mockResolvedValue([
+          { id: 'actor-1', normalizedName: 'responsable', active: true },
+        ]),
+      },
+      raciEntries: {
+        find: jest.fn().mockResolvedValue([
+          {
+            actorName: 'Responsable',
+            taskName: 'Valider le dossier',
+            taskId: 'Task_1',
+            resourceId: 'process-1',
+            role: 'R',
+          },
+          {
+            actorName: 'Responsable',
+            taskName: 'Contrôler le résultat',
+            taskId: 'Task_2',
+            resourceId: 'process-1',
+            role: 'A',
+          },
+        ]),
+      },
+      raciMappings: {
+        find: jest
+          .fn()
+          .mockResolvedValue([
+            { positionId: 'position-1', raciActorId: 'actor-1' },
+          ]),
+      },
+      activityMappings: {
+        find: jest.fn().mockResolvedValue([
+          {
+            positionId: 'position-1',
+            resourceId: 'process-1',
+            taskId: 'Task_1',
+            blockId: 'block-1',
+          },
+        ]),
+      },
+      positionBlocks: { find: jest.fn().mockResolvedValue([]) },
+    });
+
+    const result = await service.getProjectConsistencyDiagnostics('project-1', {
+      authorization: 'test',
+    });
+
+    expect(result.raciAssignmentsWithoutPositionActivity).toEqual([
+      {
+        actorName: 'Responsable',
+        taskName: 'Contrôler le résultat',
+        taskId: 'Task_2',
+        resourceId: 'process-1',
+        role: 'A',
+        positionTitles: ['Responsable projet'],
+        reason: 'position_not_linked_to_activity',
+      },
+    ]);
+  });
+
 });
