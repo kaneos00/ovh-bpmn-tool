@@ -1018,6 +1018,7 @@ export class JobArchitectureService {
         blockId: block.blockId,
       }));
 
+    const actorById = new Map(actors.map((actor) => [actor.id, actor]));
     const raciAssignmentCountByActorId = new Map<string, number>();
     for (const entry of raciEntries) {
       const actor = actorByNormalizedName.get(
@@ -1052,10 +1053,10 @@ export class JobArchitectureService {
         ...(raciActorIdsByPositionId.get(position.id) ?? new Set<string>()),
       ];
       const unusedRaciActors = positionRaciActorIds
-        .map((actorId) => actors.find((actor) => actor.id === actorId))
+        .map((actorId) => actorById.get(actorId))
         .filter(
           (actor): actor is ProjectRaciActorTypeOrmEntity =>
-            Boolean(actor) &&
+            actor !== undefined &&
             (raciAssignmentCountByActorId.get(actor.id) ?? 0) === 0,
         )
         .map((actor) => actor.name);
