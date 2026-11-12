@@ -997,6 +997,7 @@ export class JobArchitectureService {
             taskId: entry.taskId,
             resourceId: entry.resourceId,
             role: entry.role,
+            positionIds: linkedPositionIds,
             positionTitles: linkedPositionIds
               .map((positionId) => positionById.get(positionId)?.title)
               .filter((title): title is string => Boolean(title)),
@@ -1017,11 +1018,85 @@ export class JobArchitectureService {
         blockId: block.blockId,
       }));
 
+    const raciAssignmentCountByActorId = new Map<string, number>();
+    for (const entry of raciEntries) {
+      const actor = actorByNormalizedName.get(
+        entry.actorName.trim().toLocaleLowerCase(),
+      );
+      if (!actor || !actor.active) continue;
+      raciAssignmentCountByActorId.set(
+        actor.id,
+        (raciAssignmentCountByActorId.get(actor.id) ?? 0) + 1,
+      );
+    }
+    const raciActorIdsByPositionId = new Map<string, Set<string>>();
+    for (const mapping of currentRaciMappings) {
+      const actorIds =
+        raciActorIdsByPositionId.get(mapping.positionId) ?? new Set<string>();
+      actorIds.add(mapping.raciActorId);
+      raciActorIdsByPositionId.set(mapping.positionId, actorIds);
+    }
+    const blocksByPositionId = new Map<string, typeof blocks>();
+    for (const block of blocks) {
+      const positionBlocks =
+        blocksByPositionId.get(block.positionId) ?? [];
+      positionBlocks.push(block);
+      blocksByPositionId.set(block.positionId, positionBlocks);
+    }
+    const positionValidation = positions.map((position) => {
+      const positionBlocks = blocksByPositionId.get(position.id) ?? [];
+      const unassessedBlockIds = positionBlocks
+        .filter((block) => block.applicability === 'not_assessed')
+        .map((block) => block.blockId);
+      const positionRaciActorIds = [
+        ...(raciActorIdsByPositionId.get(position.id) ?? new Set<string>()),
+      ];
+      const unusedRaciActors = positionRaciActorIds
+        .map((actorId) => actors.find((actor) => actor.id === actorId))
+        .filter(
+          (actor): actor is ProjectRaciActorTypeOrmEntity =>
+            Boolean(actor) &&
+            (raciAssignmentCountByActorId.get(actor.id) ?? 0) === 0,
+        )
+        .map((actor) => actor.name);
+      const missingRequiredBlockIds = requiredBlocksWithoutActivities
+        .filter((item) => item.positionId === position.id)
+        .map((item) => item.blockId);
+      const assignmentsWithoutActivity = raciAssignmentsWithoutPositionActivity
+        .filter((item) => item.positionIds.includes(position.id)).length;
+      const status =
+        unassessedBlockIds.length > 0 || positionRaciActorIds.length === 0
+          ? 'to_complete'
+          : missingRequiredBlockIds.length > 0 ||
+              assignmentsWithoutActivity > 0 ||
+              unusedRaciActors.length > 0
+            ? 'to_review'
+            : 'ready';
+
+      return {
+        positionId: position.id,
+        positionTitle: position.title,
+        status,
+        counts: {
+          competencyBlocks: positionBlocks.length,
+          competencyBlocksNotAssessed: unassessedBlockIds.length,
+          raciActors: positionRaciActorIds.length,
+          raciActorsWithoutAssignments: unusedRaciActors.length,
+          requiredBlocksWithoutActivities: missingRequiredBlockIds.length,
+          raciAssignmentsWithoutActivity: assignmentsWithoutActivity,
+        },
+        unassessedBlockIds,
+        unusedRaciActors,
+        missingRequiredBlockIds,
+      };
+    });
+
     return {
       projectId,
       unmappedRaciActors,
       raciAssignmentsWithoutPositionActivity,
       requiredBlocksWithoutActivities,
+      positionValidation,
       counts: {
         positions: positions.length,
         raciActors: actors.filter((actor) => actor.active).length,
