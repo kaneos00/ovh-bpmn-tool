@@ -948,8 +948,68 @@ export class JobArchitectureService {
     const currentActivityMappings = activityMappings.filter((mapping) =>
       activePositionIds.has(mapping.positionId),
     );
+    const mappedResourceIds = [
+      ...new Set(currentActivityMappings.map((mapping) => mapping.resourceId)),
+    ];
+    const latestPublishedContents = mappedResourceIds.length
+      ? await this.contents.find({
+          where: mappedResourceIds.map((resourceId) => ({
+            resourceId,
+            status: ContentStatusEnum.Published,
+          })),
+          order: { version: 'DESC', createdAt: 'DESC' },
+        })
+      : [];
+    const latestContentByResourceId = new Map<
+      string,
+      (typeof latestPublishedContents)[number]
+    >();
+    for (const content of latestPublishedContents) {
+      if (!latestContentByResourceId.has(content.resourceId)) {
+        latestContentByResourceId.set(content.resourceId, content);
+      }
+    }
+    const publishedActivityIdsByResourceId = new Map<string, Set<string>>();
+    const unreadablePublishedResourceIds = new Set<string>();
+    for (const [resourceId, content] of latestContentByResourceId) {
+      try {
+        publishedActivityIdsByResourceId.set(
+          resourceId,
+          extractBpmnActivityIds(content.content),
+        );
+      } catch {
+        unreadablePublishedResourceIds.add(resourceId);
+      }
+    }
+    const staleActivityMappings = currentActivityMappings
+      .filter((mapping) => {
+        const publishedIds = publishedActivityIdsByResourceId.get(
+          mapping.resourceId,
+        );
+        return !publishedIds?.has(mapping.taskId);
+      })
+      .map((mapping) => ({
+        positionId: mapping.positionId,
+        resourceId: mapping.resourceId,
+        taskId: mapping.taskId,
+        blockId: mapping.blockId,
+        reason: !latestContentByResourceId.has(mapping.resourceId)
+          ? 'process_without_published_content'
+          : unreadablePublishedResourceIds.has(mapping.resourceId)
+            ? 'published_bpmn_unreadable'
+            : 'activity_not_in_latest_published_version',
+      }));
+    const staleActivityMappingIds = new Set(
+      staleActivityMappings.map((mapping) => mapping.taskId + mapping.positionId + mapping.resourceId + mapping.blockId),
+    );
+    const validatedActivityMappings = currentActivityMappings.filter(
+      (mapping) =>
+        !staleActivityMappingIds.has(
+          mapping.taskId + mapping.positionId + mapping.resourceId + mapping.blockId,
+        ),
+    );
     const activityKeys = new Set(
-      currentActivityMappings.map(
+      validatedActivityMappings.map(
         (mapping) => `${mapping.positionId}:${mapping.blockId}`,
       ),
     );
@@ -964,7 +1024,7 @@ export class JobArchitectureService {
       positionIdsByActorId.set(mapping.raciActorId, linkedPositions);
     }
     const activityCoverageKeys = new Set(
-      currentActivityMappings.map(
+      validatedActivityMappings.map(
         (mapping) =>
           `${mapping.positionId}:${mapping.resourceId}:${mapping.taskId}`,
       ),
@@ -1066,12 +1126,16 @@ export class JobArchitectureService {
         raciAssignmentsWithoutPositionActivity.filter(
           (item) => item.positionIds.includes(position.id),
         ).length;
+      const staleMappingsCount = staleActivityMappings.filter(
+        (item) => item.positionId === position.id,
+      ).length;
       const status =
         unassessedBlockIds.length > 0 || positionRaciActorIds.length === 0
           ? 'to_complete'
           : missingRequiredBlockIds.length > 0 ||
               assignmentsWithoutActivity > 0 ||
-              unusedRaciActors.length > 0
+              unusedRaciActors.length > 0 ||
+              staleMappingsCount > 0
             ? 'to_review'
             : 'ready';
 
@@ -1086,6 +1150,7 @@ export class JobArchitectureService {
           raciActorsWithoutAssignments: unusedRaciActors.length,
           requiredBlocksWithoutActivities: missingRequiredBlockIds.length,
           raciAssignmentsWithoutActivity: assignmentsWithoutActivity,
+          staleActivityMappings: staleMappingsCount,
         },
         unassessedBlockIds,
         unusedRaciActors,
@@ -1098,6 +1163,7 @@ export class JobArchitectureService {
       unmappedRaciActors,
       raciAssignmentsWithoutPositionActivity,
       requiredBlocksWithoutActivities,
+      staleActivityMappings,
       positionValidation,
       counts: {
         positions: positions.length,
@@ -1107,7 +1173,7 @@ export class JobArchitectureService {
         activityMappings: currentActivityMappings.length,
       },
       limitations: [
-        'New BPMN activity mappings are checked against the latest published XML; existing mappings are not automatically revalidated when a later version is published.',
+        'The diagnostic revalidates saved activity links against the latest published BPMN XML; it reports stale links without deleting or rewriting them.',
         'A RACI actor is a role label, not an individual person; this report does not infer person assignments.',
       ],
     };
