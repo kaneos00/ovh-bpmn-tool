@@ -953,6 +953,54 @@ export class JobArchitectureService {
         (mapping) => `${mapping.positionId}:${mapping.blockId}`,
       ),
     );
+
+    // Cross-check actual RACI assignments against both explicit links:
+    // actor -> position and position -> the same published BPMN activity.
+    const positionIdsByActorId = new Map<string, string[]>();
+    for (const mapping of currentRaciMappings) {
+      const linkedPositions = positionIdsByActorId.get(mapping.raciActorId) ?? [];
+      linkedPositions.push(mapping.positionId);
+      positionIdsByActorId.set(mapping.raciActorId, linkedPositions);
+    }
+    const activityCoverageKeys = new Set(
+      currentActivityMappings.map(
+        (mapping) =>
+          `${mapping.positionId}:${mapping.resourceId}:${mapping.taskId}`,
+      ),
+    );
+    const raciAssignmentsWithoutPositionActivity = raciEntries.flatMap(
+      (entry) => {
+        const actor = actorByNormalizedName.get(
+          entry.actorName.trim().toLocaleLowerCase(),
+        );
+        if (!actor || !actor.active) return [];
+        const linkedPositionIds = positionIdsByActorId.get(actor.id) ?? [];
+        if (
+          linkedPositionIds.some((positionId) =>
+            activityCoverageKeys.has(
+              `${positionId}:${entry.resourceId}:${entry.taskId}`,
+            ),
+          )
+        ) {
+          return [];
+        }
+        return [
+          {
+            actorName: entry.actorName,
+            taskName: entry.taskName,
+            taskId: entry.taskId,
+            resourceId: entry.resourceId,
+            role: entry.role,
+            positionTitles: linkedPositionIds
+              .map((positionId) => positionById.get(positionId)?.title)
+              .filter((title): title is string => Boolean(title)),
+            reason: linkedPositionIds.length
+              ? 'position_not_linked_to_activity'
+              : 'actor_not_linked_to_position',
+          },
+        ];
+      },
+    );
     const positionById = new Map(
       positions.map((position) => [position.id, position]),
     );
@@ -972,6 +1020,7 @@ export class JobArchitectureService {
     return {
       projectId,
       unmappedRaciActors,
+      raciAssignmentsWithoutPositionActivity,
       requiredBlocksWithoutActivities,
       counts: {
         positions: positions.length,
