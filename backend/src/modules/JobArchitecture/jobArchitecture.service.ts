@@ -968,6 +968,9 @@ export class JobArchitectureService {
           `${mapping.positionId}:${mapping.resourceId}:${mapping.taskId}`,
       ),
     );
+    const positionById = new Map(
+      positions.map((position) => [position.id, position]),
+    );
     const raciAssignmentsWithoutPositionActivity = raciEntries.flatMap(
       (entry) => {
         const actor = actorByNormalizedName.get(
@@ -1000,9 +1003,6 @@ export class JobArchitectureService {
           },
         ];
       },
-    );
-    const positionById = new Map(
-      positions.map((position) => [position.id, position]),
     );
     const requiredBlocksWithoutActivities = blocks
       .filter(
