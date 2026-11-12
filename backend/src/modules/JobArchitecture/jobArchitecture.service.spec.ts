@@ -211,9 +211,11 @@ describe('JobArchitectureService.getProjectConsistencyDiagnostics', () => {
           ]),
       },
       raciActors: {
-        find: jest.fn().mockResolvedValue([
-          { id: 'actor-1', normalizedName: 'responsable', active: true },
-        ]),
+        find: jest
+          .fn()
+          .mockResolvedValue([
+            { id: 'actor-1', normalizedName: 'responsable', active: true },
+          ]),
       },
       raciEntries: {
         find: jest.fn().mockResolvedValue([
@@ -268,5 +270,4 @@ describe('JobArchitectureService.getProjectConsistencyDiagnostics', () => {
       },
     ]);
   });
-
 });
