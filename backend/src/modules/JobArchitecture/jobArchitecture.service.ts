@@ -958,7 +958,8 @@ export class JobArchitectureService {
     // actor -> position and position -> the same published BPMN activity.
     const positionIdsByActorId = new Map<string, string[]>();
     for (const mapping of currentRaciMappings) {
-      const linkedPositions = positionIdsByActorId.get(mapping.raciActorId) ?? [];
+      const linkedPositions =
+        positionIdsByActorId.get(mapping.raciActorId) ?? [];
       linkedPositions.push(mapping.positionId);
       positionIdsByActorId.set(mapping.raciActorId, linkedPositions);
     }
