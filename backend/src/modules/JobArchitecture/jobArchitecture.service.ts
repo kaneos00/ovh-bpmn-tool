@@ -1121,8 +1121,8 @@ export class JobArchitectureService {
         .filter((item) => item.positionId === position.id)
         .map((item) => item.blockId);
       const assignmentsWithoutActivity =
-        raciAssignmentsWithoutPositionActivity.filter(
-          (item) => item.positionIds.includes(position.id),
+        raciAssignmentsWithoutPositionActivity.filter((item) =>
+          item.positionIds.includes(position.id),
         ).length;
       const staleMappingsCount = staleActivityMappings.filter(
         (item) => item.positionId === position.id,
