@@ -266,8 +266,153 @@ describe('JobArchitectureService.getProjectConsistencyDiagnostics', () => {
         taskId: 'Task_2',
         resourceId: 'process-1',
         role: 'A',
+        positionIds: ['position-1'],
         positionTitles: ['Responsable projet'],
       },
     ]);
+    expect(result.positionValidation).toEqual([
+      {
+        positionId: 'position-1',
+        positionTitle: 'Responsable projet',
+        status: 'to_review',
+        counts: {
+          competencyBlocks: 0,
+          competencyBlocksNotAssessed: 0,
+          raciActors: 1,
+          raciActorsWithoutAssignments: 0,
+          requiredBlocksWithoutActivities: 0,
+          raciAssignmentsWithoutActivity: 1,
+        },
+        unassessedBlockIds: [],
+        unusedRaciActors: [],
+        missingRequiredBlockIds: [],
+      },
+    ]);
   });
+
+  it('marks a position as ready only when competencies, RACI roles and BPMN links are aligned', async () => {
+    const service = Object.create(
+      JobArchitectureService.prototype,
+    ) as JobArchitectureService;
+    Object.assign(service, {
+      projectAccess: {
+        assertProjectRole: jest.fn().mockResolvedValue('user-1'),
+      },
+      positions: {
+        find: jest
+          .fn()
+          .mockResolvedValue([
+            { id: 'position-1', title: 'Responsable projet' },
+          ]),
+      },
+      raciActors: {
+        find: jest
+          .fn()
+          .mockResolvedValue([
+            { id: 'actor-1', normalizedName: 'responsable', name: 'Responsable', active: true },
+          ]),
+      },
+      raciEntries: {
+        find: jest.fn().mockResolvedValue([
+          {
+            actorName: 'Responsable',
+            taskName: 'Valider le dossier',
+            taskId: 'Task_1',
+            resourceId: 'process-1',
+            role: 'R',
+          },
+        ]),
+      },
+      raciMappings: {
+        find: jest
+          .fn()
+          .mockResolvedValue([
+            { positionId: 'position-1', raciActorId: 'actor-1' },
+          ]),
+      },
+      activityMappings: {
+        find: jest.fn().mockResolvedValue([
+          {
+            positionId: 'position-1',
+            resourceId: 'process-1',
+            taskId: 'Task_1',
+            blockId: 'block-1',
+          },
+        ]),
+      },
+      positionBlocks: {
+        find: jest.fn().mockResolvedValue([
+          {
+            positionId: 'position-1',
+            blockId: 'block-1',
+            applicability: 'required',
+          },
+        ]),
+      },
+    });
+
+    const result = await service.getProjectConsistencyDiagnostics('project-1', {
+      authorization: 'test',
+    });
+
+    expect(result.positionValidation[0]).toMatchObject({
+      positionId: 'position-1',
+      status: 'ready',
+      counts: {
+        competencyBlocks: 1,
+        competencyBlocksNotAssessed: 0,
+        raciActors: 1,
+        raciActorsWithoutAssignments: 0,
+        requiredBlocksWithoutActivities: 0,
+        raciAssignmentsWithoutActivity: 0,
+      },
+    });
+  });
+
+  it('keeps a position incomplete while competency blocks remain unassessed or no RACI role is linked', async () => {
+    const service = Object.create(
+      JobArchitectureService.prototype,
+    ) as JobArchitectureService;
+    Object.assign(service, {
+      projectAccess: {
+        assertProjectRole: jest.fn().mockResolvedValue('user-1'),
+      },
+      positions: {
+        find: jest
+          .fn()
+          .mockResolvedValue([
+            { id: 'position-1', title: 'Responsable projet' },
+          ]),
+      },
+      raciActors: { find: jest.fn().mockResolvedValue([]) },
+      raciEntries: { find: jest.fn().mockResolvedValue([]) },
+      raciMappings: { find: jest.fn().mockResolvedValue([]) },
+      activityMappings: { find: jest.fn().mockResolvedValue([]) },
+      positionBlocks: {
+        find: jest.fn().mockResolvedValue([
+          {
+            positionId: 'position-1',
+            blockId: 'block-1',
+            applicability: 'not_assessed',
+          },
+        ]),
+      },
+    });
+
+    const result = await service.getProjectConsistencyDiagnostics('project-1', {
+      authorization: 'test',
+    });
+
+    expect(result.positionValidation[0]).toMatchObject({
+      positionId: 'position-1',
+      status: 'to_complete',
+      counts: {
+        competencyBlocks: 1,
+        competencyBlocksNotAssessed: 1,
+        raciActors: 0,
+      },
+      unassessedBlockIds: ['block-1'],
+    });
+  });
+
 });
