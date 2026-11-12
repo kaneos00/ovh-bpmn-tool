@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import { AllCommunityModule, ModuleRegistry, themeQuartz, type ColDef } from 'ag-grid-community';
+import { AllCommunityModule, ModuleRegistry, themeQuartz, type ColDef, type ICellRendererParams } from 'ag-grid-community';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import {
   Alert, Box, Button, Card, Checkbox, Chip, Divider, FormControl, FormLabel,
@@ -162,7 +162,7 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
       field: 'readinessStatus',
       headerName: 'Préparation',
       width: 165,
-      cellRenderer: params => {
+      cellRenderer: (params: ICellRendererParams<PositionGridRow, PositionReadinessStatus>) => {
         const status = (params.value ?? 'pending') as PositionReadinessStatus;
         return <Chip size="sm" variant="soft" color={readinessColor(status)}>{readinessLabel(status)}</Chip>;
       },
