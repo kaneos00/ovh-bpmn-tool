@@ -978,6 +978,8 @@ export class JobArchitectureService {
         );
         if (!actor || !actor.active) return [];
         const linkedPositionIds = positionIdsByActorId.get(actor.id) ?? [];
+        // Missing actor-to-position links are already reported by unmappedRaciActors.
+        if (!linkedPositionIds.length) return [];
         if (
           linkedPositionIds.some((positionId) =>
             activityCoverageKeys.has(
@@ -997,9 +999,6 @@ export class JobArchitectureService {
             positionTitles: linkedPositionIds
               .map((positionId) => positionById.get(positionId)?.title)
               .filter((title): title is string => Boolean(title)),
-            reason: linkedPositionIds.length
-              ? 'position_not_linked_to_activity'
-              : 'actor_not_linked_to_position',
           },
         ];
       },
