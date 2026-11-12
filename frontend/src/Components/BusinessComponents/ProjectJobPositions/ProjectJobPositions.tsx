@@ -42,7 +42,7 @@ type ProjectDiagnostics = {
   unmappedRaciActors: Array<{ name: string; actorId: string | null; reason: string }>;
   raciAssignmentsWithoutPositionActivity: Array<{
     actorName: string; taskName: string; taskId: string; resourceId: string;
-    role: string; positionTitles: string[]; reason: string;
+    role: string; positionTitles: string[];
   }>;
   requiredBlocksWithoutActivities: Array<{ positionId: string; positionTitle: string | null; blockId: string }>;
   counts: { positions: number; raciActors: number; raciEntries: number; raciActorMappings: number; activityMappings: number };
