@@ -288,6 +288,7 @@ describe('JobArchitectureService.getProjectConsistencyDiagnostics', () => {
           raciActorsWithoutAssignments: 0,
           requiredBlocksWithoutActivities: 0,
           raciAssignmentsWithoutActivity: 1,
+          staleActivityMappings: 0,
         },
         unassessedBlockIds: [],
         unusedRaciActors: [],
@@ -431,6 +432,7 @@ describe('JobArchitectureService.getProjectConsistencyDiagnostics', () => {
       unassessedBlockIds: ['block-1'],
     });
   });
+
   it('marks saved BPMN mappings as stale when the latest publication no longer contains the activity', async () => {
     const service = Object.create(
       JobArchitectureService.prototype,
@@ -450,7 +452,12 @@ describe('JobArchitectureService.getProjectConsistencyDiagnostics', () => {
         find: jest
           .fn()
           .mockResolvedValue([
-            { id: 'actor-1', normalizedName: 'responsable', name: 'Responsable', active: true },
+            {
+              id: 'actor-1',
+              normalizedName: 'responsable',
+              name: 'Responsable',
+              active: true,
+            },
           ]),
       },
       raciEntries: {
