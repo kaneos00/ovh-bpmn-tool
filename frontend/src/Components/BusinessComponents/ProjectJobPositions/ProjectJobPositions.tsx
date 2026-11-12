@@ -44,6 +44,7 @@ type PositionValidation = {
     raciActorsWithoutAssignments: number;
     requiredBlocksWithoutActivities: number;
     raciAssignmentsWithoutActivity: number;
+    staleActivityMappings: number;
   };
   unassessedBlockIds: string[];
   unusedRaciActors: string[];
@@ -63,6 +64,10 @@ type ProjectDiagnostics = {
     role: string; positionIds: string[]; positionTitles: string[];
   }>;
   requiredBlocksWithoutActivities: Array<{ positionId: string; positionTitle: string | null; blockId: string }>;
+  staleActivityMappings: Array<{
+    id: string; positionId: string; resourceId: string; taskId: string;
+    blockId: string; reason: string;
+  }>;
   positionValidation: PositionValidation[];
   counts: { positions: number; raciActors: number; raciEntries: number; raciActorMappings: number; activityMappings: number };
   limitations: string[];
@@ -322,6 +327,15 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
               ))}
             </Alert>
           : <Alert color="success">Les affectations RACI des rôles associés disposent d’une correspondance poste–activité.</Alert>}
+        {diagnosticsQuery.data.staleActivityMappings.length > 0
+          ? <Alert color="warning">
+              <Typography level="title-sm">Liens BPMN à actualiser</Typography>
+              <Typography level="body-xs">Ces activités enregistrées ne sont plus présentes dans la dernière version publiée. Les liens sont conservés pour correction manuelle.</Typography>
+              {diagnosticsQuery.data.staleActivityMappings.map(item => (
+                <Typography key={item.id} level="body-sm">• {item.taskId} — {item.reason === 'process_without_published_content' ? 'aucune version publiée' : item.reason === 'published_bpmn_unreadable' ? 'version publiée illisible' : 'activité absente de la dernière publication'}</Typography>
+              ))}
+            </Alert>
+          : <Alert color="success">Tous les liens BPMN enregistrés correspondent à la dernière version publiée.</Alert>}
         {diagnosticsQuery.data.requiredBlocksWithoutActivities.length > 0
           ? <Alert color="warning"><Typography level="title-sm">Blocs requis sans activité BPMN associée</Typography>{diagnosticsQuery.data.requiredBlocksWithoutActivities.map((item, index) => <Typography key={item.positionId + item.blockId + index} level="body-sm">• {item.positionTitle ?? 'Poste'} — bloc {item.blockId}</Typography>)}</Alert>
           : <Alert color="success">Tous les blocs requis des postes disposent d’au moins une correspondance BPMN.</Alert>}
@@ -446,8 +460,11 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
                   <Chip size="sm" variant="outlined">
                     {selectedPositionValidation.counts.raciAssignmentsWithoutActivity} affectation(s) RACI sans lien BPMN
                   </Chip>
-                  <Chip size="sm" variant="outlined">
+                          <Chip size="sm" variant="outlined">
                     {selectedPositionValidation.counts.requiredBlocksWithoutActivities} bloc(s) requis sans activité
+                  </Chip>
+                  <Chip size="sm" variant="outlined">
+                    {selectedPositionValidation.counts.staleActivityMappings} lien(s) BPMN à actualiser
                   </Chip>
                 </Stack>
                 {selectedPositionValidation.unassessedBlockIds.length > 0 && (
