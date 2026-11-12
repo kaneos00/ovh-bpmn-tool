@@ -87,6 +87,12 @@ const readinessColor = (status: PositionReadinessStatus): 'success' | 'warning' 
   return 'neutral';
 };
 
+const staleActivityReasonLabel = (reason: string) => {
+  if (reason === 'process_without_published_content') return 'aucune version publiée';
+  if (reason === 'published_bpmn_unreadable') return 'version publiée illisible';
+  return 'activité absente de la dernière publication';
+};
+
 const raciActorReasonLabel = (reason: string) => {
   if (reason === 'actor_not_in_registry') return 'absent du registre des acteurs';
   if (reason === 'actor_inactive') return 'acteur désactivé dans le registre RACI';
@@ -332,7 +338,7 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
               <Typography level="title-sm">Liens BPMN à actualiser</Typography>
               <Typography level="body-xs">Ces activités enregistrées ne sont plus présentes dans la dernière version publiée. Les liens sont conservés pour correction manuelle.</Typography>
               {diagnosticsQuery.data.staleActivityMappings.map(item => (
-                <Typography key={item.id} level="body-sm">• {item.taskId} — {item.reason === 'process_without_published_content' ? 'aucune version publiée' : item.reason === 'published_bpmn_unreadable' ? 'version publiée illisible' : 'activité absente de la dernière publication'}</Typography>
+                <Typography key={item.id} level="body-sm">• {item.taskId} — {staleActivityReasonLabel(item.reason)}</Typography>
               ))}
             </Alert>
           : <Alert color="success">Tous les liens BPMN enregistrés correspondent à la dernière version publiée.</Alert>}
