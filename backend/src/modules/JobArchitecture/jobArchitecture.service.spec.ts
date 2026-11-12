@@ -309,7 +309,12 @@ describe('JobArchitectureService.getProjectConsistencyDiagnostics', () => {
         find: jest
           .fn()
           .mockResolvedValue([
-            { id: 'actor-1', normalizedName: 'responsable', name: 'Responsable', active: true },
+            {
+              id: 'actor-1',
+              normalizedName: 'responsable',
+              name: 'Responsable',
+              active: true,
+            },
           ]),
       },
       raciEntries: {
@@ -414,5 +419,4 @@ describe('JobArchitectureService.getProjectConsistencyDiagnostics', () => {
       unassessedBlockIds: ['block-1'],
     });
   });
-
 });
