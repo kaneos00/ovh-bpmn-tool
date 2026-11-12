@@ -162,6 +162,11 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
   const selectedPositionValidation = diagnosticsQuery.data?.positionValidation.find(
     item => item.positionId === selectedPositionId,
   );
+  const readinessCounts = {
+    ready: diagnosticsQuery.data?.positionValidation.filter(item => item.status === 'ready').length ?? 0,
+    toReview: diagnosticsQuery.data?.positionValidation.filter(item => item.status === 'to_review').length ?? 0,
+    toComplete: diagnosticsQuery.data?.positionValidation.filter(item => item.status === 'to_complete').length ?? 0,
+  };
   const mappingsQuery = useQuery<MappingState>(
     ['job-position-mappings', projectId, selectedPositionId],
     () => apiClient.get(`/projects/${projectId}/job-positions/${selectedPositionId}/mappings`),
@@ -297,6 +302,9 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
             <Chip size="sm" variant="soft">{diagnosticsQuery.data.counts.positions} poste(s)</Chip>
             <Chip size="sm" variant="soft">{diagnosticsQuery.data.counts.raciActorMappings} lien(s) RACI</Chip>
             <Chip size="sm" variant="soft">{diagnosticsQuery.data.counts.activityMappings} lien(s) BPMN</Chip>
+            <Chip size="sm" variant="soft" color="success">{readinessCounts.ready} prêt(s)</Chip>
+            <Chip size="sm" variant="soft" color="warning">{readinessCounts.toReview} à vérifier</Chip>
+            <Chip size="sm" variant="soft" color="danger">{readinessCounts.toComplete} à compléter</Chip>
           </Stack>
         </Stack>
         {diagnosticsQuery.data.unmappedRaciActors.length > 0
@@ -381,9 +389,9 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
                 const alreadyAdded = existingFunctionIds.has(item.id);
                 return <Checkbox key={item.id} checked={selectedFunctionIds.includes(item.id)} disabled={alreadyAdded || createSelectedPositions.isLoading}
                   onChange={event => setSelectedFunctionIds(current => event.target.checked ? [...current, item.id] : current.filter(id => id !== item.id))}
-                  label={<Box><Typography level="body-sm">{item.code} — {item.name}</Typography>{alreadyAdded && <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Già presente nel progetto</Typography>}</Box>} />;
+                  label={<Box><Typography level="body-sm">{item.code} — {item.name}</Typography>{alreadyAdded && <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Déjà présent dans le projet</Typography>}</Box>} />;
               })}
-              {!(functionsQuery.data ?? []).length && <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Il referenziale non contiene ancora funzioni attive.</Typography>}
+              {!(functionsQuery.data ?? []).length && <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Le référentiel ne contient encore aucune fonction active.</Typography>}
             </Stack>
             <Button disabled={!selectedFunctionIds.length || createSelectedPositions.isLoading} loading={createSelectedPositions.isLoading} onClick={() => createSelectedPositions.mutate()}>
               Ajouter {selectedFunctionIds.length} fonction(s) sélectionnée(s)
