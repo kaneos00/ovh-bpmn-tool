@@ -40,6 +40,10 @@ type MappingState = {
 };
 type ProjectDiagnostics = {
   unmappedRaciActors: Array<{ name: string; actorId: string | null; reason: string }>;
+  raciAssignmentsWithoutPositionActivity: Array<{
+    actorName: string; taskName: string; taskId: string; resourceId: string;
+    role: string; positionTitles: string[]; reason: string;
+  }>;
   requiredBlocksWithoutActivities: Array<{ positionId: string; positionTitle: string | null; blockId: string }>;
   counts: { positions: number; raciActors: number; raciEntries: number; raciActorMappings: number; activityMappings: number };
   limitations: string[];
@@ -252,6 +256,18 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
         {diagnosticsQuery.data.unmappedRaciActors.length > 0
           ? <Alert color="warning"><Typography level="title-sm">Acteurs RACI sans correspondance avec un poste</Typography>{diagnosticsQuery.data.unmappedRaciActors.map((actor, index) => <Typography key={actor.name + index} level="body-sm">• {actor.name} — {raciActorReasonLabel(actor.reason)}</Typography>)}</Alert>
           : <Alert color="success">Tous les acteurs présents dans la matrice RACI sont associés à un poste.</Alert>}
+        {diagnosticsQuery.data.raciAssignmentsWithoutPositionActivity.length > 0
+          ? <Alert color="warning">
+              <Typography level="title-sm">Affectations RACI sans correspondance poste–activité</Typography>
+              <Typography level="body-xs">Ces responsabilités existent dans la matrice, mais aucune activité correspondante n’est reliée à un des postes associés au rôle. Les affectations RACI ne sont pas modifiées.</Typography>
+              {diagnosticsQuery.data.raciAssignmentsWithoutPositionActivity.map((item, index) => (
+                <Typography key={item.resourceId + item.taskId + item.actorName + item.role + index} level="body-sm">
+                  • {item.actorName} ({item.role}) — {item.taskName}
+                  {item.positionTitles.length ? ` · Poste(s) : ${item.positionTitles.join(', ')}` : ' · Aucun poste associé'}
+                </Typography>
+              ))}
+            </Alert>
+          : <Alert color="success">Les affectations RACI des rôles associés disposent d’une correspondance poste–activité.</Alert>}
         {diagnosticsQuery.data.requiredBlocksWithoutActivities.length > 0
           ? <Alert color="warning"><Typography level="title-sm">Blocs requis sans activité BPMN associée</Typography>{diagnosticsQuery.data.requiredBlocksWithoutActivities.map((item, index) => <Typography key={item.positionId + item.blockId + index} level="body-sm">• {item.positionTitle ?? 'Poste'} — bloc {item.blockId}</Typography>)}</Alert>
           : <Alert color="success">Tous les blocs requis des postes disposent d’au moins une correspondance BPMN.</Alert>}
