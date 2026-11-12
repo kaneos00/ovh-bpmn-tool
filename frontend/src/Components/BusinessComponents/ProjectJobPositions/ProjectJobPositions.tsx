@@ -24,12 +24,30 @@ type Position = {
   function?: JobFunction | null;
   competencyBlocks: Array<{ blockId: string; applicability: string; requiredLevel: number | null }>;
 };
+type PositionReadinessStatus = 'to_complete' | 'to_review' | 'ready' | 'pending';
 type PositionGridRow = {
   id: string;
   title: string;
   functionName: string;
   description: string;
   competencyBlockCount: number;
+  readinessStatus: PositionReadinessStatus;
+};
+type PositionValidation = {
+  positionId: string;
+  positionTitle: string;
+  status: Exclude<PositionReadinessStatus, 'pending'>;
+  counts: {
+    competencyBlocks: number;
+    competencyBlocksNotAssessed: number;
+    raciActors: number;
+    raciActorsWithoutAssignments: number;
+    requiredBlocksWithoutActivities: number;
+    raciAssignmentsWithoutActivity: number;
+  };
+  unassessedBlockIds: string[];
+  unusedRaciActors: string[];
+  missingRequiredBlockIds: string[];
 };
 type Actor = { id: string; name: string; active: boolean };
 type ProcessLink = { resourceId: string; resource: Resource | null };
@@ -42,11 +60,26 @@ type ProjectDiagnostics = {
   unmappedRaciActors: Array<{ name: string; actorId: string | null; reason: string }>;
   raciAssignmentsWithoutPositionActivity: Array<{
     actorName: string; taskName: string; taskId: string; resourceId: string;
-    role: string; positionTitles: string[];
+    role: string; positionIds: string[]; positionTitles: string[];
   }>;
   requiredBlocksWithoutActivities: Array<{ positionId: string; positionTitle: string | null; blockId: string }>;
+  positionValidation: PositionValidation[];
   counts: { positions: number; raciActors: number; raciEntries: number; raciActorMappings: number; activityMappings: number };
   limitations: string[];
+};
+
+const readinessLabel = (status: PositionReadinessStatus) => {
+  if (status === 'ready') return 'Prêt à valider';
+  if (status === 'to_review') return 'À vérifier';
+  if (status === 'to_complete') return 'À compléter';
+  return 'Calcul en cours';
+};
+
+const readinessColor = (status: PositionReadinessStatus): 'success' | 'warning' | 'danger' | 'neutral' => {
+  if (status === 'ready') return 'success';
+  if (status === 'to_review') return 'warning';
+  if (status === 'to_complete') return 'danger';
+  return 'neutral';
 };
 
 const raciActorReasonLabel = (reason: string) => {
@@ -107,15 +140,28 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
     competencyBlockCount: position.function?.competencyBlocks?.length
       ?? functionsQuery.data?.find(item => item.id === position.functionId)?.competencyBlocks?.length
       ?? position.competencyBlocks.length,
-  })), [positionsQuery.data, functionsQuery.data]);
+    readinessStatus: diagnosticsQuery.data?.positionValidation.find(item => item.positionId === position.id)?.status ?? 'pending',
+  })), [positionsQuery.data, functionsQuery.data, diagnosticsQuery.data]);
   const existingFunctionIds = new Set((positionsQuery.data ?? []).map(position => position.functionId));
   const gridColumns = useMemo<ColDef<PositionGridRow>[]>(() => [
     { field: 'title', headerName: 'Poste', flex: 1.3, minWidth: 180 },
     { field: 'functionName', headerName: 'Fonction de référence', flex: 1.2, minWidth: 190 },
     { field: 'competencyBlockCount', headerName: 'Blocs', width: 105, type: 'numericColumn' },
+    {
+      field: 'readinessStatus',
+      headerName: 'Préparation',
+      width: 165,
+      cellRenderer: params => {
+        const status = (params.value ?? 'pending') as PositionReadinessStatus;
+        return <Chip size="sm" variant="soft" color={readinessColor(status)}>{readinessLabel(status)}</Chip>;
+      },
+    },
     { field: 'description', headerName: 'Description', flex: 1.5, minWidth: 180 },
   ], []);
   const selectedPosition = (positionsQuery.data ?? []).find(item => item.id === selectedPositionId) ?? null;
+  const selectedPositionValidation = diagnosticsQuery.data?.positionValidation.find(
+    item => item.positionId === selectedPositionId,
+  );
   const mappingsQuery = useQuery<MappingState>(
     ['job-position-mappings', projectId, selectedPositionId],
     () => apiClient.get(`/projects/${projectId}/job-positions/${selectedPositionId}/mappings`),
@@ -369,6 +415,53 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
         <Stack spacing={1.5} sx={{ display: activeStep === 0 ? 'none' : 'flex' }}>
           {activeStep > 0 && !selectedPosition && <Card variant="outlined"><Typography level="title-md">Sélectionnez un poste</Typography><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Choisissez un poste existant ou créez-en un nouveau pour définir ses correspondances.</Typography></Card>}
           {selectedPosition && <>
+            {selectedPositionValidation && (
+              <Card variant="soft" sx={{ gap: 1 }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
+                  <Box>
+                    <Typography level="title-md">Préparation de la fiche de poste</Typography>
+                    <Typography level="body-xs" sx={{ color: 'text.secondary' }}>
+                      État calculé à partir des compétences, des rôles RACI et des liens avec les activités BPMN.
+                    </Typography>
+                  </Box>
+                  <Chip size="lg" variant="soft" color={readinessColor(selectedPositionValidation.status)}>
+                    {readinessLabel(selectedPositionValidation.status)}
+                  </Chip>
+                </Stack>
+                <Stack direction="row" gap={1} flexWrap="wrap">
+                  <Chip size="sm" variant="outlined">
+                    {selectedPositionValidation.counts.competencyBlocksNotAssessed} bloc(s) à qualifier
+                  </Chip>
+                  <Chip size="sm" variant="outlined">
+                    {selectedPositionValidation.counts.raciActors} rôle(s) RACI associé(s)
+                  </Chip>
+                  <Chip size="sm" variant="outlined">
+                    {selectedPositionValidation.counts.raciAssignmentsWithoutActivity} affectation(s) RACI sans lien BPMN
+                  </Chip>
+                  <Chip size="sm" variant="outlined">
+                    {selectedPositionValidation.counts.requiredBlocksWithoutActivities} bloc(s) requis sans activité
+                  </Chip>
+                </Stack>
+                {selectedPositionValidation.unassessedBlockIds.length > 0 && (
+                  <Typography level="body-sm">
+                    À qualifier : bloc(s) {selectedPositionValidation.unassessedBlockIds.join(', ')}.
+                  </Typography>
+                )}
+                {selectedPositionValidation.unusedRaciActors.length > 0 && (
+                  <Typography level="body-sm">
+                    Rôle(s) associé(s) mais sans affectation dans la matrice : {selectedPositionValidation.unusedRaciActors.join(', ')}.
+                  </Typography>
+                )}
+                {selectedPositionValidation.missingRequiredBlockIds.length > 0 && (
+                  <Typography level="body-sm">
+                    Bloc(s) requis sans activité BPMN : {selectedPositionValidation.missingRequiredBlockIds.join(', ')}.
+                  </Typography>
+                )}
+                <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>
+                  « Prêt à valider » signifie que les contrôles de préparation sont satisfaits. Ce statut ne constitue pas une validation hiérarchique ou une approbation formelle.
+                </Typography>
+              </Card>
+            )}
             <Card variant="outlined" sx={{ gap: 1, display: activeStep === 1 ? 'flex' : 'none' }}>
               <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1}>
                 <Box><Typography level="h2">{selectedPosition.title}</Typography><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Fonction de référence : {selectedFunction?.name ?? selectedPosition.function?.name ?? '—'}</Typography></Box>
