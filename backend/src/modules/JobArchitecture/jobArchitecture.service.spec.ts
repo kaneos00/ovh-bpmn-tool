@@ -245,11 +245,17 @@ describe('JobArchitectureService.getProjectConsistencyDiagnostics', () => {
       activityMappings: {
         find: jest.fn().mockResolvedValue([
           {
+            id: 'activity-map-1',
             positionId: 'position-1',
             resourceId: 'process-1',
             taskId: 'Task_1',
             blockId: 'block-1',
           },
+        ]),
+      },
+      contents: {
+        find: jest.fn().mockResolvedValue([
+          { resourceId: 'process-1', content: validXml, version: 2 },
         ]),
       },
       positionBlocks: { find: jest.fn().mockResolvedValue([]) },
@@ -338,11 +344,17 @@ describe('JobArchitectureService.getProjectConsistencyDiagnostics', () => {
       activityMappings: {
         find: jest.fn().mockResolvedValue([
           {
+            id: 'activity-map-1',
             positionId: 'position-1',
             resourceId: 'process-1',
             taskId: 'Task_1',
             blockId: 'block-1',
           },
+        ]),
+      },
+      contents: {
+        find: jest.fn().mockResolvedValue([
+          { resourceId: 'process-1', content: validXml, version: 2 },
         ]),
       },
       positionBlocks: {
@@ -419,4 +431,98 @@ describe('JobArchitectureService.getProjectConsistencyDiagnostics', () => {
       unassessedBlockIds: ['block-1'],
     });
   });
+  it('marks saved BPMN mappings as stale when the latest publication no longer contains the activity', async () => {
+    const service = Object.create(
+      JobArchitectureService.prototype,
+    ) as JobArchitectureService;
+    Object.assign(service, {
+      projectAccess: {
+        assertProjectRole: jest.fn().mockResolvedValue('user-1'),
+      },
+      positions: {
+        find: jest
+          .fn()
+          .mockResolvedValue([
+            { id: 'position-1', title: 'Responsable projet' },
+          ]),
+      },
+      raciActors: {
+        find: jest
+          .fn()
+          .mockResolvedValue([
+            { id: 'actor-1', normalizedName: 'responsable', name: 'Responsable', active: true },
+          ]),
+      },
+      raciEntries: {
+        find: jest.fn().mockResolvedValue([
+          {
+            actorName: 'Responsable',
+            taskName: 'Valider le dossier',
+            taskId: 'Task_1',
+            resourceId: 'process-1',
+            role: 'R',
+          },
+        ]),
+      },
+      raciMappings: {
+        find: jest
+          .fn()
+          .mockResolvedValue([
+            { positionId: 'position-1', raciActorId: 'actor-1' },
+          ]),
+      },
+      activityMappings: {
+        find: jest.fn().mockResolvedValue([
+          {
+            id: 'activity-map-old',
+            positionId: 'position-1',
+            resourceId: 'process-1',
+            taskId: 'Task_1',
+            blockId: 'block-1',
+          },
+        ]),
+      },
+      contents: {
+        find: jest.fn().mockResolvedValue([
+          {
+            resourceId: 'process-1',
+            content: validXml.replace('Task_1', 'Task_renamed'),
+            version: 3,
+          },
+        ]),
+      },
+      positionBlocks: {
+        find: jest.fn().mockResolvedValue([
+          {
+            positionId: 'position-1',
+            blockId: 'block-1',
+            applicability: 'required',
+          },
+        ]),
+      },
+    });
+
+    const result = await service.getProjectConsistencyDiagnostics('project-1', {
+      authorization: 'test',
+    });
+
+    expect(result.staleActivityMappings).toEqual([
+      {
+        id: 'activity-map-old',
+        positionId: 'position-1',
+        resourceId: 'process-1',
+        taskId: 'Task_1',
+        blockId: 'block-1',
+        reason: 'activity_not_in_latest_published_version',
+      },
+    ]);
+    expect(result.positionValidation[0]).toMatchObject({
+      status: 'to_review',
+      counts: {
+        staleActivityMappings: 1,
+        requiredBlocksWithoutActivities: 1,
+      },
+    });
+  });
+
 });
