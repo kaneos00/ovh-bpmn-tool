@@ -27,6 +27,8 @@ export const useProcessViewer = (
   const [minimapVisible, setMinimapVisible] = useState(false);
   const importGenerationRef = useRef(0);
   const initialViewportAppliedRef = useRef(false);
+  const fitModeRef = useRef(false);
+  const viewportStorageKey = `bpmn-tool:viewer-viewport:${resourceId}:${contentId}`;
   const showDiagramAtActualSizeRef = useRef<() => boolean>(() => false);
   const resizeDiagramRef = useRef<() => void>(() => undefined);
   const importQueueRef = useRef<Promise<unknown>>(Promise.resolve());
@@ -51,6 +53,7 @@ export const useProcessViewer = (
 
   const zoomIn = () => {
     if (!importedRef.current) return;
+    fitModeRef.current = false;
     const canvas = viewer.get('canvas') as any;
     const container = canvas.getContainer();
     const rect = container.getBoundingClientRect();
@@ -59,6 +62,7 @@ export const useProcessViewer = (
 
   const zoomOut = () => {
     if (!importedRef.current) return;
+    fitModeRef.current = false;
     const canvas = viewer.get('canvas') as any;
     const container = canvas.getContainer();
     const rect = container.getBoundingClientRect();
@@ -67,11 +71,13 @@ export const useProcessViewer = (
 
   const resetZoom = () => {
     if (!importedRef.current) return;
+    fitModeRef.current = false;
     initialViewportAppliedRef.current = showDiagramAtActualSizeRef.current();
   };
 
   const fitDiagram = () => {
     if (!importedRef.current) return;
+    fitModeRef.current = true;
 
     const canvas = viewer.get('canvas') as any;
     canvas.resized?.();
@@ -117,24 +123,13 @@ export const useProcessViewer = (
     if (!importedRef.current) return;
 
     const canvas = viewer.get('canvas') as any;
-    const previousViewbox = canvas.viewbox();
-    const previousZoom = canvas.zoom();
-    const centerX = previousViewbox.x + previousViewbox.width / 2;
-    const centerY = previousViewbox.y + previousViewbox.height / 2;
-
     canvas.resized?.();
-    const container = canvas.getContainer();
-    const { width, height } = container.getBoundingClientRect();
-    if (width <= 0 || height <= 0 || !Number.isFinite(previousZoom) || previousZoom <= 0) return;
 
-    // Keep the user's current zoom and diagram center when the workspace or
-    // fullscreen viewport changes size; resizing must not silently "fit" it.
-    canvas.viewbox({
-      x: centerX - width / previousZoom / 2,
-      y: centerY - height / previousZoom / 2,
-      width: width / previousZoom,
-      height: height / previousZoom,
-    });
+    // Resizing the host must not change the user's zoom unless they explicitly
+    // selected "Ajuster". In fit mode, keep the diagram fitted to the viewport.
+    if (fitModeRef.current) {
+      canvas.zoom('fit-viewport');
+    }
   };
 
   showDiagramAtActualSizeRef.current = showDiagramAtActualSize;
@@ -386,6 +381,19 @@ export const useProcessViewer = (
         eventBus.on('element.dblclick', onElementDoubleClick);
         eventBus.on('element.hover', onElementHover);
         eventBus.on('element.out', onElementOut);
+        const onViewportChanged = (event: any) => {
+          const viewbox = event?.viewbox;
+          if (!viewbox || ![viewbox.x, viewbox.y, viewbox.width, viewbox.height].every(Number.isFinite)) return;
+          try {
+            window.localStorage.setItem(viewportStorageKey, JSON.stringify({
+              viewbox: { x: viewbox.x, y: viewbox.y, width: viewbox.width, height: viewbox.height },
+              fitMode: fitModeRef.current,
+            }));
+          } catch {
+            // Remembering the viewport is best-effort when browser storage is unavailable.
+          }
+        };
+        eventBus.on('canvas.viewbox.changed', onViewportChanged);
         clickListenerAttached = true;
         const canvas = viewer.get('canvas') as any;
         const elementRegistry = viewer.get('elementRegistry') as any;
@@ -416,7 +424,25 @@ export const useProcessViewer = (
         window.requestAnimationFrame(() => {
           window.requestAnimationFrame(() => {
             if (cancelled || generation !== importGenerationRef.current) return;
-            initialViewportAppliedRef.current = showDiagramAtActualSize();
+            let restoredViewport = false;
+            try {
+              const saved = window.localStorage.getItem(viewportStorageKey);
+              const parsed = saved ? JSON.parse(saved) as {
+                viewbox?: { x?: number; y?: number; width?: number; height?: number };
+                fitMode?: boolean;
+              } : null;
+              const viewbox = parsed?.viewbox;
+              if (viewbox && [viewbox.x, viewbox.y, viewbox.width, viewbox.height].every(
+                value => typeof value === 'number' && Number.isFinite(value),
+              ) && viewbox.width! > 0 && viewbox.height! > 0) {
+                canvas.viewbox(viewbox);
+                fitModeRef.current = parsed?.fitMode === true;
+                restoredViewport = true;
+              }
+            } catch {
+              // Ignore an invalid or unavailable saved viewport and use the default.
+            }
+            initialViewportAppliedRef.current = restoredViewport || showDiagramAtActualSize();
             // Reapply the route-driven selection after the final canvas layout.
             // This avoids losing the blue marker when a process is opened through
             // explorer navigation while its XML and selection state resolve.
@@ -449,6 +475,7 @@ export const useProcessViewer = (
         eventBus.off('element.dblclick', onElementDoubleClick);
         eventBus.off('element.hover', onElementHover);
         eventBus.off('element.out', onElementOut);
+        eventBus.off('canvas.viewbox.changed', onViewportChanged);
       }
       hideSubprocessPreview();
     };
