@@ -65,8 +65,18 @@ export class ResourceTypeOrmRepository implements ResourceRepository {
         }
 
         const resourceIds = resourceTree.map(({ id }) => id);
+        // Proposal rows hold RESTRICT references to both source and cloned
+        // resources, and to published contents. Remove the workflow records
+        // first; their event and remark history is deleted through ON DELETE CASCADE.
         await manager.query(
-          'DELETE FROM project_processes WHERE "resourceId" = ANY($1::uuid[])',
+          'DELETE FROM process_change_proposals WHERE "sourceResourceId" = ANY($1::uuid[]) OR "cloneResourceId" = ANY($1::uuid[])',
+          [resourceIds],
+        );
+        // A deleted source may also be referenced by a variant association
+        // outside this folder. Remove that association so it cannot block the
+        // explicit resource deletion; the external resource itself is retained.
+        await manager.query(
+          'DELETE FROM project_processes WHERE "resourceId" = ANY($1::uuid[]) OR "sourceResourceId" = ANY($1::uuid[])',
           [resourceIds],
         );
         const deletedResources: Array<{ id: string }> = await manager.query(
