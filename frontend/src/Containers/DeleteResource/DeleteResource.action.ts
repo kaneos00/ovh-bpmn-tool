@@ -26,8 +26,8 @@ export const action = async ({ request }: { request: Request }) => {
     // Refetch active navigation data before returning to the workspace so a
     // deleted process cannot remain as a stale clickable explorer entry.
     await Promise.all([
-      queryClient.refetchQueries({ queryKey: [resourceQueryKey, 'explorer'], type: 'active' }),
-      queryClient.refetchQueries({ queryKey: ['my-workspace'], type: 'active' }),
+      queryClient.refetchQueries([resourceQueryKey, 'explorer']),
+      queryClient.refetchQueries(['my-workspace']),
     ]);
 
     return {
