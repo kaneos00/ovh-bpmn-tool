@@ -69,8 +69,8 @@ export const action = async ({
     // React Router can navigate back while the cached tree still shows the
     // previous resource hierarchy.
     await Promise.all([
-      queryClient.refetchQueries({ queryKey: [resourceQueryKey, 'explorer'], type: 'active' }),
-      queryClient.refetchQueries({ queryKey: ['my-workspace'], type: 'active' }),
+      queryClient.refetchQueries([resourceQueryKey, 'explorer']),
+      queryClient.refetchQueries(['my-workspace']),
     ]);
     return response;
   } catch (error) {
