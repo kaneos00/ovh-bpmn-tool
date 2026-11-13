@@ -798,7 +798,7 @@ test('Viewer opens at 1:1 and uses native fit-to-viewport for Ajuster', async ()
   assert.match(hook, /One diagram unit per screen pixel/);
   assert.match(hook, /canvas\.viewbox\(\{[\s\S]*?width,[\s\S]*?height,/);
   assert.ok((hook.match(/window\.requestAnimationFrame/g) ?? []).length >= 2);
-  assert.ok(hook.includes('initialViewportAppliedRef.current = showDiagramAtActualSize();'));
+  assert.match(hook, /initialViewportAppliedRef\.current = restoredViewport \|\| showDiagramAtActualSize\(\);/);
   assert.match(hook, /new ResizeObserver\([\s\S]*?showDiagramAtActualSizeRef\.current\(\)/);
   assert.match(hook, /const fitDiagram = \(\) =>[\s\S]*?canvas\.resized\?\.\(\);[\s\S]*?canvas\.zoom\('fit-viewport'\)/);
   assert.match(hook, /const resetZoom = \(\) =>[\s\S]*?showDiagramAtActualSizeRef\.current\(\)/);
@@ -825,6 +825,10 @@ test('project home action is positioned below the explorer search field', async 
   const homeIndex = tree.indexOf('Tous les projets', searchIndex);
   assert.ok(searchIndex >= 0);
   assert.ok(homeIndex > searchIndex);
+  const tabsIndex = tree.indexOf("['favorites', 'Favoris']", searchIndex);
+  const projectHomeIndex = tree.indexOf('FolderOpenRounded', tabsIndex);
+  assert.ok(projectHomeIndex > tabsIndex, 'active project home follows the explorer tabs');
+  assert.match(tree, /navigate\(`\/projects\/\$\{activeProjectId\}`\)/);
 });
 
 test('project identities use generated trigrams and retain configurable colors', async () => {
