@@ -377,7 +377,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
           <Button
             variant="plain"
             color="neutral"
-            onClick={() => activeProjectId && navigate(`/projects/${activeProjectId}`)}
+            onClick={() => activeProjectId && navigate('/root')}
             disabled={!activeProjectId}
             startDecorator={<FolderOpenRounded color="primary" fontSize="small" />}
             sx={{ flex: 1, minWidth: 0, justifyContent: 'flex-start', p: 0, textAlign: 'left' }}
@@ -385,7 +385,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
           >
             <Box sx={{ minWidth: 0, textAlign: 'left' }}>
               <Typography level="title-sm" noWrap>
-                {activeProject?.name ?? 'Répertoire du projet'}
+                {activeProject ? `Racine — ${activeProject.name}` : 'Racine du projet'}
               </Typography>
               <Typography level="body-xs" color="neutral">/root</Typography>
             </Box>
