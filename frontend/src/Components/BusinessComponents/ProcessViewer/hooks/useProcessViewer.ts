@@ -107,15 +107,21 @@ export const useProcessViewer = (
       bounds.height <= 0
     ) return false;
 
-    // One diagram unit per screen pixel: the initial Viewer scale is exactly
-    // 1:1, with the diagram's upper-left corner aligned to the viewport's
-    // upper-left corner. Larger diagrams can be panned to inspect the rest.
-    canvas.viewbox({
-      x: bounds.x,
-      y: bounds.y,
-      width,
-      height,
+    // Force the actual diagram-js scale to 1 before aligning the diagram's
+    // upper-left bounds with the viewport. Setting only a viewbox can be
+    // ignored by a Viewer whose previous fit-viewport transform is still active.
+    canvas.zoom(1, { x: 0, y: 0 });
+    const currentViewbox = canvas.viewbox();
+    const scale = Number.isFinite(currentViewbox?.scale) && currentViewbox.scale > 0
+      ? currentViewbox.scale
+      : 1;
+    canvas.scroll({
+      dx: (currentViewbox.x - bounds.x) * scale,
+      dy: (currentViewbox.y - bounds.y) * scale,
     });
+    // Keep the viewport dimensions aligned to the host after the explicit
+    // scale/scroll operations, without returning to fit mode.
+    fitModeRef.current = false;
     return true;
   };
 
