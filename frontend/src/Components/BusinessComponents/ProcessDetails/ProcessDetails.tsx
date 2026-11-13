@@ -255,10 +255,13 @@ export const ProcessDetails = ({
     ),
   );
 
-  // Variants are separate resources. Load their version lists alongside the
-  // source process so draft variants are discoverable from the source history.
-  const projectVariants = (projectForProcess?.processes ?? []).filter(
-    process => process.usage === 'variant' && process.sourceResourceId === resourceId,
+  // Variants may belong to another project than the currently active one.
+  // Aggregate accessible project variants so the source history remains a
+  // reliable entry point regardless of which project context is selected.
+  const projectVariants = projects.flatMap(project =>
+    project.processes
+      .filter(process => process.usage === 'variant' && process.sourceResourceId === resourceId)
+      .map(process => ({ ...process, projectName: project.name })),
   );
   const projectVariantContentQueries = useQueries(
     projectVariants.map(variant => contentsQuery(variant.resourceId)),
@@ -1369,6 +1372,7 @@ export const ProcessDetails = ({
                         <Stack key={variant.resourceId} direction="row" spacing={1} alignItems="center" justifyContent="space-between">
                           <Stack spacing={0.25} sx={{ minWidth: 0 }}>
                             <Typography level="body-sm" fontWeight="md">{variant.name}</Typography>
+                            <Typography level="body-xs" textColor="neutral">{variant.projectName}</Typography>
                             <Chip size="sm" variant="soft" color={statusColor}>
                               {status}
                             </Chip>
