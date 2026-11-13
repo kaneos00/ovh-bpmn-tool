@@ -31,6 +31,7 @@ describe('ResourceTypeOrmRepository.delete', () => {
         { id: 'grandchild' },
       ])
       .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
         { id: 'root' },
         { id: 'child' },
@@ -49,11 +50,16 @@ describe('ResourceTypeOrmRepository.delete', () => {
     );
     expect(manager.query).toHaveBeenNthCalledWith(
       2,
-      expect.stringContaining('DELETE FROM project_processes'),
+      expect.stringContaining('DELETE FROM process_change_proposals'),
       [['root', 'child', 'grandchild']],
     );
     expect(manager.query).toHaveBeenNthCalledWith(
       3,
+      expect.stringContaining('DELETE FROM project_processes'),
+      [['root', 'child', 'grandchild']],
+    );
+    expect(manager.query).toHaveBeenNthCalledWith(
+      4,
       expect.stringContaining('DELETE FROM resources'),
       [['root', 'child', 'grandchild']],
     );
@@ -73,6 +79,7 @@ describe('ResourceTypeOrmRepository.delete', () => {
     manager.query
       .mockResolvedValueOnce([{ id: 'root' }])
       .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([]);
 
     const result = await repository.delete('root');
@@ -80,7 +87,7 @@ describe('ResourceTypeOrmRepository.delete', () => {
     expect(result.ok).toBeNull();
     expect(result.fail).toBeInstanceOf(Error);
     expect(resourceRepository.manager.transaction).toHaveBeenCalledTimes(1);
-    expect(manager.query).toHaveBeenCalledTimes(3);
+    expect(manager.query).toHaveBeenCalledTimes(4);
   });
 });
 
