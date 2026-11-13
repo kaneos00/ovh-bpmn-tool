@@ -245,6 +245,7 @@ export const useProcessViewer = (
 
     setIsImporting(true);
     initialViewportAppliedRef.current = false;
+    fitModeRef.current = false;
     // Close the actual minimap service as well as hiding its React wrapper.
     setMinimapVisibility(false);
     setImportError(null);
