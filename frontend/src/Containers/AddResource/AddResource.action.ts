@@ -65,6 +65,13 @@ export const action = async ({
       queryClient.invalidateQueries({ queryKey: [resourceQueryKey, 'explorer'] }),
       queryClient.invalidateQueries({ queryKey: ['my-workspace'] }),
     ]);
+    // Ensure the explorer is refreshed before the action returns; otherwise
+    // React Router can navigate back while the cached tree still shows the
+    // previous resource hierarchy.
+    await Promise.all([
+      queryClient.refetchQueries({ queryKey: [resourceQueryKey, 'explorer'], type: 'active' }),
+      queryClient.refetchQueries({ queryKey: ['my-workspace'], type: 'active' }),
+    ]);
     return response;
   } catch (error) {
     return { error };
