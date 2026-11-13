@@ -146,6 +146,8 @@ test('linked Call Activity opens its target only on double-click and handles mis
   assert.ok(navigation.includes('const query = explorerQuery()'));
   assert.ok(navigation.includes('queryClient.fetchQuery(\n            query.queryKey,\n            query.queryFn,\n            { staleTime: 30_000 },\n          )'));
   assert.ok(navigation.includes('explorer.links.map(link => [link.resourceId, link])'));
+  assert.match(navigation, /apiClient\.get\('\/projects\/me\/workspace'\)/);
+  assert.match(navigation, /resourcesById\.set\(process\.resourceId/);
   assert.ok(navigation.includes('processIds: linksByResourceId.get(resource.id)?.processIds ?? []'));
   assert.ok(!navigation.includes('getXmlContentQuery'));
   assert.ok(!navigation.includes('contentsQuery'));
