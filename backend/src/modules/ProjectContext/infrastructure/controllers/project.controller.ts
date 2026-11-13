@@ -116,7 +116,9 @@ export class ProjectController {
     // Expose a lightweight remark count with each process so the explorer can
     // signal which processes already have discussion without issuing one
     // network request per tree item.
-    const visibleResourceIds = [...new Set(visibleLinks.map((link) => link.resourceId))];
+    const visibleResourceIds = [
+      ...new Set(visibleLinks.map((link) => link.resourceId)),
+    ];
     const proposalsForWorkspace = visibleResourceIds.length
       ? await this.processChangeProposals.find({
           where: {
@@ -126,12 +128,17 @@ export class ProjectController {
         })
       : [];
     const proposalSourceById = new Map(
-      proposalsForWorkspace.map((proposal) => [proposal.id, {
-        projectId: proposal.projectId,
-        sourceResourceId: proposal.sourceResourceId,
-      }]),
+      proposalsForWorkspace.map((proposal) => [
+        proposal.id,
+        {
+          projectId: proposal.projectId,
+          sourceResourceId: proposal.sourceResourceId,
+        },
+      ]),
     );
-    const workspaceProposalIds = proposalsForWorkspace.map((proposal) => proposal.id);
+    const workspaceProposalIds = proposalsForWorkspace.map(
+      (proposal) => proposal.id,
+    );
     const workspaceRemarks = workspaceProposalIds.length
       ? await this.processChangeProposalComments.find({
           where: { proposalId: In(workspaceProposalIds) },
@@ -142,7 +149,10 @@ export class ProjectController {
       const source = proposalSourceById.get(remark.proposalId);
       if (!source) continue;
       const key = `${source.projectId}:${source.sourceResourceId}`;
-      remarksCountByProjectResource.set(key, (remarksCountByProjectResource.get(key) ?? 0) + 1);
+      remarksCountByProjectResource.set(
+        key,
+        (remarksCountByProjectResource.get(key) ?? 0) + 1,
+      );
     }
     const linksByProject = new Map<string, typeof links>();
     for (const link of visibleLinks) {
@@ -175,8 +185,14 @@ export class ProjectController {
           resourceId: link.resourceId,
           name: resourceById.get(link.resourceId)?.name ?? link.resourceId,
           usage: link.usage,
-          sourceResourceId: link.sourceResourceId ?? resourceById.get(link.resourceId)?.sourceResourceId ?? null,
-          remarksCount: remarksCountByProjectResource.get(`${link.projectId}:${link.resourceId}`) ?? 0,
+          sourceResourceId:
+            link.sourceResourceId ??
+            resourceById.get(link.resourceId)?.sourceResourceId ??
+            null,
+          remarksCount:
+            remarksCountByProjectResource.get(
+              `${link.projectId}:${link.resourceId}`,
+            ) ?? 0,
         })),
       })),
     };
