@@ -35,6 +35,12 @@ describe('ProjectController administration overview', () => {
   const resources = {
     find: jest.fn(),
   };
+  const processChangeProposals = {
+    find: jest.fn().mockResolvedValue([]),
+  };
+  const processChangeProposalComments = {
+    find: jest.fn().mockResolvedValue([]),
+  };
 
   const dataSource = {
     transaction: jest.fn(
@@ -116,6 +122,8 @@ describe('ProjectController administration overview', () => {
       projectProcesses as never,
       resources as never,
       projectMembers as never,
+      processChangeProposals as never,
+      processChangeProposalComments as never,
       {
         getAuthenticatedUserId: jest.fn(
           (headers: Record<string, string | undefined>) =>
