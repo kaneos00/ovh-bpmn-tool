@@ -1,0 +1,79 @@
+name: Seed Pizza Store demo (test only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Create or verify the Pizza Store demo dataset in the TEST database"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pizza-store-demo-seed-test
+  cancel-in-progress: false
+
+jobs:
+  seed:
+    if: ${{ inputs.confirm == true }}
+    runs-on: [self-hosted, linux, x64, coolify-test]
+    environment: test
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      NODE_ENV: test
+      DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
+      DATABASE_PORT: ${{ secrets.DATABASE_PORT }}
+      DATABASE_USER: ${{ secrets.DATABASE_USER }}
+      DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+      DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
+      DATABASE_SSL: ${{ secrets.DATABASE_SSL }}
+      PIZZA_DEMO_SEED_TARGET: test
+      PIZZA_DEMO_SEED_EXPECTED_DATABASE: ${{ secrets.PIZZA_DEMO_SEED_EXPECTED_DATABASE }}
+      PIZZA_DEMO_SEED_USER_ID: ${{ secrets.PIZZA_DEMO_SEED_USER_ID }}
+      PIZZA_DEMO_SEED_CONFIRM: CREATE_PIZZA_STORE_DEMO
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.3
+
+      - name: Install backend dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Validate required test-only configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in DATABASE_HOST DATABASE_PORT DATABASE_USER DATABASE_PASSWORD DATABASE_NAME DATABASE_SSL PIZZA_DEMO_SEED_EXPECTED_DATABASE PIZZA_DEMO_SEED_USER_ID; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing required GitHub environment secret: ${name}"
+              exit 1
+            fi
+          done
+          if [[ "$DATABASE_NAME" != "$PIZZA_DEMO_SEED_EXPECTED_DATABASE" ]]; then
+            echo "::error::DATABASE_NAME does not match the explicitly approved test database."
+            exit 1
+          fi
+          if [[ "$DATABASE_NAME" != *test* && "$DATABASE_NAME" != *TEST* ]]; then
+            echo "::error::The database name must contain 'test'."
+            exit 1
+          fi
+
+      - name: Create or verify Pizza Store demo data
+        run: pnpm seed:pizza-demo
