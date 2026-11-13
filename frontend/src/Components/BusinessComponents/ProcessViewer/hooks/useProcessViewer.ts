@@ -28,7 +28,7 @@ export const useProcessViewer = (
   const importGenerationRef = useRef(0);
   const initialViewportAppliedRef = useRef(false);
   const fitModeRef = useRef(false);
-  const viewportStorageKey = `bpmn-tool:viewer-viewport:${resourceId}:${contentId}`;
+  const viewportStorageKey = `bpmn-tool:viewer-viewport:v2:${resourceId}:${contentId}`;
   const showDiagramAtActualSizeRef = useRef<() => boolean>(() => false);
   const resizeDiagramRef = useRef<() => void>(() => undefined);
   const importQueueRef = useRef<Promise<unknown>>(Promise.resolve());
