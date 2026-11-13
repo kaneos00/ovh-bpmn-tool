@@ -60,7 +60,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for name in DATABASE_HOST DATABASE_PORT DATABASE_USER DATABASE_PASSWORD DATABASE_NAME PIZZA_DEMO_SEED_EXPECTED_DATABASE PIZZA_DEMO_SEED_USER_ID; do
+          for name in DATABASE_HOST DATABASE_PORT DATABASE_USER DATABASE_PASSWORD DATABASE_NAME DATABASE_SSL PIZZA_DEMO_SEED_EXPECTED_DATABASE PIZZA_DEMO_SEED_USER_ID; do
             if [[ -z "${!name:-}" ]]; then
               echo "::error::Missing required GitHub environment secret: ${name}"
               exit 1
