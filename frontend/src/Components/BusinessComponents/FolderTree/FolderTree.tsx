@@ -31,7 +31,8 @@ import {
   StarBorder,
   Search,
   MoreVert,
-  HomeRounded,
+  AppsRounded,
+  FolderOpenRounded,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { ControlledTreeEnvironment, Tree } from 'react-complex-tree';
@@ -330,7 +331,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
           size="sm"
           variant="plain"
           color="neutral"
-          startDecorator={<HomeRounded fontSize="small" />}
+          startDecorator={<AppsRounded fontSize="small" />}
           onClick={() => navigate('/projects')}
           sx={{ justifyContent: 'flex-start', fontWeight: 650 }}
         >
@@ -338,44 +339,6 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
         </Button>
       </Box>
 
-      {view === 'tree' && (
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.75,
-            px: 1,
-            py: 0.85,
-            mb: 0.75,
-            borderRadius: '8px',
-            bgcolor: 'background.level1',
-            border: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <FolderOutlined color="primary" fontSize="small" />
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography level="title-sm" noWrap>
-              {activeProject?.name ?? 'Répertoire du projet'}
-            </Typography>
-            <Typography level="body-xs" color="neutral">/root</Typography>
-          </Box>
-          <IconButton
-            size="sm"
-            variant="plain"
-            color="neutral"
-            title="Actions du répertoire du projet"
-            aria-label="Ouvrir les actions du répertoire du projet"
-            onClick={event => {
-              event.preventDefault();
-              event.stopPropagation();
-              setContextMenu({ nodeId: 'root', anchorEl: event.currentTarget });
-            }}
-          >
-            <MoreVert fontSize="small" />
-          </IconButton>
-        </Box>
-      )}
       <Box sx={{ display: 'flex', gap: 0.5, p: 0.5, mb: 1, bgcolor: 'background.level1', borderRadius: '8px' }}>
         {([
           ['tree', 'Arborescence'],
@@ -395,6 +358,54 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
           </Button>
         ))}
       </Box>
+
+      {view === 'tree' && (
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.75,
+            px: 1,
+            py: 0.85,
+            mb: 0.75,
+            borderRadius: '8px',
+            bgcolor: 'background.level1',
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Button
+            variant="plain"
+            color="neutral"
+            onClick={() => activeProjectId && navigate(`/projects/${activeProjectId}`)}
+            disabled={!activeProjectId}
+            startDecorator={<FolderOpenRounded color="primary" fontSize="small" />}
+            sx={{ flex: 1, minWidth: 0, justifyContent: 'flex-start', p: 0, textAlign: 'left' }}
+            aria-label={activeProject ? `Ouvrir le projet ${activeProject.name}` : 'Aucun projet actif'}
+          >
+            <Box sx={{ minWidth: 0, textAlign: 'left' }}>
+              <Typography level="title-sm" noWrap>
+                {activeProject?.name ?? 'Répertoire du projet'}
+              </Typography>
+              <Typography level="body-xs" color="neutral">/root</Typography>
+            </Box>
+          </Button>
+          <IconButton
+            size="sm"
+            variant="plain"
+            color="neutral"
+            title="Actions du répertoire du projet"
+            aria-label="Ouvrir les actions du répertoire du projet"
+            onClick={event => {
+              event.preventDefault();
+              event.stopPropagation();
+              setContextMenu({ nodeId: 'root', anchorEl: event.currentTarget });
+            }}
+          >
+            <MoreVert fontSize="small" />
+          </IconButton>
+        </Box>
+      )}
 
       {isLoading ? (
         new Array(8).fill('').map((_, index) => (
