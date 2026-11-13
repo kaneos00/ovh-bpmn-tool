@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { DataSource, EntityTarget, ObjectLiteral, Repository } from 'typeorm';
+import { DataSource, IsNull, Repository } from 'typeorm';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { BpmnToolAppModule } from '../app.module';
@@ -28,11 +28,10 @@ const MARKER = '[DEMO-SEED:pizza-store:v1]';
 const PROJECT_NAME = 'Pizza Store — Démonstration complète';
 const PROCESS_NAME = 'Pizza Store — Processus BPMN de démonstration';
 
-type RepoEntity = ObjectLiteral & { id: string; createdBy: string };
-async function ensure<T extends RepoEntity>(
-  repo: Repository<T>,
-  where: Partial<T>,
-  values: Partial<T>,
+async function ensure(
+  repo: Repository<any>,
+  where: Record<string, unknown>,
+  values: Record<string, unknown>,
   label: string,
   compare: (existing: T) => boolean = () => true,
 ): Promise<T> {
@@ -41,7 +40,7 @@ async function ensure<T extends RepoEntity>(
     if (!compare(existing)) throw new Error(`Existing ${label} differs from the Pizza demo seed; refusing to overwrite it.`);
     return existing;
   }
-  return repo.save(repo.create(values as never));
+  return repo.save(repo.create(values));
 }
 
 async function main() {
@@ -113,7 +112,7 @@ async function main() {
 
       const resource = await ensure(
         resources,
-        { name: PROCESS_NAME, parentId: null } as never,
+        { name: PROCESS_NAME, parentId: IsNull() },
         { name: PROCESS_NAME, description: `${MARKER} BPMN source original du modèle Pizza Store.`, depth: 0, parentId: null, sourceResourceId: null, type: ResourceTypeEnum.Process, authToken: null, createdBy: userId } as never,
         'process resource',
         (row) => Boolean(row.description?.includes(MARKER)) && row.type === ResourceTypeEnum.Process,
@@ -140,7 +139,7 @@ async function main() {
       ];
       const blockByCode = new Map<string, CompetencyBlockTypeOrmEntity>();
       for (const spec of blockSpecs) {
-        const row = await ensure(blocks, { code: spec.code } as never, { ...spec, active: true, createdBy: userId } as never, `competency block ${spec.code}`, (x) => x.name === spec.name && Boolean(x.description?.includes('client') || x.description?.includes('commande') || x.description?.includes('cuisson') || x.description?.includes('livraison')));
+        const row = await ensure(blocks, { code: spec.code } as never, { ...spec, active: true, createdBy: userId } as never, `competency block ${spec.code}`, (x) => x.name === spec.name && x.description === spec.description);
         blockByCode.set(spec.code, row);
       }
 
