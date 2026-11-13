@@ -255,6 +255,7 @@ export const useProcessViewer = (
       off: (event: string, listener: (event: any) => void) => void;
     };
     let clickListenerAttached = false;
+    let onViewportChanged: ((event: any) => void) | undefined;
     let subprocessPreviewOverlayId: string | number | undefined;
     const hideSubprocessPreview = () => {
       if (subprocessPreviewOverlayId === undefined) return;
@@ -382,7 +383,7 @@ export const useProcessViewer = (
         eventBus.on('element.dblclick', onElementDoubleClick);
         eventBus.on('element.hover', onElementHover);
         eventBus.on('element.out', onElementOut);
-        const onViewportChanged = (event: any) => {
+        onViewportChanged = (event: any) => {
           const viewbox = event?.viewbox;
           if (!viewbox || ![viewbox.x, viewbox.y, viewbox.width, viewbox.height].every(Number.isFinite)) return;
           try {
@@ -476,7 +477,7 @@ export const useProcessViewer = (
         eventBus.off('element.dblclick', onElementDoubleClick);
         eventBus.off('element.hover', onElementHover);
         eventBus.off('element.out', onElementOut);
-        eventBus.off('canvas.viewbox.changed', onViewportChanged);
+        if (onViewportChanged) eventBus.off('canvas.viewbox.changed', onViewportChanged);
       }
       hideSubprocessPreview();
     };
