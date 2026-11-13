@@ -15,39 +15,34 @@ The command refuses to run unless all of these checks pass:
 
 The seed uses one TypeORM transaction. It is idempotent: matching records are reused; conflicting records are not overwritten and cause the transaction to fail. It never deletes existing records. The BPMN is stored as a published project-specific process and the source fixture is not modified.
 
-## GitHub Actions prerequisites
+## Run from Coolify (recommended for a test deployment)
+
+The backend runtime image compiles the seed and includes its BPMN fixture. No `pnpm`, `ts-node`, or development dependencies are needed in the running container.
+
+1. In the **test Coolify application only**, select branch `feat/pizza-store-demo-seed` and redeploy the backend image from that branch.
+2. In the backend service environment variables, set:
+   - `PIZZA_DEMO_SEED_TARGET=test`
+   - `PIZZA_DEMO_SEED_CONFIRM=CREATE_PIZZA_STORE_DEMO`
+   - `PIZZA_DEMO_SEED_EXPECTED_DATABASE` to the exact value of `DATABASE_NAME`
+   - `PIZZA_DEMO_SEED_USER_ID` to the username of an existing active application user
+3. Confirm that `DATABASE_NAME` is the dedicated test database and contains the word `test`. Do not proceed if it is a production database or if its purpose is unclear.
+4. Open the backend container terminal in Coolify, in `/app`, and run:
+
+   ```sh
+   npm run seed:pizza-demo
+   ```
+
+5. Review the output. The seed runs in a single transaction and aborts on a configuration mismatch, an inactive seed user, or conflicting existing demo records.
+
+The command is available in the runtime image as `node dist/seeds/pizza-store-demo.seed.js`. The seed is never run automatically at container startup or during deployment.
+
+## GitHub Actions alternative
 
 The manual workflow is `.github/workflows/seed-pizza-demo.yml`. It requires a GitHub Actions self-hosted runner with all labels:
 
 `self-hosted`, `linux`, `x64`, `coolify-test`.
 
-Install/register that runner only on the test host or on a host with private network access to the test PostgreSQL instance. Do not use a production runner. The runner needs Node.js 24 and outbound access to the package registry.
-
-Create a GitHub Actions environment named `test` and add these environment secrets:
-
-| Secret | Purpose |
-| --- | --- |
-| `DATABASE_HOST` | Test PostgreSQL hostname reachable from the runner |
-| `DATABASE_PORT` | Test PostgreSQL port |
-| `DATABASE_USER` | Restricted test database user |
-| `DATABASE_PASSWORD` | Password for that user |
-| `DATABASE_NAME` | Exact test database name |
-| `DATABASE_SSL` | Existing application setting (`off`, `required`, or `strict`) |
-| `PIZZA_DEMO_SEED_EXPECTED_DATABASE` | Must exactly equal `DATABASE_NAME` |
-| `PIZZA_DEMO_SEED_USER_ID` | Existing active `app_users.username` used for audit fields and project administration |
-
-The database user should have only the permissions needed to insert and read the application's project, resource, content, job architecture and RACI tables.
-
-## Execution
-
-After the workflow file is present on the repository's default branch and the runner/environment are configured:
-
-1. Open **Actions → Seed Pizza Store demo (test only)**.
-2. Select the feature branch containing this seed.
-3. Check the confirmation box and run the workflow.
-4. Review the job summary and logs before opening the project in the application.
-
-The workflow is manual only. It does not deploy, publish a new application version, or run automatically on pushes.
+This route also requires a GitHub Actions environment named `test` with database connection secrets and `PIZZA_DEMO_SEED_USER_ID`. It is not available until that runner and environment are configured.
 
 ## Dataset
 
