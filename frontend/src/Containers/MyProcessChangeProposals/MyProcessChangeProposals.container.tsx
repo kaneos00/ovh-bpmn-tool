@@ -62,6 +62,20 @@ const formatDate = (value?: string | null) => value
   ? new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value))
   : '—';
 
+const queryErrorMessage = (error: unknown): string => {
+  if (!error || typeof error !== 'object') return 'Erreur inconnue';
+  const value = error as {
+    message?: string;
+    response?: { status?: number; data?: { message?: string | string[] } };
+  };
+  const serverMessage = value.response?.data?.message;
+  const message = Array.isArray(serverMessage) ? serverMessage.join(', ') : serverMessage;
+  const status = value.response?.status;
+  return [message || value.message, status ? `HTTP ${status}` : null]
+    .filter(Boolean)
+    .join(' · ') || 'Erreur inconnue';
+};
+
 export const Component = () => {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<'all' | ProposalStatus>('all');
@@ -69,8 +83,8 @@ export const Component = () => {
   const [reviewComments, setReviewComments] = useState<Record<string, string>>({});
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [reviewError, setReviewError] = useState<string | null>(null);
-  const { data = [], isLoading, isError, refetch } = useQuery(proposalsQuery());
-  const { data: reviews = [], isLoading: reviewsLoading, isError: reviewsError, refetch: refetchReviews } = useQuery(reviewProposalsQuery());
+  const { data = [], isLoading, isError, error: proposalsQueryError, refetch } = useQuery(proposalsQuery());
+  const { data: reviews = [], isLoading: reviewsLoading, isError: reviewsError, error: reviewsQueryError, refetch: refetchReviews } = useQuery(reviewProposalsQuery());
 
   const decideProposal = async (proposal: ReviewProposal, decision: 'approved' | 'changes_requested' | 'rejected') => {
     const comment = reviewComments[proposal.id]?.trim() ?? '';
@@ -147,7 +161,7 @@ export const Component = () => {
             {reviewsLoading && <Box sx={{ p: 2 }}><Typography level="body-sm">Chargement des demandes…</Typography></Box>}
             {reviewError && <Alert color="danger" sx={{ m: 2 }}>{reviewError}</Alert>}
             {reviewsError && <Stack direction="row" spacing={1} alignItems="center" sx={{ p: 2 }}>
-              <Typography level="body-sm" color="danger">Impossibile caricare le richieste da validare.</Typography>
+              <Typography level="body-sm" color="danger">Impossible de charger les demandes à traiter : {queryErrorMessage(reviewsQueryError)}</Typography>
               <Button size="sm" variant="outlined" onClick={() => refetchReviews()}>Réessayer</Button>
             </Stack>}
             {!reviewsLoading && !reviewsError && reviews.length === 0 && (
@@ -285,7 +299,7 @@ export const Component = () => {
             )}
             {!isLoading && isError && (
               <Stack alignItems="center" spacing={1.5} sx={{ py: 5 }}>
-                <Typography color="danger">Impossible de charger vos demandes.</Typography>
+                <Typography color="danger">Impossible de charger vos demandes : {queryErrorMessage(proposalsQueryError)}</Typography>
                 <Button size="sm" variant="outlined" onClick={() => refetch()}>Réessayer</Button>
               </Stack>
             )}
