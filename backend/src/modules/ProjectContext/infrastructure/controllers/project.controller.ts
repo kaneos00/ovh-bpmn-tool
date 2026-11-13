@@ -30,6 +30,8 @@ import {
   ProjectMemberTypeOrmEntity,
 } from '../entities/projectMember.ormEntity';
 import { ProjectResourceAccessService } from '../../projectResourceAccess.service';
+import { ProcessChangeProposalTypeOrmEntity } from '../entities/processChangeProposal.ormEntity';
+import { ProcessChangeProposalCommentTypeOrmEntity } from '../entities/processChangeProposalComment.ormEntity';
 
 type RequestHeaders = Record<string, string | undefined>;
 
@@ -45,6 +47,10 @@ export class ProjectController {
     private readonly resources: Repository<ResourceTypeOrmEntity>,
     @InjectRepository(ProjectMemberTypeOrmEntity)
     private readonly projectMembers: Repository<ProjectMemberTypeOrmEntity>,
+    @InjectRepository(ProcessChangeProposalTypeOrmEntity)
+    private readonly processChangeProposals: Repository<ProcessChangeProposalTypeOrmEntity>,
+    @InjectRepository(ProcessChangeProposalCommentTypeOrmEntity)
+    private readonly processChangeProposalComments: Repository<ProcessChangeProposalCommentTypeOrmEntity>,
     private readonly projectResourceAccess: ProjectResourceAccessService,
   ) {}
 
@@ -107,6 +113,37 @@ export class ProjectController {
           resourceById.get(link.resourceId)?.sourceResourceId
         ),
     );
+    // Expose a lightweight remark count with each process so the explorer can
+    // signal which processes already have discussion without issuing one
+    // network request per tree item.
+    const visibleResourceIds = [...new Set(visibleLinks.map((link) => link.resourceId))];
+    const proposalsForWorkspace = visibleResourceIds.length
+      ? await this.processChangeProposals.find({
+          where: {
+            projectId: In(projectIds),
+            sourceResourceId: In(visibleResourceIds),
+          },
+        })
+      : [];
+    const proposalSourceById = new Map(
+      proposalsForWorkspace.map((proposal) => [proposal.id, {
+        projectId: proposal.projectId,
+        sourceResourceId: proposal.sourceResourceId,
+      }]),
+    );
+    const workspaceProposalIds = proposalsForWorkspace.map((proposal) => proposal.id);
+    const workspaceRemarks = workspaceProposalIds.length
+      ? await this.processChangeProposalComments.find({
+          where: { proposalId: In(workspaceProposalIds) },
+        })
+      : [];
+    const remarksCountByProjectResource = new Map<string, number>();
+    for (const remark of workspaceRemarks) {
+      const source = proposalSourceById.get(remark.proposalId);
+      if (!source) continue;
+      const key = `${source.projectId}:${source.sourceResourceId}`;
+      remarksCountByProjectResource.set(key, (remarksCountByProjectResource.get(key) ?? 0) + 1);
+    }
     const linksByProject = new Map<string, typeof links>();
     for (const link of visibleLinks) {
       const projectLinks = linksByProject.get(link.projectId) ?? [];
@@ -138,7 +175,8 @@ export class ProjectController {
           resourceId: link.resourceId,
           name: resourceById.get(link.resourceId)?.name ?? link.resourceId,
           usage: link.usage,
-          sourceResourceId: link.sourceResourceId,
+          sourceResourceId: link.sourceResourceId ?? resourceById.get(link.resourceId)?.sourceResourceId ?? null,
+          remarksCount: remarksCountByProjectResource.get(`${link.projectId}:${link.resourceId}`) ?? 0,
         })),
       })),
     };
