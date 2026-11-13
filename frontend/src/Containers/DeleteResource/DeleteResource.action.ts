@@ -23,6 +23,12 @@ export const action = async ({ request }: { request: Request }) => {
       queryClient.invalidateQueries({ queryKey: [resourceQueryKey, 'explorer'] }),
       queryClient.invalidateQueries({ queryKey: ['my-workspace'] }),
     ]);
+    // Refetch active navigation data before returning to the workspace so a
+    // deleted process cannot remain as a stale clickable explorer entry.
+    await Promise.all([
+      queryClient.refetchQueries({ queryKey: [resourceQueryKey, 'explorer'], type: 'active' }),
+      queryClient.refetchQueries({ queryKey: ['my-workspace'], type: 'active' }),
+    ]);
 
     return {
       deletedResourceType,
