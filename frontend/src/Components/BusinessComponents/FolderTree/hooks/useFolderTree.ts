@@ -181,6 +181,7 @@ export const useFolderTree = (selectedResourceId: string) => {
         targetId,
         usage: projectProcess?.usage,
         sourceResourceId: projectProcess?.sourceResourceId,
+        remarksCount: projectProcess?.remarksCount ?? 0,
         children,
       } as RenderTree;
     };
