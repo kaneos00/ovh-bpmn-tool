@@ -360,6 +360,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
       </Box>
 
       {view === 'tree' && (
+        <ListItem sx={{ p: 0, mb: 0.75, display: 'block' }}>
         <Box
           sx={{
             display: 'flex',
@@ -367,7 +368,6 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
             gap: 0.75,
             px: 1,
             py: 0.85,
-            mb: 0.75,
             borderRadius: '8px',
             bgcolor: 'background.level1',
             border: '1px solid',
@@ -405,6 +405,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
             <MoreVert fontSize="small" />
           </IconButton>
         </Box>
+        </ListItem>
       )}
 
       {isLoading ? (
@@ -459,6 +460,11 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                     {node?.usage === 'variant' && (
                       <Chip size="sm" variant="soft" color="primary" title="Variante de processus">
                         Variante
+                      </Chip>
+                    )}
+                    {(node?.remarksCount ?? 0) > 0 && (
+                      <Chip size="sm" variant="soft" color="warning" title={`${node?.remarksCount} remarque(s) sur ce processus`} aria-label={`${node?.remarksCount} commentaire(s)`}>
+                        {node?.remarksCount} <span aria-hidden="true">💬</span>
                       </Chip>
                     )}
                     {Boolean(node?.children?.length) && (
