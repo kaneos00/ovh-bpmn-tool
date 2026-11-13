@@ -214,7 +214,7 @@ async function main() {
       for (const [positionKey, competencyCode, level] of requirementOverrides) {
         const position = positionByKey.get(positionKey)!;
         const competency = competencyByCode.get(competencyCode)!;
-        const row = await ensure(requirements, { positionId: position.id, competencyId: competency.id } as never, { positionId: position.id, blockId: competency.blockId, competencyId: competency.id, requiredLevel: level, createdBy: userId } as never, `competency requirement ${position.title}/${competencyCode}`, (x) => x.blockId === competency.blockId && x.requiredLevel === level);
+        await ensure(requirements, { positionId: position.id, competencyId: competency.id } as never, { positionId: position.id, blockId: competency.blockId, competencyId: competency.id, requiredLevel: level, createdBy: userId } as never, `competency requirement ${position.title}/${competencyCode}`, (x) => x.blockId === competency.blockId && x.requiredLevel === level);
       }
 
       const actorByKey = new Map<string, ProjectRaciActorTypeOrmEntity>();
