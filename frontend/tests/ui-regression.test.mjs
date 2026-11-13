@@ -747,7 +747,7 @@ test('project home and central folder overview follow the active project', async
 test('recent and favorite resources retain their project context', async () => {
   const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
 
-  assert.match(tree, /\$\{activeProjectId\}::\$\{processId\}/);
+  assert.match(tree, /navigate\\('\/root'\)/);
   assert.match(tree, /projects\.filter\(project => project\.processes\.some/);
   assert.match(tree, /setActiveProject\(projectId\)/);
   assert.match(tree, /project\.color/);
