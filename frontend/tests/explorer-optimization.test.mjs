@@ -103,7 +103,8 @@ test('deleting a process refreshes resource, explorer and project workspace snap
 test('project root is the explorer entry point and owns creation actions in its context menu', async () => {
   const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
 
-  assert.ok(tree.includes("activeProject?.name ?? 'Répertoire du projet'"));
+  assert.ok(tree.includes('Racine — ${activeProject.name}'));
+  assert.ok(tree.includes("'Racine du projet'"));
   assert.ok(tree.includes('<Typography level="body-xs" color="neutral">/root</Typography>'));
   assert.ok(tree.includes("setContextMenu({ nodeId: 'root', anchorEl: event.currentTarget })"));
   assert.ok(tree.includes("navigate('/root/add?type=folder')"));
