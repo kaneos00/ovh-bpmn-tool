@@ -828,7 +828,7 @@ test('project home action is positioned below the explorer search field', async 
   const tabsIndex = tree.indexOf("['favorites', 'Favoris']", searchIndex);
   const projectHomeIndex = tree.indexOf('FolderOpenRounded', tabsIndex);
   assert.ok(projectHomeIndex > tabsIndex, 'active project home follows the explorer tabs');
-  assert.match(tree, /navigate\(`\/projects\/\$\{activeProjectId\}`\)/);
+  assert.ok(tree.includes("navigate('/root')"));
 });
 
 test('project identities use generated trigrams and retain configurable colors', async () => {
