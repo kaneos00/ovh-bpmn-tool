@@ -68,10 +68,13 @@ test('Viewer opens at 1:1 with the BPMN upper-left corner aligned to the viewpor
   const component = await read('src/Components/BusinessComponents/ProcessViewer/ProcessViewer.tsx');
 
   assert.match(hook, /canvas\.viewbox\(\{\s*x: bounds\.x,\s*y: bounds\.y,\s*width,\s*height,\s*\}\)/);
-  assert.match(hook, /initialViewportAppliedRef\.current = showDiagramAtActualSize\(\);[\s\S]*?applySelectionRef\.current\(\);/);
+  assert.match(hook, /initialViewportAppliedRef\.current = restoredViewport \|\| showDiagramAtActualSize\(\);[\s\S]*?applySelectionRef\.current\(\);/);
   assert.match(hook, /new ResizeObserver\([\s\S]*?initialViewportAppliedRef\.current = showDiagramAtActualSizeRef\.current\(\)/);
   assert.match(hook, /const resetZoom = \(\) => \{[\s\S]*?showDiagramAtActualSizeRef\.current\(\)/);
-  assert.match(hook, /const fitDiagram = \(\) => \{[\s\S]*?canvas\.zoom\('fit-viewport'\)/);
+  assert.match(hook, /const fitDiagram = \(\) => \{[\s\S]*?fitModeRef\.current = true;[\s\S]*?canvas\.zoom\('fit-viewport'\)/);
+  assert.match(hook, /const resizeDiagram = \(\) => \{[\s\S]*?if \(fitModeRef\.current\) \{[\s\S]*?canvas\.zoom\('fit-viewport'\)/);
+  assert.match(hook, /canvas\.viewbox\(viewbox\)/);
+  assert.match(hook, /canvas\.viewbox\.changed/);
   assert.match(component, /onClick=\{fitDiagram\}/);
   assert.match(component, /aria-label="Ajuster à la fenêtre"/);
 });
