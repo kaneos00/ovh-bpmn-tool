@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier -- seed data is kept compact and reviewed as one fixture. */
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { DataSource, IsNull, Repository } from 'typeorm';
@@ -33,8 +34,8 @@ async function ensure(
   where: Record<string, unknown>,
   values: Record<string, unknown>,
   label: string,
-  compare: (existing: T) => boolean = () => true,
-): Promise<T> {
+  compare: (existing: any) => boolean = () => true,
+): Promise<any> {
   const existing = await repo.findOne({ where: where as never });
   if (existing) {
     if (!compare(existing)) throw new Error(`Existing ${label} differs from the Pizza demo seed; refusing to overwrite it.`);
