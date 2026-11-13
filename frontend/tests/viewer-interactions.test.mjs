@@ -67,9 +67,10 @@ test('Viewer opens at 1:1 with the BPMN upper-left corner aligned to the viewpor
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
   const component = await read('src/Components/BusinessComponents/ProcessViewer/ProcessViewer.tsx');
 
-  assert.match(hook, /canvas\\.zoom\\(1, \\{ x: 0, y: 0 \\}\\)/);
-  assert.match(hook, /canvas\\.scroll\\(\\{[\\s\\S]*?dx: \\(currentViewbox\\.x - bounds\\.x\\)/);
-  assert.match(hook, /canvas\\.viewbox\\(\\{\\s*x: bounds\\.x,\\s*y: bounds\\.y,\\s*width,\\s*height,\\s*\\}\\)/);
+  assert.ok(hook.includes('canvas.zoom(1, { x: 0, y: 0 })'));
+  assert.ok(hook.includes('canvas.scroll({'));
+  assert.ok(hook.includes('dx: (currentViewbox.x - bounds.x) * scale'));
+  assert.ok(hook.includes('canvas.viewbox({'));
   assert.match(hook, /initialViewportAppliedRef\.current = restoredViewport \|\| showDiagramAtActualSize\(\);[\s\S]*?applySelectionRef\.current\(\);/);
   assert.match(hook, /new ResizeObserver\([\s\S]*?initialViewportAppliedRef\.current = showDiagramAtActualSizeRef\.current\(\)/);
   assert.match(hook, /const resetZoom = \(\) => \{[\s\S]*?showDiagramAtActualSizeRef\.current\(\)/);
