@@ -747,7 +747,7 @@ test('project home and central folder overview follow the active project', async
 test('recent and favorite resources retain their project context', async () => {
   const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
 
-  assert.ok(tree.includes("navigate('/root')"));
+  assert.ok(tree.includes("onNodeClick(targetId)"));
   assert.match(tree, /projects\.filter\(project => project\.processes\.some/);
   assert.match(tree, /setActiveProject\(projectId\)/);
   assert.match(tree, /project\.color/);
@@ -819,16 +819,18 @@ test('fullscreen targets the complete process workspace and refits after both tr
   assert.ok(styles.includes(':fullscreen .processTaskPanel'));
 });
 
-test('project home action is positioned below the explorer search field', async () => {
+test('project home is rendered inside the explorer tree below its view tabs', async () => {
   const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
-  const searchIndex = tree.indexOf('placeholder="Rechercher une ressource…"', tree.indexOf('return ('));
-  const homeIndex = tree.indexOf('Tous les projets', searchIndex);
-  assert.ok(searchIndex >= 0);
-  assert.ok(homeIndex > searchIndex);
-  const tabsIndex = tree.indexOf("['favorites', 'Favoris']", searchIndex);
-  const projectHomeIndex = tree.indexOf('FolderOpenRounded', tabsIndex);
-  assert.ok(projectHomeIndex > tabsIndex, 'active project home follows the explorer tabs');
-  assert.ok(tree.includes("navigate('/root')"));
+  const hook = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
+  const tabsIndex = tree.indexOf("['favorites', 'Favoris']");
+  const treeIndex = tree.indexOf('<Tree treeId="repository-tree"');
+  assert.ok(tabsIndex >= 0);
+  assert.ok(treeIndex > tabsIndex, 'the tree is rendered below the explorer tabs');
+  assert.ok(hook.includes("id: 'project-home'"));
+  assert.ok(hook.includes("targetId: 'root'"));
+  assert.ok(tree.includes("node?.id === 'project-home'"));
+  assert.ok(tree.includes("onNodeClick(targetId)"));
+  assert.ok(!tree.includes('Racine — ${activeProject.name}'));
 });
 
 test('project identities use generated trigrams and retain configurable colors', async () => {
