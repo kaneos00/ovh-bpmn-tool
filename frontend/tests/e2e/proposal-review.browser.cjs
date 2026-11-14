@@ -145,12 +145,12 @@ async function main() {
     // must both be observable in the rendered bpmn-js viewport.
     const readViewerScale = () => reviewerPage.evaluate(() => {
       const transform = document.querySelector('.djs-container .viewport')?.getAttribute('transform') ?? '';
-      const matrix = transform.match(/matrix\\(([^)]+)\\)/);
+      const matrix = transform.match(/matrix\(([^)]+)\)/);
       return matrix ? Number(matrix[1].split(/[ ,]+/)[0]) : null;
     });
     await reviewerPage.waitForFunction(() => {
       const transform = document.querySelector('.djs-container .viewport')?.getAttribute('transform') ?? '';
-      return /matrix\\(/.test(transform);
+      return /matrix\(/.test(transform);
     });
     const initialScale = await readViewerScale();
     assert.ok(
@@ -160,13 +160,13 @@ async function main() {
     await reviewerPage.getByRole('button', { name: 'Zoom avant' }).click();
     await reviewerPage.waitForFunction(() => {
       const transform = document.querySelector('.djs-container .viewport')?.getAttribute('transform') ?? '';
-      const matrix = transform.match(/matrix\\(([^)]+)\\)/);
+      const matrix = transform.match(/matrix\(([^)]+)\)/);
       return Boolean(matrix && Number(matrix[1].split(/[ ,]+/)[0]) > 1.01);
     });
     await reviewerPage.getByRole('button', { name: 'Zoom 1:1' }).click();
     await reviewerPage.waitForFunction(() => {
       const transform = document.querySelector('.djs-container .viewport')?.getAttribute('transform') ?? '';
-      const matrix = transform.match(/matrix\\(([^)]+)\\)/);
+      const matrix = transform.match(/matrix\(([^)]+)\)/);
       return Boolean(matrix && Math.abs(Number(matrix[1].split(/[ ,]+/)[0]) - 1) < 0.02);
     });
 
