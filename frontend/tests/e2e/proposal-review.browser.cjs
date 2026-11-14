@@ -94,34 +94,38 @@ async function main() {
     assert.ok(owningProjectName, 'The variant owning project is not present in the accessible workspace');
     await historyPanel.getByText(owningProjectName, { exact: true }).waitFor();
 
-    // Submit the remark against the variant itself, not the common source.
-    // This exercises the exact variant → proposal workspace → approved
-    // publication path reported during manual testing.
+    // Submit the remark through the real Viewer UI. This also verifies that
+    // the workspace cache and active-request banner refresh without a reload.
     await openProjectWorkspace(authorPage);
-    const created = await authorPage.evaluate(async ({ projectId, resourceId }) => {
-      const response = await fetch(
-        `/bpmn-api/projects/${projectId}/processes/${resourceId}/change-proposals`,
-        {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            elementId: 'Task_ProcessRequest',
-            comment: 'CI E2E — vérifier la qualification de la demande',
-          }),
-        },
-      );
-      const body = await response.json();
-      return { status: response.status, body };
-    }, { projectId, resourceId: variantResourceId });
+    await authorPage.goto(`${baseUrl}/${variantResourceId}`);
+    const authorTask = authorPage.locator('.djs-element[data-element-id="Task_ProcessRequest"]');
+    await authorTask.waitFor();
+    await authorTask.click();
+    await authorPage.waitForFunction(() => {
+      const element = document.querySelector('.djs-element[data-element-id="Task_ProcessRequest"]');
+      return Boolean(element && element.classList.contains('task-selected'));
+    });
+    await authorPage.getByRole('button', { name: 'Ajouter une remarque' }).click();
+    await authorPage.getByPlaceholder('Décrivez le point à signaler…').fill(
+      'CI E2E — vérifier la qualification de la demande',
+    );
+    const proposalResponsePromise = authorPage.waitForResponse(response =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname.endsWith('/change-proposals'),
+    );
+    await authorPage.getByRole('button', { name: 'Déposer la remarque' }).click();
+    const proposalResponse = await proposalResponsePromise;
+    const created = { status: proposalResponse.status(), body: await proposalResponse.json() };
 
     assert.equal(created.status, 201, `Proposal creation failed: ${JSON.stringify(created.body)}`);
     assert.ok(created.body.id, 'The API did not return a proposal id');
     assert.ok(created.body.cloneResourceId, 'The API did not return a proposal workspace');
     assert.ok(created.body.cloneContentId, 'The API did not return the proposal draft');
+    await authorPage.getByText('Votre remarque a été déposée et transmise au circuit de validation du projet.').waitFor();
+    await authorPage.getByLabel('1 commentaire(s)').waitFor();
+    await authorPage.getByText(/Une demande de modification est déjà ouverte pour cette version/).waitFor();
 
-    // The comment badge must appear on the exact process that owns the
-    // discussion, not merely as an aggregate count elsewhere in the explorer.
+    // The comment badge must also be visible to another member of the project.
     await reviewerPage.goto(`${baseUrl}/root`);
     const commentBadge = reviewerPage.getByLabel('1 commentaire(s)');
     await commentBadge.waitFor();
