@@ -28,9 +28,6 @@ export const useProcessViewer = (
   const importGenerationRef = useRef(0);
   const initialViewportAppliedRef = useRef(false);
   const fitModeRef = useRef(false);
-  // v3 avoids restoring legacy default fit-to-window state; new user-selected
-  // zoom and position are still remembered independently for each process/version.
-  const viewportStorageKey = `bpmn-tool:viewer-viewport:v3:${resourceId}:${contentId}`;
   const showDiagramAtActualSizeRef = useRef<() => boolean>(() => false);
   const resizeDiagramRef = useRef<() => void>(() => undefined);
   const importQueueRef = useRef<Promise<unknown>>(Promise.resolve());
@@ -293,7 +290,6 @@ export const useProcessViewer = (
       off: (event: string, listener: (event: any) => void) => void;
     };
     let clickListenerAttached = false;
-    let onViewportChanged: ((event: any) => void) | undefined;
     let subprocessPreviewOverlayId: string | number | undefined;
     const hideSubprocessPreview = () => {
       if (subprocessPreviewOverlayId === undefined) return;
@@ -421,19 +417,6 @@ export const useProcessViewer = (
         eventBus.on('element.dblclick', onElementDoubleClick);
         eventBus.on('element.hover', onElementHover);
         eventBus.on('element.out', onElementOut);
-        onViewportChanged = (event: any) => {
-          const viewbox = event?.viewbox;
-          if (!viewbox || ![viewbox.x, viewbox.y, viewbox.width, viewbox.height].every(Number.isFinite)) return;
-          try {
-            window.localStorage.setItem(viewportStorageKey, JSON.stringify({
-              viewbox: { x: viewbox.x, y: viewbox.y, width: viewbox.width, height: viewbox.height },
-              fitMode: fitModeRef.current,
-            }));
-          } catch {
-            // Remembering the viewport is best-effort when browser storage is unavailable.
-          }
-        };
-        eventBus.on('canvas.viewbox.changed', onViewportChanged);
         clickListenerAttached = true;
         const canvas = viewer.get('canvas') as any;
         const elementRegistry = viewer.get('elementRegistry') as any;
@@ -464,25 +447,9 @@ export const useProcessViewer = (
         window.requestAnimationFrame(() => {
           window.requestAnimationFrame(() => {
             if (cancelled || generation !== importGenerationRef.current) return;
-            let restoredViewport = false;
-            try {
-              const saved = window.localStorage.getItem(viewportStorageKey);
-              const parsed = saved ? JSON.parse(saved) as {
-                viewbox?: { x?: number; y?: number; width?: number; height?: number };
-                fitMode?: boolean;
-              } : null;
-              const viewbox = parsed?.viewbox;
-              if (viewbox && [viewbox.x, viewbox.y, viewbox.width, viewbox.height].every(
-                value => typeof value === 'number' && Number.isFinite(value),
-              ) && viewbox.width! > 0 && viewbox.height! > 0) {
-                canvas.viewbox(viewbox);
-                fitModeRef.current = parsed?.fitMode === true;
-                restoredViewport = true;
-              }
-            } catch {
-              // Ignore an invalid or unavailable saved viewport and use the default.
-            }
-            initialViewportAppliedRef.current = restoredViewport || showDiagramAtActualSize();
+            // Every process/version opens at the same predictable native 1:1 origin.
+            // A previously saved zoom or position must never override this default.
+            initialViewportAppliedRef.current = showDiagramAtActualSize();
             // Reapply the route-driven selection after the final canvas layout.
             // This avoids losing the blue marker when a process is opened through
             // explorer navigation while its XML and selection state resolve.
@@ -515,7 +482,6 @@ export const useProcessViewer = (
         eventBus.off('element.dblclick', onElementDoubleClick);
         eventBus.off('element.hover', onElementHover);
         eventBus.off('element.out', onElementOut);
-        if (onViewportChanged) eventBus.off('canvas.viewbox.changed', onViewportChanged);
       }
       hideSubprocessPreview();
     };
