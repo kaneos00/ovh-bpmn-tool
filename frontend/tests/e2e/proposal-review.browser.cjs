@@ -123,7 +123,6 @@ async function main() {
     assert.ok(created.body.cloneContentId, 'The API did not return the proposal draft');
     await authorPage.getByText('Votre remarque a été déposée et transmise au circuit de validation du projet.').waitFor();
     await authorPage.getByLabel('1 commentaire(s)').waitFor();
-    await authorPage.getByText(/Une demande de modification est déjà ouverte pour cette version/).waitFor();
 
     // The comment badge must also be visible to another member of the project.
     await reviewerPage.goto(`${baseUrl}/root`);
@@ -139,6 +138,8 @@ async function main() {
       0,
       'The active-request banner leaked onto a process without an open request',
     );
+    await reviewerPage.goto(`${baseUrl}/${variantResourceId}`);
+    await reviewerPage.getByText(/Une demande de modification est déjà ouverte pour cette version/).waitFor();
 
     // The author's remark must be visible on the variant in its own project context.
     await authorPage.goto(
