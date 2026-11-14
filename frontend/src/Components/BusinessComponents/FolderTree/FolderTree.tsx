@@ -449,7 +449,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                         onClick={event => {
                           event.preventDefault();
                           event.stopPropagation();
-                          setContextMenu({ nodeId: nodeId === 'project-home' ? 'root' : nodeId, anchorEl: event.currentTarget });
+                          setContextMenu({ nodeId, anchorEl: event.currentTarget });
                         }}
                         sx={{ minWidth: 24, minHeight: 24, p: 0.25, flexShrink: 0 }}
                       >
@@ -561,7 +561,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
         zIndex: 1500,
       }}
     >
-      {contextMenu?.nodeId === 'root' && (
+      {(contextMenu?.nodeId === 'root' || contextMenu?.nodeId === 'project-home') && (
         <>
           <MenuItem sx={{ gap: 1.25, px: 1.25, py: 0.75, fontSize: 13 }} onClick={() => {
             setContextMenu(null);
@@ -590,7 +590,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
           )}
         </>
       )}
-      {contextMenu?.nodeId !== 'root' && contextMenu && (visibleNodes.find(item => item.id === contextMenu.nodeId) ?? nodeById.get(contextMenu.nodeId)) && (() => {
+      {contextMenu?.nodeId !== 'root' && contextMenu?.nodeId !== 'project-home' && contextMenu && (visibleNodes.find(item => item.id === contextMenu.nodeId) ?? nodeById.get(contextMenu.nodeId)) && (() => {
         const node = (visibleNodes.find(item => item.id === contextMenu.nodeId) ?? nodeById.get(contextMenu.nodeId))!;
         const resourceId = node.targetId ?? node.id;
         const isBpmn = node.type === 'process' || node.type === 'linked-process';
