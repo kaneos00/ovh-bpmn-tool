@@ -176,10 +176,26 @@ async function main() {
       const matrix = transform.match(/matrix\(([^)]+)\)/);
       return matrix ? Number(matrix[1].split(/[ ,]+/)[0]) : null;
     });
-    await reviewerPage.waitForFunction(() => {
-      const transform = document.querySelector('.djs-container .viewport')?.getAttribute('transform') ?? '';
-      return /matrix\(/.test(transform);
-    });
+    try {
+      await reviewerPage.waitForFunction(() => {
+        const transform = document.querySelector('.djs-container .viewport')?.getAttribute('transform') ?? '';
+        return /matrix\\(/.test(transform);
+      }, { timeout: 12000 });
+    } catch (error) {
+      const diagnostics = await reviewerPage.evaluate(() => ({
+        url: window.location.href,
+        title: document.title,
+        viewerCanvasCount: document.querySelectorAll('.process-viewer-canvas').length,
+        djsContainerCount: document.querySelectorAll('.djs-container').length,
+        viewportCount: document.querySelectorAll('.djs-container .viewport').length,
+        svgCount: document.querySelectorAll('.process-viewer-canvas svg').length,
+        loadingText: document.querySelector('.process-viewer-loading')?.textContent ?? null,
+        importError: Array.from(document.querySelectorAll('[role="alert"]')).map(node => node.textContent),
+        canvasText: document.querySelector('.process-viewer-canvas')?.textContent?.slice(0, 1000) ?? null,
+        bodyText: document.body.innerText.slice(0, 2500),
+      }));
+      throw new Error(`Viewer viewport was not initialized: ${JSON.stringify(diagnostics)}; ${error.message}`);
+    }
     const initialScale = await readViewerScale();
     assert.ok(
       initialScale !== null && Math.abs(initialScale - 1) < 0.02,
