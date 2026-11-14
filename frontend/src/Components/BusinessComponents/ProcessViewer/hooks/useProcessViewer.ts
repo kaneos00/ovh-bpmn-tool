@@ -93,36 +93,44 @@ export const useProcessViewer = (
     if (!importedRef.current) return false;
 
     const canvas = viewer.get('canvas') as any;
-    canvas.resized?.();
-    const bounds = canvas.getBBox?.();
-    if (
-      !bounds ||
-      !Number.isFinite(bounds.x) ||
-      !Number.isFinite(bounds.y) ||
-      !Number.isFinite(bounds.width) ||
-      !Number.isFinite(bounds.height) ||
-      bounds.width <= 0 ||
-      bounds.height <= 0
-    ) return false;
+    const elementRegistry = viewer.get('elementRegistry') as any;
 
-    // One diagram unit per screen pixel: use diagram-js' native zoom API to restore an exact scale of 1.
-    // Computing the viewbox width from the SVG/container dimensions is fragile:
-    // the rendered SVG can be wider than the canvas host and reintroduce a
-    // scale factor (for example 1.2) even though the toolbar says 1:1.
-    canvas.zoom(1);
+    // Keep the original, proven bpmn-js behavior: set the native zoom to 1,
+    // then align the diagram using its actual element bounds. Do not call
+    // canvas.resized() here: on a visible/transitioning tab it can recalculate
+    // the viewbox from transient dimensions and overwrite the 1:1 scale.
     const viewport = canvas.viewbox();
     if (!viewport || viewport.width <= 0 || viewport.height <= 0) return false;
 
-    // Keep the exact native 1:1 scale and only move the viewbox origin so the
-    // BPMN upper-left corner is visible, matching the previous viewer behavior.
+    const bounds = elementRegistry
+      .getAll()
+      .filter((element: any) =>
+        element &&
+        !element.labelTarget &&
+        !element.waypoints &&
+        Number.isFinite(element.x) &&
+        Number.isFinite(element.y) &&
+        element.width > 0 &&
+        element.height > 0,
+      )
+      .map((element: any) => canvas.getAbsoluteBBox(element))
+      .filter((bbox: any) => bbox && Number.isFinite(bbox.x) && Number.isFinite(bbox.y));
+
+    if (!bounds.length) return false;
+
+    const minX = Math.min(...bounds.map((bbox: any) => bbox.x));
+    const minY = Math.min(...bounds.map((bbox: any) => bbox.y));
+
+    canvas.zoom(1);
+    const actualSizeViewport = canvas.viewbox();
+    if (!actualSizeViewport || actualSizeViewport.width <= 0 || actualSizeViewport.height <= 0) return false;
+
     canvas.viewbox({
-      x: bounds.x,
-      y: bounds.y,
-      width: viewport.width,
-      height: viewport.height,
+      x: minX - 24,
+      y: minY - 24,
+      width: actualSizeViewport.width,
+      height: actualSizeViewport.height,
     });
-    // Keep the viewport dimensions aligned to the host after the explicit
-    // scale/scroll operations, without returning to fit mode.
     fitModeRef.current = false;
     return true;
   };
