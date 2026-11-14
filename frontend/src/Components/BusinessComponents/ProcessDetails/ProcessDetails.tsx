@@ -475,10 +475,10 @@ export const ProcessDetails = ({
         },
       );
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['my-process-change-proposals'] }),
-        queryClient.invalidateQueries({ queryKey: ['process-change-proposals-to-review'] }),
-        queryClient.invalidateQueries({ queryKey: ['active-process-change-proposal'] }),
-        queryClient.invalidateQueries({ queryKey: ['process-change-proposal-comments'] }),
+        queryClient.invalidateQueries(['my-process-change-proposals']),
+        queryClient.invalidateQueries(['process-change-proposals-to-review']),
+        queryClient.invalidateQueries(['active-process-change-proposal']),
+        queryClient.invalidateQueries(['process-change-proposal-comments']),
       ]);
       setInitialRemarkOpen(false);
       setInitialRemarkText('');
@@ -489,7 +489,7 @@ export const ProcessDetails = ({
       // The author may only have the right to submit remarks, not to edit the
       // proposal workspace. The assigned validator opens that workspace from
       // the review queue; keep the author on the source viewer.
-      await queryClient.invalidateQueries({ queryKey: ['my-workspace'] });
+      await queryClient.invalidateQueries(['my-workspace']);
     } catch (error) {
       setInitialRemarkError(
         error instanceof Error ? error.message : 'Impossible de déposer la remarque.',
