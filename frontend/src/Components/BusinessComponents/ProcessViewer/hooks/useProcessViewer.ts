@@ -95,33 +95,31 @@ export const useProcessViewer = (
     const canvas = viewer.get('canvas') as any;
     canvas.resized?.();
     const bounds = canvas.getBBox?.();
-    const container = canvas.getContainer();
-    // Use the actual drawing surface dimensions. The canvas host can be narrower
-    // than the rendered SVG (for example when a viewer panel is constrained),
-    // which would leave an unintended scale after resetting to 1:1.
-    const diagramSvg = container.querySelector('svg:not(.map)') as SVGSVGElement | null;
-    const drawingSurface = diagramSvg ?? container;
-    const { width, height } = drawingSurface.getBoundingClientRect();
     if (
       !bounds ||
       !Number.isFinite(bounds.x) ||
       !Number.isFinite(bounds.y) ||
       !Number.isFinite(bounds.width) ||
       !Number.isFinite(bounds.height) ||
-      width <= 0 ||
-      height <= 0 ||
       bounds.width <= 0 ||
       bounds.height <= 0
     ) return false;
 
-    // One diagram unit per screen pixel: match visible diagram-space dimensions
-    // to the viewport dimensions and align the BPMN upper-left corner.
-    // Setting the viewbox origin to the BPMN bounds aligns its upper-left corner.
+    // Use diagram-js' native zoom API to restore an exact scale of 1.
+    // Computing the viewbox width from the SVG/container dimensions is fragile:
+    // the rendered SVG can be wider than the canvas host and reintroduce a
+    // scale factor (for example 1.2) even though the toolbar says 1:1.
+    canvas.zoom(1);
+    const viewport = canvas.viewbox();
+    if (!viewport || viewport.width <= 0 || viewport.height <= 0) return false;
+
+    // Keep the exact native 1:1 scale and only move the viewbox origin so the
+    // BPMN upper-left corner is visible, matching the previous viewer behavior.
     canvas.viewbox({
       x: bounds.x,
       y: bounds.y,
-      width,
-      height,
+      width: viewport.width,
+      height: viewport.height,
     });
     // Keep the viewport dimensions aligned to the host after the explicit
     // scale/scroll operations, without returning to fit mode.
