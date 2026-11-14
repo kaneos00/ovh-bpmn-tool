@@ -94,13 +94,13 @@ test('Viewer opens at 1:1 with the BPMN upper-left corner aligned to the viewpor
 
 test('Viewer preserves the BPMN top-left origin when the details panel resizes the canvas', async () => {
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
-  const resize = hook.match(/const resizeDiagram = \(\) => \{([\\s\\S]*?)\\n  \};/)?.[1] ?? '';
+  const resize = hook.match(/const resizeDiagram = \(\) => \{([\s\S]*?)\n  \};/)?.[1] ?? '';
 
   assert.ok(resize.includes('const previousViewbox = canvas.viewbox()'));
   assert.ok(resize.includes('canvas.resized?.()'));
   assert.ok(resize.includes('const resizedViewbox = canvas.viewbox()'));
-  assert.match(resize, /if \(fitModeRef\.current\) \{[\\s\\S]*?canvas\.zoom\('fit-viewport'\);[\\s\\S]*?return;/);
-  assert.match(resize, /x: previousViewbox\.x,[\\s\\S]*?y: previousViewbox\.y,[\\s\\S]*?width: resizedViewbox\.width,[\\s\\S]*?height: resizedViewbox\.height/);
+  assert.match(resize, /if \(fitModeRef\.current\) \{[\s\S]*?canvas\.zoom\('fit-viewport'\);[\s\S]*?return;/);
+  assert.match(resize, /x: previousViewbox\.x,[\s\S]*?y: previousViewbox\.y,[\s\S]*?width: resizedViewbox\.width,[\s\S]*?height: resizedViewbox\.height/);
 });
 
 test('Viewer retries its initial BPMN viewport when a hidden tab becomes visible', async () => {
