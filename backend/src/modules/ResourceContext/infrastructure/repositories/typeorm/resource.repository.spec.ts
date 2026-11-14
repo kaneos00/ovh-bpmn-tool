@@ -49,13 +49,15 @@ describe('ResourceTypeOrmRepository.delete', () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([{ id: 'folder' }]);
 
     await expect(repository.delete('folder')).resolves.toEqual({ ok: true, fail: null });
-    expect(manager.query).toHaveBeenNthCalledWith(3, expect.stringContaining('DELETE FROM process_change_proposals'), [['folder']]);
-    expect(manager.query).toHaveBeenNthCalledWith(4, expect.stringContaining('UPDATE project_processes SET "sourceResourceId" = NULL'), [['folder']]);
-    expect(manager.query).toHaveBeenNthCalledWith(5, expect.stringContaining('DELETE FROM project_processes WHERE "resourceId"'), [['folder']]);
-    expect(manager.query).toHaveBeenNthCalledWith(6, expect.stringContaining('DELETE FROM resources'), [['folder']]);
+    expect(manager.query).toHaveBeenNthCalledWith(3, expect.stringContaining('SET "parentId" = NULL'), [['shared-process'], ['folder', 'shared-process']]);
+    expect(manager.query).toHaveBeenNthCalledWith(4, expect.stringContaining('DELETE FROM process_change_proposals'), [['folder']]);
+    expect(manager.query).toHaveBeenNthCalledWith(5, expect.stringContaining('UPDATE project_processes SET "sourceResourceId" = NULL'), [['folder']]);
+    expect(manager.query).toHaveBeenNthCalledWith(6, expect.stringContaining('DELETE FROM project_processes WHERE "resourceId"'), [['folder']]);
+    expect(manager.query).toHaveBeenNthCalledWith(7, expect.stringContaining('DELETE FROM resources'), [['folder']]);
     expect(manager.query).toHaveBeenCalledWith(expect.stringContaining('SET "parentId" = NULL'), [['shared-process'], ['folder', 'shared-process']]);
   });
 
