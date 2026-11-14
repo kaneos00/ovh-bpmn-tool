@@ -14,6 +14,7 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
   const diagramContainerRef = useRef<HTMLDivElement>(null);
   const diagramPropertiesRef = useRef<HTMLDivElement>(null);
   const [hasLintError, setHasLintError] = useState(false);
+  const [isModelerReady, setIsModelerReady] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
@@ -125,6 +126,7 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
 
   useEffect(() => {
     const generation = ++importGenerationRef.current;
+    setIsModelerReady(false);
     if (
       registeredPropertiesPanelRef.current &&
       registeredPropertiesPanelRef.current !== propertiesPanel
@@ -136,7 +138,7 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
       setCanRedo(false);
     }
 
-    if (!diagramContainerRef.current || !diagramPropertiesRef.current) {
+    if (!diagramContainerRef.current || !diagramPropertiesRef.current || content === undefined) {
       return () => {
         if (importGenerationRef.current === generation) importGenerationRef.current += 1;
       };
@@ -165,6 +167,7 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
         if (generation !== importGenerationRef.current) return;
         setIsDirty(false);
         attachModeler();
+        setIsModelerReady(true);
       },
     ).catch(() => {
       if (generation === importGenerationRef.current) {
@@ -194,5 +197,5 @@ export const useModeler = (bpmnModelerInstance: Modeler, content?: string) => {
     setCanUndo(Boolean(commandStack?.canUndo?.()));
     setCanRedo(Boolean(commandStack?.canRedo?.()));
   }, [bpmnModelerInstance]);
-  return { diagramContainerRef, diagramPropertiesRef, hasLintError, isDirty, canUndo, canRedo, undo, redo, markSaved };
+  return { diagramContainerRef, diagramPropertiesRef, hasLintError, isDirty, canUndo, canRedo, undo, redo, markSaved, isModelerReady };
 };

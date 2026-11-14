@@ -33,6 +33,16 @@ export const useModelerInstance = () => {
 
   useEffect(() => {
     return () => {
+      // Clear diagram-js selection while the modeler services are still alive.
+      // Calling selection after destroy can access an already disposed canvas plane.
+      try {
+        const selection = modeler.get('selection') as {
+          select?: (elements: unknown[]) => void;
+        } | undefined;
+        selection?.select?.([]);
+      } catch {
+        // Teardown must continue even if the selection service is unavailable.
+      }
       modeler.destroy();
     };
   }, [modeler]);

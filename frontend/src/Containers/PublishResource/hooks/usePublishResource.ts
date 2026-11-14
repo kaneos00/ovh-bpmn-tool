@@ -22,6 +22,17 @@ import type { ActionResponse } from '../../../shared/types/ActionResponse';
 import { useSnackbar } from '../../../shared/hooks/useSnackbar';
 import { useBpmnViewerInstance } from '../../../shared/hooks/useBpmnViewerInstance';
 
+const getPublishErrorMessage = (error: unknown) => {
+  const errorRecord = error as {
+    errorResponse?: { message?: unknown };
+    message?: unknown;
+  } | null;
+  const message = errorRecord?.errorResponse?.message ?? errorRecord?.message;
+  if (Array.isArray(message)) return message.join(', ');
+  if (typeof message === 'string' && message.trim()) return message;
+  return 'Une erreur est survenue lors de la publication du processus.';
+};
+
 export const usePublishResource = () => {
   const [base64Png, setBase64Png] = useState('');
   const viewerRef = useRef<HTMLDivElement>(null);
@@ -36,7 +47,7 @@ export const usePublishResource = () => {
   const { showAlert } = useSnackbar();
 
   const { resource } = useResource(resourceId);
-  const { data: contents } = useQuery(contentsQuery(resourceId));
+  const { data: contents, isLoading: isContentsLoading } = useQuery(contentsQuery(resourceId));
 
   const { getViewerInstance } = useBpmnViewerInstance();
   const viewer = useMemo(() => getViewerInstance(), [getViewerInstance]);
@@ -107,11 +118,21 @@ export const usePublishResource = () => {
     return navigate('..');
   };
 
+  const canPublish = !isContentsLoading && Boolean(draftContent?.id);
+
   const onPublish = () => {
+    if (!draftContent?.id) {
+      showAlert({
+        message: 'Aucun brouillon disponible pour la publication de ce processus.',
+        severity: 'danger',
+      });
+      return;
+    }
+
     submit(
       {
         action: 'publishContent',
-        contentId: (draftContent as Content).id,
+        contentId: draftContent.id,
         pngContent: base64Png,
       },
       { method: 'post' },
@@ -143,12 +164,12 @@ export const usePublishResource = () => {
   useEffect(() => {
     if (actionData && !actionData.error && actionData.formAction) {
       showAlert({
-        message: 'Business Process publication success.',
+        message: 'Publication du processus réussie.',
         severity: 'success',
       });
     } else if (actionData?.error && actionData.formAction) {
       showAlert({
-        message: 'An error occurred during Business Process publication.',
+        message: getPublishErrorMessage(actionData.error),
         severity: 'danger',
       });
     }
@@ -160,6 +181,7 @@ export const usePublishResource = () => {
     base64Png,
     viewerRef,
     actionData,
+    canPublish,
     callbacks: {
       onModalClose,
       onPublish,

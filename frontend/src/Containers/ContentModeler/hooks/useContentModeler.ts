@@ -5,6 +5,7 @@ import { useQuery } from 'react-query';
 import type { ContentModelerRouteParams } from '..';
 import {
   contentsQuery,
+  getContentQuery,
   getXmlContentQuery,
 } from '../../../api/contents/contents.queries';
 import { useSnackbar } from '../../../shared/hooks/useSnackbar';
@@ -17,10 +18,16 @@ import { paginateBpmnSvg } from '../../../shared/utils/paginatedBpmnSvg';
 import { HttpError } from '../../../shared/api/httpError';
 import { enqueueModelerImport } from '../../../shared/utils/modelerImportQueue';
 
-export const useContentModeler = (bpmnModelerInstance: Modeler) => {
-  const { resourceId } = useParams() as ContentModelerRouteParams;
+export const useContentModeler = (
+  bpmnModelerInstance: Modeler,
+  resourceIdOverride?: string,
+  enabled: boolean = true,
+) => {
+  const { resourceId: routeResourceId } = useParams() as ContentModelerRouteParams;
+  const resourceId = resourceIdOverride ?? routeResourceId;
   const [searchParams] = useSearchParams();
   const requestedContentId = searchParams.get('contentId');
+  const proposalId = searchParams.get('proposalId');
   const actionData = useActionData() as Content & ActionResponse;
   const navigate = useNavigate();
 
@@ -29,12 +36,24 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
 
   const [isShortcurtModalOpen, setIsShortcurtModalOpen] = useState(false);
 
-  const { data: contents } = useQuery(contentsQuery(resourceId));
-  const { resource } = useResource(resourceId);
+  const { data: contents } = useQuery({
+    ...contentsQuery(resourceId),
+    enabled,
+  });
+  const {
+    data: requestedContent,
+    isLoading: requestedContentIsLoading,
+    isError: requestedContentIsError,
+    error: requestedContentError,
+  } = useQuery({
+    ...getContentQuery(resourceId, requestedContentId ?? ''),
+    enabled: enabled && Boolean(proposalId && requestedContentId),
+  });
+  const { resource } = useResource(resourceId, enabled);
   const sourceResourceId = resource?.sourceResourceId ?? undefined;
   const { data: sourceContents } = useQuery({
     ...contentsQuery(sourceResourceId ?? ''),
-    enabled: Boolean(sourceResourceId),
+    enabled: enabled && Boolean(sourceResourceId),
   });
 
   const draftContent = useMemo(() => {
@@ -68,15 +87,55 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
     })[0];
   }, [sourceContents]);
 
-  const selectedContent = useMemo(
-    () => contents?.find(content => content.id === requestedContentId) ?? draftContent,
-    [contents, requestedContentId, draftContent],
+  const selectedContent = useMemo(() => {
+    if (!requestedContentId) return draftContent;
+    const listedContent = contents?.find(content => content.id === requestedContentId);
+    if (listedContent) return listedContent;
+    if (proposalId) return requestedContent;
+    return draftContent;
+  }, [contents, requestedContentId, requestedContent, proposalId, draftContent]);
+  // Review links carry the exact submitted content ID. Prefer the current
+  // draft, but retain that proposal content as an editable fallback when the
+  // list endpoint does not classify it as the current draft.
+  // In proposal review, save the exact draft submitted for review when its
+  // ID is present in the review link. Ordinary modeler sessions keep using
+  // the current draft, never a historical selected version.
+  const editableContent = proposalId && selectedContent?.status === ContentStatusEnum.Draft
+    ? selectedContent
+    : draftContent;
+
+  const {
+    data: loadedDraftXmlContent,
+    isError: draftXmlContentIsError,
+    error: draftXmlContentError,
+  } = useQuery({
+    ...getXmlContentQuery(resourceId, selectedContent?.id as string),
+    enabled: enabled && !!selectedContent?.id,
+  });
+
+  // Do not show an empty diagram while an exact proposal draft is being resolved.
+  const proposalContentLookupFailed = Boolean(
+    proposalId &&
+    requestedContentId &&
+    !selectedContent &&
+    !requestedContentIsLoading &&
+    (requestedContentIsError || requestedContent === undefined),
   );
 
-  const { data: draftXmlContent } = useQuery({
-    ...getXmlContentQuery(resourceId, selectedContent?.id as string),
-    enabled: !!selectedContent?.id,
-  });
+  let draftXmlContent: string | undefined;
+  if (selectedContent) {
+    draftXmlContent = loadedDraftXmlContent;
+  } else if (contents !== undefined && !(proposalId && requestedContentId)) {
+    draftXmlContent = '';
+  }
+
+  let draftXmlContentErrorMessage: string | null = null;
+  if (draftXmlContentIsError || proposalContentLookupFailed) {
+    const error = draftXmlContentError ?? requestedContentError;
+    draftXmlContentErrorMessage = error instanceof Error
+      ? error.message
+      : 'Le serveur n’a pas retourné le contenu BPMN de la demande.';
+  }
 
   const onCompareWithSource = useCallback(() => {
     if (!sourceResourceId || !sourceContent?.id || !draftContent?.id) {
@@ -185,52 +244,65 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
   const saveDiagram = useCallback(
     async (action: string, content: Content) => {
       const contentXml = await bpmnModelerInstance.saveXML({ format: true });
-      if (contentXml.xml) {
-        submit(
-          {
-            action,
-            contentId: content.id,
-            content: contentXml.xml,
-          },
-          { method: 'put' },
-        );
+      if (!contentXml.xml) {
+        throw new Error('Le modeleur n’a retourné aucun XML à enregistrer.');
       }
+      submit(
+        {
+          action,
+          contentId: content.id,
+          content: contentXml.xml,
+        },
+        { method: 'put' },
+      );
     },
     [bpmnModelerInstance, submit],
   );
 
   const onDiagramSave = useCallback(async () => {
-    if (!draftContent) {
+    if (!editableContent) {
+      showAlert({
+        message: 'Aucun brouillon modifiable n’a été chargé pour ce processus. Rechargez la page ; si le problème persiste, la demande doit être vérifiée.',
+        severity: 'warning',
+      });
       return;
     }
 
     try {
-      await saveDiagram('saveContent', draftContent);
+      await saveDiagram('saveContent', editableContent);
     } catch {
       showAlert({
-        message: 'An error occur during saving content.',
+        message: 'Impossible de préparer l’enregistrement du processus. Vérifiez le diagramme et réessayez.',
         severity: 'danger',
       });
     }
-  }, [draftContent, saveDiagram, showAlert]);
+  }, [editableContent, saveDiagram, showAlert]);
 
   const onDiagramPublish = useCallback(async () => {
-    if (!draftContent) {
+    if (!editableContent) {
+      showAlert({
+        message: 'Aucun brouillon modifiable n’a été chargé : la validation ou la publication ne peut pas démarrer.',
+        severity: 'warning',
+      });
       return;
     }
 
     try {
-      await saveDiagram('saveContentBeforePublish', draftContent);
+      await saveDiagram(
+        proposalId ? 'saveContentBeforeSubmit' : 'saveContentBeforePublish',
+        editableContent,
+      );
     } catch {
       showAlert({
-        message: 'An error occur during saving content.',
+        message: 'Impossible d’enregistrer le brouillon avant la validation ou la publication. Vérifiez le diagramme et réessayez.',
         severity: 'danger',
       });
     }
-  }, [draftContent, saveDiagram, showAlert]);
+  }, [editableContent, saveDiagram, showAlert, proposalId]);
 
   const processActionMessages: Record<string, string> = {
     saveContent: 'Content has been saved successfully.',
+    saveContentBeforeSubmit: 'Brouillon enregistré. Vous pouvez maintenant soumettre la demande.',
   };
 
   const getSaveErrorMessage = (error: unknown, formAction: string) => {
@@ -286,7 +358,8 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
 
   return {
     resourceId,
-    draftXmlContent: draftXmlContent ?? '',
+    draftXmlContent,
+    draftXmlContentErrorMessage,
     selectedContent,
     isShortcurtModalOpen,
     actionData,

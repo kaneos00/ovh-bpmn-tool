@@ -390,3 +390,34 @@
   align-items: center;
   gap: 8px 18px;
 }
+
+
+/* Fullscreen belongs to the complete BPMN workspace, not only the canvas:
+   keep the selected element sheet visible beside the diagram. */
+.processViewerProcessWorkspace:fullscreen {
+  box-sizing: border-box;
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  min-width: 100vw;
+  min-height: 100vh;
+  padding: 8px;
+  gap: 8px;
+  overflow: hidden;
+  background: var(--joy-palette-background-body, #fff);
+}
+
+.processViewerProcessWorkspace:fullscreen .processViewerDiagram,
+.processViewerProcessWorkspace:fullscreen .processTaskPanel {
+  height: 100%;
+  min-height: 0;
+}
+
+.processViewerProcessWorkspace:fullscreen .processViewerDiagram {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.processViewerProcessWorkspace:fullscreen .processTaskPanel:not(.collapsed) {
+  max-width: 45vw;
+}

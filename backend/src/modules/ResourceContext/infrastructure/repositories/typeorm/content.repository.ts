@@ -60,6 +60,18 @@ export class ContentTypeOrmRepository implements ContentRepository {
           lock: { mode: 'pessimistic_write' },
         });
         if (!resource) throw new Error('Resource no longer exists');
+
+        // Proposal workspaces must be published only through the reviewed
+        // proposal workflow, never through the generic content endpoint.
+        const proposalRows: Array<{ id: string }> = await manager.query(
+          'SELECT id FROM process_change_proposals WHERE "cloneResourceId" = $1 LIMIT 1',
+          [params.resourceId],
+        );
+        if (proposalRows.length) {
+          throw new Error(
+            'A proposal workspace cannot be published through the generic content endpoint',
+          );
+        }
         if (resource.type === ResourceTypeEnum.Folder) {
           throw new Error('A folder cannot receive published content');
         }
@@ -251,7 +263,8 @@ export class ContentTypeOrmRepository implements ContentRepository {
 
     try {
       // Only link identifiers are returned to the explorer; BPMN XML stays
-      // inside PostgreSQL and is not transferred to the browser.
+      // inside PostgreSQL and is not transferred to the browser. Malformed
+      // historical XML must not make the entire explorer unavailable.
       const rows: Array<{
         resourceId: string;
         processIds: string[];
@@ -260,7 +273,12 @@ export class ContentTypeOrmRepository implements ContentRepository {
       }> = await this.contentRepository.query(
         `WITH latest_published AS (
            SELECT DISTINCT ON ("resourceId")
-             "resourceId", content
+             "resourceId",
+             CASE
+               WHEN xml_is_well_formed_document(content) IS TRUE
+                 THEN content::xml
+               ELSE '<definitions />'::xml
+             END AS xml_content
            FROM contents
            WHERE "resourceId" = ANY($1::uuid[])
              AND status = $2
@@ -270,15 +288,15 @@ export class ContentTypeOrmRepository implements ContentRepository {
            "resourceId",
            ARRAY(
              SELECT regexp_replace(node::text, '^.*="([^"]*)".*$', '\\1')
-             FROM unnest(xpath('//*[local-name()="process"]/@id', content::xml)) AS extracted(node)
+             FROM unnest(xpath('//*[local-name()="process"]/@id', xml_content)) AS extracted(node)
            ) AS "processIds",
            ARRAY(
              SELECT regexp_replace(node::text, '^.*="([^"]*)".*$', '\\1')
-             FROM unnest(xpath('//*[local-name()="callActivity"]/@calledElement', content::xml)) AS extracted(node)
+             FROM unnest(xpath('//*[local-name()="callActivity"]/@calledElement', xml_content)) AS extracted(node)
            ) AS "callTargets",
            ARRAY(
              SELECT regexp_replace(node::text, '^.*="([^"]*)".*$', '\\1')
-             FROM unnest(xpath('//*[local-name()="subProcess" and @id = //*[local-name()="BPMNShape" and @isExpanded="false"]/@bpmnElement]/@id', content::xml)) AS extracted(node)
+             FROM unnest(xpath('//*[local-name()="subProcess" and @id = //*[local-name()="BPMNShape" and @isExpanded="false"]/@bpmnElement]/@id', xml_content)) AS extracted(node)
            ) AS "collapsedTargets"
          FROM latest_published`,
         [resourceIds, 'published'],

@@ -4,7 +4,7 @@ import {
   analyzeRaciMatrix,
   type RaciCode,
   type RaciMatrix,
-} from '../../../extensions/raci-engine';
+} from '../../extensions/raci-engine';
 
 type ViewerRaciFilters = {
   actorFilter: string;
@@ -40,10 +40,7 @@ export const useViewerRaciFilters = (
             cell => cell.role === actorFilter,
           );
           if (!actorCell?.codes.length) return false;
-          if (
-            codeFilter &&
-            !actorCell.codes.includes(codeFilter)
-          ) {
+          if (codeFilter && !actorCell.codes.includes(codeFilter)) {
             return false;
           }
         } else if (

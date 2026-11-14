@@ -30,6 +30,8 @@ import {
   ProjectMemberTypeOrmEntity,
 } from '../entities/projectMember.ormEntity';
 import { ProjectResourceAccessService } from '../../projectResourceAccess.service';
+import { ProcessChangeProposalTypeOrmEntity } from '../entities/processChangeProposal.ormEntity';
+import { ProcessChangeProposalCommentTypeOrmEntity } from '../entities/processChangeProposalComment.ormEntity';
 
 type RequestHeaders = Record<string, string | undefined>;
 
@@ -45,6 +47,10 @@ export class ProjectController {
     private readonly resources: Repository<ResourceTypeOrmEntity>,
     @InjectRepository(ProjectMemberTypeOrmEntity)
     private readonly projectMembers: Repository<ProjectMemberTypeOrmEntity>,
+    @InjectRepository(ProcessChangeProposalTypeOrmEntity)
+    private readonly processChangeProposals: Repository<ProcessChangeProposalTypeOrmEntity>,
+    @InjectRepository(ProcessChangeProposalCommentTypeOrmEntity)
+    private readonly processChangeProposalComments: Repository<ProcessChangeProposalCommentTypeOrmEntity>,
     private readonly projectResourceAccess: ProjectResourceAccessService,
   ) {}
 
@@ -96,14 +102,72 @@ export class ProjectController {
     const resourceById = new Map(
       resources.map((resource) => [resource.id, resource]),
     );
+    // Proposal workspaces are linked as project-specific resources and point
+    // back to their source resource. Published project variants also carry a
+    // sourceResourceId, but must remain visible in their project workspace.
+    // Exclude only source-linked project-specific proposal workspaces.
+    const visibleLinks = links.filter(
+      (link) =>
+        !(
+          link.usage === ProjectProcessUsage.ProjectSpecific &&
+          resourceById.get(link.resourceId)?.sourceResourceId
+        ),
+    );
+    // Expose a lightweight remark count with each process so the explorer can
+    // signal which processes already have discussion without issuing one
+    // network request per tree item.
+    const visibleResourceIds = [
+      ...new Set(visibleLinks.map((link) => link.resourceId)),
+    ];
+    const proposalsForWorkspace = visibleResourceIds.length
+      ? await this.processChangeProposals.find({
+          where: {
+            projectId: In(projectIds),
+            sourceResourceId: In(visibleResourceIds),
+          },
+        })
+      : [];
+    const proposalSourceById = new Map(
+      proposalsForWorkspace.map((proposal) => [
+        proposal.id,
+        {
+          projectId: proposal.projectId,
+          sourceResourceId: proposal.sourceResourceId,
+        },
+      ]),
+    );
+    const workspaceProposalIds = proposalsForWorkspace.map(
+      (proposal) => proposal.id,
+    );
+    const workspaceRemarks = workspaceProposalIds.length
+      ? await this.processChangeProposalComments.find({
+          where: { proposalId: In(workspaceProposalIds) },
+        })
+      : [];
+    const remarksCountByProjectResource = new Map<string, number>();
+    for (const remark of workspaceRemarks) {
+      const source = proposalSourceById.get(remark.proposalId);
+      if (!source) continue;
+      const key = `${source.projectId}:${source.sourceResourceId}`;
+      remarksCountByProjectResource.set(
+        key,
+        (remarksCountByProjectResource.get(key) ?? 0) + 1,
+      );
+    }
     const linksByProject = new Map<string, typeof links>();
-    for (const link of links) {
+    for (const link of visibleLinks) {
       const projectLinks = linksByProject.get(link.projectId) ?? [];
       projectLinks.push(link);
       linksByProject.set(link.projectId, projectLinks);
     }
     const roleByProject = new Map(
       memberships.map(({ projectId, role }) => [projectId, role]),
+    );
+    const canSubmitRemarksByProject = new Map(
+      memberships.map(({ projectId, canSubmitRemarks }) => [
+        projectId,
+        Boolean(canSubmitRemarks),
+      ]),
     );
 
     return {
@@ -113,13 +177,22 @@ export class ProjectController {
         name: project.name,
         description: project.description,
         color: project.color,
+        trigram: project.trigram,
         icon: project.icon,
         role: roleByProject.get(project.id),
+        canSubmitRemarks: canSubmitRemarksByProject.get(project.id) ?? false,
         processes: (linksByProject.get(project.id) ?? []).map((link) => ({
           resourceId: link.resourceId,
           name: resourceById.get(link.resourceId)?.name ?? link.resourceId,
           usage: link.usage,
-          sourceResourceId: link.sourceResourceId,
+          sourceResourceId:
+            link.sourceResourceId ??
+            resourceById.get(link.resourceId)?.sourceResourceId ??
+            null,
+          remarksCount:
+            remarksCountByProjectResource.get(
+              `${link.projectId}:${link.resourceId}`,
+            ) ?? 0,
         })),
       })),
     };
@@ -183,6 +256,7 @@ export class ProjectController {
       name?: string;
       description?: string;
       color?: string;
+      trigram?: string | null;
       icon?: string;
     },
     @Headers() headers: RequestHeaders,
@@ -200,6 +274,7 @@ export class ProjectController {
       name,
       description: body.description?.trim() || null,
       color: this.validateProjectColor(body.color),
+      trigram: this.validateProjectTrigram(body.trigram),
       icon: this.validateProjectIcon(body.icon),
       createdBy: userId,
     });
@@ -301,6 +376,7 @@ export class ProjectController {
                 projectById.get(membership.projectId)?.name ??
                 membership.projectId,
               role: membership.role,
+              canSubmitRemarks: membership.canSubmitRemarks ?? false,
             }))
             .sort((left, right) =>
               left.projectName.localeCompare(right.projectName),
@@ -326,13 +402,26 @@ export class ProjectController {
   async setOrganizationProjectMember(
     @Param('projectId') projectId: string,
     @Param('userId') userIdParam: string,
-    @Body() body: { role?: ProjectMemberRole },
+    @Body() body: { role?: ProjectMemberRole; canSubmitRemarks?: boolean },
     @Headers() headers: RequestHeaders,
   ) {
     const actorId = this.projectResourceAccess.getAuthenticatedUserId(headers);
     const userId = this.validateUserId(userIdParam);
     const role = this.validateMemberRole(body.role);
-    return this.changeProjectMember(projectId, userId, role, actorId);
+    if (
+      body.canSubmitRemarks !== undefined &&
+      typeof body.canSubmitRemarks !== 'boolean'
+    ) {
+      throw new BadRequestException('canSubmitRemarks must be a boolean');
+    }
+    return this.changeProjectMember(
+      projectId,
+      userId,
+      role,
+      actorId,
+      undefined,
+      body.canSubmitRemarks,
+    );
   }
 
   @Delete('administration/projects/:projectId/members/:userId')
@@ -354,7 +443,9 @@ export class ProjectController {
       name?: string;
       description?: string;
       color?: string;
+      trigram?: string | null;
       icon?: string;
+      defaultValidatorUserId?: string | null;
     },
   ) {
     const project = await this.assertProjectExists(projectId);
@@ -374,8 +465,14 @@ export class ProjectController {
     if (body.color !== undefined) {
       project.color = this.validateProjectColor(body.color);
     }
+    if (body.trigram !== undefined) {
+      project.trigram = this.validateProjectTrigram(body.trigram);
+    }
     if (body.icon !== undefined) {
       project.icon = this.validateProjectIcon(body.icon);
+    }
+    if (body.defaultValidatorUserId !== undefined) {
+      await this.assignDefaultValidator(project, body.defaultValidatorUserId);
     }
 
     try {
@@ -424,7 +521,9 @@ export class ProjectController {
       name?: string;
       description?: string;
       color?: string;
+      trigram?: string | null;
       icon?: string;
+      defaultValidatorUserId?: string | null;
     },
     @Headers() headers: RequestHeaders,
   ) {
@@ -446,8 +545,14 @@ export class ProjectController {
     if (body.color !== undefined) {
       project.color = this.validateProjectColor(body.color);
     }
+    if (body.trigram !== undefined) {
+      project.trigram = this.validateProjectTrigram(body.trigram);
+    }
     if (body.icon !== undefined) {
       project.icon = this.validateProjectIcon(body.icon);
+    }
+    if (body.defaultValidatorUserId !== undefined) {
+      await this.assignDefaultValidator(project, body.defaultValidatorUserId);
     }
 
     try {
@@ -661,8 +766,11 @@ export class ProjectController {
             resourceId: variant.id,
             content: sourceContent.content,
             pngContent: sourceContent.pngContent,
-            status: ContentStatusEnum.Draft,
-            // A variant is an independent resource with its own version history.
+            // The variant is an explicit copy of an already-published
+            // source. Publish this initial snapshot so the new variant is
+            // immediately readable in the Viewer; subsequent edits still
+            // create ordinary drafts.
+            status: ContentStatusEnum.Published,
             version: 1,
             createdBy: userId,
             updatedBy: userId,
@@ -753,13 +861,26 @@ export class ProjectController {
   async setProjectMember(
     @Param('projectId') projectId: string,
     @Param('userId') userIdParam: string,
-    @Body() body: { role?: ProjectMemberRole },
+    @Body() body: { role?: ProjectMemberRole; canSubmitRemarks?: boolean },
     @Headers() headers: RequestHeaders,
   ) {
     const actorId = this.projectResourceAccess.getAuthenticatedUserId(headers);
     const userId = this.validateUserId(userIdParam);
     const role = this.validateMemberRole(body.role);
-    return this.changeProjectMember(projectId, userId, role, actorId, headers);
+    if (
+      body.canSubmitRemarks !== undefined &&
+      typeof body.canSubmitRemarks !== 'boolean'
+    ) {
+      throw new BadRequestException('canSubmitRemarks must be a boolean');
+    }
+    return this.changeProjectMember(
+      projectId,
+      userId,
+      role,
+      actorId,
+      headers,
+      body.canSubmitRemarks,
+    );
   }
 
   @Delete(':projectId/members/:userId')
@@ -805,6 +926,7 @@ export class ProjectController {
     role: ProjectMemberRole | null,
     actorId?: string,
     headers?: RequestHeaders,
+    canSubmitRemarks?: boolean,
   ) {
     return this.dataSource.transaction(async (manager) => {
       const projectRepository = manager.getRepository(ProjectTypeOrmEntity);
@@ -847,8 +969,21 @@ export class ProjectController {
       }
 
       if (role === null) {
+        if (project.defaultValidatorUserId === userId) {
+          project.defaultValidatorUserId = null;
+          await projectRepository.save(project);
+        }
         await members.delete({ projectId, userId });
         return { deleted: true, projectId, userId };
+      }
+
+      if (
+        project.defaultValidatorUserId === userId &&
+        role !== ProjectMemberRole.Admin &&
+        role !== ProjectMemberRole.Modeler
+      ) {
+        project.defaultValidatorUserId = null;
+        await projectRepository.save(project);
       }
 
       const member =
@@ -859,8 +994,57 @@ export class ProjectController {
           createdBy: actorId,
         });
       member.role = role;
+      if (canSubmitRemarks !== undefined) {
+        member.canSubmitRemarks = canSubmitRemarks;
+      }
       return members.save(member);
     });
+  }
+
+  private async assignDefaultValidator(
+    project: ProjectTypeOrmEntity,
+    requestedUserId: string | null,
+  ) {
+    if (requestedUserId === null || requestedUserId.trim() === '') {
+      project.defaultValidatorUserId = null;
+      return;
+    }
+
+    const userId = this.validateUserId(requestedUserId);
+    const membership = await this.projectMembers.findOneBy({
+      projectId: project.id,
+      userId,
+    });
+    if (
+      !membership ||
+      (membership.role !== ProjectMemberRole.Admin &&
+        membership.role !== ProjectMemberRole.Modeler)
+    ) {
+      throw new BadRequestException(
+        'The default validator must be a member of this project and have an active Admin or Modeler role',
+      );
+    }
+    const activeAccounts: Array<{ id: string }> = await this.dataSource.query(
+      'SELECT id FROM app_users WHERE lower(username) = lower($1) AND active = TRUE LIMIT 1',
+      [membership.userId],
+    );
+    if (!activeAccounts.length) {
+      throw new BadRequestException(
+        'Le compte du valideur par défaut est introuvable ou désactivé',
+      );
+    }
+    project.defaultValidatorUserId = userId;
+  }
+
+  private validateProjectTrigram(value?: string | null): string | null {
+    const trigram = value?.trim().toUpperCase() ?? '';
+    if (!trigram) return null;
+    if (!/^[A-Z0-9]{3}$/.test(trigram)) {
+      throw new BadRequestException(
+        'Project trigram must contain exactly three letters or digits',
+      );
+    }
+    return trigram;
   }
 
   private validateProjectColor(value?: string) {

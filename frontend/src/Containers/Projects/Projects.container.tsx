@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from 'react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from 'react-query';
 import {
   Alert,
   Box,
@@ -13,6 +13,7 @@ import {
   Option,
   Select,
   Stack,
+  Sheet,
   Tab,
   TabList,
   TabPanel,
@@ -21,21 +22,28 @@ import {
 } from '@mui/joy';
 import { apiClient } from '../../queryClient';
 import { resourcesQuery } from '../../api/resources/resources.queries';
-import { Resource } from '../../Types';
+import { contentsQuery } from '../../api/contents/contents.queries';
+import { ContentStatusEnum, type Content, Resource } from '../../Types';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import { ProjectRaciPanel } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciPanel';
 import { ProjectRaciManager } from '../../Components/BusinessComponents/ProjectRaciPanel/ProjectRaciManager';
 import { ProjectProcessHierarchy } from './ProjectProcessHierarchy';
 import { WorkspacePageLayout } from '../../Components/GenericComponents/WorkspacePageLayout/WorkspacePageLayout';
+import { Header } from '../../Components/GenericComponents/Header/Header';
 import { useActiveProject } from '../../shared/hooks/useActiveProject';
+import { ViewerExplorerPanel } from '../../Components/BusinessComponents/ViewerExplorerPanel/ViewerExplorerPanel';
+import { getProjectTrigram } from '../../shared/helpers/projectTrigram';
+import '../../Components/BusinessComponents/ProcessDetails/ProcessDetails.scss';
 
 type Project = {
   id: string;
   name: string;
   description: string | null;
   color: string;
+  trigram: string | null;
   icon: string;
   createdAt: string;
+  defaultValidatorUserId: string | null;
 };
 
 type WorkspaceProjectSummary = {
@@ -84,39 +92,43 @@ const PROCESS_USAGE_LABELS: Record<ProjectProcessLink['usage'], string> = {
 
 export const Component = () => {
   const { projectId } = useParams<{ projectId: string }>();
-  const { setActiveProject } = useActiveProject();
+  const {
+    projects: accessibleProjects,
+    activeProjectId,
+    setActiveProject,
+    isLoading: workspaceProjectsLoading,
+  } = useActiveProject();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [projectColor, setProjectColor] = useState('#2864d7');
-  const [projectIcon, setProjectIcon] = useState('folder');
+  const [projectTrigram, setProjectTrigram] = useState('');
+  const [defaultValidatorUserId, setDefaultValidatorUserId] = useState<string | null>(null);
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
   const [usage, setUsage] = useState<'common' | 'project-specific'>('common');
   const [memberUserId, setMemberUserId] = useState('');
   const [memberRole, setMemberRole] = useState<'viewer' | 'modeler' | 'admin'>('viewer');
   const [error, setError] = useState<string | null>(null);
+  const [explorerCollapsed, setExplorerCollapsed] = useState(false);
+  const [explorerWidth, setExplorerWidth] = useState(() => {
+    const saved = Number(window.localStorage.getItem('bpmn-viewer-explorer-width'));
+    return Number.isFinite(saved) && saved >= 180 && saved <= 480 ? saved : 248;
+  });
+  const resizeCleanupRef = useRef<(() => void) | null>(null);
   const [activeProjectTab, setActiveProjectTab] = useState(() => {
     const tab = searchParams.get('tab');
     if (tab === 'raci') return 2;
     if (tab === 'processes') return 1;
+    if (tab === 'validation') return 3;
     return 0;
   });
 
-  const projectsQuery = useQuery<Project[]>(
-    projectsKey,
-    () => apiClient.get('/projects'),
-    { enabled: !projectId },
-  );
   const workspaceQuery = useQuery<WorkspaceSummary>(
     ['my-workspace'],
     () => apiClient.get('/projects/me/workspace'),
     { enabled: true },
-  );
-  const workspaceProjects = useMemo(
-    () => new Map((workspaceQuery.data?.projects ?? []).map((item) => [item.id, item])),
-    [workspaceQuery.data],
   );
   const projectQuery = useQuery<Project>(
     projectKey(projectId ?? ''),
@@ -126,7 +138,8 @@ export const Component = () => {
   useEffect(() => {
     if (!projectQuery.data) return;
     setProjectColor(projectQuery.data.color || '#2864d7');
-    setProjectIcon(projectQuery.data.icon || 'folder');
+    setProjectTrigram(projectQuery.data.trigram ?? '');
+    setDefaultValidatorUserId(projectQuery.data.defaultValidatorUserId ?? null);
   }, [projectQuery.data]);
   const projectMembership = workspaceQuery.data?.projects.find(item => item.id === projectId);
   const canManageProjectIdentity = projectMembership?.role === 'admin';
@@ -151,13 +164,33 @@ export const Component = () => {
   const updateProjectIdentity = useMutation(
     () => {
       if (!projectId) throw new Error('Aucun projet sélectionné.');
-      return apiClient.put(`/projects/${projectId}`, { color: projectColor, icon: projectIcon });
+      return apiClient.put(`/projects/${projectId}`, {
+        color: projectColor,
+        trigram: projectTrigram.trim() || null,
+      });
     },
     {
       onSuccess: async () => {
         setError(null);
         await queryClient.invalidateQueries(projectKey(projectId ?? ''));
         await queryClient.invalidateQueries(projectsKey);
+        await queryClient.invalidateQueries(['my-workspace']);
+      },
+      onError: (mutationError: Error) => setError(mutationError.message),
+    },
+  );
+
+  const updateDefaultValidator = useMutation(
+    () => {
+      if (!projectId) throw new Error('Aucun projet sélectionné.');
+      return apiClient.put(`/projects/${projectId}`, {
+        defaultValidatorUserId: defaultValidatorUserId || null,
+      });
+    },
+    {
+      onSuccess: async () => {
+        setError(null);
+        await queryClient.invalidateQueries(projectKey(projectId ?? ''));
         await queryClient.invalidateQueries(['my-workspace']);
       },
       onError: (mutationError: Error) => setError(mutationError.message),
@@ -172,6 +205,7 @@ export const Component = () => {
         setDescription('');
         setError(null);
         await queryClient.invalidateQueries(projectsKey);
+        await queryClient.invalidateQueries(['my-workspace']);
         navigate(`/projects/${project.id}`);
       },
       onError: (mutationError: Error) => setError(mutationError.message),
@@ -276,78 +310,217 @@ export const Component = () => {
     };
   }, [linkedProcessesQuery.data]);
 
+  useEffect(() => {
+    window.localStorage.setItem('bpmn-viewer-explorer-width', String(explorerWidth));
+  }, [explorerWidth]);
+
+  useEffect(() => () => resizeCleanupRef.current?.(), []);
+
+  const startExplorerResize = (event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    resizeCleanupRef.current?.();
+    const startX = event.clientX;
+    const startWidth = explorerWidth;
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      setExplorerWidth(Math.min(480, Math.max(180, startWidth + moveEvent.clientX - startX)));
+    };
+    const cleanup = () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', cleanup);
+      resizeCleanupRef.current = null;
+    };
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', cleanup);
+    resizeCleanupRef.current = cleanup;
+  };
+
+  const uniqueWorkspaceProcesses = useMemo(() => {
+    const byId = new Map<string, { resourceId: string; name: string }>();
+    accessibleProjects.forEach(project => project.processes.forEach(process => {
+      if (!byId.has(process.resourceId)) {
+        byId.set(process.resourceId, { resourceId: process.resourceId, name: process.name });
+      }
+    }));
+    return Array.from(byId.values());
+  }, [accessibleProjects]);
+
+  const workspaceContentQueries = useQueries(
+    projectId ? [] : uniqueWorkspaceProcesses.map(process => contentsQuery(process.resourceId)),
+  );
+  const workspaceStats = useMemo(() => {
+    const published = new Set<string>();
+    const recentlyChanged = new Set<string>();
+    const recentCutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    uniqueWorkspaceProcesses.forEach((process, index) => {
+      const contents = (workspaceContentQueries[index]?.data as Content[] | undefined) ?? [];
+      if (contents.some(content => content.status === ContentStatusEnum.Published)) {
+        published.add(process.resourceId);
+      }
+      if (contents.some(content => {
+        const timestamp = new Date(content.updatedAt ?? content.createdAt).getTime();
+        return Number.isFinite(timestamp) && timestamp >= recentCutoff;
+      })) {
+        recentlyChanged.add(process.resourceId);
+      }
+    });
+    return {
+      projects: accessibleProjects.length,
+      processes: uniqueWorkspaceProcesses.length,
+      published: published.size,
+      recentlyChanged: recentlyChanged.size,
+      contentLoading: workspaceContentQueries.some(query => query.isLoading),
+    };
+  }, [accessibleProjects, uniqueWorkspaceProcesses, workspaceContentQueries]);
+
   if (!projectId) {
     return (
       <WorkspacePageLayout>
-        <Stack spacing={2}>
-          <Typography level="h2">Projets</Typography>
-          <Button variant="outlined" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/organization/users')}>Administration de l’organisation →</Button>
-          <Typography level="body-md">
-            Retrouvez vos projets, votre rôle et les processus associés au même endroit. L’administration globale de l’organisation reste distincte et réservée aux comptes autorisés.
-          </Typography>
-          {error && <Alert color="danger">{error}</Alert>}
-          <Card variant="outlined">
-            <Typography level="title-lg">Créer un projet</Typography>
-            <Stack spacing={1.5}>
-              <FormControl required>
-                <FormLabel>Nom du projet</FormLabel>
-                <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Ex. Refonte RH" />
-              </FormControl>
-              <FormControl>
-                <FormLabel>Description</FormLabel>
-                <Input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Objectif et périmètre" />
-              </FormControl>
-              <Box>
-                <Button loading={createProject.isLoading} disabled={!name.trim()} onClick={() => createProject.mutate()}>
-                  Créer le projet
-                </Button>
-              </Box>
-            </Stack>
-          </Card>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
-            <Typography level="title-lg">Vos projets</Typography>
-            {workspaceQuery.data && <Chip variant="soft">{workspaceQuery.data.projects.length} projet(s) accessible(s)</Chip>}
-          </Stack>
-          {projectsQuery.isLoading && <Typography>Chargement des projets…</Typography>}
-          {workspaceQuery.isError && <Alert color="warning">Les informations de rôle et de processus ne sont pas disponibles pour le moment. La liste des projets reste consultable.</Alert>}
-          {projectsQuery.isError && <Alert color="danger">Impossible de charger les projets.</Alert>}
-          {!projectsQuery.isLoading && (projectsQuery.data?.length ?? 0) === 0 && (
-            <Typography level="body-sm">Aucun projet pour le moment.</Typography>
+        <Header
+          title="Tous les projets"
+          description="Vos espaces de travail et les processus auxquels vous avez accès."
+          breadcrumbs={[{ id: 'home', label: 'Tous les projets', to: '/projects' }]}
+        />
+        <Box
+          className="processViewerLayout processViewerWorkspace"
+          style={{ "--explorer-width": `${explorerWidth}px` } as React.CSSProperties}
+          sx={{ height: 'calc(100vh - 176px)', minHeight: 460 }}
+        >
+          <ViewerExplorerPanel
+            variant="projects-overview"
+            selectedId="projects"
+            onNodeClick={() => undefined}
+            collapsed={explorerCollapsed}
+            onToggle={() => setExplorerCollapsed(value => !value)}
+            projects={accessibleProjects}
+            activeProjectId={activeProjectId}
+            onProjectSelect={selectedProjectId => {
+              setActiveProject(selectedProjectId);
+              navigate('/root');
+            }}
+          />
+          {!explorerCollapsed && (
+            <Box
+              className="processViewerResizeHandle"
+              role="separator"
+              aria-label="Redimensionner le panneau des projets"
+              title="Glisser pour régler la largeur de l’explorateur"
+              onMouseDown={startExplorerResize}
+            />
           )}
-          <Stack spacing={1}>
-            {(projectsQuery.data ?? []).map((project) => {
-              const membership = workspaceProjects.get(project.id);
-              const processCount = membership?.processes.length;
-              return (
-                <Card key={project.id} variant="outlined" sx={{ gap: 1.25 }}>
-                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}>
-                    <Box sx={{ minWidth: 0, flex: 1 }}>
-                      <Typography level="title-md">{project.name}</Typography>
-                      {project.description && <Typography level="body-sm">{project.description}</Typography>}
-                    </Box>
-                    <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
-                      {membership && <Chip size="sm" variant="soft" color={projectRoleColors[membership.role]}>{projectRoleLabels[membership.role]}</Chip>}
-                      {processCount !== undefined && <Chip size="sm" variant="outlined">{processCount} processus</Chip>}
-                    </Stack>
-                  </Stack>
-                  {membership && membership.processes.length > 0 && (
-                    <Typography level="body-sm" sx={{ color: 'text.secondary' }}>
-                      {membership.processes.slice(0, 3).map((process) => process.name).join(' · ')}
-                      {membership.processes.length > 3 ? ` · +${membership.processes.length - 3} autre(s)` : ''}
-                    </Typography>
-                  )}
-                  <Box>
-                    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                    <Button variant="soft" onClick={() => { setActiveProject(project.id); navigate("/root"); }}>Ouvrir le projet</Button>
-                    <Button variant="outlined" color="neutral" onClick={() => navigate(`/projects/${project.id}`)}>Administration</Button>
-                  </Stack>
-                  </Box>
+          <Sheet
+            className="processViewerDiagram processViewerInfo projectsOverviewPanel"
+            variant="outlined"
+            sx={{
+              p: 2,
+              gap: 2,
+              overflow: 'auto',
+              alignItems: 'stretch',
+              flex: '1 1 0',
+              minWidth: 0,
+              minHeight: 0,
+              borderRadius: 0,
+            }}
+          >
+            <Stack spacing={2}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', xl: 'repeat(4, minmax(0, 1fr))' }, gap: 1.25 }}>
+                <Card variant="outlined" sx={{ gap: 0.5 }}>
+                  <Typography level="body-sm" color="neutral">Projets accessibles</Typography>
+                  <Typography level="h2">{workspaceStats.projects}</Typography>
                 </Card>
-              );
-            })}
-          </Stack>
-          <Button variant="plain" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/root')}>Retour au référentiel BPMN</Button>
-        </Stack>
+                <Card variant="outlined" sx={{ gap: 0.5 }}>
+                  <Typography level="body-sm" color="neutral">Processus distincts</Typography>
+                  <Typography level="h2">{workspaceStats.processes}</Typography>
+                </Card>
+                <Card variant="outlined" sx={{ gap: 0.5 }}>
+                  <Typography level="body-sm" color="neutral">Processus publiés</Typography>
+                  <Typography level="h2">{workspaceStats.contentLoading ? '…' : workspaceStats.published}</Typography>
+                </Card>
+                <Card variant="outlined" sx={{ gap: 0.5 }}>
+                  <Typography level="body-sm" color="neutral">Modifiés sur 30 jours</Typography>
+                  <Typography level="h2">{workspaceStats.contentLoading ? '…' : workspaceStats.recentlyChanged}</Typography>
+                </Card>
+              </Box>
+
+              {error && <Alert color="danger">{error}</Alert>}
+              {workspaceProjectsLoading && <Typography level="body-sm" color="neutral">Chargement de vos projets…</Typography>}
+              {workspaceQuery.isError && (
+                <Alert color="warning">
+                  Impossible de charger la liste des projets accessibles. Réessayez dans quelques instants.
+                </Alert>
+              )}
+
+              <Card variant="outlined" sx={{ gap: 1.25 }}>
+                <Typography level="title-lg">Créer un projet</Typography>
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems={{ md: 'flex-end' }}>
+                  <FormControl required sx={{ flex: 1 }}>
+                    <FormLabel>Nom du projet</FormLabel>
+                    <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Ex. Refonte RH" />
+                  </FormControl>
+                  <FormControl sx={{ flex: 1 }}>
+                    <FormLabel>Description</FormLabel>
+                    <Input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Objectif et périmètre" />
+                  </FormControl>
+                  <Button loading={createProject.isLoading} disabled={!name.trim()} onClick={() => createProject.mutate()}>
+                    Créer le projet
+                  </Button>
+                </Stack>
+              </Card>
+
+              <Stack spacing={1.25}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between">
+                  <Typography level="title-lg">Vos projets</Typography>
+                  <Chip variant="soft">{accessibleProjects.length} projet(s)</Chip>
+                </Stack>
+                {accessibleProjects.length === 0 && !workspaceProjectsLoading && (
+                  <Card variant="outlined">
+                    <Typography level="body-sm" color="neutral">Aucun projet ne vous est actuellement associé.</Typography>
+                  </Card>
+                )}
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, minmax(0, 1fr))' }, gap: 1.25 }}>
+                  {accessibleProjects.map(project => (
+                    <Card key={project.id} variant="outlined" sx={{ gap: 1.25 }}>
+                      <Stack direction="row" spacing={1} alignItems="flex-start">
+                        <Box
+                          component="span"
+                          title={project.name}
+                          sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 42, height: 30, px: 0.75, borderRadius: '7px', bgcolor: project.color || '#2864d7', color: '#fff', fontSize: 11, fontWeight: 800, letterSpacing: '0.04em', flexShrink: 0 }}
+                        >
+                          {getProjectTrigram(project.name, project.trigram)}
+                        </Box>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography level="title-md">{project.name}</Typography>
+                          {project.description && (
+                            <Typography level="body-sm" color="neutral">{project.description}</Typography>
+                          )}
+                        </Box>
+                        <Chip size="sm" variant="soft" color={projectRoleColors[project.role]}>
+                          {projectRoleLabels[project.role]}
+                        </Chip>
+                      </Stack>
+                      <Chip size="sm" variant="outlined" sx={{ alignSelf: 'flex-start' }}>
+                        {project.processes.length} processus associés
+                      </Chip>
+                      {project.processes.length > 0 && (
+                        <Typography level="body-sm" color="neutral">
+                          {project.processes.slice(0, 3).map(process => process.name).join(' · ')}
+                          {project.processes.length > 3 ? ` · +${project.processes.length - 3} autre(s)` : ''}
+                        </Typography>
+                      )}
+                      <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                        <Button variant="soft" onClick={() => { setActiveProject(project.id); navigate('/root'); }}>
+                          Ouvrir le projet
+                        </Button>
+                        <Button variant="outlined" color="neutral" onClick={() => navigate(`/projects/${project.id}`)}>
+                          Administration
+                        </Button>
+                      </Stack>
+                    </Card>
+                  ))}
+                </Box>
+              </Stack>
+            </Stack>
+          </Sheet>
+        </Box>
       </WorkspacePageLayout>
     );
   }
@@ -355,19 +528,39 @@ export const Component = () => {
   const project = projectQuery.data;
   return (
     <WorkspacePageLayout>
-      <Stack spacing={2}>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} useFlexGap flexWrap="wrap" sx={{ alignItems: { sm: 'center' } }}>
-          <Button variant="plain" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/projects')}>← Tous les projets</Button>
-          {projectId && <Button variant="soft" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate(`/projects/${projectId}/viewer`)}>Ouvrir l’accueil dans le viewer</Button>}
-          {projectId && <Button variant="solid" sx={{ alignSelf: 'flex-start' }} onClick={() => { setActiveProject(projectId); navigate('/root'); }}>Ouvrir le référentiel de ce projet</Button>}
-        </Stack>
-        <Button variant="outlined" color="neutral" sx={{ alignSelf: 'flex-start' }} onClick={() => navigate('/organization/projects')}>Administration de l’organisation →</Button>
+      <Header
+        isLoading={projectQuery.isLoading}
+        title={project?.name ?? 'Administration du projet'}
+        description={project?.description ?? 'Paramètres et processus associés à ce projet.'}
+        breadcrumbs={[
+          { id: 'home', label: 'Tous les projets', to: '/projects' },
+          ...(project ? [{ id: 'project', label: project.name, to: `/projects/${projectId}` }] : []),
+        ]}
+        actions={(
+          <Button variant="outlined" color="neutral" onClick={() => {
+            if (projectId) setActiveProject(projectId);
+            navigate('/root');
+          }}>
+            Référentiel
+          </Button>
+        )}
+      />
+      <Stack
+        spacing={2}
+        sx={{
+          boxSizing: 'border-box',
+          minWidth: 0,
+          p: 2,
+          border: '1px solid',
+          borderColor: 'neutral.outlinedBorder',
+          bgcolor: 'background.surface',
+          borderRadius: 0,
+        }}
+      >
         {projectQuery.isLoading && <Typography>Chargement du projet…</Typography>}
         {projectQuery.isError && <Alert color="danger">Impossible de charger ce projet.</Alert>}
         {project && (
           <>
-            <Typography level="h2">{project.name}</Typography>
-            {project.description && <Typography level="body-md">{project.description}</Typography>}
             {canManageProjectIdentity && (
               <Card variant="outlined" sx={{ gap: 1.25 }}>
                 <Typography level="title-lg">Identité visuelle du projet</Typography>
@@ -376,18 +569,26 @@ export const Component = () => {
                     <Typography level="body-sm">Couleur du projet</Typography>
                     <Input type="color" value={projectColor} onChange={event => setProjectColor(event.target.value)} aria-label="Couleur du projet" />
                   </Stack>
-                  <Stack spacing={0.5} sx={{ minWidth: 220 }}>
-                    <Typography level="body-sm">Pictogramme</Typography>
-                    <Select value={projectIcon} onChange={(_event, value) => value && setProjectIcon(value)} aria-label="Pictogramme du projet">
-                      <Option value="folder">📁 Dossier</Option>
-                      <Option value="briefcase">💼 Mallette</Option>
-                      <Option value="building">🏢 Bâtiment</Option>
-                      <Option value="workflow">🔀 Flux</Option>
-                      <Option value="users">👥 Équipe</Option>
-                      <Option value="chart">📊 Indicateurs</Option>
-                    </Select>
+                  <Stack spacing={0.5} sx={{ minWidth: 140 }}>
+                    <Typography level="body-sm">Trigramme du projet</Typography>
+                    <Input
+                      value={projectTrigram}
+                      onChange={event => setProjectTrigram(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3))}
+                      placeholder="Ex. RHX"
+                      aria-label="Trigramme du projet"
+                    />
+                    <Typography level="body-xs" color="neutral">3 caractères alphanumériques ; vide = génération automatique.</Typography>
                   </Stack>
-                  <Button loading={updateProjectIdentity.isLoading} disabled={updateProjectIdentity.isLoading} onClick={() => updateProjectIdentity.mutate()}>
+                  <Stack spacing={0.5} sx={{ minWidth: 180 }}>
+                    <Typography level="body-sm">Aperçu du badge</Typography>
+                    <Box
+                      component="span"
+                      sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 48, height: 34, px: 1, borderRadius: '7px', bgcolor: projectColor, color: '#fff', fontSize: 12, fontWeight: 800, letterSpacing: '0.04em' }}
+                    >
+                      {getProjectTrigram(project.name, projectTrigram)}
+                    </Box>
+                  </Stack>
+                  <Button loading={updateProjectIdentity.isLoading} disabled={updateProjectIdentity.isLoading || (projectTrigram.length > 0 && projectTrigram.length !== 3)} onClick={() => updateProjectIdentity.mutate()}>
                     Enregistrer l’identité visuelle
                   </Button>
                 </Stack>
@@ -410,7 +611,7 @@ export const Component = () => {
             color="neutral"
             sx={{
               display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' },
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(4, minmax(0, 1fr))' },
               gap: 0.5,
               p: 0.5,
               borderRadius: 'md',
@@ -420,6 +621,7 @@ export const Component = () => {
             <Tab value={0}>Membres et rôles du projet</Tab>
             <Tab value={1}>Processus du projet</Tab>
             <Tab value={2}>Gestion du RACI du projet</Tab>
+            <Tab value={3}>Validation</Tab>
           </TabList>
           <TabPanel value={0} sx={{ px: 0, py: 2 }}>
           <Card variant="outlined">
@@ -568,6 +770,38 @@ export const Component = () => {
               projectId={projectId}
               onActivityClick={(targetResourceId, elementId) => navigate(`/${targetResourceId}?elementId=${encodeURIComponent(elementId)}`)}
             />
+          </Card>
+          </TabPanel>
+          <TabPanel value={3} sx={{ px: 0, py: 2 }}>
+          <Card variant="outlined" sx={{ gap: 1.25 }}>
+            <Typography level="title-lg">Validation des processus</Typography>
+            <Typography level="body-sm" color="neutral">
+              Le validateur par défaut est utilisé lorsque le processus ne désigne pas son propre pilote ou validateur. Le pilote indiqué dans le processus reste prioritaire.
+            </Typography>
+            {membersQuery.isLoading && <Typography level="body-sm" color="neutral">Chargement des membres du projet…</Typography>}
+            {membersQuery.isError && <Alert color="danger">Impossible de charger les membres du projet : sélection du validateur indisponible.</Alert>}
+            <FormControl>
+              <FormLabel>Validateur par défaut du projet</FormLabel>
+              <Select
+                value={defaultValidatorUserId ?? ''}
+                onChange={(_event, value) => setDefaultValidatorUserId(value || null)}
+                placeholder="Choisir un membre du projet"
+              >
+                <Option value="">Aucun validateur par défaut</Option>
+                {(membersQuery.data ?? []).map(member => (
+                  <Option key={member.userId} value={member.userId}>{member.userId}</Option>
+                ))}
+              </Select>
+            </FormControl>
+            <Box>
+              <Button
+                loading={updateDefaultValidator.isLoading}
+                disabled={updateDefaultValidator.isLoading || membersQuery.isLoading}
+                onClick={() => updateDefaultValidator.mutate()}
+              >
+                Enregistrer le validateur
+              </Button>
+            </Box>
           </Card>
           </TabPanel>
         </Tabs>

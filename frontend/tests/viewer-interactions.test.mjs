@@ -28,6 +28,8 @@ test('element selection toggles immediately on every click while double-click na
   assert.ok(hook.includes("if (selectedIdRef.current === element.id)"));
   assert.ok(hook.includes("onElementSelectRef.current?.('')"));
   assert.ok(hook.includes("onElementSelectRef.current?.(element.id)"));
+  assert.match(hook, /if \(!isSelectableElement\) return;[\s\S]*?event\?\.stopPropagation\?\.\(\);[\s\S]*?if \(selectedIdRef\.current === element\.id\)/);
+  assert.ok(hook.includes('lower-priority default click selector'));
   assert.ok(hook.includes('Every click toggles the same element immediately'));
   assert.doesNotMatch(hook, /pendingSelectionTimer|lastClickAt|cancelPendingSelection/);
   assert.ok(hook.includes("eventBus.off('element.click', onElementClick)"));
@@ -40,7 +42,7 @@ test('viewer selection recognizes collapsed SubProcesses through their BPMN busi
   assert.match(hook, /const elementType = element\.businessObject\?\.\$type \?\? element\.type/);
   assert.match(hook, /eventBus\.on\('element\.click', 1500, onElementClick\)/);
   assert.match(hook, /elementType\.startsWith\('bpmn:'\)/);
-  assert.match(hook, /!element\.labelTarget/);
+  assert.match(hook, /const element = clickedElement\?\.labelTarget \?\? clickedElement/);
   assert.match(hook, /!Array\.isArray\(element\.waypoints\)/);
   assert.match(hook, /onElementSelectRef\.current\?\.\(element\.id\)/);
 });
@@ -61,6 +63,59 @@ test('selection marker is removed before the next selection is applied', async (
   assert.match(hook, /useEffect\(\(\) => \{\s*applySelectionRef\.current\(\);\s*\}, \[selectedElementId\]\)/);
 });
 
+test('Viewer opens at 1:1 with the BPMN upper-left corner aligned to the viewport', async () => {
+  const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+  const component = await read('src/Components/BusinessComponents/ProcessViewer/ProcessViewer.tsx');
+
+  assert.ok(hook.includes('bpmn-tool:viewer-viewport:v3:'));
+  const actualSize = hook.match(/const showDiagramAtActualSize = \(\): boolean => \{([\s\S]*?)\n  \};/)?.[1] ?? '';
+  assert.ok(actualSize.includes('canvas.zoom(1)'), '1:1 reset uses the native bpmn-js zoom');
+  assert.ok(actualSize.includes("viewer.get('elementRegistry')"), 'diagram bounds come from the element registry');
+  assert.ok(actualSize.includes('canvas.getAbsoluteBBox(element)'), 'bounds include absolute BPMN element geometry');
+  assert.ok(actualSize.includes('const minX = Math.min'));
+  assert.ok(actualSize.includes('const minY = Math.min'));
+  assert.ok(actualSize.includes('x: minX - 24'));
+  assert.ok(actualSize.includes('y: minY - 24'));
+  assert.ok(actualSize.includes('width: actualSizeViewport.width'));
+  assert.ok(actualSize.includes('height: actualSizeViewport.height'));
+  assert.doesNotMatch(actualSize, /canvas\.resized/);
+  assert.doesNotMatch(hook, /canvas\.scroll\(\{/);
+  assert.match(hook, /initialViewportAppliedRef\.current = restoredViewport \|\| showDiagramAtActualSize\(\);[\s\S]*?applySelectionRef\.current\(\);/);
+  assert.match(hook, /new ResizeObserver\([\s\S]*?initialViewportAppliedRef\.current = showDiagramAtActualSizeRef\.current\(\)/);
+  assert.match(hook, /const resetZoom = \(\) => \{[\s\S]*?showDiagramAtActualSizeRef\.current\(\)/);
+  assert.match(hook, /const fitDiagram = \(\) => \{[\s\S]*?fitModeRef\.current = true;[\s\S]*?canvas\.zoom\('fit-viewport'\)/);
+  assert.match(hook, /const resizeDiagram = \(\) => \{[\s\S]*?if \(fitModeRef\.current\) \{[\s\S]*?canvas\.zoom\('fit-viewport'\)/);
+  assert.match(hook, /canvas\.viewbox\(viewbox\)/);
+  assert.match(hook, /canvas\.viewbox\.changed/);
+  assert.match(component, /onClick=\{fitDiagram\}/);
+  assert.match(component, /aria-label="Ajuster à la fenêtre"/);
+});
+
+test('Viewer retries its initial BPMN viewport when a hidden tab becomes visible', async () => {
+  const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+
+  assert.match(hook, /initialViewportAppliedRef = useRef\(false\)/);
+  assert.match(hook, /new ResizeObserver\(entries =>/);
+  assert.match(hook, /entry\.contentRect\.width <= 0 \|\| entry\.contentRect\.height <= 0/);
+  assert.match(hook, /observer\.observe\(host\)/);
+  assert.match(hook, /observer\.disconnect\(\)/);
+  assert.match(hook, /initialViewportAppliedRef\.current = false/);
+});
+
+test('Viewer previews nested SubProcess elements on hover and removes the preview on pointer exit', async () => {
+  const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+  const css = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
+
+  assert.match(hook, /eventBus\.on\('element\.hover', onElementHover\)/);
+  assert.match(hook, /eventBus\.on\('element\.out', onElementOut\)/);
+  assert.match(hook, /element\.businessObject\?\.flowElements/);
+  assert.match(hook, /overlays\.add\(element, 'subprocess-preview'/);
+  assert.match(hook, /eventBus\.off\('element\.hover', onElementHover\)/);
+  assert.match(hook, /eventBus\.off\('element\.out', onElementOut\)/);
+  assert.match(css, /\.bpmn-subprocess-preview\s*\{/);
+  assert.match(css, /\.bpmn-subprocess-preview__list\s*\{/);
+});
+
 test('viewer delegates called-process navigation to the shared hook', async () => {
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
 
@@ -73,6 +128,7 @@ test('detail panel starts collapsed and follows the selected BPMN element', asyn
 
   assert.match(details, /const \[taskPanelCollapsed, setTaskPanelCollapsed\] = useState\(true\)/);
   assert.match(details, /setTaskPanelCollapsed\(!selectedElementId\)/);
+  assert.match(details, /second click on the same BPMN element/);
   assert.match(details, /externalUrl:\s*Array\.from\(element\.attributes\)[\s\S]*?attribute\.localName === 'link'/);
 });
 
@@ -102,6 +158,8 @@ test('linked Call Activity opens its target only on double-click and handles mis
   assert.ok(navigation.includes('const query = explorerQuery()'));
   assert.ok(navigation.includes('queryClient.fetchQuery(\n            query.queryKey,\n            query.queryFn,\n            { staleTime: 30_000 },\n          )'));
   assert.ok(navigation.includes('explorer.links.map(link => [link.resourceId, link])'));
+  assert.match(navigation, /apiClient\.get\('\/projects\/me\/workspace'\)/);
+  assert.match(navigation, /resourcesById\.set\(process\.resourceId/);
   assert.ok(navigation.includes('processIds: linksByResourceId.get(resource.id)?.processIds ?? []'));
   assert.ok(!navigation.includes('getXmlContentQuery'));
   assert.ok(!navigation.includes('contentsQuery'));
@@ -236,23 +294,26 @@ test('explorer search chevrons collapse and reopen branches using the visible ex
   assert.ok(tree.includes('setSearchCollapsedNodes([])'));
 });
 
-test('global BPMN search excludes connecting arrows and their documentation', async () => {
+test('unified BPMN search excludes connecting arrows and their documentation', async () => {
+  const backend = await read('../backend/src/modules/SearchContext/unified-search.service.ts');
   const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
 
-  assert.match(navigation, /const BPMN_CONNECTION_TYPES = new Set/);
-  assert.match(navigation, /BPMN_CONNECTION_TYPES\.has\(element\.localName\.toLocaleLowerCase\('fr'\)\)/);
-  assert.match(navigation, /BPMN_CONNECTION_TYPES\.has\(bpmnOwner\.localName\.toLocaleLowerCase\('fr'\)\)/);
+  assert.match(navigation, /unifiedSearchQuery/);
+  assert.match(backend, /const BPMN_CONNECTION_TYPES = new Set/);
+  assert.match(backend, /if \(BPMN_CONNECTION_TYPES\.has\(key\)\) return/);
 });
 
-test('quick search removes the IA Comm option and excludes technical BPMN identifiers', async () => {
+test('quick search delegates to the unified service and does not search technical identifiers', async () => {
   const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+  const backend = await read('../backend/src/modules/SearchContext/unified-search.service.ts');
 
-  assert.doesNotMatch(navigation, /<Option value="iaComm">/);
-  assert.doesNotMatch(navigation, /'iaComm'/);
-  assert.match(navigation, /return id && \(matchesTerm\(name, term\) \|\|[\s\S]*?matchesTerm\(documentation, term\)/);
-  assert.doesNotMatch(navigation, /matchesTerm\(id, term\)/);
-  assert.doesNotMatch(navigation, /matchesTerm\(activity\.elementId, term\)/);
-  assert.match(navigation, /if \(scope === 'all'\) \{/);
+  assert.doesNotMatch(navigation, /iaComm/);
+  assert.match(navigation, /unifiedSearchQuery/);
+  assert.match(navigation, /types: typeByScope\[scope\]/);
+  assert.match(backend, /const searchableFields = \[/);
+  assert.match(backend, /\{ value: name, field: 'nome' \}/);
+  assert.match(backend, /\{ value: documentation, field: 'descrizione' \}/);
+  assert.doesNotMatch(backend, /\{ value: elementId, field:/);
 });
 
 test('shared result highlighting marks the matched word for approximate searches', async () => {
@@ -283,18 +344,16 @@ test('global and full search use the same shared result row component', async ()
   assert.ok(shared.includes('level="body-xs"'));
 });
 
-test('global annotation search labels text annotations as Description and carries the BPMN element ID', async () => {
+test('unified search returns text annotations with their owning BPMN element ID', async () => {
+  const backend = await read('../backend/src/modules/SearchContext/unified-search.service.ts');
+  const fullSearch = await read('src/Containers/SearchResults/SearchResults.container.tsx');
   const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
 
-  assert.match(navigation, /if \(\/annotation BPMN\|Description\/i\.test\(detail\)\)[\s\S]*?label: 'Description'/);
-  assert.match(navigation, /const isTextAnnotation = tag === 'textannotation'/);
-  assert.match(navigation, /let bpmnOwner: Element \| null = element/);
-  assert.match(navigation, /bpmnOwner\.namespaceURI !== BPMN_MODEL_NS/);
-  assert.match(navigation, /const elementId = bpmnOwner\?\.getAttribute\('id'\) \|\| undefined/);
-  assert.match(navigation, /const tag = element\.localName\.toLocaleLowerCase\('fr'\)/);
-  assert.match(navigation, /isTextAnnotation = tag === 'textannotation'/);
-  assert.match(navigation, /isTextAnnotation \|\| tag === 'documentation'/);
-  assert.match(navigation, /resourceId: process\.id,[\s\S]*?elementId,/);
+  assert.match(backend, /textAnnotation: 'Annotazione'/);
+  assert.match(backend, /const annotationText =\s*key === 'textAnnotation'/);
+  assert.match(backend, /\{ value: annotationText, field: 'testo annotazione' \}/);
+  assert.match(backend, /elementId,/);
+  assert.match(fullSearch, /'testo annotazione': 'Texte de l’annotation'/);
   assert.match(navigation, /if \(result\.elementId\) params\.set\('elementId', result\.elementId\)/);
 });
 
@@ -322,7 +381,7 @@ test('selection outline follows BPMN geometry and excludes separate labels', asy
 test('administrator explorer context menu restores folder and resource actions', async () => {
   const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
   assert.ok(tree.includes("const isAdmin = sessionRole === 'admin';"));
-  assert.ok(tree.includes('Créer un répertoire'));
+  assert.ok(tree.includes('Créer un sous-répertoire'));
   assert.ok(tree.includes('type=folder'));
   assert.ok(tree.includes('Créer un processus'));
   assert.ok(tree.includes('type=process'));
@@ -331,12 +390,17 @@ test('administrator explorer context menu restores folder and resource actions',
 });
 
 
-test('Viewer entry points share URL state for BPMN selection, content versions and RACI deep links', async () => {
+test('legacy content-viewer URLs redirect to the canonical process viewer', async () => {
+  const routes = await read('src/routes.tsx');
   const routeState = await read('src/shared/hooks/useViewerRouteState.ts');
   const selectionState = await read('src/shared/hooks/useViewerSelectionState.ts');
   const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
-  const legacyViewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.match(routes, /path: '\/:resourceId\/viewer\/:contentId'[\s\S]*?loader:/);
+  assert.ok(routes.includes("url.searchParams.set('contentId', params.contentId ?? '')"));
+  assert.ok(routes.includes('url.searchParams.toString()'), 'legacy deep-link query parameters are preserved');
+  assert.doesNotMatch(routes, /lazy: \(\) => import\('\.\/Containers\/ContentViewer'\)/);
 
   assert.ok(routeState.includes("searchParams.get('elementId')"));
   assert.ok(routeState.includes("searchParams.get('contentId')"));
@@ -346,15 +410,18 @@ test('Viewer entry points share URL state for BPMN selection, content versions a
   assert.ok(selectionState.includes('[resourceId, contentId, requestedElementId]'));
   assert.ok(layout.includes('useViewerRouteState()'));
   assert.ok(layout.includes('useViewerSelectionState('));
+  assert.ok(layout.includes('selectedContentId={requestedContentId}'));
   assert.ok(layout.includes('requestedRaciView={requestedRaciView}'));
-  assert.ok(legacyViewer.includes('useViewerRouteState()'));
-  assert.ok(legacyViewer.includes('useViewerSelectionState('));
   assert.doesNotMatch(layout, /useSearchParams|searchParams\.get\(/);
-  assert.doesNotMatch(legacyViewer, /useSearchParams|searchParams\.get\(/);
+  assert.match(details, /selectedContentId\?: string \| null/);
+  assert.match(details, /let viewerContent = publishedContent \?\? undefined;/);
+  assert.match(details, /if \(selectedContentId\) \{[\s\S]*?viewerContent = contents\.find\(content => content\.id === selectedContentId\)/);
+  assert.match(details, /else if \(!viewerContent && isProjectVariant\) \{[\s\S]*?viewerContent = draftContent/);
+  assert.match(details, /const isHistoricalView = Boolean\([\s\S]*?viewerContent\.id !== publishedContent\?\.id/);
+  assert.match(details, /const canEditDescription = !isHistoricalView/);
+  assert.match(details, /const canManageVersions = !isHistoricalView/);
   assert.match(details, /requestedRaciView\?: boolean/);
   assert.match(details, /if \(requestedRaciView\) setActiveViewerTab\(3\);[\s\S]*?\[requestedRaciView\]/);
-  assert.ok(details.includes('keep the'));
-  assert.ok(!details.includes('[resourceId, selectedContentId, requestedRaciView]'));
   assert.ok(details.includes('<Tab value={3}>RACI</Tab>'));
 });
 
@@ -376,8 +443,9 @@ test('Viewer creates a dedicated BpmnViewer without constructing a BpmnModeler',
 
 test('Viewer reuses one parsed BPMN document through a dedicated RACI analysis hook', async () => {
   const raci = await read('src/extensions/raci-viewer.ts');
-  const analysisHook = await read('src/Containers/ContentViewer/hooks/useViewerRaciAnalysis.ts');
-  const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+  const analysisHook = await read('src/shared/hooks/useViewerRaciAnalysis.ts');
+
+  const canonicalViewer = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
 
   assert.ok(raci.includes('export const deriveRaciMatrixFromDocument = (document: Document): RaciMatrix'));
   assert.ok(raci.includes('deriveRaciMatrixFromXml = (xmlContent: string): RaciMatrix =>'));
@@ -386,15 +454,16 @@ test('Viewer reuses one parsed BPMN document through a dedicated RACI analysis h
   assert.equal((analysisHook.match(/new DOMParser\(\)\.parseFromString\(xmlContent/g) ?? []).length, 1);
   assert.ok(analysisHook.includes('laneRoleByElement'));
   assert.ok(analysisHook.includes('laneIdByRole'));
-  assert.ok(viewer.includes('useViewerRaciAnalysis(xmlContent)'));
+  assert.ok(canonicalViewer.includes('useViewerRaciAnalysis(xmlContent)'));
 });
 
 test('Viewer delegates RACI issue analysis and filtering to a dedicated hook', async () => {
-  const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
-  const filters = await read('src/Containers/ContentViewer/hooks/useViewerRaciFilters.ts');
+  const canonicalViewer = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const filters = await read('src/shared/hooks/useViewerRaciFilters.ts');
 
-  assert.ok(viewer.includes('useViewerRaciFilters(raciMatrix'));
-  assert.ok(viewer.includes('filteredActivities'));
+
+  assert.ok(canonicalViewer.includes('useViewerRaciFilters('));
+  assert.ok(canonicalViewer.includes('filteredActivities'));
   assert.ok(filters.includes('analyzeRaciMatrix(raciMatrix)'));
   assert.ok(filters.includes('filters.issuesOnly') === false);
   assert.ok(filters.includes('actorFilter, codeFilter, issuesOnly'));
@@ -410,8 +479,9 @@ test('search rows show process context, percentage similarity and group BPMN nam
   assert.ok(shared.includes('{similarity} %'));
   assert.ok(quick.includes('processName={result.processName}'));
   assert.ok(quick.includes('similarity={result.similarity}'));
-  assert.ok(quick.includes('matchesTerm(documentation, term)'));
-  assert.ok(quick.includes('namedElements.includes(bpmnOwner)'));
+  assert.ok(quick.includes('unifiedSearchQuery'));
+  assert.ok(quick.includes('similarity: result.matchScore'));
+  assert.ok(backend.includes('extractBpmnSearchResults'));
   assert.ok(full.includes('processName={result.processName}'));
   assert.ok(full.includes('similarity={result.matchScore}'));
   assert.ok(backend.includes('getSearchSimilarity'));
@@ -445,6 +515,7 @@ test('explorer actions use an accessible three-dot menu and project roles', asyn
   assert.match(tree, /setContextMenu\(\{ nodeId, anchorEl: event\.currentTarget \}\)/);
   assert.match(tree, /projects\/me\/workspace/);
   assert.match(tree, /projectModelerResourceIds\.includes\(resourceId\)/);
+  assert.match(tree, /useEffect\(\(\) => \{ setContextMenu\(null\); \}, \[activeProjectId, selectedId\]\)/);
 });
 
 test('the right element-details panel and its resize handle exist only on the BPMN diagram tab', async () => {
@@ -458,11 +529,12 @@ test('the right element-details panel and its resize handle exist only on the BP
 });
 
 
-test('BPMN element selection opens and closes the right-hand element panel', async () => {
+test('BPMN element selection opens the right-hand panel and a second click closes it', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
 
   assert.match(details, /setTaskPanelCollapsed\(!selectedElementId\)/);
+  assert.match(details, /second click on the same BPMN element/);
   assert.ok(hook.includes("onElementSelectRef.current?.(element.id)"));
   assert.ok(hook.includes("onElementSelectRef.current?.('')"));
   assert.match(hook, /if \(selectedIdRef\.current === element\.id\) \{[\s\S]*?onElementSelectRef\.current\?\.\(''\)/);
@@ -481,4 +553,40 @@ test('BPMN viewer exposes native fullscreen controls and browser Escape exit', a
   assert.ok(viewer.includes('Afficher le BPMN en plein écran'));
   assert.ok(viewer.includes('Quitter le plein écran (Échap)'));
   assert.ok(css.includes('.process-viewer-shell:fullscreen'));
+});
+
+
+test('proposal review opens and edits only the exact submitted BPMN snapshot', async () => {
+  const queue = await read('src/Containers/MyProcessChangeProposals/MyProcessChangeProposals.container.tsx');
+  const modeler = await read('src/Containers/ContentModeler/ContentModeler.container.tsx');
+  const contentHook = await read('src/Containers/ContentModeler/hooks/useContentModeler.ts');
+  const backend = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/process-change-proposal.controller.ts');
+
+  assert.ok(queue.includes('proposal.submittedContentId'));
+  assert.ok(queue.includes('reviewRemarks=1'));
+  assert.ok(queue.includes('&contentId='));
+  assert.match(modeler, /const reviewRemarksMode = searchParams\.get\('reviewRemarks'\) === '1'/);
+  assert.match(modeler, /<ProposalRemarksPanel[\s\S]*?proposalId=\{proposalId\}[\s\S]*?canDecide=\{reviewRemarksMode\}/);
+
+  assert.match(contentHook, /getContentQuery\(resourceId, requestedContentId \?\? ''\)/);
+  assert.match(contentHook, /enabled: enabled && Boolean\(proposalId && requestedContentId\)/);
+  assert.match(contentHook, /if \(listedContent\) return listedContent;[\s\S]*?if \(proposalId\) return requestedContent/);
+  assert.match(contentHook, /getXmlContentQuery\(resourceId, selectedContent\?\.id as string\)/);
+  assert.match(contentHook, /proposalContentLookupFailed = Boolean\([\s\S]*?proposalId &&[\s\S]*?requestedContentId[\s\S]*?!selectedContent[\s\S]*?requestedContentIsError/);
+  assert.match(contentHook, /const editableContent = proposalId && selectedContent\?\.status === ContentStatusEnum\.Draft[\s\S]*?\? selectedContent[\s\S]*?: draftContent/);
+
+  assert.match(backend, /const submittedContent = await contents\.findOne\([\s\S]*?resourceId: proposal\.cloneResourceId,[\s\S]*?status: ContentStatusEnum\.Draft/);
+  assert.match(backend, /proposal\.submittedContentId = submittedContent\.id/);
+  assert.match(backend, /submittedContentId: submittedContent\.id/);
+});
+
+
+test('project variants show their project and switch context before opening', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const workspace = await read('src/shared/hooks/useActiveProject.ts');
+
+  assert.ok(details.includes('projectId: project.id, projectName: project.name'));
+  assert.ok(details.includes('setActiveProject(variant.projectId)'));
+  assert.ok(workspace.includes("refetchOnMount: 'always'"));
+  assert.ok(workspace.includes('refetchOnWindowFocus: true'));
 });

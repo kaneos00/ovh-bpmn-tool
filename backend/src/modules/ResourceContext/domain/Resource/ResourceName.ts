@@ -1,9 +1,16 @@
+import { z } from 'zod';
 import { Result, ok, fail } from '../../../../shared-kernel/utils/Result';
 import { validator } from '../../../../shared-kernel/validation/adapters/zod/zodValidation';
 
-import { defaultDisplayNameConstraint } from '../../../../shared-kernel/validation/adapters/zod/defaultConstraints';
-
-export const nameValidation = defaultDisplayNameConstraint.min(1).max(255);
+// Resource labels are user-facing text, not technical identifiers. Accept
+// Unicode letters (including accented and decomposed forms), numbers and
+// ordinary display punctuation while still rejecting control characters.
+export const nameValidation = z
+  .string()
+  .trim()
+  .min(1)
+  .max(255)
+  .regex(/^[\p{L}\p{M}\p{N} .,:%_*|+=\/&@$#<>’'()[\]{}!?;–—-]+$/u);
 
 export interface ResourceNameProps {
   value: string;

@@ -39,6 +39,26 @@ async function requireGlobalAdmin({ request }: { request: Request }) {
   }
 }
 
+
+const organizationSections = new Set(['overview', 'projects', 'processes', 'governance']);
+
+async function requireOrganizationSection(args: {
+  request: Request;
+  params: { section?: string };
+}) {
+  await requireGlobalAdmin(args);
+  if (!args.params.section || !organizationSections.has(args.params.section)) {
+    throw new Response('Page d’administration introuvable', { status: 404 });
+  }
+  return null;
+}
+
+async function redirectLegacyAccounts({ request }: { request: Request }) {
+  await requireGlobalAdmin({ request });
+  const url = new URL(request.url);
+  throw redirect(`/organization/users${url.search}`);
+}
+
 /**
  * V3 application routes: authenticated process workspace plus global-admin
  * organization administration. Account and project access operations reuse
@@ -59,13 +79,13 @@ export const routes = [
         lazy: () => import('./Containers/UserAccounts'),
       },
       {
+        // Legacy alias: the canonical user directory is /organization/users.
         path: '/organization/accounts',
-        loader: requireGlobalAdmin,
-        lazy: () => import('./Containers/UserAccounts'),
+        loader: redirectLegacyAccounts,
       },
       {
         path: '/organization/:section',
-        loader: requireGlobalAdmin,
+        loader: requireOrganizationSection,
         lazy: () => import('./Containers/OrganizationAdmin'),
       },
       {
@@ -87,6 +107,10 @@ export const routes = [
       {
         path: '/search',
         lazy: () => import('./Containers/SearchResults'),
+      },
+      {
+        path: '/mes-demandes',
+        lazy: () => import('./Containers/MyProcessChangeProposals/MyProcessChangeProposals.container'),
       },
       {
         path: '/:resourceId',
@@ -141,8 +165,22 @@ export const routes = [
         ],
       },
       {
+        // Compatibility URL only: historical content is now rendered by the
+        // canonical BpmnLayout / ProcessDetails viewer.
         path: '/:resourceId/viewer/:contentId',
-        lazy: () => import('./Containers/ContentViewer'),
+        loader: ({
+          params,
+          request,
+        }: {
+          params: { resourceId?: string; contentId?: string };
+          request: Request;
+        }) => {
+          const url = new URL(request.url);
+          // The path contentId is authoritative; preserve elementId, raci,
+          // and any other deep-link context in the query string.
+          url.searchParams.set('contentId', params.contentId ?? '');
+          return redirect(`/${params.resourceId}?${url.searchParams.toString()}`);
+        },
       },
     ],
   },

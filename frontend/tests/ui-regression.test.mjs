@@ -210,11 +210,12 @@ test('Start/End events and data references keep their semantic markers and style
 });
 
 
-test('detail panel starts collapsed, opens on element selection and exposes task/RACI/documentation in order', async () => {
+test('detail panel starts collapsed, opens on selection and closes when the selection is cleared', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
 
   assert.match(details, /useState\(true\);[\s\S]*?taskPanelCollapsed/);
   assert.match(details, /setTaskPanelCollapsed\(!selectedElementId\)/);
+  assert.match(details, /second click on the same BPMN element/);
   assert.match(details, /className="viewerPanelHeader processTaskPanelHeader"[\s\S]*?onClick=\{\(\) => setTaskPanelCollapsed\(value => !value\)\}/);
   assert.match(details, /aria-label=\{taskPanelCollapsed \? 'Développer le panneau de tâche' : 'Replier le panneau de tâche'\}/);
   const taskInfo = details.indexOf('1. Description de la tâche');
@@ -253,7 +254,7 @@ test('deployed frontend exposes a build identifier with a source-derived fallbac
 
 test('V3 viewer three-dot menu exposes role-appropriate resource management actions', async () => {
   const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
-  const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+  const routes = await read('src/routes.tsx');
   const menuStart = tree.indexOf('<Menu\n      open={Boolean(contextMenu)}');
   const menu = tree.slice(menuStart);
 
@@ -274,12 +275,12 @@ test('V3 viewer three-dot menu exposes role-appropriate resource management acti
   assert.ok(tree.includes('Partager'));
   assert.ok(tree.includes("const isAdmin = sessionRole === 'admin'"));
   assert.ok(tree.includes('navigate(`/${resourceId}/add?type=folder`)'));
-  assert.ok(tree.includes('Créer un répertoire'));
-  assert.ok(tree.includes('navigate(`/${resourceId}/add?type=process`)'));
+  assert.ok(tree.includes('Créer un sous-répertoire'));
+  assert.ok(tree.includes('navigate(`/root/add?type=process&projectId=${encodeURIComponent(activeProjectId)}`)'));
+  assert.ok(tree.includes('navigate(`/${resourceId}/add?type=process&projectId=${encodeURIComponent(activeProjectId!)}`)'));
   assert.ok(tree.includes('Créer un processus'));
   assert.ok(tree.includes('Supprimer'));
-  assert.ok(viewer.includes('KHI Flows'));
-  assert.ok(viewer.includes('Version de build'));
+  assert.doesNotMatch(routes, /lazy: \(\) => import\('\.\/Containers\/ContentViewer'\)/);
 });
 
 test('viewer gets a fresh BPMN instance for the selected published version', async () => {
@@ -290,7 +291,7 @@ test('viewer gets a fresh BPMN instance for the selected published version', asy
   assert.ok(details.includes('key={`${resourceId}:${viewerContent.id}`}'));
   assert.match(details, /key=\{\`\$\{resourceId\}:\$\{viewerContent\.id\}\`\}[\s\S]*?resourceId=\{resourceId\}[\s\S]*?contentId=\{viewerContent\.id\}/);
   assert.ok(details.includes('selectedContentId?: string | null'));
-  assert.ok(details.includes('content.id === selectedContentId && content.status !== ContentStatusEnum.Draft'));
+  assert.ok(details.includes('contents.find(content => content.id === selectedContentId)'), 'explicit content links include draft snapshots');
   assert.ok(details.includes('const isHistoricalView = Boolean('));
   assert.ok(details.includes('selectedContentId && (!viewerContent || viewerContent.id !== publishedContent?.id)'));
   assert.ok(details.includes('!isHistoricalView && (sessionRole === \'admin\' || sessionRole === \'modeler\')'));
@@ -346,7 +347,10 @@ test('V3 explorer exposes administrator management actions and their routes', as
   assert.ok(processActions.includes('Ouvrir le modeleur BPMN'));
   assert.ok(!processActions.includes('Comments'));
   assert.ok(!processActions.includes('Edit Business Process'));
-  assert.ok(folderActions.includes('=> null'));
+  assert.ok(folderActions.includes('Nouveau dossier'));
+  assert.ok(folderActions.includes('Nouveau processus'));
+  assert.ok(folderActions.includes('canCreateFolder &&'));
+  assert.ok(folderActions.includes('canCreateProcess && projectId'));
 });
 
 
@@ -357,7 +361,11 @@ test('selecting a folder renders its contents instead of an empty folder placeho
 
   assert.ok(layout.includes("import { FolderOverview } from './FolderOverview'"));
   assert.ok(layout.includes('<FolderOverview resource={resource} />'));
-  assert.ok(folderOverview.includes('useQuery<Resource[]>(resourcesQuery())'));
+  assert.ok(folderOverview.includes('useQuery(resourcesQuery())'));
+  assert.ok(folderOverview.includes('resources.data ?? []'));
+  assert.ok(!folderOverview.includes('explorerQuery'));
+  assert.ok(folderOverview.includes('activeProject?.processes.forEach'));
+  assert.ok(folderOverview.includes('return Array.from(byId.values())'));
   assert.ok(folderOverview.includes(".filter(childResource => allowedIds.has(childResource.id) && (childResource.parentId ?? 'root') === resourceId)"));
   assert.ok(folderOverview.includes('navigate(`/${folder.id}`)'));
   assert.ok(folderOverview.includes('<ProjectProcessOverview'));
@@ -393,7 +401,8 @@ test('viewer keeps the explorer left of the tabs and the element sheet beside th
   assert.ok(processWorkspace > processTab && diagram > processWorkspace && taskPanel > diagram && workspaceClose > taskPanel && processTabClose > workspaceClose, 'the BPMN diagram and element sheet must be siblings inside the Vue du processus tab');
   assert.ok(details.slice(processTab, processTabClose).includes('className="processViewerResizeHandle"'), 'the element sheet resize handle must stay with the process workspace');
   assert.ok(details.includes('const [taskPanelCollapsed, setTaskPanelCollapsed] = useState(true)'), 'element sheet must start collapsed');
-  assert.ok(details.includes('setTaskPanelCollapsed(!selectedElementId)'), 'element sheet must open for a selected BPMN element and close when selection clears');
+  assert.ok(details.includes('setTaskPanelCollapsed(!selectedElementId)'), 'clearing the selection on a second click must close the element sheet');
+  assert.ok(details.includes('second click on the same BPMN element'), 'the panel behavior must preserve the previous second-click interaction');
   const styles = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.scss');
   const processWorkspaceStyles = styles.slice(styles.indexOf('.processViewerProcessWorkspace {'), styles.indexOf('.processViewerDiagram {'));
   const diagramStyles = styles.slice(styles.indexOf('.processViewerDiagram {'), styles.indexOf('.processViewerDiagramHeader {'));
@@ -453,7 +462,13 @@ test('modeler exposes undo/redo controls and guards unsaved navigation', async (
   assert.ok(hook.includes('savedStackIndexRef'));
   assert.ok(actionBar.includes('Annuler la dernière modification'));
   assert.ok(actionBar.includes('Rétablir la dernière modification'));
-  assert.ok(container.includes('useBlocker(({ nextLocation }) => isDirty && nextLocation.pathname === `/${resourceId}`)'));
+  assert.ok(container.includes('useBlocker(({ nextLocation }) =>'));
+  assert.ok(container.includes('nextLocation.pathname !== location.pathname'));
+  assert.ok(container.includes('!nextLocation.pathname.startsWith(`${location.pathname}/`)'));
+  assert.ok(container.includes('const location = useLocation()'));
+  assert.ok(container.includes('const returnToUrl = proposalId && (sourceResourceId || resource?.sourceResourceId)'));
+  assert.ok(actionBar.includes('to={returnToUrl ?? `/${resourceId}`}'));
+  assert.ok(container.includes("if (reviewRemarksMode || approvedProposalMode) homeSaveActionLabel = 'Enregistrer et quitter'"));
   assert.ok(container.includes('beforeunload'));
   assert.ok(container.includes('Continuer l’édition'));
   assert.ok(container.includes('Abandonner les modifications'));
@@ -462,7 +477,6 @@ test('modeler exposes undo/redo controls and guards unsaved navigation', async (
 });
 
 test('authorized modeler shortcut is beside the process link and RACI icon stays inline', async () => {
-  const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const hook = await read('src/Containers/ContentModeler/hooks/useContentModeler.ts');
 
@@ -476,9 +490,8 @@ test('authorized modeler shortcut is beside the process link and RACI icon stays
   assert.ok(versionList.includes("label: 'Ouvrir dans le modeleur'"));
   assert.ok(versionList.includes('<AccountTreeOutlined fontSize="small" />'));
   assert.ok(versionList.includes('contentId=${encodeURIComponent(content.id)}'));
-  assert.ok(!viewer.includes('Ouvrir dans le modeleur'));
-  assert.ok(viewer.includes('flexDirection: \'row\''));
-  assert.ok(viewer.includes('<GroupsOutlined fontSize="small" />'));
+  assert.ok(details.includes('<Tab value={3}>RACI</Tab>'));
+  assert.ok(details.includes('useViewerRaciAnalysis(xmlContent)'));
   assert.ok(hook.includes("searchParams.get('contentId')"));
   assert.ok(hook.includes('contents?.find(content => content.id === requestedContentId)'));
 });
@@ -515,34 +528,35 @@ test('V3 central viewer exposes the data inventory and saves it through the exis
   assert.match(inventory, /Modalités de restriction/);
 });
 
-test('ContentViewer restores element selection and RACI panel from route query parameters', async () => {
-  const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+test('canonical process viewer restores element selection and RACI tab from route query parameters', async () => {
+  const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const routeState = await read('src/shared/hooks/useViewerRouteState.ts');
   const selectionState = await read('src/shared/hooks/useViewerSelectionState.ts');
 
-  assert.ok(viewer.includes('useViewerRouteState'));
   assert.ok(routeState.includes("searchParams.get('elementId')"));
   assert.ok(routeState.includes("searchParams.get('raci') === '1'"));
-  assert.ok(viewer.includes('useViewerSelectionState(resourceId, contentId, requestedElementId)'));
+  assert.ok(layout.includes('useViewerRouteState()'));
+  assert.ok(layout.includes('useViewerSelectionState('));
+  assert.ok(layout.includes('selectedElementId={selectedElementId}'));
+  assert.ok(layout.includes('requestedRaciView={requestedRaciView}'));
   assert.ok(selectionState.includes('setSelectedElementId(requestedElementId)'));
-  assert.ok(viewer.includes('setInfoTab(raciRequested ? 1 : 0)'));
-  assert.ok(viewer.includes('setInfoPanelOpen(raciRequested)'));
-  assert.match(viewer, /\[resourceId, contentId, raciRequested\]/);
+  assert.ok(details.includes('onElementSelect?.(activity.elementId)'));
+  assert.match(details, /if \(requestedRaciView\) setActiveViewerTab\(3\)/);
 });
 
 
-test('ContentViewer renders the URL-selected version rather than silently switching to latest published', async () => {
-  const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+test('legacy content-viewer URLs preserve the requested version in the canonical process viewer', async () => {
   const routes = await read('src/routes.tsx');
-  const contentHook = await read('src/Containers/ContentViewer/hooks/useContentViewer.ts');
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
 
-  assert.ok(viewer.includes('const { resourceId, contentId } = useContentViewer()'));
-  assert.ok(viewer.includes('getXmlContentQuery(resourceId, contentId)'));
-  assert.ok(viewer.includes('contentsQuery(resourceId)'));
-  assert.ok(viewer.includes('const lastPublishedContent = useMemo'));
-  assert.ok(routes.includes('/:resourceId/viewer/:contentId'));
-  assert.ok(contentHook.includes("const { resourceId, contentId } = useParams"));
-  assert.ok(!viewer.includes('getXmlContentQuery(resourceId, lastPublishedContent.id)'));
+  assert.match(routes, /path: '\/:resourceId\/viewer\/:contentId'[\s\S]*?loader:/);
+  assert.ok(routes.includes("url.searchParams.set('contentId', params.contentId ?? '')"));
+  assert.ok(routes.includes('url.searchParams.toString()'));
+  assert.match(details, /let viewerContent = publishedContent \?\? undefined;/);
+  assert.match(details, /if \(selectedContentId\) \{[\s\S]*?viewerContent = contents\.find\(content => content\.id === selectedContentId\)/);
+  assert.match(details, /selectedContentId && \(!viewerContent \|\| viewerContent\.id !== publishedContent\?\.id\)/);
+  assert.ok(!details.includes(') ?? publishedContent;'));
 });
 
 
@@ -557,26 +571,24 @@ test('ProcessDetails distinguishes an unavailable requested version from a proce
 test('ProcessDetails never falls back to latest published content for an explicit missing or historical contentId', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
 
-  assert.match(details, /const viewerContent = selectedContentId\s*\?\s*contents\.find\(/);
-  assert.match(details, /:\s*publishedContent;/);
-  assert.match(details, /selectedContentId && \(!viewerContent \|\| viewerContent\.id !== publishedContent\?\.id\)/);
-  assert.ok(!details.includes(') ?? publishedContent;'));
+  assert.match(details, /if \(selectedContentId\) \{[\s\S]*?viewerContent = contents\.find\(content => content\.id === selectedContentId\)/);
+  assert.match(details, /const isHistoricalView = Boolean\([\s\S]*?selectedContentId && \(!viewerContent \|\| viewerContent\.id !== publishedContent\?\.id\)/);
+  assert.match(details, /else if \(!viewerContent && isProjectVariant\)/);
 });
 
-test('V3 process and content viewers share the same explorer panel without losing route-specific state', async () => {
+test('V3 exposes one process viewer and redirects legacy content-viewer URLs', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
-  const viewer = await read('src/Containers/ContentViewer/ContentViewer.container.tsx');
+  const routes = await read('src/routes.tsx');
   const shared = await read('src/Components/BusinessComponents/ViewerExplorerPanel/ViewerExplorerPanel.tsx');
 
   assert.ok(details.includes("import { ViewerExplorerPanel } from '../ViewerExplorerPanel/ViewerExplorerPanel'"));
-  assert.ok(viewer.includes("import { ViewerExplorerPanel } from '../../Components/BusinessComponents/ViewerExplorerPanel/ViewerExplorerPanel'"));
   assert.ok(details.includes('variant="process-details"'));
   assert.ok(details.includes('showHistory'));
-  assert.ok(viewer.includes('variant="content-viewer"'));
-  assert.ok(viewer.includes('collapsed={!folderOpen}'));
+  assert.ok(shared.includes("variant: 'process-details' | 'projects-overview'"));
   assert.ok(shared.includes('<FolderTree selectedId={selectedId} onNodeClick={onNodeClick} />'));
   assert.ok(shared.includes('onBack'));
   assert.ok(shared.includes('onForward'));
+  assert.doesNotMatch(routes, /lazy: \(\) => import\('\.\/Containers\/ContentViewer'\)/);
 });
 
 test('modeler publication route stays inside the modeler and returns to the Viewer after publish', async () => {
@@ -681,11 +693,14 @@ test('description, version history, RACI and documented information stay top-ali
 
 test('user administration uses a dedicated breadcrumb route and grouped account actions', async () => {
   const accounts = await read('src/Containers/UserAccounts/index.tsx');
+  const layout = await read('src/Containers/OrganizationAdmin/OrganizationAdminLayout.tsx');
   const routes = await read('src/routes.tsx');
 
   assert.match(routes, /path: '\/organization\/users\/\:username'/);
   assert.match(accounts, /useParams<\{ username\?: string \}>/);
-  assert.ok(accounts.includes('>Administration</Button>') && accounts.includes('>Utilisateurs</Button>'));
+  assert.match(accounts, /id: 'administration', label: 'Administration'/);
+  assert.match(accounts, /id: 'users', label: 'Utilisateurs'/);
+  assert.match(layout, /<Breadcrumbs breadcrumbItems=\{breadcrumbs\} \/>/);
   assert.match(accounts, /!username && <>/);
   assert.match(accounts, /Actions groupées/);
   assert.match(accounts, /Associer à un projet/);
@@ -711,7 +726,9 @@ test('active project selector is selectable and carries project visual identity'
   assert.match(navigation, /placeholder="Choisir un projet…"/);
   assert.match(navigation, /setActiveProject\(value\)/);
   assert.match(navigation, /project\.color/);
+  assert.match(navigation, /activeProject\.trigram/);
   assert.match(activeProject, /color: string/);
+  assert.match(activeProject, /trigram: string \| null/);
   assert.match(activeProject, /icon: string/);
 });
 
@@ -730,19 +747,23 @@ test('project home and central folder overview follow the active project', async
 test('recent and favorite resources retain their project context', async () => {
   const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
 
-  assert.match(tree, /\$\{activeProjectId\}::\$\{processId\}/);
+  assert.ok(tree.includes("onNodeClick(targetId)"));
   assert.match(tree, /projects\.filter\(project => project\.processes\.some/);
   assert.match(tree, /setActiveProject\(projectId\)/);
   assert.match(tree, /project\.color/);
-  assert.match(tree, /project\.icon/);
+  assert.match(tree, /getProjectTrigram\(project\.name, project\.trigram\)/);
 });
 
-test('project administrators can configure the project color and pictogram', async () => {
+test('project administrators can configure the color of the generated trigram badge', async () => {
   const admin = await read('src/Containers/Projects/Projects.container.tsx');
   assert.match(admin, /Input type="color"/);
-  assert.match(admin, /aria-label="Pictogramme du projet"/);
-  assert.match(admin, /color: projectColor, icon: projectIcon/);
+  assert.match(admin, /Aperçu du badge/);
+  assert.ok(admin.includes('getProjectTrigram(project.name, projectTrigram)'));
+  assert.match(admin, /value=\{projectTrigram\}/);
+  assert.match(admin, /trigram: projectTrigram/);
+  assert.match(admin, /color: projectColor/);
   assert.match(admin, /canManageProjectIdentity/);
+  assert.doesNotMatch(admin, /Pictogramme/);
 });
 
 
@@ -766,4 +787,259 @@ test('the root workspace replaces the former home dashboard and project viewer p
   assert.doesNotMatch(navigation, /label: 'Accueil'|label: 'Projets'/);
   assert.match(navigation, /globalRole === 'admin'[\s\S]*?>\s*Administration\s*<\/Button>/);
   assert.ok(navigation.includes('<UserAccountMenu />'), 'account menu remains available');
+});
+
+
+test('Viewer opens at 1:1 and uses native fit-to-viewport for Ajuster', async () => {
+  const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+  const viewer = await read('src/Components/BusinessComponents/ProcessViewer/ProcessViewer.tsx');
+
+  assert.match(hook, /const showDiagramAtActualSize = \(\): boolean =>/);
+  const actualSize = hook.match(/const showDiagramAtActualSize = \(\): boolean => \{([\s\S]*?)\n  \};/)?.[1] ?? '';
+  assert.ok(actualSize.includes('canvas.zoom(1)'), '1:1 reset uses native bpmn-js zoom');
+  assert.ok(actualSize.includes('canvas.getAbsoluteBBox(element)'));
+  assert.ok(actualSize.includes('const minX = Math.min'));
+  assert.ok(actualSize.includes('const minY = Math.min'));
+  assert.ok(actualSize.includes('x: minX - 24'));
+  assert.ok(actualSize.includes('y: minY - 24'));
+  assert.doesNotMatch(actualSize, /canvas\.resized/);
+  assert.ok((hook.match(/window\.requestAnimationFrame/g) ?? []).length >= 2);
+  assert.match(hook, /initialViewportAppliedRef\.current = restoredViewport \|\| showDiagramAtActualSize\(\);/);
+  assert.match(hook, /new ResizeObserver\([\s\S]*?showDiagramAtActualSizeRef\.current\(\)/);
+  assert.match(hook, /const fitDiagram = \(\) =>[\s\S]*?canvas\.resized\?\.\(\);[\s\S]*?canvas\.zoom\('fit-viewport'\)/);
+  assert.match(hook, /const resetZoom = \(\) =>[\s\S]*?showDiagramAtActualSizeRef\.current\(\)/);
+  assert.match(viewer, /onClick=\{fitDiagram\}[^>]*aria-label="Ajuster à la fenêtre"/);
+});
+
+test('fullscreen targets the complete process workspace and refits after both transitions', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const viewer = await read('src/Components/BusinessComponents/ProcessViewer/ProcessViewer.tsx');
+  const styles = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.scss');
+  assert.ok(details.includes('const processWorkspaceRef = useRef<HTMLDivElement>(null)'));
+  assert.ok(details.includes('fullscreenTargetRef={processWorkspaceRef}'));
+  assert.ok(viewer.includes('fullscreenTargetRef?: React.RefObject<HTMLElement>'));
+  assert.ok(viewer.includes('fullscreenTargetRef?.current ?? viewerShellRef.current'));
+  assert.ok(viewer.includes('active || document.fullscreenElement === null'));
+  assert.ok(viewer.includes("isShellFullscreen ? ' is-fullscreen' : ''"));
+  assert.ok(styles.includes('.processViewerProcessWorkspace:fullscreen'));
+  assert.ok(styles.includes(':fullscreen .processTaskPanel'));
+});
+
+test('project home is rendered inside the explorer tree below its view tabs', async () => {
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+  const hook = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
+  const tabsIndex = tree.indexOf("['favorites', 'Favoris']");
+  const treeIndex = tree.indexOf('<Tree treeId="repository-tree"');
+  assert.ok(tabsIndex >= 0);
+  assert.ok(treeIndex > tabsIndex, 'the tree is rendered below the explorer tabs');
+  assert.ok(hook.includes("id: 'project-home'"));
+  assert.ok(hook.includes("targetId: 'root'"));
+  assert.ok(tree.includes("node?.id === 'project-home'"));
+  assert.ok(tree.includes("onNodeClick(targetId)"));
+  assert.ok(!tree.includes('Racine — ${activeProject.name}'));
+});
+
+test('project identities use generated trigrams and retain configurable colors', async () => {
+  const helper = await read('src/shared/helpers/projectTrigram.ts');
+  const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+  const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
+  const projects = await read('src/Containers/Projects/Projects.container.tsx');
+  assert.ok(helper.includes('export const getProjectTrigram'));
+  assert.ok(navigation.includes('getProjectTrigram(project.name, project.trigram)'));
+  assert.ok(tree.includes('getProjectTrigram(project.name, project.trigram)'));
+  assert.ok(projects.includes('getProjectTrigram(project.name, project.trigram)'));
+  assert.ok(projects.includes('color: projectColor'));
+});
+
+test('all-projects home reuses the Viewer workspace layout and shows four useful indicators', async () => {
+  const projects = await read('src/Containers/Projects/Projects.container.tsx');
+  const explorer = await read('src/Components/BusinessComponents/ViewerExplorerPanel/ViewerExplorerPanel.tsx');
+  assert.ok(projects.includes('variant="projects-overview"'));
+  assert.ok(projects.includes('className="processViewerLayout processViewerWorkspace"'));
+  assert.ok(projects.includes('className="processViewerResizeHandle"'));
+  assert.ok(projects.includes('Projets accessibles'));
+  assert.ok(projects.includes('Processus distincts'));
+  assert.ok(projects.includes('Processus publiés'));
+  assert.ok(projects.includes('Modifiés sur 30 jours'));
+  assert.ok(projects.includes('className="processViewerDiagram processViewerInfo projectsOverviewPanel"'));
+  assert.ok(explorer.includes("variant: 'process-details' | 'projects-overview'"));
+});
+
+
+test('canonical full-screen process viewer opens the element sheet on BPMN selection', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const viewer = await read('src/Components/BusinessComponents/ProcessViewer/ProcessViewer.tsx');
+
+  assert.ok(details.includes('const processWorkspaceRef = useRef<HTMLDivElement>(null)'));
+  assert.ok(details.includes('fullscreenTargetRef={processWorkspaceRef}'));
+  assert.ok(details.includes('selectedTask ?'));
+  assert.ok(details.includes('Fiche de l’élément'));
+  assert.ok(details.includes('selectedElementId'));
+  assert.ok(viewer.includes('fullscreenTargetRef'));
+});
+
+test('all-projects workspace reuses the shared Viewer breadcrumb header', async () => {
+  const projects = await read('src/Containers/Projects/Projects.container.tsx');
+  const sharedHeader = await read('src/Components/GenericComponents/Header/Header.tsx');
+  const breadcrumbs = await read('src/Components/GenericComponents/Breadcrumbs/Breadcrumbs.tsx');
+
+  assert.ok(projects.includes("import { Header } from '../../Components/GenericComponents/Header/Header'"));
+  assert.ok(projects.includes('<Header'));
+  assert.ok(projects.includes('title="Tous les projets"'));
+  assert.ok(projects.includes("breadcrumbs={[{ id: 'home', label: 'Tous les projets', to: '/projects' }]}"));
+  assert.ok(sharedHeader.includes('<Breadcrumbs isLoading={isLoading} breadcrumbItems={breadcrumbs || []} />'));
+  assert.ok(breadcrumbs.includes('aria-label="breadcrumbs"'));
+});
+
+test('project administration persists a member-backed default validator and documents process-pilot precedence', async () => {
+  const page = await read('src/Containers/Projects/Projects.container.tsx');
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project.controller.ts');
+  const entity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/project.ormEntity.ts');
+  const migration = await read('../backend/migrations/20261106_add_project_default_validator.sql');
+  const migrationDockerfile = await read('../deploy/coolify/Dockerfile.migrations');
+  const compose = await read('../deploy/coolify/compose.yaml');
+
+  assert.ok(page.includes('defaultValidatorUserId: string | null'));
+  assert.ok(page.includes('Validateur par défaut du projet'));
+  assert.ok(page.includes('Le pilote indiqué dans le processus reste prioritaire.'));
+  assert.ok(page.includes('apiClient.put(`/projects/${projectId}`, {'));
+  assert.ok(controller.includes('The default validator must be a member of this project'));
+  assert.ok(controller.includes('project.defaultValidatorUserId === userId'));
+  assert.ok(entity.includes('defaultValidatorUserId: string | null'));
+  assert.ok(migration.includes('ADD COLUMN IF NOT EXISTS "defaultValidatorUserId"'));
+  assert.ok(migrationDockerfile.includes('20261106_add_project_default_validator.sql'));
+  assert.ok(compose.includes('/opt/migrations/20261106_add_project_default_validator.sql'));
+  assert.ok(page.includes('<Tab value={3}>Validation</Tab>'));
+});
+
+test('project trigram is editable, validated and persisted by the project API', async () => {
+  const page = await read('src/Containers/Projects/Projects.container.tsx');
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project.controller.ts');
+  const entity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/project.ormEntity.ts');
+  const migration = await read('../backend/migrations/20261108_v3_project_trigram.sql');
+  const migrationDockerfile = await read('../deploy/coolify/Dockerfile.migrations');
+  const compose = await read('../deploy/coolify/compose.yaml');
+  const validateWorkflow = await read('../.github/workflows/validate.yml');
+
+  assert.ok(page.includes('Trigramme du projet'));
+  assert.ok(page.includes('trigram: projectTrigram.trim() || null'));
+  assert.ok(controller.includes('validateProjectTrigram'));
+  assert.ok(controller.includes('Project trigram must contain exactly three letters or digits'));
+  assert.ok(entity.includes('trigram: string | null'));
+  assert.ok(migration.includes('ADD COLUMN IF NOT EXISTS trigram'));
+  assert.ok(migrationDockerfile.includes('20261108_v3_project_trigram.sql'));
+  assert.ok(compose.includes('/opt/migrations/20261108_v3_project_trigram.sql'));
+  assert.ok(validateWorkflow.includes('/opt/migrations/20261108_v3_project_trigram.sql'));
+  assert.ok(validateWorkflow.includes("column_name='trigram'"));
+});
+
+test('project administration uses the shared breadcrumb header and Viewer-aligned surface', async () => {
+  const page = await read('src/Containers/Projects/Projects.container.tsx');
+
+  assert.ok(page.includes('<Header'));
+  assert.ok(page.includes("{ id: 'home', label: 'Tous les projets', to: '/projects' }"));
+  assert.ok(page.includes("bgcolor: 'background.surface'"));
+  assert.ok(page.includes("borderColor: 'neutral.outlinedBorder'"));
+  assert.ok(page.includes('borderRadius: 0'));
+});
+
+test('canonical Viewer reports declared RACI actors that are not used', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.ok(details.includes('raciAnalysis.unusedActors.length > 0'));
+  assert.ok(details.includes('Acteurs déclarés mais non utilisés'));
+  assert.ok(details.includes('raciAnalysis.unusedActors.join'));
+});
+
+
+test('process viewer resumes an existing open proposal and exposes its status', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const proposals = await read('src/Containers/MyProcessChangeProposals/MyProcessChangeProposals.container.tsx');
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/process-change-proposal.controller.ts');
+  assert.ok(details.includes('isLoading: activeProposalLoading'));
+  assert.ok(details.includes('if (currentActiveProposal)'));
+  assert.ok(details.includes('activeProposal.sourceResourceId === resourceId'));
+  assert.ok(details.includes('activeProposal.sourcePublishedContentId === viewerContent?.id'));
+  assert.ok(details.includes('cloneContentId'));
+  assert.ok(proposals.includes('proposal.cloneContentId'));
+  assert.ok(controller.includes('cloneDraftByResourceId.get(proposal.cloneResourceId)?.id ?? null'));
+  assert.ok(details.includes('Reprendre la demande en cours'));
+  assert.ok(details.includes('Une demande de modification est déjà ouverte'));
+  assert.ok(details.includes('Impossible de vérifier les demandes déjà ouvertes'));
+});
+
+test('leaving the proposal modeler clears the shared BPMN selection before destroying it', async () => {
+  const modeler = await read('src/shared/hooks/useModelerInstance.ts');
+  assert.ok(modeler.includes("modeler.get('selection')"));
+  assert.ok(modeler.includes('selection?.select?.([])'));
+  assert.ok(modeler.indexOf('selection?.select?.([])') < modeler.indexOf('modeler.destroy()'));
+});
+
+
+test('proposal modeler waits for its BPMN XML and reports loading failures instead of showing an empty diagram', async () => {
+  const contentHook = await read('src/Containers/ContentModeler/hooks/useContentModeler.ts');
+  const modelerHook = await read('src/Containers/ContentModeler/hooks/useModeler.ts');
+  const container = await read('src/Containers/ContentModeler/ContentModeler.container.tsx');
+  const actionBar = await read('src/Containers/ContentModeler/components/ModelerActionBar.tsx');
+
+  assert.ok(contentHook.includes('draftXmlContentIsError'));
+  assert.ok(contentHook.includes('getContentQuery'));
+  assert.ok(contentHook.includes('requestedContentId'));
+  assert.ok(contentHook.includes('contents !== undefined'));
+  assert.ok(modelerHook.includes('content === undefined'));
+  assert.ok(container.includes('Impossible de charger le diagramme BPMN de cette demande'));
+  assert.ok(container.includes('modelerReady={isModelerReady}'));
+  assert.ok(actionBar.includes('disabled={!modelerReady}'));
+});
+
+
+test('approved BPMN proposals are read-only until the approved snapshot is published', async () => {
+  const container = await read('src/Containers/ContentModeler/ContentModeler.container.tsx');
+  const modeler = await read('src/Components/BusinessComponents/Modeler/Modeler.tsx');
+  const actionBar = await read('src/Containers/ContentModeler/components/ModelerActionBar.tsx');
+  const styles = await read('src/Components/BusinessComponents/Modeler/Modeler.css');
+
+  assert.ok(container.includes('readOnly={approvedProposalMode}'));
+  assert.ok(container.includes('isDirty || publishingApprovedProposal'));
+  assert.ok(modeler.includes('modelerReadOnly'));
+  assert.ok(actionBar.includes('{!readOnly && ('));
+  assert.ok(styles.includes('.modelerReadOnly #diagramContainer'));
+});
+
+test('rejecting a BPMN remark requires a reason in the UI and backend', async () => {
+  const panel = await read('src/Containers/ContentModeler/components/ProposalRemarksPanel.tsx');
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/process-change-proposal.controller.ts');
+  const controllerSpec = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/process-change-proposal.controller.spec.ts');
+
+  assert.ok(panel.includes('Motif de décision (obligatoire pour refuser)'));
+  assert.ok(panel.includes("!decisionComments[remark.id]?.trim()"));
+  assert.ok(controller.includes('Un motif est obligatoire pour refuser une remarque'));
+  assert.ok(controllerSpec.includes("requires a reason when rejecting a remark"));
+});
+
+test('BPMN remark clarification stays in the remark event thread', async () => {
+  const panel = await read('src/Containers/ContentModeler/components/ProposalRemarksPanel.tsx');
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/process-change-proposal.controller.ts');
+  const controllerSpec = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/process-change-proposal.controller.spec.ts');
+
+  assert.ok(panel.includes('/clarification'));
+  assert.ok(panel.includes('/response'));
+  assert.ok(panel.includes('Précision demandée'));
+  assert.ok(panel.includes('Réponse de l’auteur'));
+  assert.ok(panel.includes('awaitingAuthorResponse'));
+  assert.ok(panel.includes('En attente de la réponse de l’auteur avant la décision finale.'));
+  assert.ok(controller.includes('remark_clarification_requested'));
+  assert.ok(controller.includes('remark_author_responded'));
+  assert.ok(controller.includes('canRespond:'));
+  assert.ok(controllerSpec.includes('allows the designated validator to request clarification'));
+  assert.ok(controllerSpec.includes('allows only the remark author to answer'));
+  assert.ok(controllerSpec.includes('does not allow another project member to answer'));
+});
+
+test('project home falls back to workspace process membership when the global resource list fails', async () => {
+  const overview = await read('src/Containers/BpmnLayout/FolderOverview.tsx');
+  assert.ok(overview.includes('resources.isError && !activeProject'));
+  assert.ok(overview.includes('The project workspace can still provide the process list'));
+  assert.ok(overview.includes('Les processus associés au projet sont affichés'));
+  assert.ok(overview.includes('activeProject?.processes.forEach'));
 });

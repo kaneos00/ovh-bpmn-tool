@@ -27,6 +27,7 @@ import { UserAccountMenu } from '../../../Components/GenericComponents/UserAccou
 
 type ModelerActionBarProps = {
   resourceId: string;
+  returnToUrl?: string;
   hasLintError: boolean;
   canUndo: boolean;
   canRedo: boolean;
@@ -40,10 +41,19 @@ type ModelerActionBarProps = {
   onRaciOpen: () => void;
   onRolesOpen: () => void;
   onCompareWithSource?: () => void;
+  proposalMode?: boolean;
+  hidePublish?: boolean;
+  approvedProposalMode?: boolean;
+  onPublishApprovedProposal?: () => void;
+  publishApprovedDisabled?: boolean;
+  publishApprovedLoading?: boolean;
+  modelerReady?: boolean;
+  readOnly?: boolean;
 };
 
 export const ModelerActionBar = ({
   resourceId,
+  returnToUrl,
   canUndo,
   canRedo,
   onUndo,
@@ -56,6 +66,14 @@ export const ModelerActionBar = ({
   onRaciOpen,
   onRolesOpen,
   onCompareWithSource,
+  proposalMode = false,
+  hidePublish = false,
+  approvedProposalMode = false,
+  onPublishApprovedProposal,
+  publishApprovedDisabled = false,
+  publishApprovedLoading = false,
+  modelerReady = true,
+  readOnly = false,
 }: ModelerActionBarProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -66,7 +84,7 @@ export const ModelerActionBar = ({
           variant="outlined"
           color="neutral"
           component={Link}
-          to={`/${resourceId}`}
+          to={returnToUrl ?? `/${resourceId}`}
         >
           <Home fontSize="small" />
         </Button>
@@ -82,14 +100,16 @@ export const ModelerActionBar = ({
           </Button>
         )}
 
-        <Button
-          onClick={() => fileInputRef.current?.click()}
-          variant="outlined"
-          color="neutral"
-          startDecorator={<UploadFile fontSize="small" />}
-        >
-          Upload
-        </Button>
+        {!readOnly && (
+          <Button
+            onClick={() => fileInputRef.current?.click()}
+            variant="outlined"
+            color="neutral"
+            startDecorator={<UploadFile fontSize="small" />}
+          >
+            Upload
+          </Button>
+        )}
 
         <input
           ref={fileInputRef}
@@ -105,7 +125,7 @@ export const ModelerActionBar = ({
           }}
         />
 
-        <Dropdown>
+        <Dropdown key={`export-menu:${resourceId}`}>
           <MenuButton startDecorator={<FileDownload fontSize="small" />}>
             Export
           </MenuButton>
@@ -136,38 +156,64 @@ export const ModelerActionBar = ({
             </MenuItem>
           </Menu>
         </Dropdown>
-        <Button variant="outlined" color="neutral" onClick={onUndo} disabled={!canUndo} title="Annuler (Ctrl+Z)" aria-label="Annuler la dernière modification"><Undo fontSize="small" /></Button>
-        <Button variant="outlined" color="neutral" onClick={onRedo} disabled={!canRedo} title="Rétablir (Ctrl+Maj+Z)" aria-label="Rétablir la dernière modification"><Redo fontSize="small" /></Button>
-        <Button variant="outlined" color="neutral" onClick={onRaciOpen}>
-          RACI
-        </Button>
-        <Button variant="outlined" color="neutral" onClick={onRolesOpen}>
-          ROLE
-        </Button>
+        {!readOnly && (
+          <>
+            <Button variant="outlined" color="neutral" onClick={onUndo} disabled={!canUndo} title="Annuler (Ctrl+Z)" aria-label="Annuler la dernière modification"><Undo fontSize="small" /></Button>
+            <Button variant="outlined" color="neutral" onClick={onRedo} disabled={!canRedo} title="Rétablir (Ctrl+Maj+Z)" aria-label="Rétablir la dernière modification"><Redo fontSize="small" /></Button>
+          </>
+        )}
+        {!readOnly && (
+          <>
+            <Button variant="outlined" color="neutral" onClick={onRaciOpen}>
+              RACI
+            </Button>
+            <Button variant="outlined" color="neutral" onClick={onRolesOpen}>
+              ROLE
+            </Button>
+          </>
+        )}
       </Stack>
       <Stack gap={1} direction="row" justifyContent="flex-end">
         <Button onClick={onShortcutDisplay} variant="outlined" color="neutral">
           <Info fontSize="small" />
         </Button>
 
-        <Button
-          variant="outlined"
-          color="neutral"
-          startDecorator={<Save fontSize="small" />}
-          onClick={onDiagramSave}
-        >
-          Save
-        </Button>
+        {!readOnly && (
+          <Button
+            variant="outlined"
+            color="neutral"
+            startDecorator={<Save fontSize="small" />}
+            onClick={onDiagramSave}
+            disabled={!modelerReady}
+          >
+            Save
+          </Button>
+        )}
 
-        <Button
-          onClick={onDiagramPublish}
-          variant="outlined"
-          // disabled={hasLintError}
-          color="success"
-          endDecorator={<Done fontSize="small" />}
-        >
-          Publish
-        </Button>
+        {!hidePublish && (
+          <Button
+            onClick={onDiagramPublish}
+            disabled={!modelerReady}
+            variant="outlined"
+            // disabled={hasLintError}
+            color="success"
+            endDecorator={<Done fontSize="small" />}
+          >
+            {proposalMode ? 'Demander la validation' : 'Publish'}
+          </Button>
+        )}
+        {approvedProposalMode && (
+          <Button
+            onClick={onPublishApprovedProposal}
+            variant="solid"
+            color="success"
+            disabled={publishApprovedDisabled}
+            loading={publishApprovedLoading}
+            endDecorator={<Done fontSize="small" />}
+          >
+            Publier la version approuvée
+          </Button>
+        )}
         <UserAccountMenu dark={false} />
       </Stack>
     </ActionBar>
