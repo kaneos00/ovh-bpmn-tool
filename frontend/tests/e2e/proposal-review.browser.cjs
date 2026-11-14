@@ -223,13 +223,16 @@ async function main() {
     );
     await reviewerPage.getByRole('button', { name: 'Zoom avant' }).click();
     await reviewerPage.waitForFunction(() => {
-      const transform = document.querySelector('.djs-container .viewport')?.getAttribute('transform') ?? '';
-      const matrix = transform.match(/matrix\(([^)]+)\)/);
+      const viewport = document.querySelector('.djs-container > svg:not(.map) > g.viewport');
+      const transform = viewport?.getAttribute('transform') || (viewport ? getComputedStyle(viewport).transform : '');
+      const matrix = transform?.match(/matrix\(([^)]+)\)/);
       return Boolean(matrix && Number(matrix[1].split(/[ ,]+/)[0]) > 1.01);
     });
     await reviewerPage.getByRole('button', { name: 'Zoom 1:1' }).click();
     await reviewerPage.waitForFunction(() => {
-      const transform = document.querySelector('.djs-container .viewport')?.getAttribute('transform') ?? '';
+      const viewport = document.querySelector('.djs-container > svg:not(.map) > g.viewport');
+      const transform = viewport?.getAttribute('transform') || (viewport ? getComputedStyle(viewport).transform : '');
+      if (!transform || transform === 'none') return Boolean(viewport);
       const matrix = transform.match(/matrix\(([^)]+)\)/);
       return Boolean(matrix && Math.abs(Number(matrix[1].split(/[ ,]+/)[0]) - 1) < 0.02);
     });
