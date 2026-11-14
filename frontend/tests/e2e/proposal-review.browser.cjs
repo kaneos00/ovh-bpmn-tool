@@ -253,7 +253,7 @@ async function main() {
             .map(key => ({ key, value: localStorage.getItem(key) })),
         };
       });
-      throw new Error(\`Zoom 1:1 did not restore identity scale: \${JSON.stringify(diagnostics)}; \${error.message}\`);
+      throw new Error(`Zoom 1:1 did not restore identity scale: ${JSON.stringify(diagnostics)}; ${error.message}`);
     }
 
     const variantDiagnostics = await reviewerPage.evaluate(async ({ resourceId, sourceResourceId }) => {
