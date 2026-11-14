@@ -298,11 +298,6 @@ async function main() {
     await variantEntry.click();
     await reviewerPage.waitForURL(`**/${variantResourceId}`);
 
-    // The project home must be a visible first-level explorer node and return
-    // to /root rather than opening project settings.
-    await reviewerPage.getByText(/^Accueil — /).click();
-    await reviewerPage.waitForURL('**/root');
-    await reviewerPage.getByText('Processus du projet', { exact: true }).waitFor();
     const variantTask = reviewerPage.locator('.djs-element[data-element-id="Task_ProcessRequest"]');
     await variantTask.waitFor();
     await variantTask.click();
@@ -310,6 +305,21 @@ async function main() {
       const element = document.querySelector('.djs-element[data-element-id="Task_ProcessRequest"]');
       return Boolean(element && element.classList.contains('task-selected'));
     });
+
+    // The project home must be a visible first-level explorer node and return
+    // to /root rather than opening project settings.
+    await reviewerPage.getByText(/^Accueil — /).click();
+    await reviewerPage.waitForURL('**/root');
+    await reviewerPage.getByText('Processus du projet', { exact: true }).waitFor();
+    const variantRowAfterHome = reviewerPage.getByRole('row', {
+      name: /CI E2E — variante partenaire Variante V1/,
+    });
+    await variantRowAfterHome.getByRole('button', {
+      name: 'CI E2E — variante partenaire',
+      exact: true,
+    }).click();
+    await reviewerPage.waitForURL(`**/${variantResourceId}`);
+    await reviewerPage.locator('.djs-element[data-element-id="Task_ProcessRequest"]').waitFor();
 
     // Exercise the header's quick search against the seeded published process.
     // The results page uses the same API and serves as the comparison path.
