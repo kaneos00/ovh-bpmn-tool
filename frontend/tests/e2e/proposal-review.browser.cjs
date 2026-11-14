@@ -171,16 +171,21 @@ async function main() {
 
     // Exercise the real Viewer controls: initial 1:1 and the explicit reset
     // must both be observable in the rendered bpmn-js viewport.
+    // The main diagram and the minimap both expose an element named
+    // ".viewport". Scope the query to the main SVG: the minimap's viewport is
+    // a <rect> and must never be used to measure diagram zoom.
     const readViewerScale = () => reviewerPage.evaluate(() => {
-      const transform = document.querySelector('.djs-container .viewport')?.getAttribute('transform') ?? '';
+      const viewport = document.querySelector('.djs-container > svg:not(.map) > g.viewport');
+      if (!viewport) return null;
+      const transform = viewport.getAttribute('transform') || getComputedStyle(viewport).transform;
+      if (!transform || transform === 'none') return 1;
       const matrix = transform.match(/matrix\(([^)]+)\)/);
       return matrix ? Number(matrix[1].split(/[ ,]+/)[0]) : null;
     });
     try {
-      await reviewerPage.waitForFunction(() => {
-        const transform = document.querySelector('.djs-container .viewport')?.getAttribute('transform') ?? '';
-        return /matrix\(/.test(transform);
-      }, { timeout: 12000 });
+      await reviewerPage.waitForFunction(() => Boolean(
+        document.querySelector('.djs-container > svg:not(.map) > g.viewport')
+      ), { timeout: 12000 });
     } catch (error) {
       const diagnostics = await reviewerPage.evaluate(() => ({
         url: window.location.href,
