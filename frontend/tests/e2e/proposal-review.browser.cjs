@@ -83,15 +83,16 @@ async function main() {
     // and identifies the project that owns it.
     await reviewerPage.goto(`${baseUrl}/${sourceResourceId}`);
     await reviewerPage.getByRole('tab', { name: 'Historique des versions' }).click();
-    await reviewerPage.getByText('Variantes de ce processus', { exact: true }).waitFor();
-    await reviewerPage.getByText('CI E2E — variante partenaire', { exact: true }).waitFor();
+    const historyPanel = reviewerPage.getByRole('tabpanel');
+    await historyPanel.getByText('Variantes de ce processus', { exact: true }).waitFor();
+    await historyPanel.getByText('CI E2E — variante partenaire', { exact: true }).waitFor();
     const owningProjectName = await reviewerPage.evaluate(async projectId => {
       const response = await fetch('/bpmn-api/projects/me/workspace', { credentials: 'same-origin' });
       const workspace = await response.json();
       return workspace.projects.find(project => project.id === projectId)?.name ?? null;
     }, projectId);
     assert.ok(owningProjectName, 'The variant owning project is not present in the accessible workspace');
-    await reviewerPage.getByText(owningProjectName, { exact: true }).waitFor();
+    await historyPanel.getByText(owningProjectName, { exact: true }).waitFor();
 
     // Submit the remark against the variant itself, not the common source.
     // This exercises the exact variant → proposal workspace → approved
