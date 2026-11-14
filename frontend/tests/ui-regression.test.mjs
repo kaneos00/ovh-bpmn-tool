@@ -802,7 +802,8 @@ test('Viewer opens at 1:1 and uses native fit-to-viewport for Ajuster', async ()
   assert.ok(actualSize.includes('const minY = Math.min'));
   assert.ok(actualSize.includes('x: minX - 24'));
   assert.ok(actualSize.includes('y: minY - 24'));
-  assert.doesNotMatch(actualSize, /canvas\.resized/);
+  const actualSizeCode = actualSize.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
+  assert.doesNotMatch(actualSizeCode, /canvas\.resized/);
   assert.ok((hook.match(/window\.requestAnimationFrame/g) ?? []).length >= 2);
   assert.match(hook, /initialViewportAppliedRef\.current = restoredViewport \|\| showDiagramAtActualSize\(\);/);
   assert.match(hook, /new ResizeObserver\([\s\S]*?showDiagramAtActualSizeRef\.current\(\)/);
