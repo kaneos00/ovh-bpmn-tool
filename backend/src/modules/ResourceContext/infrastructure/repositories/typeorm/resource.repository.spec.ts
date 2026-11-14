@@ -64,12 +64,19 @@ describe('ResourceTypeOrmRepository.delete', () => {
     expect(manager.query).toHaveBeenNthCalledWith(
       4,
       expect.stringContaining(
-        'UPDATE project_processes SET "sourceResourceId" = NULL',
+        'UPDATE resources SET "sourceResourceId" = NULL',
       ),
       [['root', 'child', 'grandchild']],
     );
     expect(manager.query).toHaveBeenNthCalledWith(
       5,
+      expect.stringContaining(
+        'UPDATE project_processes SET "sourceResourceId" = NULL',
+      ),
+      [['root', 'child', 'grandchild']],
+    );
+    expect(manager.query).toHaveBeenNthCalledWith(
+      6,
       expect.stringContaining(
         'DELETE FROM project_processes WHERE "resourceId"',
       ),
@@ -121,7 +128,9 @@ describe('ResourceTypeOrmRepository.delete', () => {
     );
     expect(manager.query).toHaveBeenNthCalledWith(
       7,
-      expect.stringContaining('DELETE FROM project_processes WHERE "resourceId"'),
+      expect.stringContaining(
+        'DELETE FROM project_processes WHERE "resourceId"',
+      ),
       [['folder']],
     );
     expect(manager.query).toHaveBeenNthCalledWith(
