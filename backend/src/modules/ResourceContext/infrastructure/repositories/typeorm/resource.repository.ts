@@ -98,8 +98,12 @@ export class ResourceTypeOrmRepository implements ResourceRepository {
           [deletableIds],
         );
 
-        // Keep variants outside the deleted subtree, but detach their pointer
-        // if the source resource itself is being removed.
+        // Keep variants outside the deleted subtree, but detach their source
+        // pointer in both the resource record and project association.
+        await manager.query(
+          'UPDATE resources SET "sourceResourceId" = NULL WHERE "sourceResourceId" = ANY($1::uuid[]) AND NOT (id = ANY($1::uuid[]))',
+          [deletableIds],
+        );
         await manager.query(
           'UPDATE project_processes SET "sourceResourceId" = NULL WHERE "sourceResourceId" = ANY($1::uuid[]) AND NOT ("resourceId" = ANY($1::uuid[]))',
           [deletableIds],
