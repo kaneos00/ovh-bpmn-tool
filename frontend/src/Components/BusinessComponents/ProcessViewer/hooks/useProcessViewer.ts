@@ -109,8 +109,8 @@ export const useProcessViewer = (
       bounds.height <= 0
     ) return false;
 
-    // Match the visible diagram-space dimensions to the viewport dimensions:
-    // diagram-js therefore renders at exactly 1 diagram unit per screen pixel.
+    // One diagram unit per screen pixel: match visible diagram-space dimensions
+    // to the viewport dimensions and align the BPMN upper-left corner.
     // Setting the viewbox origin to the BPMN bounds aligns its upper-left corner.
     canvas.viewbox({
       x: bounds.x,
