@@ -105,7 +105,7 @@ export const useProcessViewer = (
       bounds.height <= 0
     ) return false;
 
-    // Use diagram-js' native zoom API to restore an exact scale of 1.
+    // One diagram unit per screen pixel: use diagram-js' native zoom API to restore an exact scale of 1.
     // Computing the viewbox width from the SVG/container dimensions is fragile:
     // the rendered SVG can be wider than the canvas host and reintroduce a
     // scale factor (for example 1.2) even though the toolbar says 1:1.
