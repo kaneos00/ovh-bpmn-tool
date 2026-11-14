@@ -139,12 +139,34 @@ export const useProcessViewer = (
     if (!importedRef.current) return;
 
     const canvas = viewer.get('canvas') as any;
+    const previousViewbox = canvas.viewbox();
+
     canvas.resized?.();
 
-    // Resizing the host must not change the user's zoom unless they explicitly
-    // selected "Ajuster". In fit mode, keep the diagram fitted to the viewport.
+    // Opening or closing the details panel changes the canvas dimensions.
+    // diagram-js may recenter the drawing during resized(); preserve the
+    // current top-left origin and keep the native zoom when the user is not
+    // in explicit fit mode. Use the post-resize dimensions so the scale stays
+    // unchanged in the newly sized viewport.
     if (fitModeRef.current) {
       canvas.zoom('fit-viewport');
+      return;
+    }
+
+    const resizedViewbox = canvas.viewbox();
+    if (
+      previousViewbox &&
+      resizedViewbox &&
+      [previousViewbox.x, previousViewbox.y, resizedViewbox.width, resizedViewbox.height].every(Number.isFinite) &&
+      resizedViewbox.width > 0 &&
+      resizedViewbox.height > 0
+    ) {
+      canvas.viewbox({
+        x: previousViewbox.x,
+        y: previousViewbox.y,
+        width: resizedViewbox.width,
+        height: resizedViewbox.height,
+      });
     }
   };
 
