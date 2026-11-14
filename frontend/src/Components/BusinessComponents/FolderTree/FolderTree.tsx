@@ -359,54 +359,6 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
         ))}
       </Box>
 
-      {view === 'tree' && (
-        <ListItem sx={{ p: 0, mb: 0.75, display: 'block' }}>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.75,
-            px: 1,
-            py: 0.85,
-            borderRadius: '8px',
-            bgcolor: 'background.level1',
-            border: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <Button
-            variant="plain"
-            color="neutral"
-            onClick={() => activeProjectId && navigate('/root')}
-            disabled={!activeProjectId}
-            startDecorator={<FolderOpenRounded color="primary" fontSize="small" />}
-            sx={{ flex: 1, minWidth: 0, justifyContent: 'flex-start', p: 0, textAlign: 'left' }}
-            aria-label={activeProject ? `Ouvrir le projet ${activeProject.name}` : 'Aucun projet actif'}
-          >
-            <Box sx={{ minWidth: 0, textAlign: 'left' }}>
-              <Typography level="title-sm" noWrap>
-                {activeProject ? `Racine — ${activeProject.name}` : 'Racine du projet'}
-              </Typography>
-              <Typography level="body-xs" color="neutral">/root</Typography>
-            </Box>
-          </Button>
-          <IconButton
-            size="sm"
-            variant="plain"
-            color="neutral"
-            title="Actions du répertoire du projet"
-            aria-label="Ouvrir les actions du répertoire du projet"
-            onClick={event => {
-              event.preventDefault();
-              event.stopPropagation();
-              setContextMenu({ nodeId: 'root', anchorEl: event.currentTarget });
-            }}
-          >
-            <MoreVert fontSize="small" />
-          </IconButton>
-        </Box>
-        </ListItem>
-      )}
 
       {isLoading ? (
         new Array(8).fill('').map((_, index) => (
@@ -455,7 +407,9 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                       '@media (hover: none)': { '& .folder-tree-actions': { opacity: 1 } },
                     }}
                   >
-                    {node?.type === 'folder' ? <FolderOutlined fontSize="small" /> : <DescriptionOutlined fontSize="small" />}
+                    {node?.id === 'project-home'
+                      ? <FolderOpenRounded color="primary" fontSize="small" />
+                      : node?.type === 'folder' ? <FolderOutlined fontSize="small" /> : <DescriptionOutlined fontSize="small" />}
                     <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</Box>
                     {node?.usage === 'variant' && (
                       <Chip size="sm" variant="soft" color="primary" title="Variante de processus">
@@ -495,7 +449,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                         onClick={event => {
                           event.preventDefault();
                           event.stopPropagation();
-                          setContextMenu({ nodeId, anchorEl: event.currentTarget });
+                          setContextMenu({ nodeId: nodeId === 'project-home' ? 'root' : nodeId, anchorEl: event.currentTarget });
                         }}
                         sx={{ minWidth: 24, minHeight: 24, p: 0.25, flexShrink: 0 }}
                       >

@@ -199,7 +199,17 @@ export const useFolderTree = (selectedResourceId: string) => {
       id: 'root',
       name: 'Root',
       type: 'folder',
-      children: createChildren('root'),
+      // Project home is a first-level tree entry targeting the synthetic /root route.
+      children: [
+        ...(projectForTree ? [{
+          id: 'project-home',
+          name: `Accueil — ${projectForTree.name}`,
+          type: 'folder',
+          targetId: 'root',
+          children: [],
+        } as RenderTree] : []),
+        ...createChildren('root'),
+      ],
     };
   }, [scopedResources, linkedChildrenByResource, linkedTargetIds, projectForTree]);
 

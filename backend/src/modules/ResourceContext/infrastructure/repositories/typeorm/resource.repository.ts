@@ -40,23 +40,19 @@ export class ResourceTypeOrmRepository implements ResourceRepository {
 
   async delete(resourceId: string): Promise<Result<boolean, Error>> {
     try {
-      // Project-process links use ON DELETE RESTRICT in the shared-process
-      // schema. Remove links for the complete descendant tree in the same
-      // transaction as the resources, so a failed delete cannot orphan the
-      // project workspace or leave a resource half-deleted.
       await this.resourceRepository.manager.transaction(async (manager) => {
         const resourceTree: Array<{ id: string }> = await manager.query(
           `WITH RECURSIVE resource_tree AS (
-             SELECT id
+             SELECT id, "parentId"
              FROM resources
              WHERE id = $1
              UNION
-             SELECT child.id
+             SELECT child.id, child."parentId"
              FROM resources AS child
              INNER JOIN resource_tree AS parent
                ON child."parentId" = parent.id::text
            )
-           SELECT id FROM resource_tree`,
+           SELECT id, "parentId" FROM resource_tree`,
           [resourceId],
         );
 
@@ -65,27 +61,61 @@ export class ResourceTypeOrmRepository implements ResourceRepository {
         }
 
         const resourceIds = resourceTree.map(({ id }) => id);
-        // Proposal rows hold RESTRICT references to both source and cloned
-        // resources, and to published contents. Remove the workflow records
-        // first; their event and remark history is deleted through ON DELETE CASCADE.
+        // Preserve processes attached to more than one project. If their
+        // containing folder is deleted, move them to the shared root first.
+        const sharedResources: Array<{ id: string }> = await manager.query(
+          `SELECT "resourceId" AS id
+           FROM project_processes
+           WHERE "resourceId" = ANY($1::uuid[])
+           GROUP BY "resourceId"
+           HAVING COUNT(DISTINCT "projectId") > 1`,
+          [resourceIds],
+        );
+        const sharedIds = sharedResources.map(({ id }) => id);
+        const sharedIdSet = new Set(sharedIds);
+        const deletableIds = resourceIds.filter((id) => !sharedIdSet.has(id));
+
+        if (!deletableIds.length) {
+          throw new Error(
+            'This resource is still shared by multiple projects. Remove its project associations before deleting it.',
+          );
+        }
+
+        if (sharedIds.length) {
+          await manager.query(
+            `UPDATE resources
+             SET "parentId" = NULL
+             WHERE id = ANY($1::uuid[])
+               AND "parentId" = ANY($2::uuid[])`,
+            [sharedIds, resourceIds],
+          );
+        }
+
+        // Delete change requests only when their source or cloned resource is
+        // actually deleted; proposal comments/events are removed by cascades.
         await manager.query(
           'DELETE FROM process_change_proposals WHERE "sourceResourceId" = ANY($1::uuid[]) OR "cloneResourceId" = ANY($1::uuid[])',
-          [resourceIds],
-        );
-        // A deleted source may also be referenced by a variant association
-        // outside this folder. Remove that association so it cannot block the
-        // explicit resource deletion; the external resource itself is retained.
-        await manager.query(
-          'DELETE FROM project_processes WHERE "resourceId" = ANY($1::uuid[]) OR "sourceResourceId" = ANY($1::uuid[])',
-          [resourceIds],
-        );
-        const deletedResources: Array<{ id: string }> = await manager.query(
-          'DELETE FROM resources WHERE id = ANY($1::uuid[]) RETURNING id',
-          [resourceIds],
+          [deletableIds],
         );
 
-        if (!deletedResources?.length) {
-          throw new Error('Error while deleting resource');
+        // Keep variants outside the deleted subtree, but detach their pointer
+        // if the source resource itself is being removed.
+        await manager.query(
+          'UPDATE project_processes SET "sourceResourceId" = NULL WHERE "sourceResourceId" = ANY($1::uuid[]) AND NOT ("resourceId" = ANY($1::uuid[]))',
+          [deletableIds],
+        );
+        await manager.query(
+          'DELETE FROM project_processes WHERE "resourceId" = ANY($1::uuid[])',
+          [deletableIds],
+        );
+
+        const deletedResources: Array<{ id: string }> = await manager.query(
+          'DELETE FROM resources WHERE id = ANY($1::uuid[]) RETURNING id',
+          [deletableIds],
+        );
+
+        if (deletedResources?.length !== deletableIds.length) {
+          throw new Error('Error while deleting the complete resource hierarchy');
         }
       });
 

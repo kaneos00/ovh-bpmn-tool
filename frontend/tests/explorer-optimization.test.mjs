@@ -100,16 +100,18 @@ test('deleting a process refreshes resource, explorer and project workspace snap
 });
 
 
-test('project root is the explorer entry point and owns creation actions in its context menu', async () => {
+test('project home is a first-level tree item and opens the workspace root', async () => {
+  const hook = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
   const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
 
-  assert.ok(tree.includes('Racine — ${activeProject.name}'));
-  assert.ok(tree.includes("'Racine du projet'"));
-  assert.ok(tree.includes('<Typography level="body-xs" color="neutral">/root</Typography>'));
-  assert.ok(tree.includes("setContextMenu({ nodeId: 'root', anchorEl: event.currentTarget })"));
+  assert.ok(hook.includes("id: 'project-home'"));
+  assert.ok(hook.includes('name: `Accueil — ${projectForTree.name}`'));
+  assert.ok(hook.includes("targetId: 'root'"));
+  assert.ok(tree.includes("node?.id === 'project-home'"));
+  assert.ok(tree.includes("nodeId === 'project-home' ? 'root' : nodeId"));
+  assert.ok(tree.includes("onNodeClick(targetId)"));
   assert.ok(tree.includes("navigate('/root/add?type=folder')"));
-  assert.ok(tree.includes('Nouveau dossier racine') === false);
-  assert.ok(tree.includes('Nouveau processus racine') === false);
+  assert.ok(!tree.includes('Racine — ${activeProject.name}'));
 });
 
 test('folder context menu creates child folders and project-linked processes in that folder', async () => {

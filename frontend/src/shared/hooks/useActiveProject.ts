@@ -32,7 +32,11 @@ export const useActiveProject = () => {
   const workspaceQuery = useQuery<WorkspaceSummary>(
     ['my-workspace'],
     () => apiClient.get('/projects/me/workspace'),
-    { staleTime: 30_000 },
+    {
+      staleTime: 0,
+      refetchOnMount: 'always',
+      refetchOnWindowFocus: true,
+    },
   );
   const [storedProjectId, setStoredProjectId] = useState<string | null>(readActiveProjectId);
 

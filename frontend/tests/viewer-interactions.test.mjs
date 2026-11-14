@@ -67,10 +67,13 @@ test('Viewer opens at 1:1 with the BPMN upper-left corner aligned to the viewpor
   const hook = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
   const component = await read('src/Components/BusinessComponents/ProcessViewer/ProcessViewer.tsx');
 
-  assert.ok(hook.includes('canvas.zoom(1, { x: 0, y: 0 })'));
-  assert.ok(hook.includes('canvas.scroll({'));
-  assert.ok(hook.includes('dx: (currentViewbox.x - bounds.x) * scale'));
+  assert.ok(hook.includes('bpmn-tool:viewer-viewport:v3:'));
   assert.ok(hook.includes('canvas.viewbox({'));
+  assert.ok(hook.includes('x: bounds.x'));
+  assert.ok(hook.includes('y: bounds.y'));
+  assert.ok(hook.includes('width,'));
+  assert.ok(hook.includes('height,'));
+  assert.doesNotMatch(hook, /canvas\\.scroll\\(\\{/);
   assert.match(hook, /initialViewportAppliedRef\.current = restoredViewport \|\| showDiagramAtActualSize\(\);[\s\S]*?applySelectionRef\.current\(\);/);
   assert.match(hook, /new ResizeObserver\([\s\S]*?initialViewportAppliedRef\.current = showDiagramAtActualSizeRef\.current\(\)/);
   assert.match(hook, /const resetZoom = \(\) => \{[\s\S]*?showDiagramAtActualSizeRef\.current\(\)/);
@@ -569,4 +572,15 @@ test('proposal review opens and edits only the exact submitted BPMN snapshot', a
   assert.match(backend, /const submittedContent = await contents\.findOne\([\s\S]*?resourceId: proposal\.cloneResourceId,[\s\S]*?status: ContentStatusEnum\.Draft/);
   assert.match(backend, /proposal\.submittedContentId = submittedContent\.id/);
   assert.match(backend, /submittedContentId: submittedContent\.id/);
+});
+
+
+test('project variants show their project and switch context before opening', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const workspace = await read('src/shared/hooks/useActiveProject.ts');
+
+  assert.ok(details.includes('projectId: project.id, projectName: project.name'));
+  assert.ok(details.includes('setActiveProject(variant.projectId)'));
+  assert.ok(workspace.includes("refetchOnMount: 'always'"));
+  assert.ok(workspace.includes('refetchOnWindowFocus: true'));
 });

@@ -242,7 +242,7 @@ export const ProcessDetails = ({
     onContentChecked,
   } = useProcessDetails(resourceId, { onContentUpload });
 
-  const { projects, activeProject } = useActiveProject();
+  const { projects, activeProject, setActiveProject } = useActiveProject();
   const projectsForProcess = projects.filter(project =>
     project.processes.some(process => process.resourceId === resourceId),
   );
@@ -261,7 +261,7 @@ export const ProcessDetails = ({
   const projectVariants = projects.flatMap(project =>
     project.processes
       .filter(process => process.usage === 'variant' && process.sourceResourceId === resourceId)
-      .map(process => ({ ...process, projectName: project.name })),
+      .map(process => ({ ...process, projectId: project.id, projectName: project.name })),
   );
   const projectVariantContentQueries = useQueries(
     projectVariants.map(variant => contentsQuery(variant.resourceId)),
@@ -1381,7 +1381,10 @@ export const ProcessDetails = ({
                             size="sm"
                             variant={variantDraft ? 'solid' : 'outlined'}
                             color={variantDraft ? 'warning' : 'neutral'}
-                            onClick={() => navigate(`/${variant.resourceId}`)}
+                            onClick={() => {
+                              setActiveProject(variant.projectId);
+                              navigate(`/${variant.resourceId}`);
+                            }}
                           >
                             {variantDraft ? 'Ouvrir pour valider' : 'Ouvrir'}
                           </Button>

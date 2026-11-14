@@ -28,7 +28,9 @@ export const useProcessViewer = (
   const importGenerationRef = useRef(0);
   const initialViewportAppliedRef = useRef(false);
   const fitModeRef = useRef(false);
-  const viewportStorageKey = `bpmn-tool:viewer-viewport:v2:${resourceId}:${contentId}`;
+  // v3 avoids restoring legacy default fit-to-window state; new user-selected
+  // zoom and position are still remembered independently for each process/version.
+  const viewportStorageKey = `bpmn-tool:viewer-viewport:v3:${resourceId}:${contentId}`;
   const showDiagramAtActualSizeRef = useRef<() => boolean>(() => false);
   const resizeDiagramRef = useRef<() => void>(() => undefined);
   const importQueueRef = useRef<Promise<unknown>>(Promise.resolve());
@@ -107,18 +109,9 @@ export const useProcessViewer = (
       bounds.height <= 0
     ) return false;
 
-    // One diagram unit per screen pixel: explicitly force the Viewer to 1:1,
-    // then align the diagram's upper-left corner with the viewport.
-    // Setting only a viewbox can be ignored after a previous fit-viewport transform.
-    canvas.zoom(1, { x: 0, y: 0 });
-    const currentViewbox = canvas.viewbox();
-    const scale = Number.isFinite(currentViewbox?.scale) && currentViewbox.scale > 0
-      ? currentViewbox.scale
-      : 1;
-    canvas.scroll({
-      dx: (currentViewbox.x - bounds.x) * scale,
-      dy: (currentViewbox.y - bounds.y) * scale,
-    });
+    // Match the visible diagram-space dimensions to the viewport dimensions:
+    // diagram-js therefore renders at exactly 1 diagram unit per screen pixel.
+    // Setting the viewbox origin to the BPMN bounds aligns its upper-left corner.
     canvas.viewbox({
       x: bounds.x,
       y: bounds.y,
