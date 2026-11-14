@@ -115,7 +115,9 @@ export class ResourceTypeOrmRepository implements ResourceRepository {
         );
 
         if (deletedResources?.length !== deletableIds.length) {
-          throw new Error('Error while deleting the complete resource hierarchy');
+          throw new Error(
+            'Error while deleting the complete resource hierarchy',
+          );
         }
       });
 
