@@ -179,7 +179,7 @@ async function main() {
     try {
       await reviewerPage.waitForFunction(() => {
         const transform = document.querySelector('.djs-container .viewport')?.getAttribute('transform') ?? '';
-        return /matrix\\(/.test(transform);
+        return /matrix\(/.test(transform);
       }, { timeout: 12000 });
     } catch (error) {
       const diagnostics = await reviewerPage.evaluate(() => ({
