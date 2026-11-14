@@ -795,8 +795,14 @@ test('Viewer opens at 1:1 and uses native fit-to-viewport for Ajuster', async ()
   const viewer = await read('src/Components/BusinessComponents/ProcessViewer/ProcessViewer.tsx');
 
   assert.match(hook, /const showDiagramAtActualSize = \(\): boolean =>/);
-  assert.match(hook, /One diagram unit per screen pixel/);
-  assert.match(hook, /canvas\.viewbox\(\{[\s\S]*?width,[\s\S]*?height,/);
+  const actualSize = hook.match(/const showDiagramAtActualSize = \(\): boolean => \{([\\s\\S]*?)\n  \};/)?.[1] ?? '';
+  assert.ok(actualSize.includes('canvas.zoom(1)'), '1:1 reset uses native bpmn-js zoom');
+  assert.ok(actualSize.includes('canvas.getAbsoluteBBox(element)'));
+  assert.ok(actualSize.includes('const minX = Math.min'));
+  assert.ok(actualSize.includes('const minY = Math.min'));
+  assert.ok(actualSize.includes('x: minX - 24'));
+  assert.ok(actualSize.includes('y: minY - 24'));
+  assert.doesNotMatch(actualSize, /canvas\\.resized/);
   assert.ok((hook.match(/window\.requestAnimationFrame/g) ?? []).length >= 2);
   assert.match(hook, /initialViewportAppliedRef\.current = restoredViewport \|\| showDiagramAtActualSize\(\);/);
   assert.match(hook, /new ResizeObserver\([\s\S]*?showDiagramAtActualSizeRef\.current\(\)/);
