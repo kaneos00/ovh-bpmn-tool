@@ -68,11 +68,17 @@ test('Viewer opens at 1:1 with the BPMN upper-left corner aligned to the viewpor
   const component = await read('src/Components/BusinessComponents/ProcessViewer/ProcessViewer.tsx');
 
   assert.ok(hook.includes('bpmn-tool:viewer-viewport:v3:'));
-  assert.ok(hook.includes('canvas.viewbox({'));
-  assert.ok(hook.includes('x: bounds.x'));
-  assert.ok(hook.includes('y: bounds.y'));
-  assert.ok(hook.includes('width,'));
-  assert.ok(hook.includes('height,'));
+  const actualSize = hook.match(/const showDiagramAtActualSize = \(\): boolean => \{([\\s\\S]*?)\n  \};/)?.[1] ?? '';
+  assert.ok(actualSize.includes('canvas.zoom(1)'), '1:1 reset uses the native bpmn-js zoom');
+  assert.ok(actualSize.includes("viewer.get('elementRegistry')"), 'diagram bounds come from the element registry');
+  assert.ok(actualSize.includes('canvas.getAbsoluteBBox(element)'), 'bounds include absolute BPMN element geometry');
+  assert.ok(actualSize.includes('const minX = Math.min'));
+  assert.ok(actualSize.includes('const minY = Math.min'));
+  assert.ok(actualSize.includes('x: minX - 24'));
+  assert.ok(actualSize.includes('y: minY - 24'));
+  assert.ok(actualSize.includes('width: actualSizeViewport.width'));
+  assert.ok(actualSize.includes('height: actualSizeViewport.height'));
+  assert.doesNotMatch(actualSize, /canvas\\.resized/);
   assert.doesNotMatch(hook, /canvas\.scroll\(\{/);
   assert.match(hook, /initialViewportAppliedRef\.current = restoredViewport \|\| showDiagramAtActualSize\(\);[\s\S]*?applySelectionRef\.current\(\);/);
   assert.match(hook, /new ResizeObserver\([\s\S]*?initialViewportAppliedRef\.current = showDiagramAtActualSizeRef\.current\(\)/);
