@@ -108,7 +108,7 @@ test('project home is a first-level tree item and opens the workspace root', asy
   assert.ok(hook.includes('name: `Accueil — ${projectForTree.name}`'));
   assert.ok(hook.includes("targetId: 'root'"));
   assert.ok(tree.includes("node?.id === 'project-home'"));
-  assert.ok(tree.includes("nodeId === 'project-home' ? 'root' : nodeId"));
+  assert.ok(tree.includes("contextMenu?.nodeId === 'project-home'"));
   assert.ok(tree.includes("onNodeClick(targetId)"));
   assert.ok(tree.includes("navigate('/root/add?type=folder')"));
   assert.ok(!tree.includes('Racine — ${activeProject.name}'));
