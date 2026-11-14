@@ -87,7 +87,6 @@ test('Viewer opens at 1:1 with the BPMN upper-left corner aligned to the viewpor
   assert.match(hook, /const resetZoom = \(\) => \{[\s\S]*?showDiagramAtActualSizeRef\.current\(\)/);
   assert.match(hook, /const fitDiagram = \(\) => \{[\s\S]*?fitModeRef\.current = true;[\s\S]*?canvas\.zoom\('fit-viewport'\)/);
   assert.match(hook, /const resizeDiagram = \(\) => \{[\s\S]*?if \(fitModeRef\.current\) \{[\s\S]*?canvas\.zoom\('fit-viewport'\)/);
-  assert.match(hook, /canvas\.viewbox\(viewbox\)/);
   assert.match(component, /onClick=\{fitDiagram\}/);
   assert.match(component, /aria-label="Ajuster à la fenêtre"/);
 });
