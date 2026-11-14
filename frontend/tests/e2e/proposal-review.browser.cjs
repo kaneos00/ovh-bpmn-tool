@@ -105,6 +105,14 @@ async function main() {
     assert.ok(created.body.cloneResourceId, 'The API did not return a proposal workspace');
     assert.ok(created.body.cloneContentId, 'The API did not return the proposal draft');
 
+    // A process without a request must not inherit another process's warning.
+    await reviewerPage.goto(`${baseUrl}/${sourceResourceId}`);
+    assert.equal(
+      await reviewerPage.getByText(/Une demande de modification est déjà ouverte pour cette version/).count(),
+      0,
+      'The active-request banner leaked onto a process without an open request',
+    );
+
     // The author's remark must be visible on the variant in its own project context.
     await authorPage.goto(
       `${baseUrl}/${variantResourceId}?elementId=Task_ProcessRequest`,
@@ -132,6 +140,36 @@ async function main() {
     });
     await reviewerPage.goto(`${baseUrl}/${variantResourceId}`);
     await reviewerPage.waitForTimeout(2000);
+
+    // Exercise the real Viewer controls: initial 1:1 and the explicit reset
+    // must both be observable in the rendered bpmn-js viewport.
+    const readViewerScale = () => reviewerPage.evaluate(() => {
+      const transform = document.querySelector('.djs-container .viewport')?.getAttribute('transform') ?? '';
+      const matrix = transform.match(/matrix\\(([^)]+)\\)/);
+      return matrix ? Number(matrix[1].split(/[ ,]+/)[0]) : null;
+    });
+    await reviewerPage.waitForFunction(() => {
+      const transform = document.querySelector('.djs-container .viewport')?.getAttribute('transform') ?? '';
+      return /matrix\\(/.test(transform);
+    });
+    const initialScale = await readViewerScale();
+    assert.ok(
+      initialScale !== null && Math.abs(initialScale - 1) < 0.02,
+      `The Viewer should initially be at 1:1, got scale ${initialScale}`,
+    );
+    await reviewerPage.getByRole('button', { name: 'Zoom avant' }).click();
+    await reviewerPage.waitForFunction(() => {
+      const transform = document.querySelector('.djs-container .viewport')?.getAttribute('transform') ?? '';
+      const matrix = transform.match(/matrix\\(([^)]+)\\)/);
+      return Boolean(matrix && Number(matrix[1].split(/[ ,]+/)[0]) > 1.01);
+    });
+    await reviewerPage.getByRole('button', { name: 'Zoom 1:1' }).click();
+    await reviewerPage.waitForFunction(() => {
+      const transform = document.querySelector('.djs-container .viewport')?.getAttribute('transform') ?? '';
+      const matrix = transform.match(/matrix\\(([^)]+)\\)/);
+      return Boolean(matrix && Math.abs(Number(matrix[1].split(/[ ,]+/)[0]) - 1) < 0.02);
+    });
+
     const variantDiagnostics = await reviewerPage.evaluate(async ({ resourceId, sourceResourceId }) => {
       const [resourceResponse, contentsResponse, sourceContentsResponse] = await Promise.all([
         fetch(`/bpmn-api/resources/${resourceId}`, { credentials: 'same-origin' }),
@@ -259,6 +297,12 @@ async function main() {
     await variantEntry.waitFor();
     await variantEntry.click();
     await reviewerPage.waitForURL(`**/${variantResourceId}`);
+
+    // The project home must be a visible first-level explorer node and return
+    // to /root rather than opening project settings.
+    await reviewerPage.getByText(/^Accueil — /).click();
+    await reviewerPage.waitForURL('**/root');
+    await reviewerPage.getByText('Processus du projet', { exact: true }).waitFor();
     const variantTask = reviewerPage.locator('.djs-element[data-element-id="Task_ProcessRequest"]');
     await variantTask.waitFor();
     await variantTask.click();
