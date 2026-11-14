@@ -79,6 +79,20 @@ async function main() {
     // is reloaded with the newly created variant in its project context.
     await openProjectWorkspace(reviewerPage);
 
+    // Verify that the source process History tab aggregates the new variant
+    // and identifies the project that owns it.
+    await reviewerPage.goto(`${baseUrl}/${sourceResourceId}`);
+    await reviewerPage.getByRole('tab', { name: 'Historique des versions' }).click();
+    await reviewerPage.getByText('Variantes de ce processus', { exact: true }).waitFor();
+    await reviewerPage.getByText('CI E2E — variante partenaire', { exact: true }).waitFor();
+    const owningProjectName = await reviewerPage.evaluate(async projectId => {
+      const response = await fetch('/bpmn-api/projects/me/workspace', { credentials: 'same-origin' });
+      const workspace = await response.json();
+      return workspace.projects.find(project => project.id === projectId)?.name ?? null;
+    }, projectId);
+    assert.ok(owningProjectName, 'The variant owning project is not present in the accessible workspace');
+    await reviewerPage.getByText(owningProjectName, { exact: true }).waitFor();
+
     // Submit the remark against the variant itself, not the common source.
     // This exercises the exact variant → proposal workspace → approved
     // publication path reported during manual testing.
@@ -104,6 +118,14 @@ async function main() {
     assert.ok(created.body.id, 'The API did not return a proposal id');
     assert.ok(created.body.cloneResourceId, 'The API did not return a proposal workspace');
     assert.ok(created.body.cloneContentId, 'The API did not return the proposal draft');
+
+    // The comment badge must appear on the exact process that owns the
+    // discussion, not merely as an aggregate count elsewhere in the explorer.
+    await reviewerPage.goto(`${baseUrl}/root`);
+    const commentBadge = reviewerPage.getByLabel('1 commentaire(s)');
+    await commentBadge.waitFor();
+    const commentTreeItem = commentBadge.locator('xpath=ancestor::*[@role="treeitem"][1]');
+    assert.match(await commentTreeItem.innerText(), /CI E2E — variante partenaire/);
 
     // A process without a request must not inherit another process's warning.
     await reviewerPage.goto(`${baseUrl}/${sourceResourceId}`);
