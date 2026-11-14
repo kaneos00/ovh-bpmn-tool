@@ -805,7 +805,8 @@ test('Viewer opens at 1:1 and uses native fit-to-viewport for Ajuster', async ()
   const actualSizeCode = actualSize.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
   assert.doesNotMatch(actualSizeCode, /canvas\.resized/);
   assert.ok((hook.match(/window\.requestAnimationFrame/g) ?? []).length >= 2);
-  assert.match(hook, /initialViewportAppliedRef\.current = restoredViewport \|\| showDiagramAtActualSize\(\);/);
+  assert.match(hook, /initialViewportAppliedRef\.current = showDiagramAtActualSize\(\);/);
+  assert.doesNotMatch(hook, /localStorage\.getItem\(|canvas\.viewbox\(viewbox\)/, 'saved viewport cannot override native 1:1 opening');
   assert.match(hook, /new ResizeObserver\([\s\S]*?showDiagramAtActualSizeRef\.current\(\)/);
   assert.match(hook, /const fitDiagram = \(\) =>[\s\S]*?canvas\.resized\?\.\(\);[\s\S]*?canvas\.zoom\('fit-viewport'\)/);
   assert.match(hook, /const resetZoom = \(\) =>[\s\S]*?showDiagramAtActualSizeRef\.current\(\)/);
