@@ -229,13 +229,32 @@ async function main() {
       return Boolean(matrix && Number(matrix[1].split(/[ ,]+/)[0]) > 1.01);
     });
     await reviewerPage.getByRole('button', { name: 'Zoom 1:1' }).click();
-    await reviewerPage.waitForFunction(() => {
-      const viewport = document.querySelector('.djs-container > svg:not(.map) > g.viewport');
-      const transform = viewport?.getAttribute('transform') || (viewport ? getComputedStyle(viewport).transform : '');
-      if (!transform || transform === 'none') return Boolean(viewport);
-      const matrix = transform.match(/matrix\(([^)]+)\)/);
-      return Boolean(matrix && Math.abs(Number(matrix[1].split(/[ ,]+/)[0]) - 1) < 0.02);
-    });
+    try {
+      await reviewerPage.waitForFunction(() => {
+        const viewport = document.querySelector('.djs-container > svg:not(.map) > g.viewport');
+        const transform = viewport?.getAttribute('transform') || (viewport ? getComputedStyle(viewport).transform : '');
+        if (!transform || transform === 'none') return Boolean(viewport);
+        const matrix = transform.match(/matrix\(([^)]+)\)/);
+        return Boolean(matrix && Math.abs(Number(matrix[1].split(/[ ,]+/)[0]) - 1) < 0.02);
+      }, { timeout: 8000 });
+    } catch (error) {
+      const diagnostics = await reviewerPage.evaluate(() => {
+        const viewport = document.querySelector('.djs-container > svg:not(.map) > g.viewport');
+        const svg = viewport?.ownerSVGElement;
+        const transform = viewport?.getAttribute('transform') || (viewport ? getComputedStyle(viewport).transform : '');
+        return {
+          transform,
+          computedTransform: viewport ? getComputedStyle(viewport).transform : null,
+          screenMatrix: viewport?.getScreenCTM?.()?.toString?.() ?? null,
+          viewportBox: viewport?.getBoundingClientRect?.().toJSON?.() ?? null,
+          svgBox: svg?.getBoundingClientRect?.().toJSON?.() ?? null,
+          savedViewport: Object.keys(localStorage)
+            .filter(key => key.startsWith('bpmn-tool:viewer-viewport:'))
+            .map(key => ({ key, value: localStorage.getItem(key) })),
+        };
+      });
+      throw new Error(\`Zoom 1:1 did not restore identity scale: \${JSON.stringify(diagnostics)}; \${error.message}\`);
+    }
 
     const variantDiagnostics = await reviewerPage.evaluate(async ({ resourceId, sourceResourceId }) => {
       const [resourceResponse, contentsResponse, sourceContentsResponse] = await Promise.all([
