@@ -73,7 +73,7 @@ test('Viewer opens at 1:1 with the BPMN upper-left corner aligned to the viewpor
   assert.ok(hook.includes('y: bounds.y'));
   assert.ok(hook.includes('width,'));
   assert.ok(hook.includes('height,'));
-  assert.doesNotMatch(hook, /canvas\\.scroll\\(\\{/);
+  assert.doesNotMatch(hook, /canvas\.scroll\(\{/);
   assert.match(hook, /initialViewportAppliedRef\.current = restoredViewport \|\| showDiagramAtActualSize\(\);[\s\S]*?applySelectionRef\.current\(\);/);
   assert.match(hook, /new ResizeObserver\([\s\S]*?initialViewportAppliedRef\.current = showDiagramAtActualSizeRef\.current\(\)/);
   assert.match(hook, /const resetZoom = \(\) => \{[\s\S]*?showDiagramAtActualSizeRef\.current\(\)/);
