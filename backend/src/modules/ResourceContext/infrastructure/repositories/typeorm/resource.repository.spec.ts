@@ -63,9 +63,7 @@ describe('ResourceTypeOrmRepository.delete', () => {
     );
     expect(manager.query).toHaveBeenNthCalledWith(
       4,
-      expect.stringContaining(
-        'UPDATE resources SET "sourceResourceId" = NULL',
-      ),
+      expect.stringContaining('UPDATE resources SET "sourceResourceId" = NULL'),
       [['root', 'child', 'grandchild']],
     );
     expect(manager.query).toHaveBeenNthCalledWith(
