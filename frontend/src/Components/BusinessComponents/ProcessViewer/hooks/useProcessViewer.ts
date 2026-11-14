@@ -96,7 +96,12 @@ export const useProcessViewer = (
     canvas.resized?.();
     const bounds = canvas.getBBox?.();
     const container = canvas.getContainer();
-    const { width, height } = container.getBoundingClientRect();
+    // Use the actual drawing surface dimensions. The canvas host can be narrower
+    // than the rendered SVG (for example when a viewer panel is constrained),
+    // which would leave an unintended scale after resetting to 1:1.
+    const diagramSvg = container.querySelector('svg:not(.map)') as SVGSVGElement | null;
+    const drawingSurface = diagramSvg ?? container;
+    const { width, height } = drawingSurface.getBoundingClientRect();
     if (
       !bounds ||
       !Number.isFinite(bounds.x) ||
