@@ -99,6 +99,10 @@ export const useProcessViewer = (
     const viewport = canvas.viewbox();
     if (!viewport || viewport.width <= 0 || viewport.height <= 0) return false;
 
+    // Use the BPMN model's diagram coordinates. getAbsoluteBBox() returns
+    // viewport-relative coordinates, which change whenever the user pans or
+    // zooms; feeding those values back into viewbox() makes repeated 1:1
+    // resets alternate between different positions.
     const bounds = elementRegistry
       .getAll()
       .filter((element: any) =>
@@ -109,14 +113,12 @@ export const useProcessViewer = (
         Number.isFinite(element.y) &&
         element.width > 0 &&
         element.height > 0,
-      )
-      .map((element: any) => canvas.getAbsoluteBBox(element))
-      .filter((bbox: any) => bbox && Number.isFinite(bbox.x) && Number.isFinite(bbox.y));
+      );
 
     if (!bounds.length) return false;
 
-    const minX = Math.min(...bounds.map((bbox: any) => bbox.x));
-    const minY = Math.min(...bounds.map((bbox: any) => bbox.y));
+    const minX = Math.min(...bounds.map((element: any) => element.x));
+    const minY = Math.min(...bounds.map((element: any) => element.y));
 
     canvas.zoom(1);
     const actualSizeViewport = canvas.viewbox();
