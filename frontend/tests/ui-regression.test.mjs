@@ -797,7 +797,9 @@ test('Viewer opens at 1:1 and uses native fit-to-viewport for Ajuster', async ()
   assert.match(hook, /const showDiagramAtActualSize = \(\): boolean =>/);
   const actualSize = hook.match(/const showDiagramAtActualSize = \(\): boolean => \{([\s\S]*?)\n  \};/)?.[1] ?? '';
   assert.ok(actualSize.includes('canvas.zoom(1)'), '1:1 reset uses native bpmn-js zoom');
-  assert.ok(actualSize.includes('canvas.getAbsoluteBBox(element)'));
+  assert.ok(actualSize.includes('element.x'));
+  assert.ok(actualSize.includes('element.y'));
+  assert.doesNotMatch(actualSize, /getAbsoluteBBox/);
   assert.ok(actualSize.includes('const minX = Math.min'));
   assert.ok(actualSize.includes('const minY = Math.min'));
   assert.ok(actualSize.includes('x: minX - 24'));
