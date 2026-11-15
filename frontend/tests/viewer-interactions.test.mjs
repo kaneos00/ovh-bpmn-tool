@@ -70,7 +70,9 @@ test('Viewer opens at 1:1 with the BPMN upper-left corner aligned to the viewpor
   const actualSize = hook.match(/const showDiagramAtActualSize = \(\): boolean => \{([\s\S]*?)\n  \};/)?.[1] ?? '';
   assert.ok(actualSize.includes('canvas.zoom(1)'), '1:1 reset uses the native bpmn-js zoom');
   assert.ok(actualSize.includes("viewer.get('elementRegistry')"), 'diagram bounds come from the element registry');
-  assert.ok(actualSize.includes('canvas.getAbsoluteBBox(element)'), 'bounds include absolute BPMN element geometry');
+  assert.ok(actualSize.includes('element.x'), 'the origin uses stable BPMN model coordinates');
+  assert.ok(actualSize.includes('element.y'), 'the origin uses stable BPMN model coordinates');
+  assert.doesNotMatch(actualSize, /getAbsoluteBBox/, 'viewport-relative bounds must never feed back into the viewbox');
   assert.ok(actualSize.includes('const minX = Math.min'));
   assert.ok(actualSize.includes('const minY = Math.min'));
   assert.ok(actualSize.includes('x: minX - 24'));
