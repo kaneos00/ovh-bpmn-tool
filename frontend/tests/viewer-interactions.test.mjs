@@ -80,7 +80,6 @@ test('Viewer opens at 1:1 with the BPMN upper-left corner aligned to the viewpor
   assert.ok(actualSize.includes('y: minY - 24'));
   assert.ok(actualSize.includes('width: actualSizeViewport.width'));
   assert.ok(actualSize.includes('height: actualSizeViewport.height'));
-  const actualSizeCode = actualSize.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
   assert.doesNotMatch(actualSizeCode, /canvas\.resized/);
   assert.doesNotMatch(hook, /canvas\.scroll\(\{/);
   assert.match(hook, /initialViewportAppliedRef\.current = showDiagramAtActualSize\(\);[\s\S]*?applySelectionRef\.current\(\);/);
