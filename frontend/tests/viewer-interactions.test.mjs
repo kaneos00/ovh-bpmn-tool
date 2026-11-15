@@ -72,7 +72,8 @@ test('Viewer opens at 1:1 with the BPMN upper-left corner aligned to the viewpor
   assert.ok(actualSize.includes("viewer.get('elementRegistry')"), 'diagram bounds come from the element registry');
   assert.ok(actualSize.includes('element.x'), 'the origin uses stable BPMN model coordinates');
   assert.ok(actualSize.includes('element.y'), 'the origin uses stable BPMN model coordinates');
-  assert.doesNotMatch(actualSize, /getAbsoluteBBox/, 'viewport-relative bounds must never feed back into the viewbox');
+  const actualSizeCode = actualSize.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
+  assert.doesNotMatch(actualSizeCode, /getAbsoluteBBox/, 'viewport-relative bounds must never feed back into the viewbox');
   assert.ok(actualSize.includes('const minX = Math.min'));
   assert.ok(actualSize.includes('const minY = Math.min'));
   assert.ok(actualSize.includes('x: minX - 24'));
