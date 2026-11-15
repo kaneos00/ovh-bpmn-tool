@@ -445,7 +445,7 @@ export const useProcessViewer = (
         });
         importedRef.current = true;
         // Wait for the Viewer canvas to receive its final flex layout,
-        // then center the process at the requested default scale of 1:1.
+        // then apply the same fixed 1:1, top-left viewport used by the toolbar.
         window.requestAnimationFrame(() => {
           window.requestAnimationFrame(() => {
             if (cancelled || generation !== importGenerationRef.current) return;
