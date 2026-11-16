@@ -1,0 +1,48 @@
+name: Format Issue 129 backend files
+
+on:
+  push:
+    branches:
+      - feat/issue-129-documentary-registry
+    paths:
+      - 'backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts'
+      - 'backend/src/modules/ProjectContext/infrastructure/entities/projectDocumentedSource.ormEntity.ts'
+      - 'backend/src/modules/ProjectContext/infrastructure/entities/projectDocumentedSourceReference.ormEntity.ts'
+      - 'backend/src/modules/SearchContext/unified-search.controller.ts'
+      - 'backend/src/modules/SearchContext/unified-search.service.ts'
+      - 'backend/src/modules/SearchContext/unified-search.service.spec.ts'
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: backend/pnpm-lock.yaml
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pnpm install --frozen-lockfile
+      - name: Apply ESLint auto-fixes
+        working-directory: backend
+        run: pnpm exec eslint --fix src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts src/modules/ProjectContext/infrastructure/entities/projectDocumentedSource.ormEntity.ts src/modules/ProjectContext/infrastructure/entities/projectDocumentedSourceReference.ormEntity.ts src/modules/SearchContext/unified-search.controller.ts src/modules/SearchContext/unified-search.service.ts src/modules/SearchContext/unified-search.service.spec.ts
+      - name: Commit formatting
+        run: |
+          if git diff --quiet; then
+            echo "No formatting changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts backend/src/modules/ProjectContext/infrastructure/entities/projectDocumentedSource.ormEntity.ts backend/src/modules/ProjectContext/infrastructure/entities/projectDocumentedSourceReference.ormEntity.ts backend/src/modules/SearchContext/unified-search.controller.ts backend/src/modules/SearchContext/unified-search.service.ts backend/src/modules/SearchContext/unified-search.service.spec.ts
+          git commit -m "style(#129): apply backend lint formatting"
+          git push
