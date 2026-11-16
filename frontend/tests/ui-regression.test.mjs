@@ -527,7 +527,7 @@ test('V3 central viewer exposes process-level documented information backed by c
   assert.match(inventory, /access/);
   assert.match(inventory, /authorizedPeople/);
   assert.match(inventory, /restrictions/);
-  assert.match(inventory, /apiClient\.put\(['"]\/projects\/['"] \+ projectId \+ ['"]\/documented-sources\/['"] \+ linked\.id/);
+  assert.ok(inventory.includes('apiClient.put(`/projects/${projectId}/documented-sources/${linked.id}`'));
   assert.doesNotMatch(inventory, /XMLSerializer|onSave|inventory:manifest/);
 });
 
