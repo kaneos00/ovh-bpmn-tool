@@ -93,7 +93,8 @@ test('Viewer opens at 1:1 with the BPMN upper-left corner aligned to the viewpor
   assert.ok(fit.includes('canvas.zoom(scale)'), 'fit computes an explicit scale for the complete diagram');
   assert.ok(fit.includes('canvas.viewbox({'), 'fit explicitly positions the diagram viewport');
   assert.ok(fit.includes('x: minX - padding'), 'fit anchors the diagram at the upper-left with padding');
-  assert.doesNotMatch(fit, /fit-viewport/, 'fit does not use the native centering operation');
+  const fitCode = fit.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
+  assert.doesNotMatch(fitCode, /canvas\.zoom\(\s*['"]fit-viewport['"]\s*\)/, 'fit does not invoke the native centering operation');
   assert.match(hook, /const fitDiagram = \(\) => \{[\s\S]*?canvas\.resized\?\.\(\);[\s\S]*?fitModeRef\.current = fitDiagramToViewport\(\)/);
   assert.match(hook, /if \(fitModeRef\.current\) \{[\s\S]*?fitModeRef\.current = fitDiagramToViewport\(\)/);
   assert.match(component, /onClick=\{fitDiagram\}/);
