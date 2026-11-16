@@ -7,6 +7,8 @@ import { ProjectProcessTypeOrmEntity } from '../ProjectContext/infrastructure/en
 import { ProjectMemberTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectMember.ormEntity';
 import { ProjectRaciEntryTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectRaciEntry.ormEntity';
 import { ProjectRaciActorTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectRaciActor.ormEntity';
+import { ProjectDocumentedSourceTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectDocumentedSource.ormEntity';
+import { ProjectDocumentedSourceReferenceTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectDocumentedSourceReference.ormEntity';
 import { UnifiedSearchController } from './unified-search.controller';
 import { UnifiedSearchService } from './unified-search.service';
 
@@ -19,6 +21,8 @@ import { UnifiedSearchService } from './unified-search.service';
       ProjectMemberTypeOrmEntity,
       ProjectRaciEntryTypeOrmEntity,
       ProjectRaciActorTypeOrmEntity,
+      ProjectDocumentedSourceTypeOrmEntity,
+      ProjectDocumentedSourceReferenceTypeOrmEntity,
     ]),
     ProjectContextModule,
   ],
