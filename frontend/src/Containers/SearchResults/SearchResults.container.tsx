@@ -303,7 +303,8 @@ export const Component = () => {
               <Option value="process">Processus</Option>
               <Option value="bpmn">Éléments BPMN</Option>
               <Option value="raci">Responsabilités RACI</Option>
-              <Option value="actor">Acteurs / rôles</Option>\n              <Option value="documented">Informations documentées</Option>
+              <Option value="actor">Acteurs / rôles</Option>
+              <Option value="documented">Informations documentées</Option>
             </Select>
 
             <Select<UnifiedSearchSource | ''>
@@ -317,7 +318,8 @@ export const Component = () => {
               <Option value="resource">Référentiel</Option>
               <Option value="bpmn">Contenu BPMN</Option>
               <Option value="project-raci">RACI du projet</Option>
-              <Option value="project-actor">Acteurs du projet</Option>\n              <Option value="project-document">Sources documentaires du projet</Option>
+              <Option value="project-actor">Acteurs du projet</Option>
+              <Option value="project-document">Sources documentaires du projet</Option>
             </Select>
 
             <Select<string>
