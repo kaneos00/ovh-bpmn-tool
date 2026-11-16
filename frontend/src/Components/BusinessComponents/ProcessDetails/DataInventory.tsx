@@ -199,6 +199,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
   const original = useMemo(() => readSources(xmlContent), [xmlContent]);
   const [sources, setSources] = useState<InventorySource[]>(original);
   const [saving, setSaving] = useState(false);
+  const [associatingElementId, setAssociatingElementId] = useState<string | null>(null);
   const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
   const [mergeTargets, setMergeTargets] = useState<Record<string, string>>({});
   const [pendingMerge, setPendingMerge] = useState<{ sourceId: string; targetId: string } | null>(null);
@@ -233,9 +234,12 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
   };
 
   const associate = async (source: InventorySource, sourceId: string) => {
-    if (!projectId || !canManageSources || !sourceId) return;
+    if (!projectId || !canManageSources || !sourceId || associatingElementId) return;
+    setAssociatingElementId(source.id);
     setError('');
     try {
+      // A documented source is reusable: this endpoint adds one BPMN reference
+      // to the selected project source; it does not consume or remove the option.
       await apiClient.post(`/projects/${projectId}/documented-sources/${sourceId}/references`, {
         resourceId,
         elementId: source.id,
@@ -252,6 +256,8 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
       await refreshProjectSources();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Impossible de rattacher cette référence.');
+    } finally {
+      setAssociatingElementId(null);
     }
   };
 
@@ -391,8 +397,8 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                   <td><Stack spacing={0.75} sx={{ minWidth: 210 }}>
                     <Chip size="sm" color={linked ? 'success' : 'warning'} variant="soft">{linked ? 'Rattaché au projet' : 'Nouveau'}</Chip>
                     {linked && <Typography level="body-xs" color="neutral">{linked.references.length} référence(s) dans le projet</Typography>}
-                    {!linked && canManageSources && projectSources.length > 0 && <Select size="sm" placeholder="Associer à une source…" value="" onChange={(_, value) => { if (value) void associate(source, value); }}>
-                      {projectSources.map(item => <Option key={item.id} value={item.id}>{sourceOptionLabel(item)}</Option>)}
+                    {!linked && canManageSources && projectSources.length > 0 && <Select size="sm" placeholder="Associer à une source existante…" value={null} disabled={associatingElementId === source.id} onChange={(_, value) => { if (value) void associate(source, value); }}>
+                      {projectSources.map(item => <Option key={item.id} value={item.id}>{sourceOptionLabel(item)} ({item.references.length} référence(s))</Option>)}
                     </Select>}
                     {!linked && canManageSources && editing && <Button size="sm" variant="outlined" color="neutral" loading={saving} disabled={saving || !source.name.trim()} onClick={() => void createCanonicalSource(source)}>Créer la source du projet</Button>}
                   </Stack></td>
