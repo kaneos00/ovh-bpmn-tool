@@ -484,6 +484,12 @@ export class ProjectDocumentedSourceController {
         );
       }
 
+      // Serialize concurrent attempts to reuse one source in the same BPMN resource.
+      await manager.query(
+        'SELECT pg_advisory_xact_lock(hashtext($1))',
+        [projectId + ':' + sourceId + ':' + reference.resourceId],
+      );
+
       const sourceAlreadyUsedInDiagram = await referenceRepository.findOne({
         where: {
           projectId,
