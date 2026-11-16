@@ -218,7 +218,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
   );
 
   const sourceOptionLabel = (source: ProjectDocumentedSource) => {
-    const processNames = [...new Set(source.references.map(reference => reference.processName))];
+    const processNames = Array.from(new Set(source.references.map(reference => reference.processName)));
     return processNames.length
       ? `${source.name} — ${processNames.join(', ')}`
       : source.name;
