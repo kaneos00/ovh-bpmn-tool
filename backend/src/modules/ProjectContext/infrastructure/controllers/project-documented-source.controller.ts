@@ -448,7 +448,7 @@ export class ProjectDocumentedSourceController {
       elementId?: string;
       elementName?: string;
       elementType?: string;
-    },
+    } & Partial<SourceFields>,
     @Headers() headers: RequestHeaders,
   ) {
     const userId = await this.access.assertProjectRole(
@@ -456,29 +456,51 @@ export class ProjectDocumentedSourceController {
       headers,
       ProjectMemberRole.Admin,
     );
-    await this.findActiveSource(projectId, sourceId);
     const reference = await this.validateReference(projectId, body);
-    const existing = await this.references.findOne({
-      where: {
-        projectId,
-        resourceId: reference.resourceId,
-        elementId: reference.elementId,
-      },
-    });
-    if (existing) {
-      if (existing.sourceId === sourceId) return existing;
-      throw new ConflictException(
-        'This BPMN element is already linked to another source',
+
+    return this.dataSource.transaction(async (manager) => {
+      const sourceRepository = manager.getRepository(
+        ProjectDocumentedSourceTypeOrmEntity,
       );
-    }
-    return this.references.save(
-      this.references.create({
-        ...reference,
-        projectId,
-        sourceId,
-        createdBy: userId,
-      }),
-    );
+      const referenceRepository = manager.getRepository(
+        ProjectDocumentedSourceReferenceTypeOrmEntity,
+      );
+      const source = await sourceRepository.findOne({
+        where: { id: sourceId, projectId, mergedIntoId: IsNull() },
+      });
+      if (!source)
+        throw new NotFoundException('Documented source not found');
+
+      const existing = await referenceRepository.findOne({
+        where: {
+          projectId,
+          resourceId: reference.resourceId,
+          elementId: reference.elementId,
+        },
+      });
+      if (existing) {
+        if (existing.sourceId === sourceId) return existing;
+        throw new ConflictException(
+          'This BPMN element is already linked to another source',
+        );
+      }
+
+      SOURCE_TEXT_FIELDS.forEach((field) => {
+        if (!(source[field] ?? '').trim() && body[field] !== undefined) {
+          source[field] = optionalText(body[field], field);
+        }
+      });
+      await sourceRepository.save(source);
+
+      return referenceRepository.save(
+        referenceRepository.create({
+          ...reference,
+          projectId,
+          sourceId,
+          createdBy: userId,
+        }),
+      );
+    });
   }
 
   @Post(':sourceId/merge')
