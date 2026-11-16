@@ -89,7 +89,11 @@ test('Viewer opens at 1:1 with the BPMN upper-left corner aligned to the viewpor
   assert.match(hook, /const resetZoom = \(\) => \{[\s\S]*?showDiagramAtActualSizeRef\.current\(\)/);
   const fit = hook.match(/const fitDiagramToViewport = \(\): boolean => \{([\s\S]*?)\n  \};/)?.[1] ?? '';
   assert.ok(fit.includes('container?.getBoundingClientRect()'), 'fit waits for a visible canvas viewport');
-  assert.ok(fit.includes("canvas.zoom('fit-viewport')"), 'fit uses diagram-js native full-diagram fitting and centering');
+  assert.ok(fit.includes('elementRegistry.getAll()'), 'fit reads complete BPMN model bounds');
+  assert.ok(fit.includes('canvas.zoom(scale)'), 'fit computes an explicit scale for the complete diagram');
+  assert.ok(fit.includes('canvas.viewbox({'), 'fit explicitly positions the diagram viewport');
+  assert.ok(fit.includes('x: minX - padding'), 'fit anchors the diagram at the upper-left with padding');
+  assert.doesNotMatch(fit, /fit-viewport/, 'fit does not use the native centering operation');
   assert.doesNotMatch(fit, /canvas\.viewbox\(/, 'fit does not maintain a second custom viewport algorithm');
   assert.doesNotMatch(fit, /elementRegistry/, 'fit delegates complete diagram bounds to diagram-js');
   assert.match(hook, /const fitDiagram = \(\) => \{[\s\S]*?canvas\.resized\?\.\(\);[\s\S]*?fitModeRef\.current = fitDiagramToViewport\(\)/);
