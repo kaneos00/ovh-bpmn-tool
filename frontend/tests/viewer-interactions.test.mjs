@@ -87,8 +87,16 @@ test('Viewer opens at 1:1 with the BPMN upper-left corner aligned to the viewpor
   assert.doesNotMatch(hook, /canvas\.viewbox\.changed/, 'opening no longer persists a prior viewport');
   assert.match(hook, /new ResizeObserver\([\s\S]*?initialViewportAppliedRef\.current = showDiagramAtActualSizeRef\.current\(\)/);
   assert.match(hook, /const resetZoom = \(\) => \{[\s\S]*?showDiagramAtActualSizeRef\.current\(\)/);
-  assert.match(hook, /const fitDiagram = \(\) => \{[\s\S]*?fitModeRef\.current = true;[\s\S]*?canvas\.zoom\('fit-viewport'\)/);
-  assert.match(hook, /const resizeDiagram = \(\) => \{[\s\S]*?if \(fitModeRef\.current\) \{[\s\S]*?canvas\.zoom\('fit-viewport'\)/);
+  const fit = hook.match(/const fitDiagramToViewport = \(\): boolean => \{([\s\S]*?)\n  \};/)?.[1] ?? '';
+  assert.ok(fit.includes("viewer.get('elementRegistry')"), 'fit uses the complete BPMN model');
+  assert.ok(fit.includes('element.waypoints'), 'fit includes connection extents');
+  assert.ok(fit.includes('container?.getBoundingClientRect()'), 'fit uses the visible canvas dimensions');
+  assert.ok(fit.includes('const scale = Math.min(availableWidth / diagramWidth, availableHeight / diagramHeight)'));
+  assert.ok(fit.includes('canvas.viewbox({'), 'fit applies a viewport sized to the available canvas');
+  assert.ok(fit.includes('(viewboxWidth - diagramWidth) / 2'), 'fit centers the diagram horizontally');
+  assert.ok(fit.includes('(viewboxHeight - diagramHeight) / 2'), 'fit centers the diagram vertically');
+  assert.match(hook, /const fitDiagram = \(\) => \{[\s\S]*?canvas\.resized\?\.\(\);[\s\S]*?fitModeRef\.current = fitDiagramToViewport\(\)/);
+  assert.match(hook, /if \(fitModeRef\.current\) \{[\s\S]*?fitModeRef\.current = fitDiagramToViewport\(\)/);
   assert.match(component, /onClick=\{fitDiagram\}/);
   assert.match(component, /aria-label="Ajuster à la fenêtre"/);
 });
