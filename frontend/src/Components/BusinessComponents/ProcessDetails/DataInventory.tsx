@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from 'react-query';
-import { Alert, Box, Button, Chip, IconButton, Input, Option, Select, Stack, Table, Textarea, Typography } from '@mui/joy';
+import { Alert, Box, Button, Chip, DialogActions, DialogContent, DialogTitle, IconButton, Input, Modal, ModalDialog, Option, Select, Stack, Table, Textarea, Typography } from '@mui/joy';
 import { EditOutlined, CenterFocusStrong, MergeType } from '@mui/icons-material';
 
 import { apiClient } from '../../../queryClient';
@@ -48,7 +48,6 @@ type Props = {
   projectId?: string | null;
   resourceId: string;
   canManageSources?: boolean;
-  onSave: (xml: string) => Promise<void>;
   onElementSelect?: (elementId: string) => void;
   onShowDiagram?: () => void;
 };
@@ -171,12 +170,13 @@ const BpmnDataSymbol = ({ type }: { type: BpmnDataType }) => (
   </svg>
 );
 
-export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canManageSources = false, onSave, onElementSelect, onShowDiagram }: Props) => {
+export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canManageSources = false, onElementSelect, onShowDiagram }: Props) => {
   const original = useMemo(() => readSources(xmlContent), [xmlContent]);
   const [sources, setSources] = useState<InventorySource[]>(original);
   const [saving, setSaving] = useState(false);
   const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
   const [mergeTargets, setMergeTargets] = useState<Record<string, string>>({});
+  const [pendingMerge, setPendingMerge] = useState<{ sourceId: string; targetId: string } | null>(null);
   const [error, setError] = useState('');
   const queryClient = useQueryClient();
   const projectSourcesQuery = useQuery<ProjectDocumentedSourcesResponse>(
@@ -241,14 +241,15 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
     }
   };
 
-  const mergeSources = async (sourceId: string) => {
-    if (!projectId || !canManageSources || !mergeTargets[sourceId]) return;
+  const mergeSources = async () => {
+    if (!projectId || !canManageSources || !pendingMerge) return;
     setError('');
     try {
-      await apiClient.post('/projects/' + projectId + '/documented-sources/' + sourceId + '/merge', {
-        targetSourceId: mergeTargets[sourceId],
+      await apiClient.post('/projects/' + projectId + '/documented-sources/' + pendingMerge.sourceId + '/merge', {
+        targetSourceId: pendingMerge.targetId,
       });
-      setMergeTargets(current => ({ ...current, [sourceId]: '' }));
+      setMergeTargets(current => ({ ...current, [pendingMerge.sourceId]: '' }));
+      setPendingMerge(null);
       await refreshProjectSources();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Impossible de fusionner les sources.');
@@ -256,52 +257,18 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
   };
 
   const save = async () => {
-    if (!xmlContent || saving) return;
+    if (!projectId || !canManageSources || saving) return;
     setSaving(true);
     setError('');
     try {
-      const doc = new DOMParser().parseFromString(xmlContent, 'application/xml');
-      if (doc.querySelector('parsererror')) throw new Error('Le BPMN publié est illisible.');
-      const definitions = doc.documentElement;
-      let extension = Array.from(definitions.children).find(node => node.localName === 'extensionElements');
-      if (!extension) {
-        extension = doc.createElementNS(definitions.namespaceURI, definitions.prefix ? definitions.prefix + ':extensionElements' : 'extensionElements');
-        definitions.insertBefore(extension, definitions.firstChild);
-      }
-      Array.from(extension.children).filter(node => node.namespaceURI === NS && ['source', 'manifest'].includes(node.localName)).forEach(node => node.remove());
-      if (!definitions.lookupNamespaceURI('inventory')) definitions.setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:inventory', NS);
-      extension.appendChild(doc.createElementNS(NS, 'inventory:manifest'));
-
+      const updates = new Map<string, InventorySource>();
       sources.forEach(source => {
-        const target = Array.from(doc.getElementsByTagName('*')).find(node => node.getAttribute('id') === source.id);
-        if (target) {
-          const documentationNodes = Array.from(target.children).filter(node => node.localName === 'documentation');
-          if (source.description.trim()) {
-            if (documentationNodes.length) {
-              documentationNodes[0].textContent = source.description.trim();
-              documentationNodes.slice(1).forEach(node => node.remove());
-            } else {
-              const documentation = doc.createElementNS(target.namespaceURI, target.prefix ? target.prefix + ':documentation' : 'documentation');
-              documentation.textContent = source.description.trim();
-              target.appendChild(documentation);
-            }
-          } else {
-            documentationNodes.forEach(node => node.remove());
-          }
-          const existingLink = Array.from(target.attributes).find(attribute => attribute.localName === 'link');
-          if (source.link.trim()) {
-            if (existingLink) existingLink.value = source.link.trim();
-            else target.setAttribute('link', source.link.trim());
-          } else if (existingLink) {
-            target.removeAttributeNS(existingLink.namespaceURI, existingLink.localName);
-          }
-        }
-
-        const node = doc.createElementNS(NS, 'inventory:source');
-        const values: Record<string, string> = {
-          id: source.id,
+        const linked = getLinkedSource(source.id);
+        if (linked) updates.set(linked.id, source);
+      });
+      for (const [sourceId, source] of updates) {
+        await apiClient.put('/projects/' + projectId + '/documented-sources/' + sourceId, {
           kind: source.kind,
-          bpmnType: source.bpmnType,
           name: source.name,
           description: source.description,
           link: source.link,
@@ -310,37 +277,12 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
           retention: source.retention,
           authorizedPeople: source.authorizedPeople,
           restrictions: source.restrictions,
-        };
-        Object.entries(values).forEach(([key, value]) => node.setAttribute(key, value));
-        extension!.appendChild(node);
-      });
-
-      // Once a BPMN reference is linked, the project-level source is canonical.
-      // Keep the BPMN element's shared fields in sync when the administrator edits it.
-      if (projectId && canManageSources) {
-        const linkedIds = new Set<string>();
-        for (const source of sources) {
-          const linked = getLinkedSource(source.id);
-          if (!linked || linkedIds.has(linked.id)) continue;
-          linkedIds.add(linked.id);
-          await apiClient.put('/projects/' + projectId + '/documented-sources/' + linked.id, {
-            kind: source.kind,
-            name: source.name,
-            description: source.description,
-            link: source.link,
-            location: source.location,
-            access: source.access,
-            retention: source.retention,
-            authorizedPeople: source.authorizedPeople,
-            restrictions: source.restrictions,
-          });
-        }
+        });
       }
-
-      await onSave(new XMLSerializer().serializeToString(doc));
+      setEditingSourceId(null);
       await refreshProjectSources();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Enregistrement impossible.');
+      setError(e instanceof Error ? e.message : 'Impossible d’enregistrer la source documentaire.');
     } finally {
       setSaving(false);
     }
@@ -354,7 +296,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
             <Typography level="title-lg">Informations documentées</Typography>
             <Typography level="body-sm" color="neutral">Sources utilisées par ce processus, informations de référence et règles d’accès à l’échelle du projet.</Typography>
           </Box>
-          {canEdit && <Button size="sm" loading={saving} disabled={saving || !xmlContent} onClick={save}>Enregistrer</Button>}
+          {canEdit && editingSourceId && <Button size="sm" loading={saving} disabled={saving} onClick={save}>Enregistrer la source</Button>}
         </Stack>
         {error && <Alert color="danger" variant="soft">{error}</Alert>}
         {projectSourcesQuery.isError && <Alert color="warning" variant="soft">Le référentiel documentaire du projet est momentanément indisponible. Les informations BPMN locales restent consultables.</Alert>}
@@ -416,7 +358,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                     {canManageSources && linked && otherSources.length > 0 && <Select size="sm" placeholder="Fusionner avec…" value={mergeTargets[linked.id] ?? ''} onChange={(_, value) => setMergeTargets(current => ({ ...current, [linked.id]: value ?? '' }))}>
                       {otherSources.map(item => <Option key={item.id} value={item.id}>{item.name}</Option>)}
                     </Select>}
-                    {canManageSources && linked && mergeTargets[linked.id] && <Button size="sm" color="warning" variant="soft" startDecorator={<MergeType />} onClick={() => void mergeSources(linked.id)}>Fusionner</Button>}
+                    {canManageSources && linked && mergeTargets[linked.id] && <Button size="sm" color="warning" variant="soft" startDecorator={<MergeType />} onClick={() => setPendingMerge({ sourceId: linked.id, targetId: mergeTargets[linked.id] })}>Fusionner</Button>}
                   </Stack></td>
                 </tr>;
               })}</tbody>
@@ -424,6 +366,30 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
           </Box>
         )}
       </Stack>
+      <Modal open={Boolean(pendingMerge)} onClose={() => setPendingMerge(null)}>
+        <ModalDialog>
+          <DialogTitle>Confirmer la fusion des sources</DialogTitle>
+          <DialogContent>
+            {(() => {
+              const absorbed = projectSources.find(item => item.id === pendingMerge?.sourceId);
+              const retained = projectSources.find(item => item.id === pendingMerge?.targetId);
+              return (
+                <Stack spacing={1}>
+                  <Typography level="body-sm">Source absorbée :</Typography>
+                  <Typography level="title-md">{absorbed?.name ?? 'Source à fusionner'}</Typography>
+                  <Typography level="body-sm">Source conservée :</Typography>
+                  <Typography level="title-md">{retained?.name ?? 'Source cible'}</Typography>
+                  <Typography level="body-sm" color="warning">Les références BPMN seront transférées vers la source conservée. Les diagrammes BPMN ne seront pas modifiés.</Typography>
+                </Stack>
+              );
+            })()}
+          </DialogContent>
+          <DialogActions>
+            <Button variant="plain" color="neutral" onClick={() => setPendingMerge(null)}>Annuler</Button>
+            <Button color="warning" onClick={() => void mergeSources()}>Confirmer la fusion</Button>
+          </DialogActions>
+        </ModalDialog>
+      </Modal>
     </Box>
   );
 };
