@@ -334,7 +334,6 @@ describe('BPMN search extraction', () => {
   });
 });
 
-
 describe('documented source search', () => {
   const source = {
     name: 'Plan de formation',
@@ -367,6 +366,8 @@ describe('documented source search', () => {
   });
 
   it('returns no match when no documented field contains the query', () => {
-    expect(findDocumentedSourceSearchMatch(source, 'facturation')).toBeUndefined();
+    expect(
+      findDocumentedSourceSearchMatch(source, 'facturation'),
+    ).toBeUndefined();
   });
 });
