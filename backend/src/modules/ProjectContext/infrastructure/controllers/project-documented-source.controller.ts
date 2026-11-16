@@ -26,8 +26,18 @@ import { ProjectResourceAccessService } from '../../projectResourceAccess.servic
 
 type RequestHeaders = Record<string, string | undefined>;
 type SourceKind = 'file' | 'database' | 'application' | 'form';
-type SourceFields = Pick<ProjectDocumentedSourceTypeOrmEntity,
-  'kind' | 'name' | 'description' | 'link' | 'location' | 'access' | 'retention' | 'authorizedPeople' | 'restrictions'>;
+type SourceFields = Pick<
+  ProjectDocumentedSourceTypeOrmEntity,
+  | 'kind'
+  | 'name'
+  | 'description'
+  | 'link'
+  | 'location'
+  | 'access'
+  | 'retention'
+  | 'authorizedPeople'
+  | 'restrictions'
+>;
 
 type BpmnDataElement = {
   resourceId: string;
@@ -67,9 +77,11 @@ const SOURCE_TEXT_FIELDS = [
 
 const optionalText = (value: unknown, field: string): string | null => {
   if (value === undefined || value === null) return null;
-  if (typeof value !== 'string') throw new BadRequestException(field + ' must be a string');
+  if (typeof value !== 'string')
+    throw new BadRequestException(field + ' must be a string');
   const trimmed = value.trim();
-  if (trimmed.length > 10000) throw new BadRequestException(field + ' is too long');
+  if (trimmed.length > 10000)
+    throw new BadRequestException(field + ' is too long');
   return trimmed || null;
 };
 
@@ -80,23 +92,29 @@ const readAttribute = (node: Record<string, unknown>, name: string): string => {
 
 const collectXmlText = (value: unknown): string => {
   if (typeof value === 'string') return value.trim();
-  if (Array.isArray(value)) return value.map(collectXmlText).filter(Boolean).join(' ');
+  if (Array.isArray(value))
+    return value.map(collectXmlText).filter(Boolean).join(' ');
   if (!value || typeof value !== 'object') return '';
   const node = value as Record<string, unknown>;
   if (typeof node['#text'] === 'string') return node['#text'].trim();
   return Object.values(node).map(collectXmlText).filter(Boolean).join(' ');
 };
 
-const walk = (value: unknown, visit: (node: Record<string, unknown>, key: string) => void, key = ''): void => {
+const walk = (
+  value: unknown,
+  visit: (node: Record<string, unknown>, key: string) => void,
+  key = '',
+): void => {
   if (Array.isArray(value)) {
-    value.forEach(item => walk(item, visit, key));
+    value.forEach((item) => walk(item, visit, key));
     return;
   }
   if (!value || typeof value !== 'object') return;
   const node = value as Record<string, unknown>;
   visit(node, key);
   Object.entries(node).forEach(([childKey, child]) => {
-    if (!childKey.startsWith('@_') && childKey !== '#text') walk(child, visit, childKey);
+    if (!childKey.startsWith('@_') && childKey !== '#text')
+      walk(child, visit, childKey);
   });
 };
 
@@ -105,46 +123,61 @@ const extractBpmnDataElements = (
   resourceId: string,
   processName: string,
 ): BpmnDataElement[] => {
-  if (!xml || xml.length > 1_000_000 || /<!DOCTYPE|<!ENTITY/i.test(xml)) return [];
+  if (!xml || xml.length > 1_000_000 || /<!DOCTYPE|<!ENTITY/i.test(xml))
+    return [];
   try {
     const parsed = parser.parse(xml) as Record<string, unknown>;
     const objectNames = new Map<string, string>();
-    const objectDetails = new Map<string, { description: string; link: string }>();
+    const objectDetails = new Map<
+      string,
+      { description: string; link: string }
+    >();
     const inventoryById = new Map<string, Record<string, string>>();
     walk(parsed, (node, key) => {
       if (key === 'dataStore' || key === 'dataObject') {
         const id = readAttribute(node, 'id');
         const name = readAttribute(node, 'name');
         if (id && name) objectNames.set(id, name);
-        if (id) objectDetails.set(id, {
-          description: collectXmlText(node.documentation),
-          link: readAttribute(node, 'link'),
-        });
+        if (id)
+          objectDetails.set(id, {
+            description: collectXmlText(node.documentation),
+            link: readAttribute(node, 'link'),
+          });
       }
       if (key === 'source' && readAttribute(node, 'bpmnType')) {
         const id = readAttribute(node, 'id');
-        if (id) inventoryById.set(id, {
-          description: readAttribute(node, 'description'),
-          link: readAttribute(node, 'link'),
-          location: readAttribute(node, 'location'),
-          access: readAttribute(node, 'access'),
-          retention: readAttribute(node, 'retention'),
-          authorizedPeople: readAttribute(node, 'authorizedPeople'),
-          restrictions: readAttribute(node, 'restrictions'),
-        });
+        if (id)
+          inventoryById.set(id, {
+            description: readAttribute(node, 'description'),
+            link: readAttribute(node, 'link'),
+            location: readAttribute(node, 'location'),
+            access: readAttribute(node, 'access'),
+            retention: readAttribute(node, 'retention'),
+            authorizedPeople: readAttribute(node, 'authorizedPeople'),
+            restrictions: readAttribute(node, 'restrictions'),
+          });
       }
     });
 
     const result: BpmnDataElement[] = [];
-    const supported = new Set(['dataObjectReference', 'dataStoreReference', 'dataInput', 'dataOutput']);
+    const supported = new Set([
+      'dataObjectReference',
+      'dataStoreReference',
+      'dataInput',
+      'dataOutput',
+    ]);
     walk(parsed, (node, key) => {
       if (!supported.has(key)) return;
       const elementId = readAttribute(node, 'id');
       if (!elementId) return;
-      const referenceId = key === 'dataStoreReference'
-        ? readAttribute(node, 'dataStoreRef')
-        : readAttribute(node, 'dataObjectRef');
-      const elementName = readAttribute(node, 'name') || objectNames.get(referenceId) || elementId;
+      const referenceId =
+        key === 'dataStoreReference'
+          ? readAttribute(node, 'dataStoreRef')
+          : readAttribute(node, 'dataObjectRef');
+      const elementName =
+        readAttribute(node, 'name') ||
+        objectNames.get(referenceId) ||
+        elementId;
       const metadata = inventoryById.get(elementId) ?? {};
       const referencedDetails = objectDetails.get(referenceId);
       result.push({
@@ -153,8 +186,16 @@ const extractBpmnDataElements = (
         elementId,
         elementName,
         elementType: key,
-        description: collectXmlText(node.documentation) || referencedDetails?.description || metadata.description || '',
-        link: readAttribute(node, 'link') || referencedDetails?.link || metadata.link || '',
+        description:
+          collectXmlText(node.documentation) ||
+          referencedDetails?.description ||
+          metadata.description ||
+          '',
+        link:
+          readAttribute(node, 'link') ||
+          referencedDetails?.link ||
+          metadata.link ||
+          '',
         location: metadata.location || '',
         access: metadata.access || '',
         retention: metadata.retention || '',
@@ -191,40 +232,57 @@ export class ProjectDocumentedSourceController {
     @Param('projectId') projectId: string,
     @Headers() headers: RequestHeaders,
   ) {
-    await this.access.assertProjectRole(projectId, headers, ProjectMemberRole.Viewer);
+    await this.access.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Viewer,
+    );
     const [sources, references, links] = await Promise.all([
       this.sources.find({
         where: { projectId, mergedIntoId: IsNull() },
         order: { name: 'ASC' },
       }),
-      this.references.find({ where: { projectId }, order: { createdAt: 'ASC' } }),
+      this.references.find({
+        where: { projectId },
+        order: { createdAt: 'ASC' },
+      }),
       this.projectProcesses.find({ where: { projectId } }),
     ]);
 
-    const resourceIds = [...new Set(links.map(link => link.resourceId))];
+    const resourceIds = [...new Set(links.map((link) => link.resourceId))];
     const resources = resourceIds.length
       ? await this.resources.find({ where: { id: In(resourceIds) } })
       : [];
     const publishedContents = resourceIds.length
       ? await this.contents.find({
-          where: { resourceId: In(resourceIds), status: ContentStatusEnum.Published },
+          where: {
+            resourceId: In(resourceIds),
+            status: ContentStatusEnum.Published,
+          },
           order: { version: 'DESC', updatedAt: 'DESC' },
         })
       : [];
 
-    const resourceById = new Map(resources.map(resource => [resource.id, resource]));
+    const resourceById = new Map(
+      resources.map((resource) => [resource.id, resource]),
+    );
     const contentByResource = new Map<string, ContentTypeOrmEntity>();
-    publishedContents.forEach(content => {
-      if (!contentByResource.has(content.resourceId)) contentByResource.set(content.resourceId, content);
+    publishedContents.forEach((content) => {
+      if (!contentByResource.has(content.resourceId))
+        contentByResource.set(content.resourceId, content);
     });
 
-    const referencesBySource = new Map<string, Array<Record<string, unknown>>>();
-    references.forEach(reference => {
+    const referencesBySource = new Map<
+      string,
+      Array<Record<string, unknown>>
+    >();
+    references.forEach((reference) => {
       const rows = referencesBySource.get(reference.sourceId) ?? [];
       rows.push({
         id: reference.id,
         resourceId: reference.resourceId,
-        processName: resourceById.get(reference.resourceId)?.name ?? reference.resourceId,
+        processName:
+          resourceById.get(reference.resourceId)?.name ?? reference.resourceId,
         elementId: reference.elementId,
         elementName: reference.elementName,
         elementType: reference.elementType,
@@ -232,25 +290,35 @@ export class ProjectDocumentedSourceController {
       referencesBySource.set(reference.sourceId, rows);
     });
 
-    const linkedKeys = new Set(references.map(reference => reference.resourceId + ':' + reference.elementId));
+    const linkedKeys = new Set(
+      references.map(
+        (reference) => reference.resourceId + ':' + reference.elementId,
+      ),
+    );
     const unlinkedReferences: BpmnDataElement[] = [];
-    resourceIds.forEach(resourceId => {
+    resourceIds.forEach((resourceId) => {
       const resource = resourceById.get(resourceId);
       const content = contentByResource.get(resourceId);
       if (!resource || !content) return;
-      extractBpmnDataElements(content.content, resourceId, resource.name).forEach(element => {
-        if (!linkedKeys.has(element.resourceId + ':' + element.elementId)) unlinkedReferences.push(element);
+      extractBpmnDataElements(
+        content.content,
+        resourceId,
+        resource.name,
+      ).forEach((element) => {
+        if (!linkedKeys.has(element.resourceId + ':' + element.elementId))
+          unlinkedReferences.push(element);
       });
     });
 
     return {
-      sources: sources.map(source => ({
+      sources: sources.map((source) => ({
         ...source,
         references: referencesBySource.get(source.id) ?? [],
       })),
-      unlinkedReferences: unlinkedReferences.sort((left, right) =>
-        left.processName.localeCompare(right.processName, 'fr') ||
-        left.elementName.localeCompare(right.elementName, 'fr'),
+      unlinkedReferences: unlinkedReferences.sort(
+        (left, right) =>
+          left.processName.localeCompare(right.processName, 'fr') ||
+          left.elementName.localeCompare(right.elementName, 'fr'),
       ),
     };
   }
@@ -259,43 +327,73 @@ export class ProjectDocumentedSourceController {
   @UseAcl([UserGroup.RW])
   async create(
     @Param('projectId') projectId: string,
-    @Body() body: SourceFields & { resourceId?: string; elementId?: string; elementName?: string; elementType?: string },
+    @Body()
+    body: SourceFields & {
+      resourceId?: string;
+      elementId?: string;
+      elementName?: string;
+      elementType?: string;
+    },
     @Headers() headers: RequestHeaders,
   ) {
-    const userId = await this.access.assertProjectRole(projectId, headers, ProjectMemberRole.Admin);
+    const userId = await this.access.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Admin,
+    );
     const reference = await this.validateReference(projectId, body);
     const name = typeof body.name === 'string' ? body.name.trim() : '';
-    if (!name || name.length > 255) throw new BadRequestException('name must contain 1 to 255 characters');
+    if (!name || name.length > 255)
+      throw new BadRequestException('name must contain 1 to 255 characters');
     const kind = body.kind ?? 'file';
-    if (!SOURCE_KINDS.includes(kind)) throw new BadRequestException('Unsupported source kind');
+    if (!SOURCE_KINDS.includes(kind))
+      throw new BadRequestException('Unsupported source kind');
 
-    return this.dataSource.transaction(async manager => {
-      const sourceRepository = manager.getRepository(ProjectDocumentedSourceTypeOrmEntity);
-      const referenceRepository = manager.getRepository(ProjectDocumentedSourceReferenceTypeOrmEntity);
+    return this.dataSource.transaction(async (manager) => {
+      const sourceRepository = manager.getRepository(
+        ProjectDocumentedSourceTypeOrmEntity,
+      );
+      const referenceRepository = manager.getRepository(
+        ProjectDocumentedSourceReferenceTypeOrmEntity,
+      );
       const existing = await referenceRepository.findOne({
-        where: { projectId, resourceId: reference.resourceId, elementId: reference.elementId },
+        where: {
+          projectId,
+          resourceId: reference.resourceId,
+          elementId: reference.elementId,
+        },
       });
-      if (existing) throw new ConflictException('This BPMN element is already linked to a documented source');
+      if (existing)
+        throw new ConflictException(
+          'This BPMN element is already linked to a documented source',
+        );
 
-      const source = await sourceRepository.save(sourceRepository.create({
-        projectId,
-        createdBy: userId,
-        kind,
-        name,
-        description: optionalText(body.description, 'description'),
-        link: optionalText(body.link, 'link'),
-        location: optionalText(body.location, 'location'),
-        access: optionalText(body.access, 'access'),
-        retention: optionalText(body.retention, 'retention'),
-        authorizedPeople: optionalText(body.authorizedPeople, 'authorizedPeople'),
-        restrictions: optionalText(body.restrictions, 'restrictions'),
-      }));
-      const sourceReference = await referenceRepository.save(referenceRepository.create({
-        ...reference,
-        projectId,
-        sourceId: source.id,
-        createdBy: userId,
-      }));
+      const source = await sourceRepository.save(
+        sourceRepository.create({
+          projectId,
+          createdBy: userId,
+          kind,
+          name,
+          description: optionalText(body.description, 'description'),
+          link: optionalText(body.link, 'link'),
+          location: optionalText(body.location, 'location'),
+          access: optionalText(body.access, 'access'),
+          retention: optionalText(body.retention, 'retention'),
+          authorizedPeople: optionalText(
+            body.authorizedPeople,
+            'authorizedPeople',
+          ),
+          restrictions: optionalText(body.restrictions, 'restrictions'),
+        }),
+      );
+      const sourceReference = await referenceRepository.save(
+        referenceRepository.create({
+          ...reference,
+          projectId,
+          sourceId: source.id,
+          createdBy: userId,
+        }),
+      );
       return { ...source, references: [sourceReference] };
     });
   }
@@ -308,19 +406,26 @@ export class ProjectDocumentedSourceController {
     @Body() body: Partial<SourceFields>,
     @Headers() headers: RequestHeaders,
   ) {
-    await this.access.assertProjectRole(projectId, headers, ProjectMemberRole.Admin);
+    await this.access.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Admin,
+    );
     const source = await this.findActiveSource(projectId, sourceId);
     if (body.kind !== undefined) {
-      if (!SOURCE_KINDS.includes(body.kind)) throw new BadRequestException('Unsupported source kind');
+      if (!SOURCE_KINDS.includes(body.kind))
+        throw new BadRequestException('Unsupported source kind');
       source.kind = body.kind;
     }
     if (body.name !== undefined) {
       const name = body.name.trim();
-      if (!name || name.length > 255) throw new BadRequestException('name must contain 1 to 255 characters');
+      if (!name || name.length > 255)
+        throw new BadRequestException('name must contain 1 to 255 characters');
       source.name = name;
     }
-    SOURCE_TEXT_FIELDS.forEach(field => {
-      if (body[field] !== undefined) source[field] = optionalText(body[field], field);
+    SOURCE_TEXT_FIELDS.forEach((field) => {
+      if (body[field] !== undefined)
+        source[field] = optionalText(body[field], field);
     });
     return this.sources.save(source);
   }
@@ -330,25 +435,43 @@ export class ProjectDocumentedSourceController {
   async addReference(
     @Param('projectId') projectId: string,
     @Param('sourceId') sourceId: string,
-    @Body() body: { resourceId?: string; elementId?: string; elementName?: string; elementType?: string },
+    @Body()
+    body: {
+      resourceId?: string;
+      elementId?: string;
+      elementName?: string;
+      elementType?: string;
+    },
     @Headers() headers: RequestHeaders,
   ) {
-    const userId = await this.access.assertProjectRole(projectId, headers, ProjectMemberRole.Admin);
+    const userId = await this.access.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Admin,
+    );
     await this.findActiveSource(projectId, sourceId);
     const reference = await this.validateReference(projectId, body);
     const existing = await this.references.findOne({
-      where: { projectId, resourceId: reference.resourceId, elementId: reference.elementId },
+      where: {
+        projectId,
+        resourceId: reference.resourceId,
+        elementId: reference.elementId,
+      },
     });
     if (existing) {
       if (existing.sourceId === sourceId) return existing;
-      throw new ConflictException('This BPMN element is already linked to another source');
+      throw new ConflictException(
+        'This BPMN element is already linked to another source',
+      );
     }
-    return this.references.save(this.references.create({
-      ...reference,
-      projectId,
-      sourceId,
-      createdBy: userId,
-    }));
+    return this.references.save(
+      this.references.create({
+        ...reference,
+        projectId,
+        sourceId,
+        createdBy: userId,
+      }),
+    );
   }
 
   @Post(':sourceId/merge')
@@ -359,27 +482,52 @@ export class ProjectDocumentedSourceController {
     @Body() body: { targetSourceId?: string },
     @Headers() headers: RequestHeaders,
   ) {
-    const userId = await this.access.assertProjectRole(projectId, headers, ProjectMemberRole.Admin);
+    const userId = await this.access.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Admin,
+    );
     const targetId = body.targetSourceId?.trim();
-    if (!targetId || targetId === sourceId) throw new BadRequestException('targetSourceId must identify another source');
+    if (!targetId || targetId === sourceId)
+      throw new BadRequestException(
+        'targetSourceId must identify another source',
+      );
 
-    return this.dataSource.transaction(async manager => {
-      const sourceRepository = manager.getRepository(ProjectDocumentedSourceTypeOrmEntity);
-      const referenceRepository = manager.getRepository(ProjectDocumentedSourceReferenceTypeOrmEntity);
-      const source = await sourceRepository.findOne({ where: { id: sourceId, projectId, mergedIntoId: IsNull() } });
-      const target = await sourceRepository.findOne({ where: { id: targetId, projectId, mergedIntoId: IsNull() } });
-      if (!source || !target) throw new NotFoundException('Documented source not found in this project');
+    return this.dataSource.transaction(async (manager) => {
+      const sourceRepository = manager.getRepository(
+        ProjectDocumentedSourceTypeOrmEntity,
+      );
+      const referenceRepository = manager.getRepository(
+        ProjectDocumentedSourceReferenceTypeOrmEntity,
+      );
+      const source = await sourceRepository.findOne({
+        where: { id: sourceId, projectId, mergedIntoId: IsNull() },
+      });
+      const target = await sourceRepository.findOne({
+        where: { id: targetId, projectId, mergedIntoId: IsNull() },
+      });
+      if (!source || !target)
+        throw new NotFoundException(
+          'Documented source not found in this project',
+        );
 
-      SOURCE_TEXT_FIELDS.forEach(field => {
-        if (!(target[field] ?? '').trim() && (source[field] ?? '').trim()) target[field] = source[field];
+      SOURCE_TEXT_FIELDS.forEach((field) => {
+        if (!(target[field] ?? '').trim() && (source[field] ?? '').trim())
+          target[field] = source[field];
       });
       if (!target.name.trim() && source.name.trim()) target.name = source.name;
       await sourceRepository.save(target);
 
-      const sourceReferences = await referenceRepository.find({ where: { projectId, sourceId } });
+      const sourceReferences = await referenceRepository.find({
+        where: { projectId, sourceId },
+      });
       for (const reference of sourceReferences) {
         const duplicate = await referenceRepository.findOne({
-          where: { projectId, resourceId: reference.resourceId, elementId: reference.elementId },
+          where: {
+            projectId,
+            resourceId: reference.resourceId,
+            elementId: reference.elementId,
+          },
         });
         if (duplicate && duplicate.id !== reference.id) {
           await referenceRepository.delete({ id: reference.id });
@@ -407,20 +555,38 @@ export class ProjectDocumentedSourceController {
 
   private async validateReference(
     projectId: string,
-    body: { resourceId?: string; elementId?: string; elementName?: string; elementType?: string },
+    body: {
+      resourceId?: string;
+      elementId?: string;
+      elementName?: string;
+      elementType?: string;
+    },
   ) {
     const resourceId = body.resourceId?.trim();
     const elementId = body.elementId?.trim();
     const elementName = body.elementName?.trim();
     const elementType = body.elementType?.trim();
     if (!resourceId || !elementId || !elementName || !elementType) {
-      throw new BadRequestException('resourceId, elementId, elementName and elementType are required');
+      throw new BadRequestException(
+        'resourceId, elementId, elementName and elementType are required',
+      );
     }
-    if (elementId.length > 255 || elementName.length > 255 || elementType.length > 64) {
-      throw new BadRequestException('BPMN element reference contains an oversized field');
+    if (
+      elementId.length > 255 ||
+      elementName.length > 255 ||
+      elementType.length > 64
+    ) {
+      throw new BadRequestException(
+        'BPMN element reference contains an oversized field',
+      );
     }
-    const linkedProcess = await this.projectProcesses.findOne({ where: { projectId, resourceId } });
-    if (!linkedProcess) throw new BadRequestException('The process is not linked to this project');
+    const linkedProcess = await this.projectProcesses.findOne({
+      where: { projectId, resourceId },
+    });
+    if (!linkedProcess)
+      throw new BadRequestException(
+        'The process is not linked to this project',
+      );
     return { resourceId, elementId, elementName, elementType };
   }
 }
