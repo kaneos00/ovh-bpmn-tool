@@ -5,11 +5,14 @@ import { ContentTypeOrmEntity } from '../ResourceContext/infrastructure/entities
 import { ProjectController } from './infrastructure/controllers/project.controller';
 import { ProcessChangeProposalController } from './infrastructure/controllers/process-change-proposal.controller';
 import { ProjectRaciController } from './infrastructure/controllers/project-raci.controller';
+import { ProjectDocumentedSourceController } from './infrastructure/controllers/project-documented-source.controller';
 import { ProjectMemberTypeOrmEntity } from './infrastructure/entities/projectMember.ormEntity';
 import { ProjectProcessTypeOrmEntity } from './infrastructure/entities/projectProcess.ormEntity';
 import { ProjectTypeOrmEntity } from './infrastructure/entities/project.ormEntity';
 import { ProjectRaciEntryTypeOrmEntity } from './infrastructure/entities/projectRaciEntry.ormEntity';
 import { ProjectRaciActorTypeOrmEntity } from './infrastructure/entities/projectRaciActor.ormEntity';
+import { ProjectDocumentedSourceTypeOrmEntity } from './infrastructure/entities/projectDocumentedSource.ormEntity';
+import { ProjectDocumentedSourceReferenceTypeOrmEntity } from './infrastructure/entities/projectDocumentedSourceReference.ormEntity';
 import { ProcessChangeProposalTypeOrmEntity } from './infrastructure/entities/processChangeProposal.ormEntity';
 import { ProcessChangeProposalEventTypeOrmEntity } from './infrastructure/entities/processChangeProposalEvent.ormEntity';
 import { ProcessChangeProposalCommentTypeOrmEntity } from './infrastructure/entities/processChangeProposalComment.ormEntity';
@@ -25,6 +28,8 @@ import { ProjectResourceAccessService } from './projectResourceAccess.service';
       ContentTypeOrmEntity,
       ProjectRaciEntryTypeOrmEntity,
       ProjectRaciActorTypeOrmEntity,
+      ProjectDocumentedSourceTypeOrmEntity,
+      ProjectDocumentedSourceReferenceTypeOrmEntity,
       ProcessChangeProposalTypeOrmEntity,
       ProcessChangeProposalEventTypeOrmEntity,
       ProcessChangeProposalCommentTypeOrmEntity,
@@ -33,6 +38,7 @@ import { ProjectResourceAccessService } from './projectResourceAccess.service';
   controllers: [
     ProjectController,
     ProjectRaciController,
+    ProjectDocumentedSourceController,
     ProcessChangeProposalController,
   ],
   providers: [ProjectResourceAccessService],
