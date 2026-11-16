@@ -1084,6 +1084,10 @@ test('project documented information uses canonical sources within one process a
   assert.ok(controller.includes('ProjectMemberRole.Admin'));
   assert.ok(controller.includes('targetSourceId'));
   assert.ok(controller.includes('unlinkedReferences'));
+  assert.ok(controller.includes('BPMN_DOCUMENTED_DATA_TYPES'));
+  assert.ok(controller.includes('conflictingFields'));
+  assert.ok(controller.includes('Resolve conflicting fields before merging'));
+
   assert.ok(sourceEntity.includes('mergedIntoId'));
   assert.ok(referenceEntity.includes('elementId'));
   assert.ok(migration.includes('project_documented_source_references_unique_element'));
