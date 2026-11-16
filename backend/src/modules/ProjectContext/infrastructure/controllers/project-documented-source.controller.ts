@@ -525,7 +525,7 @@ export class ProjectDocumentedSourceController {
       });
       if (conflictingFields.length) {
         throw new ConflictException(
-          'Resolve conflicting fields before merging: ' +
+          'Fusion impossible. Valeurs à arbitrer pour les champs : ' +
             conflictingFields.join(', '),
         );
       }
