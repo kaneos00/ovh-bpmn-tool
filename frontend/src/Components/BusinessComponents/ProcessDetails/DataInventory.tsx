@@ -408,7 +408,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                   <Typography level="title-md">{absorbed?.name ?? 'Source à fusionner'}</Typography>
                   <Typography level="body-sm">Source conservée :</Typography>
                   <Typography level="title-md">{retained?.name ?? 'Source cible'}</Typography>
-                  <Typography level="body-sm" color="warning">Les références BPMN seront transférées vers la source conservée. Les diagrammes BPMN ne seront pas modifiés.</Typography>
+                  <Typography level="body-sm" color="warning">Les références BPMN seront transférées vers la source conservée. Les champs vides seront complétés ; si deux valeurs sont différentes, la fusion sera bloquée pour éviter toute perte d’information. Les diagrammes BPMN ne seront pas modifiés.</Typography>
                 </Stack>
               );
             })()}
