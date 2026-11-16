@@ -1649,6 +1649,9 @@ export const ProcessDetails = ({
             <DataInventory
               xmlContent={xmlContent}
               canEdit={canEditDescription}
+              projectId={projectForProcess?.id}
+              resourceId={resourceId}
+              canManageSources={projectForProcess?.role === 'admin'}
               onSave={async updatedXml => {
                 if (!viewerContent) throw new Error('Aucune version publiée à mettre à jour.');
                 await saveContent(resourceId, viewerContent.id, { content: updatedXml });
