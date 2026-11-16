@@ -397,7 +397,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                   <td><Stack spacing={0.75} sx={{ minWidth: 210 }}>
                     <Chip size="sm" color={linked ? 'success' : 'warning'} variant="soft">{linked ? 'Rattaché au projet' : 'Nouveau'}</Chip>
                     {linked && <Typography level="body-xs" color="neutral">{linked.references.length} référence(s) dans le projet</Typography>}
-                    {!linked && canManageSources && projectSources.length > 0 && <Select size="sm" placeholder="Associer à une source existante…" value={null} disabled={associatingElementId === source.id} onChange={(_, value) => { if (value) void associate(source, value); }}>
+                    {!linked && canManageSources && projectSources.length > 0 && <Select<string> size="sm" placeholder="Associer à une source existante…" value={null} disabled={associatingElementId === source.id} onChange={(_, value) => { if (typeof value === 'string' && value.length > 0) void associate(source, value); }}>
                       {projectSources.map(item => <Option key={item.id} value={item.id}>{sourceOptionLabel(item)} ({item.references.length} référence(s))</Option>)}
                     </Select>}
                     {!linked && canManageSources && editing && <Button size="sm" variant="outlined" color="neutral" loading={saving} disabled={saving || !source.name.trim()} onClick={() => void createCanonicalSource(source)}>Créer la source du projet</Button>}
