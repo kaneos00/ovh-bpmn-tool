@@ -71,6 +71,38 @@ const MAX_OFFSET = 10000;
 const MAX_BPMN_DOCUMENTS = 200;
 const MAX_BPMN_BYTES = 1_000_000;
 
+export function findDocumentedSourceSearchMatch(
+  source: Pick<
+    ProjectDocumentedSourceTypeOrmEntity,
+    | 'name'
+    | 'description'
+    | 'link'
+    | 'location'
+    | 'access'
+    | 'retention'
+    | 'authorizedPeople'
+    | 'restrictions'
+  >,
+  normalizedQuery: string,
+): { value: string; field: string } | undefined {
+  const fields = [
+    { value: source.name, field: 'nom' },
+    { value: source.description ?? '', field: 'description' },
+    { value: source.link ?? '', field: 'lien' },
+    { value: source.location ?? '', field: 'emplacement' },
+    { value: source.access ?? '', field: 'accès' },
+    { value: source.retention ?? '', field: 'rétention' },
+    {
+      value: source.authorizedPeople ?? '',
+      field: 'personnes autorisées',
+    },
+    { value: source.restrictions ?? '', field: 'restrictions' },
+  ];
+  return fields.find(
+    ({ value }) => value && isSearchTextMatch(value, normalizedQuery),
+  );
+}
+
 const parser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: '@_',
@@ -801,21 +833,9 @@ export class UnifiedSearchService {
           )
         )
           continue;
-        const fields = [
-          { value: source.name, field: 'nom' },
-          { value: source.description ?? '', field: 'description' },
-          { value: source.link ?? '', field: 'lien' },
-          { value: source.location ?? '', field: 'emplacement' },
-          { value: source.access ?? '', field: 'accès' },
-          { value: source.retention ?? '', field: 'rétention' },
-          {
-            value: source.authorizedPeople ?? '',
-            field: 'personnes autorisées',
-          },
-          { value: source.restrictions ?? '', field: 'restrictions' },
-        ];
-        const match = fields.find(
-          ({ value }) => value && isSearchTextMatch(value, normalizedQuery),
+        const match = findDocumentedSourceSearchMatch(
+          source,
+          normalizedQuery,
         );
         if (!match) continue;
         results.push({
