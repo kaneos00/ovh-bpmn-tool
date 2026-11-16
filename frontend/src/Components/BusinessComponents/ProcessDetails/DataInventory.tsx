@@ -362,7 +362,12 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                 const areaField = (key: 'description' | 'restrictions', label: string) => editing
                   ? <Textarea size="sm" minRows={2} value={source[key]} onChange={e => update(source.id, key, e.target.value)} placeholder={label} aria-label={label} />
                   : <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', minWidth: 130 }}>{String(display(key) || '—')}</Typography>;
-                const otherSources = projectSources.filter(item => item.id !== linked?.id);
+                // A canonical source may be reused across different BPMN diagrams,
+                // but it must not be attached to a second object in this same diagram.
+                const otherSources = projectSources.filter(item =>
+                  item.id !== linked?.id &&
+                  !item.references.some(reference => reference.resourceId === resourceId),
+                );
                 const sourceKind = linked?.kind ?? source.kind;
                 const sourceKindLabel = ({
                   file: 'Fichier',

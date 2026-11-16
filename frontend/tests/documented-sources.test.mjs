@@ -49,3 +49,15 @@ test('one project source can be referenced by multiple BPMN elements', async () 
   assert.match(migration, /UNIQUE \("projectId", "resourceId", "elementId"\)/);
   assert.doesNotMatch(migration, /UNIQUE \("projectId", "sourceId"\)/);
 });
+
+
+test('a canonical documented source can be reused only once per BPMN resource', async () => {
+  const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
+
+  assert.match(inventory, /!item\.references\.some\(reference => reference\.resourceId === resourceId\)/);
+  assert.match(controller, /sourceAlreadyUsedInDiagram/);
+  assert.match(controller, /This documented source is already linked to an object in this BPMN diagram/);
+  assert.match(controller, /crossElementDiagramConflict/);
+  assert.match(controller, /Fusion impossible : les deux sources sont déjà utilisées par des objets différents dans un même diagramme BPMN/);
+});

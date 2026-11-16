@@ -484,6 +484,19 @@ export class ProjectDocumentedSourceController {
         );
       }
 
+      const sourceAlreadyUsedInDiagram = await referenceRepository.findOne({
+        where: {
+          projectId,
+          sourceId,
+          resourceId: reference.resourceId,
+        },
+      });
+      if (sourceAlreadyUsedInDiagram) {
+        throw new ConflictException(
+          'This documented source is already linked to an object in this BPMN diagram',
+        );
+      }
+
       SOURCE_TEXT_FIELDS.forEach((field) => {
         if (!(source[field] ?? '').trim() && body[field] !== undefined) {
           source[field] = optionalText(body[field], field);
@@ -538,6 +551,23 @@ export class ProjectDocumentedSourceController {
         throw new NotFoundException(
           'Documented source not found in this project',
         );
+
+      const [sourceReferencesForMerge, targetReferencesForMerge] = await Promise.all([
+        referenceRepository.find({ where: { projectId, sourceId } }),
+        referenceRepository.find({ where: { projectId, sourceId: targetId } }),
+      ]);
+      const targetResourceElements = new Map(
+        targetReferencesForMerge.map((reference) => [reference.resourceId, reference.elementId]),
+      );
+      const crossElementDiagramConflict = sourceReferencesForMerge.some((reference) => {
+        const targetElementId = targetResourceElements.get(reference.resourceId);
+        return targetElementId !== undefined && targetElementId !== reference.elementId;
+      });
+      if (crossElementDiagramConflict) {
+        throw new ConflictException(
+          'Fusion impossible : les deux sources sont déjà utilisées par des objets différents dans un même diagramme BPMN.',
+        );
+      }
 
       const conflictingFields =
         source.link?.trim() &&
