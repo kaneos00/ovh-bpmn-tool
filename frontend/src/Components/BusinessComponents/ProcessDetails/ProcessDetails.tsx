@@ -116,6 +116,8 @@ type ProcessDetailsProps = {
   requestedRaciView?: boolean;
 };
 
+const BPMN_DATA_SOURCE_TYPES = new Set(['dataObjectReference', 'dataStoreReference', 'dataInput', 'dataOutput']);
+
 const BPMN_ACTIVITY_TYPES = new Set([
   'task',
   'userTask',
@@ -569,6 +571,29 @@ export const ProcessDetails = ({
     return () => window.removeEventListener('keydown', onHistoryShortcut);
   }, [navigate]);
 
+  const { data: documentedSourcesData } = useQuery<{
+    sources: Array<{
+      id: string;
+      name: string;
+      description: string | null;
+      link: string | null;
+      references: Array<{ resourceId: string; elementId: string }>;
+    }>;
+  }>(
+    ['project-documented-sources', projectForProcess?.id],
+    () => apiClient.get(`/projects/${projectForProcess?.id}/documented-sources`),
+    { enabled: Boolean(projectForProcess?.id) },
+  );
+  const selectedDocumentedSource = useMemo(
+    () => documentedSourcesData?.sources.find(source =>
+      source.references.some(reference => reference.resourceId === resourceId && reference.elementId === selectedElementId),
+    ),
+    [documentedSourcesData, resourceId, selectedElementId],
+  );
+  const canEditSelectedElement = canEditDescription && (
+    !selectedDocumentedSource || projectForProcess?.role === 'admin'
+  );
+
   const selectedTask = useMemo(() => {
     if (!xmlContent || !selectedElementId) return null;
 
@@ -580,19 +605,37 @@ export const ProcessDetails = ({
     );
     if (!element) return null;
 
-    const documentation = Array.from(element.children)
-      .filter(child => child.localName === 'documentation')
-      .map(child => (child.textContent ?? '').trim())
-      .filter(Boolean);
+    const referenceAttribute = element.localName === 'dataStoreReference' ? 'dataStoreRef' : 'dataObjectRef';
+    const referencedId = element.getAttribute(referenceAttribute) || '';
+    const referencedElement = referencedId
+      ? Array.from(document.getElementsByTagName('*')).find(candidate => candidate.getAttribute('id') === referencedId)
+      : undefined;
+    const readDocumentation = (candidate?: Element) => candidate
+      ? Array.from(candidate.children)
+          .filter(child => child.localName === 'documentation')
+          .map(child => (child.textContent ?? '').trim())
+          .filter(Boolean)
+      : [];
+    let documentation: string[];
+    if (selectedDocumentedSource) {
+      documentation = [selectedDocumentedSource.description ?? ''].filter(Boolean);
+    } else {
+      const elementDocumentation = readDocumentation(element);
+      documentation = elementDocumentation.length ? elementDocumentation : readDocumentation(referencedElement);
+    }
+    const readLink = (candidate?: Element) => candidate
+      ? Array.from(candidate.attributes).find(attribute => attribute.localName === 'link')?.value?.trim() || ''
+      : '';
+    const externalUrl = selectedDocumentedSource?.link || readLink(element) || readLink(referencedElement);
 
     return {
       id: selectedElementId,
       name: element.getAttribute('name')?.trim() || selectedElementId,
       type: element.localName,
       documentation,
-      externalUrl: Array.from(element.attributes).find(attribute => attribute.localName === 'link')?.value?.trim() || '',
+      externalUrl,
     };
-  }, [xmlContent, selectedElementId]);
+  }, [xmlContent, selectedElementId, selectedDocumentedSource]);
 
   const selectedTaskRaci = useMemo(
     () => raciMatrix.activities.find(activity => activity.elementId === selectedElementId),
@@ -645,6 +688,33 @@ export const ProcessDetails = ({
       const xmlDocument = new DOMParser().parseFromString(xmlContent, 'application/xml');
       if (xmlDocument.getElementsByTagName('parsererror').length > 0) {
         throw new Error('Le contenu BPMN ne peut pas être analysé.');
+      }
+
+      const isDocumentedDataElement = BPMN_DATA_SOURCE_TYPES.has(selectedTask.type);
+      if (isDocumentedDataElement && selectedDocumentedSource && projectForProcess?.id) {
+        const description = descriptionDraft.trim();
+        const externalUrl = urlDraft.trim();
+        await apiClient.put(
+          `/projects/${projectForProcess.id}/documented-sources/${selectedDocumentedSource.id}`,
+          { description, link: externalUrl },
+        );
+        const title = titleDraft.trim();
+        if (title !== selectedTask.name) {
+          const linkedElement = Array.from(xmlDocument.getElementsByTagName('*')).find(
+            candidate => candidate.getAttribute('id') === selectedTask.id,
+          );
+          if (!linkedElement) throw new Error('L’élément sélectionné est introuvable dans le BPMN.');
+          if (title) linkedElement.setAttribute('name', title);
+          else linkedElement.removeAttribute('name');
+          await saveContent(resourceId, viewerContent?.id ?? publishedContent.id, {
+            content: new XMLSerializer().serializeToString(xmlDocument),
+          });
+          await queryClient.invalidateQueries(xmlContentQuery.queryKey);
+        }
+        await queryClient.invalidateQueries(['project-documented-sources', projectForProcess.id]);
+        setIsEditingDescription(false);
+        showAlert({ message: 'Fiche de la source documentaire enregistrée.', severity: 'success' });
+        return;
       }
 
       const targetElement = Array.from(xmlDocument.getElementsByTagName('*')).find(
@@ -984,7 +1054,7 @@ export const ProcessDetails = ({
                             <Typography level="title-lg">{selectedTask.name}</Typography>
                           )}
                         </Box>
-                        {canEditDescription && !isEditingDescription && (
+                        {canEditSelectedElement && !isEditingDescription && (
                           <IconButton
                             size="sm"
                             variant="plain"
@@ -1029,7 +1099,7 @@ export const ProcessDetails = ({
 
                       <Divider />
                       <Stack spacing={1}>
-                        <Typography level="title-sm">1. Description de la tâche</Typography>
+                        <Typography level="title-sm">1. Description</Typography>
                         {isEditingDescription && (
                           <Typography level="body-xs" textColor="neutral">Description modifiable</Typography>
                         )}
@@ -1110,13 +1180,13 @@ export const ProcessDetails = ({
 
                       <Divider />
                       <Stack spacing={1}>
-                        <Typography level="title-sm">3. Documentation</Typography>
+                        <Typography level="title-sm">3. Lien</Typography>
                         {isEditingDescription && (
                           <Input
                             value={urlDraft}
                             onChange={event => setUrlDraft(event.target.value)}
                             placeholder="https://…"
-                            aria-label="URL de documentation"
+                            aria-label="Lien"
                             disabled={isSavingDescription}
                             size="sm"
                           />
@@ -1648,13 +1718,10 @@ export const ProcessDetails = ({
           <Sheet className="processViewerInfo" variant="outlined" sx={{ height: '100%', overflow: 'auto' }}>
             <DataInventory
               xmlContent={xmlContent}
-              canEdit={canEditDescription}
-              onSave={async updatedXml => {
-                if (!viewerContent) throw new Error('Aucune version publiée à mettre à jour.');
-                await saveContent(resourceId, viewerContent.id, { content: updatedXml });
-                await queryClient.invalidateQueries(xmlContentQuery.queryKey);
-                showAlert({ message: 'Inventaire des données enregistré.', severity: 'success' });
-              }}
+              canEdit={projectForProcess?.role === 'admin'}
+              projectId={projectForProcess?.id}
+              resourceId={resourceId}
+              canManageSources={projectForProcess?.role === 'admin'}
               onElementSelect={elementId => { setActiveViewerTab(0); onElementSelect?.(elementId); }}
               onShowDiagram={() => setActiveViewerTab(0)}
             />

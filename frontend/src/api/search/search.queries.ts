@@ -1,11 +1,12 @@
 import { apiClient } from '../../queryClient';
 
-export type UnifiedSearchType = 'process' | 'bpmn' | 'raci' | 'actor';
+export type UnifiedSearchType = 'process' | 'bpmn' | 'raci' | 'actor' | 'documented';
 export type UnifiedSearchSource =
   | 'resource'
   | 'bpmn'
   | 'project-raci'
-  | 'project-actor';
+  | 'project-actor'
+  | 'project-document';
 export type UnifiedSearchRole = 'R' | 'A' | 'C' | 'I';
 
 export type UnifiedSearchResult = {

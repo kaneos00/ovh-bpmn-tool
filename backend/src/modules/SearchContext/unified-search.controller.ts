@@ -13,12 +13,19 @@ import type {
   SearchResultType,
 } from './unified-search.service';
 
-const SEARCH_TYPES: SearchResultType[] = ['process', 'bpmn', 'raci', 'actor'];
+const SEARCH_TYPES: SearchResultType[] = [
+  'process',
+  'bpmn',
+  'raci',
+  'actor',
+  'documented',
+];
 const SEARCH_SOURCES: SearchResultSource[] = [
   'resource',
   'bpmn',
   'project-raci',
   'project-actor',
+  'project-document',
 ];
 
 @Controller('search')

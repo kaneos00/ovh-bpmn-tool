@@ -218,9 +218,9 @@ test('detail panel starts collapsed, opens on selection and closes when the sele
   assert.match(details, /second click on the same BPMN element/);
   assert.match(details, /className="viewerPanelHeader processTaskPanelHeader"[\s\S]*?onClick=\{\(\) => setTaskPanelCollapsed\(value => !value\)\}/);
   assert.match(details, /aria-label=\{taskPanelCollapsed \? 'Développer le panneau de tâche' : 'Replier le panneau de tâche'\}/);
-  const taskInfo = details.indexOf('1. Description de la tâche');
+  const taskInfo = details.indexOf('1. Description');
   const raci = details.indexOf('2. RACI');
-  const documentation = details.indexOf('3. Documentation');
+  const documentation = details.indexOf('3. Lien');
   assert.ok(taskInfo >= 0 && raci > taskInfo && documentation > raci, 'detail sections should stay in the required order');
 });
 
@@ -308,7 +308,7 @@ test('viewer element details editing is permission-gated and saves title, descri
 
   assert.match(details, /fetch\(\`\$\{apiBase\}\/auth\/session\`/);
   assert.match(details, /sessionRole === 'admin' \|\| sessionRole === 'modeler'/);
-  assert.match(details, /canEditDescription && !isEditingDescription/);
+  assert.match(details, /canEditSelectedElement && !isEditingDescription/);
   assert.match(details, /aria-label="Modifier la fiche de l’élément"/);
   assert.match(details, /<Input[\s\S]*?value=\{titleDraft\}[\s\S]*?onChange=/);
   assert.match(details, /<Textarea[\s\S]*?value=\{descriptionDraft\}[\s\S]*?onChange=/);
@@ -320,7 +320,7 @@ test('viewer element details editing is permission-gated and saves title, descri
   assert.match(details, /attribute: 'informed'/);
   assert.match(details, /<Button[\s\S]*?onClick=\{cancelDescriptionEdit\}[\s\S]*?Annuler/);
   assert.match(details, /<Button[\s\S]*?onClick=\{saveDescriptionEdit\}[\s\S]*?Enregistrer/);
-  assert.match(details, /await saveContent\(resourceId, viewerContent\?\.id \?\? publishedContent\.id, \{ content: updatedXml \}\)/);
+  assert.match(details, /await apiClient\.put\([\s\S]*?documented-sources\/[\s\S]*?selectedDocumentedSource\.id/);
   assert.match(details, /new XMLSerializer\(\)\.serializeToString\(xmlDocument\)/);
   assert.match(details, /await queryClient\.invalidateQueries\(xmlContentQuery\.queryKey\)/);
   assert.match(details, /sx=\{\{ ml: 1, mt: 0\.25, flex: '0 0 auto' \}\}/);
@@ -510,22 +510,25 @@ test('V3 process details exposes a central editable description tab only to auth
 });
 
 
-test('V3 central viewer exposes the data inventory and saves it through the existing BPMN content API', async () => {
+test('V3 central viewer exposes process-level documented information backed by canonical project sources', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
 
   assert.match(details, /<Tab value=\{4\}>Informations documentées<\/Tab>/);
   assert.match(details, /<TabPanel value=\{4\} className="processViewerTabPanel">[\s\S]*?<DataInventory/s);
-  assert.match(details, /await saveContent\(resourceId, viewerContent\.id, \{ content: updatedXml \}\)/);
-  assert.match(details, /canEdit=\{canEditDescription\}/);
+  assert.match(details, /canEdit=\{projectForProcess\?\.role === 'admin'\}/);
   assert.match(inventory, /getElementsByTagNameNS\(NS, 'source'\)/);
-  assert.match(inventory, /getElementsByTagNameNS\(NS, 'manifest'\)/);
-  assert.match(inventory, /hasInventoryManifest \|\| saved\.length/);
-  assert.match(inventory, /inventory:manifest/);
+  assert.match(inventory, /child\.localName === 'documentation'/);
+  assert.match(inventory, /attribute\.localName === 'link'/);
+  assert.match(inventory, /getReferencedElement/);
+  assert.match(inventory, /savedIds/);
   assert.match(inventory, /dataObjectReference.*dataStoreReference/s);
-  assert.match(inventory, /Gestion des accès/);
-  assert.match(inventory, /Personnes autorisées/);
-  assert.match(inventory, /Modalités de restriction/);
+  assert.match(inventory, /location/);
+  assert.match(inventory, /access/);
+  assert.match(inventory, /authorizedPeople/);
+  assert.match(inventory, /restrictions/);
+  assert.match(inventory, /apiClient\.put\(\`\/projects\/\$\{projectId\}\/documented-sources\/\$\{linked\.id\}\`/);
+  assert.doesNotMatch(inventory, /XMLSerializer|onSave|inventory:manifest/);
 });
 
 test('canonical process viewer restores element selection and RACI tab from route query parameters', async () => {
@@ -1048,4 +1051,49 @@ test('project home falls back to workspace process membership when the global re
   assert.ok(overview.includes('The project workspace can still provide the process list'));
   assert.ok(overview.includes('Les processus associés au projet sont affichés'));
   assert.ok(overview.includes('activeProject?.processes.forEach'));
+});
+
+
+test('project documented information uses canonical sources within one process and prepares project-wide data', async () => {
+  const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const root = await read('src/Containers/BpmnLayout/FolderOverview.tsx');
+  const summary = await read('src/Containers/BpmnLayout/ProjectDocumentedInformationOverview.tsx');
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
+  const sourceEntity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/projectDocumentedSource.ormEntity.ts');
+  const referenceEntity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/projectDocumentedSourceReference.ormEntity.ts');
+  const migration = await read('../backend/migrations/20261116_v3_project_documented_sources.sql');
+  const search = await read('../backend/src/modules/SearchContext/unified-search.service.ts');
+  const searchPage = await read('src/Containers/SearchResults/SearchResults.container.tsx');
+
+  assert.ok(inventory.includes("child.localName === 'documentation'"));
+  assert.ok(inventory.includes("attribute.localName === 'link'"));
+  assert.ok(inventory.includes('getReferencedElement'));
+  assert.ok(inventory.includes('<th>Description</th><th>Lien</th>'));
+  assert.ok(inventory.includes("'Nouveau'"));
+  assert.ok(inventory.includes('/references'));
+  assert.ok(inventory.includes('/merge'));
+  assert.ok(inventory.includes('Confirmer la fusion des sources'));
+  assert.doesNotMatch(inventory, /XMLSerializer|onSave|inventory:manifest/, 'documented source metadata is not written back into BPMN XML');
+  assert.ok(details.includes('canManageSources={projectForProcess?.role === \'admin\'}'));
+  assert.ok(details.includes('canEdit={projectForProcess?.role === \'admin\'}'));
+  assert.ok(details.includes('selectedDocumentedSource.description'));
+  assert.ok(details.includes('selectedDocumentedSource?.link'));
+  assert.ok(details.includes('3. Lien'));
+  assert.ok(details.includes('/documented-sources/'));
+  assert.ok(root.includes('ProjectDocumentedInformationOverview'));
+  assert.ok(root.includes('<Tab value={1}>Informations documentées</Tab>'));
+  assert.ok(summary.includes('Informations documentées du projet'));
+  assert.ok(summary.includes('Nouveaux éléments à rattacher'));
+  assert.ok(summary.includes('Personnes autorisées'));
+  assert.ok(summary.includes('Restrictions'));
+  assert.ok(summary.includes('Nouveau'));
+  assert.ok(controller.includes('ProjectMemberRole.Admin'));
+  assert.ok(controller.includes('targetSourceId'));
+  assert.ok(controller.includes('unlinkedReferences'));
+  assert.ok(sourceEntity.includes('mergedIntoId'));
+  assert.ok(referenceEntity.includes('elementId'));
+  assert.ok(migration.includes('project_documented_source_references_unique_element'));
+  assert.ok(search.includes("type: 'documented'"));
+  assert.ok(searchPage.includes('<Option value="documented">Informations documentées</Option>'));
 });

@@ -1,6 +1,7 @@
 import { ProjectRaciRole } from '../ProjectContext/infrastructure/entities/projectRaciEntry.ormEntity';
 import {
   extractBpmnSearchResults,
+  extractUnlinkedDocumentedSearchResults,
   getSearchSimilarity,
   isExactSearchTextMatch,
   isSearchTextMatch,
@@ -330,5 +331,52 @@ describe('BPMN search extraction', () => {
         'large',
       ),
     ).toEqual([]);
+  });
+});
+
+describe('unlinked documented BPMN search extraction', () => {
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+    <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL">
+      <dataStore id="DataStore_1" name="Référentiel formation">
+        <documentation>Plan de formation annuel</documentation>
+      </dataStore>
+      <process id="Process_1" name="Gestion RH">
+        <dataStoreReference id="DataStoreRef_1" dataStoreRef="DataStore_1" />
+      </process>
+    </definitions>`;
+
+  it('indexes the name and documentation of an unlinked data store', () => {
+    const results = extractUnlinkedDocumentedSearchResults(
+      xml,
+      'project-1',
+      'resource-1',
+      'Gestion RH',
+      'formation annuel',
+    );
+
+    expect(results).toEqual([
+      expect.objectContaining({
+        type: 'documented',
+        projectId: 'project-1',
+        resourceId: 'resource-1',
+        elementId: 'DataStoreRef_1',
+        label: 'Référentiel formation',
+        field: 'description',
+        source: 'project-document',
+      }),
+    ]);
+  });
+
+  it('does not return BPMN elements already linked to a canonical project source', () => {
+    const results = extractUnlinkedDocumentedSearchResults(
+      xml,
+      'project-1',
+      'resource-1',
+      'Gestion RH',
+      'formation',
+      new Set(['DataStoreRef_1']),
+    );
+
+    expect(results).toHaveLength(0);
   });
 });

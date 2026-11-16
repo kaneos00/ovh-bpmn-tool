@@ -9,6 +9,10 @@ import {
   IconButton,
   Chip,
   Stack,
+  Tabs,
+  TabList,
+  Tab,
+  TabPanel,
   Textarea,
   Typography,
 } from '@mui/joy';
@@ -18,6 +22,7 @@ import { resourcesQuery } from '../../api/resources/resources.queries';
 import { apiClient } from '../../queryClient';
 import { useActiveProject } from '../../shared/hooks/useActiveProject';
 import { ProjectProcessOverview } from './ProjectProcessOverview';
+import { ProjectDocumentedInformationOverview } from './ProjectDocumentedInformationOverview';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import type { Resource } from '../../Types';
 import { getProjectTrigram } from '../../shared/helpers/projectTrigram';
@@ -123,7 +128,13 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
   if (resourceId === 'root' && activeProject) {
     const rootFolders = children.filter(child => child.type === ResourceType.Folder);
     return (
-      <Stack spacing={1.5} sx={{ minWidth: 0 }}>
+      <Tabs defaultValue={0} sx={{ minWidth: 0 }}>
+        <TabList>
+          <Tab value={0}>Vue d’ensemble</Tab>
+          <Tab value={1}>Informations documentées</Tab>
+        </TabList>
+        <TabPanel value={0} sx={{ px: 0, minWidth: 0 }}>
+          <Stack spacing={1.5} sx={{ minWidth: 0 }}>
         {resources.isError && (
           <Alert color="warning" variant="soft">
             La liste complète des répertoires est momentanément indisponible. Les processus associés au projet sont affichés à partir de son espace de travail.
@@ -249,7 +260,12 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
             </Stack>
           </Card>
         )}
-      </Stack>
+          </Stack>
+        </TabPanel>
+        <TabPanel value={1} sx={{ px: 0, minWidth: 0 }}>
+          {activeProjectId && <ProjectDocumentedInformationOverview projectId={activeProjectId} />}
+        </TabPanel>
+      </Tabs>
     );
   }
 
