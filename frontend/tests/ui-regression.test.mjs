@@ -1058,6 +1058,7 @@ test('project documented information uses canonical sources within one process a
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const root = await read('src/Containers/BpmnLayout/FolderOverview.tsx');
+  const summary = await read('src/Containers/BpmnLayout/ProjectDocumentedInformationOverview.tsx');
   const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
   const sourceEntity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/projectDocumentedSource.ormEntity.ts');
   const referenceEntity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/projectDocumentedSourceReference.ormEntity.ts');
@@ -1080,7 +1081,12 @@ test('project documented information uses canonical sources within one process a
   assert.ok(details.includes('selectedDocumentedSource?.link'));
   assert.ok(details.includes('3. Lien'));
   assert.ok(details.includes('/documented-sources/'));
-  assert.doesNotMatch(root, /ProjectDocumentedInformationOverview/, 'the project-wide page is intentionally deferred');
+  assert.ok(root.includes('ProjectDocumentedInformationOverview'));
+  assert.ok(summary.includes('Informations documentées du projet'));
+  assert.ok(summary.includes('Nouveaux éléments à rattacher'));
+  assert.ok(summary.includes('Personnes autorisées'));
+  assert.ok(summary.includes('Restrictions'));
+  assert.ok(summary.includes('Nouveau'));
   assert.ok(controller.includes('ProjectMemberRole.Admin'));
   assert.ok(controller.includes('targetSourceId'));
   assert.ok(controller.includes('unlinkedReferences'));
