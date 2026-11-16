@@ -502,9 +502,9 @@ export function extractUnlinkedDocumentedSearchResults(
   const objectDetails = new Map<string, { name: string; description: string; link: string }>();
   const inventoryDetails = new Map<string, Record<string, string>>();
   const results: UnifiedSearchResult[] = [];
-  const visit = (value: unknown, key = ''): void => {
+  const collectMetadata = (value: unknown, key = ''): void => {
     if (Array.isArray(value)) {
-      value.forEach(item => visit(item, key));
+      value.forEach(item => collectMetadata(item, key));
       return;
     }
     if (!value || typeof value !== 'object') return;
@@ -529,7 +529,19 @@ export function extractUnlinkedDocumentedSearchResults(
         restrictions: readXmlAttribute(node, 'restrictions'),
       });
     }
+    Object.entries(node).forEach(([childKey, child]) => {
+      if (!childKey.startsWith('@_') && childKey !== '#text') collectMetadata(child, childKey);
+    });
+  };
+  collectMetadata(parsed);
 
+  const visit = (value: unknown, key = ''): void => {
+    if (Array.isArray(value)) {
+      value.forEach(item => visit(item, key));
+      return;
+    }
+    if (!value || typeof value !== 'object') return;
+    const node = value as Record<string, unknown>;
     if (['dataObjectReference', 'dataStoreReference', 'dataInput', 'dataOutput'].includes(key)) {
       const elementId = readXmlAttribute(node, 'id');
       if (elementId && !linkedElementIds.has(elementId)) {
