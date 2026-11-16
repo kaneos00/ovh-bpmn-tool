@@ -40,6 +40,7 @@ const TYPE_LABELS: Record<UnifiedSearchType, string> = {
   bpmn: 'Élément BPMN',
   raci: 'Responsabilité RACI',
   actor: 'Acteur / rôle',
+  documented: 'Information documentée',
 };
 
 const SOURCE_LABELS: Record<UnifiedSearchSource, string> = {
@@ -47,6 +48,7 @@ const SOURCE_LABELS: Record<UnifiedSearchSource, string> = {
   bpmn: 'Contenu BPMN',
   'project-raci': 'RACI du projet',
   'project-actor': 'Acteurs du projet',
+  'project-document': 'Sources documentaires du projet',
 };
 
 const FIELD_LABELS: Record<string, string> = {
@@ -58,13 +60,20 @@ const FIELD_LABELS: Record<string, string> = {
   attore: 'Acteur',
   responsabilità: 'Responsabilité',
   'identificativo attività': 'Identifiant de l’activité',
+  nom: 'Nom de la source',
+  lien: 'Lien',
+  emplacement: 'Emplacement',
+  accès: 'Accès',
+  rétention: 'Rétention',
+  'personnes autorisées': 'Personnes autorisées',
+  restrictions: 'Restrictions',
 };
 
 const isSearchType = (value: string): value is UnifiedSearchType =>
-  ['process', 'bpmn', 'raci', 'actor'].includes(value);
+  ['process', 'bpmn', 'raci', 'actor', 'documented'].includes(value);
 
 const isSearchSource = (value: string): value is UnifiedSearchSource =>
-  ['resource', 'bpmn', 'project-raci', 'project-actor'].includes(value);
+  ['resource', 'bpmn', 'project-raci', 'project-actor', 'project-document'].includes(value);
 
 const isSearchRole = (value: string): value is UnifiedSearchRole =>
   ['R', 'A', 'C', 'I'].includes(value);
@@ -212,6 +221,7 @@ export const Component = () => {
     const label = result.label.toLocaleLowerCase('fr');
     if (result.type === 'raci') return { label: 'RACI', color: '#654c98', background: '#eee8fb', border: '#d5c8f0' };
     if (result.type === 'actor') return { label: 'Rôle', color: '#654c98', background: '#eee8fb', border: '#d5c8f0' };
+    if (result.type === 'documented') return { label: 'Information documentée', color: '#8a5a18', background: '#fff3dc', border: '#efd6a8' };
     if (result.type === 'process') return { label: 'Processus', color: '#895d1e', background: '#fff0d9', border: '#f0d5a6' };
     if (/^(lane)\s*:/i.test(label)) return { label: 'Lane', color: '#276b63', background: '#e0f3ef', border: '#b9e3da' };
     if (/sous-processus|sotto-processo/i.test(label)) return { label: 'Sous-processus', color: '#28569a', background: '#e4efff', border: '#bfd4f7' };
@@ -293,7 +303,7 @@ export const Component = () => {
               <Option value="process">Processus</Option>
               <Option value="bpmn">Éléments BPMN</Option>
               <Option value="raci">Responsabilités RACI</Option>
-              <Option value="actor">Acteurs / rôles</Option>
+              <Option value="actor">Acteurs / rôles</Option>\n              <Option value="documented">Informations documentées</Option>
             </Select>
 
             <Select<UnifiedSearchSource | ''>
@@ -307,7 +317,7 @@ export const Component = () => {
               <Option value="resource">Référentiel</Option>
               <Option value="bpmn">Contenu BPMN</Option>
               <Option value="project-raci">RACI du projet</Option>
-              <Option value="project-actor">Acteurs du projet</Option>
+              <Option value="project-actor">Acteurs du projet</Option>\n              <Option value="project-document">Sources documentaires du projet</Option>
             </Select>
 
             <Select<string>
