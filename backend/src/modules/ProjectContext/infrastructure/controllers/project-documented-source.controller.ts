@@ -518,11 +518,12 @@ export class ProjectDocumentedSourceController {
           'Documented source not found in this project',
         );
 
-      const conflictingFields = SOURCE_TEXT_FIELDS.filter((field) => {
-        const sourceValue = (source[field] ?? '').trim();
-        const targetValue = (target[field] ?? '').trim();
-        return sourceValue && targetValue && sourceValue !== targetValue;
-      });
+      const conflictingFields =
+        source.link?.trim() &&
+        target.link?.trim() &&
+        source.link.trim() !== target.link.trim()
+          ? ['link']
+          : [];
       if (conflictingFields.length) {
         throw new ConflictException(
           'Fusion impossible. Valeurs à arbitrer pour les champs : ' +
@@ -531,8 +532,22 @@ export class ProjectDocumentedSourceController {
       }
 
       SOURCE_TEXT_FIELDS.forEach((field) => {
-        if (!(target[field] ?? '').trim() && (source[field] ?? '').trim())
-          target[field] = source[field];
+        const sourceValue = (source[field] ?? '').trim();
+        const targetValue = (target[field] ?? '').trim();
+        if (!targetValue && sourceValue) {
+          target[field] = sourceValue;
+        } else if (
+          field !== 'link' &&
+          sourceValue &&
+          targetValue &&
+          sourceValue !== targetValue
+        ) {
+          const separator =
+            field === 'description' || field === 'restrictions'
+              ? '\n\n'
+              : ' ; ';
+          target[field] = [targetValue, sourceValue].join(separator);
+        }
       });
       if (!target.name.trim() && source.name.trim()) target.name = source.name;
       await sourceRepository.save(target);
