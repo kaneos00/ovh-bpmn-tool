@@ -21,7 +21,12 @@ import { ProjectDocumentedSourceTypeOrmEntity } from '../ProjectContext/infrastr
 import { ProjectDocumentedSourceReferenceTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectDocumentedSourceReference.ormEntity';
 import { ProjectResourceAccessService } from '../ProjectContext/projectResourceAccess.service';
 
-export type SearchResultType = 'process' | 'bpmn' | 'raci' | 'actor' | 'documented';
+export type SearchResultType =
+  | 'process'
+  | 'bpmn'
+  | 'raci'
+  | 'actor'
+  | 'documented';
 export type SearchResultSource =
   | 'resource'
   | 'bpmn'
@@ -616,7 +621,8 @@ export class UnifiedSearchService {
       }
     }
 
-    const needsProjectData = includes('raci') || includes('actor') || includes('documented');
+    const needsProjectData =
+      includes('raci') || includes('actor') || includes('documented');
     const memberships = needsProjectData
       ? await this.projectMembers.find({
           where: {
@@ -761,15 +767,21 @@ export class UnifiedSearchService {
         where: { projectId: In(allowedProjectIds), mergedIntoId: IsNull() },
         order: { name: 'ASC' },
       });
-      const documentedSourceIds = documentedSources.map(source => source.id);
+      const documentedSourceIds = documentedSources.map((source) => source.id);
       const references = documentedSourceIds.length
         ? await this.documentedSourceReferences.find({
-            where: { projectId: In(allowedProjectIds), sourceId: In(documentedSourceIds) },
+            where: {
+              projectId: In(allowedProjectIds),
+              sourceId: In(documentedSourceIds),
+            },
             order: { createdAt: 'ASC' },
           })
         : [];
-      const referencesBySource = new Map<string, ProjectDocumentedSourceReferenceTypeOrmEntity[]>();
-      references.forEach(reference => {
+      const referencesBySource = new Map<
+        string,
+        ProjectDocumentedSourceReferenceTypeOrmEntity[]
+      >();
+      references.forEach((reference) => {
         const rows = referencesBySource.get(reference.sourceId) ?? [];
         rows.push(reference);
         referencesBySource.set(reference.sourceId, rows);
@@ -777,9 +789,18 @@ export class UnifiedSearchService {
 
       for (const source of documentedSources) {
         const sourceReferences = referencesBySource.get(source.id) ?? [];
-        const reference = sourceReferences.find(item => !options.resourceId || item.resourceId === options.resourceId)
-          ?? sourceReferences[0];
-        if (options.resourceId && !sourceReferences.some(item => item.resourceId === options.resourceId)) continue;
+        const reference =
+          sourceReferences.find(
+            (item) =>
+              !options.resourceId || item.resourceId === options.resourceId,
+          ) ?? sourceReferences[0];
+        if (
+          options.resourceId &&
+          !sourceReferences.some(
+            (item) => item.resourceId === options.resourceId,
+          )
+        )
+          continue;
         const fields = [
           { value: source.name, field: 'nom' },
           { value: source.description ?? '', field: 'description' },
@@ -787,10 +808,15 @@ export class UnifiedSearchService {
           { value: source.location ?? '', field: 'emplacement' },
           { value: source.access ?? '', field: 'accès' },
           { value: source.retention ?? '', field: 'rétention' },
-          { value: source.authorizedPeople ?? '', field: 'personnes autorisées' },
+          {
+            value: source.authorizedPeople ?? '',
+            field: 'personnes autorisées',
+          },
           { value: source.restrictions ?? '', field: 'restrictions' },
         ];
-        const match = fields.find(({ value }) => value && isSearchTextMatch(value, normalizedQuery));
+        const match = fields.find(
+          ({ value }) => value && isSearchTextMatch(value, normalizedQuery),
+        );
         if (!match) continue;
         results.push({
           type: 'documented',
@@ -800,7 +826,9 @@ export class UnifiedSearchService {
           field: match.field,
           projectId: source.projectId,
           resourceId: reference?.resourceId,
-          processName: reference ? resourceById.get(reference.resourceId)?.name : undefined,
+          processName: reference
+            ? resourceById.get(reference.resourceId)?.name
+            : undefined,
           elementId: reference?.elementId,
           source: 'project-document',
         });
