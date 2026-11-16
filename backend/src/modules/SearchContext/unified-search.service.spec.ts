@@ -1,6 +1,7 @@
 import { ProjectRaciRole } from '../ProjectContext/infrastructure/entities/projectRaciEntry.ormEntity';
 import {
   extractBpmnSearchResults,
+  findDocumentedSourceSearchMatch,
   getSearchSimilarity,
   isExactSearchTextMatch,
   isSearchTextMatch,
@@ -330,5 +331,42 @@ describe('BPMN search extraction', () => {
         'large',
       ),
     ).toEqual([]);
+  });
+});
+
+
+describe('documented source search', () => {
+  const source = {
+    name: 'Plan de formation',
+    description: 'Référentiel des formations internes',
+    link: 'https://example.test/formation.xlsx',
+    location: 'Dossier RH partagé',
+    access: 'Accès réservé aux responsables RH',
+    retention: 'Conservation pendant cinq ans',
+    authorizedPeople: 'Responsables RH et direction',
+    restrictions: 'Ne pas diffuser à l’extérieur',
+  };
+
+  it('searches every documented information field', () => {
+    const cases = [
+      ['formation', 'nom'],
+      ['référentiel', 'description'],
+      ['formation.xlsx', 'lien'],
+      ['dossier RH', 'emplacement'],
+      ['responsables RH', 'accès'],
+      ['cinq ans', 'rétention'],
+      ['direction', 'personnes autorisées'],
+      ['diffuser', 'restrictions'],
+    ] as const;
+
+    for (const [query, field] of cases) {
+      expect(findDocumentedSourceSearchMatch(source, query)).toMatchObject({
+        field,
+      });
+    }
+  });
+
+  it('returns no match when no documented field contains the query', () => {
+    expect(findDocumentedSourceSearchMatch(source, 'facturation')).toBeUndefined();
   });
 });
