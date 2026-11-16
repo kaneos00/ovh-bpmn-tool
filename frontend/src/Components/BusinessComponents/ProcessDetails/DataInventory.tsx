@@ -98,13 +98,34 @@ const readSources = (xml?: string): InventorySource[] => {
     if (activityTypes.has(byId.get(targetId)?.localName || '')) add(sourceId, targetId, 'input');
   });
 
-  const readDescription = (node?: Element | null) =>
-    node ? Array.from(node.children).filter(child => child.localName === 'documentation').map(child => child.textContent?.trim() || '').filter(Boolean).join('\n\n') : '';
-  const readLink = (node?: Element | null) =>
-    node ? Array.from(node.attributes).find(attribute => attribute.localName === 'link')?.value?.trim() || '' : '';
+  const getReferencedElement = (node?: Element | null) => {
+    if (!node) return undefined;
+    const referenceAttribute = node.localName === 'dataStoreReference' ? 'dataStoreRef' : 'dataObjectRef';
+    const referenceId = node.getAttribute(referenceAttribute) || '';
+    return referenceId ? byId.get(referenceId) : undefined;
+  };
+  const readDescription = (node?: Element | null) => {
+    const candidates = [node, getReferencedElement(node)].filter(Boolean) as Element[];
+    for (const candidate of candidates) {
+      const value = Array.from(candidate.children)
+        .filter(child => child.localName === 'documentation')
+        .map(child => child.textContent?.trim() || '')
+        .filter(Boolean)
+        .join('\n\n');
+      if (value) return value;
+    }
+    return '';
+  };
+  const readLink = (node?: Element | null) => {
+    const candidates = [node, getReferencedElement(node)].filter(Boolean) as Element[];
+    for (const candidate of candidates) {
+      const value = Array.from(candidate.attributes).find(attribute => attribute.localName === 'link')?.value?.trim() || '';
+      if (value) return value;
+    }
+    return '';
+  };
   const readName = (node: Element) => {
-    const referenceId = node.getAttribute(node.localName === 'dataStoreReference' ? 'dataStoreRef' : 'dataObjectRef') || '';
-    const referenced = referenceId ? byId.get(referenceId) : undefined;
+    const referenced = getReferencedElement(node);
     return node.getAttribute('name') || referenced?.getAttribute('name') || node.getAttribute('id') || 'Source sans nom';
   };
   const savedNodes = Array.from(doc.getElementsByTagNameNS(NS, 'source'));
