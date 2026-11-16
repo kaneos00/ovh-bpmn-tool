@@ -65,6 +65,13 @@ const parser = new XMLParser({
 });
 
 const SOURCE_KINDS: SourceKind[] = ['file', 'database', 'application', 'form'];
+
+const BPMN_DOCUMENTED_DATA_TYPES = new Set([
+  'dataObjectReference',
+  'dataStoreReference',
+  'dataInput',
+  'dataOutput',
+]);
 const SOURCE_TEXT_FIELDS = [
   'description',
   'link',
@@ -578,6 +585,11 @@ export class ProjectDocumentedSourceController {
     ) {
       throw new BadRequestException(
         'BPMN element reference contains an oversized field',
+      );
+    }
+    if (!BPMN_DOCUMENTED_DATA_TYPES.has(elementType)) {
+      throw new BadRequestException(
+        'Only BPMN data objects and data stores can be documented sources',
       );
     }
     const linkedProcess = await this.projectProcesses.findOne({
