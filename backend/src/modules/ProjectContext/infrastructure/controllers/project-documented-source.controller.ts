@@ -468,8 +468,7 @@ export class ProjectDocumentedSourceController {
       const source = await sourceRepository.findOne({
         where: { id: sourceId, projectId, mergedIntoId: IsNull() },
       });
-      if (!source)
-        throw new NotFoundException('Documented source not found');
+      if (!source) throw new NotFoundException('Documented source not found');
 
       const existing = await referenceRepository.findOne({
         where: {
