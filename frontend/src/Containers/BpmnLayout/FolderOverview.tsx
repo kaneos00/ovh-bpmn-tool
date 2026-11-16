@@ -9,6 +9,10 @@ import {
   IconButton,
   Chip,
   Stack,
+  Tabs,
+  TabList,
+  Tab,
+  TabPanel,
   Textarea,
   Typography,
 } from '@mui/joy';
@@ -124,7 +128,13 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
   if (resourceId === 'root' && activeProject) {
     const rootFolders = children.filter(child => child.type === ResourceType.Folder);
     return (
-      <Stack spacing={1.5} sx={{ minWidth: 0 }}>
+      <Tabs defaultValue={0} sx={{ minWidth: 0 }}>
+        <TabList>
+          <Tab value={0}>Vue d’ensemble</Tab>
+          <Tab value={1}>Informations documentées</Tab>
+        </TabList>
+        <TabPanel value={0} sx={{ px: 0, minWidth: 0 }}>
+          <Stack spacing={1.5} sx={{ minWidth: 0 }}>
         {resources.isError && (
           <Alert color="warning" variant="soft">
             La liste complète des répertoires est momentanément indisponible. Les processus associés au projet sont affichés à partir de son espace de travail.
@@ -238,7 +248,6 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
             <Typography level="body-sm" color="neutral">Ajoutez des processus au projet depuis son administration ou créez-en un depuis le Viewer.</Typography>
           </Card>
         )}
-        {activeProjectId && <ProjectDocumentedInformationOverview projectId={activeProjectId} />}
         {rootFolders.length > 0 && (
           <Card variant="outlined" sx={{ gap: 1 }}>
             <Typography level="title-lg">Répertoires du projet</Typography>
@@ -251,7 +260,12 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
             </Stack>
           </Card>
         )}
-      </Stack>
+          </Stack>
+        </TabPanel>
+        <TabPanel value={1} sx={{ px: 0, minWidth: 0 }}>
+          {activeProjectId && <ProjectDocumentedInformationOverview projectId={activeProjectId} />}
+        </TabPanel>
+      </Tabs>
     );
   }
 
