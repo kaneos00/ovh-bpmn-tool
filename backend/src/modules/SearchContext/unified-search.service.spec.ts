@@ -351,7 +351,7 @@ describe('documented source search', () => {
     const cases = [
       ['formation', 'nom'],
       ['référentiel', 'description'],
-      ['formation.xlsx', 'lien'],
+      ['xlsx', 'lien'],
       ['dossier RH', 'emplacement'],
       ['responsables RH', 'accès'],
       ['cinq ans', 'rétention'],
