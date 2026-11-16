@@ -393,7 +393,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                       setEditingSourceId(editing ? null : source.id);
                     }}><EditOutlined /></IconButton>}
                     {canManageSources && linked && otherSources.length > 0 && <Select size="sm" placeholder="Fusionner avec…" value={mergeTargets[linked.id] ?? ''} onChange={(_, value) => setMergeTargets(current => ({ ...current, [linked.id]: value ?? '' }))}>
-                      {otherSources.map(item => <Option key={item.id} value={item.id}>{item.name}</Option>)}
+                      {otherSources.map(item => <Option key={item.id} value={item.id}>{sourceOptionLabel(item)}</Option>)}
                     </Select>}
                     {canManageSources && linked && mergeTargets[linked.id] && <Button size="sm" color="warning" variant="soft" startDecorator={<MergeType />} onClick={() => setPendingMerge({ sourceId: linked.id, targetId: mergeTargets[linked.id] })}>Fusionner</Button>}
                   </Stack></td>
