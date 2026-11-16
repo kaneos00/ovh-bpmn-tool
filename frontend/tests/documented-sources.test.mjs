@@ -31,7 +31,21 @@ test('documented source creation and association remain project-scoped and prese
   assert.match(inventory, /link: source\.link/);
   assert.match(inventory, /location: source\.location/);
   assert.match(inventory, /retention: source\.retention/);
+  assert.match(inventory, /value=\{null\} disabled=\{associatingElementId === source\.id\}/);
+  assert.match(inventory, /projectSources\.map\(item => <Option key=\{item\.id\} value=\{item\.id\}/);
   assert.match(details, /selectedDocumentedSource\.description/);
   assert.match(details, /selectedDocumentedSource\.link/);
   assert.match(details, /documented-sources\/\$\{selectedDocumentedSource\.id\}/);
+});
+
+test('one project source can be referenced by multiple BPMN elements', async () => {
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
+  const referenceEntity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/projectDocumentedSourceReference.ormEntity.ts');
+  const migration = await read('../backend/migrations/20261116_v3_project_documented_sources.sql');
+
+  assert.match(controller, /@Post\(':sourceId\/references'\)/);
+  assert.match(controller, /if \(existing\.sourceId === sourceId\) return existing/);
+  assert.match(referenceEntity, /\['projectId', 'resourceId', 'elementId'\],\s*\{ unique: true \}/);
+  assert.match(migration, /UNIQUE \("projectId", "resourceId", "elementId"\)/);
+  assert.doesNotMatch(migration, /UNIQUE \("projectId", "sourceId"\)/);
 });
