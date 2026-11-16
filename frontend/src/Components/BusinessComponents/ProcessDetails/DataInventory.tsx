@@ -364,11 +364,9 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                   application: 'Application',
                   form: 'Formulaire',
                 } as Record<SourceKind, string>)[sourceKind];
-                const editActionLabel = editing
-                  ? 'Annuler la modification'
-                  : linked
-                    ? 'Modifier les informations'
-                    : 'Préparer la création de la source';
+                let editActionLabel = 'Préparer la création de la source';
+                if (editing) editActionLabel = 'Annuler la modification';
+                else if (linked) editActionLabel = 'Modifier les informations';
                 const sourceLink = display('link');
                 let linkCell: React.ReactNode = <Typography level="body-sm">—</Typography>;
                 if (editing) {
