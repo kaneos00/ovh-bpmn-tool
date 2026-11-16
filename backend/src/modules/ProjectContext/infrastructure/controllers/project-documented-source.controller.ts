@@ -485,10 +485,9 @@ export class ProjectDocumentedSourceController {
       }
 
       // Serialize concurrent attempts to reuse one source in the same BPMN resource.
-      await manager.query(
-        'SELECT pg_advisory_xact_lock(hashtext($1))',
-        [projectId + ':' + sourceId + ':' + reference.resourceId],
-      );
+      await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+        projectId + ':' + sourceId + ':' + reference.resourceId,
+      ]);
 
       const sourceAlreadyUsedInDiagram = await referenceRepository.findOne({
         where: {
@@ -558,19 +557,26 @@ export class ProjectDocumentedSourceController {
           'Documented source not found in this project',
         );
 
-      const [sourceReferencesForMerge, targetReferencesForMerge] = await Promise.all([
-        referenceRepository.find({ where: { projectId, sourceId } }),
-        referenceRepository.find({ where: { projectId, sourceId: targetId } }),
-      ]);
+      const [sourceReferencesForMerge, targetReferencesForMerge] =
+        await Promise.all([
+          referenceRepository.find({ where: { projectId, sourceId } }),
+          referenceRepository.find({
+            where: { projectId, sourceId: targetId },
+          }),
+        ]);
       const resourceElementsForMerge = new Map<string, Set<string>>();
-      [...sourceReferencesForMerge, ...targetReferencesForMerge].forEach((reference) => {
-        const elementIds = resourceElementsForMerge.get(reference.resourceId) ?? new Set<string>();
-        elementIds.add(reference.elementId);
-        resourceElementsForMerge.set(reference.resourceId, elementIds);
-      });
-      const crossElementDiagramConflict = [...resourceElementsForMerge.values()].some(
-        (elementIds) => elementIds.size > 1,
+      [...sourceReferencesForMerge, ...targetReferencesForMerge].forEach(
+        (reference) => {
+          const elementIds =
+            resourceElementsForMerge.get(reference.resourceId) ??
+            new Set<string>();
+          elementIds.add(reference.elementId);
+          resourceElementsForMerge.set(reference.resourceId, elementIds);
+        },
       );
+      const crossElementDiagramConflict = [
+        ...resourceElementsForMerge.values(),
+      ].some((elementIds) => elementIds.size > 1);
       if (crossElementDiagramConflict) {
         throw new ConflictException(
           'Fusion impossible : les deux sources sont déjà utilisées par des objets différents dans un même diagramme BPMN.',
