@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { XMLParser } from 'fast-xml-parser';
-import { In, Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import { ResourceTypeEnum } from '../ResourceContext/shared/types/Resource';
 import { ContentStatusEnum } from '../ResourceContext/shared/types/Content';
 import { ResourceTypeOrmEntity } from '../ResourceContext/infrastructure/entities/resource.ormEntity';
@@ -17,14 +17,17 @@ import {
   ProjectRaciRole,
 } from '../ProjectContext/infrastructure/entities/projectRaciEntry.ormEntity';
 import { ProjectRaciActorTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectRaciActor.ormEntity';
+import { ProjectDocumentedSourceTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectDocumentedSource.ormEntity';
+import { ProjectDocumentedSourceReferenceTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectDocumentedSourceReference.ormEntity';
 import { ProjectResourceAccessService } from '../ProjectContext/projectResourceAccess.service';
 
-export type SearchResultType = 'process' | 'bpmn' | 'raci' | 'actor';
+export type SearchResultType = 'process' | 'bpmn' | 'raci' | 'actor' | 'documented';
 export type SearchResultSource =
   | 'resource'
   | 'bpmn'
   | 'project-raci'
-  | 'project-actor';
+  | 'project-actor'
+  | 'project-document';
 export type UnifiedSearchResult = {
   type: SearchResultType;
   id: string;
@@ -501,6 +504,10 @@ export class UnifiedSearchService {
     private readonly raciEntries: Repository<ProjectRaciEntryTypeOrmEntity>,
     @InjectRepository(ProjectRaciActorTypeOrmEntity)
     private readonly raciActors: Repository<ProjectRaciActorTypeOrmEntity>,
+    @InjectRepository(ProjectDocumentedSourceTypeOrmEntity)
+    private readonly documentedSources: Repository<ProjectDocumentedSourceTypeOrmEntity>,
+    @InjectRepository(ProjectDocumentedSourceReferenceTypeOrmEntity)
+    private readonly documentedSourceReferences: Repository<ProjectDocumentedSourceReferenceTypeOrmEntity>,
     private readonly resourceAccess: ProjectResourceAccessService,
   ) {}
 
@@ -609,7 +616,7 @@ export class UnifiedSearchService {
       }
     }
 
-    const needsProjectData = includes('raci') || includes('actor');
+    const needsProjectData = includes('raci') || includes('actor') || includes('documented');
     const memberships = needsProjectData
       ? await this.projectMembers.find({
           where: {
@@ -749,6 +756,57 @@ export class UnifiedSearchService {
       }
     }
 
+    if (includes('documented') && allowedProjectIds.length) {
+      const documentedSources = await this.documentedSources.find({
+        where: { projectId: In(allowedProjectIds), mergedIntoId: IsNull() },
+        order: { name: 'ASC' },
+      });
+      const documentedSourceIds = documentedSources.map(source => source.id);
+      const references = documentedSourceIds.length
+        ? await this.documentedSourceReferences.find({
+            where: { projectId: In(allowedProjectIds), sourceId: In(documentedSourceIds) },
+            order: { createdAt: 'ASC' },
+          })
+        : [];
+      const referencesBySource = new Map<string, ProjectDocumentedSourceReferenceTypeOrmEntity[]>();
+      references.forEach(reference => {
+        const rows = referencesBySource.get(reference.sourceId) ?? [];
+        rows.push(reference);
+        referencesBySource.set(reference.sourceId, rows);
+      });
+
+      for (const source of documentedSources) {
+        const sourceReferences = referencesBySource.get(source.id) ?? [];
+        const reference = sourceReferences.find(item => !options.resourceId || item.resourceId === options.resourceId)
+          ?? sourceReferences[0];
+        if (options.resourceId && !sourceReferences.some(item => item.resourceId === options.resourceId)) continue;
+        const fields = [
+          { value: source.name, field: 'nom' },
+          { value: source.description ?? '', field: 'description' },
+          { value: source.link ?? '', field: 'lien' },
+          { value: source.location ?? '', field: 'emplacement' },
+          { value: source.access ?? '', field: 'accès' },
+          { value: source.retention ?? '', field: 'rétention' },
+          { value: source.authorizedPeople ?? '', field: 'personnes autorisées' },
+          { value: source.restrictions ?? '', field: 'restrictions' },
+        ];
+        const match = fields.find(({ value }) => value && isSearchTextMatch(value, normalizedQuery));
+        if (!match) continue;
+        results.push({
+          type: 'documented',
+          id: source.id,
+          label: source.name,
+          excerpt: match.value.slice(0, 240),
+          field: match.field,
+          projectId: source.projectId,
+          resourceId: reference?.resourceId,
+          processName: reference ? resourceById.get(reference.resourceId)?.name : undefined,
+          elementId: reference?.elementId,
+          source: 'project-document',
+        });
+      }
+    }
+
     const sourceFilteredResults = options.source
       ? results.filter((result) => result.source === options.source)
       : results;
@@ -789,6 +847,7 @@ export class UnifiedSearchService {
       bpmn: 1,
       raci: 2,
       actor: 3,
+      documented: 4,
     };
     uniqueResults.sort(
       (left, right) =>
