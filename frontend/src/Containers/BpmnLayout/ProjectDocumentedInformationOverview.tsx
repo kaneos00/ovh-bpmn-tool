@@ -1,3 +1,4 @@
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import { Alert, Box, Card, Chip, Stack, Table, Typography } from '@mui/joy';
@@ -46,18 +47,24 @@ export const ProjectDocumentedInformationOverview = ({ projectId }: Props) => {
   const navigate = useNavigate();
   const query = useQuery<ProjectDocumentedSourcesResponse>(
     ['project-documented-sources', projectId],
-    () => apiClient.get('/projects/' + projectId + '/documented-sources'),
+    () => apiClient.get(`/projects/${projectId}/documented-sources`),
     { enabled: Boolean(projectId) },
   );
   const sources = query.data?.sources ?? [];
   const unlinked = query.data?.unlinkedReferences ?? [];
   const openReference = (resourceId: string, elementId: string) => {
     const params = new URLSearchParams({ elementId, projectId });
-    navigate('/' + resourceId + '?' + params.toString());
+    navigate(`/${resourceId}?${params.toString()}`);
   };
   const linkCell = (link?: string | null) => link
-    ? <a href={link.startsWith('http://') || link.startsWith('https://') ? link : 'https://' + link} target="_blank" rel="noopener noreferrer">{link}</a>
+    ? <a href={link.startsWith('http://') || link.startsWith('https://') ? link : `https://${link}`} target="_blank" rel="noopener noreferrer">{link}</a>
     : '—';
+  const kindLabel = (kind: string) => {
+    if (kind === 'database') return 'Base de données';
+    if (kind === 'application') return 'Application';
+    if (kind === 'form') return 'Formulaire';
+    return 'Fichier';
+  };
 
   return (
     <Card variant="outlined" sx={{ gap: 1.25 }}>
@@ -86,7 +93,7 @@ export const ProjectDocumentedInformationOverview = ({ projectId }: Props) => {
               {sources.map(source => (
                 <tr key={source.id}>
                   <td><Typography level="body-sm" fontWeight="md">{source.name}</Typography></td>
-                  <td>{source.kind === 'database' ? 'Base de données' : source.kind === 'application' ? 'Application' : source.kind === 'form' ? 'Formulaire' : 'Fichier'}</td>
+                  <td>{kindLabel(source.kind)}</td>
                   <td><Typography level="body-sm" sx={{ maxWidth: 280, whiteSpace: 'pre-wrap' }}>{source.description || '—'}</Typography></td>
                   <td>{linkCell(source.link)}</td>
                   <td>{source.location || '—'}</td>
@@ -97,7 +104,7 @@ export const ProjectDocumentedInformationOverview = ({ projectId }: Props) => {
                   <td>
                     <Stack spacing={0.25}>
                       {source.references.map(reference => (
-                        <Typography key={reference.resourceId + ':' + reference.elementId} component="button" level="body-sm"
+                        <Typography key={`${reference.resourceId}:${reference.elementId}`} component="button" level="body-sm"
                           onClick={() => openReference(reference.resourceId, reference.elementId)}
                           sx={{ border: 0, p: 0, background: 'transparent', color: 'primary.600', cursor: 'pointer', textAlign: 'left' }}>
                           {reference.processName} · {reference.elementName}
@@ -122,7 +129,7 @@ export const ProjectDocumentedInformationOverview = ({ projectId }: Props) => {
               <thead><tr><th>Élément BPMN</th><th>Type</th><th>Description</th><th>Lien</th><th>Emplacement</th><th>Accès</th><th>Rétention</th><th>Personnes autorisées</th><th>Restrictions</th><th>Processus</th><th>Statut</th></tr></thead>
               <tbody>
                 {unlinked.map(item => (
-                  <tr key={item.resourceId + ':' + item.elementId}>
+                  <tr key={`${item.resourceId}:${item.elementId}`}>
                     <td><Typography component="button" level="body-sm" fontWeight="md"
                       onClick={() => openReference(item.resourceId, item.elementId)}
                       sx={{ border: 0, p: 0, background: 'transparent', color: 'primary.600', cursor: 'pointer', textAlign: 'left' }}>
