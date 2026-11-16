@@ -108,7 +108,7 @@ test('Viewer preserves the BPMN top-left origin when the details panel resizes t
   assert.ok(resize.includes('const previousViewbox = canvas.viewbox()'));
   assert.ok(resize.includes('canvas.resized?.()'));
   assert.ok(resize.includes('const resizedViewbox = canvas.viewbox()'));
-  assert.match(resize, /if \(fitModeRef\.current\) \{[\s\S]*?canvas\.zoom\('fit-viewport'\);[\s\S]*?return;/);
+  assert.match(resize, /if \(fitModeRef\.current\) \{[\s\S]*?fitModeRef\.current = fitDiagramToViewport\(\);[\s\S]*?return;/);
   assert.match(resize, /x: previousViewbox\.x,[\s\S]*?y: previousViewbox\.y,[\s\S]*?width: resizedViewbox\.width,[\s\S]*?height: resizedViewbox\.height/);
 });
 
