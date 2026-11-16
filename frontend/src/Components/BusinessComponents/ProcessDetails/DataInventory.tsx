@@ -237,6 +237,13 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
         elementId: source.id,
         elementName: source.name,
         elementType: source.bpmnType,
+        description: source.description,
+        link: source.link,
+        location: source.location,
+        access: source.access,
+        retention: source.retention,
+        authorizedPeople: source.authorizedPeople,
+        restrictions: source.restrictions,
       });
       await refreshProjectSources();
     } catch (e) {
