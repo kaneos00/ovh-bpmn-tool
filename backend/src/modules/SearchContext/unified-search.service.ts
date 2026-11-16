@@ -489,6 +489,94 @@ export function extractBpmnSearchResults(
   return results;
 }
 
+export function extractUnlinkedDocumentedSearchResults(
+  xml: string,
+  projectId: string,
+  resourceId: string,
+  processName: string,
+  normalizedQuery: string,
+  linkedElementIds: Set<string> = new Set(),
+): UnifiedSearchResult[] {
+  if (Buffer.byteLength(xml, 'utf8') > MAX_BPMN_BYTES || /<!DOCTYPE|<!ENTITY/i.test(xml)) return [];
+  const parsed = parser.parse(xml) as Record<string, unknown>;
+  const objectDetails = new Map<string, { name: string; description: string; link: string }>();
+  const inventoryDetails = new Map<string, Record<string, string>>();
+  const results: UnifiedSearchResult[] = [];
+  const visit = (value: unknown, key = ''): void => {
+    if (Array.isArray(value)) {
+      value.forEach(item => visit(item, key));
+      return;
+    }
+    if (!value || typeof value !== 'object') return;
+    const node = value as Record<string, unknown>;
+    if (key === 'dataStore' || key === 'dataObject') {
+      const id = readXmlAttribute(node, 'id');
+      if (id) objectDetails.set(id, {
+        name: readXmlAttribute(node, 'name'),
+        description: collectText(node.documentation),
+        link: readXmlAttribute(node, 'link') || (typeof node['@_url:link'] === 'string' ? String(node['@_url:link']).trim() : ''),
+      });
+    }
+    if (key === 'source' && readXmlAttribute(node, 'bpmnType')) {
+      const id = readXmlAttribute(node, 'id');
+      if (id) inventoryDetails.set(id, {
+        description: readXmlAttribute(node, 'description'),
+        link: readXmlAttribute(node, 'link'),
+        location: readXmlAttribute(node, 'location'),
+        access: readXmlAttribute(node, 'access'),
+        retention: readXmlAttribute(node, 'retention'),
+        authorizedPeople: readXmlAttribute(node, 'authorizedPeople'),
+        restrictions: readXmlAttribute(node, 'restrictions'),
+      });
+    }
+
+    if (['dataObjectReference', 'dataStoreReference', 'dataInput', 'dataOutput'].includes(key)) {
+      const elementId = readXmlAttribute(node, 'id');
+      if (elementId && !linkedElementIds.has(elementId)) {
+        const referenceId = key === 'dataStoreReference'
+          ? readXmlAttribute(node, 'dataStoreRef')
+          : readXmlAttribute(node, 'dataObjectRef');
+        const referenced = objectDetails.get(referenceId);
+        const metadata = inventoryDetails.get(elementId) ?? {};
+        const name = readXmlAttribute(node, 'name') || referenced?.name || elementId;
+        const link = readXmlAttribute(node, 'link') || referenced?.link || metadata.link || '';
+        const description = collectText(node.documentation) || referenced?.description || metadata.description || '';
+        const fields = [
+          { value: name, field: 'nom' },
+          { value: description, field: 'description' },
+          { value: link, field: 'lien' },
+          { value: metadata.location || '', field: 'emplacement' },
+          { value: metadata.access || '', field: 'accès' },
+          { value: metadata.retention || '', field: 'rétention' },
+          { value: metadata.authorizedPeople || '', field: 'personnes autorisées' },
+          { value: metadata.restrictions || '', field: 'restrictions' },
+        ];
+        const match = fields.find(item => item.value && isSearchTextMatch(item.value, normalizedQuery));
+        if (match) {
+          results.push({
+            type: 'documented',
+            id: projectId + ':' + resourceId + ':' + elementId,
+            label: name,
+            excerpt: match.value.slice(0, 240),
+            field: match.field,
+            projectId,
+            resourceId,
+            processName,
+            elementId,
+            source: 'project-document',
+          });
+        }
+      }
+    }
+
+    Object.entries(node).forEach(([childKey, child]) => {
+      if (!childKey.startsWith('@_') && childKey !== '#text') visit(child, childKey);
+    });
+  };
+  visit(parsed);
+  return results;
+}
+
 @Injectable()
 export class UnifiedSearchService {
   constructor(
