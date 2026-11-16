@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from 'react-query';
 import { Alert, Box, Button, Chip, DialogActions, DialogContent, DialogTitle, IconButton, Input, Modal, ModalDialog, Option, Select, Stack, Table, Textarea, Typography } from '@mui/joy';
 import { EditOutlined, CenterFocusStrong, MergeType } from '@mui/icons-material';
@@ -336,13 +336,14 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                   ? <Textarea size="sm" minRows={2} value={source[key]} onChange={e => update(source.id, key, e.target.value)} placeholder={label} aria-label={label} />
                   : <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', minWidth: 130 }}>{String(display(key) || '—')}</Typography>;
                 const otherSources = projectSources.filter(item => item.id !== linked?.id);
-                return <tr key={source.id || 'source-' + index}>
+                const sourceKindLabel = linked?.kind === 'database' || source.kind === 'database' ? 'Base de données' : 'Fichier';
+                return <tr key={source.id || `source-${index}`}>
                   <td><Stack direction="row" spacing={0.5} alignItems="center"><BpmnDataSymbol type={source.bpmnType} /><Typography level="body-xs">{symbolLabel(source.bpmnType)}</Typography></Stack></td>
                   <td><Stack spacing={0.5} sx={{ minWidth: 180 }}>
-                    {editing ? <Input size="sm" value={source.name} onChange={e => update(source.id, 'name', e.target.value)} placeholder="Nom de la source" aria-label="Nom de la source" /> : <Typography level="body-sm">{linked?.name || source.name || 'Source ' + (index + 1)}</Typography>}
-                    {!editing && <Chip size="sm" variant="soft">{linked?.kind === 'database' || source.kind === 'database' ? 'Base de données' : 'Fichier'}</Chip>}
+                    {editing ? <Input size="sm" value={source.name} onChange={e => update(source.id, 'name', e.target.value)} placeholder="Nom de la source" aria-label="Nom de la source" /> : <Typography level="body-sm">{linked?.name || source.name || `Source ${index + 1}`}</Typography>}
+                    {!editing && <Chip size="sm" variant="soft">{sourceKindLabel}</Chip>}
                   </Stack></td>
-                  <td><Stack spacing={0.5} sx={{ minWidth: 190 }}>{source.associations.length ? source.associations.map((association, i) => <Stack key={association.taskId + i} direction="row" spacing={0.5} alignItems="center"><Chip size="sm" color={association.direction === 'input' ? 'primary' : 'success'} variant="soft">{association.direction === 'input' ? 'Entrée' : 'Sortie'}</Chip>{onElementSelect ? <Button size="sm" variant="plain" color="neutral" onClick={() => { onShowDiagram?.(); onElementSelect(association.taskId); }} startDecorator={<CenterFocusStrong />}>{association.taskName}</Button> : <Typography level="body-sm">{association.taskName}</Typography>}</Stack>) : <Typography level="body-sm" textColor="neutral">Aucune association BPMN détectée</Typography>}</Stack></td>
+                  <td><Stack spacing={0.5} sx={{ minWidth: 190 }}>{source.associations.length ? source.associations.map((association, i) => <Stack key={`${association.taskId}-${i}`} direction="row" spacing={0.5} alignItems="center"><Chip size="sm" color={association.direction === 'input' ? 'primary' : 'success'} variant="soft">{association.direction === 'input' ? 'Entrée' : 'Sortie'}</Chip>{onElementSelect ? <Button size="sm" variant="plain" color="neutral" onClick={() => { onShowDiagram?.(); onElementSelect(association.taskId); }} startDecorator={<CenterFocusStrong />}>{association.taskName}</Button> : <Typography level="body-sm">{association.taskName}</Typography>}</Stack>) : <Typography level="body-sm" textColor="neutral">Aucune association BPMN détectée</Typography>}</Stack></td>
                   <td><Stack spacing={0.75} sx={{ minWidth: 210 }}>
                     <Chip size="sm" color={linked ? 'success' : 'warning'} variant="soft">{linked ? 'Rattaché au projet' : 'Nouveau'}</Chip>
                     {linked && <Typography level="body-xs" color="neutral">{linked.references.length} référence(s) dans le projet</Typography>}
