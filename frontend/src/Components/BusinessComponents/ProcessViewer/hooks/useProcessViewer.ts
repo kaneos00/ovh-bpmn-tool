@@ -82,10 +82,57 @@ export const useProcessViewer = (
     const rect = container?.getBoundingClientRect();
     if (!rect || rect.width <= 0 || rect.height <= 0) return false;
 
-    // Use diagram-js' native fit operation. It computes the complete diagram
-    // bounds (including pools, lanes, labels and connections) and centers the
-    // result in the actual canvas viewport. Keep this independent from 1:1.
-    canvas.zoom('fit-viewport');
+    const elementRegistry = viewer.get('elementRegistry') as any;
+    const elements = elementRegistry.getAll();
+    const points: Array<{ x: number; y: number }> = [];
+    const boxes: Array<{ x: number; y: number; width: number; height: number }> = [];
+
+    elements.forEach((element: any) => {
+      if (Array.isArray(element?.waypoints)) {
+        element.waypoints.forEach((point: any) => {
+          if (Number.isFinite(point.x) && Number.isFinite(point.y)) points.push({ x: point.x, y: point.y });
+        });
+        return;
+      }
+      if (
+        element &&
+        Number.isFinite(element.x) &&
+        Number.isFinite(element.y) &&
+        Number.isFinite(element.width) &&
+        Number.isFinite(element.height) &&
+        element.width > 0 &&
+        element.height > 0
+      ) {
+        boxes.push({ x: element.x, y: element.y, width: element.width, height: element.height });
+      }
+    });
+
+    if (!boxes.length && !points.length) return false;
+
+    const minX = Math.min(...boxes.map(box => box.x), ...points.map(point => point.x));
+    const minY = Math.min(...boxes.map(box => box.y), ...points.map(point => point.y));
+    const maxX = Math.max(...boxes.map(box => box.x + box.width), ...points.map(point => point.x));
+    const maxY = Math.max(...boxes.map(box => box.y + box.height), ...points.map(point => point.y));
+    const padding = 36;
+    const diagramWidth = Math.max(1, maxX - minX);
+    const diagramHeight = Math.max(1, maxY - minY);
+    const scale = Math.min(
+      rect.width / (diagramWidth + padding * 2),
+      rect.height / (diagramHeight + padding * 2),
+    );
+
+    if (!Number.isFinite(scale) || scale <= 0) return false;
+
+    // Fit the complete diagram but anchor its upper-left corner. The native
+    // fit-viewport command centers the drawing, which is not the requested
+    // behavior for this Viewer. Keep this mode independent from the 1:1 reset.
+    canvas.zoom(scale);
+    canvas.viewbox({
+      x: minX - padding,
+      y: minY - padding,
+      width: rect.width / scale,
+      height: rect.height / scale,
+    });
     return true;
   };
   const fitDiagram = () => {
