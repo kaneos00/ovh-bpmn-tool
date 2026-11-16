@@ -624,7 +624,9 @@ export const ProcessDetails = ({
     const readLink = (candidate?: Element) => candidate
       ? Array.from(candidate.attributes).find(attribute => attribute.localName === 'link')?.value?.trim() || ''
       : '';
-    const externalUrl = selectedDocumentedSource?.link || readLink(element) || readLink(referencedElement);
+    const externalUrl = selectedDocumentedSource
+      ? selectedDocumentedSource.link ?? ''
+      : readLink(element) || readLink(referencedElement);
 
     return {
       id: selectedElementId,
