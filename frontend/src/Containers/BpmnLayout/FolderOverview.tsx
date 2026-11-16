@@ -18,7 +18,6 @@ import { resourcesQuery } from '../../api/resources/resources.queries';
 import { apiClient } from '../../queryClient';
 import { useActiveProject } from '../../shared/hooks/useActiveProject';
 import { ProjectProcessOverview } from './ProjectProcessOverview';
-import { ProjectDocumentedInformationOverview } from './ProjectDocumentedInformationOverview';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import type { Resource } from '../../Types';
 import { getProjectTrigram } from '../../shared/helpers/projectTrigram';
@@ -238,7 +237,6 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
             <Typography level="body-sm" color="neutral">Ajoutez des processus au projet depuis son administration ou créez-en un depuis le Viewer.</Typography>
           </Card>
         )}
-        {activeProjectId && <ProjectDocumentedInformationOverview projectId={activeProjectId} />}
         {rootFolders.length > 0 && (
           <Card variant="outlined" sx={{ gap: 1 }}>
             <Typography level="title-lg">Répertoires du projet</Typography>
