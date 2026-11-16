@@ -359,7 +359,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                   <td>{textField('authorizedPeople', 'Personnes autorisées')}</td>
                   <td>{areaField('restrictions', 'Restrictions')}</td>
                   <td><Stack spacing={0.5}>
-                    {canEdit && <IconButton size="sm" variant="plain" title={editing ? 'Terminer la modification' : 'Modifier les informations'} aria-label={editing ? 'Terminer la modification' : 'Modifier les informations'} onClick={() => {
+                    {canEdit && linked && <IconButton size="sm" variant="plain" title={editing ? 'Terminer la modification' : 'Modifier les informations'} aria-label={editing ? 'Terminer la modification' : 'Modifier les informations'} onClick={() => {
                       if (!editing && linked) {
                         setSources(current => current.map(item => item.id === source.id ? {
                           ...item,
