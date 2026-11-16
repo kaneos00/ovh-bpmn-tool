@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from 'react-query';
-import { Alert, Badge, Box, Card, Chip, Stack, Table, Typography } from '@mui/joy';
+import { Alert, Box, Card, Chip, Stack, Table, Typography } from '@mui/joy';
 import { apiClient } from '../../queryClient';
 
 type ProjectDocumentedSourcesResponse = {
