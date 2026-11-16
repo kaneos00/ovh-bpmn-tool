@@ -1716,16 +1716,10 @@ export const ProcessDetails = ({
           <Sheet className="processViewerInfo" variant="outlined" sx={{ height: '100%', overflow: 'auto' }}>
             <DataInventory
               xmlContent={xmlContent}
-              canEdit={canEditDescription}
+              canEdit={projectForProcess?.role === 'admin'}
               projectId={projectForProcess?.id}
               resourceId={resourceId}
               canManageSources={projectForProcess?.role === 'admin'}
-              onSave={async updatedXml => {
-                if (!viewerContent) throw new Error('Aucune version publiée à mettre à jour.');
-                await saveContent(resourceId, viewerContent.id, { content: updatedXml });
-                await queryClient.invalidateQueries(xmlContentQuery.queryKey);
-                showAlert({ message: 'Informations documentées enregistrées.', severity: 'success' });
-              }}
               onElementSelect={elementId => { setActiveViewerTab(0); onElementSelect?.(elementId); }}
               onShowDiagram={() => setActiveViewerTab(0)}
             />
