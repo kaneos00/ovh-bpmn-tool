@@ -14,6 +14,7 @@ export type InventorySource = {
   bpmnType: BpmnDataType;
   associations: Array<{ taskId: string; taskName: string; direction: 'input' | 'output' }>;
   name: string;
+  elementName: string;
   description: string;
   link: string;
   location: string;
@@ -59,6 +60,7 @@ const emptySource = (): InventorySource => ({
   bpmnType: 'dataObjectReference',
   associations: [],
   name: '',
+  elementName: '',
   description: '',
   link: '',
   location: '',
@@ -140,6 +142,7 @@ const readSources = (xml?: string): InventorySource[] => {
       kind,
       bpmnType,
       name: node.getAttribute('name') || (element ? readName(element) : id),
+      elementName: element ? readName(element) : node.getAttribute('name') || id,
       description: readDescription(element) || node.getAttribute('description') || '',
       link: readLink(element) || node.getAttribute('link') || '',
       location: node.getAttribute('location') || '',
@@ -164,6 +167,7 @@ const readSources = (xml?: string): InventorySource[] => {
       bpmnType,
       kind: bpmnType === 'dataStoreReference' ? 'database' as const : 'file' as const,
       name: readName(node),
+      elementName: readName(node),
       description: readDescription(node),
       link: readLink(node),
       associations: links.get(id) ?? [],
@@ -235,7 +239,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
       await apiClient.post(`/projects/${projectId}/documented-sources/${sourceId}/references`, {
         resourceId,
         elementId: source.id,
-        elementName: source.name,
+        elementName: source.elementName || source.name,
         elementType: source.bpmnType,
         description: source.description,
         link: source.link,
@@ -259,7 +263,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
       await apiClient.post(`/projects/${projectId}/documented-sources`, {
         resourceId,
         elementId: source.id,
-        elementName: source.name,
+        elementName: source.elementName || source.name,
         elementType: source.bpmnType,
         kind: source.kind,
         name: source.name,
