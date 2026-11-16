@@ -9,14 +9,26 @@ export const action = async ({ request }: { request: Request }) => {
   const url = new URL(request.url);
   const targetResourceId = url.searchParams.get('targetResourceId');
 
+  if (!targetResourceId) {
+    return { error: new Error('Identifiant du processus à supprimer manquant.') };
+  }
+
   const formData = await request.formData();
   const deletedResourceType = formData.get('resourceType') as ResourceType;
 
   try {
-    await deleteResource(targetResourceId as string);
-    queryClient.invalidateQueries({
-      queryKey: [resourceQueryKey],
-    });
+    await deleteResource(targetResourceId);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: [resourceQueryKey] }),
+      queryClient.invalidateQueries({ queryKey: [resourceQueryKey, 'explorer'] }),
+      queryClient.invalidateQueries({ queryKey: ['my-workspace'] }),
+    ]);
+    // Refetch active navigation data before returning to the workspace so a
+    // deleted process cannot remain as a stale clickable explorer entry.
+    await Promise.all([
+      queryClient.refetchQueries([resourceQueryKey, 'explorer']),
+      queryClient.refetchQueries(['my-workspace']),
+    ]);
 
     return {
       deletedResourceType,

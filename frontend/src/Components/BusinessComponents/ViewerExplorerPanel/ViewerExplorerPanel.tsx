@@ -1,8 +1,9 @@
 import React from 'react';
-import { Box, Button, Divider, IconButton, Sheet, Stack, Typography } from '@mui/joy';
-import { ArrowBack, ArrowForward, ChevronLeft, ChevronRight, FolderOutlined, Menu as MenuIcon } from '@mui/icons-material';
+import { Box, Button, Chip, IconButton, Sheet, Stack, Typography } from '@mui/joy';
+import { ArrowBack, ArrowForward, ChevronLeft, ChevronRight, FolderOutlined } from '@mui/icons-material';
 
 import { FolderTree } from '../FolderTree';
+import { getProjectTrigram } from '../../../shared/helpers/projectTrigram';
 
 import './ViewerPanel.css';
 
@@ -11,7 +12,10 @@ type Props = {
   onNodeClick: (id: string) => void;
   collapsed: boolean;
   onToggle: () => void;
-  variant: 'process-details' | 'content-viewer';
+  variant: 'process-details' | 'projects-overview';
+  projects?: Array<{ id: string; name: string; color: string; processes: Array<{ resourceId: string }> }>;
+  activeProjectId?: string | null;
+  onProjectSelect?: (projectId: string) => void;
   showHistory?: boolean;
   onBack?: () => void;
   onForward?: () => void;
@@ -23,18 +27,18 @@ export const ViewerExplorerPanel = ({
   collapsed,
   onToggle,
   variant,
+  projects = [],
+  activeProjectId = null,
+  onProjectSelect,
   showHistory = false,
   onBack,
   onForward,
 }: Props) => {
-  const isContentViewer = variant === 'content-viewer';
-  const panelClass = isContentViewer
-    ? `processTaskPanel viewerFolderPanel ${collapsed ? 'collapsed' : 'open'}`
-    : `processExplorerPanel ${collapsed ? 'collapsed' : ''}`;
-  const headerClass = `viewerPanelHeader ${isContentViewer ? 'viewerFolderHeader' : 'processExplorerPanelHeader'}`;
-  const contentClass = isContentViewer ? 'viewerFolderTree' : 'processExplorerPanelContent';
-  let toggleIcon = <ChevronLeft />;
-  if (collapsed) toggleIcon = isContentViewer ? <MenuIcon /> : <ChevronRight />;
+  const isProjectList = variant === 'projects-overview';
+  const panelClass = `processExplorerPanel ${collapsed ? 'collapsed' : ''}`;
+  const headerClass = 'viewerPanelHeader processExplorerPanelHeader';
+  const contentClass = 'processExplorerPanelContent';
+  const toggleIcon = collapsed ? <ChevronRight /> : <ChevronLeft />;
 
   return (
     <Sheet className={panelClass} variant="outlined">
@@ -43,10 +47,10 @@ export const ViewerExplorerPanel = ({
         alignItems="center"
         justifyContent={collapsed ? 'center' : 'space-between'}
         className={headerClass}
-        onClick={isContentViewer ? undefined : onToggle}
-        role={isContentViewer ? undefined : 'button'}
-        tabIndex={isContentViewer ? undefined : 0}
-        onKeyDown={isContentViewer ? undefined : event => {
+        onClick={onToggle}
+        role="button"
+        tabIndex={0}
+        onKeyDown={event => {
           if (event.target !== event.currentTarget) return;
           if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
@@ -57,7 +61,7 @@ export const ViewerExplorerPanel = ({
         {!collapsed && (
           <Stack direction="row" spacing={1} alignItems="center">
             <FolderOutlined fontSize="small" />
-            <Typography level={isContentViewer ? 'title-md' : 'title-sm'}>Explorateur</Typography>
+            <Typography level="title-sm">{isProjectList ? 'Projets' : 'Explorateur'}</Typography>
           </Stack>
         )}
         <IconButton
@@ -76,9 +80,35 @@ export const ViewerExplorerPanel = ({
       </Stack>
       {!collapsed && (
         <>
-          {isContentViewer && <Divider />}
           <Box className={contentClass}>
-            <FolderTree selectedId={selectedId} onNodeClick={onNodeClick} />
+            {isProjectList ? (
+              <Stack spacing={0.5} sx={{ p: 1 }}>
+                {projects.map(project => (
+                  <Button
+                    key={project.id}
+                    variant={activeProjectId === project.id ? 'soft' : 'plain'}
+                    color={activeProjectId === project.id ? 'primary' : 'neutral'}
+                    onClick={() => onProjectSelect?.(project.id)}
+                    sx={{ minWidth: 0, justifyContent: 'flex-start', gap: 1, px: 1, py: 0.75, textAlign: 'left' }}
+                  >
+                    <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 34, height: 24, px: 0.5, borderRadius: '6px', bgcolor: project.color || '#2864d7', color: '#fff', fontSize: 10, fontWeight: 800, letterSpacing: '0.04em', flexShrink: 0 }}>
+                      {getProjectTrigram(project.name)}
+                    </Box>
+                    <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {project.name}
+                    </Box>
+                    <Chip size="sm" variant="outlined">{project.processes.length}</Chip>
+                  </Button>
+                ))}
+                {projects.length === 0 && (
+                  <Typography level="body-sm" color="neutral" sx={{ px: 1, py: 2 }}>
+                    Aucun projet accessible.
+                  </Typography>
+                )}
+              </Stack>
+            ) : (
+              <FolderTree selectedId={selectedId} onNodeClick={onNodeClick} />
+            )}
           </Box>
           {showHistory && (
             <Stack direction="row" spacing={0.75} className="processExplorerHistory" alignItems="stretch">

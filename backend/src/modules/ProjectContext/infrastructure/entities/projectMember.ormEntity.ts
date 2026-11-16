@@ -25,4 +25,7 @@ export class ProjectMemberTypeOrmEntity extends AbstractEntity {
     default: ProjectMemberRole.Viewer,
   })
   role: ProjectMemberRole;
+
+  @Column({ type: 'boolean', default: false })
+  canSubmitRemarks: boolean;
 }

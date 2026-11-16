@@ -20,10 +20,7 @@ import { useActiveProject } from '../../shared/hooks/useActiveProject';
 import { ProjectProcessOverview } from './ProjectProcessOverview';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import type { Resource } from '../../Types';
-
-const projectIconLabels: Record<string, string> = {
-  folder: '📁', briefcase: '💼', building: '🏢', workflow: '🔀', users: '👥', chart: '📊',
-};
+import { getProjectTrigram } from '../../shared/helpers/projectTrigram';
 
 type FolderOverviewProps = {
   resource: Resource;
@@ -32,8 +29,14 @@ type FolderOverviewProps = {
 export const FolderOverview = ({ resource }: FolderOverviewProps) => {
   const { id: resourceId } = resource;
   const navigate = useNavigate();
-  const resources = useQuery<Resource[]>(resourcesQuery());
-  const { activeProject, activeProjectId, projectProcessIds } = useActiveProject();
+  const resources = useQuery(resourcesQuery());
+  const {
+    activeProject,
+    activeProjectId,
+    projectProcessIds,
+    isLoading: projectsLoading,
+    isError: projectsError,
+  } = useActiveProject();
   const queryClient = useQueryClient();
   const [editingDescription, setEditingDescription] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState('');
@@ -60,6 +63,22 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
     const allResources = resources.data ?? [];
     const allowedIds = new Set(projectProcessIds);
     const byId = new Map(allResources.map(item => [item.id, item]));
+
+    // The workspace endpoint is authoritative for project membership. Keep
+    // project-linked processes reachable even when the global resource list
+    // omits them for a member with project-scoped navigation rights.
+    activeProject?.processes.forEach(process => {
+      if (!byId.has(process.resourceId)) {
+        byId.set(process.resourceId, {
+          id: process.resourceId,
+          name: process.name,
+          depth: 0,
+          description: '',
+          type: ResourceType.Process,
+          sourceResourceId: process.sourceResourceId,
+        } as Resource);
+      }
+    });
     projectProcessIds.forEach(id => {
       let current = byId.get(id);
       while (current?.parentId) {
@@ -67,7 +86,7 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
         current = byId.get(current.parentId);
       }
     });
-    return allResources
+    return Array.from(byId.values())
       .filter(childResource => allowedIds.has(childResource.id) && (childResource.parentId ?? 'root') === resourceId)
       .sort((left, right) => {
         if (left.type !== right.type) {
@@ -75,24 +94,28 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
         }
         return left.name.localeCompare(right.name, 'fr');
       });
-  }, [resources.data, resourceId, projectProcessIds]);
+  }, [resources.data, resourceId, projectProcessIds, activeProject]);
 
-  if (resources.isLoading) {
+  // The project workspace can still provide the process list when the
+  // global resource explorer endpoint is unavailable. Do not replace the
+  // whole project home with an error in that case.
+  if ((resources.isLoading || projectsLoading) && !activeProject && resourceId === 'root') {
     return (
       <Card variant="outlined" sx={{ flex: 1, minHeight: 220, gap: 1 }}>
-        <Typography level="title-lg">{resourceId === 'root' ? (activeProject?.name ?? 'Référentiel') : resource.name}</Typography>
-        <Typography level="body-sm" color="neutral">Chargement du contenu…</Typography>
+        <Typography level="title-lg">Chargement de l’espace projet…</Typography>
+        <Typography level="body-sm" color="neutral">Récupération des répertoires et des processus.</Typography>
       </Card>
     );
   }
 
-  if (resources.isError) {
+  if (resources.isError && !activeProject) {
     return (
       <Card variant="outlined" sx={{ flex: 1, minHeight: 220, gap: 1 }}>
-        <Typography level="title-lg">{resourceId === 'root' ? (activeProject?.name ?? 'Référentiel') : resource.name}</Typography>
+        <Typography level="title-lg">{resourceId === 'root' ? 'Référentiel' : resource.name}</Typography>
         <Typography level="body-sm" color="danger">
-          Impossible de charger le contenu de ce répertoire.
+          Impossible de charger le contenu de ce répertoire. {resources.error instanceof Error ? resources.error.message : ''}
         </Typography>
+        {projectsError && <Typography level="body-xs" color="danger">L’espace projet n’est pas disponible non plus.</Typography>}
       </Card>
     );
   }
@@ -101,6 +124,11 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
     const rootFolders = children.filter(child => child.type === ResourceType.Folder);
     return (
       <Stack spacing={1.5} sx={{ minWidth: 0 }}>
+        {resources.isError && (
+          <Alert color="warning" variant="soft">
+            La liste complète des répertoires est momentanément indisponible. Les processus associés au projet sont affichés à partir de son espace de travail.
+          </Alert>
+        )}
         <Card variant="outlined" sx={{ gap: 0.75 }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
             <Typography level="title-lg">{activeProject.name}</Typography>
@@ -168,17 +196,26 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
           ) : (
             <Stack direction="row" spacing={1} alignItems="center">
               <Box
+                component="span"
+                title={activeProject.name}
                 sx={{
-                  width: 16,
-                  height: 16,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: 38,
+                  height: 26,
+                  px: 0.75,
                   flexShrink: 0,
-                  borderRadius: '5px',
+                  borderRadius: '6px',
                   bgcolor: activeProject.color || '#2864d7',
-                  border: '1px solid',
-                  borderColor: 'divider',
+                  color: '#fff',
+                  fontSize: 11,
+                  fontWeight: 800,
+                  letterSpacing: '0.04em',
                 }}
-              />
-              <Typography level="title-md">{projectIconLabels[activeProject.icon] || '📁'}</Typography>
+              >
+                {getProjectTrigram(activeProject.name)}
+              </Box>
               <Typography level="body-sm" color="neutral" sx={{ whiteSpace: 'pre-wrap' }}>
                 {activeProject.description?.trim() || 'Espace de travail du projet actif.'}
               </Typography>

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  Alert,
   Box,
   Button,
   Chip,
@@ -10,6 +11,11 @@ import {
   Input,
   Sheet,
   Skeleton,
+  Modal,
+  ModalDialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Stack,
   Select,
   Option,
@@ -21,7 +27,7 @@ import {
   Typography,
 } from '@mui/joy';
 import { Compare, FileCopy, ChevronLeft, ChevronRight, EditOutlined, CenterFocusStrong } from '@mui/icons-material';
-import { useQuery, useQueryClient } from 'react-query';
+import { useQueries, useQuery, useQueryClient } from 'react-query';
 
 import { useProcessDetails } from './hooks/useProcessDetails';
 import { ProcessContentList } from '../ProcessContentList/ProcessContentList';
@@ -34,18 +40,65 @@ import {
   getResourceQuery,
 } from '../../../api/resources/resources.queries';
 import { useResource } from '../../../shared/hooks/useResource';
+import { useActiveProject } from '../../../shared/hooks/useActiveProject';
+import { apiClient } from '../../../queryClient';
 import { useSnackbar } from '../../../shared/hooks/useSnackbar';
-import {
-  deriveRaciMatrixFromXml,
-} from '../../../extensions/raci-viewer';
-import { analyzeRaciMatrix, type RaciCode } from '../../../extensions/raci-engine';
+import { getRaciIssueLabel, type RaciCode } from '../../../extensions/raci-engine';
+import { useViewerRaciAnalysis } from '../../../shared/hooks/useViewerRaciAnalysis';
+import { useViewerRaciFilters } from '../../../shared/hooks/useViewerRaciFilters';
 import { ConditionalRender } from '../../../Components/GenericComponents/ConditionalRender/ConditionalRender';
 import { DropZone } from '../../../Components/GenericComponents/DropZone/DropZone';
-import { ContentStatusEnum } from '../../../Types';
+import { ContentStatusEnum, type Content } from '../../../Types';
 
 import '../../../raci.css';
 import { DataInventory } from './DataInventory';
 import './ProcessDetails.scss';
+
+type ViewerRemark = {
+  id: string;
+  elementId: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  comment?: string;
+  authorName?: string;
+  createdAt?: string;
+  decisionComment?: string | null;
+  decisionByName?: string | null;
+  awaitingAuthorResponse?: boolean;
+};
+
+type ActiveProcessProposal = {
+  id: string;
+  projectId: string;
+  sourceResourceId: string;
+  sourcePublishedContentId: string;
+  status: string;
+  cloneResourceId: string;
+  cloneContentId: string | null;
+};
+
+const getRemarkStatusColor = (status: ViewerRemark['status']): 'warning' | 'success' | 'danger' => {
+  switch (status) {
+    case 'accepted':
+      return 'success';
+    case 'rejected':
+      return 'danger';
+    default:
+      return 'warning';
+  }
+};
+
+const getRemarkStatusLabel = (status: ViewerRemark['status']): string => {
+  switch (status) {
+    case 'accepted':
+      return 'Acceptée';
+    case 'rejected':
+      return 'Refusée';
+    default:
+      return 'In attesa';
+  }
+};
+
+const EMPTY_VIEWER_REMARKS: ViewerRemark[] = [];
 
 type ProcessDetailsProps = {
   resourceId: string;
@@ -62,6 +115,20 @@ type ProcessDetailsProps = {
   readOnlyShell?: boolean;
   requestedRaciView?: boolean;
 };
+
+const BPMN_ACTIVITY_TYPES = new Set([
+  'task',
+  'userTask',
+  'serviceTask',
+  'manualTask',
+  'scriptTask',
+  'businessRuleTask',
+  'sendTask',
+  'receiveTask',
+  'callActivity',
+  'subProcess',
+  'transaction',
+]);
 
 const PROCESS_METADATA_NS = 'https://ovh-bpmn-tool.local/schema/process-metadata';
 const PROCESS_TYPES = [
@@ -84,6 +151,12 @@ const getContentStatusLabel = (status: ContentStatusEnum) => {
   if (status === ContentStatusEnum.Published) return 'Publiée';
   if (status === ContentStatusEnum.Draft) return 'Brouillon';
   return 'Obsolète';
+};
+
+const getRaciEmptyStateMessage = (activityCount: number, hasViewerContent: boolean) => {
+  if (activityCount > 0) return 'Aucune activité ne correspond aux filtres.';
+  if (hasViewerContent) return 'Aucune activité BPMN détectée dans ce contenu.';
+  return 'Aucune version publiée.';
 };
 
 const getRaciCellStatusClass = (status: string) => {
@@ -169,13 +242,43 @@ export const ProcessDetails = ({
     onContentChecked,
   } = useProcessDetails(resourceId, { onContentUpload });
 
-  // An explicit contentId is authoritative: never silently show the latest
-  // published version when a requested historical version is missing or invalid.
-  const viewerContent = selectedContentId
-    ? contents.find(
-        content => content.id === selectedContentId && content.status !== ContentStatusEnum.Draft,
-      )
-    : publishedContent;
+  const { projects, activeProject, setActiveProject } = useActiveProject();
+  const projectsForProcess = projects.filter(project =>
+    project.processes.some(process => process.resourceId === resourceId),
+  );
+  const projectForProcess = projectsForProcess.find(
+    project => project.id === activeProject?.id,
+  ) ?? (projectsForProcess.length === 1 ? projectsForProcess[0] : undefined);
+  const isProjectVariant = projectsForProcess.some(project =>
+    project.processes.some(process =>
+      process.resourceId === resourceId && process.usage === 'variant',
+    ),
+  );
+
+  // Variants may belong to another project than the currently active one.
+  // Aggregate accessible project variants so the source history remains a
+  // reliable entry point regardless of which project context is selected.
+  const projectVariants = projects.flatMap(project =>
+    project.processes
+      .filter(process => process.usage === 'variant' && process.sourceResourceId === resourceId)
+      .map(process => ({ ...process, projectId: project.id, projectName: project.name })),
+  );
+  const projectVariantContentQueries = useQueries(
+    projectVariants.map(variant => contentsQuery(variant.resourceId)),
+  ) as Array<{ data?: Content[]; isLoading?: boolean; isError?: boolean }>;
+
+  // Existing variants created before the initial-copy publication fix have
+  // only a first draft. Keep those independent variants visible in the
+  // read-only Viewer without silently publishing or changing their content.
+  let viewerContent = publishedContent ?? undefined;
+  if (selectedContentId) {
+    viewerContent = contents.find(content => content.id === selectedContentId) ?? undefined;
+  } else if (!viewerContent && isProjectVariant) {
+    viewerContent = draftContent ?? undefined;
+  }
+  const isUnpublishedVariantDraft = Boolean(
+    !selectedContentId && !publishedContent && isProjectVariant && draftContent,
+  );
   const isHistoricalView = Boolean(
     selectedContentId && (!viewerContent || viewerContent.id !== publishedContent?.id),
   );
@@ -190,10 +293,64 @@ export const ProcessDetails = ({
   );
   const queryClient = useQueryClient();
   const { resource: processResource } = useResource(resourceId);
+  const projectForRemark = projectForProcess?.canSubmitRemarks
+    ? projectForProcess
+    : undefined;
+  const activeProposalQueryKey = [
+    'active-process-change-proposal',
+    projectForProcess?.id,
+    resourceId,
+    viewerContent?.id,
+  ];
+  const {
+    data: activeProposal,
+    isLoading: activeProposalLoading,
+    isFetching: activeProposalFetching,
+    isError: activeProposalError,
+  } = useQuery<ActiveProcessProposal | null>(
+    activeProposalQueryKey,
+    () => apiClient.get(
+      `/projects/${projectForProcess!.id}/processes/${resourceId}/change-proposals/active?contentId=${encodeURIComponent(viewerContent!.id)}`,
+    ),
+    { enabled: Boolean(projectForProcess && publishedContent && viewerContent && !isHistoricalView), refetchOnMount: 'always' },
+  );
+  // Guard the Viewer against stale or cross-process proposal data: the
+  // warning and remark count must belong to this exact project, process and
+  // published content version.
+  // Never expose cached proposal data while its exact process/version lookup
+  // is refreshing or has failed. This also prevents stale remarks from leaking
+  // into the side panel when navigating between processes.
+  const currentActiveProposal = !activeProposalFetching && !activeProposalError && activeProposal &&
+    activeProposal.projectId === projectForProcess?.id &&
+    activeProposal.sourceResourceId === resourceId &&
+    activeProposal.sourcePublishedContentId === viewerContent?.id
+    ? activeProposal
+    : null;
+  const { data: viewerRemarks = EMPTY_VIEWER_REMARKS } = useQuery<ViewerRemark[]>(
+    ['process-change-proposal-comments', currentActiveProposal?.id],
+    () => apiClient.get(`/projects/process-change-proposals/${currentActiveProposal!.id}/comments`),
+    { enabled: Boolean(currentActiveProposal?.id && !isHistoricalView), refetchOnMount: 'always' },
+  );
+  const processUsage = projectForProcess?.processes.find(
+    process => process.resourceId === resourceId,
+  )?.usage;
+  const proposalProjectId = publishedContent && projectForProcess && (
+    projectForProcess.role === 'admin' ||
+    (projectForProcess.role === 'modeler' && processUsage !== 'common')
+  ) ? projectForProcess.id : undefined;
+  const canSubmitProcessRemark = Boolean(projectForRemark?.canSubmitRemarks && publishedContent);
+  const [startingProposal, setStartingProposal] = useState(false);
+  const [initialRemarkOpen, setInitialRemarkOpen] = useState(false);
+  const [initialRemarkText, setInitialRemarkText] = useState('');
+  const [submittingInitialRemark, setSubmittingInitialRemark] = useState(false);
+  const [initialRemarkError, setInitialRemarkError] = useState<string | null>(null);
   const { data: resourceShares } = useQuery(resourceSharesQuery(resourceId));
   const { showAlert } = useSnackbar();
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
   const [activeViewerTab, setActiveViewerTab] = useState(0);
+  const [actorFilter, setActorFilter] = useState('');
+  const [codeFilter, setCodeFilter] = useState<RaciCode | ''>('');
+  const [issuesOnly, setIssuesOnly] = useState(false);
 
   // A deep link may explicitly open the RACI workspace. Otherwise keep the
   // current tab when the user navigates between processes or versions.
@@ -252,20 +409,97 @@ export const ProcessDetails = ({
     }
   };
 
-  const raciMatrix = useMemo(
-    () =>
-      xmlContent
-        ? deriveRaciMatrixFromXml(xmlContent)
-        : { roles: [], activities: [] },
-    [xmlContent],
-  );
-
-  const raciAnalysis = useMemo(
-    () => analyzeRaciMatrix(raciMatrix),
-    [raciMatrix],
+  const { raciMatrix, laneRoleByElement, laneIdByRole } = useViewerRaciAnalysis(xmlContent);
+  const selectedRole = selectedElementId ? laneRoleByElement.get(selectedElementId) ?? '' : '';
+  const { raciAnalysis, issueByActivity, filteredActivities } = useViewerRaciFilters(
+    raciMatrix,
+    { actorFilter, codeFilter, issuesOnly },
   );
 
   const navigate = useNavigate();
+
+  const getProposalActionLabel = () => {
+    if (!currentActiveProposal) return 'Proposer une modification';
+    if (!currentActiveProposal.cloneContentId) return 'Consulter le suivi de la demande';
+    return 'Reprendre la demande en cours';
+  };
+
+  const startChangeProposal = async () => {
+    if (!proposalProjectId || startingProposal || activeProposalLoading || activeProposalFetching || isHistoricalView) return;
+    // Reuse the existing workflow instead of attempting to create a second
+    // proposal for the same published process version.
+    if (currentActiveProposal) {
+      if (!currentActiveProposal.cloneContentId) {
+        // Submitted proposals are intentionally frozen. Open the tracking
+        // workspace instead of sending the user back into a non-editable clone.
+        navigate('/mes-demandes');
+        return;
+      }
+      navigate(`/${currentActiveProposal.cloneResourceId}/modeler?proposalId=${currentActiveProposal.id}&contentId=${currentActiveProposal.cloneContentId}&sourceResourceId=${resourceId}`);
+      return;
+    }
+    setStartingProposal(true);
+    try {
+      const proposal = await apiClient.post(
+        `/projects/${proposalProjectId}/processes/${resourceId}/change-proposals`,
+        { validatorUserId: processMetadata.pilot.trim() || undefined },
+      ) as { id: string; cloneResourceId: string; cloneContentId: string };
+      navigate(`/${proposal.cloneResourceId}/modeler?proposalId=${proposal.id}&contentId=${proposal.cloneContentId}`);
+    } catch (error) {
+      showAlert({
+        message: error instanceof Error
+          ? error.message
+          : 'Impossible de créer la demande de modification.',
+        severity: 'danger',
+      });
+    } finally {
+      setStartingProposal(false);
+    }
+  };
+  const startInitialRemark = async () => {
+    if (
+      !projectForRemark ||
+      !selectedElementId ||
+      !initialRemarkText.trim() ||
+      submittingInitialRemark
+    ) return;
+    setSubmittingInitialRemark(true);
+    setInitialRemarkError(null);
+    try {
+      await apiClient.post(
+        `/projects/${projectForRemark.id}/processes/${resourceId}/change-proposals`,
+        {
+          elementId: selectedElementId,
+          comment: initialRemarkText.trim(),
+          validatorUserId: processMetadata.pilot.trim() || undefined,
+        },
+      );
+      await Promise.all([
+        queryClient.invalidateQueries(['my-process-change-proposals']),
+        queryClient.invalidateQueries(['process-change-proposals-to-review']),
+        queryClient.invalidateQueries(['active-process-change-proposal']),
+        queryClient.invalidateQueries(['process-change-proposal-comments']),
+      ]);
+      setInitialRemarkOpen(false);
+      setInitialRemarkText('');
+      showAlert({
+        message: 'Votre remarque a été déposée et transmise au circuit de validation du projet.',
+        severity: 'success',
+      });
+      // The author may only have the right to submit remarks, not to edit the
+      // proposal workspace. The assigned validator opens that workspace from
+      // the review queue; keep the author on the source viewer.
+      await queryClient.invalidateQueries(['my-workspace']);
+    } catch (error) {
+      setInitialRemarkError(
+        error instanceof Error ? error.message : 'Impossible de déposer la remarque.',
+      );
+    } finally {
+      setSubmittingInitialRemark(false);
+    }
+  };
+
+  const processWorkspaceRef = useRef<HTMLDivElement>(null);
   const [explorerCollapsed, setExplorerCollapsed] = useState(false);
   const [taskPanelCollapsed, setTaskPanelCollapsed] = useState(true);
   const [explorerWidth, setExplorerWidth] = useState(() => {
@@ -287,8 +521,9 @@ export const ProcessDetails = ({
   }, [taskPanelWidth]);
 
   useEffect(() => {
-    // The element sheet follows the BPMN selection: open on selection,
-    // close again as soon as the selected element is cleared.
+    // Selecting an element opens its details. Clearing the selection (including
+    // a second click on the same BPMN element) restores the previous collapsed
+    // state; the panel header remains available for manual open/close control.
     setTaskPanelCollapsed(!selectedElementId);
   }, [selectedElementId]);
 
@@ -363,8 +598,14 @@ export const ProcessDetails = ({
     () => raciMatrix.activities.find(activity => activity.elementId === selectedElementId),
     [raciMatrix.activities, selectedElementId],
   );
+  const selectedTaskIsBpmnActivity = Boolean(
+    selectedTask && BPMN_ACTIVITY_TYPES.has(selectedTask.type),
+  );
   const selectedTaskRaciCells =
     selectedTaskRaci?.cells.filter(cell => cell.codes.length) ?? [];
+  const selectedElementRemarks = selectedElementId
+    ? viewerRemarks.filter(remark => remark.elementId === selectedElementId)
+    : viewerRemarks;
 
   useEffect(() => {
     setIsEditingDescription(false);
@@ -570,7 +811,7 @@ export const ProcessDetails = ({
 
 
         <TabPanel value={0} className="processViewerTabPanel processViewerProcessTab">
-          <Box className="processViewerProcessWorkspace">
+          <Box className="processViewerProcessWorkspace" ref={processWorkspaceRef}>
           <Sheet className="processViewerDiagram" variant="outlined">
             {isLoading && (
               <Stack gap={2} padding={2}>
@@ -588,8 +829,10 @@ export const ProcessDetails = ({
                 >
                   <Stack spacing={0.25}>
                     <Typography level="body-xs" textColor="neutral">
-                        Published by {viewerContent.updatedBy} le {new Date(viewerContent.updatedAt).toLocaleDateString('fr-FR')}
-                      </Typography>
+                      {isUnpublishedVariantDraft
+                        ? 'Copie initiale de la variante — version non publiée'
+                        : `Publié par ${viewerContent.updatedBy} le ${new Date(viewerContent.updatedAt).toLocaleDateString('fr-FR')}`}
+                    </Typography>
                   </Stack>
                   <Stack direction="row" spacing={0.5} alignItems="center">
                     <IconButton
@@ -602,6 +845,44 @@ export const ProcessDetails = ({
                     >
                       <FileCopy />
                     </IconButton>
+                    {canSubmitProcessRemark && !isHistoricalView && (
+                      <Button
+                        size="sm"
+                        variant="outlined"
+                        color="neutral"
+                        disabled={!selectedElementId}
+                        onClick={() => {
+                          setInitialRemarkError(null);
+                          setInitialRemarkOpen(true);
+                        }}
+                      >
+                        Ajouter une remarque
+                      </Button>
+                    )}
+                    {proposalProjectId && currentActiveProposal && !activeProposalFetching && !activeProposalError && !isHistoricalView && (
+                      <Alert color="warning" variant="soft" size="sm">
+                        Une demande de modification est déjà ouverte pour cette version
+                        (statut : {currentActiveProposal.status}). Vous pouvez la retrouver avec le bouton ci-dessous.
+                      </Alert>
+                    )}
+                    {proposalProjectId && activeProposalError && !isHistoricalView && (
+                      <Alert color="danger" variant="soft" size="sm">
+                        Impossible de vérifier les demandes déjà ouvertes. Rechargez la page avant d’en créer une nouvelle.
+                      </Alert>
+                    )}
+                    {proposalProjectId && !isHistoricalView && (
+                      <Button
+                        size="sm"
+                        variant="soft"
+                        color="primary"
+                        loading={startingProposal || activeProposalLoading}
+                        disabled={startingProposal || activeProposalLoading || activeProposalFetching || Boolean(activeProposalError)}
+                        onClick={startChangeProposal}
+                      >
+                        <EditOutlined sx={{ fontSize: 16, mr: 0.5 }} />
+                        {getProposalActionLabel()}
+                      </Button>
+                    )}
                     {canEditDescription && (
                       <IconButton
                         title="Modifier le diagramme BPMN"
@@ -624,6 +905,8 @@ export const ProcessDetails = ({
                     contentId={viewerContent.id}
                     selectedElementId={selectedElementId}
                     onElementSelect={onElementSelect}
+                    fullscreenTargetRef={processWorkspaceRef}
+                    remarks={viewerRemarks}
                   />
                 </Box>
               </>
@@ -798,7 +1081,7 @@ export const ProcessDetails = ({
                             </Stack>
                           </Stack>
                         ))}
-                        {isEditingDescription && !selectedTaskRaci && (
+                        {isEditingDescription && !selectedTaskIsBpmnActivity && (
                           <Typography level="body-sm" textColor="neutral">Le RACI est disponible pour les activités BPMN.</Typography>
                         )}
                         {isEditingDescription && selectedTaskRaci && raciMatrix.roles.length === 0 && (
@@ -810,9 +1093,14 @@ export const ProcessDetails = ({
                             <Typography level="title-sm">{cell.codes.join(' / ')}</Typography>
                           </Stack>
                         ))}
-                        {!isEditingDescription && selectedTaskRaciCells.length === 0 && (
+                        {!isEditingDescription && !selectedTaskIsBpmnActivity && (
                           <Typography level="body-sm" textColor="neutral">
-                            Aucun rôle RACI détecté pour cette tâche.
+                            Le RACI n'est disponible que pour les activités BPMN.
+                          </Typography>
+                        )}
+                        {!isEditingDescription && selectedTaskIsBpmnActivity && selectedTaskRaciCells.length === 0 && (
+                          <Typography level="body-sm" textColor="neutral">
+                            Aucun rôle RACI renseigné pour cette activité.
                           </Typography>
                         )}
                         <Typography level="body-xs" textColor="neutral">
@@ -846,6 +1134,48 @@ export const ProcessDetails = ({
                         )}
                         {!isEditingDescription && !selectedTask.externalUrl && (
                           <Typography level="body-sm" textColor="neutral">Aucune URL renseignée.</Typography>
+                        )}
+                      </Stack>
+
+                      <Divider />
+                      <Stack spacing={1}>
+                        <Typography level="title-sm">
+                          4. Remarques ({selectedElementRemarks.length})
+                        </Typography>
+                        {selectedElementRemarks.length > 0 ? (
+                          selectedElementRemarks.map(remark => (
+                            <Sheet key={remark.id} variant="soft" sx={{ p: 1.25, borderRadius: 'sm' }}>
+                              <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+                                <Typography level="body-xs" textColor="neutral">
+                                  {remark.authorName || 'Auteur'}{remark.createdAt ? ` · ${new Date(remark.createdAt).toLocaleString('fr-FR')}` : ''}
+                                </Typography>
+                                <Chip
+                                  size="sm"
+                                  color={getRemarkStatusColor(remark.status)}
+                                  variant="soft"
+                                >
+                                  {getRemarkStatusLabel(remark.status)}
+                                </Chip>
+                              </Stack>
+                              <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', mt: 0.75 }}>
+                                {remark.comment || 'Texte de remarque indisponible.'}
+                              </Typography>
+                              {remark.awaitingAuthorResponse && (
+                                <Typography level="body-xs" color="warning" sx={{ mt: 0.75 }}>
+                                  Précision demandée : en attente de la réponse de l’auteur.
+                                </Typography>
+                              )}
+                              {remark.decisionComment && (
+                                <Typography level="body-xs" textColor="neutral" sx={{ mt: 0.75, whiteSpace: 'pre-wrap' }}>
+                                  Décision{remark.decisionByName ? ` de ${remark.decisionByName}` : ''} : {remark.decisionComment}
+                                </Typography>
+                              )}
+                            </Sheet>
+                          ))
+                        ) : (
+                          <Typography level="body-sm" textColor="neutral">
+                            Aucune remarque pour cet élément.
+                          </Typography>
                         )}
                       </Stack>
                     </>
@@ -1013,6 +1343,57 @@ export const ProcessDetails = ({
             </Stack>
             <Divider />
             <Stack spacing={1} padding={1}>
+              {projectVariants.length > 0 && (
+                <Sheet variant="soft" sx={{ p: 1.5, borderRadius: 'sm' }}>
+                  <Typography level="title-sm">Variantes de ce processus</Typography>
+                  <Typography level="body-xs" textColor="neutral">
+                    Les brouillons restent indépendants du processus de référence et doivent être validés dans leur propre espace.
+                  </Typography>
+                  <Stack spacing={1} sx={{ mt: 1 }}>
+                    {projectVariants.map((variant, index) => {
+                      const variantContents = projectVariantContentQueries[index]?.data ?? [];
+                      const variantDraft = variantContents.find(content => content.status === ContentStatusEnum.Draft);
+                      const variantPublished = variantContents.find(content => content.status === ContentStatusEnum.Published);
+                      const variantQuery = projectVariantContentQueries[index];
+                      let status = 'Sans version';
+                      let statusColor: 'warning' | 'success' | 'neutral' = 'neutral';
+                      if (variantQuery?.isLoading) {
+                        status = 'Chargement…';
+                      } else if (variantQuery?.isError) {
+                        status = 'Indisponible';
+                      } else if (variantDraft) {
+                        status = 'Brouillon à valider';
+                        statusColor = 'warning';
+                      } else if (variantPublished) {
+                        status = 'Publiée';
+                        statusColor = 'success';
+                      }
+                      return (
+                        <Stack key={variant.resourceId} direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                          <Stack spacing={0.25} sx={{ minWidth: 0 }}>
+                            <Typography level="body-sm" fontWeight="md">{variant.name}</Typography>
+                            <Typography level="body-xs" textColor="neutral">{variant.projectName}</Typography>
+                            <Chip size="sm" variant="soft" color={statusColor}>
+                              {status}
+                            </Chip>
+                          </Stack>
+                          <Button
+                            size="sm"
+                            variant={variantDraft ? 'solid' : 'outlined'}
+                            color={variantDraft ? 'warning' : 'neutral'}
+                            onClick={() => {
+                              setActiveProject(variant.projectId);
+                              navigate(`/${variant.resourceId}`);
+                            }}
+                          >
+                            {variantDraft ? 'Ouvrir pour valider' : 'Ouvrir'}
+                          </Button>
+                        </Stack>
+                      );
+                    })}
+                  </Stack>
+                </Sheet>
+              )}
               {readOnlyShell && !canManageVersions ? (
                 <>
                   <Stack direction="row" alignItems="center" justifyContent="flex-end">
@@ -1137,56 +1518,122 @@ export const ProcessDetails = ({
                 </Box>
               </Box>
             </Box>
+            <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ px: 2, pt: 1 }}>
+              <Select
+                size="sm"
+                value={actorFilter || null}
+                placeholder="Tous les acteurs"
+                onChange={(_, value) => setActorFilter(value ?? '')}
+                aria-label="Filtrer par acteur"
+                sx={{ minWidth: 180 }}
+              >
+                <Option value="">Tous les acteurs</Option>
+                {raciMatrix.roles.map(role => <Option key={role} value={role}>{role}</Option>)}
+              </Select>
+              <Select
+                size="sm"
+                value={codeFilter || null}
+                placeholder="Tous les rôles"
+                onChange={(_, value) => setCodeFilter((value ?? '') as RaciCode | '')}
+                aria-label="Filtrer par rôle RACI"
+                sx={{ minWidth: 150 }}
+              >
+                <Option value="">Tous les rôles</Option>
+                {(['R', 'A', 'C', 'I'] as RaciCode[]).map(code => <Option key={code} value={code}>{code}</Option>)}
+              </Select>
+              <Button
+                size="sm"
+                variant={issuesOnly ? 'soft' : 'outlined'}
+                color={issuesOnly ? 'warning' : 'neutral'}
+                aria-pressed={issuesOnly}
+                onClick={() => setIssuesOnly(value => !value)}
+              >
+                {issuesOnly ? 'Toutes les activités' : 'Activités à compléter'}
+              </Button>
+            </Stack>
+            {raciAnalysis.unusedActors.length > 0 && (
+              <Sheet variant="soft" color="warning" sx={{ p: 1, mx: 2, mt: 1 }}>
+                <Typography level="title-sm">Acteurs déclarés mais non utilisés</Typography>
+                <Typography level="body-xs">
+                  {raciAnalysis.unusedActors.join(', ')}
+                </Typography>
+              </Sheet>
+            )}
             <Box className="raci-table-wrapper processViewerRaciTableWrapper">
-              {raciMatrix.activities.length ? (
+              {filteredActivities.length ? (
                 <table className="raci-table" aria-label="Matrice RACI en lecture seule">
                   <thead>
                     <tr>
                       <th>Activité</th>
-                      {raciMatrix.roles.map(role => <th key={role}>{role}</th>)}
+                      {raciMatrix.roles.map(role => (
+                        <th key={role} className={selectedRole === role ? 'raci-role-column-selected' : undefined}>
+                          <Button
+                            size="sm"
+                            variant={selectedRole === role ? 'soft' : 'plain'}
+                            color={selectedRole === role ? 'primary' : 'neutral'}
+                            disabled={!laneIdByRole.has(role)}
+                            onClick={() => {
+                              const laneId = laneIdByRole.get(role);
+                              if (laneId) {
+                                setActiveViewerTab(0);
+                                onElementSelect?.(laneId);
+                              }
+                            }}
+                          >
+                            {role}
+                          </Button>
+                        </th>
+                      ))}
+                      <th>Contrôle</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {raciMatrix.activities.map(activity => (
-                      <tr key={activity.elementId}>
-                        <th className="raci-activity">
-                          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ minWidth: 0 }}>
-                            <Typography level="body-sm" sx={{ flex: 1, minWidth: 0 }}>{activity.activity}</Typography>
-                            <IconButton size="sm" variant="plain" color="primary" title="Voir l’activité dans le BPMN" aria-label="Voir l’activité dans le BPMN" onClick={() => { setActiveViewerTab(0); onElementSelect?.(activity.elementId); }} disabled={!onElementSelect || !activity.elementId} sx={{ flex: '0 0 auto' }}>
-                              <CenterFocusStrong />
-                            </IconButton>
-                          </Stack>
-                        </th>
-                        {activity.cells.map(cell => (
-                          <td
-                            key={cell.role}
-                            className={getRaciCellStatusClass(cell.status)}
-                            title={getRaciCellStatusLabel(cell.status)}
-                          >
-                            <Box className="raci-cell-code">
-                              {cell.codes.length ? cell.codes.map(code => (
-                                <span key={code} className={`raci-code-badge raci-code-${code}`} title={code}>{code}</span>
-                              )) : '—'}
-                            </Box>
-                            <Box className="raci-cell-status">
-                              {getRaciCellStatusLabel(cell.status)}
-                            </Box>
+                    {filteredActivities.map(activity => {
+                      const issue = issueByActivity.get(activity.elementId);
+                      return (
+                        <tr key={activity.elementId}>
+                          <th className="raci-activity">
+                            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ minWidth: 0 }}>
+                              <Typography level="body-sm" sx={{ flex: 1, minWidth: 0 }}>{activity.activity}</Typography>
+                              <IconButton size="sm" variant="plain" color="primary" title="Voir l’activité dans le BPMN" aria-label="Voir l’activité dans le BPMN" onClick={() => { setActiveViewerTab(0); onElementSelect?.(activity.elementId); }} disabled={!onElementSelect || !activity.elementId} sx={{ flex: '0 0 auto' }}>
+                                <CenterFocusStrong />
+                              </IconButton>
+                            </Stack>
+                          </th>
+                          {activity.cells.map(cell => (
+                            <td
+                              key={cell.role}
+                              className={`${getRaciCellStatusClass(cell.status)} ${selectedRole === cell.role ? 'raci-role-column-selected' : ''}`}
+                              title={getRaciCellStatusLabel(cell.status)}
+                            >
+                              <Box className="raci-cell-code">
+                                {cell.codes.length ? cell.codes.map(code => (
+                                  <span key={code} className={`raci-code-badge raci-code-${code}`} title={code}>{code}</span>
+                                )) : '—'}
+                              </Box>
+                              <Box className="raci-cell-status">
+                                {getRaciCellStatusLabel(cell.status)}
+                              </Box>
+                            </td>
+                          ))}
+                          <td>
+                            {issue
+                              ? issue.codes.map(code => <div key={code}>⚠ {getRaciIssueLabel(code)}</div>)
+                              : '✓ OK'}
                           </td>
-                        ))}
-                      </tr>
-                    ))}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               ) : (
                 <Typography level="body-sm" textColor="neutral" sx={{ p: 2 }}>
-                  {viewerContent
-                    ? 'Aucune activité BPMN détectée dans ce contenu.'
-                    : 'Aucune version publiée.'}
+                  {getRaciEmptyStateMessage(raciMatrix.activities.length, Boolean(viewerContent))}
                 </Typography>
               )}
             </Box>
             <Box className="raci-footer processViewerRaciFooter">
-              <span>{raciMatrix.activities.length} activité(s)</span>
+              <span>{filteredActivities.length}/{raciMatrix.activities.length} activité(s)</span>
               <span>{raciMatrix.roles.length} acteur(s)</span>
               <span>{raciAnalysis.issues.length} anomalie(s)</span>
               <span>🟢 Explicite</span>
@@ -1213,6 +1660,46 @@ export const ProcessDetails = ({
             />
           </Sheet>
         </TabPanel>
+      <Modal
+        open={initialRemarkOpen}
+        onClose={() => {
+          if (!submittingInitialRemark) setInitialRemarkOpen(false);
+        }}
+      >
+        <ModalDialog>
+          <DialogTitle>Ajouter une remarque au processus</DialogTitle>
+          <DialogContent>
+            La remarque sera liée à l’élément sélectionné. Le suivi des remarques et leur traitement se feront ensuite dans le modeleur.
+            <Typography level="body-xs" color="neutral">
+              Élément : {selectedElementId || 'Aucun élément sélectionné'}
+            </Typography>
+          </DialogContent>
+          <Textarea
+            minRows={3}
+            value={initialRemarkText}
+            onChange={event => setInitialRemarkText(event.target.value)}
+            placeholder="Décrivez le point à signaler…"
+          />
+          {initialRemarkError && <Alert color="danger">{initialRemarkError}</Alert>}
+          <DialogActions>
+            <Button
+              variant="plain"
+              color="neutral"
+              disabled={submittingInitialRemark}
+              onClick={() => setInitialRemarkOpen(false)}
+            >
+              Annuler
+            </Button>
+            <Button
+              loading={submittingInitialRemark}
+              disabled={!selectedElementId || !initialRemarkText.trim() || submittingInitialRemark}
+              onClick={startInitialRemark}
+            >
+              Déposer la remarque
+            </Button>
+          </DialogActions>
+        </ModalDialog>
+      </Modal>
       </Tabs>
 
 

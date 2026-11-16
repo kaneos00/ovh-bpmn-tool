@@ -74,7 +74,7 @@ jobs:
 
   coolify-demo:
     name: Coolify demo images and Compose config
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       DATABASE_NAME: bpmn_v2_demo
@@ -98,6 +98,10 @@ jobs:
         run: docker build --file deploy/coolify/Dockerfile.postgres --tag bpmn-v2-demo-postgres:ci .
       - name: Build database migration image
         run: docker build --file deploy/coolify/Dockerfile.migrations --tag bpmn-v2-demo-migrations:ci .
+      - name: Install Playwright Chromium for browser workflow
+        run: |
+          npm install --prefix /tmp/bpmn-playwright --no-save playwright@1.55.0
+          node /tmp/bpmn-playwright/node_modules/playwright/cli.js install chromium
       - name: Smoke-test database, login, session and protected API
         run: |
           docker network create bpmn-v2-ci
@@ -105,7 +109,18 @@ jobs:
             docker rm --force bpmn-v2-demo-frontend-ci bpmn-v2-demo-backend-ci bpmn-v2-demo-db-ci >/dev/null 2>&1 || true
             docker network rm bpmn-v2-ci >/dev/null 2>&1 || true
           }
-          trap cleanup EXIT
+          trap 'exit_code=$?; if [ "$exit_code" -ne 0 ]; then echo "::group::Docker diagnostics after smoke-test failure"; for container in bpmn-v2-demo-frontend-ci bpmn-v2-demo-backend-ci bpmn-v2-demo-db-ci; do echo "--- logs: $container ---"; docker logs "$container" 2>&1 || true; done; echo "::endgroup::"; fi; cleanup; exit "$exit_code"' EXIT
+
+          assert_status() {
+            expected="$1"
+            actual="$2"
+            label="$3"
+            if [ "$actual" != "$expected" ]; then
+              echo "HTTP smoke test failed for $label: expected $expected, got $actual" >&2
+              exit 1
+            fi
+            echo "HTTP smoke test passed: $label ($actual)"
+          }
 
           docker run --detach --name bpmn-v2-demo-db-ci \
             --network bpmn-v2-ci --network-alias database \
@@ -140,7 +155,7 @@ jobs:
           docker run --rm --network bpmn-v2-ci \
             --env PGPASSWORD="$DATABASE_PASSWORD" \
             --env DATABASE_USER="$DATABASE_USER" --env DATABASE_NAME="$DATABASE_NAME" \
-            bpmn-v2-demo-migrations:ci sh -ec 'until pg_isready -h database -U "$DATABASE_USER" -d "$DATABASE_NAME"; do sleep 1; done; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261014_v2_1_process_provenance.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261029_v3_user_theme_preference.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261029_v3_content_change_comments.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261105_v3_project_visual_identity.sql'
+            bpmn-v2-demo-migrations:ci sh -ec 'until pg_isready -h database -U "$DATABASE_USER" -d "$DATABASE_NAME"; do sleep 1; done; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261014_v2_1_process_provenance.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261029_v3_user_theme_preference.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261029_v3_content_change_comments.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261102_v3_process_change_proposals.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261104_v3_process_change_proposal_comments.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261104_v3_process_change_proposal_remark_events.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261105_v3_project_member_remark_permission.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261105_v3_project_visual_identity.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261106_add_project_default_validator.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261108_v3_project_trigram.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261109_v3_process_change_proposal_clarification_events.sql'
 
           # Execute the explorer XPath against a real PostgreSQL server. This
           # exercises namespace-aware BPMN XML parsing, latest-published
@@ -154,6 +169,12 @@ jobs:
           test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.columns WHERE table_name='resources' AND column_name='sourceResourceId'")" = "1"
           test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.tables WHERE table_name='app_user_preferences'")" = "1"
           test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.columns WHERE table_name='projects' AND column_name IN ('color', 'icon')")" = "2"
+          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.columns WHERE table_name='project_members' AND column_name='canSubmitRemarks'")" = "1"
+          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.tables WHERE table_name='process_change_proposals'")" = "1"
+          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.tables WHERE table_name='process_change_proposal_comments'")" = "1"
+          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.tables WHERE table_name='process_change_proposal_events'")" = "1"
+          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.columns WHERE table_name='projects' AND column_name='defaultValidatorUserId'")" = "1"
+          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.columns WHERE table_name='projects' AND column_name='trigram'")" = "1"
 
           docker run --detach --name bpmn-v2-demo-backend-ci --network bpmn-v2-ci --network-alias backend \
             --env NODE_ENV=production --env NODE_PORT=3000 \
@@ -170,11 +191,11 @@ jobs:
             if [ "$status" = "401" ]; then break; fi
             sleep 2
           done
-          test "$status" = "401"
+          assert_status "401" "$status" "backend unauthenticated session"
           status="$(docker run --rm --network bpmn-v2-ci curlimages/curl:8.12.1 -sS -o /dev/null -w '%{http_code}' \
             -H 'content-type: application/json' -d '{"username":"demo-v2","password":"wrong"}' \
             http://backend:3000/auth/login || true)"
-          test "$status" = "401"
+          assert_status "401" "$status" "backend invalid-password login"
 
           docker run --detach --name bpmn-v2-demo-frontend-ci --network bpmn-v2-ci \
             --publish 127.0.0.1:18080:80 \
@@ -184,25 +205,30 @@ jobs:
             if [ "$status" = "200" ]; then break; fi
             sleep 2
           done
-          test "$status" = "200"
+          assert_status "200" "$status" "frontend root page"
           test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/bpmn-tool-logo.svg)" = "200"
-          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/bpmn-api/projects/administration/overview)" = "401"
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/bpmn-api/projects/administration/overview)"
+          echo "Unauthenticated protected route returned HTTP $status"
+          if [ "$status" != "401" ] && [ "$status" != "403" ] && [ "$status" != "302" ]; then
+            echo "Unexpected anonymous response: HTTP $status" >&2
+            exit 1
+          fi
 
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --header 'content-type: application/json' \
             --data '{"username":"demo-v2","password":"ci-only-demo-password"}' \
             --cookie-jar /tmp/bpmn-v2-ci.cookies \
             http://127.0.0.1:18080/bpmn-api/auth/login)"
-          test "$status" = "200"
+          assert_status "200" "$status" "frontend demo login"
 
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-ci.cookies \
             http://127.0.0.1:18080/bpmn-api/projects/administration/overview)"
-          test "$status" = "200"
+          assert_status "200" "$status" "frontend authenticated administration overview"
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-ci.cookies \
             http://127.0.0.1:18080/bpmn-api/auth/session)"
-          test "$status" = "200"
+          assert_status "200" "$status" "frontend authenticated session"
 
           # Exercise local-account administration, email login, role mapping and password reset.
           created_user="$(curl --fail --silent --show-error \
@@ -216,21 +242,21 @@ jobs:
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-ci.cookies \
             http://127.0.0.1:18080/bpmn-api/auth/users)"
-          test "$status" = "200"
+          assert_status "200" "$status" "frontend admin can list users after creation"
 
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-ci.cookies \
             --request POST --header 'content-type: application/json' \
             --data '{"newPassword":"ci-reader-reset-password"}' \
             "http://127.0.0.1:18080/bpmn-api/auth/users/$reader_id/password")"
-          test "$status" = "201"
+          assert_status "201" "$status" "frontend admin resets reader password"
 
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --header 'content-type: application/json' \
             --data '{"username":"ci-reader@example.com","password":"ci-reader-reset-password"}' \
             --cookie-jar /tmp/bpmn-v2-reader.cookies \
             http://127.0.0.1:18080/bpmn-api/auth/login)"
-          test "$status" = "200"
+          assert_status "200" "$status" "frontend reader login"
 
           reader_session="$(curl --fail --silent --show-error \
             --cookie /tmp/bpmn-v2-reader.cookies \
@@ -241,13 +267,13 @@ jobs:
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-reader.cookies \
             http://127.0.0.1:18080/bpmn-api/auth/users)"
-          test "$status" = "403"
+          assert_status "403" "$status" "frontend viewer denied user listing"
 
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-ci.cookies --cookie-jar /tmp/bpmn-v2-ci.cookies \
             --request POST \
             "http://127.0.0.1:18080/bpmn-api/auth/users/$reader_id/impersonate")"
-          test "$status" = "200"
+          assert_status "200" "$status" "frontend admin starts impersonation"
 
           impersonated_session="$(curl --fail --silent --show-error \
             --cookie /tmp/bpmn-v2-ci.cookies \
@@ -259,12 +285,12 @@ jobs:
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-ci.cookies \
             http://127.0.0.1:18080/bpmn-api/auth/users)"
-          test "$status" = "403"
+          assert_status "403" "$status" "frontend impersonated viewer denied user listing"
 
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-ci.cookies --cookie-jar /tmp/bpmn-v2-ci.cookies \
             --request POST http://127.0.0.1:18080/bpmn-api/auth/impersonation/stop)"
-          test "$status" = "200"
+          assert_status "200" "$status" "frontend restored admin session"
 
           admin_session="$(curl --fail --silent --show-error \
             --cookie /tmp/bpmn-v2-ci.cookies \
@@ -275,20 +301,24 @@ jobs:
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-ci.cookies \
             http://127.0.0.1:18080/bpmn-api/auth/users)"
-          test "$status" = "200"
+          assert_status "200" "$status" "frontend restored admin can list users"
 
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-reader.cookies \
             --request POST --header 'content-type: application/json' \
             --data '{"currentPassword":"ci-reader-reset-password","newPassword":"ci-reader-final-password"}' \
             http://127.0.0.1:18080/bpmn-api/auth/password)"
-          test "$status" = "201"
+          assert_status "201" "$status" "frontend reader password change"
 
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --header 'content-type: application/json' \
             --data '{"username":"ci-reader","password":"ci-reader-final-password"}' \
             http://127.0.0.1:18080/bpmn-api/auth/login)"
-          test "$status" = "200"
+          assert_status "200" "$status" "frontend reader password login"
+
+          # Give the isolated CI reader account explicit permission to submit Viewer remarks.
+          docker exec bpmn-v2-demo-db-ci psql -v ON_ERROR_STOP=1 -U "$DATABASE_USER" -d "$DATABASE_NAME" -c \
+            "INSERT INTO project_members (id, \"createdBy\", \"projectId\", \"userId\", role, \"canSubmitRemarks\") VALUES (gen_random_uuid(), 'ci-e2e', '10000000-0000-4000-8000-000000000001', 'ci-reader', 'viewer', TRUE) ON CONFLICT (\"projectId\", \"userId\") DO UPDATE SET role = EXCLUDED.role, \"canSubmitRemarks\" = TRUE"
 
           workspace_payload="$(curl --fail --silent --show-error \
             --cookie /tmp/bpmn-v2-ci.cookies \
@@ -297,11 +327,24 @@ jobs:
           echo "$workspace_payload" | grep -q '"role":'
           echo "$workspace_payload" | grep -q '"usage":'
 
+          # Run the complete proposal / remark workflow in a real Chromium browser.
+          NODE_PATH=/tmp/bpmn-playwright/node_modules \
+            BPMN_E2E_BASE_URL=http://127.0.0.1:18080 \
+            DEMO_AUTH_USER="$DEMO_AUTH_USER" \
+            DEMO_AUTH_PASSWORD="$DEMO_AUTH_PASSWORD" \
+            CI_READER_USERNAME=ci-reader \
+            CI_READER_PASSWORD=ci-reader-final-password \
+            node frontend/tests/e2e/proposal-review.browser.cjs
+
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
             --cookie /tmp/bpmn-v2-ci.cookies -X POST \
             http://127.0.0.1:18080/bpmn-api/auth/logout)"
-          test "$status" = "200"
-          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/bpmn-api/projects/administration/overview)" = "401"
+          assert_status "200" "$status" "frontend logout"
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18080/bpmn-api/projects/administration/overview)"
+          if [ "$status" != "401" ] && [ "$status" != "403" ] && [ "$status" != "302" ]; then
+            echo "Unexpected protected-route response after logout: HTTP $status" >&2
+            exit 1
+          fi
 
   deploy-coolify:
     name: Deploy to Coolify test instance

@@ -23,31 +23,10 @@ import {
   Typography,
 } from '@mui/joy';
 import { apiClient } from '../../queryClient';
-import { WorkspacePageLayout } from '../../Components/GenericComponents/WorkspacePageLayout/WorkspacePageLayout';
-import { Breadcrumbs } from '../../Components/GenericComponents/Breadcrumbs/Breadcrumbs';
+import { OrganizationAdminLayout } from './OrganizationAdminLayout';
 import './OrganizationAdmin.scss';
 
-type MembershipView = {
-  projectId: string;
-  projectName: string;
-  role: 'viewer' | 'modeler' | 'admin';
-};
-
-type AdminUser = {
-  userId: string;
-  projects: MembershipView[];
-};
-
-type MembershipChange = {
-  projectId: string;
-  userId: string;
-  role: MembershipView['role'];
-};
-
-type MembershipRemoval = {
-  projectId: string;
-  userId: string;
-};
+type ProjectRole = 'viewer' | 'modeler' | 'admin';
 
 type ProjectCreate = { name: string; description: string };
 type ProjectUpdate = { id: string; name: string; description: string };
@@ -82,14 +61,13 @@ type AdminProcess = {
 
 type AdministrationOverview = {
   projects: AdminProject[];
-  users: AdminUser[];
+  users: Array<{ userId: string }>;
   processes: AdminProcess[];
 };
 
 const queryKey = ['organization-administration-overview'];
 const sections = [
   { key: 'overview', label: 'Vue d’ensemble', icon: '▦' },
-  { key: 'users', label: 'Utilisateurs', icon: '♙' },
   { key: 'projects', label: 'Projets', icon: '▣' },
   { key: 'processes', label: 'Processus', icon: '⌘' },
   { key: 'governance', label: 'Acteurs et RACI', icon: '⬡' },
@@ -104,38 +82,23 @@ const updateSelection = <T,>(current: T[], value: T, checked: boolean): T[] => {
   return current.filter((item) => item !== value);
 };
 
-const roleLabel: Record<MembershipView['role'], string> = {
-  viewer: 'Viewer',
-  modeler: 'Modeler',
-  admin: 'Admin',
-};
-
 const usageLabel: Record<AdminProcessLink['usage'], string> = {
   common: 'Commun',
   variant: 'Variante',
   'project-specific': 'Spécifique au projet',
 };
 
-const roleColor: Record<MembershipView['role'], 'warning' | 'primary' | 'neutral'> = {
-  admin: 'warning',
-  modeler: 'primary',
-  viewer: 'neutral',
-};
-
 const searchPlaceholders: Partial<Record<AdminSection, string>> = {
-  users: 'Rechercher un identifiant, un projet ou un rôle…',
   projects: 'Rechercher un projet ou un processus…',
   processes: 'Rechercher un processus ou un projet utilisateur…',
 };
 
 const sectionEyebrow: Partial<Record<AdminSection, string>> = {
-  users: 'Administration des accès',
   projects: 'Portefeuille',
   processes: 'Référentiel transversal',
 };
 
 const sectionDescription: Partial<Record<AdminSection, string>> = {
-  users: 'Vue globale des utilisateurs et des projets auxquels ils ont accès.',
   projects: 'Chaque projet réunit ses membres, ses processus spécifiques et ses références au catalogue organisationnel.',
   processes: 'Retrouvez chaque processus et comprenez quels projets l’utilisent.',
 };
@@ -164,16 +127,9 @@ export const Component = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
-  const [userRoleFilter, setUserRoleFilter] = useState<'all' | MembershipView['role']>('all');
-  const [userProjectFilter, setUserProjectFilter] = useState('all');
   const [projectTypeFilter, setProjectTypeFilter] = useState<'all' | 'shared' | 'specific' | 'variant'>('all');
   const [processUsageFilter, setProcessUsageFilter] = useState<'all' | AdminProcessLink['usage']>('all');
   const [processProjectFilter, setProcessProjectFilter] = useState('all');
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [roleDrafts, setRoleDrafts] = useState<Record<string, MembershipView['role']>>({});
-  const [newUserId, setNewUserId] = useState('');
-  const [newProjectId, setNewProjectId] = useState('');
-  const [newRole, setNewRole] = useState<MembershipView['role']>('viewer');
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [confirmProjectDelete, setConfirmProjectDelete] = useState(false);
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
@@ -182,7 +138,7 @@ export const Component = () => {
   const [projectBulkAction, setProjectBulkAction] = useState(false);
   const [processBulkAction, setProcessBulkAction] = useState(false);
   const [bulkMemberUserId, setBulkMemberUserId] = useState('');
-  const [bulkMemberRole, setBulkMemberRole] = useState<MembershipView['role']>('viewer');
+  const [bulkMemberRole, setBulkMemberRole] = useState<ProjectRole>('viewer');
   const [bulkProcessProjectId, setBulkProcessProjectId] = useState('');
   const [bulkProcessUsage, setBulkProcessUsage] = useState<'common' | 'project-specific'>('project-specific');
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -192,7 +148,7 @@ export const Component = () => {
   const [newProjectDescription, setNewProjectDescription] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
   const queryClient = useQueryClient();
-  const section = location.pathname.split('/').filter(Boolean)[1] ?? 'users';
+  const section = location.pathname.split('/').filter(Boolean)[1] ?? 'overview';
   const activeSection: AdminSection = sections.some((item) => item.key === section)
     ? (section as AdminSection)
     : 'overview';
@@ -200,35 +156,6 @@ export const Component = () => {
   const overviewQuery = useQuery<AdministrationOverview>(
     queryKey,
     () => apiClient.get('/projects/administration/overview'),
-  );
-
-  const setMembership = useMutation(
-    (change: MembershipChange) =>
-      apiClient.put(
-        `/projects/administration/projects/${change.projectId}/members/${encodeURIComponent(change.userId)}`,
-        { role: change.role },
-      ),
-    {
-      onSuccess: async () => {
-        setActionError(null);
-        await queryClient.invalidateQueries(queryKey);
-      },
-      onError: (error: Error) => setActionError(error.message),
-    },
-  );
-
-  const removeMembership = useMutation(
-    (membership: MembershipRemoval) =>
-      apiClient.remove(
-        `/projects/administration/projects/${membership.projectId}/members/${encodeURIComponent(membership.userId)}`,
-      ),
-    {
-      onSuccess: async () => {
-        setActionError(null);
-        await queryClient.invalidateQueries(queryKey);
-      },
-      onError: (error: Error) => setActionError(error.message),
-    },
   );
 
   const createProject = useMutation(
@@ -275,22 +202,6 @@ export const Component = () => {
 
   const overview = overviewQuery.data;
   const normalizedSearch = search.trim().toLocaleLowerCase();
-  const users = useMemo(
-    () => (overview?.users ?? []).filter((user) =>
-      (!normalizedSearch ||
-        user.userId.toLocaleLowerCase().includes(normalizedSearch) ||
-        user.projects.some((project) =>
-          project.projectName.toLocaleLowerCase().includes(normalizedSearch) ||
-          project.role.toLocaleLowerCase().includes(normalizedSearch),
-        )) &&
-      ((userRoleFilter === 'all' && userProjectFilter === 'all') ||
-        user.projects.some((project) =>
-          (userRoleFilter === 'all' || project.role === userRoleFilter) &&
-          (userProjectFilter === 'all' || project.projectId === userProjectFilter),
-        )),
-    ),
-    [overview?.users, normalizedSearch, userRoleFilter, userProjectFilter],
-  );
   const projects = useMemo(
     () => (overview?.projects ?? []).filter((project) =>
       (!normalizedSearch ||
@@ -324,7 +235,6 @@ export const Component = () => {
     [overview?.processes, normalizedSearch, processUsageFilter, processProjectFilter],
   );
 
-  const selectedUser = overview?.users.find((user) => user.userId === selectedUserId);
   const selectedProject = overview?.projects.find((project) => project.id === selectedProjectId);
   const selectedProcess = overview?.processes.find((process) => process.id === selectedProcessId);
   const selectedProjects = projects.filter(project => selectedProjectIds.includes(project.id));
@@ -381,7 +291,7 @@ export const Component = () => {
   };
 
   const title = sections.find((item) => item.key === activeSection)?.label ?? 'Vue d’ensemble';
-  const isDataSection = activeSection === 'users' || activeSection === 'projects' || activeSection === 'processes';
+  const isDataSection = activeSection === 'projects' || activeSection === 'processes';
   const associationCount = (overview?.projects ?? []).reduce((total, project) => total + project.processes.length, 0);
   const projectsWithoutCommonProcess = (overview?.projects ?? []).filter(
     (project) => !project.processes.some((process) => process.usage === 'common'),
@@ -391,69 +301,18 @@ export const Component = () => {
   ).length;
 
   return (
-    <WorkspacePageLayout className="org-admin-v2__page">
-      <Stack spacing={2}>
-        <div className="org-admin-v2">
-          <aside className="org-admin-v2__sidebar">
-            <div className="org-admin-v2__brand">
-              <img className="org-admin-v2__brand-logo" src="/bpmn-tool-logo.svg" alt="" />
-              <div><strong>KHI Flows</strong><small>Organisation</small></div>
-            </div>
-            <button
-              type="button"
-              className="org-admin-v2__nav-item org-admin-v2__repository-link"
-              onClick={() => navigate('/projects')}
-            >
-              <span className="org-admin-v2__nav-icon" aria-hidden="true">⌂</span>
-              <span>Référentiel</span>
-            </button>
-            <div className="org-admin-v2__nav-group">
-              <div className="org-admin-v2__nav-label">Administration</div>
-              <nav className="org-admin-v2__nav" aria-label="Navigation de l’administration">
-                {sections.map((item) => (
-                  <button
-                    type="button"
-                    key={item.key}
-                    className={`org-admin-v2__nav-item${activeSection === item.key ? ' is-active' : ''}`}
-                    aria-current={activeSection === item.key ? 'page' : undefined}
-                    onClick={() => {
-                      setSearch('');
-                      setSelectedUserId(null);
-                      setSelectedProjectId(null);
-                      setSelectedProcessId(null);
-                      navigate(`/organization/${item.key}`);
-                    }}
-                  >
-                    <span className="org-admin-v2__nav-icon" aria-hidden="true">{item.icon}</span>
-                    <span>{item.label}</span>
-                  </button>
-                ))}
-              </nav>
-            </div>
-            <div className="org-admin-v2__sidebar-foot">
-              <strong>Accès sécurisés</strong>
-              <span>Les droits sont contrôlés par l’API, indépendamment de l’interface.</span>
-            </div>
-          </aside>
-          <main className="org-admin-v2__main">
-            <header className="org-admin-v2__topbar">
-              <div>
-                <div className="org-admin-v2__crumb">
-                  <Breadcrumbs
-                    breadcrumbItems={[
-                      { id: 'home', label: 'Tous les projets', to: '/projects' },
-                      { id: 'administration', label: 'Administration', to: '/organization/overview' },
-                      { id: 'section', label: title, to: location.pathname },
-                      ...(selectedProject ? [{ id: 'selected-project', label: selectedProject.name, to: location.pathname }] : []),
-                      ...(selectedProcess ? [{ id: 'selected-process', label: selectedProcess.name, to: location.pathname }] : []),
-                    ]}
-                  />
-                </div>
-                <div className="org-admin-v2__top-title">Gestion des projets et du référentiel</div>
-              </div>
-              <Chip size="sm" color="primary" variant="soft">Accès organisationnel</Chip>
-            </header>
-            <div className="org-admin-v2__content">
+    <OrganizationAdminLayout
+      activeSection={activeSection}
+      title="Gestion des projets et du référentiel"
+      breadcrumbs={[
+        { id: 'home', label: 'Tous les projets', to: '/projects' },
+        { id: 'administration', label: 'Administration', to: '/organization/overview' },
+        { id: 'section', label: title, to: location.pathname },
+        ...(selectedProject ? [{ id: 'selected-project', label: selectedProject.name, to: location.pathname }] : []),
+        ...(selectedProcess ? [{ id: 'selected-process', label: selectedProcess.name, to: location.pathname }] : []),
+      ]}
+    >
+
               {activeSection === 'overview' && overview && (
                 <section aria-labelledby="org-overview-title">
                   <div className="org-admin-v2__page-head">
@@ -494,18 +353,12 @@ export const Component = () => {
                   <div className="org-admin-v2__page-head">
                     <div><div className="org-admin-v2__eyebrow">{sectionEyebrow[activeSection]}</div><Typography id="org-section-title" level="h1">{title}</Typography><Typography level="body-md" sx={{ color: 'text.secondary', maxWidth: 700, mt: 0.5 }}>{sectionDescription[activeSection]}</Typography></div>
                     <div className="org-admin-v2__actions">
-                      {activeSection === 'users' && <><Button variant="outlined" onClick={() => exportCsv('utilisateurs-khi-flows.csv', [['Identifiant', 'Projet', 'Rôle'], ...users.flatMap((user) => user.projects.map((project) => [user.userId, project.projectName, roleLabel[project.role]]))])}>Exporter la vue</Button><Button onClick={() => document.getElementById('org-add-access')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>＋ Ajouter un accès</Button></>}
                       {activeSection === 'projects' && <><Dropdown><MenuButton size="sm" variant="outlined" color="neutral" disabled={selectedProjects.length === 0}>☰ Projets ({selectedProjects.length})</MenuButton><Menu placement="bottom-end"><MenuItem onClick={() => setProjectBulkAction(true)}>Affecter un utilisateur aux projets sélectionnés…</MenuItem><MenuItem onClick={() => setSelectedProjectIds([])}>Effacer la sélection</MenuItem></Menu></Dropdown><Dropdown><MenuButton size="sm" variant="outlined" color="neutral" disabled={selectedProcesses.length === 0}>☰ Processus ({selectedProcesses.length})</MenuButton><Menu placement="bottom-end"><MenuItem onClick={() => setProcessBulkAction(true)}>Associer les processus sélectionnés à un projet…</MenuItem><MenuItem onClick={() => setSelectedProcessIds([])}>Effacer la sélection</MenuItem></Menu></Dropdown><Button variant="outlined" onClick={() => exportCsv('projets-khi-flows.csv', [['Projet', 'Description', 'Membres', 'Processus communs', 'Spécifiques', 'Variantes'], ...projects.map((project) => [project.name, project.description ?? '', project.membersCount, project.processes.filter((process) => process.usage === 'common').length, project.processes.filter((process) => process.usage === 'project-specific').length, project.processes.filter((process) => process.usage === 'variant').length])])}>Exporter la vue</Button><Button onClick={() => document.getElementById('org-create-project')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>＋ Créer un projet</Button></>}
                       {activeSection === 'processes' && <><Dropdown><MenuButton size="sm" variant="outlined" color="neutral" disabled={selectedProcesses.length === 0}>☰ Actions groupées ({selectedProcesses.length})</MenuButton><Menu placement="bottom-end"><MenuItem onClick={() => setProcessBulkAction(true)}>Associer les processus à un projet…</MenuItem><MenuItem onClick={() => setSelectedProcessIds([])}>Effacer la sélection</MenuItem></Menu></Dropdown><Button variant="outlined" onClick={() => exportCsv('processus-khi-flows.csv', [['Processus', 'Description', 'Projet', 'Usage', 'Source'], ...processes.flatMap((process) => process.projects.length ? process.projects.map((project) => [process.name, process.description ?? '', project.projectName, usageLabel[project.usage], project.sourceResourceId ?? '']) : [[process.name, process.description ?? '', '', 'Non associé', '']])])}>Exporter la vue</Button><Button onClick={() => navigate('/root')}>＋ Créer dans le référentiel</Button></>}
                     </div>
                   </div>
-                  {activeSection === 'users' && <Alert color="neutral" variant="soft" sx={{ mb: 2 }}>Les rôles affichés sont des rôles de projet. Les identifiants proviennent des adhésions enregistrées ; les comptes sans adhésion ne sont pas encore fournis par un annuaire d’identité global.</Alert>}
                   <div className="org-admin-v2__filters">
                     <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={searchPlaceholders[activeSection] ?? 'Rechercher…'} sx={{ flex: 1, minWidth: 220 }} />
-                    {activeSection === 'users' && <>
-                      <FormControl sx={{ minWidth: 180 }}><FormLabel>Rôle projet</FormLabel><Select value={userRoleFilter} onChange={(_event, value) => setUserRoleFilter((value ?? 'all') as typeof userRoleFilter)}><Option value="all">Tous les rôles</Option><Option value="admin">Admin</Option><Option value="modeler">Modeler</Option><Option value="viewer">Viewer</Option></Select></FormControl>
-                      <FormControl sx={{ minWidth: 190 }}><FormLabel>Projet</FormLabel><Select value={userProjectFilter} onChange={(_event, value) => setUserProjectFilter(value ?? 'all')}><Option value="all">Tous les projets</Option>{(overview?.projects ?? []).map((project) => <Option key={project.id} value={project.id}>{project.name}</Option>)}</Select></FormControl>
-                    </>}
                     {activeSection === 'projects' && <FormControl sx={{ minWidth: 220 }}><FormLabel>Type de projet</FormLabel><Select value={projectTypeFilter} onChange={(_event, value) => setProjectTypeFilter((value ?? 'all') as typeof projectTypeFilter)}><Option value="all">Tous les types</Option><Option value="shared">Utilise des processus communs</Option><Option value="specific">Processus spécifiques uniquement</Option><Option value="variant">Contient des variantes</Option></Select></FormControl>}
                     {activeSection === 'processes' && <>
                       <FormControl sx={{ minWidth: 190 }}><FormLabel>Type d’utilisation</FormLabel><Select value={processUsageFilter} onChange={(_event, value) => setProcessUsageFilter((value ?? 'all') as typeof processUsageFilter)}><Option value="all">Tous les types</Option><Option value="common">Catalogue commun</Option><Option value="project-specific">Spécifique au projet</Option><Option value="variant">Variante</Option></Select></FormControl>
@@ -516,7 +369,7 @@ export const Component = () => {
                     <Alert color="primary" variant="soft" sx={{ mb: 2 }}>
                       <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'flex-end' }} gap={1}>
                         <FormControl sx={{ flex: 1 }}><FormLabel>Identifiant utilisateur</FormLabel><Input value={bulkMemberUserId} onChange={event => setBulkMemberUserId(event.target.value)} placeholder="Identifiant exact" /></FormControl>
-                        <FormControl sx={{ minWidth: 180 }}><FormLabel>Rôle dans les projets</FormLabel><Select value={bulkMemberRole} onChange={(_event, value) => value && setBulkMemberRole(value as MembershipView['role'])}><Option value="viewer">Viewer</Option><Option value="modeler">Modeler</Option><Option value="admin">Admin</Option></Select></FormControl>
+                        <FormControl sx={{ minWidth: 180 }}><FormLabel>Rôle dans les projets</FormLabel><Select value={bulkMemberRole} onChange={(_event, value) => value && setBulkMemberRole(value as ProjectRole)}><Option value="viewer">Viewer</Option><Option value="modeler">Modeler</Option><Option value="admin">Admin</Option></Select></FormControl>
                         <Button disabled={!bulkMemberUserId.trim() || bulkBusy} loading={bulkBusy} onClick={() => void applyBulkProjectMember()}>Affecter à {selectedProjects.length} projet(s)</Button>
                         <Button variant="plain" color="neutral" onClick={() => setProjectBulkAction(false)}>Annuler</Button>
                       </Stack>
@@ -552,144 +405,6 @@ export const Component = () => {
           </Alert>
         )}
         {actionError && <Alert color="danger">{actionError}</Alert>}
-
-        {activeSection === 'users' && (
-          <Card variant="outlined" sx={{ gap: 1 }}>
-            <Typography level="title-lg">Comptes et rôles globaux</Typography>
-            <Typography level="body-sm" sx={{ color: 'text.secondary' }}>La gestion des comptes locaux, des mots de passe et des rôles globaux est séparée des adhésions par projet.</Typography>
-            <Box><Button onClick={() => navigate('/organization/accounts')}>Gérer les comptes utilisateurs →</Button></Box>
-          </Card>
-        )}
-
-        {activeSection === 'users' && overview && (
-          <Card id="org-add-access" variant="outlined" sx={{ gap: 1.5 }}>
-            <Typography level="title-lg">Ajouter un accès à un projet</Typography>
-            <Typography level="body-sm" sx={{ color: 'text.secondary' }}>
-              L’identifiant est celui utilisé par le proxy d’authentification. L’accès est créé uniquement pour le projet choisi.
-            </Typography>
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} useFlexGap flexWrap="wrap" sx={{ alignItems: { md: 'flex-end' } }}>
-              <FormControl sx={{ flex: 1, minWidth: 200 }}>
-                <FormLabel>Identifiant utilisateur</FormLabel>
-                <Input value={newUserId} onChange={(event) => setNewUserId(event.target.value)} placeholder="Identifiant exact" />
-              </FormControl>
-              <FormControl sx={{ flex: 1, minWidth: 200 }}>
-                <FormLabel>Projet</FormLabel>
-                <Select value={newProjectId || null} onChange={(_event, value) => setNewProjectId(value ?? '')} placeholder="Choisir un projet">
-                  {overview.projects.map((project) => (
-                    <Option key={project.id} value={project.id}>{project.name}</Option>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl sx={{ minWidth: 170 }}>
-                <FormLabel>Rôle projet</FormLabel>
-                <Select value={newRole} onChange={(_event, value) => value && setNewRole(value as MembershipView['role'])}>
-                  <Option value="viewer">Viewer — lecture</Option>
-                  <Option value="modeler">Modeler — modification</Option>
-                  <Option value="admin">Admin — gestion du projet</Option>
-                </Select>
-              </FormControl>
-              <Button
-                disabled={!newUserId.trim() || !newProjectId || setMembership.isLoading}
-                loading={setMembership.isLoading}
-                onClick={() => setMembership.mutate(
-                  { projectId: newProjectId, userId: newUserId.trim(), role: newRole },
-                  { onSuccess: () => { setNewUserId(''); setNewProjectId(''); } },
-                )}
-              >
-                Ajouter l’accès
-              </Button>
-            </Stack>
-          </Card>
-        )}
-
-        {activeSection === 'users' && selectedUser && (
-          <Card variant="outlined" sx={{ gap: 1.5 }}>
-            <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-              <Box>
-                <Typography level="title-lg">Accès de {selectedUser.userId}</Typography>
-                <Typography level="body-sm" sx={{ color: 'text.secondary' }}>
-                  Les modifications sont réservées au groupe d’administration organisationnelle.
-                </Typography>
-              </Box>
-              <Button size="sm" variant="plain" color="neutral" onClick={() => setSelectedUserId(null)}>Fermer</Button>
-            </Stack>
-            {selectedUser.projects.map((project) => {
-              const key = `${selectedUser.userId}:${project.projectId}`;
-              const role = roleDrafts[key] ?? project.role;
-              return (
-                <Stack key={project.projectId} direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ alignItems: { md: 'center' }, borderTop: '1px solid', borderColor: 'divider', pt: 1.5 }}>
-                  <Box sx={{ flex: 1 }}>
-                    <Button size="sm" variant="plain" sx={{ alignSelf: 'flex-start', px: 0 }} onClick={() => navigate(`/projects/${project.projectId}`)}>{project.projectName} →</Button>
-                    <Typography level="body-xs" sx={{ color: 'text.secondary' }}>Rôle actuel : {roleLabel[project.role]}</Typography>
-                  </Box>
-                  <FormControl sx={{ minWidth: 180 }}>
-                    <FormLabel>Nouveau rôle</FormLabel>
-                    <Select value={role} onChange={(_event, value) => value && setRoleDrafts((previous) => ({ ...previous, [key]: value as MembershipView['role'] }))}>
-                      <Option value="viewer">Viewer — lecture</Option>
-                      <Option value="modeler">Modeler — modification</Option>
-                      <Option value="admin">Admin — gestion du projet</Option>
-                    </Select>
-                  </FormControl>
-                  <Button
-                    size="sm"
-                    disabled={role === project.role || setMembership.isLoading}
-                    loading={setMembership.isLoading}
-                    onClick={() => setMembership.mutate({ projectId: project.projectId, userId: selectedUser.userId, role })}
-                  >
-                    Enregistrer
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outlined"
-                    color="danger"
-                    disabled={removeMembership.isLoading}
-                    loading={removeMembership.isLoading}
-                    onClick={() => removeMembership.mutate({ projectId: project.projectId, userId: selectedUser.userId })}
-                  >
-                    Retirer
-                  </Button>
-                </Stack>
-              );
-            })}
-          </Card>
-        )}
-
-        {activeSection === 'users' && overview && (
-          <Card variant="outlined" sx={{ p: 0, overflow: 'auto' }}>
-            <Table hoverRow stickyHeader>
-              <thead>
-                <tr><th>Identifiant utilisateur</th><th>Nombre de projets</th><th>Projets et rôles</th><th>Actions</th></tr>
-              </thead>
-              <tbody>
-                {users.map((user) => (
-                  <tr key={user.userId}>
-                    <td><Typography level="title-sm">{user.userId}</Typography></td>
-                    <td>{user.projects.length}</td>
-                    <td>
-                      <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap">
-                        {user.projects.map((project) => (
-                          <Chip key={project.projectId} size="sm" variant="soft" color={roleColor[project.role]}>
-                            {project.projectName} · {roleLabel[project.role]}
-                          </Chip>
-                        ))}
-                      </Stack>
-                    </td>
-                    <td>
-                      <Button
-                        size="sm"
-                        variant="outlined"
-                        onClick={() => setSelectedUserId(user.userId)}
-                      >
-                        Gérer les accès
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-                {users.length === 0 && <tr><td colSpan={4}>Aucun utilisateur correspondant.</td></tr>}
-              </tbody>
-            </Table>
-          </Card>
-        )}
 
         {activeSection === 'projects' && overview && (
           <Card id="org-create-project" variant="outlined" sx={{ gap: 1.5 }}>
@@ -906,11 +621,7 @@ export const Component = () => {
                   {overview.users.length} utilisateurs avec adhésion · {overview.projects.length} projets · {overview.processes.length} ressources de type processus
                 </Typography>
               )}
-            </div>
-          </main>
-        </div>
-      </Stack>
-    </WorkspacePageLayout>
+    </OrganizationAdminLayout>
   );
 };
 

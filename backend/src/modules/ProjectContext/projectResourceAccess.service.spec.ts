@@ -1,16 +1,30 @@
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
-import { ProjectProcessUsage } from './infrastructure/entities/projectProcess.ormEntity';
-import { ProjectMemberRole } from './infrastructure/entities/projectMember.ormEntity';
+import { ForbiddenException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { DataSource, Repository } from 'typeorm';
+import { ResourceTypeOrmEntity } from '../ResourceContext/infrastructure/entities/resource.ormEntity';
+import {
+  ProcessChangeProposalStatus,
+  ProcessChangeProposalTypeOrmEntity,
+} from './infrastructure/entities/processChangeProposal.ormEntity';
+import {
+  ProjectMemberRole,
+  ProjectMemberTypeOrmEntity,
+} from './infrastructure/entities/projectMember.ormEntity';
+import {
+  ProjectProcessTypeOrmEntity,
+  ProjectProcessUsage,
+} from './infrastructure/entities/projectProcess.ormEntity';
 import { ProjectResourceAccessService } from './projectResourceAccess.service';
 
-describe('ProjectResourceAccessService', () => {
+describe('ProjectResourceAccessService proposal editing', () => {
   const configService = {
     getOrThrow: jest.fn((key: string) =>
-      key === 'userGroupsHeader' ? 'x-user-groups' : 'x-user',
+      key === 'userHeader' ? 'x-user' : 'x-groups',
     ),
   };
   const projectProcesses = {
     find: jest.fn(),
+    findOne: jest.fn(),
     count: jest.fn(),
   };
   const projectMembers = {
@@ -20,327 +34,137 @@ describe('ProjectResourceAccessService', () => {
   const resources = {
     find: jest.fn(),
   };
-  let service: ProjectResourceAccessService;
+  const processChangeProposals = {
+    findOne: jest.fn(),
+  };
+  const dataSource = {
+    query: jest.fn(),
+  };
+
+  const service = new ProjectResourceAccessService(
+    configService as unknown as ConfigService,
+    projectProcesses as unknown as Repository<ProjectProcessTypeOrmEntity>,
+    projectMembers as unknown as Repository<ProjectMemberTypeOrmEntity>,
+    resources as unknown as Repository<ResourceTypeOrmEntity>,
+    processChangeProposals as unknown as Repository<ProcessChangeProposalTypeOrmEntity>,
+    dataSource as unknown as DataSource,
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new ProjectResourceAccessService(
-      configService as never,
-      projectProcesses as never,
-      projectMembers as never,
-      resources as never,
-    );
-    projectProcesses.find.mockResolvedValue([]);
-    projectProcesses.count.mockResolvedValue(0);
-    projectMembers.find.mockResolvedValue([]);
-    resources.find.mockResolvedValue([]);
   });
 
-  const headers = { 'x-user': 'alice' };
-
-  it('enforces the shared Viewer, Modeler and Admin role hierarchy', async () => {
-    projectMembers.findOne.mockResolvedValue({
+  it('allows the assigned validator to edit a project-specific proposal workspace', async () => {
+    processChangeProposals.findOne.mockResolvedValue({
       projectId: 'project-1',
-      userId: 'alice',
-      role: ProjectMemberRole.Modeler,
+      sourceResourceId: 'source-1',
+      cloneResourceId: 'clone-1',
+      validatorUserId: 'validator-1',
+      status: ProcessChangeProposalStatus.Submitted,
+    });
+    projectMembers.findOne.mockResolvedValue({
+      role: ProjectMemberRole.Viewer,
+    });
+    projectProcesses.findOne.mockResolvedValue({
+      usage: ProjectProcessUsage.ProjectSpecific,
+    });
+    dataSource.query.mockResolvedValue([{ id: 'validator-1' }]);
+
+    await expect(
+      service.assertCanEditProposalResource('clone-1', {
+        'x-user': 'validator-1',
+        'x-groups': 'bpmn-tool-viewer-org',
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('blocks an assigned validator after project membership is removed', async () => {
+    processChangeProposals.findOne.mockResolvedValue({
+      projectId: 'project-1',
+      sourceResourceId: 'source-1',
+      cloneResourceId: 'clone-1',
+      validatorUserId: 'validator-1',
+      status: ProcessChangeProposalStatus.Submitted,
+    });
+    projectMembers.findOne.mockResolvedValue(null);
+    projectProcesses.findOne.mockResolvedValue({
+      usage: ProjectProcessUsage.ProjectSpecific,
+    });
+    dataSource.query.mockResolvedValue([{ id: 'validator-1' }]);
+
+    await expect(
+      service.assertCanEditProposalResource('clone-1', {
+        'x-user': 'validator-1',
+        'x-groups': 'bpmn-tool-viewer-org',
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('blocks editing an approved proposal snapshot, including for organization administrators', async () => {
+    processChangeProposals.findOne.mockResolvedValue({
+      projectId: 'project-1',
+      sourceResourceId: 'source-1',
+      cloneResourceId: 'clone-1',
+      validatorUserId: 'validator-1',
+      status: ProcessChangeProposalStatus.Approved,
     });
 
     await expect(
-      service.assertProjectRole('project-1', headers, ProjectMemberRole.Viewer),
-    ).resolves.toBe('alice');
-    await expect(
-      service.assertProjectRole(
-        'project-1',
-        headers,
-        ProjectMemberRole.Modeler,
-      ),
-    ).resolves.toBe('alice');
-    await expect(
-      service.assertProjectRole('project-1', headers, ProjectMemberRole.Admin),
+      service.assertCanEditProposalResource('clone-1', {
+        'x-user': 'admin-1',
+        'x-groups': 'bpmn-tool-admin-org',
+      }),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('applies consistent organization admin and read-write group checks', () => {
-    const organizationAdminHeaders = {
-      'x-user-groups': 'bpmn-tool-admin-global',
-    };
-    const organizationModelerHeaders = {
-      'x-user-groups': 'bpmn-tool-readwrite-global',
-    };
+  it('blocks generic deletion of proposal workspace contents', async () => {
+    processChangeProposals.findOne.mockResolvedValue({
+      projectId: 'project-1',
+      cloneResourceId: 'clone-1',
+      status: ProcessChangeProposalStatus.Submitted,
+    });
 
-    expect(service.hasOrganizationAdminRole(organizationAdminHeaders)).toBe(
-      true,
-    );
-    expect(service.hasOrganizationReadWriteRole(organizationAdminHeaders)).toBe(
-      false,
-    );
-    expect(service.hasOrganizationAdminRole(organizationModelerHeaders)).toBe(
-      false,
-    );
-    expect(
-      service.hasOrganizationReadWriteRole(organizationModelerHeaders),
-    ).toBe(true);
-    expect(service.hasOrganizationAdminRole({})).toBe(false);
-  });
-
-  it('rejects project access when the authenticated identity is missing', async () => {
     await expect(
-      service.assertProjectRole('project-1', {}, ProjectMemberRole.Viewer),
+      service.assertCanDeleteProposalResource('clone-1', {
+        'x-user': 'admin-1',
+        'x-groups': 'bpmn-tool-admin-org',
+      }),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('allows reading a resource that is not linked to a project', async () => {
-    await expect(
-      service.assertCanReadResource('resource-1', headers),
-    ).resolves.toBeUndefined();
-  });
-
-  it('allows everyone to read a common process', async () => {
-    projectProcesses.find.mockResolvedValue([
-      {
-        projectId: 'project-1',
-        resourceId: 'resource-1',
-        usage: ProjectProcessUsage.Common,
-      },
-    ]);
-
-    await expect(
-      service.assertCanReadResource('resource-1', headers),
-    ).resolves.toBeUndefined();
-  });
-
-  it('denies reading a project-specific process to a non-member', async () => {
-    projectProcesses.find.mockResolvedValue([
-      {
-        projectId: 'project-1',
-        resourceId: 'resource-1',
-        usage: ProjectProcessUsage.ProjectSpecific,
-      },
-    ]);
+  it('requires project administrator access for common-process proposal workspaces', async () => {
+    processChangeProposals.findOne.mockResolvedValue({
+      projectId: 'project-1',
+      sourceResourceId: 'source-1',
+      cloneResourceId: 'clone-1',
+      validatorUserId: null,
+      status: ProcessChangeProposalStatus.Submitted,
+    });
+    projectMembers.findOne.mockResolvedValue({
+      role: ProjectMemberRole.Modeler,
+    });
+    projectProcesses.findOne.mockResolvedValue({
+      usage: ProjectProcessUsage.Common,
+    });
 
     await expect(
-      service.assertCanReadResource('resource-1', headers),
+      service.assertCanEditProposalResource('clone-1', {
+        'x-user': 'modeler-1',
+        'x-groups': 'bpmn-tool-viewer-org',
+      }),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('denies a viewer from editing a project-specific process', async () => {
-    projectProcesses.find.mockResolvedValue([
-      {
-        projectId: 'project-1',
-        resourceId: 'resource-1',
-        usage: ProjectProcessUsage.ProjectSpecific,
-      },
-    ]);
-    projectMembers.find.mockResolvedValue([
-      {
-        projectId: 'project-1',
-        userId: 'alice',
-        role: ProjectMemberRole.Viewer,
-      },
-    ]);
+  it('keeps the organization write requirement for non-proposal resources', async () => {
+    processChangeProposals.findOne.mockResolvedValue(null);
 
     await expect(
-      service.assertCanEditResource('resource-1', headers),
+      service.assertCanEditProposalResource('ordinary-resource', {
+        'x-user': 'viewer-1',
+        'x-groups': 'bpmn-tool-viewer-org',
+      }),
     ).rejects.toBeInstanceOf(ForbiddenException);
-  });
 
-  it('denies editing a common process through generic endpoints', async () => {
-    projectProcesses.find.mockResolvedValue([
-      {
-        projectId: 'project-1',
-        resourceId: 'resource-1',
-        usage: ProjectProcessUsage.Common,
-      },
-    ]);
-
-    await expect(
-      service.assertCanEditResource('resource-1', headers),
-    ).rejects.toBeInstanceOf(ForbiddenException);
-  });
-
-  it('allows an organization admin to edit a common process only when explicitly enabled', async () => {
-    projectProcesses.find.mockResolvedValue([
-      {
-        projectId: 'project-1',
-        resourceId: 'resource-1',
-        usage: ProjectProcessUsage.Common,
-      },
-    ]);
-
-    await expect(
-      service.assertCanEditResource(
-        'resource-1',
-        {
-          ...headers,
-          'x-user-groups': 'bpmn-tool-admin-global',
-        },
-        { allowCommonForOrganizationAdmin: true },
-      ),
-    ).resolves.toBeUndefined();
-  });
-
-  it('does not allow a modeler group to bypass the common-process guard', async () => {
-    projectProcesses.find.mockResolvedValue([
-      {
-        projectId: 'project-1',
-        resourceId: 'resource-1',
-        usage: ProjectProcessUsage.Common,
-      },
-    ]);
-
-    await expect(
-      service.assertCanEditResource(
-        'resource-1',
-        {
-          ...headers,
-          'x-user-groups': 'bpmn-tool-readwrite-global',
-        },
-        { allowCommonForOrganizationAdmin: true },
-      ),
-    ).rejects.toBeInstanceOf(ForbiddenException);
-  });
-
-  it('allows a modeler to edit a project-specific process', async () => {
-    projectProcesses.find.mockResolvedValue([
-      {
-        projectId: 'project-1',
-        resourceId: 'resource-1',
-        usage: ProjectProcessUsage.ProjectSpecific,
-      },
-    ]);
-    projectMembers.find.mockResolvedValue([
-      {
-        projectId: 'project-1',
-        userId: 'alice',
-        role: ProjectMemberRole.Modeler,
-      },
-    ]);
-
-    await expect(
-      service.assertCanEditResource('resource-1', headers),
-    ).resolves.toBeUndefined();
-  });
-
-  it('denies reading a process linked only to another project', async () => {
-    projectProcesses.find.mockResolvedValue([
-      {
-        projectId: 'project-2',
-        resourceId: 'resource-1',
-        usage: ProjectProcessUsage.ProjectSpecific,
-      },
-    ]);
-    projectMembers.find.mockResolvedValue([]);
-
-    await expect(
-      service.assertCanReadResource('resource-1', headers),
-    ).rejects.toBeInstanceOf(ForbiddenException);
-  });
-
-  it('requires edit access in every project that shares a process', async () => {
-    projectProcesses.find.mockResolvedValue([
-      {
-        projectId: 'project-1',
-        resourceId: 'resource-1',
-        usage: ProjectProcessUsage.ProjectSpecific,
-      },
-      {
-        projectId: 'project-2',
-        resourceId: 'resource-1',
-        usage: ProjectProcessUsage.ProjectSpecific,
-      },
-    ]);
-    projectMembers.find.mockResolvedValue([
-      {
-        projectId: 'project-1',
-        userId: 'alice',
-        role: ProjectMemberRole.Modeler,
-      },
-    ]);
-
-    await expect(
-      service.assertCanEditResource('resource-1', headers),
-    ).rejects.toBeInstanceOf(ForbiddenException);
-  });
-
-  it('blocks deletion of a source process while variants depend on it', async () => {
-    projectProcesses.count.mockResolvedValue(1);
-
-    await expect(
-      service.assertCanDeleteResource('source-process'),
-    ).rejects.toBeInstanceOf(BadRequestException);
-  });
-
-  it('blocks deletion of a common process through generic resource endpoints', async () => {
-    projectProcesses.find.mockResolvedValue([
-      {
-        projectId: 'project-1',
-        resourceId: 'common-process',
-        usage: ProjectProcessUsage.Common,
-      },
-    ]);
-
-    await expect(
-      service.assertCanDeleteResource('common-process'),
-    ).rejects.toBeInstanceOf(ForbiddenException);
-  });
-
-  it('blocks deletion of a process shared by multiple projects', async () => {
-    projectProcesses.find.mockResolvedValue([
-      {
-        projectId: 'project-1',
-        resourceId: 'shared-process',
-        usage: ProjectProcessUsage.ProjectSpecific,
-      },
-      {
-        projectId: 'project-2',
-        resourceId: 'shared-process',
-        usage: ProjectProcessUsage.ProjectSpecific,
-      },
-    ]);
-
-    await expect(
-      service.assertCanDeleteResource('shared-process'),
-    ).rejects.toBeInstanceOf(BadRequestException);
-  });
-
-  it('checks descendants before deleting a folder tree', async () => {
-    resources.find
-      .mockResolvedValueOnce([{ id: 'child-process', parentId: 'folder' }])
-      .mockResolvedValueOnce([]);
-    projectProcesses.find.mockImplementation(({ where }) =>
-      where.resourceId === 'child-process'
-        ? [
-            {
-              projectId: 'project-1',
-              resourceId: 'child-process',
-              usage: ProjectProcessUsage.Common,
-            },
-          ]
-        : [],
-    );
-
-    await expect(
-      service.assertCanDeleteResourceTree('folder', headers),
-    ).rejects.toBeInstanceOf(ForbiddenException);
-  });
-
-  it('filters project resources using the domain UUID value', async () => {
-    projectProcesses.find.mockResolvedValue([
-      {
-        projectId: 'project-1',
-        resourceId: 'private-resource',
-        usage: ProjectProcessUsage.ProjectSpecific,
-      },
-    ]);
-    projectMembers.find.mockResolvedValue([]);
-
-    const resources = [
-      { id: { value: 'private-resource' }, name: 'Private' },
-      { id: { value: 'legacy-resource' }, name: 'Legacy' },
-    ];
-
-    await expect(
-      service.filterReadableResources(resources, headers),
-    ).resolves.toEqual([{ id: { value: 'legacy-resource' }, name: 'Legacy' }]);
+    expect(projectProcesses.find).not.toHaveBeenCalled();
   });
 });

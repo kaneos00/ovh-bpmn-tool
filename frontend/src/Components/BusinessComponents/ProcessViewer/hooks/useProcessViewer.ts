@@ -4,15 +4,16 @@ import { useQuery } from 'react-query';
 import { getXmlContentQuery } from '../../../../api/contents/contents.queries';
 import { useBpmnViewerInstance } from '../../../../shared/hooks/useBpmnViewerInstance';
 import { useCallActivityNavigation } from '../../../../shared/hooks/useCallActivityNavigation';
+import type { ProcessViewerRemark } from '../ProcessViewer';
 
 const ZOOM_STEP = 1.2;
-const DIAGRAM_PADDING = 24;
 
 export const useProcessViewer = (
   resourceId: string,
   contentId: string,
   selectedElementId?: string | null,
   onElementSelect?: (elementId: string) => void,
+  remarks: ProcessViewerRemark[] = [],
 ) => {
   const { getViewerInstance } = useBpmnViewerInstance();
   const viewerRef = useRef<HTMLDivElement>(null);
@@ -20,10 +21,15 @@ export const useProcessViewer = (
   const onElementSelectRef = useRef(onElementSelect);
   const importedRef = useRef(false);
   const highlightedIdRef = useRef<string | null>(null);
+  const overlayIdsRef = useRef<Array<string | number>>([]);
   const [importError, setImportError] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [minimapVisible, setMinimapVisible] = useState(false);
   const importGenerationRef = useRef(0);
+  const initialViewportAppliedRef = useRef(false);
+  const fitModeRef = useRef(false);
+  const showDiagramAtActualSizeRef = useRef<() => boolean>(() => false);
+  const resizeDiagramRef = useRef<() => void>(() => undefined);
   const importQueueRef = useRef<Promise<unknown>>(Promise.resolve());
 
   selectedIdRef.current = selectedElementId;
@@ -44,12 +50,115 @@ export const useProcessViewer = (
   }, [viewer]);
   useCallActivityNavigation(viewer, true);
 
-  const alignDiagramTopLeft = () => {
+  const zoomIn = () => {
+    if (!importedRef.current) return;
+    fitModeRef.current = false;
+    const canvas = viewer.get('canvas') as any;
+    const container = canvas.getContainer();
+    const rect = container.getBoundingClientRect();
+    canvas.zoom(canvas.zoom() * ZOOM_STEP, { x: rect.width / 2, y: rect.height / 2 });
+  };
+
+  const zoomOut = () => {
+    if (!importedRef.current) return;
+    fitModeRef.current = false;
+    const canvas = viewer.get('canvas') as any;
+    const container = canvas.getContainer();
+    const rect = container.getBoundingClientRect();
+    canvas.zoom(canvas.zoom() / ZOOM_STEP, { x: rect.width / 2, y: rect.height / 2 });
+  };
+
+  const resetZoom = () => {
+    if (!importedRef.current) return;
+    fitModeRef.current = false;
+    initialViewportAppliedRef.current = showDiagramAtActualSizeRef.current();
+  };
+
+  const fitDiagramToViewport = (): boolean => {
+    if (!importedRef.current) return false;
+
     const canvas = viewer.get('canvas') as any;
     const elementRegistry = viewer.get('elementRegistry') as any;
-    const viewport = canvas.viewbox();
-    if (!viewport) return;
+    const container = canvas.getContainer() as HTMLElement | undefined;
+    const rect = container?.getBoundingClientRect();
+    if (!rect || rect.width <= 0 || rect.height <= 0) return false;
 
+    // Fit from the BPMN model coordinates rather than relying on the current
+    // viewport. Include connection waypoints so long flows are not clipped.
+    const elements = elementRegistry.getAll().filter((element: any) =>
+      element && !element.labelTarget && element.type !== 'label',
+    );
+    const points: Array<{ x: number; y: number }> = [];
+    elements.forEach((element: any) => {
+      if (Array.isArray(element.waypoints)) {
+        element.waypoints.forEach((point: any) => {
+          if (Number.isFinite(point.x) && Number.isFinite(point.y)) points.push({ x: point.x, y: point.y });
+        });
+      } else if (
+        Number.isFinite(element.x) &&
+        Number.isFinite(element.y) &&
+        Number.isFinite(element.width) &&
+        Number.isFinite(element.height) &&
+        element.width > 0 &&
+        element.height > 0
+      ) {
+        points.push(
+          { x: element.x, y: element.y },
+          { x: element.x + element.width, y: element.y + element.height },
+        );
+      }
+    });
+    if (!points.length) return false;
+
+    const minX = Math.min(...points.map(point => point.x));
+    const minY = Math.min(...points.map(point => point.y));
+    const maxX = Math.max(...points.map(point => point.x));
+    const maxY = Math.max(...points.map(point => point.y));
+    const diagramWidth = maxX - minX;
+    const diagramHeight = maxY - minY;
+    if (diagramWidth <= 0 || diagramHeight <= 0) return false;
+
+    const padding = 36;
+    const availableWidth = Math.max(1, rect.width - padding * 2);
+    const availableHeight = Math.max(1, rect.height - padding * 2);
+    const scale = Math.min(availableWidth / diagramWidth, availableHeight / diagramHeight);
+    if (!Number.isFinite(scale) || scale <= 0) return false;
+
+    const viewboxWidth = rect.width / scale;
+    const viewboxHeight = rect.height / scale;
+    canvas.viewbox({
+      x: minX - (viewboxWidth - diagramWidth) / 2,
+      y: minY - (viewboxHeight - diagramHeight) / 2,
+      width: viewboxWidth,
+      height: viewboxHeight,
+    });
+    return true;
+  };
+
+  const fitDiagram = () => {
+    if (!importedRef.current) return;
+    const canvas = viewer.get('canvas') as any;
+    canvas.resized?.();
+    fitModeRef.current = fitDiagramToViewport();
+  };
+
+  const showDiagramAtActualSize = (): boolean => {
+    if (!importedRef.current) return false;
+
+    const canvas = viewer.get('canvas') as any;
+    const elementRegistry = viewer.get('elementRegistry') as any;
+
+    // Keep the original, proven bpmn-js behavior: set the native zoom to 1,
+    // then align the diagram using its actual element bounds. Do not call
+    // canvas.resized() here: on a visible/transitioning tab it can recalculate
+    // the viewbox from transient dimensions and overwrite the 1:1 scale.
+    const viewport = canvas.viewbox();
+    if (!viewport || viewport.width <= 0 || viewport.height <= 0) return false;
+
+    // Use the BPMN model's diagram coordinates. getAbsoluteBBox() returns
+    // viewport-relative coordinates, which change whenever the user pans or
+    // zooms; feeding those values back into viewbox() makes repeated 1:1
+    // resets alternate between different positions.
     const bounds = elementRegistry
       .getAll()
       .filter((element: any) =>
@@ -60,58 +169,83 @@ export const useProcessViewer = (
         Number.isFinite(element.y) &&
         element.width > 0 &&
         element.height > 0,
-      )
-      .map((element: any) => canvas.getAbsoluteBBox(element))
-      .filter((bbox: any) => bbox && Number.isFinite(bbox.x) && Number.isFinite(bbox.y));
+      );
 
-    if (!bounds.length) return;
+    if (!bounds.length) return false;
 
-    const minX = Math.min(...bounds.map((bbox: any) => bbox.x));
-    const minY = Math.min(...bounds.map((bbox: any) => bbox.y));
+    const minX = Math.min(...bounds.map((element: any) => element.x));
+    const minY = Math.min(...bounds.map((element: any) => element.y));
 
-    // Preserve the current fit scale while aligning the diagram with the
-    // upper-left edge of the available canvas.
+    canvas.zoom(1);
+    const actualSizeViewport = canvas.viewbox();
+    if (!actualSizeViewport || actualSizeViewport.width <= 0 || actualSizeViewport.height <= 0) return false;
+
     canvas.viewbox({
-      x: minX - DIAGRAM_PADDING,
-      y: minY - DIAGRAM_PADDING,
-      width: viewport.width,
-      height: viewport.height,
+      x: minX - 24,
+      y: minY - 24,
+      width: actualSizeViewport.width,
+      height: actualSizeViewport.height,
     });
+    fitModeRef.current = false;
+    return true;
   };
 
-  const fitDiagramToWidth = () => {
-    // The viewer starts at a true 1:1 scale, anchored at the diagram's
-    // upper-left corner. Users can still choose "Ajuster" from the toolbar.
-    (viewer.get('canvas') as any).zoom(1);
-    alignDiagramTopLeft();
-  };
-
-  const zoomIn = () => {
+  const resizeDiagram = () => {
     if (!importedRef.current) return;
+
     const canvas = viewer.get('canvas') as any;
-    const container = canvas.getContainer();
-    const rect = container.getBoundingClientRect();
-    canvas.zoom(canvas.zoom() * ZOOM_STEP, { x: rect.width / 2, y: rect.height / 2 });
+    const previousViewbox = canvas.viewbox();
+
+    canvas.resized?.();
+
+    // Opening or closing the details panel changes the canvas dimensions.
+    // diagram-js may recenter the drawing during resized(); preserve the
+    // current top-left origin and keep the native zoom when the user is not
+    // in explicit fit mode. Use the post-resize dimensions so the scale stays
+    // unchanged in the newly sized viewport.
+    if (fitModeRef.current) {
+      fitModeRef.current = fitDiagramToViewport();
+      return;
+    }
+
+    const resizedViewbox = canvas.viewbox();
+    if (
+      previousViewbox &&
+      resizedViewbox &&
+      [previousViewbox.x, previousViewbox.y, resizedViewbox.width, resizedViewbox.height].every(Number.isFinite) &&
+      resizedViewbox.width > 0 &&
+      resizedViewbox.height > 0
+    ) {
+      canvas.viewbox({
+        x: previousViewbox.x,
+        y: previousViewbox.y,
+        width: resizedViewbox.width,
+        height: resizedViewbox.height,
+      });
+    }
   };
 
-  const zoomOut = () => {
-    if (!importedRef.current) return;
-    const canvas = viewer.get('canvas') as any;
-    const container = canvas.getContainer();
-    const rect = container.getBoundingClientRect();
-    canvas.zoom(canvas.zoom() / ZOOM_STEP, { x: rect.width / 2, y: rect.height / 2 });
-  };
+  showDiagramAtActualSizeRef.current = showDiagramAtActualSize;
+  resizeDiagramRef.current = resizeDiagram;
 
-  const resetZoom = () => {
-    if (!importedRef.current) return;
-    (viewer.get('canvas') as any).zoom(1);
-  };
-
-  const fitDiagram = () => {
-    if (!importedRef.current) return;
-    (viewer.get('canvas') as any).zoom('fit-viewport');
-    alignDiagramTopLeft();
-  };
+  // The Viewer can be imported while its tab is hidden (zero-sized). Observe
+  // the real canvas container and apply its initial viewport as soon as the
+  // tab becomes visible, without requiring a manual page reload.
+  useEffect(() => {
+    const host = viewerRef.current;
+    if (!host || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(entries => {
+      const entry = entries[entries.length - 1];
+      if (!entry || entry.contentRect.width <= 0 || entry.contentRect.height <= 0 || !importedRef.current) return;
+      if (!initialViewportAppliedRef.current) {
+        initialViewportAppliedRef.current = showDiagramAtActualSizeRef.current();
+      } else {
+        resizeDiagramRef.current();
+      }
+    });
+    observer.observe(host);
+    return () => observer.disconnect();
+  }, [viewer]);
 
   const applySelection = () => {
     if (!importedRef.current) return;
@@ -203,6 +337,8 @@ export const useProcessViewer = (
     }
 
     setIsImporting(true);
+    initialViewportAppliedRef.current = false;
+    fitModeRef.current = false;
     // Close the actual minimap service as well as hiding its React wrapper.
     setMinimapVisibility(false);
     setImportError(null);
@@ -212,6 +348,65 @@ export const useProcessViewer = (
       off: (event: string, listener: (event: any) => void) => void;
     };
     let clickListenerAttached = false;
+    let subprocessPreviewOverlayId: string | number | undefined;
+    const hideSubprocessPreview = () => {
+      if (subprocessPreviewOverlayId === undefined) return;
+      try {
+        (viewer.get('overlays') as any).remove(subprocessPreviewOverlayId);
+      } catch {
+        // The overlay may already have been cleared with the previous import.
+      }
+      subprocessPreviewOverlayId = undefined;
+    };
+    const onElementHover = (event: any) => {
+      const element = event?.element?.labelTarget ?? event?.element;
+      const type = element?.businessObject?.$type ?? element?.type;
+      if (type !== 'bpmn:SubProcess' && type !== 'bpmn:Transaction') return;
+      hideSubprocessPreview();
+
+      const preview = document.createElement('div');
+      preview.className = 'bpmn-subprocess-preview';
+      const title = document.createElement('div');
+      title.className = 'bpmn-subprocess-preview__title';
+      title.textContent = String(element.businessObject?.name || element.id || 'Sous-processus');
+      preview.appendChild(title);
+
+      const containedElements = Array.from(element.businessObject?.flowElements ?? [])
+        .filter((item: any) => item?.$type && !String(item.$type).endsWith('SequenceFlow'));
+      if (containedElements.length) {
+        const list = document.createElement('ol');
+        list.className = 'bpmn-subprocess-preview__list';
+        containedElements.slice(0, 8).forEach((item: any) => {
+          const entry = document.createElement('li');
+          const rawType = String(item.$type).replace(/^bpmn:/, '');
+          entry.textContent = String(item.name || rawType);
+          list.appendChild(entry);
+        });
+        preview.appendChild(list);
+        if (containedElements.length > 8) {
+          const more = document.createElement('div');
+          more.className = 'bpmn-subprocess-preview__more';
+          more.textContent = `+ ${containedElements.length - 8} autres éléments`;
+          preview.appendChild(more);
+        }
+      } else {
+        const empty = document.createElement('div');
+        empty.className = 'bpmn-subprocess-preview__empty';
+        empty.textContent = 'Aucun détail interne disponible dans ce diagramme.';
+        preview.appendChild(empty);
+      }
+
+      const overlays = viewer.get('overlays') as any;
+      subprocessPreviewOverlayId = overlays.add(element, 'subprocess-preview', {
+        position: { top: 0, left: Math.max(0, Number(element.width) + 10) },
+        html: preview,
+      });
+    };
+    const onElementOut = (event: any) => {
+      const element = event?.element?.labelTarget ?? event?.element;
+      const type = element?.businessObject?.$type ?? element?.type;
+      if (type === 'bpmn:SubProcess' || type === 'bpmn:Transaction') hideSubprocessPreview();
+    };
     const onElementClick = (event: any) => {
       const clickedElement = event?.element;
       // diagram-js emits clicks on BPMN labels as separate elements. Resolve
@@ -238,6 +433,11 @@ export const useProcessViewer = (
         elementType.startsWith('bpmn:') &&
         !Array.isArray(element.waypoints);
       if (!isSelectableElement) return;
+
+      // Selection is controlled by the React route/panel state below. Stop
+      // diagram-js' lower-priority default click selector from racing that
+      // state update (notably when the same element is clicked to deselect it).
+      event?.stopPropagation?.();
 
       // Every click toggles the same element immediately. Do not interpret a
       // second click as a double-click exception: users expect it to deselect
@@ -273,6 +473,8 @@ export const useProcessViewer = (
         // Run before the Viewer drilldown handlers so collapsed SubProcess clicks are not consumed first.
         eventBus.on('element.click', 1500, onElementClick);
         eventBus.on('element.dblclick', onElementDoubleClick);
+        eventBus.on('element.hover', onElementHover);
+        eventBus.on('element.out', onElementOut);
         clickListenerAttached = true;
         const canvas = viewer.get('canvas') as any;
         const elementRegistry = viewer.get('elementRegistry') as any;
@@ -297,8 +499,21 @@ export const useProcessViewer = (
             canvas.addMarker(element.id, 'bpmn-gateway-event-based');
           }
         });
-        fitDiagramToWidth();
         importedRef.current = true;
+        // Wait for the Viewer canvas to receive its final flex layout,
+        // then apply the same fixed 1:1, top-left viewport used by the toolbar.
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            if (cancelled || generation !== importGenerationRef.current) return;
+            // Every process/version opens at the same predictable native 1:1 origin.
+            // A previously saved zoom or position must never override this default.
+            initialViewportAppliedRef.current = showDiagramAtActualSize();
+            // Reapply the route-driven selection after the final canvas layout.
+            // This avoids losing the blue marker when a process is opened through
+            // explorer navigation while its XML and selection state resolve.
+            applySelectionRef.current();
+          });
+        });
         setIsImporting(false);
         // Keep the minimap closed on import; users can open it manually from the viewer controls.
         applySelectionRef.current();
@@ -323,9 +538,86 @@ export const useProcessViewer = (
       if (clickListenerAttached) {
         eventBus.off('element.click', onElementClick);
         eventBus.off('element.dblclick', onElementDoubleClick);
+        eventBus.off('element.hover', onElementHover);
+        eventBus.off('element.out', onElementOut);
       }
+      hideSubprocessPreview();
     };
   }, [xmlContent, resourceId, contentId, viewer, isXmlLoading, isXmlError, setMinimapVisibility]);
+
+  useEffect(() => {
+    if (!importedRef.current) return undefined;
+
+    const overlays = viewer.get('overlays') as any;
+    const registry = viewer.get('elementRegistry') as any;
+    overlayIdsRef.current.forEach(id => {
+      try {
+        overlays.remove(id);
+      } catch {
+        // The import may already have cleared the overlay.
+      }
+    });
+    overlayIdsRef.current = [];
+
+    const counts = new Map<string, { total: number; pending: number }>();
+    remarks.forEach(remark => {
+      if (!registry.get(remark.elementId)) return;
+      const current = counts.get(remark.elementId) ?? { total: 0, pending: 0 };
+      current.total += 1;
+      if (remark.status === 'pending') current.pending += 1;
+      counts.set(remark.elementId, current);
+    });
+
+    counts.forEach(({ total, pending }, elementId) => {
+      const badge = document.createElement('button');
+      badge.type = 'button';
+      badge.textContent = String(total);
+      badge.title = pending > 0
+        ? `${total} remarque(s) sur cet élément, dont ${pending} à traiter`
+        : `${total} remarque(s) sur cet élément`;
+      badge.setAttribute('aria-label', badge.title);
+      Object.assign(badge.style, {
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: '20px',
+        height: '20px',
+        padding: '0 5px',
+        border: '2px solid #fff',
+        borderRadius: '12px',
+        background: pending > 0 ? '#b45309' : '#2459a6',
+        color: '#fff',
+        boxShadow: '0 1px 4px rgba(0,0,0,.25)',
+        fontSize: '11px',
+        fontWeight: '700',
+        lineHeight: '16px',
+        cursor: 'pointer',
+      });
+      badge.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        onElementSelectRef.current?.(elementId);
+      });
+      const overlayId = overlays.add(elementId, 'contextual-remarks', {
+        position: { top: -9, right: -9 },
+        html: badge,
+      });
+      if (overlayId !== undefined && overlayId !== null) {
+        overlayIdsRef.current.push(overlayId);
+      }
+    });
+
+    return () => {
+      overlayIdsRef.current.forEach(id => {
+        try {
+          overlays.remove(id);
+        } catch {
+          // Ignore overlays already removed by the viewer.
+        }
+      });
+      overlayIdsRef.current = [];
+    };
+  }, [remarks, viewer, isImporting]);
 
   useEffect(() => {
     applySelectionRef.current();
@@ -352,5 +644,6 @@ export const useProcessViewer = (
     zoomOut,
     resetZoom,
     fitDiagram,
+    resizeDiagram,
   };
 };

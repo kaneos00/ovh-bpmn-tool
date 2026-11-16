@@ -9,13 +9,15 @@ import './Modeler.css';
 type ModelerProps = {
   diagramContainerRef: RefObject<HTMLDivElement>;
   diagramPropertiesRef: RefObject<HTMLDivElement>;
+  readOnly?: boolean;
 };
 export const Modeler: FC<ModelerProps> = ({
   diagramContainerRef,
   diagramPropertiesRef,
+  readOnly = false,
 }) => {
   return (
-    <div className="modelerContainer">
+    <div className={`modelerContainer${readOnly ? ' modelerReadOnly' : ''}`}>
       <div id="diagramContainer" ref={diagramContainerRef}>
         <div id="diagramProperties" ref={diagramPropertiesRef} />
       </div>

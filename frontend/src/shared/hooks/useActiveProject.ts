@@ -10,13 +10,16 @@ export type WorkspaceProject = {
   name: string;
   description?: string | null;
   color: string;
+  trigram: string | null;
   icon: string;
   role: 'viewer' | 'modeler' | 'admin';
+  canSubmitRemarks: boolean;
   processes: Array<{
     resourceId: string;
     name: string;
     usage: 'common' | 'variant' | 'project-specific';
     sourceResourceId: string | null;
+    remarksCount?: number;
   }>;
 };
 type WorkspaceSummary = { userId: string; projects: WorkspaceProject[] };
@@ -29,7 +32,11 @@ export const useActiveProject = () => {
   const workspaceQuery = useQuery<WorkspaceSummary>(
     ['my-workspace'],
     () => apiClient.get('/projects/me/workspace'),
-    { staleTime: 30_000 },
+    {
+      staleTime: 0,
+      refetchOnMount: 'always',
+      refetchOnWindowFocus: true,
+    },
   );
   const [storedProjectId, setStoredProjectId] = useState<string | null>(readActiveProjectId);
 

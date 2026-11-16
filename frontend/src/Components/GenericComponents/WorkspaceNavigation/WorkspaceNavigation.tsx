@@ -1,86 +1,37 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, Button, Input, List, Option, Select, Sheet, Stack, Typography } from '@mui/joy';
 import { Search } from '@mui/icons-material';
 import { useActiveProject } from '../../../shared/hooks/useActiveProject';
 import { useQuery } from 'react-query';
 
+import { unifiedSearchQuery, type UnifiedSearchType } from '../../../api/search/search.queries';
 import { resourcesQuery } from '../../../api/resources/resources.queries';
-import { contentsQuery, getXmlContentQuery } from '../../../api/contents/contents.queries';
-import { ContentStatusEnum, type Content, type Resource } from '../../../Types';
+import { type Resource } from '../../../Types';
 import { ResourceType } from '../../../shared/types/BpmnResource';
-import { deriveRaciMatrixFromXml } from '../../../extensions/raci-viewer';
 import { UserAccountMenu } from '../UserAccountMenu/UserAccountMenu';
 import { SearchResultItem } from '../SearchResultItem/SearchResultItem';
+import { getProjectTrigram } from '../../../shared/helpers/projectTrigram';
 
 type SearchScope = 'all' | 'processes' | 'bpmn' | 'roles' | 'raci';
+const normalizeSearch = (value: string) =>
+  value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr').trim();
+
+const matchesTerm = (value: string, term: string) =>
+  normalizeSearch(value).includes(normalizeSearch(term));
+
 type SearchResult = {
   key: string;
   title: string;
   detail: string;
-  resourceId: string;
+  resourceId?: string;
+  projectId?: string;
   elementId?: string;
   openRaci?: boolean;
   processName?: string;
   description?: string;
   similarity?: number;
 };
-
-const BPMN_MODEL_NS = 'http://www.omg.org/spec/BPMN/20100524/MODEL';
-const BPMN_CONNECTION_TYPES = new Set([
-  'sequenceflow', 'messageflow', 'association', 'datainputassociation',
-  'dataoutputassociation', 'conversationlink',
-]);
-
-const normalizeSearch = (value: string) =>
-  value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr').trim();
-
-const editDistance = (left: string, right: string) => {
-  const row = Array.from({ length: right.length + 1 }, (_, index) => index);
-  let previous = row;
-  for (let i = 1; i <= left.length; i += 1) {
-    const current = [i];
-    for (let j = 1; j <= right.length; j += 1) {
-      current[j] = Math.min(current[j - 1] + 1, previous[j] + 1,
-        previous[j - 1] + (left[i - 1] === right[j - 1] ? 0 : 1));
-    }
-    previous = current;
-  }
-  return previous[right.length];
-};
-
-const similarityFor = (value: string, query: string) => {
-  const normalizedValue = normalizeSearch(value);
-  const normalizedQuery = normalizeSearch(query);
-  if (!normalizedQuery) return 0;
-  const queryWords = normalizedQuery.split(/[^a-z0-9]+/).filter(Boolean);
-  const valueWords = normalizedValue.split(/[^a-z0-9]+/).filter(Boolean);
-  if (normalizedValue === normalizedQuery || (queryWords.length > 0 && queryWords.every(word => valueWords.includes(word)))) return 100;
-  if (!queryWords.length || !valueWords.length) return 0;
-  const scores = queryWords.map(word => {
-    let best = 0;
-    valueWords.forEach(candidate => {
-      if (candidate === word) best = 100;
-      else if (candidate.includes(word)) best = Math.max(best, word.length / candidate.length * 100);
-      else {
-        const maxDistance = word.length >= 8 ? 2 : 1;
-        if (word.length >= 5 && Math.abs(candidate.length - word.length) <= maxDistance) {
-          const distance = editDistance(candidate, word);
-          if (distance <= maxDistance) best = Math.max(best, (1 - distance / Math.max(candidate.length, word.length)) * 100);
-        }
-      }
-    });
-    return best;
-  });
-  return scores.some(score => score === 0)
-    ? 0
-    : Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
-};
-
-const matchesTerm = (value: string, term: string) =>
-  normalizeSearch(value).includes(normalizeSearch(term));
-
-const resultKey = (result: SearchResult) => result.key;
 
 const resultBadge = (detail: string) => {
   if (/\bRACI\b/i.test(detail)) {
@@ -180,21 +131,35 @@ export const WorkspaceNavigation = () => {
     return () => { mounted = false; };
   }, []);
   const navigate = useNavigate();
+  const location = useLocation();
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [scope, setScope] = useState<SearchScope>('all');
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedSearch(search.trim()), 250);
+    return () => window.clearTimeout(timeout);
+  }, [search]);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [deepResults, setDeepResults] = useState<SearchResult[]>([]);
-  const [deepSearchLoading, setDeepSearchLoading] = useState(false);
   const searchRef = useRef<HTMLInputElement | null>(null);
-  const resources = useQuery<Resource[]>(resourcesQuery());
   const { projects, activeProject, activeProjectId, setActiveProject, projectProcessIds, isLoading: projectsLoading } = useActiveProject();
+  // Folder names are not part of the unified BPMN endpoint. Keep the small
+  // folder supplement, but never let a folder-list failure disable process,
+  // BPMN, role or RACI search.
+  const resourcesOptions = resourcesQuery();
+  const resources = useQuery<Resource[]>(
+    resourcesOptions.queryKey,
+    resourcesOptions.queryFn,
+    {
+      enabled: searchOpen && debouncedSearch.length >= 1 && (scope === 'all' || scope === 'processes'),
+    },
+  );
 
-  const resourceResults = useMemo(() => {
-    const term = search.trim().toLocaleLowerCase('fr');
+  const resourceResults = useMemo<SearchResult[]>(() => {
+    const term = debouncedSearch;
     if (!term || (scope !== 'all' && scope !== 'processes')) return [];
     const allResources = resources.data ?? [];
     const allowedIds = new Set(projectProcessIds);
-    const byId = new Map(allResources.map(resource => [resource.id, resource]));
+    const byId = new Map<string, Resource>(allResources.map(resource => [resource.id, resource] as const));
     projectProcessIds.forEach(id => {
       let current = byId.get(id);
       while (current?.parentId) {
@@ -203,239 +168,74 @@ export const WorkspaceNavigation = () => {
       }
     });
     return allResources
-      .filter(resource => allowedIds.has(resource.id) &&
-        (resource.type === ResourceType.Process || resource.type === ResourceType.Folder) &&
-        (matchesTerm(resource.name, term) || matchesTerm(resource.description ?? '', term)),
-      )
-      .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
-      .slice(0, 10)
+      .filter(resource => resource.type === ResourceType.Folder && allowedIds.has(resource.id) &&
+        (matchesTerm(resource.name, term) || matchesTerm(resource.description ?? '', term)))
+      .sort((left, right) => left.name.localeCompare(right.name, 'fr'))
+      .slice(0, 5)
       .map(resource => ({
         key: resource.id,
         title: resource.name,
-        detail: `${resource.type === ResourceType.Folder ? 'Dossier du référentiel' : 'Processus BPMN'}${resource.description ? ` · ${resource.description}` : ''}`,
+        detail: `Dossier du référentiel · ${resource.description || 'Dossier'}`,
         resourceId: resource.id,
-        processName: resource.type === ResourceType.Process ? undefined : resource.name,
+        processName: undefined,
         description: resource.description || undefined,
-        similarity: similarityFor(`${resource.name} ${resource.description ?? ''}`, search),
+        similarity: matchesTerm(resource.name, term) ? 100 : 80,
       }));
-  }, [resources.data, search, scope, projectProcessIds]);
+  }, [resources.data, debouncedSearch, scope, projectProcessIds]);
 
-  useEffect(() => {
-    const term = search.trim().toLocaleLowerCase('fr');
-    if (term.length < 2 || !resources.data) {
-      setDeepResults([]);
-      setDeepSearchLoading(false);
-      return undefined;
-    }
+  const typeByScope: Partial<Record<SearchScope, UnifiedSearchType>> = {
+    processes: 'process',
+    bpmn: 'bpmn',
+    roles: 'actor',
+    raci: 'raci',
+  };
+  const searchOptions = unifiedSearchQuery({
+    q: debouncedSearch,
+    types: typeByScope[scope] ? [typeByScope[scope]!] : undefined,
+    projectId: activeProjectId ?? undefined,
+    limit: 20,
+    offset: 0,
+  });
+  const {
+    data: searchData,
+    isLoading: deepSearchLoading,
+    isError: searchError,
+    error: deepSearchError,
+    refetch: retryDeepSearch,
+  } = useQuery(
+    searchOptions.queryKey,
+    searchOptions.queryFn,
+    { enabled: searchOpen && debouncedSearch.length >= 2 && !projectsLoading, keepPreviousData: true },
+  );
 
-    let cancelled = false;
-    const timer = window.setTimeout(async () => {
-      setDeepSearchLoading(true);
-      const processes = resources.data!.filter(resource => resource.type === ResourceType.Process && projectProcessIds.has(resource.id));
-      const found: SearchResult[] = [];
-
-      await Promise.all(processes.map(async process => {
-        try {
-          const contents: Content[] = await contentsQuery(process.id).queryFn();
-          const published = contents
-            .filter(content => content.status === ContentStatusEnum.Published)
-            .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0];
-          if (!published || cancelled) return;
-
-          const xml = await getXmlContentQuery(process.id, published.id).queryFn();
-          if (!xml || cancelled) return;
-          const document = new DOMParser().parseFromString(xml, 'application/xml');
-          if (document.getElementsByTagName('parsererror').length) return;
-
-          const bpmnElements = Array.from(document.getElementsByTagName('*'))
-            .filter(element => element.namespaceURI === BPMN_MODEL_NS);
-          const activityTypes = new Set([
-            'task', 'userTask', 'serviceTask', 'manualTask', 'scriptTask',
-            'businessRuleTask', 'sendTask', 'receiveTask', 'callActivity',
-            'subProcess', 'transaction',
-          ]);
-          const namedElements = bpmnElements.filter(element => {
-            if (BPMN_CONNECTION_TYPES.has(element.localName.toLocaleLowerCase('fr'))) return false;
-            const id = element.getAttribute('id') || '';
-            const name = element.getAttribute('name')?.trim() || '';
-            const documentation = Array.from(element.children)
-              .filter(child => child.localName.toLocaleLowerCase('fr') === 'documentation')
-              .map(child => child.textContent?.trim() || '')
-              .filter(Boolean).join(' ');
-            const annotation = element.localName.toLocaleLowerCase('fr') === 'textannotation'
-              ? Array.from(element.children).find(child => child.localName.toLocaleLowerCase('fr') === 'text')?.textContent?.trim() || ''
-              : '';
-            return id && (matchesTerm(name, term) ||
-              matchesTerm(documentation, term) || matchesTerm(annotation, term));
-          });
-
-          if (scope === 'all' || scope === 'bpmn') {
-            namedElements.forEach(element => {
-              const id = element.getAttribute('id') || '';
-              const name = element.getAttribute('name')?.trim() || '';
-              let kind: string;
-            if (element.localName.toLowerCase().includes('subprocess')) {
-              kind = 'Sous-processus';
-            } else if (element.localName.toLowerCase() === 'lane') {
-              kind = 'Lane BPMN';
-            } else if (activityTypes.has(element.localName)) {
-              kind = 'Activité BPMN';
-            } else if (element.localName.toLocaleLowerCase('fr') === 'textannotation') {
-              kind = 'Description';
-            } else if (element.localName === 'process') {
-              kind = 'Processus BPMN';
-            } else {
-              kind = `Élément BPMN · ${element.localName}`;
-            }
-              const description = Array.from(element.children)
-                .filter(child => child.localName.toLocaleLowerCase('fr') === 'documentation')
-                .map(child => child.textContent?.trim() || '')
-                .filter(Boolean).join(' ') ||
-                (element.localName.toLocaleLowerCase('fr') === 'textannotation'
-                  ? Array.from(element.children).find(child => child.localName.toLocaleLowerCase('fr') === 'text')?.textContent?.trim() || ''
-                  : '');
-              found.push({
-                key: `${process.id}:bpmn:${id}`,
-                title: element.localName.toLocaleLowerCase('fr') === 'textannotation' ? (description || name || kind) : (name || description || kind),
-                detail: `${kind} · ${id}`,
-                resourceId: process.id,
-                processName: process.name,
-                description: description || undefined,
-                similarity: similarityFor(`${name} ${description}`, search),
-                elementId: element.localName === 'process' ? undefined : id,
-              });
-            });
-          }
-
-          if (scope === 'all' || scope === 'processes') {
-            namedElements
-              .filter(element => element.localName.toLowerCase().includes('subprocess'))
-              .forEach(element => {
-                const id = element.getAttribute('id') || '';
-                const name = element.getAttribute('name')?.trim() || '';
-                found.push({
-                  key: `${process.id}:subprocess:${id}`,
-                  title: name || 'Sous-processus',
-                  detail: `Sous-processus · ${process.name}`,
-                  resourceId: process.id,
-                  elementId: id,
-                });
-              });
-          }
-
-          if (scope === 'all' || scope === 'roles' || scope === 'raci') {
-            const matrix = deriveRaciMatrixFromXml(xml);
-            matrix.roles
-              .filter(role => matchesTerm(role, term))
-              .forEach(role => {
-                const lane = bpmnElements.find(element =>
-                  element.localName === 'lane' &&
-                  (element.getAttribute('name') || '').trim() === role,
-                );
-                found.push({
-                  key: `${process.id}:role:${role}`,
-                  title: role,
-                  detail: 'Rôle',
-                  resourceId: process.id,
-                  elementId: lane?.getAttribute('id') || undefined,
-                  processName: process.name,
-                  similarity: similarityFor(role, search),
-                  openRaci: true,
-                });
-              });
-
-            matrix.activities.forEach(activity => {
-              activity.cells.forEach(cell => {
-                const roleMatches = matchesTerm(cell.role, term);
-                const activityMatches = matchesTerm(activity.activity, term);
-                const assignmentMatches = cell.codes.some(code => matchesTerm(code, term));
-                if (cell.codes.length && (
-                  (scope === 'all' && (roleMatches || activityMatches || assignmentMatches)) ||
-                  (scope === 'raci' && (roleMatches || activityMatches || assignmentMatches))
-                )) {
-                  found.push({
-                    key: `${process.id}:raci:${activity.elementId}:${cell.role}`,
-                    title: activityMatches ? activity.activity : cell.role,
-                    detail: `RACI · ${activity.activity} — ${cell.role} (${cell.codes.join('/')})`,
-                    resourceId: process.id,
-                    elementId: activity.elementId,
-                    processName: process.name,
-                    similarity: similarityFor(`${activity.activity} ${cell.role} ${cell.codes.join(' ')}`, search),
-                    openRaci: true,
-                  });
-                }
-              });
-            });
-          }
-
-          if (scope === 'all') {
-            // Search BPMN documentation, text annotations and communication-related labels.
-            const textElements = Array.from(document.getElementsByTagName('*')).filter(element => {
-              const tag = element.localName.toLocaleLowerCase('fr');
-              const text = element.textContent?.trim() || '';
-              const name = element.getAttribute('name') || '';
-              const isTextAnnotationChild = tag === 'text' &&
-                element.parentElement?.localName.toLocaleLowerCase('fr') === 'textannotation';
-              const isTextContent = /documentation|textannotation|text|message|communication|comment/i.test(tag);
-              return !isTextAnnotationChild && isTextContent && text &&
-                (matchesTerm(text, term) || matchesTerm(name, term));
-            });
-            textElements.forEach((element, index) => {
-              const tag = element.localName.toLocaleLowerCase('fr');
-              const isTextAnnotation = tag === 'textannotation';
-              const annotationText = isTextAnnotation
-                ? Array.from(element.children).find(child => child.localName.toLocaleLowerCase('fr') === 'text')?.textContent
-                : undefined;
-              const text = (element.getAttribute('name') || annotationText || element.textContent || '').trim().replace(/\s+/g, ' ');
-              const title = text.length > 100 ? `${text.slice(0, 97)}…` : text;
-              if (!title) return;
-              // Resolve documentation to its owning BPMN element for viewer selection.
-              let bpmnOwner: Element | null = element;
-              while (bpmnOwner && (
-                bpmnOwner.namespaceURI !== BPMN_MODEL_NS ||
-                !bpmnOwner.getAttribute('id')
-              )) {
-                bpmnOwner = bpmnOwner.parentElement;
-              }
-              if (bpmnOwner && BPMN_CONNECTION_TYPES.has(bpmnOwner.localName.toLocaleLowerCase('fr'))) return;
-
-              const elementId = bpmnOwner?.getAttribute('id') || undefined;
-              if (bpmnOwner && namedElements.includes(bpmnOwner)) return;
-              found.push({
-                key: `${process.id}:ia-comm:${element.localName}:${elementId || index}:${title}`,
-                title,
-                detail: isTextAnnotation || tag === 'documentation'
-                  ? `Description · ${elementId || ''}`
-                  : `IA comm. / annotation BPMN · ${element.localName}`,
-                resourceId: process.id,
-                processName: process.name,
-                similarity: similarityFor(text, search),
-                elementId,
-              });
-            });
-          }
-        } catch {
-          // An unavailable process must not prevent searching the other processes.
-        }
-      }));
-
-      if (!cancelled) {
-        const uniqueResults = Array.from(new Map(found.map(result => [resultKey(result), result])).values());
-        setDeepResults(uniqueResults.sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0) || a.title.localeCompare(b.title, 'fr')).slice(0, 20));
-        setDeepSearchLoading(false);
-      }
-    }, 250);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
+  const apiResults: SearchResult[] = (searchData?.results ?? []).map(result => {
+    const detailByType: Record<UnifiedSearchType, string> = {
+      process: 'Processus BPMN',
+      bpmn: 'Élément BPMN',
+      raci: 'RACI',
+      actor: 'Rôle',
     };
-  }, [search, scope, resources.data, projectProcessIds]);
+    const detailLabel = result.field === 'testo annotazione' || result.field === 'descrizione'
+      ? 'Description'
+      : detailByType[result.type];
+    return {
+      key: result.id,
+      title: result.label,
+      detail: `${detailLabel} · ${result.excerpt || result.field}`,
+      resourceId: result.resourceId,
+      projectId: result.projectId,
+      elementId: result.elementId,
+      processName: result.processName,
+      description: result.description || result.excerpt || undefined,
+      similarity: result.matchScore,
+      openRaci: result.type === 'raci' || result.type === 'actor',
+    };
+  });
 
-  const results = useMemo(() => {
-    const combined = scope === 'all' || scope === 'processes' ? [...resourceResults, ...deepResults] : deepResults;
-    return Array.from(new Map(combined.map(result => [result.key, result])).values()).slice(0, 20);
-  }, [scope, resourceResults, deepResults]);
+  const results = [...resourceResults, ...apiResults]
+    .filter((result, index, all) => all.findIndex(candidate => candidate.key === result.key) === index)
+    .sort((left, right) => (right.similarity ?? 0) - (left.similarity ?? 0))
+    .slice(0, 10);
 
   useEffect(() => {
     const onShortcut = (event: KeyboardEvent) => {
@@ -457,7 +257,13 @@ export const WorkspaceNavigation = () => {
   const openResult = (result: SearchResult) => {
     setSearchOpen(false);
     setSearch('');
+    if (!result.resourceId) {
+      if (result.projectId) navigate(`/projects/${result.projectId}/viewer`);
+      return;
+    }
     const params = new URLSearchParams();
+    const projectId = result.projectId ?? activeProjectId;
+    if (projectId) params.set('projectId', projectId);
     if (result.elementId) params.set('elementId', result.elementId);
     if (result.openRaci) params.set('raci', '1');
     const query = params.toString();
@@ -468,12 +274,6 @@ export const WorkspaceNavigation = () => {
     const term = search.trim();
     if (term.length < 2) return;
     const params = new URLSearchParams({ q: term });
-    const typeByScope: Partial<Record<SearchScope, string>> = {
-      processes: 'process',
-      bpmn: 'bpmn',
-      roles: 'actor',
-      raci: 'raci',
-    };
     const type = typeByScope[scope];
     if (type) params.set('types', type);
     setSearchOpen(false);
@@ -481,7 +281,8 @@ export const WorkspaceNavigation = () => {
     navigate(`/search?${params.toString()}`);
   };
 
-  const isLoading = resources.isLoading || deepSearchLoading;
+  const isLoading = projectsLoading || deepSearchLoading ||
+    ((scope === 'all' || scope === 'processes') && resources.isLoading);
 
   return (
     <Box className="workspace-navigation" sx={{ mb: 1.5, p: { xs: 1.25, md: 1.75 }, borderRadius: '10px', bgcolor: '#152b45', color: '#fff', border: '1px solid #152b45', boxShadow: '0 2px 8px rgba(21,43,69,.08)' }}>
@@ -541,18 +342,28 @@ export const WorkspaceNavigation = () => {
             if (!value) return;
             setActiveProject(value);
             setSearch('');
-            setDeepResults([]);
             setSearchOpen(false);
             navigate('/root');
           }}
           disabled={projectsLoading || projects.length === 0}
           aria-label="Projet actif"
-          sx={{ minWidth: 180, maxWidth: 240, bgcolor: activeProject?.color || '#263e59', color: '#fff', borderColor: '#40556d', '&:hover': { filter: 'brightness(1.08)' } }}
+          renderValue={() => activeProject ? (
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+              <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 34, height: 24, px: 0.5, borderRadius: '6px', bgcolor: activeProject.color || '#2864d7', color: '#fff', fontSize: 11, fontWeight: 800, letterSpacing: '0.04em', flexShrink: 0 }}>
+                {getProjectTrigram(activeProject.name, activeProject.trigram)}
+              </Box>
+              <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {activeProject.name}
+              </Box>
+            </Stack>
+          ) : null}
+          sx={{ minWidth: 180, maxWidth: 280, bgcolor: 'background.surface', color: 'text.primary', borderColor: 'divider', '&:hover': { bgcolor: 'background.level1' }, '& .MuiSelect-indicator': { color: 'text.secondary' } }}
         >
           {projects.map(project => <Option key={project.id} value={project.id}>
             <Stack direction="row" spacing={1} alignItems="center">
-              <Box component="span" sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: project.color || '#2864d7', flexShrink: 0 }} />
-              <Box component="span">{({ folder: '📁', briefcase: '💼', building: '🏢', workflow: '🔀', users: '👥', chart: '📊' } as Record<string, string>)[project.icon || 'folder'] || '📁'}</Box>
+              <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 34, height: 24, px: 0.5, borderRadius: '6px', bgcolor: project.color || '#2864d7', color: '#fff', fontSize: 11, fontWeight: 800, letterSpacing: '0.04em', flexShrink: 0 }}>
+                {getProjectTrigram(project.name, project.trigram)}
+              </Box>
               <Box component="span">{project.name}</Box>
             </Stack>
           </Option>)}
@@ -602,7 +413,17 @@ export const WorkspaceNavigation = () => {
               )}
               <Box sx={{ overflowY: 'auto', minHeight: 0, flex: 1 }}>
               {isLoading && <Typography level="body-sm" sx={{ p: 1.5 }}>Recherche dans les contenus…</Typography>}
-              {resources.isError && <Typography level="body-sm" color="danger" sx={{ p: 1.5 }}>Recherche indisponible pour le moment.</Typography>}
+              {searchError && (
+                <Stack spacing={0.75} sx={{ p: 1.5 }}>
+                  <Typography level="body-sm" color="danger">
+                    Recherche indisponible pour le moment.
+                    {deepSearchError instanceof Error ? ` ${deepSearchError.message}` : ''}
+                  </Typography>
+                  <Button size="sm" variant="outlined" color="neutral" onClick={() => void retryDeepSearch()}>
+                    Réessayer
+                  </Button>
+                </Stack>
+              )}
               {!isLoading && results.length === 0 && (
                 <Typography level="body-sm" sx={{ p: 1.5 }}>
                   Aucun résultat correspondant dans ce type de contenu.

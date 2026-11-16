@@ -9,7 +9,7 @@ import { PublishContent } from './components/PublishContent';
 import { Button, DialogActions } from '@mui/joy';
 
 export const Component = () => {
-  const { loaderData, resource, base64Png, actionData, viewerRef, callbacks } =
+  const { loaderData, resource, base64Png, actionData, viewerRef, canPublish, callbacks } =
     usePublishResource();
 
   // A failed publication must remain on the confirmation screen so the
@@ -39,7 +39,7 @@ export const Component = () => {
       >
         <Await resolve={loaderData.resource}>
           <BaseModal
-            title="Business Process publication"
+            title="Publication du processus"
             open
             onClose={callbacks.onModalClose}
             sx={{ maxWidth: 1000 }}
@@ -55,16 +55,17 @@ export const Component = () => {
                 <Button
                   variant="solid"
                   color="primary"
+                  disabled={!canPublish}
                   onClick={callbacks.onPublish}
                 >
-                  Publish
+                  Publier
                 </Button>
                 <Button
                   variant="plain"
                   color="neutral"
                   onClick={callbacks.onModalClose}
                 >
-                  Cancel
+                  Annuler
                 </Button>
               </DialogActions>
             </>

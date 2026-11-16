@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 /**
- * Keeps BPMN selection synchronized with route changes in both Viewer shells.
+ * Keeps BPMN selection synchronized with route changes in the canonical Viewer.
  * A process/version change restores the URL selection (or clears stale state),
  * while ordinary canvas selections remain local until the route changes.
  */

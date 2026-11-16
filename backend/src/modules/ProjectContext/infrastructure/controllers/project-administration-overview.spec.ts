@@ -35,6 +35,12 @@ describe('ProjectController administration overview', () => {
   const resources = {
     find: jest.fn(),
   };
+  const processChangeProposals = {
+    find: jest.fn().mockResolvedValue([]),
+  };
+  const processChangeProposalComments = {
+    find: jest.fn().mockResolvedValue([]),
+  };
 
   const dataSource = {
     transaction: jest.fn(
@@ -116,6 +122,8 @@ describe('ProjectController administration overview', () => {
       projectProcesses as never,
       resources as never,
       projectMembers as never,
+      processChangeProposals as never,
+      processChangeProposalComments as never,
       {
         getAuthenticatedUserId: jest.fn(
           (headers: Record<string, string | undefined>) =>
@@ -132,14 +140,29 @@ describe('ProjectController administration overview', () => {
       {
         userId: 'alice',
         projects: [
-          { projectId: 'project-a', projectName: 'Atlas', role: 'admin' },
-          { projectId: 'project-b', projectName: 'RH', role: 'viewer' },
+          {
+            projectId: 'project-a',
+            projectName: 'Atlas',
+            role: 'admin',
+            canSubmitRemarks: false,
+          },
+          {
+            projectId: 'project-b',
+            projectName: 'RH',
+            role: 'viewer',
+            canSubmitRemarks: false,
+          },
         ],
       },
       {
         userId: 'bob',
         projects: [
-          { projectId: 'project-a', projectName: 'Atlas', role: 'modeler' },
+          {
+            projectId: 'project-a',
+            projectName: 'Atlas',
+            role: 'modeler',
+            canSubmitRemarks: false,
+          },
         ],
       },
     ]);
@@ -164,6 +187,7 @@ describe('ProjectController administration overview', () => {
     expect(result.projects[0]).toMatchObject({
       id: 'project-a',
       role: ProjectMemberRole.Admin,
+      canSubmitRemarks: false,
       processes: [
         {
           resourceId: 'process-shared',

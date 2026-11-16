@@ -41,7 +41,9 @@ test('Modeler replacement and unmount release instance-owned listeners and servi
   const instanceHook = await read('src/shared/hooks/useModelerInstance.ts');
   const modelerHook = await read('src/Containers/ContentModeler/hooks/useModeler.ts');
 
-  assert.match(instanceHook, /return \(\) => \{\s*modeler\.destroy\(\);\s*\};/);
+  assert.ok(instanceHook.includes("modeler.get('selection')"));
+  assert.ok(instanceHook.includes('selection?.select?.([])'));
+  assert.ok(instanceHook.indexOf('selection?.select?.([])') < instanceHook.indexOf('modeler.destroy()'));
   assert.match(modelerHook, /bpmnModelerInstance\.off\('linting\.completed', onLintingCompleted\)/);
   assert.match(modelerHook, /removeSelectionListenerRef\.current\?\.\(\)/);
   assert.match(modelerHook, /removeCommandStackListenerRef\.current\?\.\(\)/);

@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { ResourceTypeOrmEntity } from '../ResourceContext/infrastructure/entities/resource.ormEntity';
 import {
   ProjectProcessTypeOrmEntity,
@@ -15,6 +15,10 @@ import {
   ProjectMemberRole,
   ProjectMemberTypeOrmEntity,
 } from './infrastructure/entities/projectMember.ormEntity';
+import {
+  ProcessChangeProposalStatus,
+  ProcessChangeProposalTypeOrmEntity,
+} from './infrastructure/entities/processChangeProposal.ormEntity';
 
 type RequestHeaders = Record<string, string | undefined>;
 
@@ -33,6 +37,9 @@ export class ProjectResourceAccessService {
     private readonly projectMembers: Repository<ProjectMemberTypeOrmEntity>,
     @InjectRepository(ResourceTypeOrmEntity)
     private readonly resources: Repository<ResourceTypeOrmEntity>,
+    @InjectRepository(ProcessChangeProposalTypeOrmEntity)
+    private readonly processChangeProposals: Repository<ProcessChangeProposalTypeOrmEntity>,
+    private readonly dataSource: DataSource,
   ) {}
 
   /** Resolve the trusted identity header consistently across project controllers. */
@@ -226,6 +233,117 @@ export class ProjectResourceAccessService {
         'Editing this resource requires modeler access to every linked project',
       );
     }
+  }
+
+  /**
+   * Proposal workspaces are the only resources that project workflow roles may
+   * edit without the organization-wide read/write group. All other resources
+   * retain the legacy global ACL plus project-scope checks.
+   */
+  async assertCanEditProposalResource(
+    resourceId: string,
+    headers: RequestHeaders,
+  ) {
+    const userId = this.getAuthenticatedUserId(headers);
+    const proposal = await this.processChangeProposals.findOne({
+      where: { cloneResourceId: resourceId },
+    });
+
+    if (!proposal) {
+      if (
+        !this.hasOrganizationAdminRole(headers) &&
+        !this.hasOrganizationReadWriteRole(headers)
+      ) {
+        throw new ForbiddenException(
+          'Editing this resource requires organization write access',
+        );
+      }
+      return this.assertCanEditResource(resourceId, headers, {
+        allowCommonForOrganizationAdmin: true,
+      });
+    }
+
+    if (
+      proposal.status === ProcessChangeProposalStatus.Rejected ||
+      proposal.status === ProcessChangeProposalStatus.Published ||
+      proposal.status === ProcessChangeProposalStatus.Approved
+    ) {
+      throw new ForbiddenException(
+        'This proposal workspace is closed or its approved snapshot is immutable',
+      );
+    }
+
+    if (this.hasOrganizationAdminRole(headers)) return;
+
+    const membership = await this.projectMembers.findOne({
+      where: { projectId: proposal.projectId, userId },
+    });
+    const sourceLink = await this.projectProcesses.findOne({
+      where: {
+        projectId: proposal.projectId,
+        resourceId: proposal.sourceResourceId,
+      },
+    });
+
+    if (!sourceLink) {
+      throw new ForbiddenException(
+        'The proposal source is no longer linked to its project',
+      );
+    }
+
+    // An explicit validator assignment does not survive removal from the
+    // project. Keep the assignment independent of the member's role, but
+    // require current membership before granting workspace edit access.
+    if (!membership) {
+      throw new ForbiddenException(
+        'Editing this proposal requires current project membership',
+      );
+    }
+
+    if (sourceLink.usage === ProjectProcessUsage.Common) {
+      if (membership?.role !== ProjectMemberRole.Admin) {
+        throw new ForbiddenException(
+          'Editing a common-process proposal requires project administrator access',
+        );
+      }
+      return;
+    }
+
+    const isProjectEditor =
+      membership?.role === ProjectMemberRole.Modeler ||
+      membership?.role === ProjectMemberRole.Admin;
+    let isAssignedValidator = false;
+    if (!isProjectEditor && proposal.validatorUserId) {
+      const accountRows: Array<{ id: string }> = await this.dataSource.query(
+        'SELECT id FROM app_users WHERE lower(username) = lower($1) AND active = TRUE LIMIT 1',
+        [userId],
+      );
+      isAssignedValidator = accountRows[0]?.id === proposal.validatorUserId;
+    }
+    if (!isProjectEditor && !isAssignedValidator) {
+      throw new ForbiddenException(
+        'Editing this proposal requires modeler, project administrator or assigned validator access',
+      );
+    }
+  }
+
+  /**
+   * Proposal workspaces are governed by their workflow lifecycle and cannot
+   * have contents deleted through the generic content endpoint.
+   */
+  async assertCanDeleteProposalResource(
+    resourceId: string,
+    headers: RequestHeaders,
+  ) {
+    const proposal = await this.processChangeProposals.findOne({
+      where: { cloneResourceId: resourceId },
+    });
+    if (proposal) {
+      throw new ForbiddenException(
+        'Proposal workspace contents cannot be deleted through the generic content endpoint',
+      );
+    }
+    return this.assertCanEditResource(resourceId, headers);
   }
 
   async assertCanDeleteResource(resourceId: string) {

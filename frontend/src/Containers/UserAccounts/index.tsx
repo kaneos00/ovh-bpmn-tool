@@ -21,8 +21,8 @@ import {
   Table,
   Typography,
 } from '@mui/joy';
-import { WorkspacePageLayout } from '../../Components/GenericComponents/WorkspacePageLayout/WorkspacePageLayout';
 import './UserAccounts.scss';
+import { OrganizationAdminLayout } from '../OrganizationAdmin/OrganizationAdminLayout';
 import '../OrganizationAdmin/OrganizationAdmin.scss';
 
 type Role = 'admin' | 'modeler' | 'viewer';
@@ -38,7 +38,7 @@ type Account = {
 type Project = { id: string; name: string };
 type Membership = {
   userId: string;
-  projects: Array<{ projectId: string; projectName: string; role: ProjectRole }>;
+  projects: Array<{ projectId: string; projectName: string; role: ProjectRole; canSubmitRemarks: boolean }>;
 };
 type AdministrationOverview = { projects: Project[]; users: Membership[] };
 type AccountDraft = { username: string; email: string; role: Role; active: boolean };
@@ -55,6 +55,20 @@ const roleColors: Record<Role, 'warning' | 'primary' | 'neutral'> = {
   viewer: 'neutral',
 };
 const userPath = (id: string) => `/auth/users/${encodeURIComponent(id)}`;
+
+function exportCsv(filename: string, rows: string[][]) {
+  const csv = rows.map((row) => row.map((value) => {
+    const escaped = String(value ?? '').replace(/"/g, '""');
+    return /[",\r\n;]/.test(escaped) ? `"${escaped}"` : escaped;
+  }).join(';')).join('\r\n');
+  const blob = new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
 
 async function call<T = any>(path: string, method = 'GET', body?: unknown): Promise<T> {
   const response = await fetch(`${apiBase}${path}`, {
@@ -81,6 +95,8 @@ export const Component = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [roleFilter, setRoleFilter] = useState<'all' | Role>('all');
+  const [projectRoleFilter, setProjectRoleFilter] = useState<'all' | ProjectRole>('all');
+  const [projectFilter, setProjectFilter] = useState('all');
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [bulkAction, setBulkAction] = useState<'activate' | 'deactivate' | 'assign' | null>(null);
   const [bulkProjectId, setBulkProjectId] = useState('');
@@ -166,9 +182,13 @@ export const Component = () => {
       const matchesStatus = statusFilter === 'all' ||
         (statusFilter === 'active' ? account.active : !account.active);
       const matchesRole = roleFilter === 'all' || account.role === roleFilter;
-      return matchesSearch && matchesStatus && matchesRole;
+      const matchesProjectRole = projectRoleFilter === 'all' ||
+        (membership?.projects ?? []).some((project) => project.role === projectRoleFilter);
+      const matchesProject = projectFilter === 'all' ||
+        (membership?.projects ?? []).some((project) => project.projectId === projectFilter);
+      return matchesSearch && matchesStatus && matchesRole && matchesProjectRole && matchesProject;
     });
-  }, [accounts, membershipsByUser, search, statusFilter, roleFilter]);
+  }, [accounts, membershipsByUser, search, statusFilter, roleFilter, projectRoleFilter, projectFilter]);
 
   const selectedAccount = accounts.find((account) => account.username === username) ?? null;
   const selectedAccounts = filteredAccounts.filter((account) => selectedAccountIds.includes(account.id));
@@ -300,6 +320,21 @@ export const Component = () => {
     );
   };
 
+  const updateProjectRemarkPermission = async (
+    project: Membership['projects'][number],
+    canSubmitRemarks: boolean,
+  ) => {
+    if (!selectedAccount || project.canSubmitRemarks === canSubmitRemarks) return;
+    await runAction(
+      () => call(
+        `/projects/administration/projects/${encodeURIComponent(project.projectId)}/members/${encodeURIComponent(selectedAccount.username)}`,
+        'PUT',
+        { role: project.role, canSubmitRemarks },
+      ),
+      'Autorisation de dépôt de remarques mise à jour.',
+    );
+  };
+
   const removeProjectAccess = async (project: Membership['projects'][number]) => {
     if (!selectedAccount) return;
     await runAction(
@@ -335,56 +370,17 @@ export const Component = () => {
   };
 
   return (
-    <WorkspacePageLayout className="org-admin-v2__page">
-      <Stack spacing={2}>
-        <div className="org-admin-v2">
-          <aside className="org-admin-v2__sidebar">
-            <div className="org-admin-v2__brand">
-              <img className="org-admin-v2__brand-logo" src="/bpmn-tool-logo.svg" alt="" />
-              <div><strong>KHI Flows</strong><small>Administration</small></div>
-            </div>
-            <div className="org-admin-v2__nav-group">
-              <div className="org-admin-v2__nav-label">Administration</div>
-              <nav className="org-admin-v2__nav" aria-label="Navigation de l’administration">
-                {[
-                  ['overview', 'Vue d’ensemble', '▦'],
-                  ['users', 'Utilisateurs', '♙'],
-                  ['projects', 'Projets', '▣'],
-                  ['processes', 'Processus', '⌘'],
-                  ['governance', 'Acteurs et RACI', '⬡'],
-                ].map(([key, label, icon]) => (
-                  <button
-                    type="button"
-                    key={key}
-                    className={`org-admin-v2__nav-item${key === 'users' ? ' is-active' : ''}`}
-                    aria-current={key === 'users' ? 'page' : undefined}
-                    onClick={() => navigate(`/organization/${key}`)}
-                  >
-                    <span className="org-admin-v2__nav-icon" aria-hidden="true">{icon}</span>
-                    <span>{label}</span>
-                  </button>
-                ))}
-              </nav>
-            </div>
-            <div className="org-admin-v2__sidebar-foot">
-              <strong>Accès sécurisés</strong>
-              <span>Les droits sont contrôlés par l’API, indépendamment de l’interface.</span>
-            </div>
-          </aside>
-          <main className="org-admin-v2__main">
-            <header className="org-admin-v2__topbar">
-              <div>
-                <div className="org-admin-v2__crumb" aria-label="Fil d’Ariane">
-                  <Button size="sm" variant="plain" color="neutral" sx={{ p: 0, minHeight: 'unset' }} onClick={() => navigate('/organization/overview')}>Administration</Button>
-                  <span>/</span>
-                  <Button size="sm" variant="plain" color="neutral" sx={{ p: 0, minHeight: 'unset' }} onClick={() => navigate('/organization/users')}>Utilisateurs</Button>
-                  {username && <> / {selectedAccount?.username ?? username}</>}
-                </div>
-                <div className="org-admin-v2__top-title">{username ? 'Fiche utilisateur' : 'Administration des utilisateurs'}</div>
-              </div>
-              <Chip size="sm" color="primary" variant="soft">Accès organisationnel</Chip>
-            </header>
-            <div className="org-admin-v2__content">
+    <OrganizationAdminLayout
+      activeSection="users"
+      title={username ? 'Fiche utilisateur' : 'Administration des utilisateurs'}
+      breadcrumbs={[
+        { id: 'home', label: 'Tous les projets', to: '/projects' },
+        { id: 'administration', label: 'Administration', to: '/organization/overview' },
+        { id: 'users', label: 'Utilisateurs', to: '/organization/users' },
+        ...(username ? [{ id: 'account', label: selectedAccount?.username ?? username, to: `/organization/users/${encodeURIComponent(username)}` }] : []),
+      ]}
+    >
+
               {error && <Alert color="danger" sx={{ mb: 2 }}>{error}</Alert>}
               {notice && <Alert color="success" sx={{ mb: 2 }}>{notice}</Alert>}
               {!username && <>
@@ -397,6 +393,15 @@ export const Component = () => {
                   </Typography>
                 </div>
                 <div className="org-admin-v2__actions">
+                  <Button variant="outlined" color="neutral" onClick={() => exportCsv('utilisateurs-khi-flows.csv', [
+                    ['Identifiant', 'E-mail', 'Rôle global', 'État du compte', 'Projet', 'Rôle projet', 'Dépôt remarques'],
+                    ...filteredAccounts.flatMap((account) => {
+                      const projects = membershipsByUser.get(account.username.toLocaleLowerCase())?.projects ?? [];
+                      return projects.length
+                        ? projects.map((project) => [account.username, account.email ?? '', roleLabels[account.role], account.active ? 'Actif' : 'Désactivé', project.projectName, project.role, project.canSubmitRemarks ? 'Oui' : 'Non'])
+                        : [[account.username, account.email ?? '', roleLabels[account.role], account.active ? 'Actif' : 'Désactivé', '', '', '']];
+                    }),
+                  ])}>Exporter la vue</Button>
                   <Button onClick={() => setShowCreate((value) => !value)}>＋ Créer un compte</Button>
                 </div>
               </div>
@@ -429,6 +434,8 @@ export const Component = () => {
                   <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher un identifiant, un e-mail ou un projet…" sx={{ flex: 1, minWidth: 240 }} />
                   <FormControl sx={{ minWidth: 160 }}><FormLabel>État du compte</FormLabel><Select value={statusFilter} onChange={(_event, value) => setStatusFilter((value ?? 'all') as typeof statusFilter)}><Option value="all">Tous les états</Option><Option value="active">Actif</Option><Option value="inactive">Désactivé</Option></Select></FormControl>
                   <FormControl sx={{ minWidth: 180 }}><FormLabel>Rôle global</FormLabel><Select value={roleFilter} onChange={(_event, value) => setRoleFilter((value ?? 'all') as typeof roleFilter)}><Option value="all">Tous les rôles</Option><Option value="admin">Administrateur</Option><Option value="modeler">Modélisateur</Option><Option value="viewer">Lecteur</Option></Select></FormControl>
+                  <FormControl sx={{ minWidth: 180 }}><FormLabel>Rôle projet</FormLabel><Select value={projectRoleFilter} onChange={(_event, value) => setProjectRoleFilter((value ?? 'all') as typeof projectRoleFilter)}><Option value="all">Tous les rôles</Option><Option value="admin">Admin projet</Option><Option value="modeler">Modélisateur</Option><Option value="viewer">Lecteur</Option></Select></FormControl>
+                  <FormControl sx={{ minWidth: 190 }}><FormLabel>Projet</FormLabel><Select value={projectFilter} onChange={(_event, value) => setProjectFilter(value ?? 'all')}><Option value="all">Tous les projets</Option>{overview.projects.map(project => <Option key={project.id} value={project.id}>{project.name}</Option>)}</Select></FormControl>
 
                 </div>
                 <Box sx={{ overflowX: 'auto' }}>
@@ -542,6 +549,13 @@ export const Component = () => {
                           <Stack key={project.projectId} direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'center' }} spacing={1} className="org-users__project-row">
                             <Box sx={{ flex: 1, minWidth: 180 }}><Typography level="title-sm">{project.projectName}</Typography><Typography level="body-xs" sx={{ color: 'text.secondary' }}>Rôle limité à ce projet</Typography></Box>
                             <FormControl sx={{ minWidth: 170 }}><Select size="sm" value={project.role} disabled={busy} onChange={(_event, value) => value && void updateProjectAccess(project, value as ProjectRole)}><Option value="viewer">Viewer</Option><Option value="modeler">Modeler</Option><Option value="admin">Admin projet</Option></Select></FormControl>
+                            <Checkbox
+                              size="sm"
+                              checked={project.canSubmitRemarks}
+                              disabled={busy}
+                              label="Peut déposer des remarques"
+                              onChange={event => void updateProjectRemarkPermission(project, event.target.checked)}
+                            />
                             <Button size="sm" variant="outlined" color="danger" disabled={busy} onClick={() => setPendingRemoval(project)}>Retirer l’accès</Button>
                           </Stack>
                         ))}
@@ -575,11 +589,7 @@ export const Component = () => {
                   </div>
                 </Card>
               )}
-            </div>
-          </main>
-        </div>
-      </Stack>
-    </WorkspacePageLayout>
+    </OrganizationAdminLayout>
   );
 };
 

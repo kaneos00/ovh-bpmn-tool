@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
-import { deriveRaciMatrixFromDocument } from '../../../extensions/raci-viewer';
-import type { RaciMatrix } from '../../../extensions/raci-engine';
+import { deriveRaciMatrixFromDocument } from '../../extensions/raci-viewer';
+import type { RaciMatrix } from '../../extensions/raci-engine';
 
 export type ViewerRaciAnalysis = {
   raciMatrix: RaciMatrix;

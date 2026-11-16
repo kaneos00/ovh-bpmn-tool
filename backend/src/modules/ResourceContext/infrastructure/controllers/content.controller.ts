@@ -198,17 +198,16 @@ export class ContentController {
   }
 
   @Put('/:contentId')
-  @UseAcl([UserGroup.RW, UserGroup.Admin])
+  @UseAcl()
   async updateContent(
     @Param() params: UpdateContentCommandParams,
     @Body() body: UpdateContentBody,
     @Headers() headers: Record<string, string>,
   ) {
     const { resourceId, contentId } = params;
-    await this.projectResourceAccess.assertCanEditResource(
+    await this.projectResourceAccess.assertCanEditProposalResource(
       resourceId,
       headers,
-      { allowCommonForOrganizationAdmin: true },
     );
 
     const commandResult = await this.updateContentCommandHandler.execute(
@@ -239,7 +238,7 @@ export class ContentController {
     @Param() params: DeleteContentCommandParams,
     @Headers() headers: Record<string, string>,
   ) {
-    await this.projectResourceAccess.assertCanEditResource(
+    await this.projectResourceAccess.assertCanDeleteProposalResource(
       params.resourceId,
       headers,
     );

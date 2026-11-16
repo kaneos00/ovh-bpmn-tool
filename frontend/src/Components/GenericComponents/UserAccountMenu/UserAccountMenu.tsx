@@ -169,6 +169,7 @@ export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
           </Box>
           <Switch size="sm" checked={isDark} readOnly tabIndex={-1} />
         </MenuItem>
+        <MenuItem onClick={() => navigate('/mes-demandes')}>Mes demandes de modification</MenuItem>
         {session?.role === 'admin' && !session.impersonating && (
           <MenuItem onClick={() => navigate('/organization/users')}>
             <AdminPanelSettingsOutlined fontSize="small" />

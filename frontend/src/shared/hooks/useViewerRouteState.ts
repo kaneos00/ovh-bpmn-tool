@@ -1,9 +1,9 @@
 import { useSearchParams } from 'react-router-dom';
 
 /**
- * Reads the URL state shared by both Viewer entry points.
- * Keep route parameters in one place while the legacy ContentViewer and the
- * ProcessDetails shell are migrated incrementally.
+ * Reads URL state for the canonical process viewer.
+ * Legacy content-viewer URLs are redirected here by the route compatibility
+ * loader, preserving the same deep-link parameters.
  */
 export const useViewerRouteState = () => {
   const [searchParams] = useSearchParams();

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import queryClient from '../../queryClient';
+import queryClient, { apiClient } from '../../queryClient';
 import {
   explorerQuery,
   getResourceQuery,
@@ -95,17 +95,38 @@ export const useCallActivityNavigation = (
           const linksByResourceId = new Map(
             explorer.links.map(link => [link.resourceId, link]),
           );
+          const workspace = await queryClient.fetchQuery(
+            ['my-workspace'],
+            () => apiClient.get('/projects/me/workspace') as Promise<{
+              projects?: Array<{ processes?: Array<{ resourceId: string; name: string }> }>;
+            }>,
+            { staleTime: 30_000 },
+          );
 
-          // The explorer endpoint already returns the process IDs extracted
-          // from published BPMN XML in one grouped read. Reuse that metadata:
-          // do not fetch every resource's content list and XML again on Viewer
-          // navigation or selection.
-          return explorer.resources
-            .filter(resource => resource.type === ResourceType.Process)
-            .map(resource => ({
-              resource,
-              processIds: linksByResourceId.get(resource.id)?.processIds ?? [],
-            }));
+          // The explorer endpoint can omit project-scoped resources that are
+          // still reachable through the active workspace. Merge those process
+          // identities into the same lookup so a Call Activity can resolve its
+          // target and display its navigation indicator.
+          const resourcesById = new Map(
+            explorer.resources
+              .filter(resource => resource.type === ResourceType.Process)
+              .map(resource => [resource.id, resource]),
+          );
+          (workspace?.projects ?? []).forEach(project => {
+            (project.processes ?? []).forEach(process => {
+              if (!resourcesById.has(process.resourceId)) {
+                resourcesById.set(process.resourceId, {
+                  id: process.resourceId,
+                  name: process.name,
+                } as ExplorerData['resources'][number]);
+              }
+            });
+          });
+
+          return Array.from(resourcesById.values()).map(resource => ({
+            resource,
+            processIds: linksByResourceId.get(resource.id)?.processIds ?? [],
+          }));
         })().catch(error => {
           processInfoPromise = null;
           throw error;

@@ -73,6 +73,10 @@ export const Component = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { activeProjectId, projectProcessIds } = useActiveProject();
+  const [scope, setScope] = useState<'project' | 'organization'>(() =>
+    searchParams.get('scope') === 'organization' || !activeProjectId ? 'organization' : 'project',
+  );
+  const effectiveProjectId = scope === 'project' ? activeProjectId ?? undefined : undefined;
   const query = searchParams.get('q') ?? '';
   const [draftQuery, setDraftQuery] = useState(query);
   const [typeFilter, setTypeFilter] = useState<UnifiedSearchType | ''>(() => {
@@ -100,9 +104,15 @@ export const Component = () => {
     const source = searchParams.get('source') ?? '';
     setSourceFilter(isSearchSource(source) ? source : '');
     setProcessFilter(searchParams.get('resourceId') ?? '');
+    const requestedScope = searchParams.get('scope');
+    if (requestedScope === 'project' || requestedScope === 'organization') {
+      setScope(requestedScope);
+    } else {
+      setScope(activeProjectId ? 'project' : 'organization');
+    }
     const role = searchParams.get('role') ?? '';
     setRoleFilter(isSearchRole(role) ? role : '');
-  }, [searchParams]);
+  }, [searchParams, activeProjectId]);
 
   const [sortBy, setSortBy] = useState('relevance');
   const [sortDirection, setSortDirection] = useState('asc');
@@ -136,7 +146,7 @@ export const Component = () => {
     types: selectedTypes,
     source: sourceFilter || undefined,
     resourceId: processFilter || undefined,
-    projectId: activeProjectId ?? undefined,
+    projectId: effectiveProjectId,
     role: roleFilter || undefined,
     limit: PAGE_SIZE,
     offset,
@@ -145,14 +155,14 @@ export const Component = () => {
     searchOptions.queryKey,
     searchOptions.queryFn,
     {
-      enabled: query.trim().length >= 2 && Boolean(activeProjectId),
+      enabled: query.trim().length >= 2 && (scope === 'organization' || Boolean(activeProjectId)),
       keepPreviousData: true,
     },
   );
 
   const processes = useMemo(
-    () => [...(processesQuery.data ?? [])].filter(process => projectProcessIds.has(process.id)).sort((a, b) => a.name.localeCompare(b.name, 'fr')),
-    [processesQuery.data, projectProcessIds],
+    () => [...(processesQuery.data ?? [])].filter(process => scope === 'organization' || projectProcessIds.has(process.id)).sort((a, b) => a.name.localeCompare(b.name, 'fr')),
+    [processesQuery.data, projectProcessIds, scope],
   );
 
   const applySearch = () => {
@@ -161,7 +171,8 @@ export const Component = () => {
     if (typeFilter) next.set('types', typeFilter);
     if (sourceFilter) next.set('source', sourceFilter);
     if (processFilter) next.set('resourceId', processFilter);
-    if (activeProjectId) next.set('projectId', activeProjectId);
+    next.set('scope', scope);
+    if (scope === 'project' && activeProjectId) next.set('projectId', activeProjectId);
     if (roleFilter) {
       next.set('role', roleFilter);
       next.set('types', 'raci');
@@ -189,7 +200,8 @@ export const Component = () => {
     if (!result.resourceId) return;
 
     const params = new URLSearchParams();
-    if (activeProjectId) params.set('projectId', activeProjectId);
+    const resultProjectId = result.projectId ?? effectiveProjectId;
+    if (resultProjectId) params.set('projectId', resultProjectId);
     if (result.elementId) params.set('elementId', result.elementId);
     if (result.type === 'raci') params.set('raci', '1');
     const queryString = params.toString();
@@ -257,6 +269,16 @@ export const Component = () => {
             useFlexGap
             flexWrap="wrap"
           >
+            <Select<'project' | 'organization'>
+              value={scope}
+              onChange={(_, value) => value && setScope(value)}
+              aria-label="Périmètre de recherche"
+              sx={{ minWidth: 190, flex: 1 }}
+            >
+              <Option value="project">Projet actif</Option>
+              <Option value="organization">Toute l’organisation</Option>
+            </Select>
+
             <Select<UnifiedSearchType | ''>
               value={typeFilter}
               onChange={(_, value) => {
@@ -323,13 +345,13 @@ export const Component = () => {
             </Select>
           </Stack>
           <Stack direction="row" justifyContent="flex-end" spacing={1}>
-            <Button size="sm" variant="plain" color="neutral" onClick={() => { setDraftQuery(''); setTypeFilter(''); setSourceFilter(''); setProcessFilter(''); setRoleFilter(''); setSearchParams(new URLSearchParams({ offset: '0' })); }}>Réinitialiser la recherche</Button>
+            <Button size="sm" variant="plain" color="neutral" onClick={() => { setDraftQuery(''); setTypeFilter(''); setSourceFilter(''); setProcessFilter(''); setRoleFilter(''); setSearchParams(new URLSearchParams({ offset: '0', scope })); }}>Réinitialiser la recherche</Button>
             <Button size="sm" variant="outlined" color="neutral" onClick={applySearch}>Appliquer les filtres</Button>
           </Stack>
         </Card>
 
-        {!activeProjectId && (
-          <Alert color="warning">Choisissez d’abord un projet actif dans le bandeau pour limiter la recherche à son périmètre.</Alert>
+        {scope === 'project' && !activeProjectId && (
+          <Alert color="warning">Choisissez un projet actif dans le bandeau ou passez à la recherche organisationnelle.</Alert>
         )}
 
         {query.trim().length < 2 && (
