@@ -217,6 +217,13 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
     source.references.some(reference => reference.resourceId === resourceId && reference.elementId === elementId),
   );
 
+  const sourceOptionLabel = (source: ProjectDocumentedSource) => {
+    const processNames = [...new Set(source.references.map(reference => reference.processName))];
+    return processNames.length
+      ? `${source.name} — ${processNames.join(', ')}`
+      : source.name;
+  };
+
   const refreshProjectSources = async () => {
     if (projectId) await queryClient.invalidateQueries(['project-documented-sources', projectId]);
   };
@@ -356,7 +363,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                     <Chip size="sm" color={linked ? 'success' : 'warning'} variant="soft">{linked ? 'Rattaché au projet' : 'Nouveau'}</Chip>
                     {linked && <Typography level="body-xs" color="neutral">{linked.references.length} référence(s) dans le projet</Typography>}
                     {!linked && canManageSources && projectSources.length > 0 && <Select size="sm" placeholder="Associer à une source…" value="" onChange={(_, value) => { if (value) void associate(source, value); }}>
-                      {projectSources.map(item => <Option key={item.id} value={item.id}>{item.name}</Option>)}
+                      {projectSources.map(item => <Option key={item.id} value={item.id}>{sourceOptionLabel(item)}</Option>)}
                     </Select>}
                     {!linked && canManageSources && <Button size="sm" variant="outlined" color="neutral" onClick={() => void createCanonicalSource(source)}>Créer la source du projet</Button>}
                   </Stack></td>
