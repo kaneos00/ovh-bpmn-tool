@@ -159,15 +159,15 @@ export class ProjectDocumentedSourceController {
     ]);
 
     const resourceIds = [...new Set(links.map(link => link.resourceId))];
-    const [resources, publishedContents] = resourceIds.length
-      ? await Promise.all([
-          this.resources.find({ where: { id: In(resourceIds) } }),
-          this.contents.find({
-            where: { resourceId: In(resourceIds), status: ContentStatusEnum.Published },
-            order: { version: 'DESC', updatedAt: 'DESC' },
-          }),
-        ])
-      : [[], []];
+    const resources = resourceIds.length
+      ? await this.resources.find({ where: { id: In(resourceIds) } })
+      : [];
+    const publishedContents = resourceIds.length
+      ? await this.contents.find({
+          where: { resourceId: In(resourceIds), status: ContentStatusEnum.Published },
+          order: { version: 'DESC', updatedAt: 'DESC' },
+        })
+      : [];
 
     const resourceById = new Map(resources.map(resource => [resource.id, resource]));
     const contentByResource = new Map<string, ContentTypeOrmEntity>();
