@@ -334,7 +334,6 @@ describe('BPMN search extraction', () => {
   });
 });
 
-
 describe('unlinked documented BPMN search extraction', () => {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
     <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL">

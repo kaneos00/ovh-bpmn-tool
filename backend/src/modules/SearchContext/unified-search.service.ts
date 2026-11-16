@@ -21,7 +21,12 @@ import { ProjectDocumentedSourceTypeOrmEntity } from '../ProjectContext/infrastr
 import { ProjectDocumentedSourceReferenceTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectDocumentedSourceReference.ormEntity';
 import { ProjectResourceAccessService } from '../ProjectContext/projectResourceAccess.service';
 
-export type SearchResultType = 'process' | 'bpmn' | 'raci' | 'actor' | 'documented';
+export type SearchResultType =
+  | 'process'
+  | 'bpmn'
+  | 'raci'
+  | 'actor'
+  | 'documented';
 export type SearchResultSource =
   | 'resource'
   | 'bpmn'
@@ -497,62 +502,93 @@ export function extractUnlinkedDocumentedSearchResults(
   normalizedQuery: string,
   linkedElementIds: Set<string> = new Set(),
 ): UnifiedSearchResult[] {
-  if (Buffer.byteLength(xml, 'utf8') > MAX_BPMN_BYTES || /<!DOCTYPE|<!ENTITY/i.test(xml)) return [];
+  if (
+    Buffer.byteLength(xml, 'utf8') > MAX_BPMN_BYTES ||
+    /<!DOCTYPE|<!ENTITY/i.test(xml)
+  )
+    return [];
   const parsed = parser.parse(xml) as Record<string, unknown>;
-  const objectDetails = new Map<string, { name: string; description: string; link: string }>();
+  const objectDetails = new Map<
+    string,
+    { name: string; description: string; link: string }
+  >();
   const inventoryDetails = new Map<string, Record<string, string>>();
   const results: UnifiedSearchResult[] = [];
   const collectMetadata = (value: unknown, key = ''): void => {
     if (Array.isArray(value)) {
-      value.forEach(item => collectMetadata(item, key));
+      value.forEach((item) => collectMetadata(item, key));
       return;
     }
     if (!value || typeof value !== 'object') return;
     const node = value as Record<string, unknown>;
     if (key === 'dataStore' || key === 'dataObject') {
       const id = readXmlAttribute(node, 'id');
-      if (id) objectDetails.set(id, {
-        name: readXmlAttribute(node, 'name'),
-        description: collectText(node.documentation),
-        link: readXmlAttribute(node, 'link') || (typeof node['@_url:link'] === 'string' ? String(node['@_url:link']).trim() : ''),
-      });
+      if (id)
+        objectDetails.set(id, {
+          name: readXmlAttribute(node, 'name'),
+          description: collectText(node.documentation),
+          link:
+            readXmlAttribute(node, 'link') ||
+            (typeof node['@_url:link'] === 'string'
+              ? String(node['@_url:link']).trim()
+              : ''),
+        });
     }
     if (key === 'source' && readXmlAttribute(node, 'bpmnType')) {
       const id = readXmlAttribute(node, 'id');
-      if (id) inventoryDetails.set(id, {
-        description: readXmlAttribute(node, 'description'),
-        link: readXmlAttribute(node, 'link'),
-        location: readXmlAttribute(node, 'location'),
-        access: readXmlAttribute(node, 'access'),
-        retention: readXmlAttribute(node, 'retention'),
-        authorizedPeople: readXmlAttribute(node, 'authorizedPeople'),
-        restrictions: readXmlAttribute(node, 'restrictions'),
-      });
+      if (id)
+        inventoryDetails.set(id, {
+          description: readXmlAttribute(node, 'description'),
+          link: readXmlAttribute(node, 'link'),
+          location: readXmlAttribute(node, 'location'),
+          access: readXmlAttribute(node, 'access'),
+          retention: readXmlAttribute(node, 'retention'),
+          authorizedPeople: readXmlAttribute(node, 'authorizedPeople'),
+          restrictions: readXmlAttribute(node, 'restrictions'),
+        });
     }
     Object.entries(node).forEach(([childKey, child]) => {
-      if (!childKey.startsWith('@_') && childKey !== '#text') collectMetadata(child, childKey);
+      if (!childKey.startsWith('@_') && childKey !== '#text')
+        collectMetadata(child, childKey);
     });
   };
   collectMetadata(parsed);
 
   const visit = (value: unknown, key = ''): void => {
     if (Array.isArray(value)) {
-      value.forEach(item => visit(item, key));
+      value.forEach((item) => visit(item, key));
       return;
     }
     if (!value || typeof value !== 'object') return;
     const node = value as Record<string, unknown>;
-    if (['dataObjectReference', 'dataStoreReference', 'dataInput', 'dataOutput'].includes(key)) {
+    if (
+      [
+        'dataObjectReference',
+        'dataStoreReference',
+        'dataInput',
+        'dataOutput',
+      ].includes(key)
+    ) {
       const elementId = readXmlAttribute(node, 'id');
       if (elementId && !linkedElementIds.has(elementId)) {
-        const referenceId = key === 'dataStoreReference'
-          ? readXmlAttribute(node, 'dataStoreRef')
-          : readXmlAttribute(node, 'dataObjectRef');
+        const referenceId =
+          key === 'dataStoreReference'
+            ? readXmlAttribute(node, 'dataStoreRef')
+            : readXmlAttribute(node, 'dataObjectRef');
         const referenced = objectDetails.get(referenceId);
         const metadata = inventoryDetails.get(elementId) ?? {};
-        const name = readXmlAttribute(node, 'name') || referenced?.name || elementId;
-        const link = readXmlAttribute(node, 'link') || referenced?.link || metadata.link || '';
-        const description = collectText(node.documentation) || referenced?.description || metadata.description || '';
+        const name =
+          readXmlAttribute(node, 'name') || referenced?.name || elementId;
+        const link =
+          readXmlAttribute(node, 'link') ||
+          referenced?.link ||
+          metadata.link ||
+          '';
+        const description =
+          collectText(node.documentation) ||
+          referenced?.description ||
+          metadata.description ||
+          '';
         const fields = [
           { value: name, field: 'nom' },
           { value: description, field: 'description' },
@@ -560,10 +596,16 @@ export function extractUnlinkedDocumentedSearchResults(
           { value: metadata.location || '', field: 'emplacement' },
           { value: metadata.access || '', field: 'accès' },
           { value: metadata.retention || '', field: 'rétention' },
-          { value: metadata.authorizedPeople || '', field: 'personnes autorisées' },
+          {
+            value: metadata.authorizedPeople || '',
+            field: 'personnes autorisées',
+          },
           { value: metadata.restrictions || '', field: 'restrictions' },
         ];
-        const match = fields.find(item => item.value && isSearchTextMatch(item.value, normalizedQuery));
+        const match = fields.find(
+          (item) =>
+            item.value && isSearchTextMatch(item.value, normalizedQuery),
+        );
         if (match) {
           results.push({
             type: 'documented',
@@ -582,7 +624,8 @@ export function extractUnlinkedDocumentedSearchResults(
     }
 
     Object.entries(node).forEach(([childKey, child]) => {
-      if (!childKey.startsWith('@_') && childKey !== '#text') visit(child, childKey);
+      if (!childKey.startsWith('@_') && childKey !== '#text')
+        visit(child, childKey);
     });
   };
   visit(parsed);
@@ -716,7 +759,8 @@ export class UnifiedSearchService {
       }
     }
 
-    const needsProjectData = includes('raci') || includes('actor') || includes('documented');
+    const needsProjectData =
+      includes('raci') || includes('actor') || includes('documented');
     const memberships = needsProjectData
       ? await this.projectMembers.find({
           where: {
@@ -733,31 +777,41 @@ export class UnifiedSearchService {
     let bpmnDocumentsScanned = 0;
     let bpmnDocumentsSkipped = 0;
     const resourceIds = [...resourceById.keys()];
-    const documentedReferences = includes('documented') && allowedProjectIds.length
-      ? await this.documentedSourceReferences.find({ where: { projectId: In(allowedProjectIds) } })
-      : [];
-    const documentedProjectLinks = includes('documented') && allowedProjectIds.length && resourceIds.length
-      ? await this.projectProcesses.find({
-          where: { projectId: In(allowedProjectIds), resourceId: In(resourceIds) },
-          select: { projectId: true, resourceId: true },
-        })
-      : [];
+    const documentedReferences =
+      includes('documented') && allowedProjectIds.length
+        ? await this.documentedSourceReferences.find({
+            where: { projectId: In(allowedProjectIds) },
+          })
+        : [];
+    const documentedProjectLinks =
+      includes('documented') && allowedProjectIds.length && resourceIds.length
+        ? await this.projectProcesses.find({
+            where: {
+              projectId: In(allowedProjectIds),
+              resourceId: In(resourceIds),
+            },
+            select: { projectId: true, resourceId: true },
+          })
+        : [];
     const linkedDocumentedElements = new Map<string, Set<string>>();
-    documentedReferences.forEach(reference => {
+    documentedReferences.forEach((reference) => {
       const key = reference.projectId + ':' + reference.resourceId;
       const ids = linkedDocumentedElements.get(key) ?? new Set<string>();
       ids.add(reference.elementId);
       linkedDocumentedElements.set(key, ids);
     });
     const documentedProjectsByResource = new Map<string, string[]>();
-    documentedProjectLinks.forEach(link => {
+    documentedProjectLinks.forEach((link) => {
       const projects = documentedProjectsByResource.get(link.resourceId) ?? [];
       if (!projects.includes(link.projectId)) projects.push(link.projectId);
       documentedProjectsByResource.set(link.resourceId, projects);
     });
 
     const includesXmlSources =
-      includes('bpmn') || includes('raci') || includes('actor') || includes('documented');
+      includes('bpmn') ||
+      includes('raci') ||
+      includes('actor') ||
+      includes('documented');
     if (includesXmlSources && resourceIds.length) {
       bpmnDocumentsAvailable = await this.contents.count({
         where: {
@@ -804,17 +858,23 @@ export class UnifiedSearchService {
             ),
           );
           if (includes('documented')) {
-            const projectIds = documentedProjectsByResource.get(document.resourceId) ?? [];
+            const projectIds =
+              documentedProjectsByResource.get(document.resourceId) ?? [];
             for (const projectId of projectIds) {
-              const linkedIds = linkedDocumentedElements.get(projectId + ':' + document.resourceId) ?? new Set<string>();
-              results.push(...extractUnlinkedDocumentedSearchResults(
-                document.content,
-                projectId,
-                document.resourceId,
-                resource.name,
-                normalizedQuery,
-                linkedIds,
-              ));
+              const linkedIds =
+                linkedDocumentedElements.get(
+                  projectId + ':' + document.resourceId,
+                ) ?? new Set<string>();
+              results.push(
+                ...extractUnlinkedDocumentedSearchResults(
+                  document.content,
+                  projectId,
+                  document.resourceId,
+                  resource.name,
+                  normalizedQuery,
+                  linkedIds,
+                ),
+              );
             }
           }
         } catch {
@@ -897,12 +957,19 @@ export class UnifiedSearchService {
         where: { projectId: In(allowedProjectIds), mergedIntoId: IsNull() },
         order: { name: 'ASC' },
       });
-      const documentedSourceIds = new Set(documentedSources.map(source => source.id));
+      const documentedSourceIds = new Set(
+        documentedSources.map((source) => source.id),
+      );
       const references = documentedReferences
-        .filter(reference => documentedSourceIds.has(reference.sourceId))
-        .sort((left, right) => left.createdAt.getTime() - right.createdAt.getTime());
-      const referencesBySource = new Map<string, ProjectDocumentedSourceReferenceTypeOrmEntity[]>();
-      references.forEach(reference => {
+        .filter((reference) => documentedSourceIds.has(reference.sourceId))
+        .sort(
+          (left, right) => left.createdAt.getTime() - right.createdAt.getTime(),
+        );
+      const referencesBySource = new Map<
+        string,
+        ProjectDocumentedSourceReferenceTypeOrmEntity[]
+      >();
+      references.forEach((reference) => {
         const rows = referencesBySource.get(reference.sourceId) ?? [];
         rows.push(reference);
         referencesBySource.set(reference.sourceId, rows);
@@ -910,9 +977,18 @@ export class UnifiedSearchService {
 
       for (const source of documentedSources) {
         const sourceReferences = referencesBySource.get(source.id) ?? [];
-        const reference = sourceReferences.find(item => !options.resourceId || item.resourceId === options.resourceId)
-          ?? sourceReferences[0];
-        if (options.resourceId && !sourceReferences.some(item => item.resourceId === options.resourceId)) continue;
+        const reference =
+          sourceReferences.find(
+            (item) =>
+              !options.resourceId || item.resourceId === options.resourceId,
+          ) ?? sourceReferences[0];
+        if (
+          options.resourceId &&
+          !sourceReferences.some(
+            (item) => item.resourceId === options.resourceId,
+          )
+        )
+          continue;
         const fields = [
           { value: source.name, field: 'nom' },
           { value: source.description ?? '', field: 'description' },
@@ -920,10 +996,15 @@ export class UnifiedSearchService {
           { value: source.location ?? '', field: 'emplacement' },
           { value: source.access ?? '', field: 'accès' },
           { value: source.retention ?? '', field: 'rétention' },
-          { value: source.authorizedPeople ?? '', field: 'personnes autorisées' },
+          {
+            value: source.authorizedPeople ?? '',
+            field: 'personnes autorisées',
+          },
           { value: source.restrictions ?? '', field: 'restrictions' },
         ];
-        const match = fields.find(({ value }) => value && isSearchTextMatch(value, normalizedQuery));
+        const match = fields.find(
+          ({ value }) => value && isSearchTextMatch(value, normalizedQuery),
+        );
         if (!match) continue;
         results.push({
           type: 'documented',
@@ -933,7 +1014,9 @@ export class UnifiedSearchService {
           field: match.field,
           projectId: source.projectId,
           resourceId: reference?.resourceId,
-          processName: reference ? resourceById.get(reference.resourceId)?.name : undefined,
+          processName: reference
+            ? resourceById.get(reference.resourceId)?.name
+            : undefined,
           elementId: reference?.elementId,
           source: 'project-document',
         });

@@ -1,10 +1,17 @@
 import { Column, Entity, Index } from 'typeorm';
 import { AbstractEntity } from '../../../../shared-kernel/modules/infrastructure/db/abstract.entity';
 
-export type ProjectDocumentedSourceKind = 'file' | 'database' | 'application' | 'form';
+export type ProjectDocumentedSourceKind =
+  | 'file'
+  | 'database'
+  | 'application'
+  | 'form';
 
 @Entity('project_documented_sources')
-@Index('project_documented_sources_project_active_idx', ['projectId', 'mergedIntoId'])
+@Index('project_documented_sources_project_active_idx', [
+  'projectId',
+  'mergedIntoId',
+])
 export class ProjectDocumentedSourceTypeOrmEntity extends AbstractEntity {
   @Column('uuid')
   projectId: string;
