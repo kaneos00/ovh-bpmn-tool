@@ -1086,7 +1086,7 @@ test('project documented information uses canonical sources within one process a
   assert.ok(controller.includes('unlinkedReferences'));
   assert.ok(controller.includes('BPMN_DOCUMENTED_DATA_TYPES'));
   assert.ok(controller.includes('conflictingFields'));
-  assert.ok(controller.includes('Resolve conflicting fields before merging'));
+  assert.ok(controller.includes('Fusion impossible. Valeurs à arbitrer pour les champs'));
 
   assert.ok(sourceEntity.includes('mergedIntoId'));
   assert.ok(referenceEntity.includes('elementId'));
