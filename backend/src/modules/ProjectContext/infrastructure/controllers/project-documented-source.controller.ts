@@ -562,13 +562,15 @@ export class ProjectDocumentedSourceController {
         referenceRepository.find({ where: { projectId, sourceId } }),
         referenceRepository.find({ where: { projectId, sourceId: targetId } }),
       ]);
-      const targetResourceElements = new Map(
-        targetReferencesForMerge.map((reference) => [reference.resourceId, reference.elementId]),
-      );
-      const crossElementDiagramConflict = sourceReferencesForMerge.some((reference) => {
-        const targetElementId = targetResourceElements.get(reference.resourceId);
-        return targetElementId !== undefined && targetElementId !== reference.elementId;
+      const resourceElementsForMerge = new Map<string, Set<string>>();
+      [...sourceReferencesForMerge, ...targetReferencesForMerge].forEach((reference) => {
+        const elementIds = resourceElementsForMerge.get(reference.resourceId) ?? new Set<string>();
+        elementIds.add(reference.elementId);
+        resourceElementsForMerge.set(reference.resourceId, elementIds);
       });
+      const crossElementDiagramConflict = [...resourceElementsForMerge.values()].some(
+        (elementIds) => elementIds.size > 1,
+      );
       if (crossElementDiagramConflict) {
         throw new ConflictException(
           'Fusion impossible : les deux sources sont déjà utilisées par des objets différents dans un même diagramme BPMN.',
