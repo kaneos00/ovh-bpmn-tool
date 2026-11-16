@@ -5,6 +5,7 @@ on:
     branches:
       - feat/issue-129-documentary-registry
     paths:
+      - '.github/workflows/format-issue129.yml'
       - 'backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts'
       - 'backend/src/modules/ProjectContext/infrastructure/entities/projectDocumentedSource.ormEntity.ts'
       - 'backend/src/modules/ProjectContext/infrastructure/entities/projectDocumentedSourceReference.ormEntity.ts'
