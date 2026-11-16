@@ -396,7 +396,23 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                   <td>{textField('authorizedPeople', 'Personnes autorisées')}</td>
                   <td>{areaField('restrictions', 'Restrictions')}</td>
                   <td><Stack spacing={0.5}>
-                    {canEdit && <IconButton size="sm" variant="plain" title={editing ? 'Terminer la modification' : 'Modifier les informations'} aria-label={editing ? 'Terminer la modification' : 'Modifier les informations'} onClick={() => setEditingSourceId(editing ? null : source.id)}><EditOutlined /></IconButton>}
+                    {canEdit && <IconButton size="sm" variant="plain" title={editing ? 'Terminer la modification' : 'Modifier les informations'} aria-label={editing ? 'Terminer la modification' : 'Modifier les informations'} onClick={() => {
+                      if (!editing && linked) {
+                        setSources(current => current.map(item => item.id === source.id ? {
+                          ...item,
+                          name: linked.name,
+                          kind: linked.kind,
+                          description: linked.description || item.description,
+                          link: linked.link || item.link,
+                          location: linked.location || item.location,
+                          access: linked.access || item.access,
+                          retention: linked.retention || item.retention,
+                          authorizedPeople: linked.authorizedPeople || item.authorizedPeople,
+                          restrictions: linked.restrictions || item.restrictions,
+                        } : item));
+                      }
+                      setEditingSourceId(editing ? null : source.id);
+                    }}><EditOutlined /></IconButton>}
                     {canManageSources && linked && otherSources.length > 0 && <Select size="sm" placeholder="Fusionner avec…" value={mergeTargets[linked.id] ?? ''} onChange={(_, value) => setMergeTargets(current => ({ ...current, [linked.id]: value ?? '' }))}>
                       {otherSources.map(item => <Option key={item.id} value={item.id}>{item.name}</Option>)}
                     </Select>}
