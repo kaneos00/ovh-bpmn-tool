@@ -833,10 +833,7 @@ export class UnifiedSearchService {
           )
         )
           continue;
-        const match = findDocumentedSourceSearchMatch(
-          source,
-          normalizedQuery,
-        );
+        const match = findDocumentedSourceSearchMatch(source, normalizedQuery);
         if (!match) continue;
         results.push({
           type: 'documented',
