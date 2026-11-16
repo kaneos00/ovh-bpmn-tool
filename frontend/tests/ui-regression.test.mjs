@@ -1082,6 +1082,7 @@ test('project documented information uses canonical sources within one process a
   assert.ok(details.includes('3. Lien'));
   assert.ok(details.includes('/documented-sources/'));
   assert.ok(root.includes('ProjectDocumentedInformationOverview'));
+  assert.ok(root.includes('<Tab value={1}>Informations documentées</Tab>'));
   assert.ok(summary.includes('Informations documentées du projet'));
   assert.ok(summary.includes('Nouveaux éléments à rattacher'));
   assert.ok(summary.includes('Personnes autorisées'));
