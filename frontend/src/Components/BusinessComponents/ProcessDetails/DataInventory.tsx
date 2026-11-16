@@ -252,7 +252,8 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
   };
 
   const createCanonicalSource = async (source: InventorySource) => {
-    if (!projectId || !canManageSources || !source.id) return;
+    if (!projectId || !canManageSources || !source.id || saving) return;
+    setSaving(true);
     setError('');
     try {
       await apiClient.post(`/projects/${projectId}/documented-sources`, {
@@ -274,6 +275,8 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
       await refreshProjectSources();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Impossible de créer la source documentaire.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -351,7 +354,12 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                   : <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', minWidth: 130 }}>{String(display(key) || '—')}</Typography>;
                 const otherSources = projectSources.filter(item => item.id !== linked?.id);
                 const sourceKind = linked?.kind ?? source.kind;
-                const sourceKindLabel = sourceKind === 'database' ? 'Base de données' : 'Fichier';
+                const sourceKindLabel = ({
+                  file: 'Fichier',
+                  database: 'Base de données',
+                  application: 'Application',
+                  form: 'Formulaire',
+                } as Record<SourceKind, string>)[sourceKind];
                 const sourceLink = display('link');
                 let linkCell: React.ReactNode = <Typography level="body-sm">—</Typography>;
                 if (editing) {
@@ -363,7 +371,14 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                   <td><Stack direction="row" spacing={0.5} alignItems="center"><BpmnDataSymbol type={source.bpmnType} /><Typography level="body-xs">{symbolLabel(source.bpmnType)}</Typography></Stack></td>
                   <td><Stack spacing={0.5} sx={{ minWidth: 180 }}>
                     {editing ? <Input size="sm" value={source.name} onChange={e => update(source.id, 'name', e.target.value)} placeholder="Nom de la source" aria-label="Nom de la source" /> : <Typography level="body-sm">{linked?.name || source.name || `Source ${index + 1}`}</Typography>}
-                    {!editing && <Chip size="sm" variant="soft">{sourceKindLabel}</Chip>}
+                    {editing ? (
+                      <Select size="sm" value={source.kind} aria-label="Type de source" onChange={(_, value) => { if (value) update(source.id, 'kind', value); }}>
+                        <Option value="file">Fichier</Option>
+                        <Option value="database">Base de données</Option>
+                        <Option value="application">Application</Option>
+                        <Option value="form">Formulaire</Option>
+                      </Select>
+                    ) : <Chip size="sm" variant="soft">{sourceKindLabel}</Chip>}
                   </Stack></td>
                   <td><Stack spacing={0.5} sx={{ minWidth: 190 }}>{source.associations.length ? source.associations.map((association, i) => <Stack key={`${association.taskId}-${i}`} direction="row" spacing={0.5} alignItems="center"><Chip size="sm" color={association.direction === 'input' ? 'primary' : 'success'} variant="soft">{association.direction === 'input' ? 'Entrée' : 'Sortie'}</Chip>{onElementSelect ? <Button size="sm" variant="plain" color="neutral" onClick={() => { onShowDiagram?.(); onElementSelect(association.taskId); }} startDecorator={<CenterFocusStrong />}>{association.taskName}</Button> : <Typography level="body-sm">{association.taskName}</Typography>}</Stack>) : <Typography level="body-sm" textColor="neutral">Aucune association BPMN détectée</Typography>}</Stack></td>
                   <td><Stack spacing={0.75} sx={{ minWidth: 210 }}>
@@ -372,7 +387,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                     {!linked && canManageSources && projectSources.length > 0 && <Select size="sm" placeholder="Associer à une source…" value="" onChange={(_, value) => { if (value) void associate(source, value); }}>
                       {projectSources.map(item => <Option key={item.id} value={item.id}>{sourceOptionLabel(item)}</Option>)}
                     </Select>}
-                    {!linked && canManageSources && <Button size="sm" variant="outlined" color="neutral" onClick={() => void createCanonicalSource(source)}>Créer la source du projet</Button>}
+                    {!linked && canManageSources && editing && <Button size="sm" variant="outlined" color="neutral" loading={saving} disabled={saving || !source.name.trim()} onClick={() => void createCanonicalSource(source)}>Créer la source du projet</Button>}
                   </Stack></td>
                   <td>{areaField('description', 'Description')}</td>
                   <td>{linkCell}</td>
@@ -382,7 +397,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                   <td>{textField('authorizedPeople', 'Personnes autorisées')}</td>
                   <td>{areaField('restrictions', 'Restrictions')}</td>
                   <td><Stack spacing={0.5}>
-                    {canEdit && linked && <IconButton size="sm" variant="plain" title={editing ? 'Annuler la modification' : 'Modifier les informations'} aria-label={editing ? 'Terminer la modification' : 'Modifier les informations'} onClick={() => {
+                    {canEdit && (linked || canManageSources) && <IconButton size="sm" variant="plain" title={editing ? 'Annuler la modification' : linked ? 'Modifier les informations' : 'Préparer la création de la source'} aria-label={editing ? 'Terminer la modification' : linked ? 'Modifier les informations' : 'Préparer la création de la source'} onClick={() => {
                       if (!editing && linked) {
                         setSources(current => current.map(item => item.id === source.id ? {
                           ...item,
