@@ -1097,7 +1097,7 @@ export const ProcessDetails = ({
 
                       <Divider />
                       <Stack spacing={1}>
-                        <Typography level="title-sm">1. Description de la tâche</Typography>
+                        <Typography level="title-sm">1. Description</Typography>
                         {isEditingDescription && (
                           <Typography level="body-xs" textColor="neutral">Description modifiable</Typography>
                         )}
