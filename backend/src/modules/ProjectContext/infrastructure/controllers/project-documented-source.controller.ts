@@ -518,6 +518,18 @@ export class ProjectDocumentedSourceController {
           'Documented source not found in this project',
         );
 
+      const conflictingFields = SOURCE_TEXT_FIELDS.filter((field) => {
+        const sourceValue = (source[field] ?? '').trim();
+        const targetValue = (target[field] ?? '').trim();
+        return sourceValue && targetValue && sourceValue !== targetValue;
+      });
+      if (conflictingFields.length) {
+        throw new ConflictException(
+          'Resolve conflicting fields before merging: ' +
+            conflictingFields.join(', '),
+        );
+      }
+
       SOURCE_TEXT_FIELDS.forEach((field) => {
         if (!(target[field] ?? '').trim() && (source[field] ?? '').trim())
           target[field] = source[field];
