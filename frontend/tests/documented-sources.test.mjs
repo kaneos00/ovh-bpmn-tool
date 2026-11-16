@@ -26,6 +26,7 @@ test('documented source creation and association remain project-scoped and prese
 
   assert.match(inventory, /documented-sources\/\$\{sourceId\}\/references/);
   assert.match(inventory, /documented-sources`/);
+  assert.match(inventory, /elementName: source\.elementName \|\| source\.name/);
   assert.match(inventory, /description: source\.description/);
   assert.match(inventory, /link: source\.link/);
   assert.match(inventory, /location: source\.location/);
