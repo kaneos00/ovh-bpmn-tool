@@ -733,9 +733,31 @@ export class UnifiedSearchService {
     let bpmnDocumentsScanned = 0;
     let bpmnDocumentsSkipped = 0;
     const resourceIds = [...resourceById.keys()];
+    const documentedReferences = includes('documented') && allowedProjectIds.length
+      ? await this.documentedSourceReferences.find({ where: { projectId: In(allowedProjectIds) } })
+      : [];
+    const documentedProjectLinks = includes('documented') && allowedProjectIds.length && resourceIds.length
+      ? await this.projectProcesses.find({
+          where: { projectId: In(allowedProjectIds), resourceId: In(resourceIds) },
+          select: { projectId: true, resourceId: true },
+        })
+      : [];
+    const linkedDocumentedElements = new Map<string, Set<string>>();
+    documentedReferences.forEach(reference => {
+      const key = reference.projectId + ':' + reference.resourceId;
+      const ids = linkedDocumentedElements.get(key) ?? new Set<string>();
+      ids.add(reference.elementId);
+      linkedDocumentedElements.set(key, ids);
+    });
+    const documentedProjectsByResource = new Map<string, string[]>();
+    documentedProjectLinks.forEach(link => {
+      const projects = documentedProjectsByResource.get(link.resourceId) ?? [];
+      if (!projects.includes(link.projectId)) projects.push(link.projectId);
+      documentedProjectsByResource.set(link.resourceId, projects);
+    });
 
     const includesXmlSources =
-      includes('bpmn') || includes('raci') || includes('actor');
+      includes('bpmn') || includes('raci') || includes('actor') || includes('documented');
     if (includesXmlSources && resourceIds.length) {
       bpmnDocumentsAvailable = await this.contents.count({
         where: {
@@ -781,6 +803,20 @@ export class UnifiedSearchService {
               options.role,
             ),
           );
+          if (includes('documented')) {
+            const projectIds = documentedProjectsByResource.get(document.resourceId) ?? [];
+            for (const projectId of projectIds) {
+              const linkedIds = linkedDocumentedElements.get(projectId + ':' + document.resourceId) ?? new Set<string>();
+              results.push(...extractUnlinkedDocumentedSearchResults(
+                document.content,
+                projectId,
+                document.resourceId,
+                resource.name,
+                normalizedQuery,
+                linkedIds,
+              ));
+            }
+          }
         } catch {
           bpmnDocumentsSkipped += 1;
         }
@@ -861,13 +897,10 @@ export class UnifiedSearchService {
         where: { projectId: In(allowedProjectIds), mergedIntoId: IsNull() },
         order: { name: 'ASC' },
       });
-      const documentedSourceIds = documentedSources.map(source => source.id);
-      const references = documentedSourceIds.length
-        ? await this.documentedSourceReferences.find({
-            where: { projectId: In(allowedProjectIds), sourceId: In(documentedSourceIds) },
-            order: { createdAt: 'ASC' },
-          })
-        : [];
+      const documentedSourceIds = new Set(documentedSources.map(source => source.id));
+      const references = documentedReferences
+        .filter(reference => documentedSourceIds.has(reference.sourceId))
+        .sort((left, right) => left.createdAt.getTime() - right.createdAt.getTime());
       const referencesBySource = new Map<string, ProjectDocumentedSourceReferenceTypeOrmEntity[]>();
       references.forEach(reference => {
         const rows = referencesBySource.get(reference.sourceId) ?? [];
