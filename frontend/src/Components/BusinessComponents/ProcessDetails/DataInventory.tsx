@@ -364,6 +364,11 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                   application: 'Application',
                   form: 'Formulaire',
                 } as Record<SourceKind, string>)[sourceKind];
+                const editActionLabel = editing
+                  ? 'Annuler la modification'
+                  : linked
+                    ? 'Modifier les informations'
+                    : 'Préparer la création de la source';
                 const sourceLink = display('link');
                 let linkCell: React.ReactNode = <Typography level="body-sm">—</Typography>;
                 if (editing) {
@@ -401,7 +406,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                   <td>{textField('authorizedPeople', 'Personnes autorisées')}</td>
                   <td>{areaField('restrictions', 'Restrictions')}</td>
                   <td><Stack spacing={0.5}>
-                    {canEdit && (linked || canManageSources) && <IconButton size="sm" variant="plain" title={editing ? 'Annuler la modification' : linked ? 'Modifier les informations' : 'Préparer la création de la source'} aria-label={editing ? 'Terminer la modification' : linked ? 'Modifier les informations' : 'Préparer la création de la source'} onClick={() => {
+                    {canEdit && (linked || canManageSources) && <IconButton size="sm" variant="plain" title={editActionLabel} aria-label={editActionLabel} onClick={() => {
                       if (!editing && linked) {
                         setSources(current => current.map(item => item.id === source.id ? {
                           ...item,
