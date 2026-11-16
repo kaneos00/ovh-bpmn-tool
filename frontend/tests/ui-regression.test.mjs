@@ -1072,6 +1072,8 @@ test('project documented information uses canonical sources within one process a
   assert.ok(inventory.includes("'Nouveau'"));
   assert.ok(inventory.includes('/references'));
   assert.ok(inventory.includes('/merge'));
+  assert.ok(inventory.includes('sourceOptionLabel'));
+  assert.ok(inventory.includes('reference.processName'));
   assert.ok(inventory.includes('Confirmer la fusion des sources'));
   assert.doesNotMatch(inventory, /XMLSerializer|onSave|inventory:manifest/, 'documented source metadata is not written back into BPMN XML');
   assert.ok(details.includes('canManageSources={projectForProcess?.role === \'admin\'}'));
