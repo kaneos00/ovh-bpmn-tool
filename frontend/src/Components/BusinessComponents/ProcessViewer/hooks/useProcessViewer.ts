@@ -74,16 +74,72 @@ export const useProcessViewer = (
     initialViewportAppliedRef.current = showDiagramAtActualSizeRef.current();
   };
 
-  const fitDiagram = () => {
-    if (!importedRef.current) return;
-    fitModeRef.current = true;
+  const fitDiagramToViewport = (): boolean => {
+    if (!importedRef.current) return false;
 
     const canvas = viewer.get('canvas') as any;
+    const elementRegistry = viewer.get('elementRegistry') as any;
+    const container = canvas.getContainer() as HTMLElement | undefined;
+    const rect = container?.getBoundingClientRect();
+    if (!rect || rect.width <= 0 || rect.height <= 0) return false;
+
+    // Fit from the BPMN model coordinates rather than relying on the current
+    // viewport. Include connection waypoints so long flows are not clipped.
+    const elements = elementRegistry.getAll().filter((element: any) =>
+      element && !element.labelTarget && element.type !== 'label',
+    );
+    const points: Array<{ x: number; y: number }> = [];
+    elements.forEach((element: any) => {
+      if (Array.isArray(element.waypoints)) {
+        element.waypoints.forEach((point: any) => {
+          if (Number.isFinite(point.x) && Number.isFinite(point.y)) points.push({ x: point.x, y: point.y });
+        });
+      } else if (
+        Number.isFinite(element.x) &&
+        Number.isFinite(element.y) &&
+        Number.isFinite(element.width) &&
+        Number.isFinite(element.height) &&
+        element.width > 0 &&
+        element.height > 0
+      ) {
+        points.push(
+          { x: element.x, y: element.y },
+          { x: element.x + element.width, y: element.y + element.height },
+        );
+      }
+    });
+    if (!points.length) return false;
+
+    const minX = Math.min(...points.map(point => point.x));
+    const minY = Math.min(...points.map(point => point.y));
+    const maxX = Math.max(...points.map(point => point.x));
+    const maxY = Math.max(...points.map(point => point.y));
+    const diagramWidth = maxX - minX;
+    const diagramHeight = maxY - minY;
+    if (diagramWidth <= 0 || diagramHeight <= 0) return false;
+
+    const padding = 36;
+    const availableWidth = Math.max(1, rect.width - padding * 2);
+    const availableHeight = Math.max(1, rect.height - padding * 2);
+    const scale = Math.min(availableWidth / diagramWidth, availableHeight / diagramHeight);
+    if (!Number.isFinite(scale) || scale <= 0) return false;
+
+    const viewboxWidth = rect.width / scale;
+    const viewboxHeight = rect.height / scale;
+    canvas.viewbox({
+      x: minX - (viewboxWidth - diagramWidth) / 2,
+      y: minY - (viewboxHeight - diagramHeight) / 2,
+      width: viewboxWidth,
+      height: viewboxHeight,
+    });
+    return true;
+  };
+
+  const fitDiagram = () => {
+    if (!importedRef.current) return;
+    const canvas = viewer.get('canvas') as any;
     canvas.resized?.();
-    // Use diagram-js' native fit-to-viewport calculation. It accounts for the
-    // complete diagram bounds and avoids maintaining a second, fragile bbox
-    // implementation in the application.
-    canvas.zoom('fit-viewport');
+    fitModeRef.current = fitDiagramToViewport();
   };
 
   const showDiagramAtActualSize = (): boolean => {
@@ -148,7 +204,7 @@ export const useProcessViewer = (
     // in explicit fit mode. Use the post-resize dimensions so the scale stays
     // unchanged in the newly sized viewport.
     if (fitModeRef.current) {
-      canvas.zoom('fit-viewport');
+      fitModeRef.current = fitDiagramToViewport();
       return;
     }
 
