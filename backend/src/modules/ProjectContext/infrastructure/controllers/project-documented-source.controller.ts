@@ -109,12 +109,17 @@ const extractBpmnDataElements = (
   try {
     const parsed = parser.parse(xml) as Record<string, unknown>;
     const objectNames = new Map<string, string>();
+    const objectDetails = new Map<string, { description: string; link: string }>();
     const inventoryById = new Map<string, Record<string, string>>();
     walk(parsed, (node, key) => {
       if (key === 'dataStore' || key === 'dataObject') {
         const id = readAttribute(node, 'id');
         const name = readAttribute(node, 'name');
         if (id && name) objectNames.set(id, name);
+        if (id) objectDetails.set(id, {
+          description: collectXmlText(node.documentation),
+          link: readAttribute(node, 'link'),
+        });
       }
       if (key === 'source' && readAttribute(node, 'bpmnType')) {
         const id = readAttribute(node, 'id');
@@ -141,14 +146,15 @@ const extractBpmnDataElements = (
         : readAttribute(node, 'dataObjectRef');
       const elementName = readAttribute(node, 'name') || objectNames.get(referenceId) || elementId;
       const metadata = inventoryById.get(elementId) ?? {};
+      const referencedDetails = objectDetails.get(referenceId);
       result.push({
         resourceId,
         processName,
         elementId,
         elementName,
         elementType: key,
-        description: collectXmlText(node.documentation) || metadata.description || '',
-        link: readAttribute(node, 'link') || metadata.link || '',
+        description: collectXmlText(node.documentation) || referencedDetails?.description || metadata.description || '',
+        link: readAttribute(node, 'link') || referencedDetails?.link || metadata.link || '',
         location: metadata.location || '',
         access: metadata.access || '',
         retention: metadata.retention || '',
