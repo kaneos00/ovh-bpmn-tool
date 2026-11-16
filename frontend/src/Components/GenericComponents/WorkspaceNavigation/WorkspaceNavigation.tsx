@@ -214,6 +214,7 @@ export const WorkspaceNavigation = () => {
       bpmn: 'Élément BPMN',
       raci: 'RACI',
       actor: 'Rôle',
+      documented: 'Information documentée',
     };
     const detailLabel = result.field === 'testo annotazione' || result.field === 'descrizione'
       ? 'Description'
