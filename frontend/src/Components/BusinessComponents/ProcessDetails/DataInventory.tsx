@@ -1,14 +1,21 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Button, Chip, IconButton, Input, Stack, Table, Textarea, Typography } from '@mui/joy';
-import { EditOutlined, CenterFocusStrong } from '@mui/icons-material';
+import { useQuery, useQueryClient } from 'react-query';
+import { Alert, Box, Button, Chip, IconButton, Input, Option, Select, Stack, Table, Textarea, Typography } from '@mui/joy';
+import { EditOutlined, CenterFocusStrong, MergeType } from '@mui/icons-material';
+
+import { apiClient } from '../../../queryClient';
+
+type BpmnDataType = 'dataObjectReference' | 'dataInput' | 'dataOutput' | 'dataStoreReference';
+type SourceKind = 'file' | 'database' | 'application' | 'form';
 
 export type InventorySource = {
   id: string;
-  kind: 'file' | 'database';
-  bpmnType: 'dataObjectReference' | 'dataInput' | 'dataOutput' | 'dataStoreReference';
+  kind: SourceKind;
+  bpmnType: BpmnDataType;
   associations: Array<{ taskId: string; taskName: string; direction: 'input' | 'output' }>;
   name: string;
   description: string;
+  link: string;
   location: string;
   access: string;
   retention: string;
@@ -16,9 +23,31 @@ export type InventorySource = {
   restrictions: string;
 };
 
+type ProjectDocumentedSource = {
+  id: string;
+  kind: SourceKind;
+  name: string;
+  description: string | null;
+  link: string | null;
+  location: string | null;
+  access: string | null;
+  retention: string | null;
+  authorizedPeople: string | null;
+  restrictions: string | null;
+  references: Array<{ resourceId: string; elementId: string; elementName: string; elementType: string; processName: string }>;
+};
+
+type ProjectDocumentedSourcesResponse = {
+  sources: ProjectDocumentedSource[];
+  unlinkedReferences: Array<{ resourceId: string; processName: string; elementId: string; elementName: string; elementType: string }>;
+};
+
 type Props = {
   xmlContent?: string;
   canEdit: boolean;
+  projectId?: string | null;
+  resourceId: string;
+  canManageSources?: boolean;
   onSave: (xml: string) => Promise<void>;
   onElementSelect?: (elementId: string) => void;
   onShowDiagram?: () => void;
@@ -26,12 +55,13 @@ type Props = {
 
 const NS = 'https://ovh-bpmn-tool.local/schema/data-inventory';
 const emptySource = (): InventorySource => ({
-  id: `source-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+  id: '',
   kind: 'file',
   bpmnType: 'dataObjectReference',
   associations: [],
   name: '',
   description: '',
+  link: '',
   location: '',
   access: '',
   retention: '',
@@ -40,6 +70,8 @@ const emptySource = (): InventorySource => ({
 });
 
 const activityTypes = new Set(['task','userTask','manualTask','serviceTask','scriptTask','businessRuleTask','sendTask','receiveTask','callActivity','subProcess','transaction']);
+const dataTypes = new Set<BpmnDataType>(['dataObjectReference','dataInput','dataOutput','dataStoreReference']);
+
 const readSources = (xml?: string): InventorySource[] => {
   if (!xml) return [];
   const doc = new DOMParser().parseFromString(xml, 'application/xml');
@@ -47,6 +79,7 @@ const readSources = (xml?: string): InventorySource[] => {
   const elements = Array.from(doc.getElementsByTagName('*'));
   const byId = new Map<string, Element>();
   elements.forEach(node => { const id = node.getAttribute('id'); if (id) byId.set(id, node); });
+
   const links = new Map<string, InventorySource['associations']>();
   const add = (dataId: string, taskId: string, direction: 'input' | 'output') => {
     const task = byId.get(taskId);
@@ -60,51 +93,166 @@ const readSources = (xml?: string): InventorySource[] => {
     refs.forEach(ref => add(ref, n.parentElement?.getAttribute('id') || '', n.localName === 'dataInputAssociation' ? 'input' : 'output'));
   });
   elements.filter(n => n.localName === 'association').forEach(n => {
-    const s = n.getAttribute('sourceRef') || '';
-    const t = n.getAttribute('targetRef') || '';
-    if (activityTypes.has(byId.get(s)?.localName || '')) add(t, s, 'output');
-    if (activityTypes.has(byId.get(t)?.localName || '')) add(s, t, 'input');
+    const sourceId = n.getAttribute('sourceRef') || '';
+    const targetId = n.getAttribute('targetRef') || '';
+    if (activityTypes.has(byId.get(sourceId)?.localName || '')) add(targetId, sourceId, 'output');
+    if (activityTypes.has(byId.get(targetId)?.localName || '')) add(sourceId, targetId, 'input');
   });
-  const hasInventoryManifest = doc.getElementsByTagNameNS(NS, 'manifest').length > 0;
-  const saved = Array.from(doc.getElementsByTagNameNS(NS, 'source')).map(n => ({
-    id: n.getAttribute('id') || emptySource().id,
-    kind: n.getAttribute('kind') === 'database' ? 'database' as const : 'file' as const,
-    bpmnType: (n.getAttribute('bpmnType') || 'dataObjectReference') as InventorySource['bpmnType'],
-    name: n.getAttribute('name') || '', description: n.getAttribute('description') || '',
-    location: n.getAttribute('location') || '', access: n.getAttribute('access') || '',
-    retention: n.getAttribute('retention') || '', authorizedPeople: n.getAttribute('authorizedPeople') || '',
-    restrictions: n.getAttribute('restrictions') || '', associations: links.get(n.getAttribute('id') || '') ?? [],
-  }));
-  if (hasInventoryManifest || saved.length) return saved;
-  return elements.filter(n => ['dataObjectReference','dataStoreReference','dataInput','dataOutput'].includes(n.localName)).map(n => {
-    const id = n.getAttribute('id') || emptySource().id;
-    const bpmnType = n.localName as InventorySource['bpmnType'];
-    return { ...emptySource(), id, bpmnType, kind: bpmnType === 'dataStoreReference' ? 'database' as const : 'file' as const,
-      name: n.getAttribute('name') || id || 'Source sans nom', associations: links.get(id) ?? [] };
+
+  const readDescription = (node?: Element | null) =>
+    node ? Array.from(node.children).filter(child => child.localName === 'documentation').map(child => child.textContent?.trim() || '').filter(Boolean).join('\n\n') : '';
+  const readLink = (node?: Element | null) =>
+    node ? Array.from(node.attributes).find(attribute => attribute.localName === 'link')?.value?.trim() || '' : '';
+  const readName = (node: Element) => {
+    const referenceId = node.getAttribute(node.localName === 'dataStoreReference' ? 'dataStoreRef' : 'dataObjectRef') || '';
+    const referenced = referenceId ? byId.get(referenceId) : undefined;
+    return node.getAttribute('name') || referenced?.getAttribute('name') || node.getAttribute('id') || 'Source sans nom';
+  };
+  const savedNodes = Array.from(doc.getElementsByTagNameNS(NS, 'source'));
+  const saved = savedNodes.map(node => {
+    const id = node.getAttribute('id') || '';
+    const element = byId.get(id);
+    const bpmnType = (node.getAttribute('bpmnType') || element?.localName || 'dataObjectReference') as BpmnDataType;
+    const kind = node.getAttribute('kind') === 'database' || bpmnType === 'dataStoreReference' ? 'database' : 'file';
+    return {
+      ...emptySource(),
+      id,
+      kind,
+      bpmnType,
+      name: node.getAttribute('name') || (element ? readName(element) : id),
+      description: readDescription(element) || node.getAttribute('description') || '',
+      link: readLink(element) || node.getAttribute('link') || '',
+      location: node.getAttribute('location') || '',
+      access: node.getAttribute('access') || '',
+      retention: node.getAttribute('retention') || '',
+      authorizedPeople: node.getAttribute('authorizedPeople') || '',
+      restrictions: node.getAttribute('restrictions') || '',
+      associations: links.get(id) ?? [],
+    } as InventorySource;
   });
+
+  // Always reconcile the saved manifest with the actual BPMN model. A new
+  // Data Store or Data Object added after the manifest was created must appear
+  // immediately as an unlinked "new" entry instead of being silently hidden.
+  const savedIds = new Set(saved.map(source => source.id));
+  const discovered = elements.filter(node => dataTypes.has(node.localName as BpmnDataType)).map(node => {
+    const id = node.getAttribute('id') || '';
+    const bpmnType = node.localName as BpmnDataType;
+    return {
+      ...emptySource(),
+      id,
+      bpmnType,
+      kind: bpmnType === 'dataStoreReference' ? 'database' as const : 'file' as const,
+      name: readName(node),
+      description: readDescription(node),
+      link: readLink(node),
+      associations: links.get(id) ?? [],
+    };
+  }).filter(source => source.id && !savedIds.has(source.id));
+
+  return [...saved, ...discovered];
 };
 
-const symbolLabel = (type: InventorySource['bpmnType']) => ({ dataObjectReference: 'Objet de données', dataInput: 'Entrée de données', dataOutput: 'Sortie de données', dataStoreReference: 'Magasin de données' }[type]);
-const BpmnDataSymbol = ({ type }: { type: InventorySource['bpmnType'] }) => (
+const symbolLabel = (type: BpmnDataType) => ({
+  dataObjectReference: 'Objet de données',
+  dataInput: 'Entrée de données',
+  dataOutput: 'Sortie de données',
+  dataStoreReference: 'Magasin de données',
+}[type]);
+
+const BpmnDataSymbol = ({ type }: { type: BpmnDataType }) => (
   <svg width="34" height="38" viewBox="0 0 34 38" role="img" aria-label={symbolLabel(type)}>
-    {type === 'dataStoreReference' ? <g fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M5 8 C5 3 29 3 29 8 L29 29 C29 34 5 34 5 29 Z"/><path d="M5 8 C5 13 29 13 29 8 M5 29 C5 24 29 24 29 29"/></g> :
-    <g fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M6 3 H22 L29 10 V34 H6 Z"/><path d="M22 3 V10 H29"/>
-      {type === 'dataInput' && <path d="M11 22 H24 M11 22 L15 18 M11 22 L15 26"/>}
-      {type === 'dataOutput' && <path d="M11 22 H24 M20 18 L24 22 L20 26"/>}
-    </g>}
+    {type === 'dataStoreReference'
+      ? <g fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M5 8 C5 3 29 3 29 8 L29 29 C29 34 5 34 5 29 Z"/><path d="M5 8 C5 13 29 13 29 8 M5 29 C5 24 29 24 29 29"/></g>
+      : <g fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M6 3 H22 L29 10 V34 H6 Z"/><path d="M22 3 V10 H29"/>
+          {type === 'dataInput' && <path d="M11 22 H24 M11 22 L15 18 M11 22 L15 26"/>}
+          {type === 'dataOutput' && <path d="M11 22 H24 M20 18 L24 22 L20 26"/>}
+        </g>}
   </svg>
 );
-export const DataInventory = ({ xmlContent, canEdit, onSave, onElementSelect, onShowDiagram }: Props) => {
+
+export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canManageSources = false, onSave, onElementSelect, onShowDiagram }: Props) => {
   const original = useMemo(() => readSources(xmlContent), [xmlContent]);
   const [sources, setSources] = useState<InventorySource[]>(original);
   const [saving, setSaving] = useState(false);
   const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
+  const [mergeTargets, setMergeTargets] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
+  const queryClient = useQueryClient();
+  const projectSourcesQuery = useQuery<ProjectDocumentedSourcesResponse>(
+    ['project-documented-sources', projectId],
+    () => apiClient.get('/projects/' + projectId + '/documented-sources'),
+    { enabled: Boolean(projectId) },
+  );
+  const projectSources = projectSourcesQuery.data?.sources ?? [];
 
   useEffect(() => setSources(original), [original]);
 
   const update = (id: string, field: keyof InventorySource, value: string) => {
     setSources(current => current.map(source => source.id === id ? { ...source, [field]: value } : source));
+  };
+
+  const getLinkedSource = (elementId: string) => projectSources.find(source =>
+    source.references.some(reference => reference.resourceId === resourceId && reference.elementId === elementId),
+  );
+
+  const refreshProjectSources = async () => {
+    if (projectId) await queryClient.invalidateQueries(['project-documented-sources', projectId]);
+  };
+
+  const associate = async (source: InventorySource, sourceId: string) => {
+    if (!projectId || !canManageSources || !sourceId) return;
+    setError('');
+    try {
+      await apiClient.post('/projects/' + projectId + '/documented-sources/' + sourceId + '/references', {
+        resourceId,
+        elementId: source.id,
+        elementName: source.name,
+        elementType: source.bpmnType,
+      });
+      await refreshProjectSources();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Impossible de rattacher cette référence.');
+    }
+  };
+
+  const createCanonicalSource = async (source: InventorySource) => {
+    if (!projectId || !canManageSources || !source.id) return;
+    setError('');
+    try {
+      await apiClient.post('/projects/' + projectId + '/documented-sources', {
+        resourceId,
+        elementId: source.id,
+        elementName: source.name,
+        elementType: source.bpmnType,
+        kind: source.kind,
+        name: source.name,
+        description: source.description,
+        link: source.link,
+        location: source.location,
+        access: source.access,
+        retention: source.retention,
+        authorizedPeople: source.authorizedPeople,
+        restrictions: source.restrictions,
+      });
+      await refreshProjectSources();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Impossible de créer la source documentaire.');
+    }
+  };
+
+  const mergeSources = async (sourceId: string) => {
+    if (!projectId || !canManageSources || !mergeTargets[sourceId]) return;
+    setError('');
+    try {
+      await apiClient.post('/projects/' + projectId + '/documented-sources/' + sourceId + '/merge', {
+        targetSourceId: mergeTargets[sourceId],
+      });
+      setMergeTargets(current => ({ ...current, [sourceId]: '' }));
+      await refreshProjectSources();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Impossible de fusionner les sources.');
+    }
   };
 
   const save = async () => {
@@ -117,20 +265,80 @@ export const DataInventory = ({ xmlContent, canEdit, onSave, onElementSelect, on
       const definitions = doc.documentElement;
       let extension = Array.from(definitions.children).find(node => node.localName === 'extensionElements');
       if (!extension) {
-        extension = doc.createElementNS(definitions.namespaceURI, definitions.prefix ? `${definitions.prefix}:extensionElements` : 'extensionElements');
+        extension = doc.createElementNS(definitions.namespaceURI, definitions.prefix ? definitions.prefix + ':extensionElements' : 'extensionElements');
         definitions.insertBefore(extension, definitions.firstChild);
       }
       Array.from(extension.children).filter(node => node.namespaceURI === NS && ['source', 'manifest'].includes(node.localName)).forEach(node => node.remove());
       if (!definitions.lookupNamespaceURI('inventory')) definitions.setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:inventory', NS);
-      // Persist an explicit marker even for an empty list, otherwise removed
-      // entries would reappear from BPMN dataObjectReference/dataStoreReference.
       extension.appendChild(doc.createElementNS(NS, 'inventory:manifest'));
+
       sources.forEach(source => {
+        const target = Array.from(doc.getElementsByTagName('*')).find(node => node.getAttribute('id') === source.id);
+        if (target) {
+          const documentationNodes = Array.from(target.children).filter(node => node.localName === 'documentation');
+          if (source.description.trim()) {
+            if (documentationNodes.length) {
+              documentationNodes[0].textContent = source.description.trim();
+              documentationNodes.slice(1).forEach(node => node.remove());
+            } else {
+              const documentation = doc.createElementNS(target.namespaceURI, target.prefix ? target.prefix + ':documentation' : 'documentation');
+              documentation.textContent = source.description.trim();
+              target.appendChild(documentation);
+            }
+          } else {
+            documentationNodes.forEach(node => node.remove());
+          }
+          const existingLink = Array.from(target.attributes).find(attribute => attribute.localName === 'link');
+          if (source.link.trim()) {
+            if (existingLink) existingLink.value = source.link.trim();
+            else target.setAttribute('link', source.link.trim());
+          } else if (existingLink) {
+            target.removeAttributeNS(existingLink.namespaceURI, existingLink.localName);
+          }
+        }
+
         const node = doc.createElementNS(NS, 'inventory:source');
-        (Object.keys(source) as (keyof InventorySource)[]).filter(key => key !== 'associations').forEach(key => node.setAttribute(key, String(source[key])));
+        const values: Record<string, string> = {
+          id: source.id,
+          kind: source.kind,
+          bpmnType: source.bpmnType,
+          name: source.name,
+          description: source.description,
+          link: source.link,
+          location: source.location,
+          access: source.access,
+          retention: source.retention,
+          authorizedPeople: source.authorizedPeople,
+          restrictions: source.restrictions,
+        };
+        Object.entries(values).forEach(([key, value]) => node.setAttribute(key, value));
         extension!.appendChild(node);
       });
+
+      // Once a BPMN reference is linked, the project-level source is canonical.
+      // Keep the BPMN element's shared fields in sync when the administrator edits it.
+      if (projectId && canManageSources) {
+        const linkedIds = new Set<string>();
+        for (const source of sources) {
+          const linked = getLinkedSource(source.id);
+          if (!linked || linkedIds.has(linked.id)) continue;
+          linkedIds.add(linked.id);
+          await apiClient.put('/projects/' + projectId + '/documented-sources/' + linked.id, {
+            kind: source.kind,
+            name: source.name,
+            description: source.description,
+            link: source.link,
+            location: source.location,
+            access: source.access,
+            retention: source.retention,
+            authorizedPeople: source.authorizedPeople,
+            restrictions: source.restrictions,
+          });
+        }
+      }
+
       await onSave(new XMLSerializer().serializeToString(doc));
+      await refreshProjectSources();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Enregistrement impossible.');
     } finally {
@@ -144,39 +352,56 @@ export const DataInventory = ({ xmlContent, canEdit, onSave, onElementSelect, on
         <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" spacing={1}>
           <Box>
             <Typography level="title-lg">Informations documentées</Typography>
-            <Typography level="body-sm" color="neutral">Référentiel des sources d’information du processus, de leur emplacement et de leurs règles d’accès.</Typography>
+            <Typography level="body-sm" color="neutral">Sources utilisées par ce processus, informations de référence et règles d’accès à l’échelle du projet.</Typography>
           </Box>
-          {canEdit && <Stack direction="row" spacing={1}>
-            <Button size="sm" variant="outlined" color="neutral" onClick={() => setSources(current => [...current, emptySource()])}>Ajouter une source</Button>
-            <Button size="sm" loading={saving} disabled={saving || !xmlContent} onClick={save}>Enregistrer</Button>
-          </Stack>}
+          {canEdit && <Button size="sm" loading={saving} disabled={saving || !xmlContent} onClick={save}>Enregistrer</Button>}
         </Stack>
-        {error && <Typography level="body-sm" color="danger">{error}</Typography>}
-        {!sources.length ? <Typography level="body-sm" color="neutral">Aucune source d’information n’a été répertoriée. Ajoutez un fichier ou une base pour compléter l’inventaire.</Typography> : (
+        {error && <Alert color="danger" variant="soft">{error}</Alert>}
+        {projectSourcesQuery.isError && <Alert color="warning" variant="soft">Le référentiel documentaire du projet est momentanément indisponible. Les informations BPMN locales restent consultables.</Alert>}
+        {!sources.length ? <Typography level="body-sm" color="neutral">Aucune information documentée. Ajoutez un objet de données ou un magasin de données dans le diagramme BPMN pour le faire apparaître ici.</Typography> : (
           <Box sx={{ overflow: 'auto', maxWidth: '100%' }}>
-            <Table size="sm" stickyHeader hoverRow sx={{ minWidth: 1250, '& th': { whiteSpace: 'nowrap' }, '& td': { verticalAlign: 'top' } }}>
-              <thead><tr><th>Symbole BPMN</th><th>Source</th><th>Utilisation dans le processus</th><th>Description</th><th>Emplacement</th><th>Accès</th><th>Rétention</th><th>Personnes autorisées</th><th>Restrictions</th><th style={{ width: 84 }}>Actions</th></tr></thead>
+            <Table size="sm" stickyHeader hoverRow sx={{ minWidth: 1500, '& th': { whiteSpace: 'nowrap' }, '& td': { verticalAlign: 'top' } }}>
+              <thead><tr><th>Symbole BPMN</th><th>Source</th><th>Références dans le processus</th><th>Statut projet</th><th>Description</th><th>Lien</th><th>Emplacement</th><th>Accès</th><th>Rétention</th><th>Personnes autorisées</th><th>Restrictions</th><th>Actions</th></tr></thead>
               <tbody>{sources.map((source, index) => {
                 const editing = canEdit && editingSourceId === source.id;
-                const field = (key: keyof InventorySource, placeholder: string) => editing
-                  ? <Input size="sm" value={String(source[key])} onChange={e => update(source.id, key, e.target.value)} placeholder={placeholder} aria-label={placeholder} />
-                  : <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', minWidth: 90 }}>{String(source[key] || '—')}</Typography>;
-                const area = (key: 'description' | 'restrictions', placeholder: string) => editing
-                  ? <Textarea size="sm" minRows={2} value={source[key]} onChange={e => update(source.id, key, e.target.value)} placeholder={placeholder} aria-label={placeholder} />
-                  : <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', minWidth: 130 }}>{source[key] || '—'}</Typography>;
-                return <tr key={source.id}>
+                const linked = getLinkedSource(source.id);
+                const display = (field: keyof ProjectDocumentedSource) => linked?.[field] ?? source[field as keyof InventorySource] ?? '';
+                const textField = (key: keyof InventorySource, label: string) => editing
+                  ? <Input size="sm" value={String(source[key])} onChange={e => update(source.id, key, e.target.value)} placeholder={label} aria-label={label} />
+                  : <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', minWidth: 90 }}>{String(display(key as keyof ProjectDocumentedSource) || '—')}</Typography>;
+                const areaField = (key: 'description' | 'restrictions', label: string) => editing
+                  ? <Textarea size="sm" minRows={2} value={source[key]} onChange={e => update(source.id, key, e.target.value)} placeholder={label} aria-label={label} />
+                  : <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', minWidth: 130 }}>{String(display(key) || '—')}</Typography>;
+                const otherSources = projectSources.filter(item => item.id !== linked?.id);
+                return <tr key={source.id || 'source-' + index}>
                   <td><Stack direction="row" spacing={0.5} alignItems="center"><BpmnDataSymbol type={source.bpmnType} /><Typography level="body-xs">{symbolLabel(source.bpmnType)}</Typography></Stack></td>
-                  <td><Stack direction="row" spacing={0.75} alignItems="center" sx={{ minWidth: 180 }}>
-                    {editing ? <Input size="sm" value={source.name} onChange={e => update(source.id, 'name', e.target.value)} placeholder="Nom de la source" aria-label="Nom de la source" /> : <Typography level="body-sm">{source.name || `Source ${index + 1}`}</Typography>}
-                  </Stack>
-                  {editing && <select aria-label="Type de source BPMN" value={source.bpmnType} onChange={e => { const bpmnType = e.target.value as InventorySource['bpmnType']; setSources(current => current.map(item => item.id === source.id ? { ...item, bpmnType, kind: bpmnType === 'dataStoreReference' ? 'database' : 'file' } : item)); }}><option value="dataObjectReference">Objet de données</option><option value="dataInput">Entrée de données</option><option value="dataOutput">Sortie de données</option><option value="dataStoreReference">Magasin de données</option></select>}
-                  {!editing && <Box sx={{ mt: 0.5 }}><Chip size="sm" variant="soft">{source.kind === 'database' ? 'Base de données' : 'Fichier'}</Chip></Box>}</td>
-                  <td><Stack spacing={0.5} sx={{ minWidth: 190 }}>{source.associations.length ? source.associations.map((a, i) => <Stack key={a.taskId + i} direction="row" spacing={0.5} alignItems="center"><Chip size="sm" color={a.direction === 'input' ? 'primary' : 'success'} variant="soft">{a.direction === 'input' ? 'Entrée' : 'Sortie'}</Chip>{onElementSelect ? <Button size="sm" variant="plain" color="neutral" onClick={() => { onShowDiagram?.(); onElementSelect(a.taskId); }} startDecorator={<CenterFocusStrong />}>{a.taskName}</Button> : <Typography level="body-sm">{a.taskName}</Typography>}</Stack>) : <Typography level="body-sm" textColor="neutral">Aucune association BPMN détectée</Typography>}</Stack></td>
-                  <td>{area('description', 'Description et usage')}</td><td>{field('location', 'Chemin / serveur')}</td><td>{field('access', 'Gestion des accès')}</td><td>{field('retention', 'Durée')}</td><td>{field('authorizedPeople', 'Personnes / rôles')}</td><td>{area('restrictions', 'Modalités de restriction (masquage, chiffrement, limitation…)')}</td>
-                  <td>{canEdit && <Stack direction="row" spacing={0.25}>
-                    <IconButton size="sm" variant="plain" title={editing ? 'Terminer la modification' : 'Modifier la source'} aria-label={editing ? 'Terminer la modification' : 'Modifier la source'} onClick={() => setEditingSourceId(editing ? null : source.id)}><EditOutlined /></IconButton>
-                    <Button size="sm" variant="plain" color="danger" onClick={() => { setSources(current => current.filter(item => item.id !== source.id)); if (editing) setEditingSourceId(null); }}>×</Button>
-                  </Stack>}</td>
+                  <td><Stack spacing={0.5} sx={{ minWidth: 180 }}>
+                    {editing ? <Input size="sm" value={source.name} onChange={e => update(source.id, 'name', e.target.value)} placeholder="Nom de la source" aria-label="Nom de la source" /> : <Typography level="body-sm">{linked?.name || source.name || 'Source ' + (index + 1)}</Typography>}
+                    {!editing && <Chip size="sm" variant="soft">{linked?.kind === 'database' || source.kind === 'database' ? 'Base de données' : 'Fichier'}</Chip>}
+                  </Stack></td>
+                  <td><Stack spacing={0.5} sx={{ minWidth: 190 }}>{source.associations.length ? source.associations.map((association, i) => <Stack key={association.taskId + i} direction="row" spacing={0.5} alignItems="center"><Chip size="sm" color={association.direction === 'input' ? 'primary' : 'success'} variant="soft">{association.direction === 'input' ? 'Entrée' : 'Sortie'}</Chip>{onElementSelect ? <Button size="sm" variant="plain" color="neutral" onClick={() => { onShowDiagram?.(); onElementSelect(association.taskId); }} startDecorator={<CenterFocusStrong />}>{association.taskName}</Button> : <Typography level="body-sm">{association.taskName}</Typography>}</Stack>) : <Typography level="body-sm" textColor="neutral">Aucune association BPMN détectée</Typography>}</Stack></td>
+                  <td><Stack spacing={0.75} sx={{ minWidth: 210 }}>
+                    <Chip size="sm" color={linked ? 'success' : 'warning'} variant="soft">{linked ? 'Rattaché au projet' : 'Nouveau'}</Chip>
+                    {linked && <Typography level="body-xs" color="neutral">{linked.references.length} référence(s) dans le projet</Typography>}
+                    {!linked && canManageSources && projectSources.length > 0 && <Select size="sm" placeholder="Associer à une source…" value={''} onChange={(_, value) => { if (value) void associate(source, value); }}>
+                      {projectSources.map(item => <Option key={item.id} value={item.id}>{item.name}</Option>)}
+                    </Select>}
+                    {!linked && canManageSources && <Button size="sm" variant="outlined" color="neutral" onClick={() => void createCanonicalSource(source)}>Créer la source du projet</Button>}
+                  </Stack></td>
+                  <td>{areaField('description', 'Description')}</td>
+                  <td>{editing ? <Input size="sm" value={source.link} onChange={e => update(source.id, 'link', e.target.value)} placeholder="https://…" aria-label="Lien de la source" /> : (display('link') ? <a href={String(display('link'))} target="_blank" rel="noopener noreferrer">{String(display('link'))}</a> : <Typography level="body-sm">—</Typography>)}</td>
+                  <td>{textField('location', 'Emplacement / chemin')}</td>
+                  <td>{textField('access', 'Accès')}</td>
+                  <td>{textField('retention', 'Rétention')}</td>
+                  <td>{textField('authorizedPeople', 'Personnes autorisées')}</td>
+                  <td>{areaField('restrictions', 'Restrictions')}</td>
+                  <td><Stack spacing={0.5}>
+                    {canEdit && <IconButton size="sm" variant="plain" title={editing ? 'Terminer la modification' : 'Modifier les informations'} aria-label={editing ? 'Terminer la modification' : 'Modifier les informations'} onClick={() => setEditingSourceId(editing ? null : source.id)}><EditOutlined /></IconButton>}
+                    {canManageSources && linked && otherSources.length > 0 && <Select size="sm" placeholder="Fusionner avec…" value={mergeTargets[linked.id] ?? ''} onChange={(_, value) => setMergeTargets(current => ({ ...current, [linked.id]: value ?? '' }))}>
+                      {otherSources.map(item => <Option key={item.id} value={item.id}>{item.name}</Option>)}
+                    </Select>}
+                    {canManageSources && linked && mergeTargets[linked.id] && <Button size="sm" color="warning" variant="soft" startDecorator={<MergeType />} onClick={() => void mergeSources(linked.id)}>Fusionner</Button>}
+                  </Stack></td>
                 </tr>;
               })}</tbody>
             </Table>
