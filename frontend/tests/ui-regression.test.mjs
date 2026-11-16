@@ -1051,11 +1051,10 @@ test('project home falls back to workspace process membership when the global re
 });
 
 
-test('project documented information uses canonical sources, BPMN references and project-level summary', async () => {
+test('project documented information uses canonical sources within one process and prepares project-wide data', async () => {
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const root = await read('src/Containers/BpmnLayout/FolderOverview.tsx');
-  const summary = await read('src/Containers/BpmnLayout/ProjectDocumentedInformationOverview.tsx');
   const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
   const sourceEntity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/projectDocumentedSource.ormEntity.ts');
   const referenceEntity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/projectDocumentedSourceReference.ormEntity.ts');
@@ -1066,13 +1065,14 @@ test('project documented information uses canonical sources, BPMN references and
   assert.ok(inventory.includes("node.localName === 'documentation'"));
   assert.ok(inventory.includes("attribute.localName === 'link'"));
   assert.ok(inventory.includes('<th>Description</th><th>Lien</th>'));
-  assert.ok(inventory.includes("setText('Nouveau')") || inventory.includes("'Nouveau'"));
+  assert.ok(inventory.includes("'Nouveau'"));
   assert.ok(inventory.includes('/references'));
   assert.ok(inventory.includes('/merge'));
+  assert.ok(inventory.includes('Confirmer la fusion des sources'));
+  assert.doesNotMatch(inventory, /XMLSerializer|onSave|inventory:manifest/, 'documented source metadata is not written back into BPMN XML');
   assert.ok(details.includes('canManageSources={projectForProcess?.role === \'admin\'}'));
-  assert.ok(root.includes('<ProjectDocumentedInformationOverview projectId={activeProjectId} />'));
-  assert.ok(summary.includes('Nouveaux éléments à rattacher'));
-  assert.ok(summary.includes('Nouveau'));
+  assert.ok(details.includes('canEdit={projectForProcess?.role === \'admin\'}'));
+  assert.doesNotMatch(root, /ProjectDocumentedInformationOverview/, 'the project-wide page is intentionally deferred');
   assert.ok(controller.includes('ProjectMemberRole.Admin'));
   assert.ok(controller.includes('targetSourceId'));
   assert.ok(controller.includes('unlinkedReferences'));
