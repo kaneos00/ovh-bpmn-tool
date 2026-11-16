@@ -338,11 +338,12 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                 const otherSources = projectSources.filter(item => item.id !== linked?.id);
                 const sourceKindLabel = linked?.kind === 'database' || source.kind === 'database' ? 'Base de données' : 'Fichier';
                 const sourceLink = display('link');
-                const linkCell = editing
-                  ? <Input size="sm" value={source.link} onChange={e => update(source.id, 'link', e.target.value)} placeholder="https://…" aria-label="Lien de la source" />
-                  : sourceLink
-                    ? <a href={String(sourceLink)} target="_blank" rel="noopener noreferrer">{String(sourceLink)}</a>
-                    : <Typography level="body-sm">—</Typography>;
+                let linkCell: React.ReactNode = <Typography level="body-sm">—</Typography>;
+                if (editing) {
+                  linkCell = <Input size="sm" value={source.link} onChange={e => update(source.id, 'link', e.target.value)} placeholder="https://…" aria-label="Lien de la source" />;
+                } else if (sourceLink) {
+                  linkCell = <a href={String(sourceLink)} target="_blank" rel="noopener noreferrer">{String(sourceLink)}</a>;
+                }
                 return <tr key={source.id || `source-${index}`}>
                   <td><Stack direction="row" spacing={0.5} alignItems="center"><BpmnDataSymbol type={source.bpmnType} /><Typography level="body-xs">{symbolLabel(source.bpmnType)}</Typography></Stack></td>
                   <td><Stack spacing={0.5} sx={{ minWidth: 180 }}>
