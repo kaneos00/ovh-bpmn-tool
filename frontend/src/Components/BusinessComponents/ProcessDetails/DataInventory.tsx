@@ -235,6 +235,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
         authorizedPeople: source.authorizedPeople,
         restrictions: source.restrictions,
       });
+      setEditingSourceId(null);
       await refreshProjectSources();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Impossible de créer la source documentaire.');
@@ -257,28 +258,27 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
   };
 
   const save = async () => {
-    if (!projectId || !canManageSources || saving) return;
+    if (!projectId || !canManageSources || !editingSourceId || saving) return;
+    const source = sources.find(item => item.id === editingSourceId);
+    const linked = source ? getLinkedSource(source.id) : undefined;
+    if (!source || !linked) {
+      setError('Cette nouvelle référence doit être créée ou rattachée à une source du projet.');
+      return;
+    }
     setSaving(true);
     setError('');
     try {
-      const updates = new Map<string, InventorySource>();
-      sources.forEach(source => {
-        const linked = getLinkedSource(source.id);
-        if (linked) updates.set(linked.id, source);
+      await apiClient.put('/projects/' + projectId + '/documented-sources/' + linked.id, {
+        kind: source.kind,
+        name: source.name,
+        description: source.description,
+        link: source.link,
+        location: source.location,
+        access: source.access,
+        retention: source.retention,
+        authorizedPeople: source.authorizedPeople,
+        restrictions: source.restrictions,
       });
-      for (const [sourceId, source] of updates) {
-        await apiClient.put('/projects/' + projectId + '/documented-sources/' + sourceId, {
-          kind: source.kind,
-          name: source.name,
-          description: source.description,
-          link: source.link,
-          location: source.location,
-          access: source.access,
-          retention: source.retention,
-          authorizedPeople: source.authorizedPeople,
-          restrictions: source.restrictions,
-        });
-      }
       setEditingSourceId(null);
       await refreshProjectSources();
     } catch (e) {
@@ -296,7 +296,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
             <Typography level="title-lg">Informations documentées</Typography>
             <Typography level="body-sm" color="neutral">Sources utilisées par ce processus, informations de référence et règles d’accès à l’échelle du projet.</Typography>
           </Box>
-          {canEdit && editingSourceId && <Button size="sm" loading={saving} disabled={saving} onClick={save}>Enregistrer la source</Button>}
+          {canEdit && editingSourceId && sources.some(source => source.id === editingSourceId && getLinkedSource(source.id)) && <Button size="sm" loading={saving} disabled={saving} onClick={save}>Enregistrer la source</Button>}
         </Stack>
         {error && <Alert color="danger" variant="soft">{error}</Alert>}
         {projectSourcesQuery.isError && <Alert color="warning" variant="soft">Le référentiel documentaire du projet est momentanément indisponible. Les informations BPMN locales restent consultables.</Alert>}
