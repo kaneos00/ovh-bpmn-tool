@@ -35,6 +35,13 @@ type BpmnDataElement = {
   elementId: string;
   elementName: string;
   elementType: string;
+  description: string;
+  link: string;
+  location: string;
+  access: string;
+  retention: string;
+  authorizedPeople: string;
+  restrictions: string;
 };
 
 const parser = new XMLParser({
@@ -71,6 +78,15 @@ const readAttribute = (node: Record<string, unknown>, name: string): string => {
   return typeof value === 'string' ? value.trim() : '';
 };
 
+const collectXmlText = (value: unknown): string => {
+  if (typeof value === 'string') return value.trim();
+  if (Array.isArray(value)) return value.map(collectXmlText).filter(Boolean).join(' ');
+  if (!value || typeof value !== 'object') return '';
+  const node = value as Record<string, unknown>;
+  if (typeof node['#text'] === 'string') return node['#text'].trim();
+  return Object.values(node).map(collectXmlText).filter(Boolean).join(' ');
+};
+
 const walk = (value: unknown, visit: (node: Record<string, unknown>, key: string) => void, key = ''): void => {
   if (Array.isArray(value)) {
     value.forEach(item => walk(item, visit, key));
@@ -93,11 +109,24 @@ const extractBpmnDataElements = (
   try {
     const parsed = parser.parse(xml) as Record<string, unknown>;
     const objectNames = new Map<string, string>();
+    const inventoryById = new Map<string, Record<string, string>>();
     walk(parsed, (node, key) => {
       if (key === 'dataStore' || key === 'dataObject') {
         const id = readAttribute(node, 'id');
         const name = readAttribute(node, 'name');
         if (id && name) objectNames.set(id, name);
+      }
+      if (key === 'source' && readAttribute(node, 'bpmnType')) {
+        const id = readAttribute(node, 'id');
+        if (id) inventoryById.set(id, {
+          description: readAttribute(node, 'description'),
+          link: readAttribute(node, 'link'),
+          location: readAttribute(node, 'location'),
+          access: readAttribute(node, 'access'),
+          retention: readAttribute(node, 'retention'),
+          authorizedPeople: readAttribute(node, 'authorizedPeople'),
+          restrictions: readAttribute(node, 'restrictions'),
+        });
       }
     });
 
@@ -111,12 +140,20 @@ const extractBpmnDataElements = (
         ? readAttribute(node, 'dataStoreRef')
         : readAttribute(node, 'dataObjectRef');
       const elementName = readAttribute(node, 'name') || objectNames.get(referenceId) || elementId;
+      const metadata = inventoryById.get(elementId) ?? {};
       result.push({
         resourceId,
         processName,
         elementId,
         elementName,
         elementType: key,
+        description: collectXmlText(node.documentation) || metadata.description || '',
+        link: readAttribute(node, 'link') || metadata.link || '',
+        location: metadata.location || '',
+        access: metadata.access || '',
+        retention: metadata.retention || '',
+        authorizedPeople: metadata.authorizedPeople || '',
+        restrictions: metadata.restrictions || '',
       });
     });
     return result;
