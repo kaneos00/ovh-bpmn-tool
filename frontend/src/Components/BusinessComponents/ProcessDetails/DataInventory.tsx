@@ -326,8 +326,8 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
             <Table size="sm" stickyHeader hoverRow sx={{ minWidth: 1500, '& th': { whiteSpace: 'nowrap' }, '& td': { verticalAlign: 'top' } }}>
               <thead><tr><th>Symbole BPMN</th><th>Source</th><th>Références dans le processus</th><th>Statut projet</th><th>Description</th><th>Lien</th><th>Emplacement</th><th>Accès</th><th>Rétention</th><th>Personnes autorisées</th><th>Restrictions</th><th>Actions</th></tr></thead>
               <tbody>{sources.map((source, index) => {
-                const editing = canEdit && (canManageSources || !linked) && editingSourceId === source.id;
                 const linked = getLinkedSource(source.id);
+                const editing = canEdit && (canManageSources || !linked) && editingSourceId === source.id;
                 const display = (field: keyof ProjectDocumentedSource) => linked?.[field] ?? source[field as keyof InventorySource] ?? '';
                 const textField = (key: keyof InventorySource, label: string) => editing
                   ? <Input size="sm" value={String(source[key])} onChange={e => update(source.id, key, e.target.value)} placeholder={label} aria-label={label} />
