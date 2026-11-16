@@ -547,8 +547,7 @@ export class ProjectDocumentedSourceController {
           : [];
       if (conflictingFields.length) {
         throw new ConflictException(
-          'Fusion impossible. Valeurs à arbitrer pour les champs : ' +
-            conflictingFields.join(', '),
+          'Fusion impossible : les liens sont différents. Choisissez le lien à conserver avant de recommencer.',
         );
       }
 
