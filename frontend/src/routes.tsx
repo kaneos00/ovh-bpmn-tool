@@ -84,6 +84,11 @@ export const routes = [
         loader: redirectLegacyAccounts,
       },
       {
+        path: '/organization/functions',
+        loader: requireGlobalAdmin,
+        lazy: () => import('./Containers/JobFunctions'),
+      },
+      {
         path: '/organization/:section',
         loader: requireOrganizationSection,
         lazy: () => import('./Containers/OrganizationAdmin'),

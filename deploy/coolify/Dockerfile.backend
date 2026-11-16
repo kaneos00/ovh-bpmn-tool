@@ -13,6 +13,9 @@ ENV NODE_ENV=production
 COPY backend/package.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
+# The seed reads its BPMN fixture relative to the compiled script.
+# Keep the fixture in the runtime image so it can be run from Coolify's terminal.
+COPY --from=build /app/src/seeds/fixtures ./dist/seeds/fixtures
 USER node
 EXPOSE 3000
 CMD ["node", "dist/main"]

@@ -22,10 +22,12 @@ export class AclGuard implements CanActivate {
     const remoteUser =
       request.headers[this.configService.getOrThrow('userHeader')];
 
-    const { allowedGroups } = this.reflector.get(
-      metadataKey,
-      context.getHandler(),
-    );
+    // ACL metadata may be declared on either a handler or its controller.
+    // Resolve both; handler-level rules take precedence over controller defaults.
+    const aclContext = this.reflector.getAllAndOverride<{
+      allowedGroups?: UserGroup[];
+    }>(metadataKey, [context.getHandler(), context.getClass()]);
+    const allowedGroups = aclContext?.allowedGroups;
 
     if (!allowedGroups || !allowedGroups?.length) {
       if (!remoteUser) {
