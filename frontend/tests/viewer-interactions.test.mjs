@@ -94,8 +94,6 @@ test('Viewer opens at 1:1 with the BPMN upper-left corner aligned to the viewpor
   assert.ok(fit.includes('canvas.viewbox({'), 'fit explicitly positions the diagram viewport');
   assert.ok(fit.includes('x: minX - padding'), 'fit anchors the diagram at the upper-left with padding');
   assert.doesNotMatch(fit, /fit-viewport/, 'fit does not use the native centering operation');
-  assert.doesNotMatch(fit, /canvas\.viewbox\(/, 'fit does not maintain a second custom viewport algorithm');
-  assert.doesNotMatch(fit, /elementRegistry/, 'fit delegates complete diagram bounds to diagram-js');
   assert.match(hook, /const fitDiagram = \(\) => \{[\s\S]*?canvas\.resized\?\.\(\);[\s\S]*?fitModeRef\.current = fitDiagramToViewport\(\)/);
   assert.match(hook, /if \(fitModeRef\.current\) \{[\s\S]*?fitModeRef\.current = fitDiagramToViewport\(\)/);
   assert.match(component, /onClick=\{fitDiagram\}/);
