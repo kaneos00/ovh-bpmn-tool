@@ -336,7 +336,8 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                   ? <Textarea size="sm" minRows={2} value={source[key]} onChange={e => update(source.id, key, e.target.value)} placeholder={label} aria-label={label} />
                   : <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', minWidth: 130 }}>{String(display(key) || '—')}</Typography>;
                 const otherSources = projectSources.filter(item => item.id !== linked?.id);
-                const sourceKindLabel = linked?.kind === 'database' || source.kind === 'database' ? 'Base de données' : 'Fichier';
+                const sourceKind = linked?.kind ?? source.kind;
+                const sourceKindLabel = sourceKind === 'database' ? 'Base de données' : 'Fichier';
                 const sourceLink = display('link');
                 let linkCell: React.ReactNode = <Typography level="body-sm">—</Typography>;
                 if (editing) {
