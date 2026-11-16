@@ -1077,7 +1077,7 @@ test('project documented information uses canonical sources within one process a
   assert.ok(details.includes('canManageSources={projectForProcess?.role === \'admin\'}'));
   assert.ok(details.includes('canEdit={projectForProcess?.role === \'admin\'}'));
   assert.ok(details.includes('selectedDocumentedSource.description'));
-  assert.ok(details.includes('selectedDocumentedSource?.link'));
+  assert.ok(details.includes('selectedDocumentedSource\n      ? selectedDocumentedSource.link'));
   assert.ok(details.includes('3. Lien'));
   assert.ok(details.includes('/documented-sources/'));
   assert.doesNotMatch(root, /ProjectDocumentedInformationOverview/, 'the project-wide page is intentionally deferred');
