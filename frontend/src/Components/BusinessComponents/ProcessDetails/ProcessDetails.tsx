@@ -581,7 +581,7 @@ export const ProcessDetails = ({
     }>;
   }>(
     ['project-documented-sources', projectForProcess?.id],
-    () => apiClient.get('/projects/' + projectForProcess?.id + '/documented-sources'),
+    () => apiClient.get(`/projects/${projectForProcess?.id}/documented-sources`),
     { enabled: Boolean(projectForProcess?.id) },
   );
   const selectedDocumentedSource = useMemo(
@@ -616,11 +616,15 @@ export const ProcessDetails = ({
           .map(child => (child.textContent ?? '').trim())
           .filter(Boolean)
       : [];
-    const documentation = selectedDocumentedSource
-      ? [selectedDocumentedSource.description ?? ''].filter(Boolean)
-      : readDocumentation(element).length
-        ? readDocumentation(element)
+    let documentation: string[];
+    if (selectedDocumentedSource) {
+      documentation = [selectedDocumentedSource.description ?? ''].filter(Boolean);
+    } else {
+      const elementDocumentation = readDocumentation(element);
+      documentation = elementDocumentation.length
+        ? elementDocumentation
         : readDocumentation(referencedElement);
+    }
     const readLink = (candidate?: Element) => candidate
       ? Array.from(candidate.attributes).find(attribute => attribute.localName === 'link')?.value?.trim() || ''
       : '';
@@ -695,7 +699,7 @@ export const ProcessDetails = ({
         const description = descriptionDraft.trim();
         const externalUrl = urlDraft.trim();
         await apiClient.put(
-          '/projects/' + projectForProcess.id + '/documented-sources/' + selectedDocumentedSource.id,
+          `/projects/${projectForProcess.id}/documented-sources/${selectedDocumentedSource.id}`,
           { description, link: externalUrl },
         );
         const title = titleDraft.trim();
