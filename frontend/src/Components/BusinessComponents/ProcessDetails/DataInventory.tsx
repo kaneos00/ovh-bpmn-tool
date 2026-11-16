@@ -328,7 +328,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
               <tbody>{sources.map((source, index) => {
                 const linked = getLinkedSource(source.id);
                 const editing = canEdit && (canManageSources || !linked) && editingSourceId === source.id;
-                const display = (field: keyof ProjectDocumentedSource) => linked?.[field] ?? source[field as keyof InventorySource] ?? '';
+                const display = (field: keyof ProjectDocumentedSource) => linked ? linked[field] ?? '' : source[field as keyof InventorySource] ?? '';
                 const textField = (key: keyof InventorySource, label: string) => editing
                   ? <Input size="sm" value={String(source[key])} onChange={e => update(source.id, key, e.target.value)} placeholder={label} aria-label={label} />
                   : <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', minWidth: 90 }}>{String(display(key as keyof ProjectDocumentedSource) || '—')}</Typography>;
@@ -365,13 +365,13 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                           ...item,
                           name: linked.name,
                           kind: linked.kind,
-                          description: linked.description || item.description,
-                          link: linked.link || item.link,
-                          location: linked.location || item.location,
-                          access: linked.access || item.access,
-                          retention: linked.retention || item.retention,
-                          authorizedPeople: linked.authorizedPeople || item.authorizedPeople,
-                          restrictions: linked.restrictions || item.restrictions,
+                          description: linked.description ?? '',
+                          link: linked.link ?? '',
+                          location: linked.location ?? '',
+                          access: linked.access ?? '',
+                          retention: linked.retention ?? '',
+                          authorizedPeople: linked.authorizedPeople ?? '',
+                          restrictions: linked.restrictions ?? '',
                         } : item));
                       }
                       setEditingSourceId(editing ? null : source.id);
