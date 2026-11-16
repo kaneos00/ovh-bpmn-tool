@@ -519,13 +519,14 @@ test('V3 central viewer exposes the data inventory and saves it through the exis
   assert.match(details, /await saveContent\(resourceId, viewerContent\.id, \{ content: updatedXml \}\)/);
   assert.match(details, /canEdit=\{canEditDescription\}/);
   assert.match(inventory, /getElementsByTagNameNS\(NS, 'source'\)/);
-  assert.match(inventory, /getElementsByTagNameNS\(NS, 'manifest'\)/);
-  assert.match(inventory, /hasInventoryManifest \|\| saved\.length/);
-  assert.match(inventory, /inventory:manifest/);
+  assert.match(inventory, /child\.localName === 'documentation'/);
+  assert.match(inventory, /attribute\.localName === 'link'/);
+  assert.match(inventory, /savedIds/);
   assert.match(inventory, /dataObjectReference.*dataStoreReference/s);
-  assert.match(inventory, /Gestion des accès/);
-  assert.match(inventory, /Personnes autorisées/);
-  assert.match(inventory, /Modalités de restriction/);
+  assert.match(inventory, /location/);
+  assert.match(inventory, /access/);
+  assert.match(inventory, /authorizedPeople/);
+  assert.match(inventory, /restrictions/);
 });
 
 test('canonical process viewer restores element selection and RACI tab from route query parameters', async () => {
@@ -1062,7 +1063,7 @@ test('project documented information uses canonical sources within one process a
   const search = await read('../backend/src/modules/SearchContext/unified-search.service.ts');
   const searchPage = await read('src/Containers/SearchResults/SearchResults.container.tsx');
 
-  assert.ok(inventory.includes("node.localName === 'documentation'"));
+  assert.ok(inventory.includes("child.localName === 'documentation'"));
   assert.ok(inventory.includes("attribute.localName === 'link'"));
   assert.ok(inventory.includes('<th>Description</th><th>Lien</th>'));
   assert.ok(inventory.includes("'Nouveau'"));
