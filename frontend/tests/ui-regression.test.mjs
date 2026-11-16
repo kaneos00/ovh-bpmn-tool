@@ -814,6 +814,10 @@ test('Viewer opens at 1:1 and uses native fit-to-viewport for Ajuster', async ()
   assert.doesNotMatch(hook, /localStorage\.getItem\(|canvas\.viewbox\(viewbox\)/, 'saved viewport cannot override native 1:1 opening');
   assert.match(hook, /new ResizeObserver\([\s\S]*?showDiagramAtActualSizeRef\.current\(\)/);
   assert.match(hook, /const fitDiagramToViewport = \(\): boolean =>[\s\S]*?canvas\.viewbox\(\{/);
+  assert.match(hook, /elementRegistry\.getAll\(\)/, 'fit includes shapes, labels and connections from the BPMN registry');
+  assert.match(hook, /canvas\.zoom\(scale\)/, 'fit calculates its own scale');
+  assert.match(hook, /x: minX - padding[\s\S]*?y: minY - padding/, 'fit anchors the complete diagram at the upper-left');
+  assert.doesNotMatch(hook, /canvas\.zoom\('fit-viewport'\)/, 'native fit would center the diagram');
   assert.match(hook, /const fitDiagram = \(\) =>[\s\S]*?canvas\.resized\?\.\(\);[\s\S]*?fitModeRef\.current = fitDiagramToViewport\(\)/);
   assert.match(hook, /if \(fitModeRef\.current\) \{[\s\S]*?fitModeRef\.current = fitDiagramToViewport\(\)/);
   assert.match(hook, /const resetZoom = \(\) =>[\s\S]*?showDiagramAtActualSizeRef\.current\(\)/);
