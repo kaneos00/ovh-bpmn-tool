@@ -14,7 +14,7 @@ import type { ResourceFormFields } from '../../../Components/BusinessComponents/
 import { ResourceType } from '../../../shared/types/BpmnResource';
 
 export const useAddResource = () => {
-  const { type } = useLoaderData() as AddResourceLoader;
+  const { type, projectId } = useLoaderData() as AddResourceLoader;
   const actionData = useActionData() as ActionResponse;
   const navigate = useNavigate();
   const submit = useSubmit();
@@ -64,6 +64,7 @@ export const useAddResource = () => {
 
   return {
     type,
+    projectId,
     actionData,
     callbacks: {
       onModalClose,
