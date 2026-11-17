@@ -67,6 +67,9 @@ export class UpdateResourceCommandHandler {
     if (command.description !== undefined) {
       resource.changeDescription(command.description);
     }
+    if (command.processMetadata !== undefined) {
+      resource.changeProcessMetadata(command.processMetadata);
+    }
 
     const result = await this.resourceRepository.save(resource);
 
