@@ -1,1 +1,1 @@
-ALTER TABLE resources ADD COLUMN IF NOT EXISTS process_metadata JSONB;
+ALTER TABLE resources ADD COLUMN IF NOT EXISTS "processMetadata" JSONB;
