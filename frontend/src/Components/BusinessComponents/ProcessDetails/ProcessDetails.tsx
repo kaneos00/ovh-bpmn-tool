@@ -613,8 +613,12 @@ export const ProcessDetails = ({
     );
     if (!element) return null;
 
-    const referenceAttribute = element.localName === 'dataStoreReference' ? 'dataStoreRef' : 'dataObjectRef';
-    const referencedId = element.getAttribute(referenceAttribute) || '';
+    const referenceAttribute = element.localName === 'dataStoreReference'
+      ? 'dataStoreRef'
+      : element.localName === 'dataObjectReference'
+        ? 'dataObjectRef'
+        : '';
+    const referencedId = referenceAttribute ? element.getAttribute(referenceAttribute)?.trim() || '' : '';
     const referencedElement = referencedId
       ? Array.from(document.getElementsByTagName('*')).find(candidate => candidate.getAttribute('id') === referencedId)
       : undefined;
@@ -624,21 +628,21 @@ export const ProcessDetails = ({
           .map(child => (child.textContent ?? '').trim())
           .filter(Boolean)
       : [];
-    let documentation: string[];
-    if (selectedDocumentedSource) {
-      documentation = [selectedDocumentedSource.description ?? ''].filter(Boolean);
-    } else {
-      const elementDocumentation = readDocumentation(element);
-      documentation = elementDocumentation.length
-        ? elementDocumentation
-        : readDocumentation(referencedElement);
-    }
+    const elementDocumentation = readDocumentation(element);
+    const referencedDocumentation = readDocumentation(referencedElement);
+    const documentedDescription = selectedDocumentedSource?.description?.trim();
+    const documentation = documentedDescription
+      ? [documentedDescription]
+      : elementDocumentation.length ? elementDocumentation : referencedDocumentation;
     const readLink = (candidate?: Element) => candidate
       ? Array.from(candidate.attributes).find(attribute => attribute.localName === 'link')?.value?.trim() || ''
       : '';
-    const externalUrl = selectedDocumentedSource
-      ? selectedDocumentedSource.link ?? ''
-      : readLink(element) || readLink(referencedElement);
+    const externalUrl = selectedDocumentedSource?.link?.trim() || readLink(element) || readLink(referencedElement);
+    const referencedElementName = referencedElement?.getAttribute('name')?.trim() || '';
+    const elementName = selectedDocumentedSource?.name?.trim()
+      || element.getAttribute('name')?.trim()
+      || referencedElementName
+      || selectedElementId;
     const isCollapsedSubProcess = element.localName === 'subProcess' && Array.from(document.getElementsByTagNameNS('*', 'BPMNShape')).some(
       shape => shape.getAttribute('bpmnElement') === selectedElementId && shape.getAttribute('isExpanded') === 'false',
     );
@@ -651,10 +655,12 @@ export const ProcessDetails = ({
 
     return {
       id: selectedElementId,
-      name: element.getAttribute('name')?.trim() || selectedElementId,
+      name: elementName,
       type: element.localName,
       documentation,
       externalUrl,
+      referencedElementId: referencedElement?.getAttribute('id') || '',
+      referencedElementName,
       linkedProcessTargetId,
     };
   }, [xmlContent, selectedElementId, selectedDocumentedSource]);
@@ -1135,6 +1141,18 @@ export const ProcessDetails = ({
                         </Chip>
                         {isEditingDescription && <Typography level="body-xs" textColor="neutral">Identifiant BPMN : {selectedTask.id}</Typography>}
                         <Typography level="body-sm" textColor="neutral">{getElementTypeDescription(selectedTask.type)}</Typography>
+                        {selectedTask.referencedElementId && (
+                          <Sheet variant="soft" sx={{ p: 1, borderRadius: 'sm' }}>
+                            <Typography level="body-xs" textColor="neutral">Référence de données BPMN</Typography>
+                            <Typography level="body-sm">
+                              {selectedTask.type === 'dataStoreReference' ? 'Magasin de données' : 'Objet de données'}
+                              {selectedTask.referencedElementName ? ' : ' + selectedTask.referencedElementName : ''}
+                            </Typography>
+                            <Typography level="body-xs" textColor="neutral">
+                              Identifiant référencé : {selectedTask.referencedElementId}
+                            </Typography>
+                          </Sheet>
+                        )}
 
                       <Divider />
                       <Stack spacing={1}>
