@@ -1193,9 +1193,11 @@ test('documented-information search opens the inventory record from both search 
   assert.ok(layout.includes('requestedDocumentedSourceId={requestedDocumentedSourceId}'));
   assert.ok(details.includes('if (requestedDocumentedSourceId) setActiveViewerTab(4)'));
   assert.ok(details.includes('requestedDocumentedSourceId={requestedDocumentedSourceId}'));
-  assert.ok(inventory.includes('setSelectedSourceId(requestedDocumentedSourceId)'));
-  assert.ok(inventory.includes('selectedRowId={selectedSourceId ?? undefined}'));
+  assert.ok(inventory.includes('selectedRowId={requestedDocumentedSourceId ?? undefined}'));
+  assert.ok(grid.includes('selectedRowId?: string | null'));
   assert.ok(grid.includes('event.api.ensureNodeVisible(node, \'middle\')'));
+  assert.ok(grid.includes('event.api.flashCells({ rowNodes: [node] })'));
+  assert.ok(!grid.includes('rowSelection='), 'search navigation must not restore row-selection checkboxes');
 });
 
 test('Viewer resolves Data Object and Data Store references through their BPMN definitions', async () => {
