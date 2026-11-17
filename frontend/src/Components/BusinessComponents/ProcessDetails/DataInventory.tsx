@@ -226,6 +226,38 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
     source.references.some(reference => reference.resourceId === resourceId && reference.elementId === elementId),
   );
 
+  const selectedSource = sources.find(source => source.id === selectedElementId);
+  const selectedLinkedSource = selectedSource ? getLinkedSource(selectedSource.id) : undefined;
+  const associationTargets = projectSources.filter(item =>
+    item.id !== selectedLinkedSource?.id &&
+    !item.references.some(reference => reference.resourceId === resourceId),
+  );
+  const mergeCandidates = selectedLinkedSource
+    ? projectSources.filter(item =>
+        item.id !== selectedLinkedSource.id &&
+        !item.references.some(reference => reference.resourceId === resourceId),
+      )
+    : [];
+
+  const startEditing = (row: InventorySource) => {
+    const linked = getLinkedSource(row.id);
+    if (linked) {
+      setSources(current => current.map(item => item.id === row.id ? {
+        ...item,
+        name: linked.name,
+        kind: linked.kind,
+        description: linked.description ?? '',
+        link: linked.link ?? '',
+        location: linked.location ?? '',
+        access: linked.access ?? '',
+        retention: linked.retention ?? '',
+        authorizedPeople: linked.authorizedPeople ?? '',
+        restrictions: linked.restrictions ?? '',
+      } : item));
+    }
+    setEditingSourceId(row.id);
+  };
+
   const sourceOptionLabel = (source: ProjectDocumentedSource) => {
     const processNames = Array.from(new Set(source.references.map(reference => reference.processName)));
     return processNames.length
@@ -384,6 +416,51 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
         </Stack>
         {error && <Alert color="danger" variant="soft">{error}</Alert>}
         {projectSourcesQuery.isError && <Alert color="warning" variant="soft">Le référentiel documentaire du projet est momentanément indisponible. Les informations BPMN locales restent consultables.</Alert>}
+        {selectedSource && (
+          <Stack spacing={1} sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 'sm' }}>
+            <Typography level="title-sm">Actions pour : {selectedSource.elementName}</Typography>
+            {canManageSources ? (
+              <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'center' }} flexWrap="wrap" gap={1}>
+                <Button size="sm" variant="outlined" disabled={saving || Boolean(associatingElementId)} onClick={() => startEditing(selectedSource)}>
+                  Modifier
+                </Button>
+                {selectedLinkedSource && (
+                  <Button size="sm" color="danger" variant="outlined" disabled={Boolean(associatingElementId)} onClick={() => void unlink(selectedSource)}>
+                    Délier la source
+                  </Button>
+                )}
+                {associationTargets.length > 0 && (
+                  <Select size="sm" sx={{ minWidth: 230 }} placeholder={selectedLinkedSource ? 'Changer la source…' : 'Associer une source…'} value={null} disabled={Boolean(associatingElementId)} onChange={(_, value) => {
+                    if (typeof value === 'string' && value.length > 0) {
+                      void (selectedLinkedSource ? changeAssociation(selectedSource, value) : associate(selectedSource, value));
+                    }
+                  }}>
+                    {associationTargets.map(item => <Option key={item.id} value={item.id}>{sourceOptionLabel(item)}</Option>)}
+                  </Select>
+                )}
+                {selectedLinkedSource && mergeCandidates.length > 0 && (
+                  <>
+                    <Select size="sm" sx={{ minWidth: 230 }} placeholder="Fusionner avec…" value={mergeTargets[selectedLinkedSource.id] ?? ''} onChange={(_, value) => setMergeTargets(current => ({ ...current, [selectedLinkedSource.id]: value ?? '' }))}>
+                      {mergeCandidates.map(item => <Option key={item.id} value={item.id}>{sourceOptionLabel(item)}</Option>)}
+                    </Select>
+                    {mergeTargets[selectedLinkedSource.id] && (
+                      <Button size="sm" color="warning" variant="soft" startDecorator={<MergeType />} onClick={() => setPendingMerge({ sourceId: selectedLinkedSource.id, targetId: mergeTargets[selectedLinkedSource.id] })}>
+                        Fusionner
+                      </Button>
+                    )}
+                  </>
+                )}
+                {editingSourceId === selectedSource.id && (
+                  <Button size="sm" variant="plain" color="neutral" disabled={saving} onClick={() => setEditingSourceId(null)}>
+                    Annuler la modification
+                  </Button>
+                )}
+              </Stack>
+            ) : (
+              <Typography level="body-sm" color="neutral">Sélection en lecture seule : les modifications du référentiel sont réservées aux administrateurs du projet.</Typography>
+            )}
+          </Stack>
+        )}
         {!sources.length ? <Typography level="body-sm" color="neutral">Aucune information documentée. Ajoutez un objet de données ou un magasin de données dans le diagramme BPMN pour le faire apparaître ici.</Typography> : (
           <Box sx={{ overflow: 'auto', maxWidth: '100%' }}>
             <DocumentedSourcesGrid<InventoryGridRow>
@@ -472,64 +549,9 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                 })),
               ] as ColDef<InventoryGridRow>[]}
               onRowSelected={row => setSelectedElementId(row?.id ?? null)}
-              onAdd={canManageSources ? () => { if (selectedElementId) setEditingSourceId(selectedElementId); } : undefined}
+              onAdd={canManageSources ? () => { if (selectedSource) setEditingSourceId(selectedSource.id); } : undefined}
               addLabel="Créer la source du projet"
-              addDisabled={!canManageSources || !selectedElementId || Boolean(getLinkedSource(selectedElementId)) || Boolean(editingSourceId)}
-              onEdit={canEdit ? row => {
-                const linked = getLinkedSource(row.id);
-                if (linked) {
-                  setSources(current => current.map(item => item.id === row.id ? {
-                    ...item,
-                    name: linked.name,
-                    kind: linked.kind,
-                    description: linked.description ?? '',
-                    link: linked.link ?? '',
-                    location: linked.location ?? '',
-                    access: linked.access ?? '',
-                    retention: linked.retention ?? '',
-                    authorizedPeople: linked.authorizedPeople ?? '',
-                    restrictions: linked.restrictions ?? '',
-                  } : item));
-                }
-                setEditingSourceId(row.id);
-              } : undefined}
-              onDelete={canManageSources ? row => {
-                const source = sources.find(item => item.id === row.id);
-                if (source) void unlink(source);
-              } : undefined}
-              canDelete={row => Boolean(getLinkedSource(row.id)) && canManageSources}
-              renderExtraActions={row => {
-                const linked = getLinkedSource(row.id);
-                const otherSources = projectSources.filter(item =>
-                  item.id !== linked?.id &&
-                  !item.references.some(reference => reference.resourceId === resourceId),
-                );
-                if (!canManageSources) return null;
-                const associationTargets = projectSources.filter(item =>
-                  item.id !== linked?.id &&
-                  !item.references.some(reference => reference.resourceId === resourceId),
-                );
-                return (
-                  <Stack spacing={0.5} sx={{ minWidth: 170 }}>
-                    {associationTargets.length > 0 && (
-                      <Select size="sm" placeholder={linked ? 'Changer la source…' : 'Associer une source…'} value={null} disabled={associatingElementId === row.id} onChange={(_, value) => {
-                        if (typeof value === 'string' && value.length > 0) {
-                          const source = sources.find(item => item.id === row.id);
-                          if (source) void (linked ? changeAssociation(source, value) : associate(source, value));
-                        }
-                      }}>
-                        {associationTargets.map(item => <Option key={item.id} value={item.id}>{sourceOptionLabel(item)}</Option>)}
-                      </Select>
-                    )}
-                    {linked && otherSources.length > 0 && (
-                      <Select size="sm" placeholder="Fusionner…" value={mergeTargets[linked.id] ?? ''} onChange={(_, value) => setMergeTargets(current => ({ ...current, [linked.id]: value ?? '' }))}>
-                        {otherSources.map(item => <Option key={item.id} value={item.id}>{sourceOptionLabel(item)}</Option>)}
-                      </Select>
-                    )}
-                    {linked && mergeTargets[linked.id] && <Button size="sm" color="warning" variant="soft" startDecorator={<MergeType />} onClick={() => setPendingMerge({ sourceId: linked.id, targetId: mergeTargets[linked.id] })}>Fusionner</Button>}
-                  </Stack>
-                );
-              }}
+              addDisabled={!canManageSources || !selectedSource || Boolean(selectedLinkedSource) || Boolean(editingSourceId)}
             />
           </Box>
         )}
