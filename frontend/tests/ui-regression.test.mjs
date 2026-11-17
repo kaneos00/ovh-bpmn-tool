@@ -1151,10 +1151,10 @@ test('quick search exposes documented information and opens the matching search 
 
   assert.match(navigation, /type SearchScope = [^;]*'documented'/);
   assert.match(navigation, /documented:\s*'documented'/);
-  assert.match(navigation, /<Option value="documented">Informations documentées<\\/Option>/);
+  assert.ok(navigation.includes('<Option value="documented">Informations documentées</Option>'));
   assert.match(navigation, /label:\s*'Information documentée'/);
   assert.match(navigation, /if \(type\) params\.set\('types', type\)/);
-  assert.match(results, /<Option value="documented">Informations documentées<\\/Option>/);
+  assert.ok(results.includes('<Option value="documented">Informations documentées</Option>'));
   assert.match(results, /Information documentée/);
   assert.match(searchService, /if \(includes\('documented'\) && allowedProjectIds\.length\)/);
   assert.match(searchService, /findDocumentedSourceSearchMatch\(source, normalizedQuery\)/);
