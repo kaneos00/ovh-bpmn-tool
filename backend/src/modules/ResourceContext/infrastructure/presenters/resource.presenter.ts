@@ -11,4 +11,5 @@ export class ResourcePresenter {
   type: ResourceTypeEnum;
   createdBy: string;
   authToken: Nullable<string>;
+  processMetadata: Record<string, string> | null;
 }
