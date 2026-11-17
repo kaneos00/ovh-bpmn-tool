@@ -1106,3 +1106,32 @@ test('project documented information uses canonical sources within one process a
   assert.ok(search.includes("type: 'documented'"));
   assert.ok(searchPage.includes('<Option value="documented">Informations documentées</Option>'));
 });
+
+
+test('V0.8 keeps process nature, process type and repository usage as distinct metadata', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
+
+  assert.ok(details.includes("processNature: 'operationnel'"));
+  assert.ok(details.includes("processNature: node?.getAttribute('processNature') || 'operationnel'"));
+  assert.ok(details.includes('operationalPurpose'));
+  assert.ok(details.includes('operationalScope'));
+  assert.ok(details.includes('operationalMode'));
+  assert.ok(details.includes('specificities'));
+  assert.ok(details.includes('<Option value="organisationnel">Organisationnel</Option>'));
+  assert.ok(details.includes('Les processus organisationnels ont vocation à rester communs'));
+  assert.ok(layout.includes("processNature: node?.getAttribute('processNature') || 'operationnel'"));
+  assert.ok(layout.includes("processUsageLabel = 'Commun'"));
+  assert.ok(layout.includes("processUsageLabel = 'Variante'"));
+  assert.ok(layout.includes("processUsageLabel = 'Spécifique'"));
+  assert.doesNotMatch(layout, /BusinessProcessActions/, 'the title must not expose a duplicate Modeler button');
+});
+
+test('V0.8 exposes a linked subprocess target from the selected element details', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.ok(details.includes("element.localName === 'callActivity'"));
+  assert.ok(details.includes("element.localName === 'subProcess'"));
+  assert.ok(details.includes('resolveProcessTarget(selectedTask.linkedProcessTargetId, processInfo)'));
+  assert.ok(details.includes('Ouvrir le processus : {linkedProcess.name}'));
+});
