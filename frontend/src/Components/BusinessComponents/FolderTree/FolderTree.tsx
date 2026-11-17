@@ -25,6 +25,10 @@ import {
   OpenInNew,
   Share,
   FolderOutlined,
+  FolderRounded,
+  PublicOutlined,
+  AltRoute,
+  RateReviewOutlined,
   ChevronRight,
   ExpandMore,
   Star,
@@ -326,19 +330,6 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
         sx={{ mb: 1, borderRadius: '7px', bgcolor: 'background.surface' }}
         slotProps={{ input: { 'aria-label': 'Rechercher dans l’arborescence, les récents et les favoris' } }}
       />
-      <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 0.75 }}>
-        <Button
-          size="sm"
-          variant="plain"
-          color="neutral"
-          startDecorator={<AppsRounded fontSize="small" />}
-          onClick={() => navigate('/projects')}
-          sx={{ justifyContent: 'flex-start', fontWeight: 650 }}
-        >
-          Tous les projets
-        </Button>
-      </Box>
-
       <Box sx={{ display: 'flex', gap: 0.5, p: 0.5, mb: 1, bgcolor: 'background.level1', borderRadius: '8px' }}>
         {([
           ['tree', 'Arborescence'],
@@ -409,7 +400,13 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                   >
                     {node?.id === 'project-home'
                       ? <FolderOpenRounded color="primary" fontSize="small" />
-                      : node?.type === 'folder' ? <FolderOutlined fontSize="small" /> : <DescriptionOutlined fontSize="small" />}
+                      : node?.type === 'folder'
+                        ? <FolderRounded sx={{ color: '#c58a2b' }} fontSize="small" />
+                        : node?.usage === 'common'
+                          ? <PublicOutlined sx={{ color: '#16845b' }} fontSize="small" />
+                          : node?.usage === 'variant'
+                            ? <AltRoute sx={{ color: '#805ad5' }} fontSize="small" />
+                            : <DescriptionOutlined sx={{ color: '#3975c6' }} fontSize="small" />}
                     <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</Box>
                     {node?.usage === 'variant' && (
                       <Chip size="sm" variant="soft" color="primary" title="Variante de processus">
@@ -419,6 +416,18 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                     {(node?.remarksCount ?? 0) > 0 && (
                       <Chip size="sm" variant="soft" color="warning" title={`${node?.remarksCount} remarque(s) sur ce processus`} aria-label={`${node?.remarksCount} commentaire(s)`}>
                         {node?.remarksCount} <span aria-hidden="true">💬</span>
+                      </Chip>
+                    )}
+                    {(node?.changeRequestsCount ?? 0) > 0 && (
+                      <Chip
+                        size="sm"
+                        variant="soft"
+                        color="primary"
+                        title={`${node?.changeRequestsCount} demande(s) de modification associée(s) à ce processus`}
+                        aria-label={`${node?.changeRequestsCount} demande(s) de modification`}
+                        startDecorator={<RateReviewOutlined fontSize="small" />}
+                      >
+                        {node?.changeRequestsCount}
                       </Chip>
                     )}
                     {Boolean(node?.children?.length) && (
