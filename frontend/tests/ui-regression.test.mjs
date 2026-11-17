@@ -518,17 +518,14 @@ test('V3 central viewer exposes process-level documented information backed by c
   assert.match(details, /<Tab value=\{4\}>Informations documentées<\/Tab>/);
   assert.match(details, /<TabPanel value=\{4\} className="processViewerTabPanel">[\s\S]*?<DataInventory/s);
   assert.match(details, /canEdit=\{projectForProcess\?\.role === 'admin'\}/);
-  assert.match(inventory, /getElementsByTagNameNS\(NS, 'source'\)/);
-  assert.match(inventory, /child\.localName === 'documentation'/);
-  assert.match(inventory, /attribute\.localName === 'link'/);
-  assert.match(inventory, /getReferencedElement/);
-  assert.match(inventory, /savedIds/);
-  assert.match(inventory, /dataObjectReference.*dataStoreReference/s);
-  assert.match(inventory, /location/);
-  assert.match(inventory, /access/);
-  assert.match(inventory, /authorizedPeople/);
-  assert.match(inventory, /restrictions/);
-  assert.ok(inventory.includes('apiClient.put(`/projects/${projectId}/documented-sources/${linked.id}`'));
+  assert.match(inventory, /DocumentedSourcesGrid<InventoryGridRow>/);
+  assert.match(inventory, /Ajouter une ligne : information documentée/);
+  assert.match(inventory, /<Option value="application">Application \(Tool\)<\/Option>/);
+  assert.match(inventory, /headerName: 'Objet BPMN'/);
+  assert.match(inventory, /headerName: 'Statut projet'/);
+  assert.match(inventory, /headerName: 'Date limite de validité'/);
+  assert.match(inventory, /validUntil/);
+  assert.match(inventory, /apiClient.put(`/projects/${projectId}/documented-sources/${row.id}`/);
   assert.doesNotMatch(inventory, /XMLSerializer|onSave|inventory:manifest/);
 });
 
