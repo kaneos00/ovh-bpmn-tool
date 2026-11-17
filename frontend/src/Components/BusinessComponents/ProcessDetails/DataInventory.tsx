@@ -261,7 +261,6 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
     }
   };
 
-
   const changeAssociation = async (source: InventorySource, targetSourceId: string) => {
     if (!projectId || !canManageSources || !targetSourceId || associatingElementId) return;
     const linked = getLinkedSource(source.id);
@@ -287,7 +286,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
     setAssociatingElementId(source.id);
     setError('');
     try {
-      await apiClient.delete(`/projects/${projectId}/documented-sources/${linked.id}/references/${reference.id}`);
+      await apiClient.remove(`/projects/${projectId}/documented-sources/${linked.id}/references/${reference.id}`);
       await refreshProjectSources();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Impossible de délier cet objet BPMN.');
