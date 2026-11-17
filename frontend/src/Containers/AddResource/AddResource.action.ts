@@ -31,6 +31,11 @@ export const action = async ({
     description: formData.get('description') as string,
     parentId: !isRoot(resourceId) ? resourceId : undefined,
     type: resourceType,
+    processMetadata: resourceType === ResourceType.Process ? {
+      processType: String(formData.get('processType') || 'operationnel'),
+      processNature: String(formData.get('processNature') || 'specific'),
+      pilot: String(formData.get('pilot') || ''),
+    } : undefined,
   };
 
   let createdResourceId: string | undefined;
