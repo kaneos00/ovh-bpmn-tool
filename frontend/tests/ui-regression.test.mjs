@@ -1121,18 +1121,22 @@ test('user account menu provides direct access to all accessible projects', asyn
   assert.match(menu, /Tous les projets/);
 });
 
-test('V0.8 keeps process nature, process type and repository usage as distinct metadata', async () => {
+test('process metadata distinguishes type, nature and project usage while preserving legacy XML values', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
 
-  assert.ok(details.includes("processNature: 'operationnel'"));
-  assert.ok(details.includes("processNature: node?.getAttribute('processNature') || 'operationnel'"));
+  assert.ok(details.includes("processType: 'operationnel', processNature: 'specific'"));
+  assert.ok(details.includes("legacyNature === 'organisationnel' ? 'organisationnel' : 'operationnel'"));
+  assert.ok(details.includes("processNature: stored?.processNature || 'specific'"));
+  assert.ok(details.includes('processMetadata,'));
   assert.ok(details.includes('operationalPurpose'));
   assert.ok(details.includes('operationalScope'));
   assert.ok(details.includes('operationalMode'));
   assert.ok(details.includes('specificities'));
   assert.ok(details.includes('<Option value="organisationnel">Organisationnel</Option>'));
-  assert.ok(details.includes('Les processus organisationnels ont vocation à rester communs'));
+  assert.ok(details.includes('<Option value="global">Global</Option>'));
+  assert.ok(details.includes('<Option value="specific">Spécifique</Option>'));
+  assert.ok(details.includes('projectMembersQuery'));
   assert.ok(layout.includes("processNature: node?.getAttribute('processNature') || 'operationnel'"));
   assert.ok(layout.includes("processUsageLabel = 'Commun'"));
   assert.ok(layout.includes("processUsageLabel = 'Variante'"));
