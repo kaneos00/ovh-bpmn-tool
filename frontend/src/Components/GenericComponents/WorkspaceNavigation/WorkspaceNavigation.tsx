@@ -23,6 +23,7 @@ const matchesTerm = (value: string, term: string) =>
 type SearchResult = {
   key: string;
   type?: UnifiedSearchType;
+  documentedSourceId?: string;
   title: string;
   detail: string;
   resourceId?: string;
@@ -234,6 +235,7 @@ export const WorkspaceNavigation = () => {
     return {
       key: `${result.type}:${result.projectId ?? ''}:${result.resourceId ?? ''}:${result.id}`,
       type: result.type,
+      documentedSourceId: result.type === 'documented' ? result.id : undefined,
       title: result.label,
       detail: `${detailLabel} · ${result.excerpt || result.field}`,
       resourceId: result.resourceId,
@@ -280,7 +282,7 @@ export const WorkspaceNavigation = () => {
     if (projectId) params.set('projectId', projectId);
     if (result.elementId) params.set('elementId', result.elementId);
     if (result.type === 'documented') {
-      params.set('documentedSourceId', result.key.split(':').at(-1) ?? result.key);
+      if (result.documentedSourceId) params.set('documentedSourceId', result.documentedSourceId);
     }
     if (result.openRaci) params.set('raci', '1');
     const query = params.toString();
