@@ -56,7 +56,9 @@
     "styled-components": "^6.1.12",
     "uuid": "^9.0.0",
     "react-complex-tree": "^2.5.1",
-    "react-d3-tree": "^3.6.6"
+    "react-d3-tree": "^3.6.6",
+    "ag-grid-community": "33.3.2",
+    "ag-grid-react": "33.3.2"
   },
   "devDependencies": {
     "@spotify/eslint-config": "^15.0.0",
