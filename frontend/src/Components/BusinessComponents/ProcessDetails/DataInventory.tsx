@@ -430,7 +430,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                           <Button key={`${association.taskId}-${index}`} size="sm" variant="plain" color="neutral" onClick={() => { onShowDiagram?.(); onElementSelect(association.taskId); }} startDecorator={<CenterFocusStrong />}>
                             {association.taskName}
                           </Button>
-                        ) : <Typography key={association.taskId + '-' + index} level="body-sm">{association.taskName}</Typography>
+                        ) : <Typography key={`${association.taskId}-${index}`} level="body-sm">{association.taskName}</Typography>
                       ))}
                     </Stack>
                   ) : <Typography level="body-sm" textColor="neutral">Aucune association BPMN détectée</Typography>,
