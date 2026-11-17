@@ -108,7 +108,7 @@ export const Component = () => {
     };
   }, [processXml]);
   const processTypeLabels: Record<string, string> = {
-    management: 'Management', projet: 'Projet', operationnel: 'Opérationnel',
+    management: 'Management', projet: 'Projet',
     support: 'Support', pilotage: 'Pilotage', surveillance: 'Surveillance',
     'risques-prevention': 'Risques / prévention',
   };
@@ -219,7 +219,7 @@ export const Component = () => {
                             titleAdornment={resource.type === ResourceType.Process ? (
                               <Stack direction="row" spacing={0.75} alignItems="center" useFlexGap flexWrap="wrap">
                                 <Chip size="sm" variant="soft" color={processHeaderMetadata.processNature === 'organisationnel' ? 'primary' : 'success'}>{processHeaderMetadata.processNature === 'organisationnel' ? 'Organisationnel' : 'Opérationnel'}</Chip>
-                                {processHeaderMetadata.processType && <Chip size="sm" variant="soft" color="neutral">{processTypeLabels[processHeaderMetadata.processType] ?? processHeaderMetadata.processType}</Chip>}
+                                {processHeaderMetadata.processType && processHeaderMetadata.processType !== 'operationnel' && <Chip size="sm" variant="soft" color="neutral">{processTypeLabels[processHeaderMetadata.processType] ?? processHeaderMetadata.processType}</Chip>}
                                 {processUsageLabel && <Chip size="sm" variant="soft" color="neutral">{processUsageLabel}</Chip>}
                               </Stack>
                             ) : undefined}
