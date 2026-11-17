@@ -30,21 +30,25 @@ export const DocumentedSourcesGrid = <T extends object,>({
 }: Props<T>) => {
   const gridApiRef = useRef<GridApi<T> | null>(null);
 
-  useEffect(() => {
-    if (!selectedRowId || !gridApiRef.current) return;
-    const node = gridApiRef.current.getRowNode(selectedRowId);
+  const revealSelectedRow = (api: GridApi<T>) => {
+    if (!selectedRowId) return;
+    const node = api.getRowNode(selectedRowId);
     if (!node) return;
-    gridApiRef.current.ensureNodeVisible(node, 'middle');
-    gridApiRef.current.flashCells({ rowNodes: [node] });
+    if (node.rowIndex !== null && node.rowIndex !== undefined) {
+      api.paginationGoToPage(Math.floor(node.rowIndex / 20));
+    }
+    api.ensureNodeVisible(node, 'middle');
+    api.flashCells({ rowNodes: [node] });
+  };
+
+  useEffect(() => {
+    if (!gridApiRef.current) return;
+    revealSelectedRow(gridApiRef.current);
   }, [selectedRowId, rowData]);
 
   const handleGridReady = (event: GridReadyEvent<T>) => {
     gridApiRef.current = event.api;
-    if (!selectedRowId) return;
-    const node = event.api.getRowNode(selectedRowId);
-    if (!node) return;
-    event.api.ensureNodeVisible(node, 'middle');
-    event.api.flashCells({ rowNodes: [node] });
+    revealSelectedRow(event.api);
   };
 
   return (
@@ -61,6 +65,9 @@ export const DocumentedSourcesGrid = <T extends object,>({
         columnDefs={columnDefs}
         getRowId={params => getRowId(params.data)}
         onGridReady={handleGridReady}
+        getRowStyle={params => params.data && selectedRowId && getRowId(params.data) === selectedRowId
+          ? { backgroundColor: 'rgba(25, 118, 210, 0.14)', borderLeft: '3px solid #1976d2' }
+          : undefined}
         defaultColDef={{ sortable: true, filter: true, resizable: true, minWidth: 110, flex: 1, wrapText: true, autoHeight: true }}
         // Editing starts on double-click; Escape cancels the active editor.
         singleClickEdit={false}
