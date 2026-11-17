@@ -228,6 +228,8 @@ export const useProcessViewer = (
   showDiagramAtActualSizeRef.current = showDiagramAtActualSize;
   resizeDiagramRef.current = resizeDiagram;
 
+  const applySelectionRef = useRef<() => void>(() => undefined);
+
   // The Viewer can be imported while its tab is hidden (zero-sized). Observe
   // the real canvas container and apply its initial viewport as soon as the
   // tab becomes visible, without requiring a manual page reload.
@@ -284,7 +286,6 @@ export const useProcessViewer = (
     highlightedIdRef.current = targetId;
   };
 
-  const applySelectionRef = useRef(applySelection);
   applySelectionRef.current = applySelection;
 
   useEffect(() => {
