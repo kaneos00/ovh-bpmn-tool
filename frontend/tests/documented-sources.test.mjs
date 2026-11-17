@@ -31,8 +31,8 @@ test('documented source creation and association remain project-scoped and prese
   assert.match(inventory, /value=\{null\} disabled=\{Boolean\(associatingElementId\)\}/);
   assert.match(inventory, /projectSources\.filter/);
   assert.match(inventory, /\.map\(item => <Option key=\{item\.id\} value=\{item\.id\}/);
-  assert.match(details, /selectedDocumentedSource\.description/);
-  assert.match(details, /selectedDocumentedSource\.link/);
+  assert.match(details, /selectedDocumentedSource\?\.description\?\.trim\(\)/);
+  assert.match(details, /selectedDocumentedSource\?\.link\?\.trim\(\)/);
   assert.match(details, /documented-sources\/\$\{selectedDocumentedSource\.id\}/);
 });
 
