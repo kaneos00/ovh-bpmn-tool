@@ -10,6 +10,7 @@ This bounded context owns structured job-function documents, competency definiti
 - RACI actors and BPMN resources remain owned by their existing modules. Mapping entities hold references only; they do not copy or update source records or BPMN XML.
 - A new BPMN activity mapping is accepted only when its `taskId` exists as an activity ID in the latest published XML for the linked resource. Missing publication, malformed XML, unknown IDs and IDs belonging to non-activity elements are rejected.
 - The function document is independent of a named incumbent and of a specific project.
+- A project member can be assigned one organisational position per project. Assignments are module-owned and reference ProjectContext membership and project positions through composite foreign keys.
 
 ## Structured function document
 
@@ -56,6 +57,8 @@ A new project position initializes every block defined for its reference functio
 - `POST /job-architecture/competency-blocks/:blockId/competencies` (organization administrator)
 - `POST /job-architecture/functions/:functionId/blocks/:blockId` (organization administrator)
 - `GET /projects/:projectId/job-positions` (project member)
+- `GET /projects/:projectId/my-job-position` (authenticated project member; returns the assigned position and its function document, or `null`)
+- `PATCH /projects/:projectId/members/:userId/job-position` with `positionId` (project modeler/administrator; `null` removes the assignment)
 - `POST /projects/:projectId/job-positions` (project modeler/administrator)
 - `PATCH /projects/:projectId/job-positions/:positionId/competency-blocks` (project modeler/administrator)
 - `GET /projects/:projectId/job-positions/:positionId/competency-requirements`
@@ -72,4 +75,4 @@ A RACI actor must already exist and be active in the same project. An activity m
 
 Competency-level expected values are project overrides. If no override exists, the effective level inherits the block-level requirement, then the function reference level. Setting the override to `null` removes the override and restores inheritance.
 
-Current limitation: the supplied BPMN `taskId` is stored as the stable BPMN element identifier but is not yet checked against the BPMN XML payload. Diagnostics therefore identify missing RACI-to-position links and required blocks without activity mappings; they do not claim to validate XML element existence. Person assignment remains out of scope for this slice.
+Current limitation: the supplied BPMN `taskId` is stored as the stable BPMN element identifier but is not yet checked against the BPMN XML payload. Diagnostics therefore identify missing RACI-to-position links and required blocks without activity mappings; they do not claim to validate XML element existence. Person assignment is supported through one position assignment per project member and project. A member may therefore hold a different position in each project.
