@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from 'react-query';
-import { Alert, Box, Button, Chip, DialogActions, DialogContent, DialogTitle, IconButton, Input, Modal, ModalDialog, Option, Select, Stack, Textarea, Typography } from '@mui/joy';
+import { Alert, Box, Button, DialogActions, DialogContent, DialogTitle, Modal, ModalDialog, Option, Select, Stack, Typography } from '@mui/joy';
 import { CenterFocusStrong, MergeType } from '@mui/icons-material';
-import { ColDef } from 'ag-grid-community';
+import type { ColDef } from 'ag-grid-community';
 import { DocumentedSourcesGrid } from './DocumentedSourcesGrid';
 
 import { apiClient } from '../../../queryClient';
@@ -391,15 +391,15 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                 const linked = getLinkedSource(source.id);
                 return {
                   ...source,
-                  name: linked?.name ?? source.name,
-                  kind: linked?.kind ?? source.kind,
-                  description: linked?.description ?? source.description,
-                  link: linked?.link ?? source.link,
-                  location: linked?.location ?? source.location,
-                  access: linked?.access ?? source.access,
-                  retention: linked?.retention ?? source.retention,
-                  authorizedPeople: linked?.authorizedPeople ?? source.authorizedPeople,
-                  restrictions: linked?.restrictions ?? source.restrictions,
+                  name: editingSourceId === source.id ? source.name : linked?.name ?? source.name,
+                  kind: editingSourceId === source.id ? source.kind : linked?.kind ?? source.kind,
+                  description: editingSourceId === source.id ? source.description : linked?.description ?? source.description,
+                  link: editingSourceId === source.id ? source.link : linked?.link ?? source.link,
+                  location: editingSourceId === source.id ? source.location : linked?.location ?? source.location,
+                  access: editingSourceId === source.id ? source.access : linked?.access ?? source.access,
+                  retention: editingSourceId === source.id ? source.retention : linked?.retention ?? source.retention,
+                  authorizedPeople: editingSourceId === source.id ? source.authorizedPeople : linked?.authorizedPeople ?? source.authorizedPeople,
+                  restrictions: editingSourceId === source.id ? source.restrictions : linked?.restrictions ?? source.restrictions,
                   projectStatus: linked ? 'Rattaché au projet (' + linked.references.length + ' référence(s))' : 'À créer',
                   associationsLabel: source.associations.length
                     ? source.associations.map(association => (association.direction === 'input' ? 'Entrée' : 'Sortie') + ' : ' + association.taskName).join(' • ')
@@ -457,10 +457,10 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                 })),
               ] as ColDef<InventoryGridRow>[]}
               onRowSelected={row => setSelectedElementId(row?.id ?? null)}
-              onAdd={() => { if (selectedElementId) setEditingSourceId(selectedElementId); }}
+              onAdd={canManageSources ? () => { if (selectedElementId) setEditingSourceId(selectedElementId); } : undefined}
               addLabel="Créer la source du projet"
               addDisabled={!canManageSources || !selectedElementId || Boolean(getLinkedSource(selectedElementId)) || Boolean(editingSourceId)}
-              onEdit={row => {
+              onEdit={canEdit ? row => {
                 const linked = getLinkedSource(row.id);
                 if (linked) {
                   setSources(current => current.map(item => item.id === row.id ? {
@@ -477,11 +477,11 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                   } : item));
                 }
                 setEditingSourceId(row.id);
-              }}
-              onDelete={row => {
+              } : undefined}
+              onDelete={canManageSources ? row => {
                 const source = sources.find(item => item.id === row.id);
                 if (source) void unlink(source);
-              }}
+              } : undefined}
               canDelete={row => Boolean(getLinkedSource(row.id)) && canManageSources}
               renderExtraActions={row => {
                 const linked = getLinkedSource(row.id);
@@ -489,13 +489,29 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                   item.id !== linked?.id &&
                   !item.references.some(reference => reference.resourceId === resourceId),
                 );
-                if (!canManageSources || !linked || !otherSources.length) return null;
+                if (!canManageSources) return null;
+                const associationTargets = projectSources.filter(item =>
+                  item.id !== linked?.id &&
+                  !item.references.some(reference => reference.resourceId === resourceId),
+                );
                 return (
-                  <Stack spacing={0.5}>
-                    <Select size="sm" placeholder="Fusionner…" value={mergeTargets[linked.id] ?? ''} onChange={(_, value) => setMergeTargets(current => ({ ...current, [linked.id]: value ?? '' }))}>
-                      {otherSources.map(item => <Option key={item.id} value={item.id}>{sourceOptionLabel(item)}</Option>)}
-                    </Select>
-                    {mergeTargets[linked.id] && <Button size="sm" color="warning" variant="soft" startDecorator={<MergeType />} onClick={() => setPendingMerge({ sourceId: linked.id, targetId: mergeTargets[linked.id] })}>Fusionner</Button>}
+                  <Stack spacing={0.5} sx={{ minWidth: 170 }}>
+                    {associationTargets.length > 0 && (
+                      <Select size="sm" placeholder={linked ? 'Changer la source…' : 'Associer une source…'} value={null} disabled={associatingElementId === row.id} onChange={(_, value) => {
+                        if (typeof value === 'string' && value.length > 0) {
+                          const source = sources.find(item => item.id === row.id);
+                          if (source) void (linked ? changeAssociation(source, value) : associate(source, value));
+                        }
+                      }}>
+                        {associationTargets.map(item => <Option key={item.id} value={item.id}>{sourceOptionLabel(item)}</Option>)}
+                      </Select>
+                    )}
+                    {linked && otherSources.length > 0 && (
+                      <Select size="sm" placeholder="Fusionner…" value={mergeTargets[linked.id] ?? ''} onChange={(_, value) => setMergeTargets(current => ({ ...current, [linked.id]: value ?? '' }))}>
+                        {otherSources.map(item => <Option key={item.id} value={item.id}>{sourceOptionLabel(item)}</Option>)}
+                      </Select>
+                    )}
+                    {linked && mergeTargets[linked.id] && <Button size="sm" color="warning" variant="soft" startDecorator={<MergeType />} onClick={() => setPendingMerge({ sourceId: linked.id, targetId: mergeTargets[linked.id] })}>Fusionner</Button>}
                   </Stack>
                 );
               }}
