@@ -97,7 +97,7 @@ const getRemarkStatusLabel = (status: ViewerRemark['status']): string => {
     case 'rejected':
       return 'Refusée';
     default:
-      return 'In attesa';
+      return 'À traiter';
   }
 };
 
