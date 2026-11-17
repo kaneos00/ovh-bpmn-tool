@@ -6,7 +6,10 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { ProjectMemberRole } from '../ProjectContext/infrastructure/entities/projectMember.ormEntity';
+import {
+  ProjectMemberRole,
+  ProjectMemberTypeOrmEntity,
+} from '../ProjectContext/infrastructure/entities/projectMember.ormEntity';
 import { ProjectResourceAccessService } from '../ProjectContext/projectResourceAccess.service';
 import { ProjectProcessTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectProcess.ormEntity';
 import { ProjectRaciActorTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectRaciActor.ormEntity';
@@ -20,6 +23,7 @@ import {
   PositionCompetencyBlockTypeOrmEntity,
 } from './infrastructure/entities/positionCompetencyBlock.ormEntity';
 import { ProjectJobPositionTypeOrmEntity } from './infrastructure/entities/projectJobPosition.ormEntity';
+import { ProjectMemberJobPositionTypeOrmEntity } from './infrastructure/entities/projectMemberJobPosition.ormEntity';
 import { PositionRaciActorMappingTypeOrmEntity } from './infrastructure/entities/positionRaciActorMapping.ormEntity';
 import { PositionCompetencyRequirementTypeOrmEntity } from './infrastructure/entities/positionCompetencyRequirement.ormEntity';
 import { PositionActivityMappingTypeOrmEntity } from './infrastructure/entities/positionActivityMapping.ormEntity';
@@ -44,6 +48,10 @@ export class JobArchitectureService {
     private readonly functionBlocks: Repository<JobFunctionCompetencyBlockTypeOrmEntity>,
     @InjectRepository(ProjectJobPositionTypeOrmEntity)
     private readonly positions: Repository<ProjectJobPositionTypeOrmEntity>,
+    @InjectRepository(ProjectMemberTypeOrmEntity)
+    private readonly projectMembers: Repository<ProjectMemberTypeOrmEntity>,
+    @InjectRepository(ProjectMemberJobPositionTypeOrmEntity)
+    private readonly memberPositionAssignments: Repository<ProjectMemberJobPositionTypeOrmEntity>,
     @InjectRepository(PositionCompetencyBlockTypeOrmEntity)
     private readonly positionBlocks: Repository<PositionCompetencyBlockTypeOrmEntity>,
     @InjectRepository(ProjectRaciActorTypeOrmEntity)
@@ -252,6 +260,92 @@ export class JobArchitectureService {
       }
       throw error;
     }
+  }
+
+  async getMyJobPosition(projectId: string, headers: RequestHeaders) {
+    const userId = await this.projectAccess.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Viewer,
+    );
+    const assignment = await this.memberPositionAssignments.findOne({
+      where: { projectId, userId },
+    });
+    if (!assignment) return null;
+
+    const position = await this.positions.findOne({
+      where: { id: assignment.positionId, projectId, active: true },
+    });
+    if (!position) return null;
+
+    const jobFunction = await this.functions.findOne({
+      where: { id: position.functionId, active: true },
+    });
+    return {
+      projectId,
+      userId,
+      position,
+      function: jobFunction,
+    };
+  }
+
+  async assignMemberJobPosition(
+    projectId: string,
+    memberUserId: string,
+    positionId: string | null,
+    headers: RequestHeaders,
+  ) {
+    const actorUserId = await this.projectAccess.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Modeler,
+    );
+    const normalizedMemberUserId = this.requiredText(
+      memberUserId,
+      'memberUserId',
+      255,
+    );
+    const membership = await this.projectMembers.findOne({
+      where: { projectId, userId: normalizedMemberUserId },
+    });
+    if (!membership) {
+      throw new NotFoundException('Project member not found');
+    }
+
+    const current = await this.memberPositionAssignments.findOne({
+      where: { projectId, userId: normalizedMemberUserId },
+    });
+
+    if (positionId === null) {
+      if (current) {
+        await this.memberPositionAssignments.remove(current);
+      }
+      return { projectId, userId: normalizedMemberUserId, position: null };
+    }
+
+    const normalizedPositionId = this.requiredText(
+      positionId,
+      'positionId',
+      36,
+    );
+    const position = await this.positions.findOne({
+      where: { id: normalizedPositionId, projectId, active: true },
+    });
+    if (!position) {
+      throw new NotFoundException(
+        'Active job position not found in this project',
+      );
+    }
+
+    const assignment = this.memberPositionAssignments.create({
+      ...(current ? { id: current.id } : {}),
+      projectId,
+      userId: normalizedMemberUserId,
+      positionId: normalizedPositionId,
+      createdBy: actorUserId,
+    });
+    const saved = await this.memberPositionAssignments.save(assignment);
+    return { ...saved, position };
   }
 
   async listProjectPositions(projectId: string, headers: RequestHeaders) {
