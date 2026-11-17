@@ -70,8 +70,6 @@ const SOURCE_KINDS: SourceKind[] = ['file', 'database', 'application', 'form'];
 const BPMN_DOCUMENTED_DATA_TYPES = new Set([
   'dataObjectReference',
   'dataStoreReference',
-  'dataInput',
-  'dataOutput',
 ]);
 const SOURCE_TEXT_FIELDS = [
   'description',
@@ -171,8 +169,6 @@ const extractBpmnDataElements = (
     const supported = new Set([
       'dataObjectReference',
       'dataStoreReference',
-      'dataInput',
-      'dataOutput',
     ]);
     walk(parsed, (node, key) => {
       if (!supported.has(key)) return;
