@@ -40,7 +40,6 @@ describe('JobArchitectureService project member job-position assignment', () => 
       },
       positions: { findOne: positionFindOne },
       functions: { findOne: functionFindOne },
-      requiredText: JobArchitectureService.prototype['requiredText'],
     });
   });
 
