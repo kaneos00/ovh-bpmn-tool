@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProjectContextModule } from '../ProjectContext/projectContext.module';
 import { ProjectProcessTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectProcess.ormEntity';
+import { ProjectMemberTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectMember.ormEntity';
 import { ProjectRaciActorTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectRaciActor.ormEntity';
 import { ProjectRaciEntryTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectRaciEntry.ormEntity';
 import { ContentTypeOrmEntity } from '../ResourceContext/infrastructure/entities/content.ormEntity';
@@ -39,6 +40,7 @@ import { JobFunctionDocumentService } from './jobFunctionDocument.service';
       PositionRaciActorMappingTypeOrmEntity,
       PositionActivityMappingTypeOrmEntity,
       ProjectProcessTypeOrmEntity,
+      ProjectMemberTypeOrmEntity,
       ProjectRaciActorTypeOrmEntity,
       ProjectRaciEntryTypeOrmEntity,
       ContentTypeOrmEntity,
