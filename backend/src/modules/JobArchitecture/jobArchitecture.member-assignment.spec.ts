@@ -14,10 +14,11 @@ describe('JobArchitectureService project member job-position assignment', () => 
   let functionFindOne: jest.Mock;
 
   beforeEach(() => {
-    assertProjectRole = jest
-      .fn()
-      .mockResolvedValue('manager');
-    memberFindOne = jest.fn().mockResolvedValue({ projectId: 'project-1', userId: 'member-1' });
+    assertProjectRole = jest.fn().mockResolvedValue('manager');
+    memberFindOne = jest.fn().mockResolvedValue({
+      projectId: 'project-1',
+      userId: 'member-1',
+    });
     assignmentFindOne = jest.fn().mockResolvedValue(null);
     assignmentCreate = jest.fn((value) => value);
     assignmentSave = jest.fn(async (value) => ({
@@ -25,19 +26,18 @@ describe('JobArchitectureService project member job-position assignment', () => 
       ...value,
     }));
     assignmentRemove = jest.fn().mockResolvedValue(undefined);
-    positionFindOne = jest
-      .fn()
-      .mockResolvedValue({
+    positionFindOne = jest.fn().mockResolvedValue({
       id: 'position-1',
       projectId: 'project-1',
       functionId: 'function-1',
       active: true,
     });
-    functionFindOne = jest.fn().mockResolvedValue({ id: 'function-1', name: 'Analyste' });
+    functionFindOne = jest.fn().mockResolvedValue({
+      id: 'function-1',
+      name: 'Analyste',
+    });
 
-    service = Object.create(
-      JobArchitectureService.prototype,
-    ) as JobArchitectureService;
+    service = Object.create(JobArchitectureService.prototype) as JobArchitectureService;
     Object.assign(service, {
       projectAccess: { assertProjectRole },
       projectMembers: { findOne: memberFindOne },
@@ -120,7 +120,12 @@ describe('JobArchitectureService project member job-position assignment', () => 
       userId: 'member-1',
     });
     await expect(
-      service.assignMemberJobPosition('project-1', 'member-1', null, headers),
+      service.assignMemberJobPosition(
+        'project-1',
+        'member-1',
+        null,
+        headers,
+      ),
     ).resolves.toMatchObject({
       projectId: 'project-1',
       userId: 'member-1',
