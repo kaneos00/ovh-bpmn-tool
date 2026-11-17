@@ -16,6 +16,7 @@ export type Resource = {
   sourceResourceId?: string | null;
   type: ResourceType;
   authToken?: string;
+  processMetadata?: Record<string, string> | null;
 };
 
 export type Comment = {
