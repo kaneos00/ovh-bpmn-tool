@@ -47,10 +47,13 @@ export const DocumentedSourcesGrid = <T extends object,>({
       resizable: false,
       width: 300,
       minWidth: 300,
+      // Keep AG Grid's row/cell mouse handling from swallowing interactions
+      // with Joy controls rendered inside this action cell.
+      cellRendererParams: { suppressMouseEventHandling: () => true },
       cellRenderer: (params: ICellRendererParams<T>) => {
         if (!params.data) return null;
         return (
-          <Stack direction="row" spacing={0.25} alignItems="center">
+          <Stack direction="row" spacing={0.25} alignItems="center" onClick={event => event.stopPropagation()} onMouseDown={event => event.stopPropagation()}>
             {onEdit && (
               <IconButton size="sm" variant="plain" color="primary" title="Modifier" aria-label="Modifier" onClick={() => onEdit(params.data as T)}>
                 <EditOutlined />
@@ -82,7 +85,9 @@ export const DocumentedSourcesGrid = <T extends object,>({
           columnDefs={columns}
           getRowId={params => getRowId(params.data)}
           defaultColDef={{ sortable: true, filter: true, resizable: true, minWidth: 110, flex: 1, wrapText: true, autoHeight: true }}
-          rowSelection={{ mode: 'singleRow' }}
+          // AG Grid v33 disables click-to-select by default. The inventory's
+          // create/associate actions depend on a row being selectable.
+          rowSelection={{ mode: 'singleRow', enableClickSelection: true }}
           suppressCellFocus
           animateRows={false}
           pagination
