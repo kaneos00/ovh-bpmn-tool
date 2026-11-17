@@ -1182,7 +1182,7 @@ test('documented-information search opens the inventory record from both search 
   assert.ok(layout.includes('requestedDocumentedSourceId={requestedDocumentedSourceId}'));
   assert.ok(details.includes('if (requestedDocumentedSourceId) setActiveViewerTab(4)'));
   assert.ok(details.includes('requestedDocumentedSourceId={requestedDocumentedSourceId}'));
-  assert.ok(inventory.includes('source.id === requestedDocumentedSourceId'));
+  assert.ok(inventory.includes('item.id === requestedDocumentedSourceId'));
   assert.ok(inventory.includes('selectedRowId={selectedElementId ?? undefined}'));
   assert.ok(grid.includes('event.api.ensureNodeVisible(node, \'middle\')'));
 });
