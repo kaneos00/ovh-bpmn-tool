@@ -197,8 +197,8 @@ export const Component = () => {
                   )}
                   {(jobPositionQuery.data.document?.reportingLine || jobPositionQuery.data.document?.otherTitles?.length) && (
                     <Typography level="body-sm" color="neutral">
-                      {jobPositionQuery.data.document.reportingLine ? `Rattachement : ${jobPositionQuery.data.document.reportingLine}` : ''}
-                      {jobPositionQuery.data.document.otherTitles?.length ? ` · Autres intitulés : ${jobPositionQuery.data.document.otherTitles.join(', ')}` : ''}
+                      {jobPositionQuery.data.document?.reportingLine ? `Rattachement : ${jobPositionQuery.data.document.reportingLine}` : ''}
+                      {jobPositionQuery.data.document?.otherTitles?.length ? ` · Autres intitulés : ${jobPositionQuery.data.document.otherTitles.join(', ')}` : ''}
                     </Typography>
                   )}
                   {jobPositionQuery.data.document?.activitySections?.map(section => (
@@ -219,7 +219,7 @@ export const Component = () => {
                   ))}
                   {(jobPositionQuery.data.document?.documentVersion || jobPositionQuery.data.document?.documentDate || jobPositionQuery.data.document?.establishedBy || jobPositionQuery.data.document?.validatedBy) && (
                     <Typography level="body-xs" color="neutral">
-                      {[jobPositionQuery.data.document.documentVersion, jobPositionQuery.data.document.documentDate, jobPositionQuery.data.document.establishedBy ? `Établie par ${jobPositionQuery.data.document.establishedBy}` : '', jobPositionQuery.data.document.validatedBy ? `Validée par ${jobPositionQuery.data.document.validatedBy}` : ''].filter(Boolean).join(' · ')}
+                      {[jobPositionQuery.data.document?.documentVersion, jobPositionQuery.data.document?.documentDate, jobPositionQuery.data.document?.establishedBy ? `Établie par ${jobPositionQuery.data.document.establishedBy}` : '', jobPositionQuery.data.document?.validatedBy ? `Validée par ${jobPositionQuery.data.document.validatedBy}` : ''].filter(Boolean).join(' · ')}
                     </Typography>
                   )}
                 </Stack>
