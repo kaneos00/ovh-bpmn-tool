@@ -26,6 +26,7 @@ export class ResourceMapper {
           type: source.type,
           createdBy: source.createdBy,
           authToken: source.authToken,
+          processMetadata: source.processMetadata,
         },
         new Uuid(source.id),
       ),
@@ -44,6 +45,7 @@ export class ResourceMapper {
     resourceEntity.type = source.type;
     resourceEntity.createdBy = source.createdBy;
     resourceEntity.authToken = source.authToken;
+    resourceEntity.processMetadata = source.processMetadata;
 
     return resourceEntity;
   }
@@ -60,6 +62,7 @@ export class ResourceMapper {
     resourcePresenter.type = source.type;
     resourcePresenter.createdBy = source.createdBy;
     resourcePresenter.authToken = source.authToken;
+    resourcePresenter.processMetadata = source.processMetadata;
 
     return resourcePresenter;
   }
