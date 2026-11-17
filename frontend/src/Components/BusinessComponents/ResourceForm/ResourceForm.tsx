@@ -12,10 +12,8 @@ import {
   Typography,
 } from '@mui/joy';
 import { useQuery } from 'react-query';
-import { Controller } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { apiClient } from '../../../queryClient';
-import { useForm } from 'react-hook-form';
-
 import { ResourceType } from '../../../shared/types/BpmnResource';
 
 import type { Resource } from '../../../Types';
