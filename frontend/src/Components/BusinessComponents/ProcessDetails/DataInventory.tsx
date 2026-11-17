@@ -8,7 +8,7 @@ import {
   SaveOutlined,
   StorageOutlined,
 } from '@mui/icons-material';
-import type { CellValueChangedEvent, ColDef, ICellRendererParams } from 'ag-grid-community';
+import type { ColDef, ICellRendererParams, NewValueParams } from 'ag-grid-community';
 import { DocumentedSourcesGrid } from './DocumentedSourcesGrid';
 import { apiClient } from '../../../queryClient';
 
@@ -84,8 +84,11 @@ const emptySource = (id: string): ProjectDocumentedSource => ({
   references: [],
 });
 
-const normalizeKind = (kind: ProjectDocumentedSource['kind']): SourceKind =>
-  kind === 'database' ? 'database' : kind === 'application' || kind === 'form' ? 'application' : 'file';
+const normalizeKind = (kind: ProjectDocumentedSource['kind']): SourceKind => {
+  if (kind === 'database') return 'database';
+  if (kind === 'application' || kind === 'form') return 'application';
+  return 'file';
+};
 
 const KindIcon = ({ kind }: { kind: SourceKind }) => {
   if (kind === 'database') return <StorageOutlined />;
@@ -241,7 +244,6 @@ export const DataInventory = ({
   };
 
   const rows: InventoryGridRow[] = sources.map(source => {
-    const reference = source.references.find(item => item.resourceId === resourceId);
     return {
       ...source,
       projectStatus: source.id.startsWith('new-') ? 'À enregistrer' : 'Présente dans le projet',
@@ -260,7 +262,7 @@ export const DataInventory = ({
     editable: canManageSources,
     cellEditor: 'agLargeTextCellEditor',
     cellEditorPopup: true,
-    onCellValueChanged: (params: CellValueChangedEvent<InventoryGridRow>) => {
+    onCellValueChanged: (params: NewValueParams<InventoryGridRow>) => {
       if (params.data) updateRow(params.data.id, field, String(params.newValue ?? ''));
     },
   });
