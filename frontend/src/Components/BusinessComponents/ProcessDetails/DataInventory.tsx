@@ -35,7 +35,7 @@ type ProjectDocumentedSource = {
   retention: string | null;
   authorizedPeople: string | null;
   restrictions: string | null;
-  references: Array<{ resourceId: string; elementId: string; elementName: string; elementType: string; processName: string }>;
+  references: Array<{ id: string; resourceId: string; elementId: string; elementName: string; elementType: string; processName: string }>;
 };
 
 type ProjectDocumentedSourcesResponse = {
@@ -261,6 +261,41 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
     }
   };
 
+
+  const changeAssociation = async (source: InventorySource, targetSourceId: string) => {
+    if (!projectId || !canManageSources || !targetSourceId || associatingElementId) return;
+    const linked = getLinkedSource(source.id);
+    const reference = linked?.references.find(item => item.resourceId === resourceId && item.elementId === source.id);
+    if (!linked || !reference) return;
+    setAssociatingElementId(source.id);
+    setError('');
+    try {
+      await apiClient.put(`/projects/${projectId}/documented-sources/${linked.id}/references/${reference.id}`, { targetSourceId });
+      await refreshProjectSources();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Impossible de changer la source associée.');
+    } finally {
+      setAssociatingElementId(null);
+    }
+  };
+
+  const unlink = async (source: InventorySource) => {
+    if (!projectId || !canManageSources || associatingElementId) return;
+    const linked = getLinkedSource(source.id);
+    const reference = linked?.references.find(item => item.resourceId === resourceId && item.elementId === source.id);
+    if (!linked || !reference) return;
+    setAssociatingElementId(source.id);
+    setError('');
+    try {
+      await apiClient.delete(`/projects/${projectId}/documented-sources/${linked.id}/references/${reference.id}`);
+      await refreshProjectSources();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Impossible de délier cet objet BPMN.');
+    } finally {
+      setAssociatingElementId(null);
+    }
+  };
+
   const createCanonicalSource = async (source: InventorySource) => {
     if (!projectId || !canManageSources || !source.id || saving) return;
     setSaving(true);
@@ -402,9 +437,10 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                   <td><Stack spacing={0.75} sx={{ minWidth: 210 }}>
                     <Chip size="sm" color={linked ? 'success' : 'warning'} variant="soft">{linked ? 'Rattaché au projet' : 'Nouveau'}</Chip>
                     {linked && <Typography level="body-xs" color="neutral">{linked.references.length} référence(s) dans le projet</Typography>}
-                    {!linked && canManageSources && projectSources.length > 0 && <Select<string> size="sm" placeholder="Associer à une source existante…" value={null} disabled={associatingElementId === source.id} onChange={(_, value) => { if (typeof value === 'string' && value.length > 0) void associate(source, value); }}>
-                      {projectSources.map(item => <Option key={item.id} value={item.id}>{sourceOptionLabel(item)} ({item.references.length} référence(s))</Option>)}
+                    {canManageSources && projectSources.length > 0 && <Select<string> size="sm" placeholder={linked ? 'Changer la source associée…' : 'Associer à une source existante…'} value={null} disabled={associatingElementId === source.id} onChange={(_, value) => { if (typeof value === 'string' && value.length > 0) void (linked ? changeAssociation(source, value) : associate(source, value)); }}>
+                      {projectSources.filter(item => item.id !== linked?.id && !item.references.some(reference => reference.resourceId === resourceId)).map(item => <Option key={item.id} value={item.id}>{sourceOptionLabel(item)} ({item.references.length} référence(s))</Option>)}
                     </Select>}
+                    {canManageSources && linked && <Button size="sm" color="danger" variant="soft" loading={associatingElementId === source.id} disabled={Boolean(associatingElementId)} onClick={() => void unlink(source)}>Délier</Button>}
                     {!linked && canManageSources && editing && <Button size="sm" variant="outlined" color="neutral" loading={saving} disabled={saving || !source.name.trim()} onClick={() => void createCanonicalSource(source)}>Créer la source du projet</Button>}
                   </Stack></td>
                   <td>{areaField('description', 'Description')}</td>
