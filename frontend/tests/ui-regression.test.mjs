@@ -1070,6 +1070,7 @@ test('project documented information uses canonical sources within one process a
   const sourceEntity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/projectDocumentedSource.ormEntity.ts');
   const referenceEntity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/projectDocumentedSourceReference.ormEntity.ts');
   const migration = await read('../backend/migrations/20261116_v3_project_documented_sources.sql');
+  const validityMigration = await read('../backend/migrations/20261117_v3_project_documented_sources_valid_until.sql');
   const search = await read('../backend/src/modules/SearchContext/unified-search.service.ts');
   const searchPage = await read('src/Containers/SearchResults/SearchResults.container.tsx');
 
@@ -1108,7 +1109,7 @@ test('project documented information uses canonical sources within one process a
 
   assert.ok(sourceEntity.includes('mergedIntoId'));
   assert.ok(sourceEntity.includes('validUntil'));
-  assert.ok(migration.includes('validUntil'));
+  assert.ok(validityMigration.includes('validUntil'));
   assert.ok(referenceEntity.includes('elementId'));
   assert.ok(migration.includes('project_documented_source_references_unique_element'));
   assert.ok(search.includes("type: 'documented'"));
