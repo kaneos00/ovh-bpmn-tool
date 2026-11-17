@@ -31,11 +31,11 @@ describe('JobArchitectureService project member job-position assignment', () => 
     positionFindOne = jest
       .fn()
       .mockResolvedValue({
-      id: 'position-1',
-      projectId: 'project-1',
-      functionId: 'function-1',
-      active: true,
-    });
+        id: 'position-1',
+        projectId: 'project-1',
+        functionId: 'function-1',
+        active: true,
+      });
     functionFindOne = jest.fn().mockResolvedValue({
       id: 'function-1',
       name: 'Analyste',
