@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useQuery } from 'react-query';
 
 import { getXmlContentQuery } from '../../../../api/contents/contents.queries';
@@ -16,6 +17,7 @@ export const useProcessViewer = (
   remarks: ProcessViewerRemark[] = [],
 ) => {
   const { getViewerInstance } = useBpmnViewerInstance();
+  const location = useLocation();
   const viewerRef = useRef<HTMLDivElement>(null);
   const selectedIdRef = useRef<string | null | undefined>(selectedElementId);
   const onElementSelectRef = useRef(onElementSelect);
@@ -625,8 +627,22 @@ export const useProcessViewer = (
   }, [remarks, viewer, isImporting]);
 
   useEffect(() => {
-    applySelectionRef.current();
-  }, [selectedElementId]);
+    if (isImporting) return undefined;
+    let firstFrame = 0;
+    let secondFrame = 0;
+    // The Viewer stays mounted while the nested Modeler route is displayed.
+    // Route transitions can therefore restore the canvas before its final
+    // layout is ready. Reapply the route-owned selection after two paint frames.
+    firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        if (importedRef.current) applySelectionRef.current();
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      if (secondFrame) window.cancelAnimationFrame(secondFrame);
+    };
+  }, [selectedElementId, isImporting, location.pathname, location.search, viewer]);
 
   useEffect(() => {
     const reapplySelection = () => {
