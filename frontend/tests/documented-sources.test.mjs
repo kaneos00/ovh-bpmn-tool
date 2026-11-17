@@ -12,7 +12,7 @@ test('new documented BPMN references can be selected and created from the reusab
 
   assert.match(inventory, /onAdd=\{canManageSources \?/);
   assert.match(inventory, /addLabel="Créer la source du projet"/);
-  assert.match(inventory, /editable: params => Boolean\(params\.data && editingSourceId === params\.data\.id\)/);
+  assert.match(inventory, /editable: \(params: EditableCallbackParams<InventoryGridRow>\) => Boolean\(params\.data && editingSourceId === params\.data\.id\)/);
   assert.match(inventory, /if \(!linked\) \{ await createCanonicalSource\(source\); return; \}/);
   assert.match(inventory, /onEdit=\{canEdit \?/);
   assert.match(inventory, /setEditingSourceId\(row\.id\)/);
