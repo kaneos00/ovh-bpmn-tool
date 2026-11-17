@@ -7,6 +7,7 @@ export type RenderTree = {
   usage?: 'common' | 'variant' | 'project-specific';
   sourceResourceId?: string | null;
   remarksCount?: number;
+  changeRequestsCount?: number;
 };
 
 export * from './FolderTree';
