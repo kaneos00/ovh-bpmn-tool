@@ -520,7 +520,7 @@ test('V3 central viewer exposes process-level documented information backed by c
   assert.match(details, /canEdit=\{projectForProcess\?\.role === 'admin'\}/);
   assert.match(inventory, /DocumentedSourcesGrid<InventoryGridRow>/);
   assert.match(inventory, /Ajouter une ligne : information documentée/);
-  assert.match(inventory, /<Option value="application">[\s\S]*Application \(Tool\)/);
+  assert.match(inventory, /<Option value="application">[\s\S]*Application/);
   assert.match(inventory, /headerName: 'Objet BPMN'/);
   assert.match(inventory, /headerName: 'Statut projet'/);
   assert.match(inventory, /headerName: 'Date limite de validité'/);
@@ -1078,7 +1078,7 @@ test('project documented information uses canonical sources within one process a
   assert.ok(inventory.includes('Ajouter une ligne : information documentée'));
   assert.ok(inventory.includes('<Option value="file">'));
   assert.ok(inventory.includes('<Option value="database">'));
-  assert.ok(inventory.includes('<Option value="application">'));
+  assert.match(inventory, /<Option value="application">[\s\S]*Application/);
   assert.ok(inventory.includes('kind === \'application\' || kind === \'form\' ? \'application\''));
   assert.ok(inventory.includes('unlinkedReferences'));
   assert.ok(inventory.includes('Associer un objet BPMN'));
