@@ -372,15 +372,15 @@ export const ProcessDetails = ({
   const [changeCommentDrafts, setChangeCommentDrafts] = useState<Record<string, string>>({});
   const [editingChangeCommentId, setEditingChangeCommentId] = useState<string | null>(null);
   const [savingChangeCommentId, setSavingChangeCommentId] = useState<string | null>(null);
-  const [processMetadata, setProcessMetadata] = useState({ processType: '', pilot: '', surveillance: '', riskPrevention: '' });
+  const [processMetadata, setProcessMetadata] = useState({ processNature: 'operationnel', processType: '', operationalPurpose: '', operationalScope: '', operationalMode: '', specificities: '', pilot: '', surveillance: '', riskPrevention: '' });
   const canEditDescription = !isHistoricalView && (sessionRole === 'admin' || sessionRole === 'modeler');
   const canManageVersions = !isHistoricalView && (sessionRole === 'admin' || sessionRole === 'modeler');
 
   useEffect(() => {
-    if (!xmlContent) { setProcessMetadata({ processType: '', pilot: '', surveillance: '', riskPrevention: '' }); return; }
+    if (!xmlContent) { setProcessMetadata({ processNature: 'operationnel', processType: '', operationalPurpose: '', operationalScope: '', operationalMode: '', specificities: '', pilot: '', surveillance: '', riskPrevention: '' }); return; }
     const doc = new DOMParser().parseFromString(xmlContent, 'application/xml');
     const node = Array.from(doc.getElementsByTagNameNS(PROCESS_METADATA_NS, 'processMetadata'))[0];
-    setProcessMetadata({ processType: node?.getAttribute('processType') || '', pilot: node?.getAttribute('pilot') || '', surveillance: node?.getAttribute('surveillance') || '', riskPrevention: node?.getAttribute('riskPrevention') || '' });
+    setProcessMetadata({ processNature: node?.getAttribute('processNature') || 'operationnel', processType: node?.getAttribute('processType') || '', operationalPurpose: node?.getAttribute('operationalPurpose') || '', operationalScope: node?.getAttribute('operationalScope') || '', operationalMode: node?.getAttribute('operationalMode') || '', specificities: node?.getAttribute('specificities') || '', pilot: node?.getAttribute('pilot') || '', surveillance: node?.getAttribute('surveillance') || '', riskPrevention: node?.getAttribute('riskPrevention') || '' });
   }, [xmlContent]);
 
   useEffect(() => {
@@ -1098,7 +1098,7 @@ export const ProcessDetails = ({
                         >
                           {selectedTask.type.replace(/([A-Z])/g, ' $1').replace(/^./, value => value.toUpperCase()).trim()}
                         </Chip>
-                        <Typography level="body-sm">Identifiant : {selectedTask.id}</Typography>
+                        {isEditingDescription && <Typography level="body-xs" textColor="neutral">Identifiant BPMN : {selectedTask.id}</Typography>}
                         <Typography level="body-sm" textColor="neutral">{getElementTypeDescription(selectedTask.type)}</Typography>
 
                       <Divider />
@@ -1347,11 +1347,32 @@ export const ProcessDetails = ({
               {isEditingProcessDescription ? (
                 <>
                   <Stack spacing={1}>
+                    <Typography level="title-sm">Nature du processus</Typography>
+                    <Select value={processMetadata.processNature} onChange={(_, value) => setProcessMetadata(current => ({ ...current, processNature: value ?? 'operationnel' }))} disabled={isSavingProcessDescription}>
+                      <Option value="operationnel">Opérationnel</Option>
+                      <Option value="organisationnel">Organisationnel</Option>
+                    </Select>
+                    <Typography level="body-xs" textColor="neutral">Les processus organisationnels ont vocation à rester communs au référentiel, sans variantes par projet sauf justification particulière.</Typography>
+                  </Stack>
+                  <Stack spacing={1}>
                     <Typography level="title-sm">Type de processus</Typography>
                     <Select value={processMetadata.processType || null} placeholder="Choisir un type" onChange={(_, value) => setProcessMetadata(current => ({ ...current, processType: value ?? '' }))} disabled={isSavingProcessDescription}>
                       {PROCESS_TYPES.map(type => <Option key={type.value} value={type.value}><Chip size="sm" variant="soft" color={type.color}>{type.label}</Chip></Option>)}
                     </Select>
                   </Stack>
+                  {processMetadata.processNature === 'operationnel' ? (
+                    <Stack spacing={1}>
+                      <Typography level="title-sm">Caractéristiques opérationnelles</Typography>
+                      <Textarea value={processMetadata.operationalPurpose} onChange={event => setProcessMetadata(current => ({ ...current, operationalPurpose: event.target.value }))} minRows={2} placeholder="Finalité et résultat opérationnel attendu…" aria-label="Finalité opérationnelle" disabled={isSavingProcessDescription} />
+                      <Textarea value={processMetadata.operationalScope} onChange={event => setProcessMetadata(current => ({ ...current, operationalScope: event.target.value }))} minRows={2} placeholder="Activités, acteurs et périmètre couvert…" aria-label="Périmètre opérationnel" disabled={isSavingProcessDescription} />
+                      <Textarea value={processMetadata.operationalMode} onChange={event => setProcessMetadata(current => ({ ...current, operationalMode: event.target.value }))} minRows={2} placeholder="Principales modalités de réalisation et de fonctionnement…" aria-label="Modalités opérationnelles" disabled={isSavingProcessDescription} />
+                    </Stack>
+                  ) : (
+                    <Stack spacing={1}>
+                      <Typography level="title-sm">Caractéristiques organisationnelles</Typography>
+                      <Textarea value={processMetadata.specificities} onChange={event => setProcessMetadata(current => ({ ...current, specificities: event.target.value }))} minRows={3} placeholder="Particularités, contraintes et règles propres à cette organisation…" aria-label="Particularités organisationnelles" disabled={isSavingProcessDescription} />
+                    </Stack>
+                  )}
                   <Input value={processMetadata.pilot} onChange={event => setProcessMetadata(current => ({ ...current, pilot: event.target.value }))} placeholder="Pilote du processus" aria-label="Pilote du processus" disabled={isSavingProcessDescription} />
                   <Stack spacing={0.5}>
                     <Typography level="title-sm">Surveillance</Typography>
@@ -1389,6 +1410,15 @@ export const ProcessDetails = ({
                 </>
               ) : (
                 <Stack spacing={1.5}>
+                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                    <Typography level="title-sm">Nature :</Typography>
+                    <Chip size="md" variant="soft" color={processMetadata.processNature === 'organisationnel' ? 'primary' : 'success'}>{processMetadata.processNature === 'organisationnel' ? 'Organisationnel' : 'Opérationnel'}</Chip>
+                  </Stack>
+                  {processMetadata.processNature === 'operationnel' ? (
+                    <Box><Typography level="title-sm">Finalité opérationnelle</Typography><Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>{processMetadata.operationalPurpose || 'Non renseignée'}</Typography><Typography level="title-sm">Périmètre opérationnel</Typography><Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>{processMetadata.operationalScope || 'Non renseigné'}</Typography><Typography level="title-sm">Modalités de fonctionnement</Typography><Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>{processMetadata.operationalMode || 'Non renseignées'}</Typography></Box>
+                  ) : (
+                    <Box><Typography level="title-sm">Particularités organisationnelles</Typography><Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>{processMetadata.specificities || 'Non renseignées'}</Typography></Box>
+                  )}
                   <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                     <Typography level="title-sm">Type :</Typography>
                     {(() => { const type = PROCESS_TYPES.find(item => item.value === processMetadata.processType); return type ? <Chip size="md" variant="soft" color={type.color}>{type.label}</Chip> : <Typography level="body-sm" textColor="neutral">Non renseigné</Typography>; })()}
