@@ -196,10 +196,31 @@ export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
           <WorkspacesOutlined fontSize="small" />
           Tous les projets
         </MenuItem>
-        <MenuItem
-          disabled={homeDashboardSaving}
-          onClick={() => { void toggleHomeDashboard(); }}
-          sx={{ justifyContent: 'space-between', gap: 2 }}
+        <Box
+          role="button"
+          tabIndex={homeDashboardSaving ? -1 : 0}
+          aria-label="Activer ou désactiver l’accueil personnalisé"
+          aria-disabled={homeDashboardSaving}
+          onClick={() => { if (!homeDashboardSaving) void toggleHomeDashboard(); }}
+          onKeyDown={event => {
+            if (!homeDashboardSaving && (event.key === 'Enter' || event.key === ' ')) {
+              event.preventDefault();
+              void toggleHomeDashboard();
+            }
+          }}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 2,
+            px: 1.5,
+            py: 0.75,
+            minHeight: 40,
+            borderRadius: 'sm',
+            cursor: homeDashboardSaving ? 'wait' : 'pointer',
+            opacity: homeDashboardSaving ? 0.65 : 1,
+            '&:hover': { bgcolor: 'background.level1' },
+          }}
         >
           <Typography level="body-sm">
             {homeDashboardSaving ? 'Enregistrement…' : 'Accueil personnalisé'}
@@ -211,7 +232,7 @@ export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
             tabIndex={-1}
             sx={{ pointerEvents: 'none' }}
           />
-        </MenuItem>
+        </Box>
         <Box
           role="button"
           tabIndex={0}
