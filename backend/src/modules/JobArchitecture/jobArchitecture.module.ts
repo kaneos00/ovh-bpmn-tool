@@ -16,6 +16,7 @@ import { PositionCompetencyBlockTypeOrmEntity } from './infrastructure/entities/
 import { PositionCompetencyRequirementTypeOrmEntity } from './infrastructure/entities/positionCompetencyRequirement.ormEntity';
 import { PositionRaciActorMappingTypeOrmEntity } from './infrastructure/entities/positionRaciActorMapping.ormEntity';
 import { ProjectJobPositionTypeOrmEntity } from './infrastructure/entities/projectJobPosition.ormEntity';
+import { ProjectMemberJobPositionTypeOrmEntity } from './infrastructure/entities/projectMemberJobPosition.ormEntity';
 import { JobArchitectureController } from './infrastructure/controllers/jobArchitecture.controller';
 import { JobFunctionDocumentController } from './infrastructure/controllers/jobFunctionDocument.controller';
 import { JobArchitectureService } from './jobArchitecture.service';
@@ -32,6 +33,7 @@ import { JobFunctionDocumentService } from './jobFunctionDocument.service';
       CompetencyTypeOrmEntity,
       JobFunctionCompetencyBlockTypeOrmEntity,
       ProjectJobPositionTypeOrmEntity,
+      ProjectMemberJobPositionTypeOrmEntity,
       PositionCompetencyBlockTypeOrmEntity,
       PositionCompetencyRequirementTypeOrmEntity,
       PositionRaciActorMappingTypeOrmEntity,
