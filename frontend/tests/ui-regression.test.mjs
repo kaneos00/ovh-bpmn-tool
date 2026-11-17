@@ -1108,6 +1108,13 @@ test('project documented information uses canonical sources within one process a
 });
 
 
+test('user account menu provides direct access to all accessible projects', async () => {
+  const menu = await read('src/Components/GenericComponents/UserAccountMenu/UserAccountMenu.tsx');
+  assert.ok(menu.includes('WorkspacesOutlined'));
+  assert.match(menu, /navigate\('\/projects'\)/);
+  assert.match(menu, /Tous les projets/);
+});
+
 test('V0.8 keeps process nature, process type and repository usage as distinct metadata', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
