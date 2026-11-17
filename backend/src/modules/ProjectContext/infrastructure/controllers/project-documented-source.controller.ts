@@ -36,6 +36,7 @@ type SourceFields = Pick<
   | 'location'
   | 'access'
   | 'retention'
+  | 'validUntil'
   | 'authorizedPeople'
   | 'restrictions'
 >;
@@ -71,6 +72,16 @@ const BPMN_DOCUMENTED_DATA_TYPES = new Set([
   'dataObjectReference',
   'dataStoreReference',
 ]);
+const optionalDate = (value: unknown, field: string): string | null => {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value !== 'string' || !/^\\d{4}-\\d{2}-\\d{2}$/.test(value))
+    throw new BadRequestException(field + ' must be a valid YYYY-MM-DD date');
+  const parsed = new Date(value + 'T00:00:00.000Z');
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value)
+    throw new BadRequestException(field + ' must be a valid YYYY-MM-DD date');
+  return value;
+};
+
 const SOURCE_TEXT_FIELDS = [
   'description',
   'link',
@@ -342,13 +353,18 @@ export class ProjectDocumentedSourceController {
       headers,
       ProjectMemberRole.Admin,
     );
-    const reference = await this.validateReference(projectId, body);
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     if (!name || name.length > 255)
       throw new BadRequestException('name must contain 1 to 255 characters');
     const kind = body.kind ?? 'file';
     if (!SOURCE_KINDS.includes(kind))
       throw new BadRequestException('Unsupported source kind');
+    const hasReferenceFields = Boolean(
+      body.resourceId || body.elementId || body.elementName || body.elementType,
+    );
+    const reference = hasReferenceFields
+      ? await this.validateReference(projectId, body)
+      : null;
 
     return this.dataSource.transaction(async (manager) => {
       const sourceRepository = manager.getRepository(
@@ -357,17 +373,19 @@ export class ProjectDocumentedSourceController {
       const referenceRepository = manager.getRepository(
         ProjectDocumentedSourceReferenceTypeOrmEntity,
       );
-      const existing = await referenceRepository.findOne({
-        where: {
-          projectId,
-          resourceId: reference.resourceId,
-          elementId: reference.elementId,
-        },
-      });
-      if (existing)
-        throw new ConflictException(
-          'This BPMN element is already linked to a documented source',
-        );
+      if (reference) {
+        const existing = await referenceRepository.findOne({
+          where: {
+            projectId,
+            resourceId: reference.resourceId,
+            elementId: reference.elementId,
+          },
+        });
+        if (existing)
+          throw new ConflictException(
+            'This BPMN element is already linked to a documented source',
+          );
+      }
 
       const source = await sourceRepository.save(
         sourceRepository.create({
@@ -380,6 +398,7 @@ export class ProjectDocumentedSourceController {
           location: optionalText(body.location, 'location'),
           access: optionalText(body.access, 'access'),
           retention: optionalText(body.retention, 'retention'),
+          validUntil: optionalDate(body.validUntil, 'validUntil'),
           authorizedPeople: optionalText(
             body.authorizedPeople,
             'authorizedPeople',
@@ -387,6 +406,7 @@ export class ProjectDocumentedSourceController {
           restrictions: optionalText(body.restrictions, 'restrictions'),
         }),
       );
+      if (!reference) return { ...source, references: [] };
       const sourceReference = await referenceRepository.save(
         referenceRepository.create({
           ...reference,
@@ -399,7 +419,7 @@ export class ProjectDocumentedSourceController {
     });
   }
 
-  @Put(':sourceId')
+    @Put(':sourceId')
   @UseAcl([UserGroup.RW])
   async update(
     @Param('projectId') projectId: string,
@@ -428,6 +448,8 @@ export class ProjectDocumentedSourceController {
       if (body[field] !== undefined)
         source[field] = optionalText(body[field], field);
     });
+    if (body.validUntil !== undefined)
+      source.validUntil = optionalDate(body.validUntil, 'validUntil');
     return this.sources.save(source);
   }
 
@@ -501,6 +523,8 @@ export class ProjectDocumentedSourceController {
           source[field] = optionalText(body[field], field);
         }
       });
+      if (!source.validUntil && body.validUntil !== undefined)
+        source.validUntil = optionalDate(body.validUntil, 'validUntil');
       await sourceRepository.save(source);
 
       return referenceRepository.save(
@@ -696,6 +720,8 @@ export class ProjectDocumentedSourceController {
         }
       });
       if (!target.name.trim() && source.name.trim()) target.name = source.name;
+      if (source.validUntil && (!target.validUntil || source.validUntil < target.validUntil))
+        target.validUntil = source.validUntil;
       await sourceRepository.save(target);
 
       const sourceReferences = await referenceRepository.find({
