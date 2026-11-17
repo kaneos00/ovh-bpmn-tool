@@ -771,14 +771,14 @@ test('project administrators can configure the color of the generated trigram ba
 });
 
 
-test('the root workspace replaces the former home dashboard and project viewer page', async () => {
+test('the optional home dashboard coexists with the root workspace and project viewer page', async () => {
   const routes = await read('src/routes.tsx');
   const breadcrumbs = await read('src/Containers/BpmnLayout/hooks/useBpmnLayoutBreadcrumbs.ts');
   const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
   const overview = await read('src/Containers/BpmnLayout/FolderOverview.tsx');
   const legacyRedirect = await read('src/Containers/ProjectWorkspaceRedirect/index.tsx');
 
-  assert.match(routes, /path: '\/home'\s*,\s*loader: \(\) => redirect\('\/root'\)/);
+  assert.match(routes, /path: '\/home'\s*,\s*lazy: \(\) => import\('\.\/Containers\/HomeDashboard'\)/);
   assert.match(routes, /path: '\/projects\/:projectId\/viewer'[\s\S]*?ProjectWorkspaceRedirect/);
   assert.match(routes, /path: '\/projects'[\s\S]*?import\('\.\/Containers\/Projects'\)/);
   assert.match(routes, /path: '\/projects\/:projectId'[\s\S]*?import\('\.\/Containers\/Projects'\)/);
