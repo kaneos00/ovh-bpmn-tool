@@ -225,14 +225,15 @@ test('detail panel starts collapsed, opens on selection and closes when the sele
 });
 
 
-test('selected BPMN element shows a pedagogical type description immediately below its ID', async () => {
+test('selected BPMN element hides its technical ID outside edit mode and keeps its pedagogical type description', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
 
   assert.ok(details.includes("exclusiveGateway: 'Passerelle exclusive : permet de choisir un seul chemin"));
   assert.ok(details.includes("parallelGateway: 'Passerelle parallèle : permet de lancer plusieurs chemins"));
   assert.ok(details.includes("startEvent: 'Événement de début : indique le déclenchement"));
   assert.ok(details.includes("endEvent: 'Événement de fin : indique la fin"));
-  assert.match(details, /Identifiant : \{selectedTask\.id\}<\/Typography>\s*<Typography level="body-sm" textColor="neutral">\{getElementTypeDescription\(selectedTask\.type\)\}/);
+  assert.match(details, /isEditingDescription && <Typography level="body-xs" textColor="neutral">Identifiant BPMN : \{selectedTask\.id\}<\/Typography>/);
+  assert.match(details, /<Typography level="body-sm" textColor="neutral">\{getElementTypeDescription\(selectedTask\.type\)\}/);
 });
 
 
