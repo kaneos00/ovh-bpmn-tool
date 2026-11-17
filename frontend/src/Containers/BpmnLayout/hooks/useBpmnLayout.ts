@@ -4,6 +4,7 @@ import {
   useActionData,
   useLoaderData,
   useNavigate,
+  useLocation,
   useParams,
   useSubmit,
 } from 'react-router-dom';
@@ -30,6 +31,7 @@ export const useBpmnLayout = () => {
   const bpmnModelerInstance = getModelerInstance();
 
   const navigate = useNavigate();
+  const location = useLocation();
   const submit = useSubmit();
   const { showAlert } = useSnackbar();
 
@@ -80,7 +82,7 @@ export const useBpmnLayout = () => {
 
     if (lastVersionContent) {
       if (lastVersionContent.status === ContentStatusEnum.Draft) {
-        return navigate('./modeler');
+        return navigate(`./modeler${location.search}`);
       }
 
       if (lastVersionContent.status === ContentStatusEnum.Published) {
@@ -106,7 +108,7 @@ export const useBpmnLayout = () => {
     }
 
     return submit(actionPayload, { method: 'post' });
-  }, [contents, bpmnModelerInstance, navigate, submit]);
+  }, [contents, bpmnModelerInstance, location.search, navigate, submit]);
 
   /**
    * Manage compare button click

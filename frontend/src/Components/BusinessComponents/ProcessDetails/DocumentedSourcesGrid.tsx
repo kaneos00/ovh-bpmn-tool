@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
-import type { ColDef } from 'ag-grid-community';
+import type { ColDef, GridApi, GridReadyEvent } from 'ag-grid-community';
 import { AddOutlined } from '@mui/icons-material';
 import { Box, Button, Stack } from '@mui/joy';
 
@@ -14,8 +14,7 @@ type Props<T extends object> = {
   onAdd?: () => void;
   addLabel?: string;
   addDisabled?: boolean;
-  onRowSelected?: (row: T | null) => void;
-  selectedRowId?: string;
+  selectedRowId?: string | null;
   height?: number;
 };
 
@@ -26,10 +25,33 @@ export const DocumentedSourcesGrid = <T extends object,>({
   onAdd,
   addLabel = 'Ajouter',
   addDisabled = false,
-  onRowSelected,
   selectedRowId,
   height = 520,
-}: Props<T>) => (
+}: Props<T>) => {
+  const gridApiRef = useRef<GridApi<T> | null>(null);
+
+  const revealSelectedRow = (api: GridApi<T>) => {
+    if (!selectedRowId) return;
+    const node = api.getRowNode(selectedRowId);
+    if (!node) return;
+    if (node.rowIndex !== null && node.rowIndex !== undefined) {
+      api.paginationGoToPage(Math.floor(node.rowIndex / 20));
+    }
+    api.ensureNodeVisible(node, 'middle');
+    api.flashCells({ rowNodes: [node] });
+  };
+
+  useEffect(() => {
+    if (!gridApiRef.current) return;
+    revealSelectedRow(gridApiRef.current);
+  }, [selectedRowId, rowData]);
+
+  const handleGridReady = (event: GridReadyEvent<T>) => {
+    gridApiRef.current = event.api;
+    revealSelectedRow(event.api);
+  };
+
+  return (
   <Box sx={{ width: '100%', minWidth: 0 }}>
     {onAdd && (
       <Stack direction="row" justifyContent="flex-end" sx={{ mb: 1 }}>
@@ -42,26 +64,18 @@ export const DocumentedSourcesGrid = <T extends object,>({
         rowData={rowData}
         columnDefs={columnDefs}
         getRowId={params => getRowId(params.data)}
+        onGridReady={handleGridReady}
+        getRowStyle={params => params.data && selectedRowId && getRowId(params.data) === selectedRowId
+          ? { backgroundColor: 'rgba(25, 118, 210, 0.14)', borderLeft: '3px solid #1976d2' }
+          : undefined}
         defaultColDef={{ sortable: true, filter: true, resizable: true, minWidth: 110, flex: 1, wrapText: true, autoHeight: true }}
-        // AG Grid v33 disables click-to-select by default. Selection drives
-        // the action toolbar rendered outside the grid.
-        rowSelection={{ mode: 'singleRow', enableClickSelection: true }}
+        // Editing starts on double-click; Escape cancels the active editor.
+        singleClickEdit={false}
+        suppressClickEdit={false}
         suppressCellFocus
         animateRows={false}
         pagination
         paginationPageSize={20}
-        onFirstDataRendered={event => {
-          if (!selectedRowId) return;
-          const node = event.api.getRowNode(selectedRowId);
-          if (node) { node.setSelected(true); event.api.ensureNodeVisible(node, 'middle'); }
-        }}
-        onRowDataUpdated={event => {
-          if (!selectedRowId) return;
-          const node = event.api.getRowNode(selectedRowId);
-          if (node) { node.setSelected(true); event.api.ensureNodeVisible(node, 'middle'); }
-        }}
-        onRowClicked={event => onRowSelected?.(event.data ?? null)}
-        onSelectionChanged={event => onRowSelected?.(event.api.getSelectedRows()[0] ?? null)}
         localeText={{
           page: 'Page',
           to: 'à',
@@ -83,4 +97,5 @@ export const DocumentedSourcesGrid = <T extends object,>({
       />
     </Box>
   </Box>
-);
+  );
+};

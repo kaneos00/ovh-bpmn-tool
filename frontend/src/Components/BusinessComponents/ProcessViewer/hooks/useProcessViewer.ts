@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useQuery } from 'react-query';
 
 import { getXmlContentQuery } from '../../../../api/contents/contents.queries';
@@ -16,6 +17,7 @@ export const useProcessViewer = (
   remarks: ProcessViewerRemark[] = [],
 ) => {
   const { getViewerInstance } = useBpmnViewerInstance();
+  const location = useLocation();
   const viewerRef = useRef<HTMLDivElement>(null);
   const selectedIdRef = useRef<string | null | undefined>(selectedElementId);
   const onElementSelectRef = useRef(onElementSelect);
@@ -228,6 +230,8 @@ export const useProcessViewer = (
   showDiagramAtActualSizeRef.current = showDiagramAtActualSize;
   resizeDiagramRef.current = resizeDiagram;
 
+  const applySelectionRef = useRef<() => void>(() => undefined);
+
   // The Viewer can be imported while its tab is hidden (zero-sized). Observe
   // the real canvas container and apply its initial viewport as soon as the
   // tab becomes visible, without requiring a manual page reload.
@@ -242,6 +246,10 @@ export const useProcessViewer = (
       } else {
         resizeDiagramRef.current();
       }
+      // The Modeler can clear diagram-js selection while this Viewer remains
+      // mounted. Reapply the route-controlled marker whenever the canvas
+      // becomes visible or changes size after returning to the Viewer.
+      applySelectionRef.current();
     });
     observer.observe(host);
     return () => observer.disconnect();
@@ -280,7 +288,6 @@ export const useProcessViewer = (
     highlightedIdRef.current = targetId;
   };
 
-  const applySelectionRef = useRef(applySelection);
   applySelectionRef.current = applySelection;
 
   useEffect(() => {
@@ -620,8 +627,44 @@ export const useProcessViewer = (
   }, [remarks, viewer, isImporting]);
 
   useEffect(() => {
-    applySelectionRef.current();
-  }, [selectedElementId]);
+    if (isImporting) return undefined;
+    let firstFrame = 0;
+    let secondFrame = 0;
+    // The Viewer stays mounted while the nested Modeler route is displayed.
+    // Route transitions can therefore restore the canvas before its final
+    // layout is ready. Reapply the route-owned selection after two paint frames.
+    firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        if (importedRef.current) applySelectionRef.current();
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      if (secondFrame) window.cancelAnimationFrame(secondFrame);
+    };
+  }, [selectedElementId, isImporting, location.pathname, location.search, viewer]);
+
+  useEffect(() => {
+    const reapplySelection = () => {
+      if (document.visibilityState === 'hidden') return;
+      window.requestAnimationFrame(() => {
+        if (importedRef.current) applySelectionRef.current();
+      });
+    };
+    // Returning from the Modeler may leave this Viewer instance mounted while
+    // its diagram-js selection has been cleared. Reconcile the visual marker
+    // on browser history navigation, page restoration and visibility changes.
+    window.addEventListener('popstate', reapplySelection);
+    window.addEventListener('pageshow', reapplySelection);
+    window.addEventListener('focus', reapplySelection);
+    document.addEventListener('visibilitychange', reapplySelection);
+    return () => {
+      window.removeEventListener('popstate', reapplySelection);
+      window.removeEventListener('pageshow', reapplySelection);
+      window.removeEventListener('focus', reapplySelection);
+      document.removeEventListener('visibilitychange', reapplySelection);
+    };
+  }, [viewer]);
 
   useEffect(() => () => {
     try {

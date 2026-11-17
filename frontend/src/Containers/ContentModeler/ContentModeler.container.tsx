@@ -118,9 +118,13 @@ export const Component = () => {
   const handledActionDataRef = useRef<typeof actionData>(undefined);
   const proposalResourceReady = !proposalId || Boolean(proposalContext?.cloneResourceId);
   const { resource } = useResource(resolvedResourceId, proposalResourceReady);
-  const returnToUrl = proposalId && (sourceResourceId || resource?.sourceResourceId)
+  const returnPath = proposalId && (sourceResourceId || resource?.sourceResourceId)
     ? `/${sourceResourceId || resource?.sourceResourceId}`
     : `/${resolvedResourceId}`;
+  const selectedElementId = searchParams.get('elementId');
+  const returnToUrl = selectedElementId
+    ? `${returnPath}?elementId=${encodeURIComponent(selectedElementId)}`
+    : returnPath;
   const [raciView, setRaciView] = useState<'matrix' | 'actors' | null>(null);
 
   useCallActivityNavigation(bpmnModelerInstance);

@@ -81,6 +81,9 @@ export const action = async ({
   request: Request;
 }) => {
   const { resourceId } = params;
+  const requestedUrl = new URL(request.url);
+  const selectedElementId = requestedUrl.searchParams.get('elementId');
+  const selectionQuery = selectedElementId ? `?elementId=${encodeURIComponent(selectedElementId)}` : '';
 
   const formData = await request.formData();
   const formAction = formData.get('action');
@@ -109,12 +112,12 @@ export const action = async ({
       clonedResource?: { id: string };
     };
     if (cloneResponse.clonedAsResource && cloneResponse.clonedResource?.id) {
-      return redirect(`/${cloneResponse.clonedResource.id}/modeler`);
+      return redirect(`/${cloneResponse.clonedResource.id}/modeler${selectionQuery}`);
     }
 
     return formAction &&
       ['createContent', 'createContentFromClone'].includes(formAction as string)
-      ? redirect(`/${resourceId}/modeler`)
+      ? redirect(`/${resourceId}/modeler${selectionQuery}`)
       : {
           ...response,
           formAction,
