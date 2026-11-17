@@ -31,7 +31,7 @@ test('documented source creation and association remain project-scoped and prese
   assert.match(inventory, /link: source\.link/);
   assert.match(inventory, /location: source\.location/);
   assert.match(inventory, /retention: source\.retention/);
-  assert.match(inventory, /value=\{null\} disabled=\{associatingElementId === source\.id\}/);
+  assert.match(inventory, /value=\{null\} disabled=\{associatingElementId === row\.id\}/);
   assert.match(inventory, /projectSources\.filter/);
   assert.match(inventory, /\.map\(item => <Option key=\{item\.id\} value=\{item\.id\}/);
   assert.match(details, /selectedDocumentedSource\.description/);
@@ -93,4 +93,27 @@ test('documented information only offers Data Object Reference and Data Store Re
   assert.match(controller, /const BPMN_DOCUMENTED_DATA_TYPES = new Set\(\[\s*'dataObjectReference',\s*'dataStoreReference',\s*\]\)/);
   assert.match(controller, /const supported = new Set\(\[\s*'dataObjectReference',\s*'dataStoreReference',\s*\]\)/);
   assert.doesNotMatch(controller, /'dataInput'|'dataOutput'/);
+});
+
+
+test('documented information inventory uses a reusable AG Grid with add, edit and unlink actions', async () => {
+  const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
+  const grid = await read('src/Components/BusinessComponents/ProcessDetails/DocumentedSourcesGrid.tsx');
+  const packageJson = JSON.parse(await read('package.json'));
+
+  assert.match(inventory, /DocumentedSourcesGrid<InventoryGridRow>/);
+  assert.match(inventory, /onAdd=\{canManageSources \?/);
+  assert.match(inventory, /onEdit=\{canEdit \?/);
+  assert.match(inventory, /onDelete=\{canManageSources \?/);
+  assert.match(inventory, /apiClient\.remove\([^\n]*\/references\/\$\{reference\.id\}/);
+  assert.match(grid, /from 'ag-grid-react'/);
+  assert.match(grid, /AllCommunityModule/);
+  assert.match(grid, /onAdd\?: \(\) => void/);
+  assert.match(grid, /onEdit\?: \(row: T\) => void/);
+  assert.match(grid, /onDelete\?: \(row: T\) => void/);
+  assert.match(grid, /AddOutlined/);
+  assert.match(grid, /EditOutlined/);
+  assert.match(grid, /DeleteOutline/);
+  assert.equal(packageJson.dependencies['ag-grid-community'], '33.3.2');
+  assert.equal(packageJson.dependencies['ag-grid-react'], '33.3.2');
 });
