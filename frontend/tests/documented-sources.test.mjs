@@ -117,3 +117,13 @@ test('documented information inventory uses a reusable AG Grid with add, edit an
   assert.equal(packageJson.dependencies['ag-grid-community'], '33.3.2');
   assert.equal(packageJson.dependencies['ag-grid-react'], '33.3.2');
 });
+
+
+test('documented source grid keeps row selection and action controls interactive', async () => {
+  const grid = await read('src/Components/BusinessComponents/ProcessDetails/DocumentedSourcesGrid.tsx');
+
+  assert.match(grid, /rowSelection=\{\{ mode: 'singleRow', enableClickSelection: true \}\}/);
+  assert.match(grid, /suppressMouseEventHandling: \(\) => true/);
+  assert.match(grid, /onClick=\{event => event\.stopPropagation\(\)\}/);
+  assert.match(grid, /onMouseDown=\{event => event\.stopPropagation\(\)\}/);
+});
