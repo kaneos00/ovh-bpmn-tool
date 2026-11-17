@@ -411,6 +411,7 @@ export const DataInventory = ({
           rowData={rows}
           columnDefs={columnDefs}
           getRowId={row => row.id}
+          selectedRowId={requestedDocumentedSourceId ?? undefined}
           onAdd={canManageSources ? addRow : undefined}
           addLabel="Ajouter une ligne : information documentée"
           height={560}
