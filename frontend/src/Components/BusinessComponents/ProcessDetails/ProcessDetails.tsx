@@ -613,11 +613,12 @@ export const ProcessDetails = ({
     );
     if (!element) return null;
 
-    const referenceAttribute = element.localName === 'dataStoreReference'
-      ? 'dataStoreRef'
-      : element.localName === 'dataObjectReference'
-        ? 'dataObjectRef'
-        : '';
+    let referenceAttribute = '';
+    if (element.localName === 'dataStoreReference') {
+      referenceAttribute = 'dataStoreRef';
+    } else if (element.localName === 'dataObjectReference') {
+      referenceAttribute = 'dataObjectRef';
+    }
     const referencedId = referenceAttribute ? element.getAttribute(referenceAttribute)?.trim() || '' : '';
     const referencedElement = referencedId
       ? Array.from(document.getElementsByTagName('*')).find(candidate => candidate.getAttribute('id') === referencedId)
@@ -631,9 +632,9 @@ export const ProcessDetails = ({
     const elementDocumentation = readDocumentation(element);
     const referencedDocumentation = readDocumentation(referencedElement);
     const documentedDescription = selectedDocumentedSource?.description?.trim();
-    const documentation = documentedDescription
-      ? [documentedDescription]
-      : elementDocumentation.length ? elementDocumentation : referencedDocumentation;
+    let documentation = referencedDocumentation;
+    if (elementDocumentation.length) documentation = elementDocumentation;
+    if (documentedDescription) documentation = [documentedDescription];
     const readLink = (candidate?: Element) => candidate
       ? Array.from(candidate.attributes).find(attribute => attribute.localName === 'link')?.value?.trim() || ''
       : '';
@@ -1146,7 +1147,7 @@ export const ProcessDetails = ({
                             <Typography level="body-xs" textColor="neutral">Référence de données BPMN</Typography>
                             <Typography level="body-sm">
                               {selectedTask.type === 'dataStoreReference' ? 'Magasin de données' : 'Objet de données'}
-                              {selectedTask.referencedElementName ? ' : ' + selectedTask.referencedElementName : ''}
+                              {selectedTask.referencedElementName && <> : {selectedTask.referencedElementName}</>}
                             </Typography>
                             <Typography level="body-xs" textColor="neutral">
                               Identifiant référencé : {selectedTask.referencedElementId}
