@@ -636,9 +636,12 @@ export const ProcessDetails = ({
     const isCollapsedSubProcess = element.localName === 'subProcess' && Array.from(document.getElementsByTagNameNS('*', 'BPMNShape')).some(
       shape => shape.getAttribute('bpmnElement') === selectedElementId && shape.getAttribute('isExpanded') === 'false',
     );
-    const linkedProcessTargetId = element.localName === 'callActivity'
-      ? element.getAttribute('calledElement')?.trim() || ''
-      : isCollapsedSubProcess ? selectedElementId : '';
+    let linkedProcessTargetId = '';
+    if (element.localName === 'callActivity') {
+      linkedProcessTargetId = element.getAttribute('calledElement')?.trim() || '';
+    } else if (isCollapsedSubProcess) {
+      linkedProcessTargetId = selectedElementId;
+    }
 
     return {
       id: selectedElementId,
