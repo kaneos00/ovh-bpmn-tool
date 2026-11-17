@@ -68,6 +68,7 @@ export class CreateResourceCommandHandler {
         depth: Resource.computeDepth(parentResource?.depth),
         createdBy: command.createdBy,
         type: command.type,
+        processMetadata: command.processMetadata ?? null,
       }),
     );
 
