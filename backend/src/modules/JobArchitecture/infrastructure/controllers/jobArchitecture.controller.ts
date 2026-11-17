@@ -118,7 +118,7 @@ export class JobArchitectureController {
     return this.jobArchitecture.assignMemberJobPosition(
       projectId,
       userId,
-      body.positionId ?? null,
+      body.positionId,
       headers,
     );
   }
