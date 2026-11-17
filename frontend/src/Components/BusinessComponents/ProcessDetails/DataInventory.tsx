@@ -400,9 +400,9 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                   retention: editingSourceId === source.id ? source.retention : linked?.retention ?? source.retention,
                   authorizedPeople: editingSourceId === source.id ? source.authorizedPeople : linked?.authorizedPeople ?? source.authorizedPeople,
                   restrictions: editingSourceId === source.id ? source.restrictions : linked?.restrictions ?? source.restrictions,
-                  projectStatus: linked ? 'Rattaché au projet (' + linked.references.length + ' référence(s))' : 'À créer',
+                  projectStatus: linked ? `Rattaché au projet (${linked.references.length} référence(s))` : 'À créer',
                   associationsLabel: source.associations.length
-                    ? source.associations.map(association => (association.direction === 'input' ? 'Entrée' : 'Sortie') + ' : ' + association.taskName).join(' • ')
+                    ? source.associations.map(association => `${association.direction === 'input' ? 'Entrée' : 'Sortie'} : ${association.taskName}`).join(' • ')
                     : 'Aucune association BPMN détectée',
                 };
               })}
@@ -411,7 +411,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                 {
                   headerName: 'Objet BPMN',
                   minWidth: 210,
-                  valueGetter: (params: ValueGetterParams<InventoryGridRow>) => params.data ? symbolLabel(params.data.bpmnType) + ' — ' + params.data.elementName : '',
+                  valueGetter: (params: ValueGetterParams<InventoryGridRow>) => params.data ? `${symbolLabel(params.data.bpmnType)} — ${params.data.elementName}` : '',
                   cellRenderer: (params: ICellRendererParams<InventoryGridRow>) => params.data ? (
                     <Stack direction="row" spacing={0.5} alignItems="center">
                       <BpmnDataSymbol type={params.data.bpmnType} />
@@ -427,7 +427,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                     <Stack spacing={0.25}>
                       {params.data.associations.map((association, index) => (
                         onElementSelect ? (
-                          <Button key={association.taskId + '-' + index} size="sm" variant="plain" color="neutral" onClick={() => { onShowDiagram?.(); onElementSelect(association.taskId); }} startDecorator={<CenterFocusStrong />}>
+                          <Button key={`${association.taskId}-${index}`} size="sm" variant="plain" color="neutral" onClick={() => { onShowDiagram?.(); onElementSelect(association.taskId); }} startDecorator={<CenterFocusStrong />}>
                             {association.taskName}
                           </Button>
                         ) : <Typography key={association.taskId + '-' + index} level="body-sm">{association.taskName}</Typography>
