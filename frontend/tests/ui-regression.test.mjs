@@ -1114,11 +1114,18 @@ test('project documented information uses canonical sources within one process a
 });
 
 
-test('user account menu provides direct access to all accessible projects', async () => {
+test('user account menu keeps preference controls open and persists the personalized home toggle', async () => {
   const menu = await read('src/Components/GenericComponents/UserAccountMenu/UserAccountMenu.tsx');
   assert.ok(menu.includes('WorkspacesOutlined'));
   assert.match(menu, /navigate\('\/projects'\)/);
   assert.match(menu, /Tous les projets/);
+  assert.match(menu, /aria-label="Activer ou désactiver l’accueil personnalisé"/);
+  assert.match(menu, /void toggleHomeDashboard\(\)/);
+  assert.match(menu, /homeDashboardEnabled: nextEnabled/);
+  assert.match(menu, /aria-label="Changer le thème"/);
+  assert.match(menu, /onClick=\{toggleTheme\}/);
+  assert.match(menu, /pointerEvents: 'none'/);
+  assert.doesNotMatch(menu, /MenuItem onClick=\{toggleTheme\}/);
 });
 
 test('V0.8 keeps process nature, process type and repository usage as distinct metadata', async () => {
