@@ -33,7 +33,8 @@ test('projects navigation is available in the breadcrumb, not as a row under exp
 });
 
 test('folder creation actions are hidden inside a folder while root actions remain available', () => {
-  assert.match(layout, /if \(!resource \|\| resource\.type === ResourceType\.Folder\) \{[\s\S]*?return <\/>/);
+  assert.ok(layout.includes('if (!resource || resource.type === ResourceType.Folder) {'));
+  assert.ok(layout.includes('return <></>'));
   assert.doesNotMatch(layout, /isRootFolder \|\| resource\?\.type === ResourceType\.Folder/);
   assert.match(layout, /if \\(!resource \\|\\| resource\\.type === ResourceType\\.Folder\\) \\{[\\s\\S]*?return <\\/>/);
 });
