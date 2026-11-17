@@ -440,6 +440,16 @@ test('RACI activity links select the BPMN element and return to the process tab'
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   assert.ok(details.includes('setActiveViewerTab(0)'));
   assert.ok(details.includes('onElementSelect?.(activity.elementId)'));
+  const grid = await read('src/Components/BusinessComponents/ProcessDetails/DocumentedSourcesGrid.tsx');
+  assert.ok(grid.includes('paginationGoToPage(Math.floor(node.rowIndex / 20))'));
+  assert.ok(grid.includes('getRowStyle={params =>'));
+  const modelerLayout = await read('src/Containers/BpmnLayout/hooks/useBpmnLayout.ts');
+  const modelerAction = await read('src/Containers/BpmnLayout/BpmnLayout.action.tsx');
+  const modelerContainer = await read('src/Containers/ContentModeler/ContentModeler.container.tsx');
+  assert.ok(modelerLayout.includes('navigate(`./modeler${location.search}`)'));
+  assert.ok(modelerAction.includes('redirect(`/${resourceId}/modeler${selectionQuery}`)'));
+  assert.ok(modelerContainer.includes('const returnToUrl = selectedElementId'));
+  assert.match(details, /if \(requestedDocumentedSourceId\) setActiveViewerTab\(4\)/);
   assert.ok(details.includes('CenterFocusStrong'));
   assert.ok(details.includes('aria-label="Voir l’activité dans le BPMN"'));
   assert.ok(details.includes('<Tabs value={activeViewerTab}'));
@@ -541,6 +551,8 @@ test('canonical process viewer restores element selection and RACI tab from rout
   assert.ok(layout.includes('useViewerRouteState()'));
   assert.ok(layout.includes('useViewerSelectionState('));
   assert.ok(layout.includes('selectedElementId={selectedElementId}'));
+  assert.ok(layout.includes('setSearchParams(next, { replace: true })'));
+  assert.ok(layout.includes("next.set('elementId', normalizedId)"));
   assert.ok(layout.includes('requestedRaciView={requestedRaciView}'));
   assert.ok(selectionState.includes('setSelectedElementId(requestedElementId)'));
   assert.ok(details.includes('onElementSelect?.(activity.elementId)'));
