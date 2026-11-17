@@ -296,7 +296,9 @@ export class JobArchitectureService {
     headers: RequestHeaders,
   ) {
     if (positionId === undefined) {
-      throw new BadRequestException('positionId must be provided; use null to clear the assignment');
+      throw new BadRequestException(
+        'positionId must be provided; use null to clear the assignment',
+      );
     }
     const actorUserId = await this.projectAccess.assertProjectRole(
       projectId,
