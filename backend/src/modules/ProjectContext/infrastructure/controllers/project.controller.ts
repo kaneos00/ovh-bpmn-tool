@@ -154,6 +154,14 @@ export class ProjectController {
         (remarksCountByProjectResource.get(key) ?? 0) + 1,
       );
     }
+    const changeRequestsCountByProjectResource = new Map<string, number>();
+    for (const proposal of proposalsForWorkspace) {
+      const key = `${proposal.projectId}:${proposal.sourceResourceId}`;
+      changeRequestsCountByProjectResource.set(
+        key,
+        (changeRequestsCountByProjectResource.get(key) ?? 0) + 1,
+      );
+    }
     const linksByProject = new Map<string, typeof links>();
     for (const link of visibleLinks) {
       const projectLinks = linksByProject.get(link.projectId) ?? [];
@@ -191,6 +199,10 @@ export class ProjectController {
             null,
           remarksCount:
             remarksCountByProjectResource.get(
+              `${link.projectId}:${link.resourceId}`,
+            ) ?? 0,
+          changeRequestsCount:
+            changeRequestsCountByProjectResource.get(
               `${link.projectId}:${link.resourceId}`,
             ) ?? 0,
         })),

@@ -55,7 +55,12 @@ export const Breadcrumbs: FC<BreadcrumbsProps> = ({
                     to={breadcrumbItem.to}
                     aria-label={breadcrumbItem.id === 'home' ? 'Accueil' : undefined}
                   >
-                    {breadcrumbItem.id === 'home' ? <Home /> : breadcrumbItem.label}
+                    {breadcrumbItem.id === 'home' ? (
+                      <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                        <Home />
+                        {breadcrumbItem.label}
+                      </Box>
+                    ) : breadcrumbItem.label}
                   </Link>
                 )}
               </React.Fragment>
