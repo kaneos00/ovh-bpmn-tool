@@ -64,13 +64,14 @@ test('a canonical documented source can be reused only once per BPMN resource', 
 
 test('BPMN documented-source associations can be changed or unlinked without deleting either object', async () => {
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
+  const grid = await read('src/Components/BusinessComponents/ProcessDetails/DocumentedSourcesGrid.tsx');
   const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
 
   assert.match(inventory, /changeAssociation/);
   assert.match(inventory, /apiClient\.put\([^\n]*\/references\/\$\{reference\.id\}/);
   assert.match(inventory, /apiClient\.remove\([^\n]*\/references\/\$\{reference\.id\}/);
   assert.match(inventory, /Changer la source…/);
-  assert.match(inventory, /Supprimer le lien/);
+  assert.match(grid, /Supprimer le lien/);
   assert.match(controller, /@Put\(':sourceId\/references\/:referenceId'\)/);
   assert.match(controller, /async changeReferenceSource/);
   assert.match(controller, /@Delete\(':sourceId\/references\/:referenceId'\)/);
