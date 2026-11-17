@@ -84,6 +84,8 @@ test('associated BPMN element opens the diagram with its matching object icon', 
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
 
   assert.match(inventory, /BpmnDataSymbol type=\{reference\.elementType\}/);
+  assert.match(inventory, /title="Ouvrir cet objet dans le diagramme BPMN"/);
+  assert.match(inventory, /onElementSelect\?\.\(reference\.elementId\)/);
   assert.match(inventory, /onElementSelect\?\.\(reference\.elementId\)/);
   assert.match(inventory, /onShowDiagram\?\.\(\)/);
   assert.match(details, /onElementSelect=\{elementId => \{ setActiveViewerTab\(0\); onElementSelect\?\.\(elementId\); \}\}/);
