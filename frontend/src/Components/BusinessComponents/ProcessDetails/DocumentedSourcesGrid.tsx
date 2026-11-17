@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import { AllCommunityModule, ColDef, ModuleRegistry } from 'ag-grid-community';
+import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
+import type { ColDef, ICellRendererParams } from 'ag-grid-community';
 import { AddOutlined, DeleteOutline, EditOutlined } from '@mui/icons-material';
 import { Box, Button, IconButton, Stack } from '@mui/joy';
 import 'ag-grid-community/styles/ag-grid.css';
@@ -46,9 +47,9 @@ export const DocumentedSourcesGrid = <T extends object,>({
       sortable: false,
       filter: false,
       resizable: false,
-      width: 142,
-      minWidth: 142,
-      cellRenderer: (params: { data?: T }) => {
+      width: 300,
+      minWidth: 300,
+      cellRenderer: (params: ICellRendererParams<T>) => {
         if (!params.data) return null;
         return (
           <Stack direction="row" spacing={0.25} alignItems="center">
@@ -58,7 +59,7 @@ export const DocumentedSourcesGrid = <T extends object,>({
               </IconButton>
             )}
             {onDelete && (!canDelete || canDelete(params.data as T)) && (
-              <IconButton size="sm" variant="plain" color="danger" title="Délier" aria-label="Délier" onClick={() => onDelete(params.data as T)}>
+              <IconButton size="sm" variant="plain" color="danger" title="Supprimer le lien" aria-label="Supprimer le lien" onClick={() => onDelete(params.data as T)}>
                 <DeleteOutline />
               </IconButton>
             )}
