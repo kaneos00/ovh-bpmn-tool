@@ -1075,7 +1075,7 @@ test('project documented information uses canonical sources within one process a
   assert.ok(inventory.includes("['description', 'Description', 230]"));
   assert.ok(inventory.includes("['link', 'Lien', 180]"));
   assert.ok(inventory.includes('DocumentedSourcesGrid<InventoryGridRow>'));
-  assert.ok(inventory.includes("'Nouveau'"));
+  assert.ok(inventory.includes("'À créer'"));
   assert.ok(inventory.includes('/references'));
   assert.ok(inventory.includes('/merge'));
   assert.ok(inventory.includes('sourceOptionLabel'));
