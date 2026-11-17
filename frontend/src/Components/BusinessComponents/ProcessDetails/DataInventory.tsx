@@ -316,7 +316,20 @@ export const DataInventory = ({
               >
                 <BpmnDataSymbol type={reference.elementType} />
               </IconButton>
-              <Typography level="body-sm" sx={{ flex: 1 }}>{reference.elementName}</Typography>
+              <Button
+                size="sm"
+                variant="plain"
+                color="primary"
+                sx={{ flex: 1, justifyContent: 'flex-start', minWidth: 0, px: 0.5, textAlign: 'left' }}
+                title="Ouvrir cet objet dans le diagramme BPMN"
+                onClick={event => {
+                  event.stopPropagation();
+                  onShowDiagram?.();
+                  onElementSelect?.(reference.elementId);
+                }}
+              >
+                {reference.elementName}
+              </Button>
               {canManageSources && (
                 <IconButton
                   size="sm"
