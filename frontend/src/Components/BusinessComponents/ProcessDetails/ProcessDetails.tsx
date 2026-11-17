@@ -399,7 +399,7 @@ export const ProcessDetails = ({
       surveillance: stored?.surveillance ?? node?.getAttribute('surveillance') ?? '',
       riskPrevention: stored?.riskPrevention ?? node?.getAttribute('riskPrevention') ?? '',
     });
-  }, [xmlContent, processResource?.processMetadata]);;
+  }, [xmlContent, processResource?.processMetadata]);
 
   useEffect(() => {
     let mounted = true;
@@ -1484,7 +1484,7 @@ export const ProcessDetails = ({
                     <Typography level="title-sm">Nature :</Typography>
                     <Chip size="md" variant="soft" color={processMetadata.processNature === 'global' ? 'primary' : 'neutral'}>{processMetadata.processNature === 'global' ? 'Global' : 'Spécifique'}</Chip>
                   </Stack>
-                  {processMetadata.processNature === 'operationnel' ? (
+                  {processMetadata.processType === 'operationnel' ? (
                     <Box><Typography level="title-sm">Finalité opérationnelle</Typography><Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>{processMetadata.operationalPurpose || 'Non renseignée'}</Typography><Typography level="title-sm">Périmètre opérationnel</Typography><Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>{processMetadata.operationalScope || 'Non renseigné'}</Typography><Typography level="title-sm">Modalités de fonctionnement</Typography><Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>{processMetadata.operationalMode || 'Non renseignées'}</Typography></Box>
                   ) : null}
                   <Box><Typography level="title-sm">Particularités et spécificités</Typography><Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>{processMetadata.specificities || 'Non renseignées'}</Typography></Box>
