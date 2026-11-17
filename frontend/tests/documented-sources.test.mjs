@@ -14,7 +14,6 @@ test('new documented BPMN references can be selected and created from the reusab
   assert.match(inventory, /addLabel="Créer la source du projet"/);
   assert.match(inventory, /editable: \(params: EditableCallbackParams<InventoryGridRow>\) => Boolean\(params\.data && editingSourceId === params\.data\.id\)/);
   assert.match(inventory, /if \(!linked\) \{ await createCanonicalSource\(source\); return; \}/);
-  assert.match(inventory, /onEdit=\{canEdit \?/);
   assert.match(inventory, /setEditingSourceId\(row\.id\)/);
   assert.match(inventory, /cellEditor: 'agSelectCellEditor'/);
 });
@@ -29,7 +28,7 @@ test('documented source creation and association remain project-scoped and prese
   assert.match(inventory, /link: source\.link/);
   assert.match(inventory, /location: source\.location/);
   assert.match(inventory, /retention: source\.retention/);
-  assert.match(inventory, /value=\{null\} disabled=\{associatingElementId === row\.id\}/);
+  assert.match(inventory, /value=\{null\} disabled=\{Boolean\(associatingElementId\)\}/);
   assert.match(inventory, /projectSources\.filter/);
   assert.match(inventory, /\.map\(item => <Option key=\{item\.id\} value=\{item\.id\}/);
   assert.match(details, /selectedDocumentedSource\.description/);
@@ -71,7 +70,7 @@ test('BPMN documented-source associations can be changed or unlinked without del
   assert.match(inventory, /apiClient\.put\([^\n]*\/references\/\$\{reference\.id\}/);
   assert.match(inventory, /apiClient\.remove\([^\n]*\/references\/\$\{reference\.id\}/);
   assert.match(inventory, /Changer la source…/);
-  assert.match(grid, /Supprimer le lien/);
+  assert.match(inventory, /Délier la source/);
   assert.match(controller, /@Put\(':sourceId\/references\/:referenceId'\)/);
   assert.match(controller, /async changeReferenceSource/);
   assert.match(controller, /@Delete\(':sourceId\/references\/:referenceId'\)/);
@@ -103,27 +102,25 @@ test('documented information inventory uses a reusable AG Grid with add, edit an
 
   assert.match(inventory, /DocumentedSourcesGrid<InventoryGridRow>/);
   assert.match(inventory, /onAdd=\{canManageSources \?/);
-  assert.match(inventory, /onEdit=\{canEdit \?/);
-  assert.match(inventory, /onDelete=\{canManageSources \?/);
   assert.match(inventory, /apiClient\.remove\([^\n]*\/references\/\$\{reference\.id\}/);
   assert.match(grid, /from 'ag-grid-react'/);
   assert.match(grid, /AllCommunityModule/);
   assert.match(grid, /onAdd\?: \(\) => void/);
-  assert.match(grid, /onEdit\?: \(row: T\) => void/);
-  assert.match(grid, /onDelete\?: \(row: T\) => void/);
   assert.match(grid, /AddOutlined/);
-  assert.match(grid, /EditOutlined/);
-  assert.match(grid, /DeleteOutline/);
   assert.equal(packageJson.dependencies['ag-grid-community'], '33.3.2');
   assert.equal(packageJson.dependencies['ag-grid-react'], '33.3.2');
 });
 
 
-test('documented source grid keeps row selection and action controls interactive', async () => {
+test('documented source grid delegates row actions to an external toolbar', async () => {
   const grid = await read('src/Components/BusinessComponents/ProcessDetails/DocumentedSourcesGrid.tsx');
 
   assert.match(grid, /rowSelection=\{\{ mode: 'singleRow', enableClickSelection: true \}\}/);
-  assert.match(grid, /suppressMouseEventHandling: \(\) => true/);
-  assert.match(grid, /onClick=\{event => event\.stopPropagation\(\)\}/);
-  assert.match(grid, /onMouseDown=\{event => event\.stopPropagation\(\)\}/);
+  assert.match(grid, /onRowClicked=\{event => onRowSelected\?\.\(event\.data \?\? null\)\}/);
+  assert.doesNotMatch(grid, /cellRenderer/);
+  assert.match(inventory, /Actions pour : \{selectedSource\.elementName\}/);
+  assert.match(inventory, /onClick=\{\(\) => startEditing\(selectedSource\)\}/);
+  assert.match(inventory, /onClick=\{\(\) => void unlink\(selectedSource\)\}/);
+  assert.match(inventory, /selectedLinkedSource \? changeAssociation\(selectedSource, value\) : associate\(selectedSource, value\)/);
+  assert.match(inventory, /setPendingMerge\(\{ sourceId: selectedLinkedSource\.id, targetId: mergeTargets\[selectedLinkedSource\.id\] \}\)/);
 });
