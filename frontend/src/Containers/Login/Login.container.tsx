@@ -21,7 +21,7 @@ import {
 const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
 
 function getSafeV3Destination(requestedPath: string | null): string {
-  if (!requestedPath) return '/root';
+  if (!requestedPath) return '/';
 
   let destination: URL;
   try {
@@ -40,6 +40,8 @@ function getSafeV3Destination(requestedPath: string | null): string {
 
   const path = destination.pathname;
   const validV3Path =
+    path === '/' ||
+    path === '/home' ||
     path === '/root' ||
     /^\/[^/]+$/.test(path) ||
     /^\/[^/]+\/modeler$/.test(path) ||

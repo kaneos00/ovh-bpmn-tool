@@ -27,6 +27,7 @@ export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
   const navigate = useNavigate();
   const [session, setSession] = useState<Session | null>(null);
   const [busy, setBusy] = useState(false);
+  const [homeDashboardEnabled, setHomeDashboardEnabled] = useState(false);
   const [error, setError] = useState('');
   const { mode, setMode } = useColorScheme();
   const isDark = mode === 'dark';
@@ -48,6 +49,9 @@ export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
         if (active && (preferences?.theme === 'light' || preferences?.theme === 'dark')) {
           setMode(preferences.theme);
         }
+        if (active && typeof preferences?.homeDashboardEnabled === 'boolean') {
+          setHomeDashboardEnabled(preferences.homeDashboardEnabled);
+        }
       })
       .catch(() => {
         // The locally stored preference remains available if server sync is unavailable.
@@ -66,6 +70,23 @@ export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
     }).catch(() => {
       // Joy UI persists the preference locally.
     });
+  };
+
+  const toggleHomeDashboard = async () => {
+    const nextEnabled = !homeDashboardEnabled;
+    try {
+      const response = await fetch(`${apiBase}/auth/preferences`, {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ homeDashboardEnabled: nextEnabled }),
+      });
+      if (!response.ok) throw new Error('Enregistrement impossible.');
+      setHomeDashboardEnabled(nextEnabled);
+      navigate(nextEnabled ? '/home' : '/root', { replace: true });
+    } catch {
+      setError('Impossible d’enregistrer la préférence de page d’accueil.');
+    }
   };
 
   const stopImpersonation = async () => {
@@ -165,6 +186,10 @@ export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
         <MenuItem onClick={() => navigate('/projects')}>
           <WorkspacesOutlined fontSize="small" />
           Tous les projets
+        </MenuItem>
+        <MenuItem onClick={toggleHomeDashboard} sx={{ justifyContent: 'space-between', gap: 2 }}>
+          <Typography level="body-sm">Accueil personnalisé</Typography>
+          <Switch size="sm" checked={homeDashboardEnabled} readOnly tabIndex={-1} />
         </MenuItem>
         <MenuItem onClick={toggleTheme} sx={{ justifyContent: 'space-between', gap: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

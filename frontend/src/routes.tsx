@@ -53,6 +53,23 @@ async function requireOrganizationSection(args: {
   return null;
 }
 
+async function resolveHomeLanding() {
+  try {
+    const response = await fetch(`${apiBase}/auth/preferences`, {
+      credentials: 'same-origin',
+      headers: { accept: 'application/json' },
+    });
+    if (response.ok) {
+      const preferences = await response.json();
+      if (preferences?.homeDashboardEnabled === true) throw redirect('/home');
+    }
+  } catch (reason) {
+    if (reason instanceof Response) throw reason;
+    // Keep the established landing page when preferences cannot be loaded.
+  }
+  throw redirect('/root');
+}
+
 async function redirectLegacyAccounts({ request }: { request: Request }) {
   await requireGlobalAdmin({ request });
   const url = new URL(request.url);
@@ -90,11 +107,11 @@ export const routes = [
       },
       {
         path: '/',
-        loader: () => redirect('/root'),
+        loader: resolveHomeLanding,
       },
       {
         path: '/home',
-        loader: () => redirect('/root'),
+        lazy: () => import('./Containers/HomeDashboard'),
       },
       {
         path: '/projects',
