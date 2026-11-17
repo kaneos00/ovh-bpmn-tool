@@ -12,6 +12,7 @@ export type ResourceProps = {
   type: ResourceTypeEnum;
   createdBy: string;
   authToken?: Nullable<string>;
+  processMetadata?: Record<string, string> | null;
 };
 
 export class Resource {
@@ -60,6 +61,14 @@ export class Resource {
     return this.state.authToken || null;
   }
 
+  get processMetadata(): Record<string, string> | null {
+    return this.state.processMetadata ?? null;
+  }
+
+  public changeProcessMetadata(metadata: Record<string, string> | null) {
+    this.state.processMetadata = metadata;
+  }
+
   get state(): ResourceProps {
     return this._stateProps;
   }
@@ -96,6 +105,7 @@ export class Resource {
         type: props.type,
         createdBy: props.createdBy,
         authToken: props.authToken,
+        processMetadata: props.processMetadata ?? null,
       },
       id,
     );
