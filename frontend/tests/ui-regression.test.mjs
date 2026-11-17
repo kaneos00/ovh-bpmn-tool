@@ -1072,7 +1072,9 @@ test('project documented information uses canonical sources within one process a
   assert.ok(inventory.includes("child.localName === 'documentation'"));
   assert.ok(inventory.includes("attribute.localName === 'link'"));
   assert.ok(inventory.includes('getReferencedElement'));
-  assert.ok(inventory.includes('<th>Description</th><th>Lien</th>'));
+  assert.ok(inventory.includes("['description', 'Description', 230]"));
+  assert.ok(inventory.includes("['link', 'Lien', 180]"));
+  assert.ok(inventory.includes('DocumentedSourcesGrid<InventoryGridRow>'));
   assert.ok(inventory.includes("'Nouveau'"));
   assert.ok(inventory.includes('/references'));
   assert.ok(inventory.includes('/merge'));
