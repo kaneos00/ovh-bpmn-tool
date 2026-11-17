@@ -77,7 +77,10 @@ const optionalDate = (value: unknown, field: string): string | null => {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value))
     throw new BadRequestException(field + ' must be a valid YYYY-MM-DD date');
   const parsed = new Date(value + 'T00:00:00.000Z');
-  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value)
+  if (
+    Number.isNaN(parsed.getTime()) ||
+    parsed.toISOString().slice(0, 10) !== value
+  )
     throw new BadRequestException(field + ' must be a valid YYYY-MM-DD date');
   return value;
 };
@@ -419,7 +422,7 @@ export class ProjectDocumentedSourceController {
     });
   }
 
-    @Put(':sourceId')
+  @Put(':sourceId')
   @UseAcl([UserGroup.RW])
   async update(
     @Param('projectId') projectId: string,
@@ -720,8 +723,12 @@ export class ProjectDocumentedSourceController {
         }
       });
       if (!target.name.trim() && source.name.trim()) target.name = source.name;
-      if (source.validUntil && (!target.validUntil || source.validUntil < target.validUntil))
+      if (
+        source.validUntil &&
+        (!target.validUntil || source.validUntil < target.validUntil)
+      ) {
         target.validUntil = source.validUntil;
+      }
       await sourceRepository.save(target);
 
       const sourceReferences = await referenceRepository.find({
