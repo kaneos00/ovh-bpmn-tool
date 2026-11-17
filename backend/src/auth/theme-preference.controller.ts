@@ -55,7 +55,7 @@ export class ThemePreferenceController {
       throw new BadRequestException('Préférence utilisateur invalide.');
     }
     await this.db.query(
-      'INSERT INTO app_user_preferences (user_id, theme, home_dashboard_enabled, updated_at) VALUES ($1, COALESCE($2, \'light\'), COALESCE($3, FALSE), NOW()) ON CONFLICT (user_id) DO UPDATE SET theme = COALESCE($2, app_user_preferences.theme), home_dashboard_enabled = COALESCE($3, app_user_preferences.home_dashboard_enabled), updated_at = NOW()',
+      "INSERT INTO app_user_preferences (user_id, theme, home_dashboard_enabled, updated_at) VALUES ($1, COALESCE($2, 'light'), COALESCE($3, FALSE), NOW()) ON CONFLICT (user_id) DO UPDATE SET theme = COALESCE($2, app_user_preferences.theme), home_dashboard_enabled = COALESCE($3, app_user_preferences.home_dashboard_enabled), updated_at = NOW()",
       [userId, body.theme ?? null, body.homeDashboardEnabled ?? null],
     );
     return {
