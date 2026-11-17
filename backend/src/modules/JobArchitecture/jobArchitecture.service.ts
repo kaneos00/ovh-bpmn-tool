@@ -281,6 +281,8 @@ export class JobArchitectureService {
     const jobFunction = await this.functions.findOne({
       where: { id: position.functionId, active: true },
     });
+    if (!jobFunction) return null;
+
     return {
       projectId,
       userId,
