@@ -1194,3 +1194,34 @@ test('documented-information search opens the inventory record from both search 
   assert.ok(inventory.includes('selectedRowId={selectedElementId ?? undefined}'));
   assert.ok(grid.includes('event.api.ensureNodeVisible(node, \'middle\')'));
 });
+
+test('Viewer resolves Data Object and Data Store references through their BPMN definitions', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.ok(details.includes("element.localName === 'dataStoreReference'"));
+  assert.ok(details.includes("element.localName === 'dataObjectReference'"));
+  assert.ok(details.includes("element.getAttribute(referenceAttribute)?.trim()"));
+  assert.ok(details.includes("selectedDocumentedSource?.description?.trim()"));
+  assert.ok(details.includes("selectedDocumentedSource?.link?.trim()"));
+  assert.ok(details.includes('|| referencedElementName'));
+  assert.ok(details.includes('Identifiant référencé : {selectedTask.referencedElementId}'));
+});
+
+test('Viewer restores its selected BPMN element after returning from the Modeler', async () => {
+  const viewer = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+
+  assert.ok(viewer.includes("window.addEventListener('popstate', reapplySelection)"));
+  assert.ok(viewer.includes("window.addEventListener('pageshow', reapplySelection)"));
+  assert.ok(viewer.includes("document.addEventListener('visibilitychange', reapplySelection)"));
+  assert.ok(viewer.includes('applySelectionRef.current();'));
+});
+
+test('documented information inventory provides direct navigation to its BPMN element', async () => {
+  const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.ok(inventory.includes('Ouvrir cet élément dans le diagramme BPMN'));
+  assert.ok(inventory.includes('onShowDiagram?.();'));
+  assert.ok(inventory.includes('onElementSelect(params.data!.id)'));
+  assert.ok(details.includes('onElementSelect={elementId => { setActiveViewerTab(0); onElementSelect?.(elementId); }}'));
+});
