@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Outlet, useNavigate, useParams } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Outlet, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import { Box, Chip, Sheet, Stack } from '@mui/joy';
 
@@ -29,6 +29,7 @@ import './BpmnLayoutContainer.scss';
 
 export const Component = () => {
   const { resourceId } = useParams() as BpmnLayoutRouteParams;
+  const [searchParams, setSearchParams] = useSearchParams();
   const { requestedElementId, requestedContentId, requestedRaciView, requestedDocumentedSourceId } = useViewerRouteState();
   const navigate = useNavigate();
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
@@ -81,6 +82,14 @@ export const Component = () => {
     requestedContentId,
     requestedElementId,
   );
+  const handleElementSelect = useCallback((elementId: string) => {
+    const normalizedId = elementId || null;
+    setSelectedElementId(normalizedId);
+    const next = new URLSearchParams(searchParams);
+    if (normalizedId) next.set('elementId', normalizedId);
+    else next.delete('elementId');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams, setSelectedElementId]);
 
   const { resource, callbacks } = useBpmnLayout();
   const { projects, activeProject, activeProjectId, setActiveProject, isLoading: projectsLoading } = useActiveProject();
@@ -271,7 +280,7 @@ export const Component = () => {
                               onModelerClick={callbacks.header.onModelerBtnClick}
                               onCompareClick={callbacks.processDetails.onCompareClick}
                               selectedElementId={selectedElementId}
-                              onElementSelect={setSelectedElementId}
+                              onElementSelect={handleElementSelect}
                               selectedContentId={requestedContentId}
                               requestedRaciView={requestedRaciView}
                               requestedDocumentedSourceId={requestedDocumentedSourceId}
