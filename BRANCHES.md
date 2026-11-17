@@ -11,7 +11,8 @@ Ce document distingue les **branches de référence numérotées** des branches 
 | `V0.3` | historique | `b3efd8a6` | Repère historique conservé |
 | `V0.4` | `v2.3` | `d4a8c389` | Référence V2 antérieure |
 | `V0.5` | `v2.4` | `df25c696` | Référence V2 actuelle, informations documentées et navigation explorateur |
-| `V0.6` | `v3` | `d372f644` | Référence de développement V3 |
+| `V0.6` | `v3` | `d372f644` | Base de la lignée V3 avant les évolutions #129 |
+| `V0.7` | `feat/issue-129-documented-information` | `df25c696` | Référence V3 intégrant les informations documentées et les indicateurs de navigation |
 
 Les branches `V0.1` à `V0.6` sont des repères de version successifs. La numérotation continue à partir de `V0.7` pour la prochaine référence publiée.
 
