@@ -35,7 +35,6 @@ import {
   StarBorder,
   Search,
   MoreVert,
-  AppsRounded,
   FolderOpenRounded,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
