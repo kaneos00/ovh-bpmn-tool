@@ -25,7 +25,10 @@ export class ThemePreferenceController {
   @Get()
   async getPreferences(@Req() request: Request) {
     const userId = await this.getAuthenticatedUserId(request);
-    const rows: Array<{ theme: ThemeMode; home_dashboard_enabled: boolean }> = await this.db.query(
+    const rows: Array<{
+      theme: ThemeMode;
+      home_dashboard_enabled: boolean;
+    }> = await this.db.query(
       'SELECT theme, home_dashboard_enabled FROM app_user_preferences WHERE user_id = $1',
       [userId],
     );
@@ -42,8 +45,11 @@ export class ThemePreferenceController {
   ) {
     const userId = await this.getAuthenticatedUserId(request);
     if (
-      (body?.theme !== undefined && body.theme !== 'light' && body.theme !== 'dark') ||
-      (body?.homeDashboardEnabled !== undefined && typeof body.homeDashboardEnabled !== 'boolean') ||
+      (body?.theme !== undefined &&
+        body.theme !== 'light' &&
+        body.theme !== 'dark') ||
+      (body?.homeDashboardEnabled !== undefined &&
+        typeof body.homeDashboardEnabled !== 'boolean') ||
       (body?.theme === undefined && body?.homeDashboardEnabled === undefined)
     ) {
       throw new BadRequestException('Préférence utilisateur invalide.');
