@@ -197,6 +197,7 @@ export const Component = () => {
   };
 
   const openResult = (result: {
+    id: string;
     resourceId?: string;
     projectId?: string;
     elementId?: string;
@@ -212,6 +213,7 @@ export const Component = () => {
     const resultProjectId = result.projectId ?? effectiveProjectId;
     if (resultProjectId) params.set('projectId', resultProjectId);
     if (result.elementId) params.set('elementId', result.elementId);
+    if (result.type === 'documented') params.set('documentedSourceId', result.id);
     if (result.type === 'raci') params.set('raci', '1');
     const queryString = params.toString();
     navigate(queryString ? `/${result.resourceId}?${queryString}` : `/${result.resourceId}`);
