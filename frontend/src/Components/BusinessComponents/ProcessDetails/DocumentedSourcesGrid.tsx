@@ -14,8 +14,6 @@ type Props<T extends object> = {
   onAdd?: () => void;
   addLabel?: string;
   addDisabled?: boolean;
-  onRowSelected?: (row: T | null) => void;
-  selectedRowId?: string;
   height?: number;
 };
 
@@ -26,8 +24,6 @@ export const DocumentedSourcesGrid = <T extends object,>({
   onAdd,
   addLabel = 'Ajouter',
   addDisabled = false,
-  onRowSelected,
-  selectedRowId,
   height = 520,
 }: Props<T>) => (
   <Box sx={{ width: '100%', minWidth: 0 }}>
@@ -43,25 +39,13 @@ export const DocumentedSourcesGrid = <T extends object,>({
         columnDefs={columnDefs}
         getRowId={params => getRowId(params.data)}
         defaultColDef={{ sortable: true, filter: true, resizable: true, minWidth: 110, flex: 1, wrapText: true, autoHeight: true }}
-        // AG Grid v33 disables click-to-select by default. Selection drives
-        // the action toolbar rendered outside the grid.
-        rowSelection={{ mode: 'singleRow', enableClickSelection: true }}
+        // Editing starts on double-click; Escape cancels the active editor.
+        singleClickEdit={false}
+        suppressClickEdit={false}
         suppressCellFocus
         animateRows={false}
         pagination
         paginationPageSize={20}
-        onFirstDataRendered={event => {
-          if (!selectedRowId) return;
-          const node = event.api.getRowNode(selectedRowId);
-          if (node) { node.setSelected(true); event.api.ensureNodeVisible(node, 'middle'); }
-        }}
-        onRowDataUpdated={event => {
-          if (!selectedRowId) return;
-          const node = event.api.getRowNode(selectedRowId);
-          if (node) { node.setSelected(true); event.api.ensureNodeVisible(node, 'middle'); }
-        }}
-        onRowClicked={event => onRowSelected?.(event.data ?? null)}
-        onSelectionChanged={event => onRowSelected?.(event.api.getSelectedRows()[0] ?? null)}
         localeText={{
           page: 'Page',
           to: 'à',
