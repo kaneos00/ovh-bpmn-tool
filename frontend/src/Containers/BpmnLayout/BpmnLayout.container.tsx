@@ -150,7 +150,7 @@ export const Component = () => {
   const actions = useMemo(() => {
     const isRootFolder = isRoot(resourceId);
 
-    if (isRootFolder || resource?.type === ResourceType.Folder) {
+    if (isRootFolder) {
       return (
         <FolderActions
           projectId={activeProjectId}
