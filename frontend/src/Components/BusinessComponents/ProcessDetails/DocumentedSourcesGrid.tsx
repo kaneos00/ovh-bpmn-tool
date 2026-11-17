@@ -1,11 +1,9 @@
 import React, { useMemo } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
+import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
 import type { ColDef, ICellRendererParams } from 'ag-grid-community';
 import { AddOutlined, DeleteOutline, EditOutlined } from '@mui/icons-material';
 import { Box, Button, IconButton, Stack } from '@mui/joy';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-quartz.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -77,13 +75,14 @@ export const DocumentedSourcesGrid = <T extends object,>({
           <Button size="sm" startDecorator={<AddOutlined />} disabled={addDisabled} onClick={onAdd}>{addLabel}</Button>
         </Stack>
       )}
-      <Box className="ag-theme-quartz" sx={{ width: '100%', height, minWidth: 0 }}>
+      <Box sx={{ width: '100%', height, minWidth: 0 }}>
         <AgGridReact<T>
+          theme={themeQuartz}
           rowData={rowData}
           columnDefs={columns}
           getRowId={params => getRowId(params.data)}
           defaultColDef={{ sortable: true, filter: true, resizable: true, minWidth: 110, flex: 1, wrapText: true, autoHeight: true }}
-          rowSelection="single"
+          rowSelection={{ mode: 'singleRow' }}
           suppressCellFocus
           animateRows={false}
           pagination
