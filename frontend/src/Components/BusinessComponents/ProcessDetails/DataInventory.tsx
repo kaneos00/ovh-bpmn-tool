@@ -86,7 +86,7 @@ const emptySource = (id: string): ProjectDocumentedSource => ({
 });
 
 const normalizeKind = (kind: ProjectDocumentedSource['kind']): SourceKind =>
-  kind === 'database' || kind === 'application' ? kind : 'file';
+  kind === 'database' ? 'database' : kind === 'application' || kind === 'form' ? 'application' : 'file';
 
 const KindIcon = ({ kind }: { kind: SourceKind }) => {
   if (kind === 'database') return <StorageOutlined />;
@@ -103,7 +103,6 @@ const BpmnDataSymbol = ({ type }: { type: BpmnDataType }) => (
 );
 
 export const DataInventory = ({
-  canEdit,
   projectId,
   resourceId,
   requestedDocumentedSourceId,
@@ -407,11 +406,6 @@ export const DataInventory = ({
               Référentiel des fichiers, bases de données et applications utilisés par le processus.
             </Typography>
           </Box>
-          {canManageSources && (
-            <Button size="sm" onClick={addRow} disabled={Boolean(savingId)}>
-              Ajouter une information documentée
-            </Button>
-          )}
         </Stack>
         {error && <Alert color="danger" variant="soft">{error}</Alert>}
         {projectSourcesQuery.isError && (
@@ -431,7 +425,7 @@ export const DataInventory = ({
           selectedRowId={selectedSourceId ?? undefined}
           onRowSelected={row => setSelectedSourceId(row?.id ?? null)}
           onAdd={canManageSources ? addRow : undefined}
-          addLabel="Ajouter une ligne"
+          addLabel="Ajouter une ligne : information documentée"
           addDisabled={Boolean(savingId)}
           height={560}
         />
