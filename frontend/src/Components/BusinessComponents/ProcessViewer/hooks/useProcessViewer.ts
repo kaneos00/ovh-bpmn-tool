@@ -242,6 +242,10 @@ export const useProcessViewer = (
       } else {
         resizeDiagramRef.current();
       }
+      // The Modeler can clear diagram-js selection while this Viewer remains
+      // mounted. Reapply the route-controlled marker whenever the canvas
+      // becomes visible or changes size after returning to the Viewer.
+      applySelectionRef.current();
     });
     observer.observe(host);
     return () => observer.disconnect();
@@ -622,6 +626,28 @@ export const useProcessViewer = (
   useEffect(() => {
     applySelectionRef.current();
   }, [selectedElementId]);
+
+  useEffect(() => {
+    const reapplySelection = () => {
+      if (document.visibilityState === 'hidden') return;
+      window.requestAnimationFrame(() => {
+        if (importedRef.current) applySelectionRef.current();
+      });
+    };
+    // Returning from the Modeler may leave this Viewer instance mounted while
+    // its diagram-js selection has been cleared. Reconcile the visual marker
+    // on browser history navigation, page restoration and visibility changes.
+    window.addEventListener('popstate', reapplySelection);
+    window.addEventListener('pageshow', reapplySelection);
+    window.addEventListener('focus', reapplySelection);
+    document.addEventListener('visibilitychange', reapplySelection);
+    return () => {
+      window.removeEventListener('popstate', reapplySelection);
+      window.removeEventListener('pageshow', reapplySelection);
+      window.removeEventListener('focus', reapplySelection);
+      document.removeEventListener('visibilitychange', reapplySelection);
+    };
+  }, [viewer]);
 
   useEffect(() => () => {
     try {
