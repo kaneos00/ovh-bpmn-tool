@@ -57,7 +57,7 @@ describe('ThemePreferenceController', () => {
       headers: { cookie: sessionCookie() },
     } as never);
 
-    expect(result).toEqual({ theme: 'dark' });
+    expect(result).toEqual({ theme: 'dark', homeDashboardEnabled: false });
     expect(db.query).toHaveBeenNthCalledWith(
       2,
       'SELECT theme, home_dashboard_enabled FROM app_user_preferences WHERE user_id = $1',
@@ -79,7 +79,7 @@ describe('ThemePreferenceController', () => {
     expect(db.query).toHaveBeenNthCalledWith(
       2,
       expect.stringContaining('INSERT INTO app_user_preferences'),
-      ['user-1', 'dark'],
+      ['user-1', 'dark', null],
     );
   });
 

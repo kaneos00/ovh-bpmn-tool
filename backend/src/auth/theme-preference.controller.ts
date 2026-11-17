@@ -45,9 +45,13 @@ export class ThemePreferenceController {
   ) {
     const userId = await this.getAuthenticatedUserId(request);
     if (
-      (body?.theme !== undefined &&
-        body.theme !== 'light' &&
-        body.theme !== 'dark') ||
+      body?.theme !== undefined &&
+      body.theme !== 'light' &&
+      body.theme !== 'dark'
+    ) {
+      throw new BadRequestException('Préférence de thème invalide.');
+    }
+    if (
       (body?.homeDashboardEnabled !== undefined &&
         typeof body.homeDashboardEnabled !== 'boolean') ||
       (body?.theme === undefined && body?.homeDashboardEnabled === undefined)
