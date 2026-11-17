@@ -292,9 +292,12 @@ export class JobArchitectureService {
   async assignMemberJobPosition(
     projectId: string,
     memberUserId: string,
-    positionId: string | null,
+    positionId: string | null | undefined,
     headers: RequestHeaders,
   ) {
+    if (positionId === undefined) {
+      throw new BadRequestException('positionId must be provided; use null to clear the assignment');
+    }
     const actorUserId = await this.projectAccess.assertProjectRole(
       projectId,
       headers,
