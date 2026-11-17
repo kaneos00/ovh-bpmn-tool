@@ -1076,9 +1076,9 @@ test('project documented information uses canonical sources within one process a
 
   assert.ok(inventory.includes('DocumentedSourcesGrid<InventoryGridRow>'));
   assert.ok(inventory.includes('Ajouter une ligne : information documentée'));
-  assert.ok(inventory.includes('<Option value="file">'));
-  assert.ok(inventory.includes('<Option value="database">'));
-  assert.match(inventory, /<Option value="application">[\s\S]*Application/);
+  assert.ok(inventory.includes("cellEditor: 'agSelectCellEditor'"));
+  assert.ok(inventory.includes("cellEditorParams: { values: ['file', 'database', 'application'] }"));
+  assert.match(inventory, /application: 'Application'/);
   assert.match(inventory, /if \(kind === 'application' \|\| kind === 'form'\) return 'application'/);
   assert.ok(inventory.includes('unlinkedReferences'));
   assert.ok(inventory.includes('Associer un objet BPMN'));
