@@ -1159,3 +1159,30 @@ test('quick search exposes documented information and opens the matching search 
   assert.match(searchService, /if \(includes\('documented'\) && allowedProjectIds\.length\)/);
   assert.match(searchService, /findDocumentedSourceSearchMatch\(source, normalizedQuery\)/);
 });
+
+
+test('documented-information search opens the inventory record from both search entry points without merging BPMN results', async () => {
+  const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+  const results = await read('src/Containers/SearchResults/SearchResults.container.tsx');
+  const routeState = await read('src/shared/hooks/useViewerRouteState.ts');
+  const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
+  const grid = await read('src/Components/BusinessComponents/ProcessDetails/DocumentedSourcesGrid.tsx');
+
+  assert.ok(navigation.includes('<Option value="documented">Informations documentées</Option>'));
+  assert.ok(navigation.includes("result.type === 'documented'"));
+  assert.ok(navigation.includes("params.set('documentedSourceId', result.documentedSourceId)"));
+  assert.ok(navigation.includes("documentedSourceId: result.type === 'documented' ? result.id : undefined"));
+  assert.ok(navigation.includes("key: `${result.type}:${result.projectId ?? ''}:${result.resourceId ?? ''}:${result.id}`"));
+  assert.ok(navigation.includes("const detailLabel = result.type === 'documented'"));
+
+  assert.ok(results.includes("if (result.type === 'documented') params.set('documentedSourceId', result.id)"));
+  assert.ok(routeState.includes("requestedDocumentedSourceId: searchParams.get('documentedSourceId')"));
+  assert.ok(layout.includes('requestedDocumentedSourceId={requestedDocumentedSourceId}'));
+  assert.ok(details.includes('if (requestedDocumentedSourceId) setActiveViewerTab(4)'));
+  assert.ok(details.includes('requestedDocumentedSourceId={requestedDocumentedSourceId}'));
+  assert.ok(inventory.includes('source.id === requestedDocumentedSourceId'));
+  assert.ok(inventory.includes('selectedRowId={selectedElementId ?? undefined}'));
+  assert.ok(grid.includes('event.api.ensureNodeVisible(node, \'middle\')'));
+});
