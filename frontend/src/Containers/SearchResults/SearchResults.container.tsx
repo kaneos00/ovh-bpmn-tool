@@ -249,7 +249,7 @@ export const Component = () => {
         <Stack spacing={0.5}>
           <Typography level="h2">Résultats de recherche</Typography>
           <Typography level="body-sm" color="neutral">
-            Recherche approfondie dans les processus, les éléments BPMN, les rôles et les responsabilités.
+            Recherche approfondie dans les processus, les éléments BPMN, les rôles, les responsabilités et les informations documentées des projets accessibles.
           </Typography>
         </Stack>
 
@@ -261,7 +261,7 @@ export const Component = () => {
               onKeyDown={(event) => {
                 if (event.key === 'Enter') applySearch();
               }}
-              placeholder="Saisir un nom, une description, une activité, un rôle…"
+              placeholder="Saisir un nom, une description, une activité, un rôle ou une information documentée…"
               startDecorator={<Search fontSize="small" />}
               sx={{ flex: 1, minWidth: 220 }}
               aria-label="Texte à rechercher"
