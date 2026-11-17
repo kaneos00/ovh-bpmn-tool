@@ -11,12 +11,12 @@ import {
 import { WorkspacePageLayout } from '../../Components/GenericComponents/WorkspacePageLayout/WorkspacePageLayout';
 import { useActiveProject } from '../../shared/hooks/useActiveProject';
 
-const quickActions = [
+type QuickAction = {\n  label: string;\n  description: string;\n  Icon: typeof AssignmentTurnedInOutlined;\n  run: (navigate: ReturnType<typeof useNavigate>, projectId: string | null, setActiveProject: (id: string) => void) => void;\n};\n\nconst quickActions: QuickAction[] = [
   {
     label: 'Mes responsabilités',
     description: 'Consulter le RACI',
     Icon: AssignmentTurnedInOutlined,
-    run: (navigate: ReturnType<typeof useNavigate>, projectId: string | null) => {
+    run: (navigate, projectId) => {
       if (projectId) navigate(`/projects/${projectId}?tab=raci`);
     },
   },
@@ -24,7 +24,7 @@ const quickActions = [
     label: 'Explorer les processus',
     description: 'Ouvrir l’espace de travail',
     Icon: SchemaOutlined,
-    run: (navigate: ReturnType<typeof useNavigate>, projectId: string | null, setActiveProject: (id: string) => void) => {
+    run: (navigate, projectId, setActiveProject) => {
       if (projectId) {
         setActiveProject(projectId);
         navigate('/root');
@@ -35,7 +35,7 @@ const quickActions = [
     label: 'Créer un processus',
     description: 'Démarrer une modélisation',
     Icon: AddCircleOutline,
-    run: (navigate: ReturnType<typeof useNavigate>, projectId: string | null) => {
+    run: (navigate, projectId) => {
       if (projectId) navigate(`/root/add?type=process&projectId=${encodeURIComponent(projectId)}`);
     },
   },
@@ -43,9 +43,9 @@ const quickActions = [
     label: 'Tous les projets',
     description: 'Voir tous les projets',
     Icon: FolderOpenOutlined,
-    run: (navigate: ReturnType<typeof useNavigate>) => navigate('/projects'),
+    run: navigate => navigate('/projects'),
   },
-] as const;
+];
 
 export const Component = () => {
   const navigate = useNavigate();
