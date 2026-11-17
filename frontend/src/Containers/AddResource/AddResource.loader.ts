@@ -13,5 +13,6 @@ export const loader = async ({ request }: { request: Request }) => {
 
   return {
     type,
+    projectId: url.searchParams.get('projectId') ?? undefined,
   };
 };
