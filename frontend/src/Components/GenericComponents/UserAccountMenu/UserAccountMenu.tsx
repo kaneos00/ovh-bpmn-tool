@@ -212,13 +212,36 @@ export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
             sx={{ pointerEvents: 'none' }}
           />
         </MenuItem>
-        <MenuItem onClick={toggleTheme} sx={{ justifyContent: 'space-between', gap: 2 }}>
+        <Box
+          role="button"
+          tabIndex={0}
+          aria-label="Changer le thème"
+          onClick={toggleTheme}
+          onKeyDown={event => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              toggleTheme();
+            }
+          }}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 2,
+            px: 1.5,
+            py: 0.75,
+            minHeight: 40,
+            borderRadius: 'sm',
+            cursor: 'pointer',
+            '&:hover': { bgcolor: 'background.level1' },
+          }}
+        >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {isDark ? <DarkModeOutlined fontSize="small" /> : <LightModeOutlined fontSize="small" />}
             <Typography level="body-sm">Thème sombre</Typography>
           </Box>
-          <Switch size="sm" checked={isDark} readOnly tabIndex={-1} />
-        </MenuItem>
+          <Switch size="sm" checked={isDark} readOnly tabIndex={-1} sx={{ pointerEvents: 'none' }} />
+        </Box>
         <MenuItem onClick={() => navigate('/mes-demandes')}>Mes demandes de modification</MenuItem>
         {session?.role === 'admin' && !session.impersonating && (
           <MenuItem onClick={() => navigate('/organization/users')}>
