@@ -166,10 +166,7 @@ const extractBpmnDataElements = (
     });
 
     const result: BpmnDataElement[] = [];
-    const supported = new Set([
-      'dataObjectReference',
-      'dataStoreReference',
-    ]);
+    const supported = new Set(['dataObjectReference', 'dataStoreReference']);
     walk(parsed, (node, key) => {
       if (!supported.has(key)) return;
       const elementId = readAttribute(node, 'id');
