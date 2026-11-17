@@ -29,7 +29,7 @@ import './BpmnLayoutContainer.scss';
 
 export const Component = () => {
   const { resourceId } = useParams() as BpmnLayoutRouteParams;
-  const { requestedElementId, requestedContentId, requestedRaciView } = useViewerRouteState();
+  const { requestedElementId, requestedContentId, requestedRaciView, requestedDocumentedSourceId } = useViewerRouteState();
   const navigate = useNavigate();
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
 
@@ -274,6 +274,7 @@ export const Component = () => {
                               onElementSelect={setSelectedElementId}
                               selectedContentId={requestedContentId}
                               requestedRaciView={requestedRaciView}
+                              requestedDocumentedSourceId={requestedDocumentedSourceId}
                               readOnlyShell
                             />
                           )}
