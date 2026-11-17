@@ -1021,7 +1021,7 @@ test('approved BPMN proposals are read-only until the approved snapshot is publi
 });
 
 test('Viewer translates the pending BPMN remark status into French', async () => {
-  const details = read('frontend/src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   assert.ok(details.includes("return 'À traiter';"));
   assert.ok(!details.includes("return 'In attesa';"));
 });
@@ -1181,7 +1181,9 @@ test('documented-information search opens the inventory record from both search 
   assert.ok(navigation.includes("params.set('documentedSourceId', result.documentedSourceId)"));
   assert.ok(navigation.includes("documentedSourceId: result.type === 'documented' ? result.id : undefined"));
   assert.ok(navigation.includes("key: `${result.type}:${result.projectId ?? ''}:${result.resourceId ?? ''}:${result.id}`"));
-  assert.ok(navigation.includes("const detailLabel = result.type === 'documented'"));
+  assert.ok(navigation.includes("let detailLabel = detailByType[result.type]"));
+  assert.ok(navigation.includes("if (result.type === 'documented')"));
+  assert.ok(navigation.includes("detailLabel = detailByType.documented"));
 
   assert.ok(results.includes("if (result.type === 'documented') params.set('documentedSourceId', result.id)"));
   assert.ok(routeState.includes("requestedDocumentedSourceId: searchParams.get('documentedSourceId')"));
