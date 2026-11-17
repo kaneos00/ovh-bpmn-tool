@@ -1137,7 +1137,8 @@ test('process metadata distinguishes type, nature and project usage while preser
   assert.ok(details.includes('<Option value="global">Global</Option>'));
   assert.ok(details.includes('<Option value="specific">Spécifique</Option>'));
   assert.ok(details.includes('projectMembersQuery'));
-  assert.ok(layout.includes("processNature: node?.getAttribute('processNature') || 'operationnel'"));
+  assert.ok(layout.includes("legacyNature === 'organisationnel' ? 'organisationnel' : 'operationnel'"));
+  assert.ok(layout.includes("processNature: stored?.processNature || 'specific'"));
   assert.ok(layout.includes("processUsageLabel = 'Commun'"));
   assert.ok(layout.includes("processUsageLabel = 'Variante'"));
   assert.ok(layout.includes("processUsageLabel = 'Spécifique'"));
