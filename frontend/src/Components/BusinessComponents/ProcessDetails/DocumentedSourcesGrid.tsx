@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
-import type { ColDef } from 'ag-grid-community';
+import type { ColDef, GridApi, GridReadyEvent } from 'ag-grid-community';
 import { AddOutlined } from '@mui/icons-material';
 import { Box, Button, Stack } from '@mui/joy';
 
@@ -14,6 +14,7 @@ type Props<T extends object> = {
   onAdd?: () => void;
   addLabel?: string;
   addDisabled?: boolean;
+  selectedRowId?: string | null;
   height?: number;
 };
 
@@ -24,8 +25,29 @@ export const DocumentedSourcesGrid = <T extends object,>({
   onAdd,
   addLabel = 'Ajouter',
   addDisabled = false,
+  selectedRowId,
   height = 520,
-}: Props<T>) => (
+}: Props<T>) => {
+  const gridApiRef = useRef<GridApi<T> | null>(null);
+
+  useEffect(() => {
+    if (!selectedRowId || !gridApiRef.current) return;
+    const node = gridApiRef.current.getRowNode(selectedRowId);
+    if (!node) return;
+    gridApiRef.current.ensureNodeVisible(node, 'middle');
+    gridApiRef.current.flashCells({ rowNodes: [node] });
+  }, [selectedRowId, rowData]);
+
+  const handleGridReady = (event: GridReadyEvent<T>) => {
+    gridApiRef.current = event.api;
+    if (!selectedRowId) return;
+    const node = event.api.getRowNode(selectedRowId);
+    if (!node) return;
+    event.api.ensureNodeVisible(node, 'middle');
+    event.api.flashCells({ rowNodes: [node] });
+  };
+
+  return (
   <Box sx={{ width: '100%', minWidth: 0 }}>
     {onAdd && (
       <Stack direction="row" justifyContent="flex-end" sx={{ mb: 1 }}>
@@ -38,6 +60,7 @@ export const DocumentedSourcesGrid = <T extends object,>({
         rowData={rowData}
         columnDefs={columnDefs}
         getRowId={params => getRowId(params.data)}
+        onGridReady={handleGridReady}
         defaultColDef={{ sortable: true, filter: true, resizable: true, minWidth: 110, flex: 1, wrapText: true, autoHeight: true }}
         // Editing starts on double-click; Escape cancels the active editor.
         singleClickEdit={false}
@@ -67,4 +90,5 @@ export const DocumentedSourcesGrid = <T extends object,>({
       />
     </Box>
   </Box>
-);
+  );
+};
