@@ -520,7 +520,8 @@ test('V3 central viewer exposes process-level documented information backed by c
   assert.match(details, /canEdit=\{projectForProcess\?\.role === 'admin'\}/);
   assert.match(inventory, /DocumentedSourcesGrid<InventoryGridRow>/);
   assert.match(inventory, /Ajouter une ligne : information documentée/);
-  assert.match(inventory, /<Option value="application">[\s\S]*Application/);
+  assert.ok(inventory.includes("cellEditorParams: { values: ['file', 'database', 'application'] }"));
+  assert.match(inventory, /application: 'Application'/);
   assert.match(inventory, /headerName: 'Objet BPMN'/);
   assert.match(inventory, /headerName: 'Statut projet'/);
   assert.match(inventory, /headerName: 'Date limite de validité'/);
