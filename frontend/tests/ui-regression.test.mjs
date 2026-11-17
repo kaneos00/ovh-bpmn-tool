@@ -1020,6 +1020,12 @@ test('approved BPMN proposals are read-only until the approved snapshot is publi
   assert.ok(styles.includes('.modelerReadOnly #diagramContainer'));
 });
 
+test('Viewer translates the pending BPMN remark status into French', async () => {
+  const details = read('frontend/src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  assert.ok(details.includes("return 'À traiter';"));
+  assert.ok(!details.includes("return 'In attesa';"));
+});
+
 test('rejecting a BPMN remark requires a reason in the UI and backend', async () => {
   const panel = await read('src/Containers/ContentModeler/components/ProposalRemarksPanel.tsx');
   const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/process-change-proposal.controller.ts');
