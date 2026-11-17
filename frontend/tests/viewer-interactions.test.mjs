@@ -230,7 +230,8 @@ test('minimap internal open/close control is hidden while the toolbar toggle rem
   const component = await read('src/Components/BusinessComponents/ProcessViewer/ProcessViewer.tsx');
 
   assert.match(css, /\.djs-minimap \.toggle\s*\{[^}]*display:\s*none\s*!important;/s);
-  assert.ok(component.includes('Mini-carte'));
+  assert.ok(component.includes('Afficher la mini-carte'));
+  assert.ok(component.includes('<Tooltip title={minimapVisible ?'));
   assert.ok(component.includes('onClick={() => setMinimapVisible(!minimapVisible)}'));
 });
 
