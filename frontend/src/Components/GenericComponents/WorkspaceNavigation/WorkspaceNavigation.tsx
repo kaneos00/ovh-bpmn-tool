@@ -227,11 +227,12 @@ export const WorkspaceNavigation = () => {
       actor: 'Rôle',
       documented: 'Information documentée',
     };
-    const detailLabel = result.type === 'documented'
-      ? detailByType.documented
-      : result.field === 'testo annotazione' || result.field === 'descrizione'
-        ? 'Description'
-        : detailByType[result.type];
+    let detailLabel = detailByType[result.type];
+    if (result.type === 'documented') {
+      detailLabel = detailByType.documented;
+    } else if (result.field === 'testo annotazione' || result.field === 'descrizione') {
+      detailLabel = 'Description';
+    }
     return {
       key: `${result.type}:${result.projectId ?? ''}:${result.resourceId ?? ''}:${result.id}`,
       type: result.type,
