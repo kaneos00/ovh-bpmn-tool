@@ -4,7 +4,6 @@ import { Alert, Box, Button, IconButton, Option, Select, Stack, Typography } fro
 import {
   AppsOutlined,
   AttachFileOutlined,
-  CenterFocusStrong,
   LinkOffOutlined,
   SaveOutlined,
   StorageOutlined,
