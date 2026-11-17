@@ -367,7 +367,7 @@ export const DataInventory = ({
       cellEditor: 'agTextCellEditor',
       valueFormatter: params => params.value || 'Illimitée',
       tooltipValueGetter: params => params.value ? `Valable jusqu’au ${params.value}` : 'Validité sans limite de durée',
-      onCellValueChanged: (params: CellValueChangedEvent<InventoryGridRow>) => {
+      onCellValueChanged: (params: NewValueParams<InventoryGridRow>) => {
         if (params.data) updateRow(params.data.id, 'validUntil', String(params.newValue ?? '').trim() || null);
       },
     },
