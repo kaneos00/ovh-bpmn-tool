@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from 'react-query';
 import { Alert, Box, Button, DialogActions, DialogContent, DialogTitle, Modal, ModalDialog, Option, Select, Stack, Typography } from '@mui/joy';
 import { CenterFocusStrong, MergeType } from '@mui/icons-material';
-import type { ColDef } from 'ag-grid-community';
+import type { CellValueChangedEvent, ColDef, EditableCallbackParams, ICellRendererParams, ValueGetterParams, ValueFormatterParams } from 'ag-grid-community';
 import { DocumentedSourcesGrid } from './DocumentedSourcesGrid';
 
 import { apiClient } from '../../../queryClient';
@@ -411,8 +411,8 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                 {
                   headerName: 'Objet BPMN',
                   minWidth: 210,
-                  valueGetter: params => params.data ? symbolLabel(params.data.bpmnType) + ' — ' + params.data.elementName : '',
-                  cellRenderer: params => params.data ? (
+                  valueGetter: (params: ValueGetterParams<InventoryGridRow>) => params.data ? symbolLabel(params.data.bpmnType) + ' — ' + params.data.elementName : '',
+                  cellRenderer: (params: ICellRendererParams<InventoryGridRow>) => params.data ? (
                     <Stack direction="row" spacing={0.5} alignItems="center">
                       <BpmnDataSymbol type={params.data.bpmnType} />
                       <Typography level="body-sm">{params.data.elementName}</Typography>
@@ -423,7 +423,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                   headerName: 'Associations',
                   field: 'associationsLabel',
                   minWidth: 230,
-                  cellRenderer: params => params.data?.associations.length ? (
+                  cellRenderer: (params: ICellRendererParams<InventoryGridRow>) => params.data?.associations.length ? (
                     <Stack spacing={0.25}>
                       {params.data.associations.map((association, index) => (
                         onElementSelect ? (
@@ -439,8 +439,8 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                   headerName: 'Source documentaire',
                   field: 'name',
                   minWidth: 190,
-                  editable: params => Boolean(params.data && editingSourceId === params.data.id),
-                  onCellValueChanged: params => { if (params.data) update(params.data.id, 'name', String(params.newValue ?? '')); },
+                  editable: (params: EditableCallbackParams<InventoryGridRow>) => Boolean(params.data && editingSourceId === params.data.id),
+                  onCellValueChanged: (params: CellValueChangedEvent<InventoryGridRow>) => { if (params.data) update(params.data.id, 'name', String(params.newValue ?? '')); },
                 },
                 {
                   headerName: 'Type',
@@ -449,8 +449,8 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                   editable: params => Boolean(params.data && editingSourceId === params.data.id),
                   cellEditor: 'agSelectCellEditor',
                   cellEditorParams: { values: ['file', 'database', 'application', 'form'] },
-                  valueFormatter: params => ({ file: 'Fichier', database: 'Base de données', application: 'Application', form: 'Formulaire' } as Record<SourceKind, string>)[params.value as SourceKind] ?? '',
-                  onCellValueChanged: params => { if (params.data) update(params.data.id, 'kind', String(params.newValue ?? 'file')); },
+                  valueFormatter: (params: ValueFormatterParams<InventoryGridRow>) => ({ file: 'Fichier', database: 'Base de données', application: 'Application', form: 'Formulaire' } as Record<SourceKind, string>)[params.value as SourceKind] ?? '',
+                  onCellValueChanged: (params: CellValueChangedEvent<InventoryGridRow>) => { if (params.data) update(params.data.id, 'kind', String(params.newValue ?? 'file')); },
                 },
                 { headerName: 'Statut projet', field: 'projectStatus', minWidth: 180 },
                 ...([
@@ -465,8 +465,8 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                   headerName,
                   field: field as keyof InventoryGridRow,
                   minWidth,
-                  editable: (params: { data?: InventoryGridRow }) => Boolean(params.data && editingSourceId === params.data.id),
-                  onCellValueChanged: (params: { data?: InventoryGridRow; newValue: unknown }) => {
+                  editable: (params: EditableCallbackParams<InventoryGridRow>) => Boolean(params.data && editingSourceId === params.data.id),
+                  onCellValueChanged: (params: CellValueChangedEvent<InventoryGridRow>) => {
                     if (params.data) update(params.data.id, field, String(params.newValue ?? ''));
                   },
                 })),
