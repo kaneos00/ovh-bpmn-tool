@@ -99,19 +99,15 @@ export const Component = () => {
     { enabled: Boolean(resource?.type === ResourceType.Process && publishedProcessContent?.id) },
   );
   const processHeaderMetadata = useMemo(() => {
-    if (!processXml) return { processNature: 'operationnel', processType: '' };
-    const doc = new DOMParser().parseFromString(processXml, 'application/xml');
-    const node = doc.getElementsByTagNameNS('https://ovh-bpmn-tool.local/schema/process-metadata', 'processMetadata')[0];
+    const stored = resource?.processMetadata;
+    const doc = processXml ? new DOMParser().parseFromString(processXml, 'application/xml') : null;
+    const node = doc?.getElementsByTagNameNS('https://ovh-bpmn-tool.local/schema/process-metadata', 'processMetadata')[0];
+    const legacyNature = node?.getAttribute('processNature') || '';
     return {
-      processNature: node?.getAttribute('processNature') || 'operationnel',
-      processType: node?.getAttribute('processType') || '',
+      processType: stored?.processType || (legacyNature === 'organisationnel' ? 'organisationnel' : 'operationnel'),
+      processNature: stored?.processNature || 'specific',
     };
-  }, [processXml]);
-  const processTypeLabels: Record<string, string> = {
-    management: 'Management', projet: 'Projet',
-    support: 'Support', pilotage: 'Pilotage', surveillance: 'Surveillance',
-    'risques-prevention': 'Risques / prévention',
-  };
+  }, [processXml, resource?.processMetadata]);
   let processUsageLabel: string | undefined;
   switch (activeProcess?.usage) {
     case 'common':
@@ -218,8 +214,8 @@ export const Component = () => {
                             description={headerDescription}
                             titleAdornment={resource.type === ResourceType.Process ? (
                               <Stack direction="row" spacing={0.75} alignItems="center" useFlexGap flexWrap="wrap">
-                                <Chip size="sm" variant="soft" color={processHeaderMetadata.processNature === 'organisationnel' ? 'primary' : 'success'}>{processHeaderMetadata.processNature === 'organisationnel' ? 'Organisationnel' : 'Opérationnel'}</Chip>
-                                {processHeaderMetadata.processType && processHeaderMetadata.processType !== 'operationnel' && <Chip size="sm" variant="soft" color="neutral">{processTypeLabels[processHeaderMetadata.processType] ?? processHeaderMetadata.processType}</Chip>}
+                                <Chip size="sm" variant="soft" color={processHeaderMetadata.processType === 'organisationnel' ? 'primary' : 'success'}>{processHeaderMetadata.processType === 'organisationnel' ? 'Organisationnel' : 'Opérationnel'}</Chip>
+                                <Chip size="sm" variant="soft" color={processHeaderMetadata.processNature === 'global' ? 'primary' : 'neutral'}>{processHeaderMetadata.processNature === 'global' ? 'Global' : 'Spécifique'}</Chip>
                                 {processUsageLabel && <Chip size="sm" variant="soft" color="neutral">{processUsageLabel}</Chip>}
                               </Stack>
                             ) : undefined}
