@@ -11,12 +11,16 @@ import {
 import { UseAcl } from '../../../../shared-kernel/modules/acl/infrastructure/acl.decorator';
 import { UserGroup } from '../../../../shared-kernel/utils/UserGroup';
 import { JobArchitectureService } from '../../jobArchitecture.service';
+import { JobFunctionDocumentService } from '../../jobFunctionDocument.service';
 
 type RequestHeaders = Record<string, string | undefined>;
 
 @Controller()
 export class JobArchitectureController {
-  constructor(private readonly jobArchitecture: JobArchitectureService) {}
+  constructor(
+    private readonly jobArchitecture: JobArchitectureService,
+    private readonly jobFunctionDocuments: JobFunctionDocumentService,
+  ) {}
 
   @Get('job-architecture/functions')
   @UseAcl()
@@ -80,6 +84,41 @@ export class JobArchitectureController {
     return this.jobArchitecture.addBlockToFunction(
       functionId,
       blockId,
+      headers,
+    );
+  }
+
+  @Get('projects/:projectId/my-job-position')
+  @UseAcl()
+  async getMyJobPosition(
+    @Param('projectId') projectId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    const assignment = await this.jobArchitecture.getMyJobPosition(
+      projectId,
+      headers,
+    );
+    if (!assignment?.function) return assignment;
+    return {
+      ...assignment,
+      document: await this.jobFunctionDocuments.getDocument(
+        assignment.function.id,
+      ),
+    };
+  }
+
+  @Patch('projects/:projectId/members/:userId/job-position')
+  @UseAcl([UserGroup.RW])
+  assignMemberJobPosition(
+    @Param('projectId') projectId: string,
+    @Param('userId') userId: string,
+    @Body() body: { positionId?: string | null },
+    @Headers() headers: RequestHeaders,
+  ) {
+    return this.jobArchitecture.assignMemberJobPosition(
+      projectId,
+      userId,
+      body.positionId ?? null,
       headers,
     );
   }
