@@ -20,6 +20,7 @@ export type WorkspaceProject = {
     usage: 'common' | 'variant' | 'project-specific';
     sourceResourceId: string | null;
     remarksCount?: number;
+    changeRequestsCount?: number;
   }>;
 };
 type WorkspaceSummary = { userId: string; projects: WorkspaceProject[] };
