@@ -117,6 +117,7 @@ type ProcessDetailsProps = {
   selectedContentId?: string | null;
   readOnlyShell?: boolean;
   requestedRaciView?: boolean;
+  requestedDocumentedSourceId?: string | null;
 };
 
 const BPMN_DATA_SOURCE_TYPES = new Set(['dataObjectReference', 'dataStoreReference', 'dataInput', 'dataOutput']);
@@ -234,6 +235,7 @@ export const ProcessDetails = ({
   selectedContentId,
   readOnlyShell = false,
   requestedRaciView = false,
+  requestedDocumentedSourceId,
 }: ProcessDetailsProps) => {
   const {
     contents,
@@ -360,8 +362,9 @@ export const ProcessDetails = ({
   // current tab when the user navigates between processes or versions.
   // Do not reset to the BPMN tab when the route query disappears after navigation.
   useEffect(() => {
-    if (requestedRaciView) setActiveViewerTab(3);
-  }, [requestedRaciView]);
+    if (requestedDocumentedSourceId) setActiveViewerTab(4);
+    else if (requestedRaciView) setActiveViewerTab(3);
+  }, [requestedRaciView, requestedDocumentedSourceId]);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState('');
   const [titleDraft, setTitleDraft] = useState('');
@@ -1791,6 +1794,8 @@ export const ProcessDetails = ({
               canEdit={projectForProcess?.role === 'admin'}
               projectId={projectForProcess?.id}
               resourceId={resourceId}
+              requestedDocumentedSourceId={requestedDocumentedSourceId}
+              requestedElementId={selectedElementId}
               canManageSources={projectForProcess?.role === 'admin'}
               onElementSelect={elementId => { setActiveViewerTab(0); onElementSelect?.(elementId); }}
               onShowDiagram={() => setActiveViewerTab(0)}
