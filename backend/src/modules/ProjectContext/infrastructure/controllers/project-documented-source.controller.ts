@@ -247,7 +247,7 @@ export class ProjectDocumentedSourceController {
         order: { name: 'ASC' },
       }),
       this.references.find({
-        where: { projectId },
+        where: { projectId, elementType: In([...BPMN_DOCUMENTED_DATA_TYPES]) },
         order: { createdAt: 'ASC' },
       }),
       this.projectProcesses.find({ where: { projectId } }),
