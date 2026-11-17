@@ -100,6 +100,8 @@ test('validity limit is optional and persisted as a date', async () => {
   assert.match(inventory, /field: 'validUntil'/);
   assert.match(inventory, /'Illimitée'/);
   assert.match(inventory, /validUntil: row\.validUntil \|\| null/);
+  assert.match(inventory, /cellEditor: 'agDateStringCellEditor'/);
+  assert.match(inventory, /valueFormatter: params => params\.value \|\| 'Illimitée'/);
   assert.match(entity, /@Column\(\{ type: 'date', nullable: true \}\)\s+validUntil: string \| null/);
   assert.match(controller, /optionalDate\(body\.validUntil, 'validUntil'\)/);
   assert.match(migration, /ADD COLUMN IF NOT EXISTS "validUntil" date/);
@@ -112,4 +114,19 @@ test('viewer selection is reapplied after returning from the nested Modeler rout
   assert.match(viewer, /location\.pathname, location\.search/);
   assert.match(viewer, /secondFrame = window\.requestAnimationFrame/);
   assert.match(viewer, /applySelectionRef\.current\(\)/);
+});
+
+
+test('documented information is edited by double-click with automatic saving and no save action', async () => {
+  const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
+  const grid = await read('src/Components/BusinessComponents/ProcessDetails/DocumentedSourcesGrid.tsx');
+
+  assert.match(grid, /singleClickEdit=\{false\}/);
+  assert.match(grid, /Editing starts on double-click; Escape cancels the active editor/);
+  assert.match(inventory, /void handleCellChange\(params, field\)/);
+  assert.match(inventory, /await saveRow\(updated\)/);
+  assert.doesNotMatch(inventory, /headerName: 'Actions'/);
+  assert.doesNotMatch(inventory, /Enregistrer<\\/Button>/);
+  assert.doesNotMatch(grid, /rowSelection=/);
+  assert.doesNotMatch(grid, /checkboxes:/);
 });
