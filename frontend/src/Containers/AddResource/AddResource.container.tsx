@@ -7,7 +7,7 @@ import { ResourceType } from '../../shared/types/BpmnResource';
 import { BaseModal } from '../../Components/GenericComponents/BaseModal/BaseModal';
 
 export const Component = () => {
-  const { type, actionData, callbacks } = useAddResource();
+  const { type, projectId, actionData, callbacks } = useAddResource();
 
   if (actionData) {
     return <Navigate to=".." />;
@@ -23,7 +23,7 @@ export const Component = () => {
       open
       onClose={callbacks.onModalClose}
     >
-      <ResourceForm onFormSubmit={callbacks.onFormSubmit} />
+      <ResourceForm onFormSubmit={callbacks.onFormSubmit} projectId={projectId} resourceType={type} />
     </BaseModal>
   );
 };
