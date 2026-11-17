@@ -244,7 +244,7 @@ export const DataInventory = ({
     const reference = source.references.find(item => item.resourceId === resourceId);
     return {
       ...source,
-      projectStatus: reference ? 'Associée au processus' : 'Non associée',
+      projectStatus: source.id.startsWith('new-') ? 'À enregistrer' : 'Présente dans le projet',
       isNew: source.id.startsWith('new-'),
     };
   });
@@ -283,7 +283,7 @@ export const DataInventory = ({
         >
           <Option value="file"><AttachFileOutlined /> Fichier</Option>
           <Option value="database"><StorageOutlined /> Base de données</Option>
-          <Option value="application"><AppsOutlined /> Application (Tool)</Option>
+          <Option value="application"><AppsOutlined /> Application</Option>
         </Select>
       ) : null,
     },
