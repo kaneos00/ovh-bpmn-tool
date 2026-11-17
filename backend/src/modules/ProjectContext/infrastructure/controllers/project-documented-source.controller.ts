@@ -521,7 +521,6 @@ export class ProjectDocumentedSourceController {
     });
   }
 
-
   @Put(':sourceId/references/:referenceId')
   @UseAcl([UserGroup.RW])
   async changeReferenceSource(
@@ -609,7 +608,6 @@ export class ProjectDocumentedSourceController {
     await this.references.delete({ id: reference.id });
     return { unlinked: true, referenceId };
   }
-
 
   @Post(':sourceId/merge')
   @UseAcl([UserGroup.RW])
