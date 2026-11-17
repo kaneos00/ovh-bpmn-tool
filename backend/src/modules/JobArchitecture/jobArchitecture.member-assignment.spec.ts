@@ -14,13 +14,20 @@ describe('JobArchitectureService project member job-position assignment', () => 
   let functionFindOne: jest.Mock;
 
   beforeEach(() => {
-    assertProjectRole = jest.fn().mockResolvedValue('manager');
+    assertProjectRole = jest
+      .fn()
+      .mockResolvedValue('manager');
     memberFindOne = jest.fn().mockResolvedValue({ projectId: 'project-1', userId: 'member-1' });
     assignmentFindOne = jest.fn().mockResolvedValue(null);
     assignmentCreate = jest.fn((value) => value);
-    assignmentSave = jest.fn(async (value) => ({ id: 'assignment-1', ...value }));
+    assignmentSave = jest.fn(async (value) => ({
+      id: 'assignment-1',
+      ...value,
+    }));
     assignmentRemove = jest.fn().mockResolvedValue(undefined);
-    positionFindOne = jest.fn().mockResolvedValue({
+    positionFindOne = jest
+      .fn()
+      .mockResolvedValue({
       id: 'position-1',
       projectId: 'project-1',
       functionId: 'function-1',
@@ -28,7 +35,9 @@ describe('JobArchitectureService project member job-position assignment', () => 
     });
     functionFindOne = jest.fn().mockResolvedValue({ id: 'function-1', name: 'Analyste' });
 
-    service = Object.create(JobArchitectureService.prototype) as JobArchitectureService;
+    service = Object.create(
+      JobArchitectureService.prototype,
+    ) as JobArchitectureService;
     Object.assign(service, {
       projectAccess: { assertProjectRole },
       projectMembers: { findOne: memberFindOne },
@@ -45,14 +54,23 @@ describe('JobArchitectureService project member job-position assignment', () => 
 
   it('assigns one active position to a member in the selected project', async () => {
     await expect(
-      service.assignMemberJobPosition('project-1', 'member-1', 'position-1', headers),
+      service.assignMemberJobPosition(
+        'project-1',
+        'member-1',
+        'position-1',
+        headers,
+      ),
     ).resolves.toMatchObject({
       projectId: 'project-1',
       userId: 'member-1',
       positionId: 'position-1',
       position: { id: 'position-1' },
     });
-    expect(assertProjectRole).toHaveBeenCalledWith('project-1', headers, 'modeler');
+    expect(assertProjectRole).toHaveBeenCalledWith(
+      'project-1',
+      headers,
+      'modeler',
+    );
     expect(memberFindOne).toHaveBeenCalledWith({
       where: { projectId: 'project-1', userId: 'member-1' },
     });
@@ -61,7 +79,12 @@ describe('JobArchitectureService project member job-position assignment', () => 
   it('rejects a user who is not a member of the project', async () => {
     memberFindOne.mockResolvedValue(null);
     await expect(
-      service.assignMemberJobPosition('project-1', 'outsider', 'position-1', headers),
+      service.assignMemberJobPosition(
+        'project-1',
+        'outsider',
+        'position-1',
+        headers,
+      ),
     ).rejects.toBeInstanceOf(NotFoundException);
     expect(assignmentSave).not.toHaveBeenCalled();
   });
@@ -69,22 +92,40 @@ describe('JobArchitectureService project member job-position assignment', () => 
   it('rejects a position that does not belong to the selected project', async () => {
     positionFindOne.mockResolvedValue(null);
     await expect(
-      service.assignMemberJobPosition('project-1', 'member-1', 'position-other', headers),
+      service.assignMemberJobPosition(
+        'project-1',
+        'member-1',
+        'position-other',
+        headers,
+      ),
     ).rejects.toBeInstanceOf(NotFoundException);
     expect(assignmentSave).not.toHaveBeenCalled();
   });
 
   it('requires an explicit null to remove an assignment', async () => {
     await expect(
-      service.assignMemberJobPosition('project-1', 'member-1', undefined, headers),
+      service.assignMemberJobPosition(
+        'project-1',
+        'member-1',
+        undefined,
+        headers,
+      ),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('removes the current project assignment when positionId is null', async () => {
-    assignmentFindOne.mockResolvedValue({ id: 'assignment-1', projectId: 'project-1', userId: 'member-1' });
+    assignmentFindOne.mockResolvedValue({
+      id: 'assignment-1',
+      projectId: 'project-1',
+      userId: 'member-1',
+    });
     await expect(
       service.assignMemberJobPosition('project-1', 'member-1', null, headers),
-    ).resolves.toMatchObject({ projectId: 'project-1', userId: 'member-1', position: null });
+    ).resolves.toMatchObject({
+      projectId: 'project-1',
+      userId: 'member-1',
+      position: null,
+    });
     expect(assignmentRemove).toHaveBeenCalledWith({
       id: 'assignment-1',
       projectId: 'project-1',
@@ -106,6 +147,10 @@ describe('JobArchitectureService project member job-position assignment', () => 
       position: { id: 'position-1' },
       function: { id: 'function-1' },
     });
-    expect(assertProjectRole).toHaveBeenCalledWith('project-1', headers, 'viewer');
+    expect(assertProjectRole).toHaveBeenCalledWith(
+      'project-1',
+      headers,
+      'viewer',
+    );
   });
 });
