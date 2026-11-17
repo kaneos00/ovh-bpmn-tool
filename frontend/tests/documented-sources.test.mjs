@@ -80,3 +80,17 @@ test('BPMN documented-source associations can be changed or unlinked without del
   assert.match(controller, /referenceRepository\.save\(reference\)/);
   assert.match(controller, /this\.references\.delete\(\{ id: reference\.id \}\)/);
 });
+
+
+test('documented information only offers Data Object Reference and Data Store Reference BPMN elements', async () => {
+  const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
+
+  assert.match(inventory, /type BpmnDataType = 'dataObjectReference' \| 'dataStoreReference'/);
+  assert.match(inventory, /new Set<BpmnDataType>\(\['dataObjectReference','dataStoreReference'\]\)/);
+  assert.match(inventory, /dataTypes\.has\(element\.localName as BpmnDataType\)/);
+  assert.doesNotMatch(inventory, /'dataInput'|'dataOutput'/);
+  assert.match(controller, /const BPMN_DOCUMENTED_DATA_TYPES = new Set\(\[\s*'dataObjectReference',\s*'dataStoreReference',\s*\]\)/);
+  assert.match(controller, /const supported = new Set\(\[\s*'dataObjectReference',\s*'dataStoreReference',\s*\]\)/);
+  assert.doesNotMatch(controller, /'dataInput'|'dataOutput'/);
+});
