@@ -5,7 +5,7 @@ import { EditOutlined, CenterFocusStrong, MergeType } from '@mui/icons-material'
 
 import { apiClient } from '../../../queryClient';
 
-type BpmnDataType = 'dataObjectReference' | 'dataInput' | 'dataOutput' | 'dataStoreReference';
+type BpmnDataType = 'dataObjectReference' | 'dataStoreReference';
 type SourceKind = 'file' | 'database' | 'application' | 'form';
 
 export type InventorySource = {
@@ -71,7 +71,7 @@ const emptySource = (): InventorySource => ({
 });
 
 const activityTypes = new Set(['task','userTask','manualTask','serviceTask','scriptTask','businessRuleTask','sendTask','receiveTask','callActivity','subProcess','transaction']);
-const dataTypes = new Set<BpmnDataType>(['dataObjectReference','dataInput','dataOutput','dataStoreReference']);
+const dataTypes = new Set<BpmnDataType>(['dataObjectReference','dataStoreReference']);
 
 const readSources = (xml?: string): InventorySource[] => {
   if (!xml) return [];
@@ -152,6 +152,9 @@ const readSources = (xml?: string): InventorySource[] => {
       restrictions: node.getAttribute('restrictions') || '',
       associations: links.get(id) ?? [],
     } as InventorySource;
+  }).filter(source => {
+    const element = byId.get(source.id);
+    return Boolean(element && dataTypes.has(element.localName as BpmnDataType));
   });
 
   // Always reconcile the saved manifest with the actual BPMN model. A new
@@ -179,8 +182,6 @@ const readSources = (xml?: string): InventorySource[] => {
 
 const symbolLabel = (type: BpmnDataType) => ({
   dataObjectReference: 'Objet de données',
-  dataInput: 'Entrée de données',
-  dataOutput: 'Sortie de données',
   dataStoreReference: 'Magasin de données',
 }[type]);
 
@@ -189,8 +190,6 @@ const BpmnDataSymbol = ({ type }: { type: BpmnDataType }) => (
     {type === 'dataStoreReference'
       ? <g fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M5 8 C5 3 29 3 29 8 L29 29 C29 34 5 34 5 29 Z"/><path d="M5 8 C5 13 29 13 29 8 M5 29 C5 24 29 24 29 29"/></g>
       : <g fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M6 3 H22 L29 10 V34 H6 Z"/><path d="M22 3 V10 H29"/>
-          {type === 'dataInput' && <path d="M11 22 H24 M11 22 L15 18 M11 22 L15 26"/>}
-          {type === 'dataOutput' && <path d="M11 22 H24 M20 18 L24 22 L20 26"/>}
         </g>}
   </svg>
 );
