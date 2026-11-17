@@ -16,4 +16,5 @@ export class CreateResourceCommand {
   sourceResourceId?: string;
   createdBy: string;
   type: ResourceTypeEnum;
+  processMetadata?: Record<string, string>;
 }
