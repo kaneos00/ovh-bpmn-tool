@@ -19,6 +19,7 @@ type ResourceAttrs = {
   name: string;
   description?: string;
   parentId?: string;
+  processMetadata?: Record<string, string> | null;
 };
 
 type ResourceQueryFilters = {
