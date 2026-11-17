@@ -1,21 +1,40 @@
 import React, { useState } from 'react';
+import { useQuery } from 'react-query';
 import { useNavigate } from 'react-router-dom';
-import { Alert, Box, Card, Input, Stack, Typography } from '@mui/joy';
+import { Alert, Box, Card, Divider, Input, Stack, Typography } from '@mui/joy';
 import {
   AddCircleOutline,
   AssignmentTurnedInOutlined,
+  BadgeOutlined,
   FolderOpenOutlined,
   Search,
   SchemaOutlined,
 } from '@mui/icons-material';
 import { WorkspacePageLayout } from '../../Components/GenericComponents/WorkspacePageLayout/WorkspacePageLayout';
 import { useActiveProject } from '../../shared/hooks/useActiveProject';
+import { apiClient } from '../../queryClient';
 
 type QuickAction = {
   label: string;
   description: string;
   Icon: typeof AssignmentTurnedInOutlined;
-  run: (navigate: ReturnType<typeof useNavigate>, projectId: string | null, setActiveProject: (id: string) => void) => void;
+  run: (navigate: ReturnType<typeof useNavigate>, projectId: string | null, setActiveProject: (id: string) => void, toggleJobPosition: () => void) => void;
+};
+
+type MyJobPosition = {
+  position: { id: string; title: string; description?: string | null };
+  function: { id: string; code: string; name: string; description?: string | null };
+  document?: {
+    mission?: string | null;
+    reportingLine?: string | null;
+    otherTitles?: string[];
+    documentDate?: string | null;
+    documentVersion?: string | null;
+    establishedBy?: string | null;
+    validatedBy?: string | null;
+    activitySections?: Array<{ id: string; code: string; title: string; tasks: string[] }>;
+    customSections?: Array<{ id: string; title: string; content: Record<string, unknown> }>;
+  };
 };
 
 const quickActions: QuickAction[] = [
@@ -47,10 +66,10 @@ const quickActions: QuickAction[] = [
     },
   },
   {
-    label: 'Tous les projets',
-    description: 'Voir tous les projets',
-    Icon: FolderOpenOutlined,
-    run: navigate => navigate('/projects'),
+    label: 'Ma fiche de poste',
+    description: 'Consulter mon poste dans le projet actif',
+    Icon: BadgeOutlined,
+    run: (_navigate, _projectId, _setActiveProject, toggleJobPosition) => toggleJobPosition(),
   },
 ];
 
@@ -58,6 +77,12 @@ export const Component = () => {
   const navigate = useNavigate();
   const { projects, activeProject, activeProjectId, setActiveProject, isLoading, isError } = useActiveProject();
   const [search, setSearch] = useState('');
+  const [showJobPosition, setShowJobPosition] = useState(false);
+  const jobPositionQuery = useQuery<MyJobPosition | null>(
+    ['my-job-position', activeProjectId],
+    () => apiClient.get(`/projects/${activeProjectId}/my-job-position`),
+    { enabled: Boolean(activeProjectId && showJobPosition), staleTime: 60_000 },
+  );
   const actionProject = activeProject ?? projects[0] ?? null;
   const canCreateProcess = actionProject?.role === 'admin' || actionProject?.role === 'modeler';
 
@@ -90,7 +115,8 @@ export const Component = () => {
           }}
         >
           {quickActions.map(({ label, description, Icon, run }) => {
-            const disabled = !actionProject && label !== 'Tous les projets'
+            const disabled = !actionProject
+              || (label === 'Ma fiche de poste' && !activeProjectId)
               || (label === 'Créer un processus' && !canCreateProcess);
             return (
               <Card
@@ -99,7 +125,7 @@ export const Component = () => {
                 component="button"
                 type="button"
                 disabled={disabled}
-                onClick={() => run(navigate, actionProject?.id ?? null, setActiveProject)}
+                onClick={() => run(navigate, actionProject?.id ?? null, setActiveProject, () => setShowJobPosition(value => !value))}
                 sx={{
                   aspectRatio: '1 / 1',
                   minWidth: 0,
@@ -143,6 +169,64 @@ export const Component = () => {
             );
           })}
         </Box>
+
+        {showJobPosition && (
+          <Card variant="outlined" sx={{ width: '100%', maxWidth: 900, mx: 'auto', borderRadius: 'xl', p: { xs: 2, sm: 3 } }}>
+            <Stack spacing={1.5}>
+              <Box>
+                <Typography level="title-lg" sx={{ fontWeight: 700 }}>Ma fiche de poste</Typography>
+                <Typography level="body-xs" color="neutral">Projet : {actionProject?.name ?? 'Aucun projet actif'}</Typography>
+              </Box>
+              {jobPositionQuery.isLoading && <Typography level="body-sm" color="neutral">Chargement de votre fiche…</Typography>}
+              {jobPositionQuery.isError && <Alert color="danger">Impossible de charger votre fiche de poste.</Alert>}
+              {jobPositionQuery.isSuccess && !jobPositionQuery.data && (
+                <Alert color="neutral">Aucun poste ne vous est affecté dans ce projet.</Alert>
+              )}
+              {jobPositionQuery.data && (
+                <Stack spacing={1.5}>
+                  <Box>
+                    <Typography level="title-md" sx={{ fontWeight: 700 }}>{jobPositionQuery.data.position.title}</Typography>
+                    <Typography level="body-sm" color="neutral">{jobPositionQuery.data.function.name} · {jobPositionQuery.data.function.code}</Typography>
+                    {jobPositionQuery.data.position.description && <Typography level="body-sm">{jobPositionQuery.data.position.description}</Typography>}
+                  </Box>
+                  {jobPositionQuery.data.document?.mission && (
+                    <Box>
+                      <Typography level="title-sm">Mission</Typography>
+                      <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>{jobPositionQuery.data.document.mission}</Typography>
+                    </Box>
+                  )}
+                  {(jobPositionQuery.data.document?.reportingLine || jobPositionQuery.data.document?.otherTitles?.length) && (
+                    <Typography level="body-sm" color="neutral">
+                      {jobPositionQuery.data.document.reportingLine ? `Rattachement : ${jobPositionQuery.data.document.reportingLine}` : ''}
+                      {jobPositionQuery.data.document.otherTitles?.length ? ` · Autres intitulés : ${jobPositionQuery.data.document.otherTitles.join(', ')}` : ''}
+                    </Typography>
+                  )}
+                  {jobPositionQuery.data.document?.activitySections?.map(section => (
+                    <Box key={section.id}>
+                      <Divider sx={{ mb: 1 }} />
+                      <Typography level="title-sm">{section.code} — {section.title}</Typography>
+                      <Stack component="ul" spacing={0.5} sx={{ my: 0, pl: 2.5 }}>
+                        {section.tasks.map((task, index) => <Typography component="li" level="body-sm" key={index}>{task}</Typography>)}
+                      </Stack>
+                    </Box>
+                  ))}
+                  {jobPositionQuery.data.document?.customSections?.map(section => (
+                    <Box key={section.id}>
+                      <Divider sx={{ mb: 1 }} />
+                      <Typography level="title-sm">{section.title}</Typography>
+                      <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(section.content, null, 2)}</Typography>
+                    </Box>
+                  ))}
+                  {(jobPositionQuery.data.document?.documentVersion || jobPositionQuery.data.document?.documentDate || jobPositionQuery.data.document?.establishedBy || jobPositionQuery.data.document?.validatedBy) && (
+                    <Typography level="body-xs" color="neutral">
+                      {[jobPositionQuery.data.document.documentVersion, jobPositionQuery.data.document.documentDate, jobPositionQuery.data.document.establishedBy ? `Établie par ${jobPositionQuery.data.document.establishedBy}` : '', jobPositionQuery.data.document.validatedBy ? `Validée par ${jobPositionQuery.data.document.validatedBy}` : ''].filter(Boolean).join(' · ')}
+                    </Typography>
+                  )}
+                </Stack>
+              )}
+            </Stack>
+          </Card>
+        )}
 
         <Box sx={{ width: '100%', maxWidth: 900, mx: 'auto' }}>
           <Input
