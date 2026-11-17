@@ -1142,3 +1142,20 @@ test('V0.8 exposes a linked subprocess target from the selected element details'
   assert.ok(details.includes('resolveProcessTarget(selectedTask.linkedProcessTargetId, processInfo)'));
   assert.ok(details.includes('Ouvrir le processus : {linkedProcess.name}'));
 });
+
+
+test('quick search exposes documented information and opens the matching search filter', async () => {
+  const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+  const results = await read('src/Containers/SearchResults/SearchResults.container.tsx');
+  const searchService = await read('../backend/src/modules/SearchContext/unified-search.service.ts');
+
+  assert.match(navigation, /type SearchScope = [^;]*'documented'/);
+  assert.match(navigation, /documented:\s*'documented'/);
+  assert.match(navigation, /<Option value="documented">Informations documentées<\\/Option>/);
+  assert.match(navigation, /label:\s*'Information documentée'/);
+  assert.match(navigation, /if \(type\) params\.set\('types', type\)/);
+  assert.match(results, /<Option value="documented">Informations documentées<\\/Option>/);
+  assert.match(results, /Information documentée/);
+  assert.match(searchService, /if \(includes\('documented'\) && allowedProjectIds\.length\)/);
+  assert.match(searchService, /findDocumentedSourceSearchMatch\(source, normalizedQuery\)/);
+});
