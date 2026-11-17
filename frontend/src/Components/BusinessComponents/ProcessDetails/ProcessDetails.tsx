@@ -41,6 +41,9 @@ import {
 } from '../../../api/resources/resources.queries';
 import { useResource } from '../../../shared/hooks/useResource';
 import { useActiveProject } from '../../../shared/hooks/useActiveProject';
+import { explorerQuery, type ExplorerData } from '../../../api/resources/resources.queries';
+import { resolveProcessTarget } from '../FolderTree/processLinks';
+import { ResourceType } from '../../../shared/types/BpmnResource';
 import { apiClient } from '../../../queryClient';
 import { useSnackbar } from '../../../shared/hooks/useSnackbar';
 import { getRaciIssueLabel, type RaciCode } from '../../../extensions/raci-engine';
@@ -631,6 +634,12 @@ export const ProcessDetails = ({
     const externalUrl = selectedDocumentedSource
       ? selectedDocumentedSource.link ?? ''
       : readLink(element) || readLink(referencedElement);
+    const isCollapsedSubProcess = element.localName === 'subProcess' && Array.from(document.getElementsByTagNameNS('*', 'BPMNShape')).some(
+      shape => shape.getAttribute('bpmnElement') === selectedElementId && shape.getAttribute('isExpanded') === 'false',
+    );
+    const linkedProcessTargetId = element.localName === 'callActivity'
+      ? element.getAttribute('calledElement')?.trim() || ''
+      : isCollapsedSubProcess ? selectedElementId : '';
 
     return {
       id: selectedElementId,
@@ -638,8 +647,26 @@ export const ProcessDetails = ({
       type: element.localName,
       documentation,
       externalUrl,
+      linkedProcessTargetId,
     };
   }, [xmlContent, selectedElementId, selectedDocumentedSource]);
+
+  const explorerRequest = explorerQuery();
+  const { data: explorerData } = useQuery<ExplorerData>(
+    explorerRequest.queryKey,
+    explorerRequest.queryFn,
+    { enabled: Boolean(selectedTask?.linkedProcessTargetId) },
+  );
+  const linkedProcess = useMemo(() => {
+    if (!selectedTask?.linkedProcessTargetId || !explorerData) return undefined;
+    const processInfo = explorerData.resources
+      .filter(resource => resource.type === ResourceType.Process)
+      .map(resource => ({
+        resource,
+        processIds: explorerData.links.find(link => link.resourceId === resource.id)?.processIds ?? [],
+      }));
+    return resolveProcessTarget(selectedTask.linkedProcessTargetId, processInfo);
+  }, [selectedTask, explorerData]);
 
   const selectedTaskRaci = useMemo(
     () => raciMatrix.activities.find(activity => activity.elementId === selectedElementId),
@@ -1206,8 +1233,17 @@ export const ProcessDetails = ({
                             </a>
                           </Typography>
                         )}
-                        {!isEditingDescription && !selectedTask.externalUrl && (
-                          <Typography level="body-sm" textColor="neutral">Aucune URL renseignée.</Typography>
+                        {!isEditingDescription && !selectedTask.externalUrl && !selectedTask.linkedProcessTargetId && (
+                          <Typography level="body-sm" textColor="neutral">Aucun lien renseigné.</Typography>
+                        )}
+                        {!isEditingDescription && selectedTask.linkedProcessTargetId && (
+                          linkedProcess ? (
+                            <Button size="sm" variant="outlined" color="primary" onClick={() => navigate(`/${linkedProcess.id}`)}>
+                              Ouvrir le processus : {linkedProcess.name}
+                            </Button>
+                          ) : (
+                            <Typography level="body-sm" textColor="neutral">Processus lié non résolu ou non accessible (référence : {selectedTask.linkedProcessTargetId}).</Typography>
+                          )
                         )}
                       </Stack>
 
