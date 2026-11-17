@@ -6,6 +6,7 @@ export type AddResourceParams = {
 
 export type AddResourceLoader = {
   type: ResourceType;
+  projectId?: string;
 };
 
 export * from './AddResource.loader';
