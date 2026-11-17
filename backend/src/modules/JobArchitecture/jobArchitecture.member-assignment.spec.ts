@@ -14,7 +14,9 @@ describe('JobArchitectureService project member job-position assignment', () => 
   let functionFindOne: jest.Mock;
 
   beforeEach(() => {
-    assertProjectRole = jest.fn().mockResolvedValue('manager');
+    assertProjectRole = jest
+      .fn()
+      .mockResolvedValue('manager');
     memberFindOne = jest.fn().mockResolvedValue({
       projectId: 'project-1',
       userId: 'member-1',
@@ -26,7 +28,9 @@ describe('JobArchitectureService project member job-position assignment', () => 
       ...value,
     }));
     assignmentRemove = jest.fn().mockResolvedValue(undefined);
-    positionFindOne = jest.fn().mockResolvedValue({
+    positionFindOne = jest
+      .fn()
+      .mockResolvedValue({
       id: 'position-1',
       projectId: 'project-1',
       functionId: 'function-1',
@@ -37,7 +41,9 @@ describe('JobArchitectureService project member job-position assignment', () => 
       name: 'Analyste',
     });
 
-    service = Object.create(JobArchitectureService.prototype) as JobArchitectureService;
+    service = Object.create(
+      JobArchitectureService.prototype,
+    ) as JobArchitectureService;
     Object.assign(service, {
       projectAccess: { assertProjectRole },
       projectMembers: { findOne: memberFindOne },
