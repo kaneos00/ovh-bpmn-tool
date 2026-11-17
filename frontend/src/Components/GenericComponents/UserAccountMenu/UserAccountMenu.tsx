@@ -28,6 +28,7 @@ export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [busy, setBusy] = useState(false);
   const [homeDashboardEnabled, setHomeDashboardEnabled] = useState(false);
+  const [homeDashboardSaving, setHomeDashboardSaving] = useState(false);
   const [error, setError] = useState('');
   const { mode, setMode } = useColorScheme();
   const isDark = mode === 'dark';
@@ -73,19 +74,27 @@ export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
   };
 
   const toggleHomeDashboard = async () => {
+    if (homeDashboardSaving) return;
     const nextEnabled = !homeDashboardEnabled;
+    setHomeDashboardSaving(true);
+    setError('');
     try {
       const response = await fetch(`${apiBase}/auth/preferences`, {
         method: 'PUT',
         credentials: 'same-origin',
-        headers: { 'content-type': 'application/json' },
+        headers: { accept: 'application/json', 'content-type': 'application/json' },
         body: JSON.stringify({ homeDashboardEnabled: nextEnabled }),
       });
-      if (!response.ok) throw new Error('Enregistrement impossible.');
+      if (!response.ok) {
+        const details = await response.json().catch(() => ({}));
+        throw new Error(details.message || `Enregistrement impossible (HTTP ${response.status}).`);
+      }
       setHomeDashboardEnabled(nextEnabled);
       navigate(nextEnabled ? '/home' : '/root', { replace: true });
-    } catch {
-      setError('Impossible d’enregistrer la préférence de page d’accueil.');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Impossible d’enregistrer la préférence de page d’accueil.');
+    } finally {
+      setHomeDashboardSaving(false);
     }
   };
 
@@ -187,9 +196,21 @@ export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
           <WorkspacesOutlined fontSize="small" />
           Tous les projets
         </MenuItem>
-        <MenuItem onClick={toggleHomeDashboard} sx={{ justifyContent: 'space-between', gap: 2 }}>
-          <Typography level="body-sm">Accueil personnalisé</Typography>
-          <Switch size="sm" checked={homeDashboardEnabled} readOnly tabIndex={-1} />
+        <MenuItem
+          disabled={homeDashboardSaving}
+          onClick={() => { void toggleHomeDashboard(); }}
+          sx={{ justifyContent: 'space-between', gap: 2 }}
+        >
+          <Typography level="body-sm">
+            {homeDashboardSaving ? 'Enregistrement…' : 'Accueil personnalisé'}
+          </Typography>
+          <Switch
+            size="sm"
+            checked={homeDashboardEnabled}
+            readOnly
+            tabIndex={-1}
+            sx={{ pointerEvents: 'none' }}
+          />
         </MenuItem>
         <MenuItem onClick={toggleTheme} sx={{ justifyContent: 'space-between', gap: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
