@@ -36,5 +36,6 @@ test('folder creation actions are hidden inside a folder while root actions rema
   assert.ok(layout.includes('if (!resource || resource.type === ResourceType.Folder) {'));
   assert.ok(layout.includes('return <></>'));
   assert.doesNotMatch(layout, /isRootFolder \|\| resource\?\.type === ResourceType\.Folder/);
-  assert.match(layout, /if \\(!resource \\|\\| resource\\.type === ResourceType\\.Folder\\) \\{[\\s\\S]*?return <\\/>/);
+  const folderGuard = layout.indexOf('if (!resource || resource.type === ResourceType.Folder) {');
+  assert.ok(folderGuard >= 0 && layout.indexOf('return <></>', folderGuard) > folderGuard);
 });
