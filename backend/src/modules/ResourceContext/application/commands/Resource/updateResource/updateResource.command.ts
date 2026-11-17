@@ -11,6 +11,7 @@ export class UpdateResourceBody {
 
   description?: string;
   parentId?: string;
+  processMetadata?: Record<string, string> | null;
 }
 
 export class UpdateResourceCommand {
@@ -18,4 +19,5 @@ export class UpdateResourceCommand {
   name?: string;
   description?: string;
   parentId?: string;
+  processMetadata?: Record<string, string> | null;
 }
