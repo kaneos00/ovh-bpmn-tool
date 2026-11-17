@@ -10,11 +10,11 @@ Ce document distingue les **branches de référence numérotées** des branches 
 | `V0.2` | historique | `8c85c336` | Repère historique conservé |
 | `V0.3` | historique | `b3efd8a6` | Repère historique conservé |
 | `V0.4` | `v2.3` | `d4a8c389` | Référence V2 antérieure |
-| `V0.5` | `v2.4` | `df25c696` | Référence V2 actuelle, informations documentées et navigation explorateur |
+| `V0.5` | `v2.4` | `df25c696` | Repère V2 conservé ; même commit que V0.7 |
 | `V0.6` | `v3` | `d372f644` | Base de la lignée V3 avant les évolutions #129 |
 | `V0.7` | `feat/issue-129-documented-information` | `df25c696` | Référence V3 intégrant les informations documentées et les indicateurs de navigation |
 
-Les branches `V0.1` à `V0.6` sont des repères de version successifs. La numérotation continue à partir de `V0.7` pour la prochaine référence publiée.
+Les branches `V0.1` à `V0.7` sont des repères de version successifs. La prochaine référence publiée sera `V0.8`.
 
 ## Branches de travail
 
@@ -33,4 +33,4 @@ En particulier, les branches de développement V3 et les branches d'intégration
 
 ## Correspondance temporaire des anciens noms
 
-Les noms historiques `v2.3`, `v2.4` et `v3` sont conservés en parallèle pour le moment, car le connecteur GitHub utilisé pour cette opération permet de créer et déplacer des références, mais ne fournit pas d'action de renommage ou de suppression de branche. Les branches V0.x ci-dessus pointent sur les mêmes commits que leurs branches sources au moment de leur création.
+Les noms historiques `v2.3`, `v2.4`, `v3` et la branche de travail `feat/issue-129-documented-information` sont conservés en parallèle pour le moment, car le connecteur GitHub utilisé pour cette opération permet de créer des références, mais ne fournit pas d'action de renommage ou de suppression de branche. À noter : `V0.5` et `V0.7` pointent actuellement sur le même commit `df25c696`. `V0.7` explicite la lignée fonctionnelle V3 de ce même état ; ce n'est pas un contenu différent de V0.5.
