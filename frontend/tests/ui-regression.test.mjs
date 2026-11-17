@@ -525,7 +525,7 @@ test('V3 central viewer exposes process-level documented information backed by c
   assert.match(inventory, /headerName: 'Statut projet'/);
   assert.match(inventory, /headerName: 'Date limite de validité'/);
   assert.match(inventory, /validUntil/);
-  assert.match(inventory, /apiClient.put(`/projects/${projectId}/documented-sources/${row.id}`/);
+  assert.ok(inventory.includes('apiClient.put(`/projects/${projectId}/documented-sources/${row.id}`'));
   assert.doesNotMatch(inventory, /XMLSerializer|onSave|inventory:manifest/);
 });
 
