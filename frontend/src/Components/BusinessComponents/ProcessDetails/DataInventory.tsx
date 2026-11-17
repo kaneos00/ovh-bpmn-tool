@@ -500,9 +500,26 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, requ
                   minWidth: 210,
                   valueGetter: (params: ValueGetterParams<InventoryGridRow>) => params.data ? `${symbolLabel(params.data.bpmnType)} — ${params.data.elementName}` : '',
                   cellRenderer: (params: ICellRendererParams<InventoryGridRow>) => params.data ? (
-                    <Stack direction="row" spacing={0.5} alignItems="center">
+                    <Stack direction="row" spacing={0.75} alignItems="center">
                       <BpmnDataSymbol type={params.data.bpmnType} />
-                      <Typography level="body-sm">{params.data.elementName}</Typography>
+                      <Typography level="body-sm" sx={{ flex: 1, minWidth: 0 }}>{params.data.elementName}</Typography>
+                      {onElementSelect && (
+                        <Button
+                          size="sm"
+                          variant="plain"
+                          color="primary"
+                          title="Ouvrir cet élément dans le diagramme BPMN"
+                          aria-label={`Voir l’élément BPMN ${params.data.elementName} dans le diagramme`}
+                          startDecorator={<CenterFocusStrong />}
+                          onClick={event => {
+                            event.stopPropagation();
+                            onShowDiagram?.();
+                            onElementSelect(params.data!.id);
+                          }}
+                        >
+                          Voir
+                        </Button>
+                      )}
                     </Stack>
                   ) : null,
                 },
