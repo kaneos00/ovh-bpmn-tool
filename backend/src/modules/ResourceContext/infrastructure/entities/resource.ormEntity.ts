@@ -26,4 +26,7 @@ export class ResourceTypeOrmEntity extends AbstractEntity {
 
   @Column({ type: 'varchar', length: 64, nullable: true })
   authToken: Nullable<string>;
+
+  @Column({ type: 'jsonb', nullable: true })
+  processMetadata: Record<string, string> | null;
 }
