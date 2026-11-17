@@ -446,7 +446,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                   headerName: 'Type',
                   field: 'kind',
                   minWidth: 140,
-                  editable: params => Boolean(params.data && editingSourceId === params.data.id),
+                  editable: (params: EditableCallbackParams<InventoryGridRow>) => Boolean(params.data && editingSourceId === params.data.id),
                   cellEditor: 'agSelectCellEditor',
                   cellEditorParams: { values: ['file', 'database', 'application', 'form'] },
                   valueFormatter: (params: ValueFormatterParams<InventoryGridRow>) => ({ file: 'Fichier', database: 'Base de données', application: 'Application', form: 'Formulaire' } as Record<SourceKind, string>)[params.value as SourceKind] ?? '',
@@ -530,7 +530,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                   </Stack>
                 );
               }}
-            />    </Table>
+            />
           </Box>
         )}
       </Stack>
