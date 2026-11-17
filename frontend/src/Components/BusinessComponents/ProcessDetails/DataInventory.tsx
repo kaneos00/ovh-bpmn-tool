@@ -120,7 +120,7 @@ export const DataInventory = ({
 
   const projectSourcesQuery = useQuery<ProjectDocumentedSourcesResponse>(
     ['project-documented-sources', projectId],
-    () => apiClient.get(\`/projects/\${projectId}/documented-sources\`),
+    () => apiClient.get(`/projects/${projectId}/documented-sources`),
     { enabled: Boolean(projectId), refetchOnMount: 'always' },
   );
   const projectSources = projectSourcesQuery.data?.sources ?? [];
@@ -182,9 +182,9 @@ export const DataInventory = ({
     };
     try {
       if (row.id.startsWith('new-')) {
-        await apiClient.post(\`/projects/\${projectId}/documented-sources\`, payload);
+        await apiClient.post(`/projects/${projectId}/documented-sources`, payload);
       } else {
-        await apiClient.put(\`/projects/\${projectId}/documented-sources/\${row.id}\`, payload);
+        await apiClient.put(`/projects/${projectId}/documented-sources/${row.id}`, payload);
       }
       await refresh();
     } catch (e) {
@@ -195,7 +195,7 @@ export const DataInventory = ({
   };
 
   const addRow = () => {
-    const id = \`new-\${Date.now()}\`;
+    const id = `new-${Date.now()}`;
     setSources(current => [...current, emptySource(id)]);
     setSelectedSourceId(id);
     setDirtyIds(current => new Set(current).add(id));
@@ -212,7 +212,7 @@ export const DataInventory = ({
     setAssociatingId(row.id);
     setError('');
     try {
-      await apiClient.post(\`/projects/\${projectId}/documented-sources/\${row.id}/references\`, {
+      await apiClient.post(`/projects/${projectId}/documented-sources/${row.id}/references`, {
         resourceId: reference.resourceId,
         elementId: reference.elementId,
         elementName: reference.elementName,
@@ -231,7 +231,7 @@ export const DataInventory = ({
     setAssociatingId(row.id);
     setError('');
     try {
-      await apiClient.remove(\`/projects/\${projectId}/documented-sources/\${row.id}/references/\${reference.id}\`);
+      await apiClient.remove(`/projects/${projectId}/documented-sources/${row.id}/references/${reference.id}`);
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Impossible de supprimer cette association BPMN.');
@@ -305,7 +305,7 @@ export const DataInventory = ({
                 variant="plain"
                 color="primary"
                 title="Ouvrir l’élément BPMN associé"
-                aria-label={\`Ouvrir \${reference.elementName} dans le diagramme BPMN\`}
+                aria-label={`Ouvrir ${reference.elementName} dans le diagramme BPMN`}
                 onClick={event => {
                   event.stopPropagation();
                   onShowDiagram?.();
@@ -364,7 +364,7 @@ export const DataInventory = ({
       editable: canManageSources,
       cellEditor: 'agTextCellEditor',
       valueFormatter: params => params.value || 'Illimitée',
-      tooltipValueGetter: params => params.value ? \`Valable jusqu’au \${params.value}\` : 'Validité sans limite de durée',
+      tooltipValueGetter: params => params.value ? `Valable jusqu’au ${params.value}` : 'Validité sans limite de durée',
       onCellValueChanged: (params: CellValueChangedEvent<InventoryGridRow>) => {
         if (params.data) updateRow(params.data.id, 'validUntil', String(params.newValue ?? '').trim() || null);
       },
