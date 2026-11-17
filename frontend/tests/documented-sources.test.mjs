@@ -113,6 +113,7 @@ test('documented information inventory uses a reusable AG Grid with add, edit an
 
 
 test('documented source grid delegates row actions to an external toolbar', async () => {
+  const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
   const grid = await read('src/Components/BusinessComponents/ProcessDetails/DocumentedSourcesGrid.tsx');
 
   assert.match(grid, /rowSelection=\{\{ mode: 'singleRow', enableClickSelection: true \}\}/);
