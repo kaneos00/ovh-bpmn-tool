@@ -126,7 +126,7 @@ test('documented information is edited by double-click with automatic saving and
   assert.match(inventory, /void handleCellChange\(params, field\)/);
   assert.match(inventory, /await saveRow\(updated\)/);
   assert.doesNotMatch(inventory, /headerName: 'Actions'/);
-  assert.doesNotMatch(inventory, /Enregistrer<\\/Button>/);
+  assert.doesNotMatch(inventory, /Enregistrer/);
   assert.doesNotMatch(grid, /rowSelection=/);
   assert.doesNotMatch(grid, /checkboxes:/);
 });
