@@ -1079,7 +1079,7 @@ test('project documented information uses canonical sources within one process a
   assert.ok(inventory.includes('<Option value="file">'));
   assert.ok(inventory.includes('<Option value="database">'));
   assert.ok(inventory.includes('<Option value="application">'));
-  assert.ok(inventory.includes('Application (Tool)'));
+  assert.ok(inventory.includes('kind === \'application\' || kind === \'form\' ? \'application\''));
   assert.ok(inventory.includes('unlinkedReferences'));
   assert.ok(inventory.includes('Associer un objet BPMN'));
   assert.ok(inventory.includes('Supprimer l’association BPMN'));
