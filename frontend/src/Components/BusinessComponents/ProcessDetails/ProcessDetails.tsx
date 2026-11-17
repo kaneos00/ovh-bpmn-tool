@@ -362,9 +362,12 @@ export const ProcessDetails = ({
   // current tab when the user navigates between processes or versions.
   // Do not reset to the BPMN tab when the route query disappears after navigation.
   useEffect(() => {
+    if (requestedRaciView) setActiveViewerTab(3);
+  }, [requestedRaciView]);
+
+  useEffect(() => {
     if (requestedDocumentedSourceId) setActiveViewerTab(4);
-    else if (requestedRaciView) setActiveViewerTab(3);
-  }, [requestedRaciView, requestedDocumentedSourceId]);
+  }, [requestedDocumentedSourceId]);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState('');
   const [titleDraft, setTitleDraft] = useState('');
