@@ -5,7 +5,6 @@ import {
   AppsOutlined,
   AttachFileOutlined,
   LinkOffOutlined,
-  SaveOutlined,
   StorageOutlined,
 } from '@mui/icons-material';
 import type { ColDef, ICellRendererParams, NewValueParams } from 'ag-grid-community';
@@ -115,8 +114,7 @@ export const DataInventory = ({
 }: Props) => {
   const queryClient = useQueryClient();
   const [sources, setSources] = useState<ProjectDocumentedSource[]>([]);
-  const [dirtyIds, setDirtyIds] = useState<Set<string>>(new Set());
-  const [savingId, setSavingId] = useState<string | null>(null);
+    const [savingId, setSavingId] = useState<string | null>(null);
   const [associatingId, setAssociatingId] = useState<string | null>(null);
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -139,7 +137,6 @@ export const DataInventory = ({
       validUntil: source.validUntil ?? null,
       references: source.references ?? [],
     })));
-    setDirtyIds(new Set());
   }, [projectSourcesQuery.data]);
 
   useEffect(() => {
@@ -155,21 +152,18 @@ export const DataInventory = ({
     }
   }, [requestedDocumentedSourceId, requestedElementId, projectSources, resourceId]);
 
-  const updateRow = (id: string, field: keyof ProjectDocumentedSource, value: string | null) => {
-    setSources(current => current.map(source => source.id === id ? { ...source, [field]: value } : source));
-    setDirtyIds(current => new Set(current).add(id));
-  };
-
   const refresh = async () => {
     if (projectId) await queryClient.invalidateQueries(['project-documented-sources', projectId]);
   };
 
+  const updateRow = (id: string, field: keyof ProjectDocumentedSource, value: string | null) => {
+    setSources(current => current.map(source => source.id === id ? { ...source, [field]: value } : source));
+  };
+
   const saveRow = async (row: ProjectDocumentedSource) => {
     if (!projectId || !canManageSources || savingId) return;
-    if (!row.name.trim()) {
-      setError('Le nom de l’information documentée est obligatoire.');
-      return;
-    }
+    // A newly added row stays local until its required name is entered.
+    if (!row.name.trim()) return;
     setSavingId(row.id);
     setError('');
     const payload = {
@@ -197,11 +191,23 @@ export const DataInventory = ({
     }
   };
 
+  const handleCellChange = async (
+    params: NewValueParams<InventoryGridRow>,
+    field: keyof ProjectDocumentedSource,
+  ) => {
+    if (!params.data) return;
+    const value = field === 'validUntil'
+      ? (String(params.newValue ?? '').trim() || null)
+      : String(params.newValue ?? '');
+    const updated = { ...params.data, [field]: value };
+    updateRow(params.data.id, field, value);
+    await saveRow(updated);
+  };
+
   const addRow = () => {
     const id = `new-${Date.now()}`;
     setSources(current => [...current, emptySource(id)]);
     setSelectedSourceId(id);
-    setDirtyIds(current => new Set(current).add(id));
   };
 
   const associate = async (row: ProjectDocumentedSource, elementId: string) => {
@@ -246,7 +252,7 @@ export const DataInventory = ({
   const rows: InventoryGridRow[] = sources.map(source => {
     return {
       ...source,
-      projectStatus: source.id.startsWith('new-') ? 'À enregistrer' : 'Présente dans le projet',
+      projectStatus: source.id.startsWith('new-') ? 'À compléter' : 'Présente dans le projet',
       isNew: source.id.startsWith('new-'),
     };
   });
@@ -263,7 +269,7 @@ export const DataInventory = ({
     cellEditor: 'agLargeTextCellEditor',
     cellEditorPopup: true,
     onCellValueChanged: (params: NewValueParams<InventoryGridRow>) => {
-      if (params.data) updateRow(params.data.id, field, String(params.newValue ?? ''));
+      void handleCellChange(params, field);
     },
   });
 
@@ -272,22 +278,27 @@ export const DataInventory = ({
       headerName: 'Type',
       field: 'kind',
       minWidth: 150,
-      editable: false,
+      editable: canManageSources && !savingId,
+      cellEditor: 'agSelectCellEditor',
+      cellEditorParams: { values: ['file', 'database', 'application'] },
+      valueFormatter: params => ({
+        file: 'Fichier',
+        database: 'Base de données',
+        application: 'Application',
+      }[normalizeKind(params.value)]),
       cellRenderer: (params: ICellRendererParams<InventoryGridRow>) => params.data ? (
-        <Select
-          size="sm"
-          value={normalizeKind(params.data.kind)}
-          disabled={!canManageSources || Boolean(savingId)}
-          startDecorator={<KindIcon kind={normalizeKind(params.data.kind)} />}
-          onClick={event => event.stopPropagation()}
-          onChange={(_, value) => { if (value) updateRow(params.data!.id, 'kind', value); }}
-          aria-label="Type d’information documentée"
-        >
-          <Option value="file"><AttachFileOutlined /> Fichier</Option>
-          <Option value="database"><StorageOutlined /> Base de données</Option>
-          <Option value="application"><AppsOutlined /> Application</Option>
-        </Select>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <KindIcon kind={normalizeKind(params.data.kind)} />
+          <Typography level="body-sm">{({
+            file: 'Fichier',
+            database: 'Base de données',
+            application: 'Application',
+          }[normalizeKind(params.data.kind)])}</Typography>
+        </Stack>
       ) : null,
+      onCellValueChanged: (params: NewValueParams<InventoryGridRow>) => {
+        void handleCellChange(params, 'kind');
+      },
     },
     textColumn('name', 'Nom', 190),
     textColumn('description', 'Description', 240),
@@ -376,38 +387,17 @@ export const DataInventory = ({
       headerName: 'Date limite de validité',
       field: 'validUntil',
       minWidth: 175,
-      editable: canManageSources,
-      cellEditor: 'agTextCellEditor',
+      editable: canManageSources && !savingId,
+      cellEditor: 'agDateStringCellEditor',
       valueFormatter: params => params.value || 'Illimitée',
       tooltipValueGetter: params => params.value ? `Valable jusqu’au ${params.value}` : 'Validité sans limite de durée',
       onCellValueChanged: (params: NewValueParams<InventoryGridRow>) => {
-        if (params.data) updateRow(params.data.id, 'validUntil', String(params.newValue ?? '').trim() || null);
+        void handleCellChange(params, 'validUntil');
       },
     },
     textColumn('authorizedPeople', 'Personnes autorisées', 190),
     textColumn('restrictions', 'Restrictions', 200),
-    {
-      headerName: 'Actions',
-      minWidth: 125,
-      maxWidth: 145,
-      sortable: false,
-      filter: false,
-      cellRenderer: (params: ICellRendererParams<InventoryGridRow>) => params.data ? (
-        <Button
-          size="sm"
-          variant="soft"
-          startDecorator={<SaveOutlined />}
-          loading={savingId === params.data.id}
-          disabled={!canManageSources || !dirtyIds.has(params.data.id) || Boolean(savingId)}
-          onClick={event => {
-            event.stopPropagation();
-            void saveRow(params.data!);
-          }}
-        >
-          Enregistrer
-        </Button>
-      ) : null,
-    },
+
   ];
 
   return (
@@ -436,11 +426,8 @@ export const DataInventory = ({
           rowData={rows}
           columnDefs={columnDefs}
           getRowId={row => row.id}
-          selectedRowId={selectedSourceId ?? undefined}
-          onRowSelected={row => setSelectedSourceId(row?.id ?? null)}
           onAdd={canManageSources ? addRow : undefined}
           addLabel="Ajouter une ligne : information documentée"
-          addDisabled={Boolean(savingId)}
           height={560}
         />
         {unlinkedReferences.length > 0 && (
