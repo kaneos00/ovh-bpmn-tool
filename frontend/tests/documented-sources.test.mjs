@@ -37,7 +37,7 @@ test('source types are File, Database and Application, with Tool represented by 
   assert.match(inventory, /<Option value="database">/);
   assert.match(inventory, /<Option value="application">/);
   assert.match(inventory, /<Option value="application">/);
-  assert.match(inventory, /kind === 'application' \|\| kind === 'form' \? 'application'/);
+  assert.match(inventory, /if \(kind === 'application' \|\| kind === 'form'\) return 'application'/);
   assert.doesNotMatch(inventory, /<Option value="form">/);
   assert.match(controller, /'application'/);
 });
