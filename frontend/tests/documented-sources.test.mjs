@@ -90,7 +90,7 @@ test('documented information only offers Data Object Reference and Data Store Re
   assert.match(inventory, /dataTypes\.has\(element\.localName as BpmnDataType\)/);
   assert.doesNotMatch(inventory, /'dataInput'|'dataOutput'/);
   assert.match(controller, /const BPMN_DOCUMENTED_DATA_TYPES = new Set\(\[\s*'dataObjectReference',\s*'dataStoreReference',\s*\]\)/);
-  assert.match(controller, /const supported = new Set\(\[\s*'dataObjectReference',\s*'dataStoreReference',\s*\]\)/);
+  assert.match(controller, /const supported = new Set\(\['dataObjectReference', 'dataStoreReference'\]\)/);
   assert.doesNotMatch(controller, /'dataInput'|'dataOutput'/);
   assert.match(controller, /where: \{ projectId, elementType: In\(\[\.\.\.BPMN_DOCUMENTED_DATA_TYPES\]\) \}/);
 });
