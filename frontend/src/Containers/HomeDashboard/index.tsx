@@ -11,7 +11,14 @@ import {
 import { WorkspacePageLayout } from '../../Components/GenericComponents/WorkspacePageLayout/WorkspacePageLayout';
 import { useActiveProject } from '../../shared/hooks/useActiveProject';
 
-type QuickAction = {\n  label: string;\n  description: string;\n  Icon: typeof AssignmentTurnedInOutlined;\n  run: (navigate: ReturnType<typeof useNavigate>, projectId: string | null, setActiveProject: (id: string) => void) => void;\n};\n\nconst quickActions: QuickAction[] = [
+type QuickAction = {
+  label: string;
+  description: string;
+  Icon: typeof AssignmentTurnedInOutlined;
+  run: (navigate: ReturnType<typeof useNavigate>, projectId: string | null, setActiveProject: (id: string) => void) => void;
+};
+
+const quickActions: QuickAction[] = [
   {
     label: 'Mes responsabilités',
     description: 'Consulter le RACI',
