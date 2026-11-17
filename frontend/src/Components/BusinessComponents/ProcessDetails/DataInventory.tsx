@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from 'react-query';
-import { Alert, Box, Button, Chip, DialogActions, DialogContent, DialogTitle, IconButton, Input, Modal, ModalDialog, Option, Select, Stack, Table, Textarea, Typography } from '@mui/joy';
-import { EditOutlined, CenterFocusStrong, MergeType } from '@mui/icons-material';
+import { Alert, Box, Button, Chip, DialogActions, DialogContent, DialogTitle, IconButton, Input, Modal, ModalDialog, Option, Select, Stack, Textarea, Typography } from '@mui/joy';
+import { CenterFocusStrong, MergeType } from '@mui/icons-material';
+import { ColDef } from 'ag-grid-community';
+import { DocumentedSourcesGrid } from './DocumentedSourcesGrid';
 
 import { apiClient } from '../../../queryClient';
 
@@ -42,6 +44,8 @@ type ProjectDocumentedSourcesResponse = {
   sources: ProjectDocumentedSource[];
   unlinkedReferences: Array<{ resourceId: string; processName: string; elementId: string; elementName: string; elementType: string }>;
 };
+
+type InventoryGridRow = InventorySource & { associationsLabel: string; projectStatus: string };
 
 type Props = {
   xmlContent?: string;
@@ -200,6 +204,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
   const [saving, setSaving] = useState(false);
   const [associatingElementId, setAssociatingElementId] = useState<string | null>(null);
   const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [mergeTargets, setMergeTargets] = useState<Record<string, string>>({});
   const [pendingMerge, setPendingMerge] = useState<{ sourceId: string; targetId: string } | null>(null);
   const [error, setError] = useState('');
@@ -342,10 +347,8 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
     if (!projectId || !canManageSources || !editingSourceId || saving) return;
     const source = sources.find(item => item.id === editingSourceId);
     const linked = source ? getLinkedSource(source.id) : undefined;
-    if (!source || !linked) {
-      setError('Cette nouvelle référence doit être créée ou rattachée à une source du projet.');
-      return;
-    }
+    if (!source) return;
+    if (!linked) { await createCanonicalSource(source); return; }
     setSaving(true);
     setError('');
     try {
@@ -377,103 +380,126 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
             <Typography level="title-lg">Informations documentées</Typography>
             <Typography level="body-sm" color="neutral">Sources utilisées par ce processus, informations de référence et règles d’accès à l’échelle du projet.</Typography>
           </Box>
-          {canEdit && editingSourceId && sources.some(source => source.id === editingSourceId && getLinkedSource(source.id)) && <Button size="sm" loading={saving} disabled={saving} onClick={save}>Enregistrer la source</Button>}
+          {canEdit && editingSourceId && <Button size="sm" loading={saving} disabled={saving} onClick={save}>{getLinkedSource(editingSourceId) ? 'Enregistrer la source' : 'Créer la source du projet'}</Button>}
         </Stack>
         {error && <Alert color="danger" variant="soft">{error}</Alert>}
         {projectSourcesQuery.isError && <Alert color="warning" variant="soft">Le référentiel documentaire du projet est momentanément indisponible. Les informations BPMN locales restent consultables.</Alert>}
         {!sources.length ? <Typography level="body-sm" color="neutral">Aucune information documentée. Ajoutez un objet de données ou un magasin de données dans le diagramme BPMN pour le faire apparaître ici.</Typography> : (
           <Box sx={{ overflow: 'auto', maxWidth: '100%' }}>
-            <Table size="sm" stickyHeader hoverRow sx={{ minWidth: 1500, '& th': { whiteSpace: 'nowrap' }, '& td': { verticalAlign: 'top' } }}>
-              <thead><tr><th>Symbole BPMN</th><th>Source</th><th>Références dans le processus</th><th>Statut projet</th><th>Description</th><th>Lien</th><th>Emplacement</th><th>Accès</th><th>Rétention</th><th>Personnes autorisées</th><th>Restrictions</th><th>Actions</th></tr></thead>
-              <tbody>{sources.map((source, index) => {
+            <DocumentedSourcesGrid<InventoryGridRow>
+              rowData={sources.map(source => {
                 const linked = getLinkedSource(source.id);
-                const editing = canEdit && (canManageSources || !linked) && editingSourceId === source.id;
-                const display = (field: keyof ProjectDocumentedSource) => linked ? linked[field] ?? '' : source[field as keyof InventorySource] ?? '';
-                const textField = (key: keyof InventorySource, label: string) => editing
-                  ? <Input size="sm" value={String(source[key])} onChange={e => update(source.id, key, e.target.value)} placeholder={label} aria-label={label} />
-                  : <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', minWidth: 90 }}>{String(display(key as keyof ProjectDocumentedSource) || '—')}</Typography>;
-                const areaField = (key: 'description' | 'restrictions', label: string) => editing
-                  ? <Textarea size="sm" minRows={2} value={source[key]} onChange={e => update(source.id, key, e.target.value)} placeholder={label} aria-label={label} />
-                  : <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', minWidth: 130 }}>{String(display(key) || '—')}</Typography>;
-                // A canonical source may be reused across different BPMN diagrams,
-                // but it must not be attached to a second object in this same diagram.
+                return {
+                  ...source,
+                  name: linked?.name ?? source.name,
+                  kind: linked?.kind ?? source.kind,
+                  description: linked?.description ?? source.description,
+                  link: linked?.link ?? source.link,
+                  location: linked?.location ?? source.location,
+                  access: linked?.access ?? source.access,
+                  retention: linked?.retention ?? source.retention,
+                  authorizedPeople: linked?.authorizedPeople ?? source.authorizedPeople,
+                  restrictions: linked?.restrictions ?? source.restrictions,
+                  projectStatus: linked ? 'Rattaché au projet (' + linked.references.length + ' référence(s))' : 'À créer',
+                  associationsLabel: source.associations.length
+                    ? source.associations.map(association => (association.direction === 'input' ? 'Entrée' : 'Sortie') + ' : ' + association.taskName).join(' • ')
+                    : 'Aucune association BPMN détectée',
+                };
+              })}
+              getRowId={row => row.id}
+              columnDefs={[
+                {
+                  headerName: 'Objet BPMN',
+                  minWidth: 210,
+                  valueGetter: params => params.data ? symbolLabel(params.data.bpmnType) + ' — ' + params.data.elementName : '',
+                  cellRenderer: params => params.data ? (
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <BpmnDataSymbol type={params.data.bpmnType} />
+                      <Typography level="body-sm">{params.data.elementName}</Typography>
+                    </Stack>
+                  ) : null,
+                },
+                { headerName: 'Associations', field: 'associationsLabel', minWidth: 210 },
+                {
+                  headerName: 'Source documentaire',
+                  field: 'name',
+                  minWidth: 190,
+                  editable: params => Boolean(params.data && editingSourceId === params.data.id),
+                  onCellValueChanged: params => { if (params.data) update(params.data.id, 'name', String(params.newValue ?? '')); },
+                },
+                {
+                  headerName: 'Type',
+                  field: 'kind',
+                  minWidth: 140,
+                  editable: params => Boolean(params.data && editingSourceId === params.data.id),
+                  cellEditor: 'agSelectCellEditor',
+                  cellEditorParams: { values: ['file', 'database', 'application', 'form'] },
+                  valueFormatter: params => ({ file: 'Fichier', database: 'Base de données', application: 'Application', form: 'Formulaire' } as Record<SourceKind, string>)[params.value as SourceKind] ?? '',
+                  onCellValueChanged: params => { if (params.data) update(params.data.id, 'kind', String(params.newValue ?? 'file')); },
+                },
+                { headerName: 'Statut projet', field: 'projectStatus', minWidth: 180 },
+                ...([
+                  ['description', 'Description', 230],
+                  ['link', 'Lien', 180],
+                  ['location', 'Emplacement', 160],
+                  ['access', 'Accès', 150],
+                  ['retention', 'Rétention', 140],
+                  ['authorizedPeople', 'Personnes autorisées', 180],
+                  ['restrictions', 'Restrictions', 200],
+                ] as Array<[keyof InventorySource, string, number]>).map(([field, headerName, minWidth]) => ({
+                  headerName,
+                  field: field as keyof InventoryGridRow,
+                  minWidth,
+                  editable: (params: { data?: InventoryGridRow }) => Boolean(params.data && editingSourceId === params.data.id),
+                  onCellValueChanged: (params: { data?: InventoryGridRow; newValue: unknown }) => {
+                    if (params.data) update(params.data.id, field, String(params.newValue ?? ''));
+                  },
+                })),
+              ] as ColDef<InventoryGridRow>[]}
+              onRowSelected={row => setSelectedElementId(row?.id ?? null)}
+              onAdd={() => { if (selectedElementId) setEditingSourceId(selectedElementId); }}
+              addLabel="Créer la source du projet"
+              addDisabled={!canManageSources || !selectedElementId || Boolean(getLinkedSource(selectedElementId)) || Boolean(editingSourceId)}
+              onEdit={row => {
+                const linked = getLinkedSource(row.id);
+                if (linked) {
+                  setSources(current => current.map(item => item.id === row.id ? {
+                    ...item,
+                    name: linked.name,
+                    kind: linked.kind,
+                    description: linked.description ?? '',
+                    link: linked.link ?? '',
+                    location: linked.location ?? '',
+                    access: linked.access ?? '',
+                    retention: linked.retention ?? '',
+                    authorizedPeople: linked.authorizedPeople ?? '',
+                    restrictions: linked.restrictions ?? '',
+                  } : item));
+                }
+                setEditingSourceId(row.id);
+              }}
+              onDelete={row => {
+                const source = sources.find(item => item.id === row.id);
+                if (source) void unlink(source);
+              }}
+              canDelete={row => Boolean(getLinkedSource(row.id)) && canManageSources}
+              renderExtraActions={row => {
+                const linked = getLinkedSource(row.id);
                 const otherSources = projectSources.filter(item =>
                   item.id !== linked?.id &&
                   !item.references.some(reference => reference.resourceId === resourceId),
                 );
-                const sourceKind = linked?.kind ?? source.kind;
-                const sourceKindLabel = ({
-                  file: 'Fichier',
-                  database: 'Base de données',
-                  application: 'Application',
-                  form: 'Formulaire',
-                } as Record<SourceKind, string>)[sourceKind];
-                let editActionLabel = 'Préparer la création de la source';
-                if (editing) editActionLabel = 'Annuler la modification';
-                else if (linked) editActionLabel = 'Modifier les informations';
-                const sourceLink = display('link');
-                let linkCell: React.ReactNode = <Typography level="body-sm">—</Typography>;
-                if (editing) {
-                  linkCell = <Input size="sm" value={source.link} onChange={e => update(source.id, 'link', e.target.value)} placeholder="https://…" aria-label="Lien de la source" />;
-                } else if (sourceLink) {
-                  linkCell = <a href={String(sourceLink)} target="_blank" rel="noopener noreferrer">{String(sourceLink)}</a>;
-                }
-                return <tr key={source.id || `source-${index}`}>
-                  <td><Stack direction="row" spacing={0.5} alignItems="center"><BpmnDataSymbol type={source.bpmnType} /><Typography level="body-xs">{symbolLabel(source.bpmnType)}</Typography></Stack></td>
-                  <td><Stack spacing={0.5} sx={{ minWidth: 180 }}>
-                    {editing ? <Input size="sm" value={source.name} onChange={e => update(source.id, 'name', e.target.value)} placeholder="Nom de la source" aria-label="Nom de la source" /> : <Typography level="body-sm">{linked?.name || source.name || `Source ${index + 1}`}</Typography>}
-                    {editing ? (
-                      <Select size="sm" value={source.kind} aria-label="Type de source" onChange={(_, value) => { if (value) update(source.id, 'kind', value); }}>
-                        <Option value="file">Fichier</Option>
-                        <Option value="database">Base de données</Option>
-                        <Option value="application">Application</Option>
-                        <Option value="form">Formulaire</Option>
-                      </Select>
-                    ) : <Chip size="sm" variant="soft">{sourceKindLabel}</Chip>}
-                  </Stack></td>
-                  <td><Stack spacing={0.5} sx={{ minWidth: 190 }}>{source.associations.length ? source.associations.map((association, i) => <Stack key={`${association.taskId}-${i}`} direction="row" spacing={0.5} alignItems="center"><Chip size="sm" color={association.direction === 'input' ? 'primary' : 'success'} variant="soft">{association.direction === 'input' ? 'Entrée' : 'Sortie'}</Chip>{onElementSelect ? <Button size="sm" variant="plain" color="neutral" onClick={() => { onShowDiagram?.(); onElementSelect(association.taskId); }} startDecorator={<CenterFocusStrong />}>{association.taskName}</Button> : <Typography level="body-sm">{association.taskName}</Typography>}</Stack>) : <Typography level="body-sm" textColor="neutral">Aucune association BPMN détectée</Typography>}</Stack></td>
-                  <td><Stack spacing={0.75} sx={{ minWidth: 210 }}>
-                    <Chip size="sm" color={linked ? 'success' : 'warning'} variant="soft">{linked ? 'Rattaché au projet' : 'Nouveau'}</Chip>
-                    {linked && <Typography level="body-xs" color="neutral">{linked.references.length} référence(s) dans le projet</Typography>}
-                    {canManageSources && projectSources.length > 0 && <Select<string> size="sm" placeholder={linked ? 'Changer la source associée…' : 'Associer à une source existante…'} value={null} disabled={associatingElementId === source.id} onChange={(_, value) => { if (typeof value === 'string' && value.length > 0) void (linked ? changeAssociation(source, value) : associate(source, value)); }}>
-                      {projectSources.filter(item => item.id !== linked?.id && !item.references.some(reference => reference.resourceId === resourceId)).map(item => <Option key={item.id} value={item.id}>{sourceOptionLabel(item)} ({item.references.length} référence(s))</Option>)}
-                    </Select>}
-                    {canManageSources && linked && <Button size="sm" color="danger" variant="soft" loading={associatingElementId === source.id} disabled={Boolean(associatingElementId)} onClick={() => void unlink(source)}>Délier</Button>}
-                    {!linked && canManageSources && editing && <Button size="sm" variant="outlined" color="neutral" loading={saving} disabled={saving || !source.name.trim()} onClick={() => void createCanonicalSource(source)}>Créer la source du projet</Button>}
-                  </Stack></td>
-                  <td>{areaField('description', 'Description')}</td>
-                  <td>{linkCell}</td>
-                  <td>{textField('location', 'Emplacement / chemin')}</td>
-                  <td>{textField('access', 'Accès')}</td>
-                  <td>{textField('retention', 'Rétention')}</td>
-                  <td>{textField('authorizedPeople', 'Personnes autorisées')}</td>
-                  <td>{areaField('restrictions', 'Restrictions')}</td>
-                  <td><Stack spacing={0.5}>
-                    {canEdit && (linked || canManageSources) && <IconButton size="sm" variant="plain" title={editActionLabel} aria-label={editActionLabel} onClick={() => {
-                      if (!editing && linked) {
-                        setSources(current => current.map(item => item.id === source.id ? {
-                          ...item,
-                          name: linked.name,
-                          kind: linked.kind,
-                          description: linked.description ?? '',
-                          link: linked.link ?? '',
-                          location: linked.location ?? '',
-                          access: linked.access ?? '',
-                          retention: linked.retention ?? '',
-                          authorizedPeople: linked.authorizedPeople ?? '',
-                          restrictions: linked.restrictions ?? '',
-                        } : item));
-                      }
-                      setEditingSourceId(editing ? null : source.id);
-                    }}><EditOutlined /></IconButton>}
-                    {canManageSources && linked && otherSources.length > 0 && <Select size="sm" placeholder="Fusionner avec…" value={mergeTargets[linked.id] ?? ''} onChange={(_, value) => setMergeTargets(current => ({ ...current, [linked.id]: value ?? '' }))}>
+                if (!canManageSources || !linked || !otherSources.length) return null;
+                return (
+                  <Stack spacing={0.5}>
+                    <Select size="sm" placeholder="Fusionner…" value={mergeTargets[linked.id] ?? ''} onChange={(_, value) => setMergeTargets(current => ({ ...current, [linked.id]: value ?? '' }))}>
                       {otherSources.map(item => <Option key={item.id} value={item.id}>{sourceOptionLabel(item)}</Option>)}
-                    </Select>}
-                    {canManageSources && linked && mergeTargets[linked.id] && <Button size="sm" color="warning" variant="soft" startDecorator={<MergeType />} onClick={() => setPendingMerge({ sourceId: linked.id, targetId: mergeTargets[linked.id] })}>Fusionner</Button>}
-                  </Stack></td>
-                </tr>;
-              })}</tbody>
-            </Table>
+                    </Select>
+                    {mergeTargets[linked.id] && <Button size="sm" color="warning" variant="soft" startDecorator={<MergeType />} onClick={() => setPendingMerge({ sourceId: linked.id, targetId: mergeTargets[linked.id] })}>Fusionner</Button>}
+                  </Stack>
+                );
+              }}
+            />    </Table>
           </Box>
         )}
       </Stack>
