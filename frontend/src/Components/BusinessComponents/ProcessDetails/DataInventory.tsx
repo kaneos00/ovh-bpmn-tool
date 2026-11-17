@@ -114,9 +114,8 @@ export const DataInventory = ({
 }: Props) => {
   const queryClient = useQueryClient();
   const [sources, setSources] = useState<ProjectDocumentedSource[]>([]);
-    const [savingId, setSavingId] = useState<string | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
   const [associatingId, setAssociatingId] = useState<string | null>(null);
-  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   const projectSourcesQuery = useQuery<ProjectDocumentedSourcesResponse>(
@@ -139,18 +138,6 @@ export const DataInventory = ({
     })));
   }, [projectSourcesQuery.data]);
 
-  useEffect(() => {
-    if (requestedDocumentedSourceId) {
-      setSelectedSourceId(requestedDocumentedSourceId);
-      return;
-    }
-    if (requestedElementId) {
-      const linked = projectSources.find(source =>
-        source.references.some(reference => reference.resourceId === resourceId && reference.elementId === requestedElementId),
-      );
-      if (linked) setSelectedSourceId(linked.id);
-    }
-  }, [requestedDocumentedSourceId, requestedElementId, projectSources, resourceId]);
 
   const refresh = async () => {
     if (projectId) await queryClient.invalidateQueries(['project-documented-sources', projectId]);
@@ -207,7 +194,6 @@ export const DataInventory = ({
   const addRow = () => {
     const id = `new-${Date.now()}`;
     setSources(current => [...current, emptySource(id)]);
-    setSelectedSourceId(id);
   };
 
   const associate = async (row: ProjectDocumentedSource, elementId: string) => {
@@ -265,7 +251,7 @@ export const DataInventory = ({
     headerName,
     field,
     minWidth,
-    editable: canManageSources,
+    editable: canManageSources && !savingId,
     cellEditor: 'agLargeTextCellEditor',
     cellEditorPopup: true,
     onCellValueChanged: (params: NewValueParams<InventoryGridRow>) => {
@@ -397,7 +383,6 @@ export const DataInventory = ({
     },
     textColumn('authorizedPeople', 'Personnes autorisées', 190),
     textColumn('restrictions', 'Restrictions', 200),
-
   ];
 
   return (
