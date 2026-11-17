@@ -7,19 +7,17 @@ import path from 'node:path';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = relativePath => readFile(path.join(root, relativePath), 'utf8');
 
-test('new documented BPMN references can be edited before creating a project source', async () => {
+test('new documented BPMN references can be selected and created from the reusable grid', async () => {
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
 
-  assert.match(inventory, /canEdit && \(linked \|\| canManageSources\)/);
-  assert.match(inventory, /Préparer la création de la source/);
-  assert.match(inventory, /<Input size="sm" value=\{source\.name\}/);
-  assert.match(inventory, /aria-label="Type de source"/);
-  assert.match(inventory, /<Option value="application">Application<\/Option>/);
-  assert.match(inventory, /<Option value="form">Formulaire<\/Option>/);
-  assert.match(inventory, /!linked && canManageSources && editing && <Button/);
-  assert.match(inventory, /onClick=\{\(\) => void createCanonicalSource\(source\)\}/);
+  assert.match(inventory, /onAdd=\{canManageSources \?/);
+  assert.match(inventory, /addLabel="Créer la source du projet"/);
+  assert.match(inventory, /editable: params => Boolean\(params\.data && editingSourceId === params\.data\.id\)/);
+  assert.match(inventory, /if \(!linked\) \{ await createCanonicalSource\(source\); return; \}/);
+  assert.match(inventory, /onEdit=\{canEdit \?/);
+  assert.match(inventory, /setEditingSourceId\(row\.id\)/);
+  assert.match(inventory, /cellEditor: 'agSelectCellEditor'/);
 });
-
 test('documented source creation and association remain project-scoped and preserve metadata', async () => {
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
@@ -71,8 +69,8 @@ test('BPMN documented-source associations can be changed or unlinked without del
   assert.match(inventory, /changeAssociation/);
   assert.match(inventory, /apiClient\.put\([^\n]*\/references\/\$\{reference\.id\}/);
   assert.match(inventory, /apiClient\.remove\([^\n]*\/references\/\$\{reference\.id\}/);
-  assert.match(inventory, /Changer la source associée/);
-  assert.match(inventory, /Délier/);
+  assert.match(inventory, /Changer la source…/);
+  assert.match(inventory, /Supprimer le lien/);
   assert.match(controller, /@Put\(':sourceId\/references\/:referenceId'\)/);
   assert.match(controller, /async changeReferenceSource/);
   assert.match(controller, /@Delete\(':sourceId\/references\/:referenceId'\)/);
