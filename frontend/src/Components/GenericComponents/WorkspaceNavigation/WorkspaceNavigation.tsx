@@ -22,6 +22,7 @@ const matchesTerm = (value: string, term: string) =>
 
 type SearchResult = {
   key: string;
+  type?: UnifiedSearchType;
   title: string;
   detail: string;
   resourceId?: string;
@@ -225,11 +226,14 @@ export const WorkspaceNavigation = () => {
       actor: 'Rôle',
       documented: 'Information documentée',
     };
-    const detailLabel = result.field === 'testo annotazione' || result.field === 'descrizione'
-      ? 'Description'
-      : detailByType[result.type];
+    const detailLabel = result.type === 'documented'
+      ? detailByType.documented
+      : result.field === 'testo annotazione' || result.field === 'descrizione'
+        ? 'Description'
+        : detailByType[result.type];
     return {
-      key: result.id,
+      key: `${result.type}:${result.projectId ?? ''}:${result.resourceId ?? ''}:${result.id}`,
+      type: result.type,
       title: result.label,
       detail: `${detailLabel} · ${result.excerpt || result.field}`,
       resourceId: result.resourceId,
@@ -275,6 +279,9 @@ export const WorkspaceNavigation = () => {
     const projectId = result.projectId ?? activeProjectId;
     if (projectId) params.set('projectId', projectId);
     if (result.elementId) params.set('elementId', result.elementId);
+    if (result.type === 'documented') {
+      params.set('documentedSourceId', result.key.split(':').at(-1) ?? result.key);
+    }
     if (result.openRaci) params.set('raci', '1');
     const query = params.toString();
     navigate(query ? `/${result.resourceId}?${query}` : `/${result.resourceId}`);
