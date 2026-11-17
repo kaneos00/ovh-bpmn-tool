@@ -160,7 +160,7 @@ export const Component = () => {
       );
     }
 
-    if (!resource) {
+    if (!resource || resource.type === ResourceType.Folder) {
       return <></>;
     }
 
