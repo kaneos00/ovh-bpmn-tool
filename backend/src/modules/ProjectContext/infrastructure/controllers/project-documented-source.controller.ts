@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Controller,
+  Delete,
   Get,
   Headers,
   NotFoundException,
@@ -519,6 +520,96 @@ export class ProjectDocumentedSourceController {
       );
     });
   }
+
+
+  @Put(':sourceId/references/:referenceId')
+  @UseAcl([UserGroup.RW])
+  async changeReferenceSource(
+    @Param('projectId') projectId: string,
+    @Param('sourceId') sourceId: string,
+    @Param('referenceId') referenceId: string,
+    @Body() body: { targetSourceId?: string },
+    @Headers() headers: RequestHeaders,
+  ) {
+    await this.access.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Admin,
+    );
+    const targetSourceId = body.targetSourceId?.trim();
+    if (!targetSourceId || targetSourceId === sourceId)
+      throw new BadRequestException(
+        'targetSourceId must identify another documented source',
+      );
+
+    return this.dataSource.transaction(async (manager) => {
+      const sourceRepository = manager.getRepository(
+        ProjectDocumentedSourceTypeOrmEntity,
+      );
+      const referenceRepository = manager.getRepository(
+        ProjectDocumentedSourceReferenceTypeOrmEntity,
+      );
+      const [source, target, reference] = await Promise.all([
+        sourceRepository.findOne({
+          where: { id: sourceId, projectId, mergedIntoId: IsNull() },
+        }),
+        sourceRepository.findOne({
+          where: {
+            id: targetSourceId,
+            projectId,
+            mergedIntoId: IsNull(),
+          },
+        }),
+        referenceRepository.findOne({
+          where: { id: referenceId, projectId, sourceId },
+        }),
+      ]);
+      if (!source || !target || !reference)
+        throw new NotFoundException('Documented source reference not found');
+
+      await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+        projectId + ':' + targetSourceId + ':' + reference.resourceId,
+      ]);
+      const targetAlreadyUsed = await referenceRepository.findOne({
+        where: {
+          projectId,
+          sourceId: targetSourceId,
+          resourceId: reference.resourceId,
+        },
+      });
+      if (targetAlreadyUsed && targetAlreadyUsed.id !== reference.id)
+        throw new ConflictException(
+          'This documented source is already linked to an object in this BPMN diagram',
+        );
+
+      reference.sourceId = targetSourceId;
+      return referenceRepository.save(reference);
+    });
+  }
+
+  @Delete(':sourceId/references/:referenceId')
+  @UseAcl([UserGroup.RW])
+  async unlinkReference(
+    @Param('projectId') projectId: string,
+    @Param('sourceId') sourceId: string,
+    @Param('referenceId') referenceId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    await this.access.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Admin,
+    );
+    const reference = await this.references.findOne({
+      where: { id: referenceId, projectId, sourceId },
+    });
+    if (!reference)
+      throw new NotFoundException('Documented source reference not found');
+
+    await this.references.delete({ id: reference.id });
+    return { unlinked: true, referenceId };
+  }
+
 
   @Post(':sourceId/merge')
   @UseAcl([UserGroup.RW])
