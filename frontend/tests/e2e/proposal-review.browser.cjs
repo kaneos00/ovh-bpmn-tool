@@ -510,6 +510,7 @@ async function main() {
     await reviewerPage.getByText('Processus du projet', { exact: true }).waitFor();
     await reviewerPage.getByRole('button', {
       name: 'Ouvrir les actions de CI E2E — variante partenaire',
+      exact: true,
     }).click();
     await reviewerPage.getByRole('menuitem', { name: 'Supprimer', exact: true }).click();
     await reviewerPage.waitForURL(`**/${variantResourceId}/delete**`);
