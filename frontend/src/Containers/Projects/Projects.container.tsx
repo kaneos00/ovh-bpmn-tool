@@ -7,6 +7,7 @@ import {
   Chip,
   Button,
   Card,
+  Divider,
   FormControl,
   FormLabel,
   Input,
@@ -19,7 +20,7 @@ import {
   TabPanel,
   Tabs,
   Typography,
-, Divider} from '@mui/joy';
+} from '@mui/joy';
 import { apiClient } from '../../queryClient';
 import { resourcesQuery } from '../../api/resources/resources.queries';
 import { contentsQuery } from '../../api/contents/contents.queries';
