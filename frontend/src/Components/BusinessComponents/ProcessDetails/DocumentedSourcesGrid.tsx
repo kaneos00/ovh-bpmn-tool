@@ -1,7 +1,7 @@
 import React from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
-import type { ColDef } from 'ag-grid-community';
+import type { CellValueChangedEvent, ColDef } from 'ag-grid-community';
 import { AddOutlined } from '@mui/icons-material';
 import { Box, Button, Stack } from '@mui/joy';
 
@@ -15,6 +15,7 @@ type Props<T extends object> = {
   addLabel?: string;
   addDisabled?: boolean;
   onRowSelected?: (row: T | null) => void;
+  onCellValueChanged?: (event: CellValueChangedEvent<T>) => void;
   selectedRowId?: string;
   height?: number;
 };
@@ -27,6 +28,7 @@ export const DocumentedSourcesGrid = <T extends object,>({
   addLabel = 'Ajouter',
   addDisabled = false,
   onRowSelected,
+  onCellValueChanged,
   selectedRowId,
   height = 520,
 }: Props<T>) => (
@@ -60,6 +62,7 @@ export const DocumentedSourcesGrid = <T extends object,>({
           const node = event.api.getRowNode(selectedRowId);
           if (node) { node.setSelected(true); event.api.ensureNodeVisible(node, 'middle'); }
         }}
+        onCellValueChanged={event => onCellValueChanged?.(event)}
         onRowClicked={event => onRowSelected?.(event.data ?? null)}
         onSelectionChanged={event => onRowSelected?.(event.api.getSelectedRows()[0] ?? null)}
         localeText={{
