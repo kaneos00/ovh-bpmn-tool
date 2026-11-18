@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, Button, Input, List, Option, Select, Sheet, Stack, Typography } from '@mui/joy';
-import { Search } from '@mui/icons-material';
+import { HomeOutlined, Search } from '@mui/icons-material';
 import { useActiveProject } from '../../../shared/hooks/useActiveProject';
 import { useQuery } from 'react-query';
 
@@ -474,6 +474,16 @@ export const WorkspaceNavigation = () => {
         </Box>
 
         <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+          <Button
+            size="sm"
+            variant="soft"
+            color="primary"
+            startDecorator={<HomeOutlined />}
+            onClick={() => navigate('/')}
+            sx={{ bgcolor: '#e5efff', color: '#173f78', fontWeight: 700, '&:hover': { bgcolor: '#d2e3ff' } }}
+          >
+            Accueil
+          </Button>
           {globalRole === 'admin' && (
             <Button
               size="sm"
