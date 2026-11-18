@@ -54,9 +54,9 @@ describe('OrganizationStructureService', () => {
   it('prevents deactivating a position while it has active children', async () => {
     positions.findOne.mockResolvedValue({ id: 'position-1', active: true });
     positions.count.mockResolvedValue(1);
-    await expect(service.setPositionActive('position-1', false)).rejects.toBeInstanceOf(
-      ConflictException,
-    );
+    await expect(
+      service.setPositionActive('position-1', false),
+    ).rejects.toBeInstanceOf(ConflictException);
     expect(positions.save).not.toHaveBeenCalled();
   });
 
