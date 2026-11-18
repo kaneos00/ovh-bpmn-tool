@@ -62,6 +62,9 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 <bpmn:callActivity id="Call_10" name="[DOC] Gérer la documentation du projet" calledElement="Process_Documentation"><bpmn:incoming>Flow_10</bpmn:incoming><bpmn:outgoing>Flow_11</bpmn:outgoing></bpmn:callActivity>
 <bpmn:callActivity id="Call_11" name="[CDP] Suivre les activités et rendre compte" calledElement="Process_SuiviActivites"><bpmn:incoming>Flow_11</bpmn:incoming><bpmn:outgoing>Flow_12</bpmn:outgoing></bpmn:callActivity>
 <bpmn:endEvent id="End" name="Processus terminé"><bpmn:incoming>Flow_12</bpmn:incoming></bpmn:endEvent>
+        <bpmn:callActivity id="Call_12" name="[TL] Revoir le code et gérer la configuration" calledElement="Process_RevueCode"><bpmn:incoming>Flow_Call_12</bpmn:incoming><bpmn:outgoing>Flow_Call_12_next</bpmn:outgoing></bpmn:callActivity>
+    <bpmn:callActivity id="Call_13" name="[DEVOPS] Construire et contrôler le pipeline CI/CD" calledElement="Process_CI"><bpmn:incoming>Flow_Call_13</bpmn:incoming><bpmn:outgoing>Flow_Call_13_next</bpmn:outgoing></bpmn:callActivity>
+    <bpmn:callActivity id="Call_14" name="[SYS] Intégrer les composants et systèmes" calledElement="Process_Integration"><bpmn:incoming>Flow_Call_14</bpmn:incoming><bpmn:outgoing>Flow_Call_14_next</bpmn:outgoing></bpmn:callActivity>
     <bpmn:sequenceFlow id="Flow_0" sourceRef="Start" targetRef="Call_0"></bpmn:sequenceFlow>
 <bpmn:sequenceFlow id="Flow_1" sourceRef="Call_0" targetRef="Call_1"></bpmn:sequenceFlow>
 <bpmn:sequenceFlow id="Flow_2" sourceRef="Call_1" targetRef="Call_2"></bpmn:sequenceFlow>
@@ -75,6 +78,9 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 <bpmn:sequenceFlow id="Flow_10" sourceRef="Call_9" targetRef="Call_10"></bpmn:sequenceFlow>
 <bpmn:sequenceFlow id="Flow_11" sourceRef="Call_10" targetRef="Call_11"></bpmn:sequenceFlow>
 <bpmn:sequenceFlow id="Flow_12" sourceRef="Call_11" targetRef="End"></bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="Flow_Call_12" sourceRef="Call_12" targetRef="Call_13"/>
+    <bpmn:sequenceFlow id="Flow_Call_13" sourceRef="Call_13" targetRef="Call_14"/>
+    <bpmn:sequenceFlow id="Flow_Call_14" sourceRef="Call_14" targetRef="Call_5"/>
   </bpmn:process>
   <bpmndi:BPMNDiagram id="Diagram_Process_CycleComplet"><bpmndi:BPMNPlane id="Plane_Process_CycleComplet" bpmnElement="Process_CycleComplet">
     <bpmndi:BPMNShape id="Start_di" bpmnElement="Start"><dc:Bounds x="undefined" y="undefined" width="undefined" height="undefined"/></bpmndi:BPMNShape>
@@ -84,27 +90,30 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 <bpmndi:BPMNShape id="Call_2_di" bpmnElement="Call_2"><dc:Bounds x="510" y="180" width="150" height="80"/></bpmndi:BPMNShape>
 <bpmndi:BPMNShape id="Call_3_di" bpmnElement="Call_3"><dc:Bounds x="700" y="180" width="150" height="80"/></bpmndi:BPMNShape>
 <bpmndi:BPMNShape id="Call_4_di" bpmnElement="Call_4"><dc:Bounds x="890" y="180" width="150" height="80"/></bpmndi:BPMNShape>
-<bpmndi:BPMNShape id="Call_5_di" bpmnElement="Call_5"><dc:Bounds x="1080" y="180" width="150" height="80"/></bpmndi:BPMNShape>
-<bpmndi:BPMNShape id="Call_6_di" bpmnElement="Call_6"><dc:Bounds x="1270" y="180" width="150" height="80"/></bpmndi:BPMNShape>
-<bpmndi:BPMNShape id="Call_7_di" bpmnElement="Call_7"><dc:Bounds x="1460" y="180" width="150" height="80"/></bpmndi:BPMNShape>
-<bpmndi:BPMNShape id="Call_8_di" bpmnElement="Call_8"><dc:Bounds x="1650" y="180" width="150" height="80"/></bpmndi:BPMNShape>
-<bpmndi:BPMNShape id="Call_9_di" bpmnElement="Call_9"><dc:Bounds x="1840" y="180" width="150" height="80"/></bpmndi:BPMNShape>
-<bpmndi:BPMNShape id="Call_10_di" bpmnElement="Call_10"><dc:Bounds x="2030" y="180" width="150" height="80"/></bpmndi:BPMNShape>
-<bpmndi:BPMNShape id="Call_11_di" bpmnElement="Call_11"><dc:Bounds x="2220" y="180" width="150" height="80"/></bpmndi:BPMNShape>
-<bpmndi:BPMNShape id="End_di" bpmnElement="End"><dc:Bounds x="2410" y="180" width="36" height="36"/></bpmndi:BPMNShape>
-    <bpmndi:BPMNEdge id="Flow_0_di" bpmnElement="Flow_0"><di:waypoint x="NaN" y="NaN"/><di:waypoint x="NaN" y="NaN"/><di:waypoint x="NaN" y="220"/><di:waypoint x="130" y="220"/></bpmndi:BPMNEdge>
+<bpmndi:BPMNShape id="Call_5_di" bpmnElement="Call_5"><dc:Bounds x="1650" y="180" width="150" height="80"/></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="Call_6_di" bpmnElement="Call_6"><dc:Bounds x="1840" y="180" width="150" height="80"/></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="Call_7_di" bpmnElement="Call_7"><dc:Bounds x="2030" y="180" width="150" height="80"/></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="Call_8_di" bpmnElement="Call_8"><dc:Bounds x="2220" y="180" width="150" height="80"/></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="Call_9_di" bpmnElement="Call_9"><dc:Bounds x="2410" y="180" width="150" height="80"/></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="Call_10_di" bpmnElement="Call_10"><dc:Bounds x="2600" y="180" width="150" height="80"/></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="Call_11_di" bpmnElement="Call_11"><dc:Bounds x="2790" y="180" width="150" height="80"/></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="End_di" bpmnElement="End"><dc:Bounds x="2980" y="180" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge id="Flow_0_di" bpmnElement="Flow_0"><di:waypoint x="91" y="198"/><di:waypoint x="111" y="198"/><di:waypoint x="111" y="220"/><di:waypoint x="130" y="220"/></bpmndi:BPMNEdge>
 <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1"><di:waypoint x="280" y="220"/><di:waypoint x="300" y="220"/><di:waypoint x="300" y="220"/><di:waypoint x="320" y="220"/></bpmndi:BPMNEdge>
 <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2"><di:waypoint x="470" y="220"/><di:waypoint x="490" y="220"/><di:waypoint x="490" y="220"/><di:waypoint x="510" y="220"/></bpmndi:BPMNEdge>
 <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3"><di:waypoint x="660" y="220"/><di:waypoint x="680" y="220"/><di:waypoint x="680" y="220"/><di:waypoint x="700" y="220"/></bpmndi:BPMNEdge>
 <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4"><di:waypoint x="850" y="220"/><di:waypoint x="870" y="220"/><di:waypoint x="870" y="220"/><di:waypoint x="890" y="220"/></bpmndi:BPMNEdge>
-<bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5"><di:waypoint x="1040" y="220"/><di:waypoint x="1060" y="220"/><di:waypoint x="1060" y="220"/><di:waypoint x="1080" y="220"/></bpmndi:BPMNEdge>
-<bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6"><di:waypoint x="1230" y="220"/><di:waypoint x="1250" y="220"/><di:waypoint x="1250" y="220"/><di:waypoint x="1270" y="220"/></bpmndi:BPMNEdge>
-<bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7"><di:waypoint x="1420" y="220"/><di:waypoint x="1440" y="220"/><di:waypoint x="1440" y="220"/><di:waypoint x="1460" y="220"/></bpmndi:BPMNEdge>
-<bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8"><di:waypoint x="1610" y="220"/><di:waypoint x="1630" y="220"/><di:waypoint x="1630" y="220"/><di:waypoint x="1650" y="220"/></bpmndi:BPMNEdge>
-<bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9"><di:waypoint x="1800" y="220"/><di:waypoint x="1820" y="220"/><di:waypoint x="1820" y="220"/><di:waypoint x="1840" y="220"/></bpmndi:BPMNEdge>
-<bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10"><di:waypoint x="1990" y="220"/><di:waypoint x="2010" y="220"/><di:waypoint x="2010" y="220"/><di:waypoint x="2030" y="220"/></bpmndi:BPMNEdge>
-<bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11"><di:waypoint x="2180" y="220"/><di:waypoint x="2200" y="220"/><di:waypoint x="2200" y="220"/><di:waypoint x="2220" y="220"/></bpmndi:BPMNEdge>
-<bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12"><di:waypoint x="2370" y="220"/><di:waypoint x="2390" y="220"/><di:waypoint x="2390" y="198"/><di:waypoint x="2410" y="198"/></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5"><di:waypoint x="1040" y="220"/><di:waypoint x="1345" y="220"/><di:waypoint x="1345" y="220"/><di:waypoint x="1650" y="220"/></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6"><di:waypoint x="1800" y="220"/><di:waypoint x="1820" y="220"/><di:waypoint x="1820" y="220"/><di:waypoint x="1840" y="220"/></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7"><di:waypoint x="1990" y="220"/><di:waypoint x="2010" y="220"/><di:waypoint x="2010" y="220"/><di:waypoint x="2030" y="220"/></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8"><di:waypoint x="2180" y="220"/><di:waypoint x="2200" y="220"/><di:waypoint x="2200" y="220"/><di:waypoint x="2220" y="220"/></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9"><di:waypoint x="2370" y="220"/><di:waypoint x="2390" y="220"/><di:waypoint x="2390" y="220"/><di:waypoint x="2410" y="220"/></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10"><di:waypoint x="2560" y="220"/><di:waypoint x="2580" y="220"/><di:waypoint x="2580" y="220"/><di:waypoint x="2600" y="220"/></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11"><di:waypoint x="2750" y="220"/><di:waypoint x="2770" y="220"/><di:waypoint x="2770" y="220"/><di:waypoint x="2790" y="220"/></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12"><di:waypoint x="2940" y="220"/><di:waypoint x="2960" y="220"/><di:waypoint x="2960" y="198"/><di:waypoint x="2980" y="198"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNShape id="Call_12_di" bpmnElement="Call_12"><dc:Bounds x="1080" y="180" width="150" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Call_13_di" bpmnElement="Call_13"><dc:Bounds x="1270" y="180" width="150" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="Call_14_di" bpmnElement="Call_14"><dc:Bounds x="1460" y="180" width="150" height="80"/></bpmndi:BPMNShape>
   </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
 </bpmn:definitions>$bpmn_1$,NULL,'demo-software'),
 ('a4000000-0000-4000-8000-000000000002','demo-software','a3000000-0000-4000-8000-000000000002','published',1,$bpmn_2$<?xml version="1.0" encoding="UTF-8"?>
@@ -1706,6 +1715,12 @@ INSERT INTO project_raci_entries (id,"createdBy","projectId","resourceId","taskI
 ('a7000000-0000-4000-8000-000000000375','demo-software','a1000000-0000-4000-8000-000000000001','a3000000-0000-4000-8000-000000000022','After_1','Valider la restitution et la passation','Manager','R'),
 ('a7000000-0000-4000-8000-000000000376','demo-software','a1000000-0000-4000-8000-000000000001','a3000000-0000-4000-8000-000000000022','After_1','Valider la restitution et la passation','Chef de projet','A'),
 ('a7000000-0000-4000-8000-000000000377','demo-software','a1000000-0000-4000-8000-000000000001','a3000000-0000-4000-8000-000000000022','After_2','Clôturer le dossier et archiver les pièces','Responsable RH','R')
+('a7000000-0000-4000-8000-000000000378','demo-software','a1000000-0000-4000-8000-000000000001','a3000000-0000-4000-8000-000000000001','Call_12','Revoir le code et gérer la configuration','Responsable développement','R'),
+('a7000000-0000-4000-8000-000000000379','demo-software','a1000000-0000-4000-8000-000000000001','a3000000-0000-4000-8000-000000000001','Call_12','Revoir le code et gérer la configuration','Chef de projet','A'),
+('a7000000-0000-4000-8000-000000000380','demo-software','a1000000-0000-4000-8000-000000000001','a3000000-0000-4000-8000-000000000001','Call_13','Construire et contrôler le pipeline CI/CD','Ingénieur DevOps','R'),
+('a7000000-0000-4000-8000-000000000381','demo-software','a1000000-0000-4000-8000-000000000001','a3000000-0000-4000-8000-000000000001','Call_13','Construire et contrôler le pipeline CI/CD','Chef de projet','A'),
+('a7000000-0000-4000-8000-000000000382','demo-software','a1000000-0000-4000-8000-000000000001','a3000000-0000-4000-8000-000000000001','Call_14','Intégrer les composants et systèmes','Ingénieur systèmes et intégration','R'),
+('a7000000-0000-4000-8000-000000000383','demo-software','a1000000-0000-4000-8000-000000000001','a3000000-0000-4000-8000-000000000001','Call_14','Intégrer les composants et systèmes','Chef de projet','A')
 ON CONFLICT ("projectId","resourceId","taskId","actorName") DO UPDATE SET "taskName"=EXCLUDED."taskName",role=EXCLUDED.role;
 
 INSERT INTO project_job_positions (id,"createdBy","projectId","functionId",title,description,active) VALUES
@@ -1919,6 +1934,9 @@ INSERT INTO position_activity_mappings (id,"createdBy","projectId","positionId",
 ('aa000000-0000-4000-8000-000000000148','demo-software','a1000000-0000-4000-8000-000000000001','a8000000-0000-4000-8000-000000000014','a3000000-0000-4000-8000-000000000018','Task_7','85000000-0000-4000-8000-000000000009'),
 ('aa000000-0000-4000-8000-000000000149','demo-software','a1000000-0000-4000-8000-000000000001','a8000000-0000-4000-8000-000000000001','a3000000-0000-4000-8000-000000000019','Before_1','85000000-0000-4000-8000-000000000001'),
 ('aa000000-0000-4000-8000-000000000150','demo-software','a1000000-0000-4000-8000-000000000001','a8000000-0000-4000-8000-000000000016','a3000000-0000-4000-8000-000000000022','Before_2','85000000-0000-4000-8000-000000000010')
+('aa000000-0000-4000-8000-000000000151','demo-software','a1000000-0000-4000-8000-000000000001','a8000000-0000-4000-8000-000000000006','a3000000-0000-4000-8000-000000000001','Call_12','85000000-0000-4000-8000-000000000004'),
+('aa000000-0000-4000-8000-000000000152','demo-software','a1000000-0000-4000-8000-000000000001','a8000000-0000-4000-8000-000000000010','a3000000-0000-4000-8000-000000000001','Call_13','85000000-0000-4000-8000-000000000007'),
+('aa000000-0000-4000-8000-000000000153','demo-software','a1000000-0000-4000-8000-000000000001','a8000000-0000-4000-8000-000000000011','a3000000-0000-4000-8000-000000000001','Call_14','85000000-0000-4000-8000-000000000007')
 ON CONFLICT ("positionId","resourceId","taskId","blockId") DO NOTHING;
 
 COMMIT;
