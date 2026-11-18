@@ -35,6 +35,7 @@ type ProjectDocumentedSource = {
   access: string | null;
   authorizedPeople: string | null;
   restrictions: string | null;
+  validUntil: string | null;
   references: Array<{ id: string; resourceId: string; elementId: string; elementName: string; elementType: string; processName: string }>;
 };
 
