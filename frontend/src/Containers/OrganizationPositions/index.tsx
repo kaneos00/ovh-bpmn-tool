@@ -13,8 +13,6 @@ import {
 } from '@mui/joy';
 import { apiClient } from '../../queryClient';
 import { OrganizationAdminLayout } from '../OrganizationAdmin/OrganizationAdminLayout';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-quartz.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -84,7 +82,7 @@ export const Component = () => {
   );
   const bulkAssign = useMutation(
     () => apiClient.post('/organization/positions/bulk-assignments', {
-      positionIds: selected.map(position => position.id), userId: assignee, startDate: assignmentDate,
+      positionIds: selectedVacant.map(position => position.id), userId: assignee, startDate: assignmentDate,
     }),
     {
       onSuccess: async () => { setSelected([]); setAssignee(null); setError(''); await refresh(); },
