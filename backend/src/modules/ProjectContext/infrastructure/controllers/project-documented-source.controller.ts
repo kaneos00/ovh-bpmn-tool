@@ -412,7 +412,10 @@ export class ProjectDocumentedSourceController {
           access: optionalText(body.access, 'access'),
           retention: optionalText(body.retention, 'retention'),
           validUntil: optionalDate(body.validUntil),
-          containsPersonalData: optionalBoolean(body.containsPersonalData, 'containsPersonalData'),
+          containsPersonalData: optionalBoolean(
+            body.containsPersonalData,
+            'containsPersonalData',
+          ),
           authorizedPeople: optionalText(
             body.authorizedPeople,
             'authorizedPeople',
@@ -466,7 +469,10 @@ export class ProjectDocumentedSourceController {
       source.validUntil = optionalDate(body.validUntil);
     }
     if (body.containsPersonalData !== undefined) {
-      source.containsPersonalData = optionalBoolean(body.containsPersonalData, 'containsPersonalData');
+      source.containsPersonalData = optionalBoolean(
+        body.containsPersonalData,
+        'containsPersonalData',
+      );
     }
     return this.sources.save(source);
   }
@@ -736,7 +742,8 @@ export class ProjectDocumentedSourceController {
         }
       });
       if (!target.name.trim() && source.name.trim()) target.name = source.name;
-      target.containsPersonalData = target.containsPersonalData || source.containsPersonalData;
+      target.containsPersonalData =
+        target.containsPersonalData || source.containsPersonalData;
       await sourceRepository.save(target);
 
       const sourceReferences = await referenceRepository.find({
