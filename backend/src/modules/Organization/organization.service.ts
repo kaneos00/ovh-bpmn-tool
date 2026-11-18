@@ -469,6 +469,13 @@ export class OrganizationService {
         await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
           positionId,
         ]);
+        const stillActive = await manager.query(
+          'SELECT id FROM organization_positions WHERE id = $1 AND active = TRUE FOR UPDATE',
+          [positionId],
+        );
+        if (!stillActive.length) {
+          throw new ConflictException('This position is no longer active');
+        }
         const overlap = await manager
           .getRepository(OrganizationAssignmentTypeOrmEntity)
           .createQueryBuilder('assignment')
