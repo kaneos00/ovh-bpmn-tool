@@ -57,10 +57,6 @@ const quickActions: QuickAction[] = [
     },
   },
   {
-    label: 'Créer un processus',
-    description: 'Démarrer une modélisation',
-  },
-  {
     label: 'Ma fiche de poste',
     description: 'Consulter mon poste dans le projet actif',
     Icon: BadgeOutlined,
