@@ -25,13 +25,13 @@ export class OrganizationController {
   }
 
   @Get('overview')
-  @UseAcl()
+  @UseAcl([UserGroup.Admin])
   getOverview() {
     return this.organization.getOverview();
   }
 
   @Get('positions')
-  @UseAcl()
+  @UseAcl([UserGroup.Admin])
   listPositions() {
     return this.organization.listPositions();
   }
@@ -46,7 +46,7 @@ export class OrganizationController {
   }
 
   @Get('positions/:positionId')
-  @UseAcl()
+  @UseAcl([UserGroup.Admin])
   getPosition(@Param('positionId') positionId: string) {
     return this.organization.getPosition(positionId);
   }
