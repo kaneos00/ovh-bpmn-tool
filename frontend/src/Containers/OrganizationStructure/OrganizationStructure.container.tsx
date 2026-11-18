@@ -18,7 +18,13 @@ type Position = {
   parentPositionId: string | null; sortOrder: number; active: boolean; createdBy: string;
 };
 type JobFunction = { id: string; code: string; name: string };
-type TreeNode = { name: string; attributes: { id: string; active: string }; children?: TreeNode[] };
+type PositionNode = Position & { children: PositionNode[] };
+type TreeNode = { name: string; attributes: { id: string; active: string }; children: TreeNode[] };
+const toTreeNode = (node: PositionNode): TreeNode => ({
+  name: node.title,
+  attributes: { id: node.id, active: String(node.active) },
+  children: (node.children ?? []).map(toTreeNode),
+});
 
 const positionsKey = ['organization-positions'];
 const functionsKey = ['job-architecture-functions'];
@@ -34,7 +40,10 @@ export const Component = () => {
   const [view, setView] = useState<'tree' | 'grid'>('tree');
 
   const positionsQuery = useQuery<Position[]>(positionsKey, () => apiClient.get('/organization/positions'));
-  const treeQuery = useQuery<TreeNode[]>(['organization-positions-tree'], () => apiClient.get('/organization/positions/tree'));
+  const treeQuery = useQuery<TreeNode[]>(['organization-positions-tree'], async () => {
+    const rows = await apiClient.get('/organization/positions/tree') as PositionNode[];
+    return rows.map(toTreeNode);
+  });
   const functionsQuery = useQuery<JobFunction[]>(functionsKey, () => apiClient.get('/job-architecture/functions'));
   const positions = positionsQuery.data ?? [];
   const functions = functionsQuery.data ?? [];
@@ -106,7 +115,7 @@ export const Component = () => {
           <Button size="sm" variant={view === 'grid' ? 'solid' : 'outlined'} onClick={() => setView('grid')}>Grille de gestion</Button>
         </Stack>
       </div>
-      {error && <Alert color="danger" onClose={() => setError('')}>{error}</Alert>}
+      {error && <Alert color="danger">{error}</Alert>}
       {(positionsQuery.isError || treeQuery.isError || functionsQuery.isError) && <Alert color="danger">Impossible de charger les données de l’organisation. Vérifiez la migration et les droits administrateur.</Alert>}
       <div className="org-structure__stats">
         <Card><Typography level="body-xs">Postes actifs</Typography><Typography level="h2">{stats.total}</Typography></Card>
@@ -159,8 +168,8 @@ export const Component = () => {
           <Divider />
           <FormControl required><FormLabel>Intitulé du poste</FormLabel><Input value={title} onChange={event => setTitle(event.target.value)} placeholder="Ex. Responsable qualité" /></FormControl>
           <FormControl><FormLabel>Description</FormLabel><Input value={description} onChange={event => setDescription(event.target.value)} placeholder="Mission principale (facultatif)" /></FormControl>
-          <FormControl><FormLabel>Fiche de fonction</FormLabel><Select value={functionId} onChange={(_, value) => setFunctionId(value)} placeholder="Aucune fiche associée" clearable>{functions.map(item => <Option key={item.id} value={item.id}>{item.code} · {item.name}</Option>)}</Select></FormControl>
-          <FormControl><FormLabel>Rattachement hiérarchique</FormLabel><Select value={parentId} onChange={(_, value) => setParentId(value)} placeholder="Poste racine" clearable>{positions.filter(item => item.active).map(item => <Option key={item.id} value={item.id}>{item.title}</Option>)}</Select></FormControl>
+          <FormControl><FormLabel>Fiche de fonction</FormLabel><Select value={functionId} onChange={(_, value) => setFunctionId(value)} placeholder="Aucune fiche associée" >{functions.map(item => <Option key={item.id} value={item.id}>{item.code} · {item.name}</Option>)}</Select></FormControl>
+          <FormControl><FormLabel>Rattachement hiérarchique</FormLabel><Select value={parentId} onChange={(_, value) => setParentId(value)} placeholder="Poste racine" >{positions.filter(item => item.active).map(item => <Option key={item.id} value={item.id}>{item.title}</Option>)}</Select></FormControl>
           <Button disabled={!title.trim() || createPosition.isLoading} loading={createPosition.isLoading} onClick={() => createPosition.mutate()}>Ajouter le poste</Button>
           <Divider />
           <Typography level="body-xs" sx={{ color: 'text.secondary' }}>Les postes n’ont pas encore de titulaire. L’affectation nominative sera traitée dans une phase ultérieure.</Typography>
