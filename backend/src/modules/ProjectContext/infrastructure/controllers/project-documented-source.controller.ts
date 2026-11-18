@@ -36,6 +36,7 @@ type SourceFields = Pick<
   | 'location'
   | 'access'
   | 'retention'
+  | 'validUntil'
   | 'authorizedPeople'
   | 'restrictions'
 >;
@@ -80,6 +81,13 @@ const SOURCE_TEXT_FIELDS = [
   'authorizedPeople',
   'restrictions',
 ] as const;
+
+const optionalDate = (value: unknown): string | null => {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value !== 'string' || !/^\\d{4}-\\d{2}-\\d{2}$/.test(value) || Number.isNaN(Date.parse(value)))
+    throw new BadRequestException('validUntil must be a valid YYYY-MM-DD date');
+  return value;
+};
 
 const optionalText = (value: unknown, field: string): string | null => {
   if (value === undefined || value === null) return null;
@@ -380,6 +388,7 @@ export class ProjectDocumentedSourceController {
           location: optionalText(body.location, 'location'),
           access: optionalText(body.access, 'access'),
           retention: optionalText(body.retention, 'retention'),
+          validUntil: optionalDate(body.validUntil),
           authorizedPeople: optionalText(
             body.authorizedPeople,
             'authorizedPeople',
@@ -428,6 +437,7 @@ export class ProjectDocumentedSourceController {
       if (body[field] !== undefined)
         source[field] = optionalText(body[field], field);
     });
+    if (body.validUntil !== undefined) source.validUntil = optionalDate(body.validUntil);
     return this.sources.save(source);
   }
 
