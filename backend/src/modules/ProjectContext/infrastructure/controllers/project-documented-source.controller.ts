@@ -243,11 +243,11 @@ export class ProjectDocumentedSourceController {
     const resources = resourceIds.length
       ? await this.resources.find({ where: { id: In(resourceIds) } })
       : [];
-    const publishedContents = resourceIds.length
+    const latestContents = resourceIds.length
       ? await this.contents.find({
           where: {
             resourceId: In(resourceIds),
-            status: ContentStatusEnum.Published,
+            status: In([ContentStatusEnum.Draft, ContentStatusEnum.Published]),
           },
           order: { version: 'DESC', updatedAt: 'DESC' },
         })
@@ -255,7 +255,7 @@ export class ProjectDocumentedSourceController {
 
     const resourceById = new Map(resources.map((resource) => [resource.id, resource]));
     const contentByResource = new Map<string, ContentTypeOrmEntity>();
-    publishedContents.forEach((content) => {
+    latestContents.forEach((content) => {
       if (!contentByResource.has(content.resourceId))
         contentByResource.set(content.resourceId, content);
     });
