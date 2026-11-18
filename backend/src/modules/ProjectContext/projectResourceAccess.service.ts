@@ -409,7 +409,6 @@ export class ProjectResourceAccessService {
       parentIds = nextParentIds;
     }
 
-    const resourceIdsBeingDeleted = new Set(resourceIds);
     // The repository preserves common and multi-project processes found
     // below a deleted folder. Exclude those resources from the deletion ACL
     // and dependency checks, but never exempt the explicitly selected root:
@@ -420,7 +419,8 @@ export class ProjectResourceAccessService {
     const projectIdsByResource = new Map<string, Set<string>>();
     const commonResourceIds = new Set<string>();
     for (const link of linksInTree) {
-      const projectIds = projectIdsByResource.get(link.resourceId) ?? new Set<string>();
+      const projectIds =
+        projectIdsByResource.get(link.resourceId) ?? new Set<string>();
       projectIds.add(link.projectId);
       projectIdsByResource.set(link.resourceId, projectIds);
       if (link.usage === ProjectProcessUsage.Common) {
