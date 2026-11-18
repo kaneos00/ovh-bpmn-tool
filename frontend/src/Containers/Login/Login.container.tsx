@@ -78,7 +78,8 @@ export const Component = () => {
         );
         return;
       }
-      navigate(getSafeV3Destination(searchParams.get('next')), { replace: true });
+      const requestedPath = searchParams.get('next');
+      navigate(requestedPath ? getSafeV3Destination(requestedPath) : '/', { replace: true });
     } catch {
       setError('Le service de connexion est momentanément indisponible.');
     } finally {
