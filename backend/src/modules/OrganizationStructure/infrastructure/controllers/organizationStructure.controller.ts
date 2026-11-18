@@ -1,4 +1,14 @@
-import { BadRequestException, Body, Controller, Get, Headers, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { UseAcl } from '../../../../shared-kernel/modules/acl/infrastructure/acl.decorator';
 import { UserGroup } from '../../../../shared-kernel/utils/UserGroup';
 import { OrganizationStructureService } from '../../organizationStructure.service';
@@ -24,7 +34,8 @@ export class OrganizationStructureController {
   @Post('positions')
   @UseAcl([UserGroup.Admin])
   createPosition(
-    @Body() body: {
+    @Body()
+    body: {
       title?: string;
       description?: string | null;
       functionId?: string | null;
@@ -40,7 +51,8 @@ export class OrganizationStructureController {
   @UseAcl([UserGroup.Admin])
   updatePosition(
     @Param('positionId') positionId: string,
-    @Body() body: {
+    @Body()
+    body: {
       title?: string;
       description?: string | null;
       functionId?: string | null;
