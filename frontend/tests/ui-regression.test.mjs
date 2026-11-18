@@ -1106,7 +1106,7 @@ test('project documented information uses canonical sources within one process a
   assert.ok(controller.includes('BPMN_DOCUMENTED_DATA_TYPES'));
   assert.ok(controller.includes('originResourceId'));
   assert.ok(controller.includes('optionalDate'));
-  assert.doesNotMatch(controller, /@Post\\(':sourceId\\/merge'\\)/);
+  assert.ok(!controller.includes("@Post(':sourceId/merge')"));
 
   assert.ok(sourceEntity.includes('mergedIntoId'));
   assert.ok(referenceEntity.includes('elementId'));
