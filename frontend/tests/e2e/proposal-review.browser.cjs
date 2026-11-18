@@ -503,7 +503,56 @@ async function main() {
       'The proposal did not reach the published state',
     );
 
-    process.stdout.write('Browser E2E passed: Viewer author → validator clarification → author response → remark decision → proposal approval → approved snapshot publication.\\n');
+    // Delete the temporary variant through the real explorer action. The
+    // action must refresh both the explorer and project workspace caches
+    // before returning, so the deleted node cannot remain clickable.
+    await reviewerPage.goto(`${baseUrl}/root`);
+    await reviewerPage.getByText('Processus du projet', { exact: true }).waitFor();
+    await reviewerPage.getByRole('button', {
+      name: 'Ouvrir les actions de CI E2E — variante partenaire',
+      exact: true,
+    }).click();
+    await reviewerPage.getByRole('menuitem', { name: 'Supprimer', exact: true }).click();
+    await reviewerPage.waitForURL(`**/${variantResourceId}/delete**`);
+    await reviewerPage.getByText(/Are you sure you want to delete this Business Process/).waitFor();
+
+    const deleteResponsePromise = reviewerPage.waitForResponse(response =>
+      response.request().method() === 'DELETE' &&
+      new URL(response.url()).pathname.endsWith(`/resources/${variantResourceId}`),
+    );
+    const explorerRefreshPromise = reviewerPage.waitForResponse(response =>
+      response.request().method() === 'GET' &&
+      new URL(response.url()).pathname.endsWith('/resources/explorer/links') &&
+      response.ok(),
+    );
+    const workspaceRefreshPromise = reviewerPage.waitForResponse(response =>
+      response.request().method() === 'GET' &&
+      new URL(response.url()).pathname.endsWith('/projects/me/workspace') &&
+      response.ok(),
+    );
+    await reviewerPage.getByRole('button', { name: 'Delete', exact: true }).click();
+    const [deleteResponse] = await Promise.all([
+      deleteResponsePromise,
+      explorerRefreshPromise,
+      workspaceRefreshPromise,
+    ]);
+    assert.ok(deleteResponse.ok(), `Variant deletion failed with HTTP ${deleteResponse.status()}`);
+
+    await reviewerPage.goto(`${baseUrl}/root`);
+    await reviewerPage.getByText('Processus du projet', { exact: true }).waitFor();
+    await reviewerPage.waitForFunction(() =>
+      !Array.from(document.querySelectorAll('[role="treeitem"]'))
+        .some(node => node.textContent?.includes('CI E2E — variante partenaire')),
+    );
+    assert.equal(
+      await reviewerPage.getByRole('button', {
+        name: 'Ouvrir les actions de CI E2E — variante partenaire',
+      }).count(),
+      0,
+      'The deleted variant is still present in the explorer',
+    );
+
+    process.stdout.write('Browser E2E passed: proposal workflow and explorer deletion/cache refresh.\\n');
   } finally {
     await browser.close();
   }
