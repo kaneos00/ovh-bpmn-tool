@@ -35,7 +35,9 @@ ON CONFLICT (id) DO UPDATE SET
  "childPositionId"=EXCLUDED."childPositionId", "sortOrder"=EXCLUDED."sortOrder";
 
 -- Sanity checks fail the deployment migration step rather than silently leaving a partial fixture.
-DO $$
+SELECT set_config('demo.demo_user', :'demo_user', false);
+
+DO $
 BEGIN
   IF (SELECT count(*) FROM organization_positions WHERE id BETWEEN
       '81000000-0000-4000-8000-000000000001'::uuid AND
@@ -44,7 +46,7 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM organization_assignments
     WHERE id='82000000-0000-4000-8000-000000000001'::uuid
-      AND "userId"=:'demo_user' AND "endDate" IS NULL) THEN
+      AND "userId"=current_setting('demo.demo_user') AND "endDate" IS NULL) THEN
     RAISE EXCEPTION 'Organization demo fixture: active demo assignment missing';
   END IF;
 END $$;
