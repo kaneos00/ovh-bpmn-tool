@@ -21,7 +21,6 @@ export type InventorySource = {
   link: string;
   location: string;
   access: string;
-  retention: string;
   authorizedPeople: string;
   restrictions: string;
 };
@@ -71,7 +70,6 @@ const emptySource = (): InventorySource => ({
   link: '',
   location: '',
   access: '',
-  retention: '',
   authorizedPeople: '',
   restrictions: '',
 });
@@ -153,7 +151,6 @@ const readSources = (xml?: string): InventorySource[] => {
       link: readLink(element) || node.getAttribute('link') || '',
       location: node.getAttribute('location') || '',
       access: node.getAttribute('access') || '',
-      retention: node.getAttribute('retention') || '',
       authorizedPeople: node.getAttribute('authorizedPeople') || '',
       restrictions: node.getAttribute('restrictions') || '',
       associations: links.get(id) ?? [],
