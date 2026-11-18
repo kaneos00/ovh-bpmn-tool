@@ -190,4 +190,46 @@ describe('ProjectResourceAccessService proposal editing', () => {
       service.assertCanDeleteResource('source-1', new Set(['folder-1', 'source-1'])),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
+
+  it('does not block folder deletion for common or multi-project child processes that will be preserved', async () => {
+    resources.find
+      .mockResolvedValueOnce([
+        { id: 'shared-child', parentId: 'folder-1' },
+        { id: 'common-child', parentId: 'folder-1' },
+      ])
+      .mockResolvedValueOnce([]);
+    projectProcesses.find
+      .mockResolvedValueOnce([
+        {
+          resourceId: 'shared-child',
+          projectId: 'project-1',
+          usage: ProjectProcessUsage.ProjectSpecific,
+        },
+        {
+          resourceId: 'shared-child',
+          projectId: 'project-2',
+          usage: ProjectProcessUsage.ProjectSpecific,
+        },
+        {
+          resourceId: 'common-child',
+          projectId: 'project-1',
+          usage: ProjectProcessUsage.Common,
+        },
+      ])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+
+    await expect(
+      service.assertCanDeleteResourceTree('folder-1', {
+        'x-user': 'admin-1',
+        'x-groups': 'bpmn-tool-admin-org',
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(projectProcesses.find).toHaveBeenCalledTimes(4);
+    expect(projectProcesses.find).toHaveBeenCalledWith({
+      where: { resourceId: 'folder-1' },
+    });
+  });
 });
