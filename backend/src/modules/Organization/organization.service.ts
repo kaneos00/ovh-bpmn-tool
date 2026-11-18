@@ -52,6 +52,40 @@ export class OrganizationService {
     return value;
   }
 
+  async getMyWorkspace(headers: RequestHeaders) {
+    const userId = this.userId(headers);
+    const assignments = await this.db.query(
+      'SELECT assignment.id, assignment."positionId", assignment."startDate", assignment."endDate", position.code, position.title, position.description, position."functionId" FROM organization_assignments assignment JOIN organization_positions position ON position.id = assignment."positionId" WHERE assignment."userId" = $1 AND position.active = TRUE AND assignment."startDate" <= CURRENT_DATE AND (assignment."endDate" IS NULL OR assignment."endDate" >= CURRENT_DATE) ORDER BY assignment."startDate" DESC',
+      [userId],
+    );
+    const positionIds = assignments.map((assignment: { positionId: string }) => assignment.positionId);
+    const [managerRows, projects] = await Promise.all([
+      positionIds.length
+        ? this.db.query(
+            'SELECT DISTINCT parent.id AS "positionId", parent.title AS "positionTitle", parentAssignment."userId" AS "managerUserId" FROM organization_position_relations relation JOIN organization_positions parent ON parent.id = relation."parentPositionId" AND parent.active = TRUE LEFT JOIN organization_assignments parentAssignment ON parentAssignment."positionId" = parent.id AND parentAssignment."startDate" <= CURRENT_DATE AND (parentAssignment."endDate" IS NULL OR parentAssignment."endDate" >= CURRENT_DATE) WHERE relation."childPositionId" = ANY($1::uuid[])',
+            [positionIds],
+          )
+        : Promise.resolve([]),
+      this.db.query(
+        'SELECT project.id, project.name, project.description, member.role FROM project_members member JOIN projects project ON project.id = member."projectId" WHERE member."userId" = $1 ORDER BY project.name',
+        [userId],
+      ),
+    ]);
+    const tasks = positionIds.length
+      ? await this.db.query(
+          'SELECT DISTINCT project.id AS "projectId", project.name AS "projectName", projectPosition.id AS "projectPositionId", projectPosition.title AS "projectPositionTitle", actor.name AS "actorName", entry."taskId", entry."taskName", entry."resourceId", resource.name AS "processName", entry.role FROM project_job_positions projectPosition JOIN position_raci_actor_mappings mapping ON mapping."positionId" = projectPosition.id AND mapping."projectId" = projectPosition."projectId" JOIN project_raci_actors actor ON actor.id = mapping."raciActorId" AND actor."projectId" = mapping."projectId" AND actor.active = TRUE JOIN project_raci_entries entry ON entry."projectId" = mapping."projectId" AND lower(trim(entry."actorName")) = actor."normalizedName" JOIN project_members member ON member."projectId" = projectPosition."projectId" AND member."userId" = $2 JOIN projects project ON project.id = projectPosition."projectId" JOIN resources resource ON resource.id = entry."resourceId" WHERE projectPosition."organizationPositionId" = ANY($1::uuid[]) AND projectPosition.active = TRUE ORDER BY project.name, projectPosition.title, entry."taskName"',
+          [positionIds, userId],
+        )
+      : [];
+    return {
+      userId,
+      assignments,
+      manager: managerRows[0] ?? null,
+      projects,
+      tasks,
+    };
+  }
+
   async listPositions() {
     return this.positions.find({ order: { title: 'ASC' } });
   }
