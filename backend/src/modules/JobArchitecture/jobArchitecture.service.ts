@@ -257,6 +257,15 @@ export class JobArchitectureService {
     }
   }
 
+  async listOrganizationPositionsForProject(projectId: string, headers: RequestHeaders) {
+    await this.projectAccess.assertProjectRole(projectId, headers, ProjectMemberRole.Viewer);
+    return this.organizationPositions.find({
+      where: { active: true },
+      select: { id: true, code: true, title: true, description: true },
+      order: { title: 'ASC' },
+    });
+  }
+
   async listProjectPositions(projectId: string, headers: RequestHeaders) {
     await this.projectAccess.assertProjectRole(
       projectId,
