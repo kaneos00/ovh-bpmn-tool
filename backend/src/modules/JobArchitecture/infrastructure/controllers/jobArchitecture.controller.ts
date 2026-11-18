@@ -90,7 +90,10 @@ export class JobArchitectureController {
     @Param('projectId') projectId: string,
     @Headers() headers: RequestHeaders,
   ) {
-    return this.jobArchitecture.listOrganizationPositionsForProject(projectId, headers);
+    return this.jobArchitecture.listOrganizationPositionsForProject(
+      projectId,
+      headers,
+    );
   }
 
   @Get('projects/:projectId/job-positions')
