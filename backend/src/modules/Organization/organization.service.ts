@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, IsNull, Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { JobFunctionTypeOrmEntity } from '../../JobArchitecture/infrastructure/entities/jobFunction.ormEntity';
 import { OrganizationAssignmentTypeOrmEntity } from './infrastructure/entities/organizationAssignment.ormEntity';
 import { OrganizationPositionRelationTypeOrmEntity } from './infrastructure/entities/organizationPositionRelation.ormEntity';
@@ -91,15 +91,8 @@ export class OrganizationService {
   }
 
   async getOverview() {
-    const [positions, assignments, relations] = await Promise.all([
+    const [positions, relations] = await Promise.all([
       this.positions.find({ where: { active: true }, order: { title: 'ASC' } }),
-      this.assignments.find({
-        where: [
-          { startDate: this.today(), endDate: IsNull() },
-          { startDate: this.today(), endDate: this.today() },
-        ],
-        order: { startDate: 'DESC' },
-      }),
       this.relations.find({ order: { sortOrder: 'ASC', createdAt: 'ASC' } }),
     ]);
     const activeAssignments = await this.assignments
@@ -121,10 +114,6 @@ export class OrganizationService {
       })),
       relations,
     };
-  }
-
-  private today(): string {
-    return new Date().toISOString().slice(0, 10);
   }
 
   async createPosition(input: {
