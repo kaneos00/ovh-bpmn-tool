@@ -6,7 +6,7 @@ import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
 import Tree from 'react-d3-tree';
 import {
-  Alert, Box, Button, Card, Chip, Divider, FormControl, FormLabel,
+  Alert, Button, Card, Chip, Divider, FormControl, FormLabel,
   Input, Option, Select, Stack, Typography,
 } from '@mui/joy';
 import { apiClient } from '../../queryClient';
@@ -68,10 +68,7 @@ export const Component = () => {
     ({ id, patch }: { id: string; patch: Partial<Position> }) => apiClient.patch(`/organization/positions/${id}`, patch),
     { onSuccess: refresh, onError: (reason: Error) => setError(reason.message) },
   );
-  const setActive = useMutation(
-    ({ id, active }: { id: string; active: boolean }) => apiClient.patch(`/organization/positions/${id}/status`, { active }),
-    { onSuccess: refresh, onError: (reason: Error) => setError(reason.message) },
-  );
+
   const bulkDeactivate = async () => {
     setError('');
     try {
