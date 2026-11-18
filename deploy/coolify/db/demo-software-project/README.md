@@ -44,8 +44,8 @@ Dans un environnement Coolify de démonstration, copier le dossier tel quel et a
 - Processus BPMN : 22
 - Postes projet : 17
 - Acteurs RACI : 24
-- Entrées RACI : 377
-- Associations poste/activité : 150
+- Entrées RACI : 383
+- Associations poste/activité : 153
 
 ## Vérifications après injection
 
