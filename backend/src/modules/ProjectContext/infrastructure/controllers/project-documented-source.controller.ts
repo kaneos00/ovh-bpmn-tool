@@ -91,7 +91,7 @@ const optionalText = (value: unknown, field: string): string | null => {
 
 const optionalDate = (value: unknown, field: string): string | null => {
   if (value === undefined || value === null || value === '') return null;
-  if (typeof value !== 'string' || !/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     throw new BadRequestException(field + ' must be a date in YYYY-MM-DD format');
   }
   const parsed = new Date(value + 'T00:00:00.000Z');
