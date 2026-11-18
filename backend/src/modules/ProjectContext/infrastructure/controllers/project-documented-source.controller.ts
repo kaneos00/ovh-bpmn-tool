@@ -37,6 +37,7 @@ type SourceFields = Pick<
   | 'access'
   | 'authorizedPeople'
   | 'restrictions'
+  | 'validUntil'
 >;
 
 type BpmnDataElement = {
@@ -86,6 +87,18 @@ const optionalText = (value: unknown, field: string): string | null => {
   if (trimmed.length > 10000)
     throw new BadRequestException(field + ' is too long');
   return trimmed || null;
+};
+
+const optionalDate = (value: unknown, field: string): string | null => {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value !== 'string' || !/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) {
+    throw new BadRequestException(field + ' must be a date in YYYY-MM-DD format');
+  }
+  const parsed = new Date(value + 'T00:00:00.000Z');
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
+    throw new BadRequestException(field + ' is not a valid calendar date');
+  }
+  return value;
 };
 
 const readAttribute = (node: Record<string, unknown>, name: string): string => {
@@ -456,6 +469,7 @@ export class ProjectDocumentedSourceController {
             'authorizedPeople',
           ),
           restrictions: optionalText(body.restrictions, 'restrictions'),
+          validUntil: optionalDate(body.validUntil, 'validUntil'),
         }),
       );
       const sourceReference = await referenceRepository.save(
@@ -499,6 +513,8 @@ export class ProjectDocumentedSourceController {
       if (body[field] !== undefined)
         source[field] = optionalText(body[field], field);
     });
+    if (body.validUntil !== undefined)
+      source.validUntil = optionalDate(body.validUntil, 'validUntil');
     return this.sources.save(source);
   }
 
