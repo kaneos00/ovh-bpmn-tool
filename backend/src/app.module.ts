@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ResourceContextModule } from './modules/ResourceContext/resourceContext.module';
 import { ProjectContextModule } from './modules/ProjectContext/projectContext.module';
 import { JobArchitectureModule } from './modules/JobArchitecture/jobArchitecture.module';
+import { OrganizationModule } from './modules/Organization/organization.module';
 import { EventEmitterModule } from './shared-kernel/modules/event-emitter/event-emitter.module';
 import { EventEmitterModule as NestEventEmitterModule } from '@nestjs/event-emitter';
 import { UuidGeneratorModule } from './shared-kernel/modules/uuid-generator/uuid-generator.module';
@@ -27,6 +28,7 @@ import { SearchContextModule } from './modules/SearchContext/searchContext.modul
     ResourceContextModule,
     ProjectContextModule,
     JobArchitectureModule,
+    OrganizationModule,
     SearchContextModule,
     EventEmitterModule,
     UuidGeneratorModule,
