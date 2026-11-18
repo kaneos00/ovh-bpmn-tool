@@ -1,0 +1,246 @@
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, IsNull, Repository } from 'typeorm';
+import { JobFunctionTypeOrmEntity } from '../../JobArchitecture/infrastructure/entities/jobFunction.ormEntity';
+import { OrganizationAssignmentTypeOrmEntity } from './infrastructure/entities/organizationAssignment.ormEntity';
+import { OrganizationPositionRelationTypeOrmEntity } from './infrastructure/entities/organizationPositionRelation.ormEntity';
+import { OrganizationPositionTypeOrmEntity } from './infrastructure/entities/organizationPosition.ormEntity';
+
+type RequestHeaders = Record<string, string | undefined>;
+
+@Injectable()
+export class OrganizationService {
+  constructor(
+    private readonly db: DataSource,
+    private readonly config: ConfigService,
+    @InjectRepository(OrganizationPositionTypeOrmEntity)
+    private readonly positions: Repository<OrganizationPositionTypeOrmEntity>,
+    @InjectRepository(OrganizationAssignmentTypeOrmEntity)
+    private readonly assignments: Repository<OrganizationAssignmentTypeOrmEntity>,
+    @InjectRepository(OrganizationPositionRelationTypeOrmEntity)
+    private readonly relations: Repository<OrganizationPositionRelationTypeOrmEntity>,
+    @InjectRepository(JobFunctionTypeOrmEntity)
+    private readonly functions: Repository<JobFunctionTypeOrmEntity>,
+  ) {}
+
+  private userId(headers: RequestHeaders): string {
+    const header = this.config.getOrThrow<string>('userHeader');
+    const value = headers[header] ?? headers[header.toLowerCase()];
+    if (!value?.trim()) throw new BadRequestException('Authenticated user identity is missing');
+    return value.trim();
+  }
+
+  private requiredText(value: unknown, field: string, max: number): string {
+    if (typeof value !== 'string' || !value.trim() || value.trim().length > max) {
+      throw new BadRequestException(`${field} is required and must be at most ${max} characters`);
+    }
+    return value.trim();
+  }
+
+  private date(value: unknown, field: string): string {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value) ||
+        Number.isNaN(Date.parse(`${value}T00:00:00Z`)) ||
+        new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) !== value) {
+      throw new BadRequestException(`${field} must be a valid YYYY-MM-DD date`);
+    }
+    return value;
+  }
+
+  async listPositions() {
+    return this.positions.find({ order: { title: 'ASC' } });
+  }
+
+  async getOverview() {
+    const [positions, assignments, relations] = await Promise.all([
+      this.positions.find({ where: { active: true }, order: { title: 'ASC' } }),
+      this.assignments.find({
+        where: [
+          { startDate: this.today(), endDate: IsNull() },
+          { startDate: this.today(), endDate: this.today() },
+        ],
+        order: { startDate: 'DESC' },
+      }),
+      this.relations.find({ order: { sortOrder: 'ASC', createdAt: 'ASC' } }),
+    ]);
+    const activeAssignments = await this.assignments
+      .createQueryBuilder('assignment')
+      .where('assignment."startDate" <= CURRENT_DATE')
+      .andWhere('(assignment."endDate" IS NULL OR assignment."endDate" >= CURRENT_DATE)')
+      .orderBy('assignment."startDate"', 'DESC')
+      .getMany();
+    const assignmentByPosition = new Map<string, OrganizationAssignmentTypeOrmEntity>();
+    for (const assignment of activeAssignments) {
+      if (!assignmentByPosition.has(assignment.positionId)) assignmentByPosition.set(assignment.positionId, assignment);
+    }
+    const parentByChild = new Map(relations.map((relation) => [relation.childPositionId, relation.parentPositionId]));
+    return {
+      positions: positions.map((position) => ({
+        ...position,
+        assignment: assignmentByPosition.get(position.id) ?? null,
+        parentPositionId: parentByChild.get(position.id) ?? null,
+      })),
+      relations,
+    };
+  }
+
+  private today(): string {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  async createPosition(input: {
+    code?: unknown; title?: unknown; description?: unknown; functionId?: unknown;
+  }, headers: RequestHeaders) {
+    const code = this.requiredText(input.code, 'code', 64).toUpperCase();
+    const title = this.requiredText(input.title, 'title', 255);
+    const functionId = typeof input.functionId === 'string' && input.functionId.trim()
+      ? input.functionId.trim() : null;
+    if (functionId && !(await this.functions.findOne({ where: { id: functionId, active: true } }))) {
+      throw new NotFoundException('Active reference function not found');
+    }
+    try {
+      return await this.positions.save(this.positions.create({
+        code, title,
+        description: typeof input.description === 'string' ? input.description.trim() || null : null,
+        functionId, active: true, createdBy: this.userId(headers),
+      }));
+    } catch (error) {
+      if ((error as { code?: string }).code === '23505') throw new ConflictException('A position with this code already exists');
+      throw error;
+    }
+  }
+
+  async updatePosition(positionId: string, input: {
+    code?: unknown; title?: unknown; description?: unknown; functionId?: unknown; active?: unknown;
+  }) {
+    const position = await this.positions.findOne({ where: { id: positionId } });
+    if (!position) throw new NotFoundException('Organization position not found');
+    if (input.code !== undefined) position.code = this.requiredText(input.code, 'code', 64).toUpperCase();
+    if (input.title !== undefined) position.title = this.requiredText(input.title, 'title', 255);
+    if (input.description !== undefined) {
+      if (input.description !== null && typeof input.description !== 'string') throw new BadRequestException('description must be text or null');
+      position.description = typeof input.description === 'string' ? input.description.trim() || null : null;
+    }
+    if (input.functionId !== undefined) {
+      const functionId = typeof input.functionId === 'string' && input.functionId.trim() ? input.functionId.trim() : null;
+      if (functionId && !(await this.functions.findOne({ where: { id: functionId, active: true } }))) throw new NotFoundException('Active reference function not found');
+      position.functionId = functionId;
+    }
+    if (input.active !== undefined) {
+      if (typeof input.active !== 'boolean') throw new BadRequestException('active must be boolean');
+      if (!input.active) {
+        const activeAssignment = await this.assignments.createQueryBuilder('a')
+          .where('a."positionId" = :positionId', { positionId })
+          .andWhere('a."startDate" <= CURRENT_DATE')
+          .andWhere('(a."endDate" IS NULL OR a."endDate" >= CURRENT_DATE)')
+          .getOne();
+        if (activeAssignment) throw new ConflictException('End the current assignment before deactivating this position');
+      }
+      position.active = input.active;
+    }
+    try { return await this.positions.save(position); }
+    catch (error) {
+      if ((error as { code?: string }).code === '23505') throw new ConflictException('A position with this code already exists');
+      throw error;
+    }
+  }
+
+  async getPosition(positionId: string) {
+    const position = await this.positions.findOne({ where: { id: positionId } });
+    if (!position) throw new NotFoundException('Organization position not found');
+    const [assignments, parent, children, jobFunction] = await Promise.all([
+      this.assignments.find({ where: { positionId }, order: { startDate: 'DESC' } }),
+      this.relations.findOne({ where: { childPositionId: positionId } }),
+      this.relations.find({ where: { parentPositionId: positionId }, order: { sortOrder: 'ASC' } }),
+      position.functionId ? this.functions.findOne({ where: { id: position.functionId } }) : Promise.resolve(null),
+    ]);
+    return { ...position, jobFunction, assignments, parentPositionId: parent?.parentPositionId ?? null, children };
+  }
+
+  private async activeUser(username: string): Promise<string> {
+    const rows: Array<{ username: string }> = await this.db.query(
+      'SELECT username FROM app_users WHERE lower(username) = lower($1) AND active = TRUE LIMIT 1', [username],
+    );
+    if (!rows[0]) throw new NotFoundException('Active KHI-FLOWS user not found');
+    return rows[0].username;
+  }
+
+  async createAssignment(positionId: string, input: {
+    userId?: unknown; startDate?: unknown; endDate?: unknown; note?: unknown;
+  }, headers: RequestHeaders) {
+    const position = await this.positions.findOne({ where: { id: positionId, active: true } });
+    if (!position) throw new NotFoundException('Active organization position not found');
+    const userId = await this.activeUser(this.requiredText(input.userId, 'userId', 255));
+    const startDate = this.date(input.startDate, 'startDate');
+    const endDate = input.endDate === null || input.endDate === undefined || input.endDate === '' ? null : this.date(input.endDate, 'endDate');
+    if (endDate && endDate < startDate) throw new BadRequestException('endDate cannot be earlier than startDate');
+    try {
+      return await this.db.transaction(async (manager) => {
+        await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [positionId]);
+        const overlap = await manager.getRepository(OrganizationAssignmentTypeOrmEntity)
+          .createQueryBuilder('a')
+          .where('a."positionId" = :positionId', { positionId })
+          .andWhere('a."startDate" <= COALESCE(:endDate::date, DATE \'9999-12-31\')', { endDate })
+          .andWhere('(a."endDate" IS NULL OR a."endDate" >= :startDate::date)', { startDate })
+          .getOne();
+        if (overlap) throw new ConflictException('This position already has an assignment overlapping the requested period');
+        const repository = manager.getRepository(OrganizationAssignmentTypeOrmEntity);
+        return repository.save(repository.create({
+          positionId, userId, startDate, endDate,
+          note: typeof input.note === 'string' ? input.note.trim() || null : null,
+          createdBy: this.userId(headers),
+        }));
+      });
+    } catch (error) {
+      if ((error as { code?: string }).code === '23P01' || (error as { code?: string }).code === '23505') throw new ConflictException('This position already has an overlapping assignment');
+      throw error;
+    }
+  }
+
+  async updateAssignment(assignmentId: string, input: { endDate?: unknown }) {
+    const assignment = await this.assignments.findOne({ where: { id: assignmentId } });
+    if (!assignment) throw new NotFoundException('Organization assignment not found');
+    if (input.endDate === undefined) throw new BadRequestException('endDate is required');
+    const endDate = input.endDate === null || input.endDate === '' ? null : this.date(input.endDate, 'endDate');
+    if (endDate && endDate < assignment.startDate) throw new BadRequestException('endDate cannot be earlier than startDate');
+    assignment.endDate = endDate;
+    return this.assignments.save(assignment);
+  }
+
+  async addRelation(parentPositionId: string, input: { childPositionId?: unknown; sortOrder?: unknown }, headers: RequestHeaders) {
+    const childPositionId = this.requiredText(input.childPositionId, 'childPositionId', 64);
+    if (parentPositionId === childPositionId) throw new BadRequestException('A position cannot report to itself');
+    const [parent, child] = await Promise.all([
+      this.positions.findOne({ where: { id: parentPositionId, active: true } }),
+      this.positions.findOne({ where: { id: childPositionId, active: true } }),
+    ]);
+    if (!parent || !child) throw new NotFoundException('Both positions must exist and be active');
+    const cycle: Array<{ cycle: boolean }> = await this.db.query(
+      'WITH RECURSIVE descendants(id) AS (SELECT "childPositionId" FROM organization_position_relations WHERE "parentPositionId" = $1 UNION SELECT r."childPositionId" FROM organization_position_relations r JOIN descendants d ON r."parentPositionId" = d.id) SELECT EXISTS(SELECT 1 FROM descendants WHERE id = $2) AS cycle',
+      [childPositionId, parentPositionId],
+    );
+    if (cycle[0]?.cycle) throw new BadRequestException('This relation would create a hierarchy cycle');
+    try {
+      return await this.relations.save(this.relations.create({
+        parentPositionId, childPositionId,
+        sortOrder: Number.isInteger(input.sortOrder) && Number(input.sortOrder) >= 0 ? Number(input.sortOrder) : 0,
+        createdBy: this.userId(headers),
+      }));
+    } catch (error) {
+      if ((error as { code?: string }).code === '23505') throw new ConflictException('This position already has a parent');
+      throw error;
+    }
+  }
+
+  async removeRelation(parentPositionId: string, relationId: string) {
+    const relation = await this.relations.findOne({ where: { id: relationId, parentPositionId } });
+    if (!relation) throw new NotFoundException('Organization relation not found');
+    await this.relations.remove(relation);
+    return { removed: true };
+  }
+}
