@@ -358,13 +358,18 @@ export class ProjectDocumentedSourceController {
       headers,
       ProjectMemberRole.Admin,
     );
-    const reference = await this.validateReference(projectId, body);
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     if (!name || name.length > 255)
       throw new BadRequestException('name must contain 1 to 255 characters');
     const kind = body.kind ?? 'file';
     if (!SOURCE_KINDS.includes(kind))
       throw new BadRequestException('Unsupported source kind');
+    const hasReferenceFields = Boolean(
+      body.resourceId || body.elementId || body.elementName || body.elementType,
+    );
+    const reference = hasReferenceFields
+      ? await this.validateReference(projectId, body)
+      : null;
 
     return this.dataSource.transaction(async (manager) => {
       const sourceRepository = manager.getRepository(
@@ -373,17 +378,19 @@ export class ProjectDocumentedSourceController {
       const referenceRepository = manager.getRepository(
         ProjectDocumentedSourceReferenceTypeOrmEntity,
       );
-      const existing = await referenceRepository.findOne({
-        where: {
-          projectId,
-          resourceId: reference.resourceId,
-          elementId: reference.elementId,
-        },
-      });
-      if (existing)
-        throw new ConflictException(
-          'This BPMN element is already linked to a documented source',
-        );
+      if (reference) {
+        const existing = await referenceRepository.findOne({
+          where: {
+            projectId,
+            resourceId: reference.resourceId,
+            elementId: reference.elementId,
+          },
+        });
+        if (existing)
+          throw new ConflictException(
+            'This BPMN element is already linked to a documented source',
+          );
+      }
 
       const source = await sourceRepository.save(
         sourceRepository.create({
@@ -404,6 +411,7 @@ export class ProjectDocumentedSourceController {
           restrictions: optionalText(body.restrictions, 'restrictions'),
         }),
       );
+      if (!reference) return { ...source, references: [] };
       const sourceReference = await referenceRepository.save(
         referenceRepository.create({
           ...reference,
