@@ -126,5 +126,5 @@ test('documented information is edited by double-click with automatic saving and
   assert.match(inventory, /await saveRow\(updated\)/);
   assert.doesNotMatch(inventory, /headerName: 'Actions'/);
   assert.doesNotMatch(inventory, /Enregistrer/);
-  assert.match(grid, /rowSelection=\{\{ mode: 'singleRow', enableClickSelection: true \}\}/);
+  assert.match(grid, /rowSelection=\{\{ mode: 'singleRow', checkboxes: true, enableClickSelection: true \}\}/);
 });
