@@ -11,7 +11,7 @@ import {
   Switch,
 } from '@mui/joy';
 import { useColorScheme } from '@mui/joy/styles';
-import { AdminPanelSettingsOutlined, DarkModeOutlined, LightModeOutlined, LogoutOutlined, PersonOutline, WorkspacesOutlined } from '@mui/icons-material';
+import { AdminPanelSettingsOutlined, DarkModeOutlined, HomeOutlined, LightModeOutlined, LogoutOutlined, PersonOutline, WorkspacesOutlined } from '@mui/icons-material';
 
 const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
 
@@ -90,7 +90,6 @@ export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
         throw new Error(details.message || `Enregistrement impossible (HTTP ${response.status}).`);
       }
       setHomeDashboardEnabled(nextEnabled);
-      navigate(nextEnabled ? '/home' : '/root', { replace: true });
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Impossible d’enregistrer la préférence de page d’accueil.');
     } finally {
@@ -195,6 +194,10 @@ export const UserAccountMenu = ({ dark = true }: { dark?: boolean }) => {
         <MenuItem onClick={() => navigate('/projects')}>
           <WorkspacesOutlined fontSize="small" />
           Tous les projets
+        </MenuItem>
+        <MenuItem onClick={() => navigate(homeDashboardEnabled ? '/home' : '/projects')}>
+          <HomeOutlined fontSize="small" />
+          Accueil
         </MenuItem>
         <Box
           role="button"
