@@ -7,6 +7,7 @@ const reviewerPassword = process.env.DEMO_AUTH_PASSWORD;
 const authorUsername = process.env.CI_READER_USERNAME || 'ci-reader';
 const authorPassword = process.env.CI_READER_PASSWORD;
 const projectId = '10000000-0000-4000-8000-000000000001';
+const partnerProjectId = '10000000-0000-4000-8000-000000000002';
 const sourceResourceId = '20000000-0000-4000-8000-000000000002';
 
 async function signIn(page, username, password) {
@@ -93,6 +94,18 @@ async function main() {
     }, projectId);
     assert.ok(owningProjectName, 'The variant owning project is not present in the accessible workspace');
     await historyPanel.getByText(owningProjectName, { exact: true }).waitFor();
+
+    // The same source is shared with a second project that already owns a
+    // seeded variant. Its entry and owning project must appear in the source
+    // history even while the first project is the active workspace.
+    const partnerProjectName = await reviewerPage.evaluate(async partnerProjectId => {
+      const response = await fetch('/bpmn-api/projects/me/workspace', { credentials: 'same-origin' });
+      const workspace = await response.json();
+      return workspace.projects.find(project => project.id === partnerProjectId)?.name ?? null;
+    }, partnerProjectId);
+    assert.ok(partnerProjectName, 'The second accessible project is missing from the workspace');
+    await historyPanel.getByText('Traiter une demande — variante partenaire', { exact: true }).waitFor();
+    await historyPanel.getByText(partnerProjectName, { exact: true }).waitFor();
 
     // Submit the remark through the real Viewer UI. This also verifies that
     // the workspace cache and active-request banner refresh without a reload.
