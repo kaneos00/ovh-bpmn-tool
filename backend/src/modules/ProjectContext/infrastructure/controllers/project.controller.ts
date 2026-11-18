@@ -30,7 +30,7 @@ import {
   ProjectMemberTypeOrmEntity,
 } from '../entities/projectMember.ormEntity';
 import { ProjectResourceAccessService } from '../../projectResourceAccess.service';
-import { ProcessChangeProposalTypeOrmEntity } from '../entities/processChangeProposal.ormEntity';
+import { ProcessChangeProposalStatus, ProcessChangeProposalTypeOrmEntity } from '../entities/processChangeProposal.ormEntity';
 import { ProcessChangeProposalCommentTypeOrmEntity } from '../entities/processChangeProposalComment.ormEntity';
 
 type RequestHeaders = Record<string, string | undefined>;
@@ -162,6 +162,28 @@ export class ProjectController {
         (changeRequestsCountByProjectResource.get(key) ?? 0) + 1,
       );
     }
+
+    // A submitted request has not yet been treated (red). Requests under
+    // review or approved but not yet published are orange. Publication is
+    // green. When several requests exist, the most urgent active state wins.
+    const changeRequestStatusByProjectResource = new Map<string, 'submitted' | 'in_progress' | 'published'>();
+    for (const proposal of proposalsForWorkspace) {
+      const key = `${proposal.projectId}:${proposal.sourceResourceId}`;
+      const current = changeRequestStatusByProjectResource.get(key);
+      if (proposal.status === ProcessChangeProposalStatus.Submitted) {
+        changeRequestStatusByProjectResource.set(key, 'submitted');
+      } else if (
+        proposal.status === ProcessChangeProposalStatus.Approved ||
+        proposal.status === ProcessChangeProposalStatus.ChangesRequested
+      ) {
+        if (current !== 'submitted') changeRequestStatusByProjectResource.set(key, 'in_progress');
+      } else if (
+        proposal.status === ProcessChangeProposalStatus.Published &&
+        !current
+      ) {
+        changeRequestStatusByProjectResource.set(key, 'published');
+      }
+    }
     const linksByProject = new Map<string, typeof links>();
     for (const link of visibleLinks) {
       const projectLinks = linksByProject.get(link.projectId) ?? [];
@@ -205,6 +227,10 @@ export class ProjectController {
             changeRequestsCountByProjectResource.get(
               `${link.projectId}:${link.resourceId}`,
             ) ?? 0,
+          changeRequestStatus:
+            changeRequestStatusByProjectResource.get(
+              `${link.projectId}:${link.resourceId}`,
+            ) ?? null,
         })),
       })),
     };
