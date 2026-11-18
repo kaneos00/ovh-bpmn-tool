@@ -62,9 +62,9 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 <bpmn:callActivity id="Call_10" name="[DOC] Gérer la documentation du projet" calledElement="Process_Documentation"><bpmn:incoming>Flow_10</bpmn:incoming><bpmn:outgoing>Flow_11</bpmn:outgoing></bpmn:callActivity>
 <bpmn:callActivity id="Call_11" name="[CDP] Suivre les activités et rendre compte" calledElement="Process_SuiviActivites"><bpmn:incoming>Flow_11</bpmn:incoming><bpmn:outgoing>Flow_12</bpmn:outgoing></bpmn:callActivity>
 <bpmn:endEvent id="End" name="Processus terminé"><bpmn:incoming>Flow_12</bpmn:incoming></bpmn:endEvent>
-        <bpmn:callActivity id="Call_12" name="[TL] Revoir le code et gérer la configuration" calledElement="Process_RevueCode"><bpmn:incoming>Flow_Call_12</bpmn:incoming><bpmn:outgoing>Flow_Call_12_next</bpmn:outgoing></bpmn:callActivity>
-    <bpmn:callActivity id="Call_13" name="[DEVOPS] Construire et contrôler le pipeline CI/CD" calledElement="Process_CI"><bpmn:incoming>Flow_Call_13</bpmn:incoming><bpmn:outgoing>Flow_Call_13_next</bpmn:outgoing></bpmn:callActivity>
-    <bpmn:callActivity id="Call_14" name="[SYS] Intégrer les composants et systèmes" calledElement="Process_Integration"><bpmn:incoming>Flow_Call_14</bpmn:incoming><bpmn:outgoing>Flow_Call_14_next</bpmn:outgoing></bpmn:callActivity>
+        <bpmn:callActivity id="Call_12" name="[TL] Revoir le code et gérer la configuration" calledElement="Process_RevueCode"><bpmn:incoming>Flow_4</bpmn:incoming><bpmn:outgoing>Flow_Call_12</bpmn:outgoing></bpmn:callActivity>
+    <bpmn:callActivity id="Call_13" name="[DEVOPS] Construire et contrôler le pipeline CI/CD" calledElement="Process_CI"><bpmn:incoming>Flow_Call_12</bpmn:incoming><bpmn:outgoing>Flow_Call_13</bpmn:outgoing></bpmn:callActivity>
+    <bpmn:callActivity id="Call_14" name="[SYS] Intégrer les composants et systèmes" calledElement="Process_Integration"><bpmn:incoming>Flow_Call_13</bpmn:incoming><bpmn:outgoing>Flow_Call_14</bpmn:outgoing></bpmn:callActivity>
     <bpmn:sequenceFlow id="Flow_0" sourceRef="Start" targetRef="Call_0"></bpmn:sequenceFlow>
 <bpmn:sequenceFlow id="Flow_1" sourceRef="Call_0" targetRef="Call_1"></bpmn:sequenceFlow>
 <bpmn:sequenceFlow id="Flow_2" sourceRef="Call_1" targetRef="Call_2"></bpmn:sequenceFlow>
