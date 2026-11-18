@@ -3,7 +3,6 @@ import { useQuery } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 import { Alert, Box, Card, Divider, Input, Stack, Typography } from '@mui/joy';
 import {
-  AddCircleOutline,
   AssignmentTurnedInOutlined,
   BadgeOutlined,
   FolderOpenOutlined,
@@ -60,10 +59,6 @@ const quickActions: QuickAction[] = [
   {
     label: 'Créer un processus',
     description: 'Démarrer une modélisation',
-    Icon: AddCircleOutline,
-    run: (navigate, projectId) => {
-      if (projectId) navigate(`/root/add?type=process&projectId=${encodeURIComponent(projectId)}`);
-    },
   },
   {
     label: 'Ma fiche de poste',
@@ -84,7 +79,6 @@ export const Component = () => {
     { enabled: Boolean(activeProjectId && showJobPosition), staleTime: 60_000 },
   );
   const actionProject = activeProject ?? projects[0] ?? null;
-  const canCreateProcess = actionProject?.role === 'admin' || actionProject?.role === 'modeler';
 
   const submitSearch = () => {
     const query = search.trim();
@@ -117,7 +111,7 @@ export const Component = () => {
           {quickActions.map(({ label, description, Icon, run }) => {
             const disabled = !actionProject
               || (label === 'Ma fiche de poste' && !activeProjectId)
-              || (label === 'Créer un processus' && !canCreateProcess);
+;
             return (
               <Card
                 key={label}
@@ -136,11 +130,11 @@ export const Component = () => {
                   textAlign: 'center',
                   cursor: disabled ? 'not-allowed' : 'pointer',
                   borderRadius: 'xl',
-                  borderColor: 'neutral.outlinedBorder',
-                  bgcolor: 'background.surface',
+                  borderColor: tileStyle.border,
+                  bgcolor: tileStyle.background,
                   transition: 'transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease',
                   '&:hover': disabled ? {} : {
-                    borderColor: 'primary.400',
+                    borderColor: tileStyle.foreground,
                     boxShadow: 'md',
                     transform: 'translateY(-3px)',
                   },
@@ -153,8 +147,8 @@ export const Component = () => {
                     borderRadius: '18px',
                     display: 'grid',
                     placeItems: 'center',
-                    bgcolor: 'primary.softBg',
-                    color: 'primary.600',
+                    bgcolor: '#ffffff',
+                    color: tileStyle.foreground,
                   }}
                 >
                   <Icon sx={{ fontSize: { xs: 34, sm: 42 } }} />
