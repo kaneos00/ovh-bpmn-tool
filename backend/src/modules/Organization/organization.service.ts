@@ -546,7 +546,9 @@ export class OrganizationService {
 
     try {
       return await this.db.transaction(async (manager) => {
-        await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [positionId]);
+        await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+          positionId,
+        ]);
         const stillActive = await manager.query(
           'SELECT id FROM organization_positions WHERE id = $1 AND active = TRUE FOR UPDATE',
           [positionId],
