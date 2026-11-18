@@ -106,6 +106,114 @@ export class OrganizationService {
     return this.positions.find({ order: { title: 'ASC' } });
   }
 
+  async getManagementGrid() {
+    const positions = await this.positions.find({ order: { title: 'ASC' } });
+    const activeAssignments = await this.assignments
+      .createQueryBuilder('assignment')
+      .where('assignment."startDate" <= CURRENT_DATE')
+      .andWhere('(assignment."endDate" IS NULL OR assignment."endDate" >= CURRENT_DATE)')
+      .orderBy('assignment."startDate"', 'DESC')
+      .getMany();
+    const assignmentByPosition = new Map<string, OrganizationAssignmentTypeOrmEntity>();
+    for (const assignment of activeAssignments) {
+      if (!assignmentByPosition.has(assignment.positionId)) {
+        assignmentByPosition.set(assignment.positionId, assignment);
+      }
+    }
+    return positions.map((position) => ({
+      ...position,
+      assignment: assignmentByPosition.get(position.id) ?? null,
+    }));
+  }
+
+  async bulkAssign(
+    input: { positionIds?: unknown; userId?: unknown; startDate?: unknown },
+    headers: RequestHeaders,
+  ) {
+    if (!Array.isArray(input.positionIds) || input.positionIds.length === 0 ||
+      input.positionIds.some((id) => typeof id !== 'string') ||
+      new Set(input.positionIds).size !== input.positionIds.length) {
+      throw new BadRequestException('positionIds must be a non-empty unique list');
+    }
+    const positionIds = (input.positionIds as string[]).slice().sort();
+    const userId = await this.activeUser(this.requiredText(input.userId, 'userId', 255));
+    const startDate = this.date(input.startDate, 'startDate');
+    return this.db.transaction(async (manager) => {
+      for (const positionId of positionIds) {
+        await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [positionId]);
+      }
+      const activePositions = await manager.getRepository(OrganizationPositionTypeOrmEntity)
+        .createQueryBuilder('position')
+        .where('position.id IN (:...positionIds)', { positionIds })
+        .andWhere('position.active = TRUE')
+        .getMany();
+      if (activePositions.length !== positionIds.length) {
+        throw new ConflictException('All selected positions must exist and be active');
+      }
+      const repository = manager.getRepository(OrganizationAssignmentTypeOrmEntity);
+      const conflicts = await repository.createQueryBuilder('assignment')
+        .where('assignment."positionId" IN (:...positionIds)', { positionIds })
+        .andWhere('(assignment."endDate" IS NULL OR assignment."endDate" >= CAST(:startDate AS date))', { startDate })
+        .getMany();
+      if (conflicts.length) {
+        throw new ConflictException('At least one selected position already has an assignment covering the requested date');
+      }
+      return repository.save(positionIds.map((positionId) => repository.create({
+        positionId, userId, startDate, endDate: null, note: null, createdBy: this.userId(headers),
+      })));
+    });
+  }
+
+  async bulkEndAssignments(input: { assignmentIds?: unknown; endDate?: unknown }) {
+    if (!Array.isArray(input.assignmentIds) || input.assignmentIds.length === 0 ||
+      input.assignmentIds.some((id) => typeof id !== 'string') ||
+      new Set(input.assignmentIds).size !== input.assignmentIds.length) {
+      throw new BadRequestException('assignmentIds must be a non-empty unique list');
+    }
+    const endDate = this.date(input.endDate, 'endDate');
+    return this.db.transaction(async (manager) => {
+      const repository = manager.getRepository(OrganizationAssignmentTypeOrmEntity);
+      const assignments = await repository.createQueryBuilder('assignment')
+        .where('assignment.id IN (:...ids)', { ids: input.assignmentIds })
+        .setLock('pessimistic_write')
+        .getMany();
+      if (assignments.length !== input.assignmentIds.length ||
+        assignments.some((assignment) => endDate < assignment.startDate)) {
+        throw new ConflictException('Selected assignments could not all be ended on that date');
+      }
+      assignments.forEach((assignment) => { assignment.endDate = endDate; });
+      return repository.save(assignments);
+    });
+  }
+
+  async bulkDeactivate(input: { positionIds?: unknown }) {
+    if (!Array.isArray(input.positionIds) || input.positionIds.length === 0 ||
+      input.positionIds.some((id) => typeof id !== 'string') ||
+      new Set(input.positionIds).size !== input.positionIds.length) {
+      throw new BadRequestException('positionIds must be a non-empty unique list');
+    }
+    return this.db.transaction(async (manager) => {
+      const repository = manager.getRepository(OrganizationPositionTypeOrmEntity);
+      const positions = await repository.createQueryBuilder('position')
+        .where('position.id IN (:...ids)', { ids: input.positionIds })
+        .setLock('pessimistic_write')
+        .getMany();
+      if (positions.length !== input.positionIds.length) {
+        throw new NotFoundException('One or more selected positions do not exist');
+      }
+      const pending = await manager.getRepository(OrganizationAssignmentTypeOrmEntity)
+        .createQueryBuilder('assignment')
+        .where('assignment."positionId" IN (:...ids)', { ids: input.positionIds })
+        .andWhere('(assignment."endDate" IS NULL OR assignment."endDate" >= CURRENT_DATE)')
+        .getCount();
+      if (pending) {
+        throw new ConflictException('End current or future assignments before deactivating selected positions');
+      }
+      positions.forEach((position) => { position.active = false; });
+      return repository.save(positions);
+    });
+  }
+
   async getOverview() {
     const [positions, relations] = await Promise.all([
       this.positions.find({
