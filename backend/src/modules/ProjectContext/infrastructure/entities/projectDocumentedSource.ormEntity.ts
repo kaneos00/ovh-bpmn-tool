@@ -4,8 +4,7 @@ import { AbstractEntity } from '../../../../shared-kernel/modules/infrastructure
 export type ProjectDocumentedSourceKind =
   | 'file'
   | 'database'
-  | 'application'
-  | 'form';
+  | 'application';
 
 @Entity('project_documented_sources')
 @Index('project_documented_sources_project_active_idx', [
@@ -42,6 +41,9 @@ export class ProjectDocumentedSourceTypeOrmEntity extends AbstractEntity {
 
   @Column({ type: 'text', nullable: true })
   restrictions: string | null;
+
+  @Column({ type: 'date', nullable: true })
+  validUntil: string | null;
 
   // Keeps the origin of an automatically registered BPMN DataSource even
   // after its BPMN association is deliberately removed or the element deleted.
