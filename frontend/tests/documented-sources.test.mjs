@@ -57,12 +57,16 @@ test('source types are File, Database and Application, with Tool normalized to A
 
 test('a documented information row can be created before it has a BPMN association', async () => {
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
 
   assert.match(inventory, /const addRow = \(\) =>/);
   assert.match(inventory, /const id = `new-\$\{Date\.now\(\)\}`/);
   assert.match(inventory, /setSources\(current => \[\.\.\.current, emptySource\(id\)\]\)/);
   assert.match(inventory, /if \(row\.id\.startsWith\('new-'\)\)/);
   assert.match(inventory, /apiClient\.post\(\`\/projects\/\$\{projectId\}\/documented-sources\`, payload\)/);
+  assert.match(controller, /const hasReferenceFields = Boolean\(/);
+  assert.match(controller, /const reference = hasReferenceFields/);
+  assert.match(controller, /if \(!reference\) return \{ \.\.\.source, references: \[\] \}/);
 });
 
 test('BPMN associations are limited to unlinked data objects and stores in the active process', async () => {
