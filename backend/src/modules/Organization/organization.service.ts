@@ -80,7 +80,7 @@ export class OrganizationService {
     return {
       userId,
       assignments,
-      manager: managerRows[0] ?? null,
+      managers: managerRows,
       projects,
       tasks,
     };
@@ -209,7 +209,7 @@ export class OrganizationService {
           .createQueryBuilder('a')
           .where('a."positionId" = :positionId', { positionId })
           .andWhere('a."startDate" <= COALESCE(:endDate::date, DATE \'9999-12-31\')', { endDate })
-          .andWhere('(a."endDate" IS NULL OR a."endDate" >= :startDate::date)', { startDate })
+          .andWhere('(a."endDate" IS NULL OR a."endDate" >= CAST(:startDate AS date))', { startDate })
           .getOne();
         if (overlap) throw new ConflictException('This position already has an assignment overlapping the requested period');
         const repository = manager.getRepository(OrganizationAssignmentTypeOrmEntity);
@@ -232,7 +232,12 @@ export class OrganizationService {
     const endDate = input.endDate === null || input.endDate === '' ? null : this.date(input.endDate, 'endDate');
     if (endDate && endDate < assignment.startDate) throw new BadRequestException('endDate cannot be earlier than startDate');
     assignment.endDate = endDate;
-    return this.assignments.save(assignment);
+    try {
+      return await this.assignments.save(assignment);
+    } catch (error) {
+      if ((error as { code?: string }).code === '23P01') throw new ConflictException('This position already has an overlapping assignment');
+      throw error;
+    }
   }
 
   async addRelation(parentPositionId: string, input: { childPositionId?: unknown; sortOrder?: unknown }, headers: RequestHeaders) {
