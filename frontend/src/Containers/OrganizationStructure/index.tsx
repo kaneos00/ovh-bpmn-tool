@@ -166,7 +166,7 @@ export const Component = () => {
                   draggable
                   collapsible={false}
                   onNodeClick={(node: any) => {
-                    const id = node?.data?.attributes?.id;
+                    const id = node?.attributes?.id;
                     if (id) setSelectedPositionId(id);
                   }}
                   renderCustomNodeElement={({ nodeDatum }: any) => (
