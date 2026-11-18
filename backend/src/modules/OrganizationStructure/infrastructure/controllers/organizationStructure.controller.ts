@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Get, Headers, Param, Patch, Post, Query } from '@nestjs/common';
 import { UseAcl } from '../../../../shared-kernel/modules/acl/infrastructure/acl.decorator';
-import { UserGroup } from '../../../shared-kernel/utils/UserGroup';
+import { UserGroup } from '../../../../shared-kernel/utils/UserGroup';
 import { OrganizationStructureService } from '../../organizationStructure.service';
 
 type RequestHeaders = Record<string, string | undefined>;
