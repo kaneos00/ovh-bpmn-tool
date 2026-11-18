@@ -122,7 +122,6 @@ export const Component = () => {
       field: 'active', headerName: 'Statut', minWidth: 120, editable: true,
       cellEditor: 'agSelectCellEditor', cellEditorParams: { values: [true, false] },
       valueFormatter: params => params.value ? 'Actif' : 'Inactif',
-      filter: 'agSetColumnFilter',
     },
   ], []);
 
