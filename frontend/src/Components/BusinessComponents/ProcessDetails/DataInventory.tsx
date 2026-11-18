@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from 'react-query';
 import { Alert, Box, Button, Option, Select, Stack, Typography } from '@mui/joy';
-import { CenterFocusStrong } from '@mui/icons-material';
 import type { ColDef, ICellRendererParams, ValueGetterParams } from 'ag-grid-community';
 import { DocumentedSourcesGrid } from './DocumentedSourcesGrid';
 
