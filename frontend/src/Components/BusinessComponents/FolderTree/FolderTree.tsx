@@ -57,6 +57,14 @@ const FAVORITES_KEY = 'bpmn-tool:favorite-resources';
 const RECENT_KEY = 'bpmn-tool:recent-resources';
 const VIEW_KEY = 'bpmn-tool:explorer-view';
 
+const getProcessStatusColor = (node?: RenderTree) => {
+  if (node?.changeRequestStatus === 'submitted') return '#d32f2f';
+  if (node?.changeRequestStatus === 'in_progress') return '#ed6c02';
+  if (node?.changeRequestStatus === 'published') return '#2e7d32';
+  if (node?.usage === 'variant' && node.sourceResourceId) return '#2e7d32';
+  return node?.usage === 'variant' ? '#805ad5' : node?.nature === 'global' || (!node?.nature && node?.usage === 'common') ? '#16845b' : '#3975c6';
+};
+
 const readIds = (key: string): string[] => {
   try {
     const value = window.localStorage.getItem(key);
@@ -401,13 +409,13 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                       ? <FolderOpenRounded color="primary" fontSize="small" />
                       : node?.type === 'folder'
                         ? <FolderRounded sx={{ color: '#c58a2b' }} fontSize="small" />
-                        : node?.usage === 'variant'
-                          ? <AltRoute sx={{ color: '#805ad5' }} fontSize="small" />
+                        : node?.usage === 'variant' && node?.sourceResourceId
+                          ? <AltRoute sx={{ color: getProcessStatusColor(node) }} fontSize="small" />
                           : (node?.nature === 'global' || (!node?.nature && node?.usage === 'common'))
-                            ? <PublicOutlined sx={{ color: '#16845b' }} fontSize="small" />
-                            : <DescriptionOutlined sx={{ color: '#3975c6' }} fontSize="small" />}
+                            ? <PublicOutlined sx={{ color: getProcessStatusColor(node) }} fontSize="small" />
+                            : <DescriptionOutlined sx={{ color: getProcessStatusColor(node) }} fontSize="small" />}
                     <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</Box>
-                    {node?.usage === 'variant' && (
+                    {node?.usage === 'variant' && Boolean(node?.sourceResourceId) && (
                       <Chip size="sm" variant="soft" color="primary" title="Variante de processus">
                         Variante
                       </Chip>
