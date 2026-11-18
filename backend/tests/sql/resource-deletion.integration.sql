@@ -18,12 +18,11 @@ CREATE TEMP TABLE projects (
   id uuid PRIMARY KEY
 );
 
-CREATE TYPE pg_temp.project_process_usage AS ENUM ('common', 'variant', 'project-specific');
 CREATE TEMP TABLE project_processes (
   id uuid PRIMARY KEY,
   "projectId" uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   "resourceId" uuid NOT NULL REFERENCES resources(id) ON DELETE RESTRICT,
-  usage pg_temp.project_process_usage NOT NULL,
+  usage text NOT NULL CHECK (usage IN ('common', 'variant', 'project-specific')),
   "sourceResourceId" uuid NULL REFERENCES resources(id) ON DELETE RESTRICT,
   CONSTRAINT project_processes_variant_source_check CHECK (
     (usage = 'variant' AND "sourceResourceId" IS NOT NULL
