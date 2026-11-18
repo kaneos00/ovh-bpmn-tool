@@ -215,6 +215,24 @@ BEGIN
 END
 $test$;
 
+-- Case 4: ordinary provenance references are cleared by the resources FK.
+INSERT INTO resources (id, "parentId", "sourceResourceId") VALUES
+  ('20000000-0000-4000-8000-000000000010', NULL, NULL),
+  ('20000000-0000-4000-8000-000000000011', NULL,
+   '20000000-0000-4000-8000-000000000010');
+DELETE FROM resources
+ WHERE id = '20000000-0000-4000-8000-000000000010';
+
+DO $test$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM resources
+                  WHERE id = '20000000-0000-4000-8000-000000000011'
+                    AND "sourceResourceId" IS NULL) THEN
+    RAISE EXCEPTION 'orphaned resource provenance was not cleared by its FK';
+  END IF;
+END
+$test$;
+
 ROLLBACK;
 
 SELECT 'resource deletion PostgreSQL invariants: OK' AS result;
