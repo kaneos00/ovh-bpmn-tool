@@ -17,3 +17,5 @@ COPY backend/migrations/20261116_v3_project_documented_sources.sql /opt/migratio
 COPY backend/migrations/20261118_v3_permanent_organization.sql /opt/migrations/20261118_v3_permanent_organization.sql
 
 COPY deploy/coolify/db/seed-permanent-organization.sql /opt/seeds/seed-permanent-organization.sql
+
+COPY deploy/coolify/db/seed-software-project-job-functions.sql /opt/seeds/seed-software-project-job-functions.sql
