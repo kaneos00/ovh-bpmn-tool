@@ -98,16 +98,11 @@ export class ResourceTypeOrmRepository implements ResourceRepository {
           [deletableIds],
         );
 
-        // Keep variants outside the deleted subtree, but detach their source
-        // pointer in both the resource record and project association.
-        await manager.query(
-          'UPDATE resources SET "sourceResourceId" = NULL WHERE "sourceResourceId" = ANY($1::uuid[]) AND NOT (id = ANY($1::uuid[]))',
-          [deletableIds],
-        );
-        await manager.query(
-          'UPDATE project_processes SET "sourceResourceId" = NULL WHERE "sourceResourceId" = ANY($1::uuid[]) AND NOT ("resourceId" = ANY($1::uuid[]))',
-          [deletableIds],
-        );
+        // Surviving variants must keep their source association. The access
+        // guard rejects deleting a source while such variants remain; the
+        // project_processes FK/check constraints are the final DB safeguard.
+        // resources.sourceResourceId uses ON DELETE SET NULL for provenance
+        // records that are not constrained to represent a project variant.
         await manager.query(
           'DELETE FROM project_processes WHERE "resourceId" = ANY($1::uuid[])',
           [deletableIds],
