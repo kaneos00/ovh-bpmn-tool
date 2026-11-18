@@ -19,7 +19,9 @@ INSERT INTO organization_positions (id, "createdBy", code, title, description, "
  ('81000000-0000-4000-8000-000000000014','demo-seed','ORG-UX','Designer UX/UI','Conçoit les parcours et interfaces centrés sur les utilisateurs.',(SELECT id FROM job_functions WHERE code='UX'),TRUE),
  ('81000000-0000-4000-8000-000000000015','demo-seed','ORG-SEC','Ingénieur sécurité applicative','Intègre la sécurité dans la conception et le cycle de développement.',(SELECT id FROM job_functions WHERE code='SEC'),TRUE),
  ('81000000-0000-4000-8000-000000000016','demo-seed','ORG-DATA','Ingénieur données et bases de données','Conçoit et maintient les modèles, traitements et stockages de données.',(SELECT id FROM job_functions WHERE code='DATA'),TRUE),
- ('81000000-0000-4000-8000-000000000017','demo-seed','ORG-SM','Facilitateur agile','Facilite la collaboration, les rituels et l''amélioration continue.',(SELECT id FROM job_functions WHERE code='SM'),TRUE)
+ ('81000000-0000-4000-8000-000000000017','demo-seed','ORG-SM','Facilitateur agile','Facilite la collaboration, les rituels et l''amélioration continue.',(SELECT id FROM job_functions WHERE code='SM'),TRUE),
+ ('81000000-0000-4000-8000-000000000018','demo-seed','ORG-DOC','Rédacteur technique et documentaire','Produit et maintient la documentation utilisateur, technique et d exploitation.',(SELECT id FROM job_functions WHERE code='DOC'),TRUE),
+ ('81000000-0000-4000-8000-000000000019','demo-seed','ORG-SUPPORT','Ingénieur support et maintenance applicative','Assure le support, le diagnostic et la maintenance de la solution.',(SELECT id FROM job_functions WHERE code='SUPPORT'),TRUE)
 ON CONFLICT (id) DO UPDATE SET code=EXCLUDED.code,title=EXCLUDED.title,description=EXCLUDED.description,"functionId"=EXCLUDED."functionId",active=TRUE;
 
 -- One active assignment gives the demo login a personal organization context.
@@ -46,7 +48,9 @@ INSERT INTO organization_position_relations (id, "createdBy", "parentPositionId"
  ('83000000-0000-4000-8000-000000000013','demo-seed','81000000-0000-4000-8000-000000000009','81000000-0000-4000-8000-000000000014',1),
  ('83000000-0000-4000-8000-000000000014','demo-seed','81000000-0000-4000-8000-000000000003','81000000-0000-4000-8000-000000000015',4),
  ('83000000-0000-4000-8000-000000000015','demo-seed','81000000-0000-4000-8000-000000000010','81000000-0000-4000-8000-000000000016',2),
- ('83000000-0000-4000-8000-000000000016','demo-seed','81000000-0000-4000-8000-000000000004','81000000-0000-4000-8000-000000000017',2)
+ ('83000000-0000-4000-8000-000000000016','demo-seed','81000000-0000-4000-8000-000000000004','81000000-0000-4000-8000-000000000017',2),
+ ('83000000-0000-4000-8000-000000000017','demo-seed','81000000-0000-4000-8000-000000000004','81000000-0000-4000-8000-000000000018',3),
+ ('83000000-0000-4000-8000-000000000018','demo-seed','81000000-0000-4000-8000-000000000002','81000000-0000-4000-8000-000000000019',3)
 ON CONFLICT (id) DO UPDATE SET "parentPositionId"=EXCLUDED."parentPositionId","childPositionId"=EXCLUDED."childPositionId","sortOrder"=EXCLUDED."sortOrder";
 
 -- Sanity checks fail the deployment migration step rather than silently leaving a partial fixture.
@@ -56,8 +60,8 @@ DO $seed$
 BEGIN
   IF (SELECT count(*) FROM organization_positions WHERE id BETWEEN
       '81000000-0000-4000-8000-000000000001'::uuid AND
-      '81000000-0000-4000-8000-000000000017'::uuid) <> 17 THEN
-    RAISE EXCEPTION 'Organization demo fixture: expected 17 permanent positions';
+      '81000000-0000-4000-8000-000000000019'::uuid) <> 19 THEN
+    RAISE EXCEPTION 'Organization demo fixture: expected 19 permanent positions';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM organization_assignments
     WHERE id='82000000-0000-4000-8000-000000000001'::uuid
