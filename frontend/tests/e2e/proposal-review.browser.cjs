@@ -407,6 +407,54 @@ async function main() {
     await reviewerPage.waitForURL(`**/${variantResourceId}`);
     await reviewerPage.locator('.djs-element[data-element-id="Task_ProcessRequest"]').waitFor();
 
+    // Create a disposable folder through the API, then delete it through
+    // the real confirmation route. The post-delete assertion is deliberately
+    // made against the rendered explorer without a manual page reload: this
+    // catches stale React Query data after the delete action returns.
+    const disposableFolderName = 'CI E2E — dossier temporaire à supprimer';
+    await reviewerPage.goto(`${baseUrl}/root/add?type=folder`);
+    await reviewerPage.getByLabel('Name').fill(disposableFolderName);
+    await reviewerPage.getByLabel('Description').fill('Fixture temporaire E2E');
+    await reviewerPage.getByRole('button', { name: 'Create', exact: true }).click();
+    await reviewerPage.waitForURL('**/root');
+    await reviewerPage.getByText('Folder successfully created!').waitFor();
+
+    const temporaryFolderNode = reviewerPage.getByRole('treeitem').filter({
+      hasText: disposableFolderName,
+    });
+    await temporaryFolderNode.waitFor({ state: 'visible' });
+    const createdFolderId = await reviewerPage.evaluate(async name => {
+      const response = await fetch('/bpmn-api/resources/explorer/links', { credentials: 'same-origin' });
+      if (!response.ok) throw new Error(`Explorer returned HTTP ${response.status}`);
+      const explorer = await response.json();
+      return explorer.resources?.find(resource => resource.name === name)?.id ?? null;
+    }, disposableFolderName);
+    assert.ok(createdFolderId, 'The created folder is missing from the explorer API');
+
+    await reviewerPage.goto(
+      `${baseUrl}/root/delete?targetResourceId=${createdFolderId}`,
+    );
+    await reviewerPage.getByRole('button', { name: 'Delete', exact: true }).click();
+    await reviewerPage.waitForURL('**/root');
+    await reviewerPage.getByText('Folder successfully deleted!').waitFor();
+    await reviewerPage.getByRole('treeitem').filter({
+      hasText: disposableFolderName,
+    }).waitFor({ state: 'detached' });
+
+    const deletedFolderState = await reviewerPage.evaluate(async resourceId => {
+      const [resourceResponse, explorerResponse] = await Promise.all([
+        fetch(`/bpmn-api/resources/${resourceId}`, { credentials: 'same-origin' }),
+        fetch('/bpmn-api/resources/explorer/links', { credentials: 'same-origin' }),
+      ]);
+      const explorer = await explorerResponse.json();
+      return {
+        resourceStatus: resourceResponse.status,
+        explorerContainsResource: explorer.resources?.some(resource => resource.id === resourceId) ?? false,
+      };
+    }, createdFolderId);
+    assert.equal(deletedFolderState.resourceStatus, 404, 'Deleted folder is still available through the resource API');
+    assert.equal(deletedFolderState.explorerContainsResource, false, 'Deleted folder is still returned by the explorer API');
+
     // Exercise the header's quick search against the seeded published process.
     // The results page uses the same API and serves as the comparison path.
     await reviewerPage.goto(`${baseUrl}/${sourceResourceId}`);
