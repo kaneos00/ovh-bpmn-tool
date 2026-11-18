@@ -16,6 +16,7 @@ import {
   FolderActions,
 } from './components';
 import { isFolder, isRoot } from '../../shared/helpers/resource';
+import { NAVIGATION_HISTORY_EVENT, readNavigationHistory } from '../../shared/utils/navigationHistory';
 
 import type { BpmnLayoutRouteParams } from '.';
 import { ResourceType } from '../../shared/types/BpmnResource';
