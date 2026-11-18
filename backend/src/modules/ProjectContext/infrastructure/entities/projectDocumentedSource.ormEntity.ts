@@ -37,6 +37,9 @@ export class ProjectDocumentedSourceTypeOrmEntity extends AbstractEntity {
   @Column({ type: 'text', nullable: true })
   retention: string | null;
 
+  @Column({ type: 'date', nullable: true })
+  validUntil: string | null;
+
   @Column({ type: 'text', nullable: true })
   authorizedPeople: string | null;
 
