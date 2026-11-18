@@ -5,7 +5,6 @@ import { Alert, Box, Card, Divider, Input, List, Option, Select, Sheet, Stack, T
 import {
   AssignmentTurnedInOutlined,
   BadgeOutlined,
-  FolderOpenOutlined,
   Search,
   SchemaOutlined,
 } from '@mui/icons-material';
@@ -68,7 +67,7 @@ const quickActions: QuickAction[] = [
 
 export const Component = () => {
   const navigate = useNavigate();
-  const { projects, activeProject, activeProjectId, setActiveProject, isLoading, isError } = useActiveProject();
+  const { projects, activeProject, activeProjectId, setActiveProject } = useActiveProject();
   const [search, setSearch] = useState('');
   const [searchScope, setSearchScope] = useState<'all' | 'process' | 'bpmn' | 'actor' | 'raci' | 'documented'>('all');
   const [recentPages, setRecentPages] = useState<Array<{ href: string; label: string; visitedAt: number }>>([]);
