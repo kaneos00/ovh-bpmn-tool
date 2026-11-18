@@ -21,6 +21,7 @@ export type WorkspaceProject = {
     sourceResourceId: string | null;
     remarksCount?: number;
     changeRequestsCount?: number;
+    changeRequestStatus?: 'submitted' | 'in_progress' | 'published' | null;
   }>;
 };
 type WorkspaceSummary = { userId: string; projects: WorkspaceProject[] };
