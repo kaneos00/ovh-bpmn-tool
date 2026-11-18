@@ -9,6 +9,7 @@ export type RenderTree = {
   sourceResourceId?: string | null;
   remarksCount?: number;
   changeRequestsCount?: number;
+  changeRequestStatus?: 'submitted' | 'in_progress' | 'published' | null;
 };
 
 export * from './FolderTree';
