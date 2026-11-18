@@ -33,9 +33,7 @@ export class OrganizationService {
     const header = this.config.getOrThrow<string>('userHeader');
     const value = headers[header] ?? headers[header.toLowerCase()];
     if (!value?.trim()) {
-      throw new BadRequestException(
-        'Authenticated user identity is missing',
-      );
+      throw new BadRequestException('Authenticated user identity is missing');
     }
     return value.trim();
   }
@@ -60,9 +58,7 @@ export class OrganizationService {
       Number.isNaN(Date.parse(`${value}T00:00:00Z`)) ||
       new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) !== value
     ) {
-      throw new BadRequestException(
-        `${field} must be a valid YYYY-MM-DD date`,
-      );
+      throw new BadRequestException(`${field} must be a valid YYYY-MM-DD date`);
     }
     return value;
   }
@@ -198,9 +194,7 @@ export class OrganizationService {
       );
     } catch (error) {
       if ((error as { code?: string }).code === '23505') {
-        throw new ConflictException(
-          'A position with this code already exists',
-        );
+        throw new ConflictException('A position with this code already exists');
       }
       throw error;
     }
@@ -230,10 +224,7 @@ export class OrganizationService {
       position.title = this.requiredText(input.title, 'title', 255);
     }
     if (input.description !== undefined) {
-      if (
-        input.description !== null &&
-        typeof input.description !== 'string'
-      ) {
+      if (input.description !== null && typeof input.description !== 'string') {
         throw new BadRequestException('description must be text or null');
       }
       position.description =
@@ -361,17 +352,12 @@ export class OrganizationService {
         : this.date(input.endDate, 'endDate');
 
     if (endDate && endDate < startDate) {
-      throw new BadRequestException(
-        'endDate cannot be earlier than startDate',
-      );
+      throw new BadRequestException('endDate cannot be earlier than startDate');
     }
 
     try {
       return await this.db.transaction(async (manager) => {
-        await manager.query(
-          'SELECT pg_advisory_xact_lock(hashtext($1))',
-          [positionId],
-        );
+        await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [positionId]);
         const overlap = await manager
           .getRepository(OrganizationAssignmentTypeOrmEntity)
           .createQueryBuilder('assignment')
@@ -401,10 +387,7 @@ export class OrganizationService {
             userId,
             startDate,
             endDate,
-            note:
-              typeof input.note === 'string'
-                ? input.note.trim() || null
-                : null,
+            note: typeof input.note === 'string' ? input.note.trim() || null : null,
             createdBy: this.userId(headers),
           }),
         );
@@ -422,10 +405,7 @@ export class OrganizationService {
     }
   }
 
-  async updateAssignment(
-    assignmentId: string,
-    input: { endDate?: unknown },
-  ) {
+  async updateAssignment(assignmentId: string, input: { endDate?: unknown }) {
     const assignment = await this.assignments.findOne({
       where: { id: assignmentId },
     });
