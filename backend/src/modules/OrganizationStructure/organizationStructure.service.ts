@@ -133,15 +133,21 @@ export class OrganizationStructureService {
 
   private async assertParentExists(id: string) {
     const parent = await this.positions.findOne({ where: { id } });
-    if (!parent) throw new NotFoundException('Parent organization position not found');
+    if (!parent) {
+      throw new NotFoundException('Parent organization position not found');
+    }
     if (!parent.active) {
-      throw new ConflictException('An inactive position cannot be selected as parent');
+      throw new ConflictException(
+        'An inactive position cannot be selected as parent',
+      );
     }
   }
 
   private async validateFunction(id?: string | null): Promise<string | null> {
     if (!id) return null;
-    const jobFunction = await this.functions.findOne({ where: { id, active: true } });
+    const jobFunction = await this.functions.findOne({
+      where: { id, active: true },
+    });
     if (!jobFunction) {
       throw new BadRequestException(
         'The selected job function does not exist or is inactive',
