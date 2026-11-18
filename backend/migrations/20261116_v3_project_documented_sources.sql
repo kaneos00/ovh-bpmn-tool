@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS project_documented_sources (
   retention text,
   "authorizedPeople" text,
   restrictions text,
+  "validUntil" date,
   "originResourceId" uuid REFERENCES resources(id) ON DELETE SET NULL,
   "originElementId" varchar(255),
   "mergedIntoId" uuid REFERENCES project_documented_sources(id) ON DELETE SET NULL,
@@ -19,7 +20,7 @@ CREATE TABLE IF NOT EXISTS project_documented_sources (
   "createdAt" timestamptz NOT NULL DEFAULT now(),
   "updatedAt" timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT project_documented_sources_kind_check
-    CHECK (kind IN ('file', 'database', 'application', 'form'))
+    CHECK (kind IN ('file', 'database', 'application'))
 );
 
 CREATE INDEX IF NOT EXISTS project_documented_sources_project_active_idx
