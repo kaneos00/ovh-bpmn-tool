@@ -84,6 +84,15 @@ export class JobArchitectureController {
     );
   }
 
+  @Get('projects/:projectId/organization-positions')
+  @UseAcl()
+  listOrganizationPositionsForProject(
+    @Param('projectId') projectId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    return this.jobArchitecture.listOrganizationPositionsForProject(projectId, headers);
+  }
+
   @Get('projects/:projectId/job-positions')
   @UseAcl()
   listProjectPositions(
