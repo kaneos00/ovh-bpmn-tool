@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useNavigationType } from 'react-router-dom';
+import { recordNavigation, recordRecentPage } from '../../../shared/utils/navigationHistory';
 import { Box, Button, Input, List, Option, Select, Sheet, Stack, Typography } from '@mui/joy';
 import { HomeOutlined, Search } from '@mui/icons-material';
 import { useActiveProject } from '../../../shared/hooks/useActiveProject';
@@ -142,6 +143,7 @@ export const WorkspaceNavigation = () => {
   }, []);
   const navigate = useNavigate();
   const location = useLocation();
+  const navigationType = useNavigationType();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [scope, setScope] = useState<SearchScope>('all');
@@ -155,8 +157,7 @@ export const WorkspaceNavigation = () => {
 
   useEffect(() => {
     const pathname = location.pathname;
-    if (pathname === '/home' || pathname === '/' || pathname === '/login') return;
-    const href = `${location.pathname}${location.search}`;
+    const href = `${pathname}${location.search}`;
     const raciPage = new URLSearchParams(location.search).get('raci') === '1' ||
       new URLSearchParams(location.search).get('tab') === 'raci';
     const heading = document.querySelector('main h1, main h2, [role="main"] h1, [role="main"] h2')?.textContent?.trim();
@@ -165,16 +166,10 @@ export const WorkspaceNavigation = () => {
         : pathname.startsWith('/projects/') ? 'Projet'
           : pathname === '/search' ? 'Résultats de recherche'
             : `Page ${pathname.split('/').filter(Boolean).pop() || ''}`);
-    try {
-      const current = JSON.parse(window.localStorage.getItem('khi-flows-recent-pages') || '[]');
-      const pages = Array.isArray(current) ? current : [];
-      const updated = [{ href, label, visitedAt: Date.now() }, ...pages.filter((page: { href?: string }) => page?.href !== href)].slice(0, 10);
-      window.localStorage.setItem('khi-flows-recent-pages', JSON.stringify(updated));
-      window.dispatchEvent(new Event('khi-recent-pages-updated'));
-    } catch {
-      // Recent-page history is an optional convenience; navigation must remain available.
-    }
-  }, [location.pathname, location.search]);
+    const entry = { key: location.key, href, label, visitedAt: Date.now() };
+    recordNavigation(entry, navigationType);
+    recordRecentPage(entry);
+  }, [location.key, location.pathname, location.search, navigationType]);
   // Folder names are not part of the unified search endpoint. Keep the small
   // folder supplement, but never let a folder-list failure disable process,
   // BPMN, role, RACI or documented-information search.
