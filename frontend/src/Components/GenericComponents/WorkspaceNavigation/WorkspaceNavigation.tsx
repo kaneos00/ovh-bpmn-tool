@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, Button, Input, List, Option, Select, Sheet, Stack, Typography } from '@mui/joy';
-import { Search } from '@mui/icons-material';
+import { HomeRounded, Search } from '@mui/icons-material';
 import { useActiveProject } from '../../../shared/hooks/useActiveProject';
 import { useQuery } from 'react-query';
 
@@ -313,6 +313,16 @@ export const WorkspaceNavigation = () => {
         sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
       >
         <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexShrink: 0 }}>
+          <Button
+            size="sm"
+            variant="soft"
+            color="primary"
+            startDecorator={<HomeRounded fontSize="small" />}
+            onClick={() => navigate('/root')}
+            sx={{ bgcolor: '#24486f', color: '#fff', border: '1px solid #52749a', '&:hover': { bgcolor: '#315d89' } }}
+          >
+            Accueil
+          </Button>
           <Box component="img" src="/bpmn-tool-logo.svg" alt="" sx={{ width: 28, height: 28, objectFit: 'contain' }} />
           <Box>
             <Stack direction="row" spacing={0.75} useFlexGap flexWrap="wrap" alignItems="center">
