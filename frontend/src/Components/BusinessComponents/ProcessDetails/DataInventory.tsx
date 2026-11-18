@@ -186,11 +186,14 @@ export const DataInventory = ({
     field: keyof ProjectDocumentedSource,
   ) => {
     if (!params.data) return;
-    const value = field === 'containsPersonalData'
-      ? Boolean(params.newValue)
-      : field === 'validUntil'
-        ? (String(params.newValue ?? '').trim() || null)
-        : String(params.newValue ?? '');
+    let value: string | null | boolean;
+    if (field === 'containsPersonalData') {
+      value = Boolean(params.newValue);
+    } else if (field === 'validUntil') {
+      value = String(params.newValue ?? '').trim() || null;
+    } else {
+      value = String(params.newValue ?? '');
+    }
     const updated = { ...params.data, [field]: value };
     updateRow(params.data.id, field, value);
     await saveRow(updated);
