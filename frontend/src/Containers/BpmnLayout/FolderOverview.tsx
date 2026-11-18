@@ -129,9 +129,17 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
             La liste complète des répertoires est momentanément indisponible. Les processus associés au projet sont affichés à partir de son espace de travail.
           </Alert>
         )}
-        <Card variant="outlined" sx={{ gap: 0.75 }}>
+        <Card
+          variant="outlined"
+          sx={{
+            gap: 1,
+            borderLeft: '6px solid',
+            borderLeftColor: activeProject.color || '#2864d7',
+            background: `linear-gradient(110deg, ${activeProject.color || '#2864d7'}18 0%, rgba(255,255,255,0.96) 58%)`,
+          }}
+        >
           <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
-            <Typography level="title-lg">{activeProject.name}</Typography>
+            <Typography level="title-lg" sx={{ color: activeProject.color || '#2864d7', fontWeight: 800 }}>{activeProject.name}</Typography>
             <Stack direction="row" spacing={0.75} alignItems="center">
               <Button
                 size="sm"
@@ -221,7 +229,7 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
               </Typography>
             </Stack>
           )}
-          <Chip variant="soft">{activeProject.processes.length} processus associés</Chip>
+          <Chip variant="solid" sx={{ bgcolor: activeProject.color || '#2864d7', color: '#fff', fontWeight: 700 }}>{activeProject.processes.length} processus associés</Chip>
         </Card>
         {activeProject.processes.length > 0 ? (
           <ProjectProcessOverview
