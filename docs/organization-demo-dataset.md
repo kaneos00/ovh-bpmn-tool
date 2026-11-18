@@ -18,15 +18,15 @@ Le compte `DEMO_AUTH_USER` est utilisé comme titulaire de l'affectation active.
 
 | Élément | Quantité | Utilité de test |
 |---|---:|---|
-| Postes permanents | 17 | Consultation, recherche, filtres, édition et désactivation |
-| Relations hiérarchiques | 16 | Organigramme multi-niveaux |
+| Postes permanents | 19 | Consultation, recherche, filtres, édition et désactivation |
+| Relations hiérarchiques | 18 | Organigramme multi-niveaux |
 | Affectation active | 1 | Contexte organisationnel de l'utilisateur de démonstration |
 | Affectation historique | 1 | Conservation et lecture de l'historique |
-| Postes vacants | 16 | Affectations individuelles/groupées et désactivation |
-| Fiches de fonction | 15 | Missions, rattachement, activités et intitulés alternatifs |
+| Postes vacants | 18 | Affectations individuelles/groupées et désactivation |
+| Fiches de fonction | 17 | Missions, rattachement, activités et intitulés alternatifs |
 | Blocs de compétences | 10 | Compétences techniques, méthodologiques et comportementales |
 | Compétences de référence | 30 | Niveaux de référence par compétence |
-| Sections d'activités | 15 | Activités et tâches structurées par fonction |
+| Sections d'activités | 17 | Activités et tâches structurées par fonction |
 
 Arborescence de démonstration (les rattachements sont indicatifs et adaptables) :
 
@@ -36,6 +36,7 @@ Arborescence de démonstration (les rattachements sont indicatifs et adaptables)
       - Responsable produit et exigences
         - Designer UX/UI
       - Facilitateur agile
+    - Rédacteur technique et documentaire
     - Responsable ressources humaines
   - Direction technique
     - Architecte logiciel et système
@@ -70,6 +71,8 @@ Les fiches sont créées dans le référentiel **Fonctions** du module Job Archi
 | SEC | Ingénieur sécurité applicative |
 | DATA | Ingénieur données et bases de données |
 | SM | Facilitateur agile |
+| DOC | Rédacteur technique et documentaire |
+| SUPPORT | Ingénieur support et maintenance applicative |
 
 Les postes permanents correspondants sont liés aux fiches de fonction. Le poste de direction générale et la fonction RH restent présents dans l'organigramme mais ne sont pas artificiellement transformés en rôles techniques de projet.
 
@@ -79,8 +82,8 @@ Les responsabilités peuvent être cumulées dans une petite équipe : par exemp
 
 ## Parcours de vérification
 
-1. Ouvrir **Administration > Postes** : vérifier les 17 lignes, les postes vacants et le titulaire du compte de démonstration.
-2. Ouvrir le référentiel **Fonctions** : vérifier les 15 fiches, leurs missions, activités et compétences.
+1. Ouvrir **Administration > Postes** : vérifier les 19 lignes, les postes vacants et le titulaire du compte de démonstration.
+2. Ouvrir le référentiel **Fonctions** : vérifier les 17 fiches, leurs missions, activités et compétences.
 3. Ouvrir une fiche (par exemple IVV ou Développement) et vérifier le rattachement, les tâches et les blocs de compétences.
 4. Filtrer par code ou intitulé, trier les colonnes et modifier un intitulé.
 5. Sélectionner plusieurs postes vacants et tester une affectation groupée.
