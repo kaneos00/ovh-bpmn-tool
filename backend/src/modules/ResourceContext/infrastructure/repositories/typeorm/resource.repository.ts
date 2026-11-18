@@ -68,7 +68,8 @@ export class ResourceTypeOrmRepository implements ResourceRepository {
            FROM project_processes
            WHERE "resourceId" = ANY($1::uuid[])
            GROUP BY "resourceId"
-           HAVING COUNT(DISTINCT "projectId") > 1`,
+           HAVING COUNT(DISTINCT "projectId") > 1
+              OR BOOL_OR(usage = 'common')`,
           [resourceIds],
         );
         const sharedIds = sharedResources.map(({ id }) => id);
