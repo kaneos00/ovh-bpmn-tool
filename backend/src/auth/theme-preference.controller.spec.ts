@@ -57,10 +57,10 @@ describe('ThemePreferenceController', () => {
       headers: { cookie: sessionCookie() },
     } as never);
 
-    expect(result).toEqual({ theme: 'dark' });
+    expect(result).toEqual({ theme: 'dark', homeDashboardEnabled: false });
     expect(db.query).toHaveBeenNthCalledWith(
       2,
-      'SELECT theme FROM app_user_preferences WHERE user_id = $1',
+      'SELECT theme, home_dashboard_enabled FROM app_user_preferences WHERE user_id = $1',
       ['user-1'],
     );
   });
@@ -79,7 +79,25 @@ describe('ThemePreferenceController', () => {
     expect(db.query).toHaveBeenNthCalledWith(
       2,
       expect.stringContaining('INSERT INTO app_user_preferences'),
-      ['user-1', 'dark'],
+      ['user-1', 'dark', null],
+    );
+  });
+
+  it('stores the home dashboard preference for the authenticated account', async () => {
+    db.query
+      .mockResolvedValueOnce([{ id: 'user-1' }])
+      .mockResolvedValueOnce([]);
+
+    const result = await controller.savePreferences(
+      { headers: { cookie: sessionCookie() } } as never,
+      { homeDashboardEnabled: true },
+    );
+
+    expect(result).toEqual({ homeDashboardEnabled: true });
+    expect(db.query).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('home_dashboard_enabled'),
+      ['user-1', null, true],
     );
   });
 

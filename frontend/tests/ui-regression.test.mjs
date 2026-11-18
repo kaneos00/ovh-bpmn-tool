@@ -767,14 +767,14 @@ test('project administrators can configure the color of the generated trigram ba
 });
 
 
-test('the root workspace replaces the former home dashboard and project viewer page', async () => {
+test('the optional home dashboard coexists with the root workspace and project viewer page', async () => {
   const routes = await read('src/routes.tsx');
   const breadcrumbs = await read('src/Containers/BpmnLayout/hooks/useBpmnLayoutBreadcrumbs.ts');
   const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
   const overview = await read('src/Containers/BpmnLayout/FolderOverview.tsx');
   const legacyRedirect = await read('src/Containers/ProjectWorkspaceRedirect/index.tsx');
 
-  assert.match(routes, /path: '\/home'\s*,\s*loader: \(\) => redirect\('\/root'\)/);
+  assert.match(routes, /path: '\/home'\s*,\s*lazy: \(\) => import\('\.\/Containers\/HomeDashboard'\)/);
   assert.match(routes, /path: '\/projects\/:projectId\/viewer'[\s\S]*?ProjectWorkspaceRedirect/);
   assert.match(routes, /path: '\/projects'[\s\S]*?import\('\.\/Containers\/Projects'\)/);
   assert.match(routes, /path: '\/projects\/:projectId'[\s\S]*?import\('\.\/Containers\/Projects'\)/);
@@ -1106,11 +1106,18 @@ test('project documented information uses canonical sources and retains the proj
   assert.ok(searchPage.includes('<Option value="documented">Informations documentées</Option>'));
 });
 
-test('user account menu provides direct access to all accessible projects', async () => {
+test('user account menu keeps preference controls open and persists the personalized home toggle', async () => {
   const menu = await read('src/Components/GenericComponents/UserAccountMenu/UserAccountMenu.tsx');
   assert.ok(menu.includes('WorkspacesOutlined'));
   assert.match(menu, /navigate\('\/projects'\)/);
   assert.match(menu, /Tous les projets/);
+  assert.match(menu, /aria-label="Activer ou désactiver l’accueil personnalisé"/);
+  assert.match(menu, /void toggleHomeDashboard\(\)/);
+  assert.match(menu, /homeDashboardEnabled: nextEnabled/);
+  assert.match(menu, /aria-label="Changer le thème"/);
+  assert.match(menu, /onClick=\{toggleTheme\}/);
+  assert.match(menu, /pointerEvents: 'none'/);
+  assert.doesNotMatch(menu, /MenuItem onClick=\{toggleTheme\}/);
 });
 
 test('process metadata distinguishes type, nature and project usage while preserving legacy XML values', async () => {

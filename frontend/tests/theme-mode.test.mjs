@@ -15,7 +15,9 @@ test('theme toggle is accessible and switches between light and dark modes', asy
   assert.ok(menu.includes("const nextMode = isDark ? 'light' : 'dark'"));
   assert.ok(menu.includes('setMode(nextMode)'));
   assert.ok(menu.includes('Thème sombre'));
-  assert.ok(menu.includes('<Switch size="sm" checked={isDark} readOnly tabIndex={-1} />'));
+  assert.ok(menu.includes('aria-label="Changer le thème"'));
+  assert.ok(menu.includes('onClick={toggleTheme}'));
+  assert.ok(menu.includes('<Switch size="sm" checked={isDark} readOnly tabIndex={-1} sx={{ pointerEvents: ' + "'none'" + ' }} />'));
   assert.ok(main.includes('<CssVarsProvider defaultMode="light" modeStorageKey="khi-flows-color-scheme">'));
 });
 

@@ -21,7 +21,7 @@ import {
 const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
 
 function getSafeV3Destination(requestedPath: string | null): string {
-  if (!requestedPath) return '/root';
+  if (!requestedPath) return '/';
 
   let destination: URL;
   try {
@@ -40,6 +40,8 @@ function getSafeV3Destination(requestedPath: string | null): string {
 
   const path = destination.pathname;
   const validV3Path =
+    path === '/' ||
+    path === '/home' ||
     path === '/root' ||
     /^\/[^/]+$/.test(path) ||
     /^\/[^/]+\/modeler$/.test(path) ||
@@ -76,7 +78,8 @@ export const Component = () => {
         );
         return;
       }
-      navigate(getSafeV3Destination(searchParams.get('next')), { replace: true });
+      const requestedPath = searchParams.get('next');
+      navigate(requestedPath ? getSafeV3Destination(requestedPath) : '/', { replace: true });
     } catch {
       setError('Le service de connexion est momentanément indisponible.');
     } finally {
