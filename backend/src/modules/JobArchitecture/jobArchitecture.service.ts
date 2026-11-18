@@ -26,6 +26,7 @@ import { PositionActivityMappingTypeOrmEntity } from './infrastructure/entities/
 import { ContentTypeOrmEntity } from '../ResourceContext/infrastructure/entities/content.ormEntity';
 import { ContentStatusEnum } from '../ResourceContext/shared/types/Content';
 import { extractBpmnActivityIds } from './infrastructure/bpmnActivityIds';
+import { OrganizationPositionTypeOrmEntity } from '../Organization/infrastructure/entities/organizationPosition.ormEntity';
 
 type RequestHeaders = Record<string, string | undefined>;
 
@@ -44,6 +45,8 @@ export class JobArchitectureService {
     private readonly functionBlocks: Repository<JobFunctionCompetencyBlockTypeOrmEntity>,
     @InjectRepository(ProjectJobPositionTypeOrmEntity)
     private readonly positions: Repository<ProjectJobPositionTypeOrmEntity>,
+    @InjectRepository(OrganizationPositionTypeOrmEntity)
+    private readonly organizationPositions: Repository<OrganizationPositionTypeOrmEntity>,
     @InjectRepository(PositionCompetencyBlockTypeOrmEntity)
     private readonly positionBlocks: Repository<PositionCompetencyBlockTypeOrmEntity>,
     @InjectRepository(ProjectRaciActorTypeOrmEntity)
@@ -267,13 +270,15 @@ export class JobArchitectureService {
     if (!positions.length) return [];
 
     const ids = positions.map((position) => position.id);
-    const [blockRows, functionRows] = await Promise.all([
+    const [blockRows, functionRows, organizationRows] = await Promise.all([
       this.positionBlocks.find({
         where: ids.map((positionId) => ({ positionId })),
       }),
       this.functions.find(),
+      this.organizationPositions.find(),
     ]);
 
+    const organizationById = new Map(organizationRows.map((item) => [item.id, item]));
     const functionById = new Map(functionRows.map((item) => [item.id, item]));
     const blocksByPosition = new Map<
       string,
@@ -288,6 +293,7 @@ export class JobArchitectureService {
     return positions.map((position) => ({
       ...position,
       function: functionById.get(position.functionId) ?? null,
+      organizationPosition: position.organizationPositionId ? organizationById.get(position.organizationPositionId) ?? null : null,
       competencyBlocks: blocksByPosition.get(position.id) ?? [],
     }));
   }
@@ -298,6 +304,7 @@ export class JobArchitectureService {
       functionId?: string;
       title?: string;
       description?: string | null;
+      organizationPositionId?: string | null;
     },
     headers: RequestHeaders,
   ) {
@@ -313,6 +320,10 @@ export class JobArchitectureService {
     if (!jobFunction) throw new NotFoundException('Job function not found');
 
     const title = this.requiredText(input.title, 'title', 255);
+    const organizationPositionId = input.organizationPositionId?.trim() || null;
+    if (organizationPositionId && !(await this.organizationPositions.findOne({ where: { id: organizationPositionId, active: true } }))) {
+      throw new NotFoundException('Active permanent organization position not found');
+    }
     const functionLinks = await this.functionBlocks.find({
       where: { functionId },
       order: { sortOrder: 'ASC' },
@@ -332,6 +343,7 @@ export class JobArchitectureService {
             functionId,
             title,
             description: input.description?.trim() || null,
+            organizationPositionId,
             active: true,
             createdBy: userId,
           }),
@@ -368,6 +380,25 @@ export class JobArchitectureService {
       }
       throw error;
     }
+  }
+
+  async setProjectPositionOrganization(
+    projectId: string,
+    positionId: string,
+    organizationPositionId: string | null,
+    headers: RequestHeaders,
+  ) {
+    await this.projectAccess.assertProjectRole(projectId, headers, ProjectMemberRole.Modeler);
+    const position = await this.positions.findOne({ where: { id: positionId, projectId, active: true } });
+    if (!position) throw new NotFoundException('Project job position not found');
+    if (organizationPositionId) {
+      const organizationPosition = await this.organizationPositions.findOne({
+        where: { id: organizationPositionId, active: true },
+      });
+      if (!organizationPosition) throw new NotFoundException('Active permanent organization position not found');
+    }
+    position.organizationPositionId = organizationPositionId;
+    return this.positions.save(position);
   }
 
   async replacePositionBlocks(
