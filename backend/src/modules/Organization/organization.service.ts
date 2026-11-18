@@ -355,10 +355,9 @@ export class OrganizationService {
 
     try {
       return await this.db.transaction(async (manager) => {
-        await manager.query(
-          'SELECT pg_advisory_xact_lock(hashtext($1))',
-          [positionId],
-        );
+        await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+          positionId,
+        ]);
         const overlap = await manager
           .getRepository(OrganizationAssignmentTypeOrmEntity)
           .createQueryBuilder('assignment')
@@ -388,10 +387,9 @@ export class OrganizationService {
             userId,
             startDate,
             endDate,
-            note:
-              typeof input.note === 'string'
-                ? input.note.trim() || null
-                : null,
+            note: typeof input.note === 'string'
+              ? input.note.trim() || null
+              : null,
             createdBy: this.userId(headers),
           }),
         );
