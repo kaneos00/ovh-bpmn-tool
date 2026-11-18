@@ -28,16 +28,25 @@ Le compte `DEMO_AUTH_USER` est utilisé comme titulaire de l'affectation active.
 | Compétences de référence | 30 | Niveaux de référence par compétence |
 | Sections d'activités | 15 | Activités et tâches structurées par fonction |
 
-Arborescence :
+Arborescence de démonstration (les rattachements sont indicatifs et adaptables) :
 
 - Direction générale
   - Direction des opérations
     - Chef de projet
+      - Responsable produit et exigences
+        - Designer UX/UI
+      - Facilitateur agile
     - Responsable ressources humaines
   - Direction technique
+    - Architecte logiciel et système
+      - Ingénieur systèmes et intégration
+      - Ingénieur données et bases de données
     - Responsable développement
-      - Développeur
+      - Ingénieur développement
+      - Ingénieur DevOps et mise en production
     - Responsable qualité
+      - Ingénieur IVV
+    - Ingénieur sécurité applicative
 
 
 ## Fiches de fonction — développement logiciel
@@ -77,7 +86,7 @@ Les responsabilités peuvent être cumulées dans une petite équipe : par exemp
 5. Sélectionner plusieurs postes vacants et tester une affectation groupée.
 6. Retirer un titulaire avec une date de fin ; vérifier que l'historique reste conservé.
 7. Désactiver un poste vacant ; vérifier qu'un poste occupé ne peut pas être désactivé.
-8. Ouvrir **Structure** et vérifier les 3 niveaux de rattachement.
+8. Ouvrir **Structure** et vérifier les rattachements sur plusieurs niveaux.
 9. Se connecter avec `DEMO_AUTH_USER` et vérifier le bloc personnel. Le jeu de données ne crée volontairement pas de faux comptes utilisateurs.
 
 ## Limites
