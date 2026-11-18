@@ -509,7 +509,7 @@ async function main() {
     const demoFolderId = '20000000-0000-4000-8000-000000000001';
     await openProjectWorkspace(reviewerPage);
     await reviewerPage.goto(`${baseUrl}/${demoFolderId}`);
-    await reviewerPage.getByRole('button', { name: 'Créer un dossier' }).click();
+    await reviewerPage.getByRole('button', { name: 'Nouveau dossier', exact: true }).click();
     await reviewerPage.waitForURL(`**/${demoFolderId}/add?type=folder`);
     await reviewerPage.getByLabel('Name').fill(createdFolderName);
     await reviewerPage.getByLabel('Description').fill('Dossier temporaire créé pour la recette navigateur.');
