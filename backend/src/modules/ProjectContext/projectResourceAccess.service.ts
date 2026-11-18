@@ -346,7 +346,10 @@ export class ProjectResourceAccessService {
     return this.assertCanEditResource(resourceId, headers);
   }
 
-  async assertCanDeleteResource(resourceId: string) {
+  async assertCanDeleteResource(
+    resourceId: string,
+    resourceIdsBeingDeleted: Set<string> = new Set([resourceId]),
+  ) {
     const links = await this.projectProcesses.find({ where: { resourceId } });
     if (links.some((link) => link.usage === ProjectProcessUsage.Common)) {
       throw new ForbiddenException(
@@ -361,12 +364,18 @@ export class ProjectResourceAccessService {
       );
     }
 
-    const dependentVariants = await this.projectProcesses.count({
+    // A source and all its variants may be deleted together as one resource
+    // tree. A variant outside that tree must remain protected: its project
+    // association has a NOT NULL/check invariant and cannot be detached safely.
+    const dependentVariants = await this.projectProcesses.find({
       where: { sourceResourceId: resourceId },
     });
-    if (dependentVariants > 0) {
+    const survivingVariants = dependentVariants.filter(
+      (variant) => !resourceIdsBeingDeleted.has(variant.resourceId),
+    );
+    if (survivingVariants.length > 0) {
       throw new BadRequestException(
-        'This process is the source of one or more variants; remove those variants before deleting the source process',
+        'This process is the source of one or more variants outside the deleted resource tree; remove those variants before deleting the source process',
       );
     }
   }
@@ -400,9 +409,10 @@ export class ProjectResourceAccessService {
       parentIds = nextParentIds;
     }
 
+    const resourceIdsBeingDeleted = new Set(resourceIds);
     for (const id of resourceIds) {
       await this.assertCanEditResource(id, headers);
-      await this.assertCanDeleteResource(id);
+      await this.assertCanDeleteResource(id, resourceIdsBeingDeleted);
     }
   }
 
