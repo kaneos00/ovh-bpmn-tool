@@ -133,7 +133,7 @@ export const Component = () => {
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', sm: 'repeat(4, minmax(0, 1fr))' },
+            gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', sm: 'repeat(3, minmax(0, 1fr))' },
             gap: { xs: 1.5, sm: 2.5 },
             maxWidth: 780,
             width: '100%',
