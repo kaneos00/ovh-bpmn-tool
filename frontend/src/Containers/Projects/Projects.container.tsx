@@ -53,6 +53,13 @@ type WorkspaceProjectSummary = {
   processes: { resourceId: string; name: string; usage: 'common' | 'variant' | 'project-specific'; sourceResourceId: string | null }[];
 };
 type WorkspaceSummary = { userId: string; projects: WorkspaceProjectSummary[] };
+type PersonalOrganizationWorkspace = {
+  userId: string;
+  assignments: Array<{ id: string; positionId: string; code: string; title: string; description: string | null; functionId: string | null }>;
+  manager: { positionId: string; positionTitle: string; managerUserId: string | null } | null;
+  projects: Array<{ id: string; name: string; description: string | null; role: 'viewer' | 'modeler' | 'admin' }>;
+  tasks: Array<{ projectId: string; projectName: string; projectPositionId: string; projectPositionTitle: string; actorName: string; taskId: string; taskName: string; resourceId: string; processName: string; role: 'R' | 'A' | 'C' | 'I' }>;
+};
 
 const projectRoleLabels: Record<WorkspaceProjectSummary['role'], string> = {
   viewer: 'Consultation',
@@ -130,6 +137,11 @@ export const Component = () => {
   const workspaceQuery = useQuery<WorkspaceSummary>(
     ['my-workspace'],
     () => apiClient.get('/projects/me/workspace'),
+    { enabled: true },
+  );
+  const personalOrganizationQuery = useQuery<PersonalOrganizationWorkspace>(
+    ['personal-organization-workspace'],
+    () => apiClient.get('/organization/me/workspace'),
     { enabled: true },
   );
   const projectQuery = useQuery<Project>(
@@ -450,6 +462,57 @@ export const Component = () => {
                   Impossible de charger la liste des projets accessibles. Réessayez dans quelques instants.
                 </Alert>
               )}
+
+              <Card variant="outlined" sx={{ gap: 1.25 }}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap">
+                  <Box>
+                    <Typography level="title-lg">Mon organisation & mes responsabilités</Typography>
+                    <Typography level="body-sm" color="neutral">Votre poste permanent et les rôles qui vous sont associés dans les projets.</Typography>
+                  </Box>
+                  <Chip variant="soft">{personalOrganizationQuery.data?.tasks.length ?? 0} responsabilité(s)</Chip>
+                </Stack>
+                {personalOrganizationQuery.isLoading && <Typography level="body-sm" color="neutral">Chargement de votre rattachement…</Typography>}
+                {personalOrganizationQuery.isError && <Alert color="warning">Les informations d’organisation personnelle ne sont pas disponibles pour le moment.</Alert>}
+                {personalOrganizationQuery.data && (
+                  <>
+                    {personalOrganizationQuery.data.assignments.length > 0 ? (
+                      <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                        {personalOrganizationQuery.data.assignments.map(assignment => (
+                          <Chip key={assignment.id} variant="soft" color="primary">{assignment.title} · {assignment.code}</Chip>
+                        ))}
+                      </Stack>
+                    ) : (
+                      <Alert color="neutral" variant="soft">Aucun poste permanent ne vous est actuellement affecté. Vos projets et rôles spécifiques restent accessibles ci-dessous.</Alert>
+                    )}
+                    {personalOrganizationQuery.data.manager && (
+                      <Typography level="body-sm" color="neutral">
+                        Responsable hiérarchique : {personalOrganizationQuery.data.manager.managerUserId || 'titulaire non renseigné'} · {personalOrganizationQuery.data.manager.positionTitle}
+                      </Typography>
+                    )}
+                    <Divider />
+                    <Typography level="title-sm">Mes responsabilités RACI</Typography>
+                    {personalOrganizationQuery.data.tasks.length === 0 ? (
+                      <Typography level="body-sm" color="neutral">Aucune activité RACI n’est actuellement reliée à vos postes permanents.</Typography>
+                    ) : (
+                      <Stack spacing={1}>
+                        {personalOrganizationQuery.data.tasks.slice(0, 6).map((task, index) => (
+                          <Stack key={`${task.projectId}-${task.resourceId}-${task.taskId}-${index}`} direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" spacing={1}>
+                            <Box sx={{ minWidth: 0 }}>
+                              <Typography level="body-sm" fontWeight="lg">{task.taskName}</Typography>
+                              <Typography level="body-xs" color="neutral">{task.projectName} · {task.processName} · {task.projectPositionTitle}</Typography>
+                            </Box>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <Chip size="sm" variant="soft" color={task.role === 'R' || task.role === 'A' ? 'primary' : 'neutral'}>{task.role}</Chip>
+                              <Button size="sm" variant="outlined" onClick={() => navigate(`/projects/${task.projectId}?tab=raci`)}>Voir le RACI</Button>
+                            </Stack>
+                          </Stack>
+                        ))}
+                        {personalOrganizationQuery.data.tasks.length > 6 && <Typography level="body-xs" color="neutral">+ {personalOrganizationQuery.data.tasks.length - 6} autre(s) responsabilité(s)</Typography>}
+                      </Stack>
+                    )}
+                  </>
+                )}
+              </Card>
 
               <Card variant="outlined" sx={{ gap: 1.25 }}>
                 <Typography level="title-lg">Créer un projet</Typography>
