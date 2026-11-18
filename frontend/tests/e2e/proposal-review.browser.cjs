@@ -503,6 +503,51 @@ async function main() {
       'The proposal did not reach the published state',
     );
 
+    // Create a folder through the graphical form and verify that the
+    // explorer receives it before any manual page reload.
+    const createdFolderName = 'CI E2E — dossier créé via formulaire';
+    await openProjectWorkspace(reviewerPage);
+    await reviewerPage.getByRole('button', { name: 'Créer un dossier' }).click();
+    await reviewerPage.waitForURL('**/root/add?type=folder');
+    await reviewerPage.getByLabel('Name').fill(createdFolderName);
+    await reviewerPage.getByLabel('Description').fill('Dossier temporaire créé pour la recette navigateur.');
+    const createFolderResponsePromise = reviewerPage.waitForResponse(response =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname.endsWith('/resources'),
+    );
+    const createExplorerRefreshPromise = reviewerPage.waitForResponse(response =>
+      response.request().method() === 'GET' &&
+      new URL(response.url()).pathname.endsWith('/resources/explorer/links') &&
+      (response.ok() || response.status() === 304),
+    );
+    const createWorkspaceRefreshPromise = reviewerPage.waitForResponse(response =>
+      response.request().method() === 'GET' &&
+      new URL(response.url()).pathname.endsWith('/projects/me/workspace') &&
+      (response.ok() || response.status() === 304),
+    );
+    await reviewerPage.getByRole('button', { name: 'Create', exact: true }).click();
+    const [createFolderResponse] = await Promise.all([
+      createFolderResponsePromise,
+      createExplorerRefreshPromise,
+      createWorkspaceRefreshPromise,
+    ]);
+    assert.ok(
+      createFolderResponse.ok(),
+      `Folder creation failed with HTTP ${createFolderResponse.status()}`,
+    );
+    await reviewerPage.getByText('Processus du projet', { exact: true }).waitFor();
+    await reviewerPage.getByRole('treeitem').filter({ hasText: createdFolderName }).waitFor();
+    const createdFolderVisibleInApi = await reviewerPage.evaluate(async folderName => {
+      const response = await fetch('/bpmn-api/resources/explorer/links', {
+        credentials: 'same-origin',
+        cache: 'no-store',
+      });
+      if (!response.ok) throw new Error(`Explorer refresh returned HTTP ${response.status}`);
+      const explorer = await response.json();
+      return explorer.resources.some(resource => resource.name === folderName);
+    }, createdFolderName);
+    assert.ok(createdFolderVisibleInApi, 'The newly created folder is missing from refreshed explorer data');
+
     // Delete the temporary variant through the real explorer action. The
     // action must refresh both the explorer and project workspace caches
     // before returning, so the deleted node cannot remain clickable.
