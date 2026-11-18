@@ -503,7 +503,143 @@ async function main() {
       'The proposal did not reach the published state',
     );
 
-    process.stdout.write('Browser E2E passed: Viewer author → validator clarification → author response → remark decision → proposal approval → approved snapshot publication.\\n');
+    // Create a folder through the graphical form and verify that the
+    // explorer receives it before any manual page reload.
+    const createdFolderName = 'CI E2E — dossier créé via formulaire';
+    const demoFolderId = '20000000-0000-4000-8000-000000000001';
+    await openProjectWorkspace(reviewerPage);
+    await reviewerPage.goto(`${baseUrl}/${demoFolderId}`);
+    await reviewerPage.getByRole('button', { name: 'Créer un dossier' }).click();
+    await reviewerPage.waitForURL(`**/${demoFolderId}/add?type=folder`);
+    await reviewerPage.getByLabel('Name').fill(createdFolderName);
+    await reviewerPage.getByLabel('Description').fill('Dossier temporaire créé pour la recette navigateur.');
+    const createFolderResponsePromise = reviewerPage.waitForResponse(response =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname.endsWith('/resources'),
+    );
+    const createExplorerRefreshPromise = reviewerPage.waitForResponse(response =>
+      response.request().method() === 'GET' &&
+      new URL(response.url()).pathname.endsWith('/resources/explorer/links') &&
+      (response.ok() || response.status() === 304),
+    );
+    const createWorkspaceRefreshPromise = reviewerPage.waitForResponse(response =>
+      response.request().method() === 'GET' &&
+      new URL(response.url()).pathname.endsWith('/projects/me/workspace') &&
+      (response.ok() || response.status() === 304),
+    );
+    await reviewerPage.getByRole('button', { name: 'Create', exact: true }).click();
+    const [createFolderResponse] = await Promise.all([
+      createFolderResponsePromise,
+      createExplorerRefreshPromise,
+      createWorkspaceRefreshPromise,
+    ]);
+    assert.ok(
+      createFolderResponse.ok(),
+      `Folder creation failed with HTTP ${createFolderResponse.status()}`,
+    );
+    await reviewerPage.waitForURL(`**/${demoFolderId}`);
+    await reviewerPage.getByText('Démonstration BPMN V2', { exact: true }).waitFor();
+    await reviewerPage.getByRole('treeitem').filter({ hasText: createdFolderName }).waitFor();
+    const createdFolderVisibleInApi = await reviewerPage.evaluate(async folderName => {
+      const response = await fetch('/bpmn-api/resources/explorer/links', {
+        credentials: 'same-origin',
+        cache: 'no-store',
+      });
+      if (!response.ok) throw new Error(`Explorer refresh returned HTTP ${response.status}`);
+      const explorer = await response.json();
+      return explorer.resources.some(resource => resource.name === folderName);
+    }, createdFolderName);
+    assert.ok(createdFolderVisibleInApi, 'The newly created folder is missing from refreshed explorer data');
+
+    // Delete the temporary variant through the real explorer action. The
+    // action must refresh both the explorer and project workspace caches
+    // before returning, so the deleted node cannot remain clickable.
+    await reviewerPage.goto(`${baseUrl}/root`);
+    await reviewerPage.getByText('Processus du projet', { exact: true }).waitFor();
+    await reviewerPage.getByRole('button', {
+      name: 'Ouvrir les actions de CI E2E — variante partenaire',
+      exact: true,
+    }).click();
+    await reviewerPage.getByRole('menuitem', { name: 'Supprimer', exact: true }).click();
+    await reviewerPage.waitForURL(`**/${variantResourceId}/delete**`);
+    await reviewerPage.getByText(/Are you sure you want to delete this Business Process/).waitFor();
+
+    const deleteResponsePromise = reviewerPage.waitForResponse(response =>
+      response.request().method() === 'DELETE' &&
+      new URL(response.url()).pathname.endsWith(`/resources/${variantResourceId}`),
+    );
+    const explorerRefreshPromise = reviewerPage.waitForResponse(response =>
+      response.request().method() === 'GET' &&
+      new URL(response.url()).pathname.endsWith('/resources/explorer/links') &&
+      response.ok() || response.status() === 304,
+    );
+    const workspaceRefreshPromise = reviewerPage.waitForResponse(response =>
+      response.request().method() === 'GET' &&
+      new URL(response.url()).pathname.endsWith('/projects/me/workspace') &&
+      response.ok() || response.status() === 304,
+    );
+    await reviewerPage.getByRole('button', { name: 'Delete', exact: true }).click();
+    const [deleteResponse] = await Promise.all([
+      deleteResponsePromise,
+      explorerRefreshPromise,
+      workspaceRefreshPromise,
+    ]);
+    assert.ok(deleteResponse.ok(), `Variant deletion failed with HTTP ${deleteResponse.status()}`);
+
+    await reviewerPage.goto(`${baseUrl}/root`);
+    await reviewerPage.getByText('Processus du projet', { exact: true }).waitFor();
+    const deletionState = await reviewerPage.evaluate(async ({ resourceId, resourceName }) => {
+      const [explorerResponse, workspaceResponse] = await Promise.all([
+        fetch('/bpmn-api/resources/explorer/links', {
+          credentials: 'same-origin',
+          cache: 'no-store',
+        }),
+        fetch('/bpmn-api/projects/me/workspace', {
+          credentials: 'same-origin',
+          cache: 'no-store',
+        }),
+      ]);
+      const [explorer, workspace] = await Promise.all([
+        explorerResponse.json(),
+        workspaceResponse.json(),
+      ]);
+      return {
+        matchingResources: explorer.resources
+          .filter(resource => resource.name === resourceName)
+          .map(resource => resource.id),
+        matchingWorkspaceProcesses: workspace.projects.flatMap(project =>
+          project.processes
+            .filter(process => process.resourceId === resourceId)
+            .map(process => ({ projectId: project.id, resourceId: process.resourceId })),
+        ),
+        matchingTreeItems: Array.from(document.querySelectorAll('[role="treeitem"]'))
+          .filter(node => node.textContent?.includes(resourceName))
+          .map(node => node.textContent),
+      };
+    }, {
+      resourceId: variantResourceId,
+      resourceName: 'CI E2E — variante partenaire',
+    });
+    assert.deepEqual(
+      deletionState.matchingResources,
+      [],
+      `The deleted variant or an orphan with the same name remains in explorer data: ${JSON.stringify(deletionState)}`,
+    );
+    assert.deepEqual(
+      deletionState.matchingWorkspaceProcesses,
+      [],
+      `The deleted variant remains linked to a project: ${JSON.stringify(deletionState)}`,
+    );
+    assert.equal(
+      await reviewerPage.getByRole('button', {
+        name: 'Ouvrir les actions de CI E2E — variante partenaire',
+        exact: true,
+      }).count(),
+      0,
+      `The deleted variant is still present in the explorer: ${JSON.stringify(deletionState)}`,
+    );
+
+    process.stdout.write('Browser E2E passed: proposal workflow and explorer deletion/cache refresh.\\n');
   } finally {
     await browser.close();
   }
