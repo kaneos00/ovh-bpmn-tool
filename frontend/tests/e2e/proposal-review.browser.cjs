@@ -8,6 +8,9 @@ const authorUsername = process.env.CI_READER_USERNAME || 'ci-reader';
 const authorPassword = process.env.CI_READER_PASSWORD;
 const projectId = '10000000-0000-4000-8000-000000000001';
 const sourceResourceId = '20000000-0000-4000-8000-000000000002';
+const organizationProjectId = '70000000-0000-4000-8000-000000000001';
+const developmentProcessResourceId = '72000000-0000-4000-8000-000000000009';
+const governanceProcessResourceId = '72000000-0000-4000-8000-000000000008';
 
 async function signIn(page, username, password) {
   await page.goto(`${baseUrl}/login?next=%2Fmes-demandes`);
@@ -17,11 +20,11 @@ async function signIn(page, username, password) {
   await page.waitForURL('**/mes-demandes');
 }
 
-async function openProjectWorkspace(page) {
+async function openProjectWorkspace(page, targetProjectId = projectId) {
   // Select the project through the real workspace navigation rather than
   // writing the active-project key directly into localStorage. The project
   // page's Référentiel action is the supported entry point to /root.
-  await page.goto(`${baseUrl}/projects/${projectId}`);
+  await page.goto(`${baseUrl}/projects/${targetProjectId}`);
   const openWorkspace = page.getByRole('button', { name: 'Référentiel', exact: true });
   await openWorkspace.waitFor();
   await openWorkspace.click();
@@ -503,7 +506,104 @@ async function main() {
       'The proposal did not reach the published state',
     );
 
-    process.stdout.write('Browser E2E passed: Viewer author → validator clarification → author response → remark decision → proposal approval → approved snapshot publication.\\n');
+    // The organisation demo contains a wide process with two Call Activities.
+    // Its targets are project-specific resources reachable through the
+    // organisation project workspace.
+    await openProjectWorkspace(reviewerPage, organizationProjectId);
+    const workspaceTarget = await reviewerPage.evaluate(async ({ projectId, targetId }) => {
+      const response = await fetch('/bpmn-api/projects/me/workspace', {
+        credentials: 'same-origin',
+        headers: { accept: 'application/json' },
+      });
+      if (!response.ok) throw new Error(`Workspace returned HTTP ${response.status}`);
+      const workspace = await response.json();
+      const project = workspace.projects.find(item => item.id === projectId);
+      return Boolean(project?.processes?.some(process => process.resourceId === targetId));
+    }, { projectId: organizationProjectId, targetId: governanceProcessResourceId });
+    assert.ok(workspaceTarget, 'The Call Activity target is not available through the project workspace');
+
+    await reviewerPage.goto(`${baseUrl}/${developmentProcessResourceId}`);
+    await reviewerPage.locator('.djs-element[data-element-id="Call_Gouvernance"]').waitFor();
+    await reviewerPage.waitForFunction(() => Boolean(
+      document.querySelector('.djs-container > svg:not(.map) > g.viewport'),
+    ));
+
+    // "Ajuster" must fit the complete diagram in both landscape and portrait
+    // browser viewports. Measure the actual rendered SVG viewport, not the
+    // minimap, and keep the 1:1 implementation out of this test.
+    const readFittedBounds = () => reviewerPage.evaluate(() => {
+      const svg = document.querySelector('.djs-container > svg:not(.map)');
+      const viewport = svg?.querySelector('g.viewport');
+      const matrix = viewport?.getScreenCTM?.();
+      const box = viewport?.getBBox?.();
+      const container = svg?.getBoundingClientRect();
+      if (!svg || !viewport || !matrix || !box || !container) return null;
+      const corners = [
+        [box.x, box.y],
+        [box.x + box.width, box.y],
+        [box.x, box.y + box.height],
+        [box.x + box.width, box.y + box.height],
+      ].map(([x, y]) => {
+        const point = svg.createSVGPoint();
+        point.x = x;
+        point.y = y;
+        const transformed = point.matrixTransform(matrix);
+        return { x: transformed.x, y: transformed.y };
+      });
+      return {
+        scale: matrix.a,
+        left: Math.min(...corners.map(point => point.x)),
+        top: Math.min(...corners.map(point => point.y)),
+        right: Math.max(...corners.map(point => point.x)),
+        bottom: Math.max(...corners.map(point => point.y)),
+        container: {
+          left: container.left,
+          top: container.top,
+          right: container.right,
+          bottom: container.bottom,
+        },
+      };
+    });
+
+    for (const viewportSize of [
+      { width: 1280, height: 800 },
+      { width: 1024, height: 1000 },
+    ]) {
+      await reviewerPage.setViewportSize(viewportSize);
+      await reviewerPage.waitForTimeout(350);
+      await reviewerPage.getByRole('button', { name: 'Ajuster à la fenêtre' }).click();
+      await reviewerPage.waitForFunction(() => {
+        const viewport = document.querySelector('.djs-container > svg:not(.map) > g.viewport');
+        const matrix = viewport?.getScreenCTM?.();
+        return Boolean(matrix && matrix.a > 0 && matrix.a < 0.99);
+      });
+      const fittedBounds = await readFittedBounds();
+      assert.ok(fittedBounds, `Could not measure fitted diagram at ${JSON.stringify(viewportSize)}`);
+      const tolerance = 4;
+      assert.ok(
+        fittedBounds.left >= fittedBounds.container.left - tolerance &&
+        fittedBounds.top >= fittedBounds.container.top - tolerance &&
+        fittedBounds.right <= fittedBounds.container.right + tolerance &&
+        fittedBounds.bottom <= fittedBounds.container.bottom + tolerance,
+        `Ajuster clipped the diagram at ${JSON.stringify(viewportSize)}: ${JSON.stringify(fittedBounds)}`,
+      );
+    }
+
+    // A single click selects the Call Activity and shows its navigation
+    // indicator without changing route. Double-click then opens the resolved
+    // project process; this exercises the workspace fallback in the Viewer.
+    const callActivity = reviewerPage.locator('.djs-element[data-element-id="Call_Gouvernance"]');
+    await callActivity.click();
+    await reviewerPage.locator('.bpmn-call-activity-link-indicator').waitFor();
+    assert.ok(
+      reviewerPage.url().endsWith(`/${developmentProcessResourceId}`),
+      'A single click on a Call Activity unexpectedly navigated away',
+    );
+    await callActivity.dblclick();
+    await reviewerPage.waitForURL(`**/${governanceProcessResourceId}`);
+    await reviewerPage.locator('.djs-element[data-element-id="Task_Gouv_1"]').waitFor();
+
+    process.stdout.write('Browser E2E passed: proposal workflow, Viewer fit in landscape/portrait, and single/double-click Call Activity navigation.\\n');
   } finally {
     await browser.close();
   }
