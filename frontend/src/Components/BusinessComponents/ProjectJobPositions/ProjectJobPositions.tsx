@@ -19,8 +19,11 @@ type JobFunction = {
   id: string; code: string; name: string; description?: string | null;
   competencyBlocks: Array<{ id: string; code: string; name: string }>;
 };
+type OrganizationPosition = { id: string; code: string; title: string; description: string | null };
 type Position = {
   id: string; functionId: string; title: string; description: string | null;
+  organizationPositionId?: string | null;
+  organizationPosition?: OrganizationPosition | null;
   function?: JobFunction | null;
   competencyBlocks: Array<{ blockId: string; applicability: string; requiredLevel: number | null }>;
 };
@@ -123,6 +126,11 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
   const functionsQuery = useQuery<JobFunction[]>(
     ['job-architecture-functions'],
     () => apiClient.get('/job-architecture/functions'),
+  );
+  const organizationPositionsQuery = useQuery<OrganizationPosition[]>(
+    ['organization-positions', projectId],
+    () => apiClient.get(`/projects/${projectId}/organization-positions`),
+    { enabled: Boolean(projectId) },
   );
   const positionsQuery = useQuery<Position[]>(
     positionsKey, () => apiClient.get(`/projects/${projectId}/job-positions`),
@@ -242,6 +250,13 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
       await queryClient.invalidateQueries(positionsKey);
       await queryClient.invalidateQueries(['job-position-diagnostics', projectId]);
     }, onError: (reason: Error) => setError(reason.message) },
+  );
+  const updateOrganizationPosition = useMutation(
+    (organizationPositionId: string | null) => apiClient.patch(
+      `/projects/${projectId}/job-positions/${selectedPositionId}/organization-position`,
+      { organizationPositionId },
+    ),
+    { onSuccess: refresh, onError: (reason: Error) => setError(reason.message) },
   );
   const updateBlocks = useMutation(
     (blocks: Position['competencyBlocks']) => apiClient.patch(
@@ -443,6 +458,28 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
         <Stack spacing={1.5} sx={{ display: activeStep === 0 ? 'none' : 'flex' }}>
           {activeStep > 0 && !selectedPosition && <Card variant="outlined"><Typography level="title-md">Sélectionnez un poste</Typography><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Choisissez un poste existant ou créez-en un nouveau pour définir ses correspondances.</Typography></Card>}
           {selectedPosition && <>
+            <Card variant="outlined" sx={{ gap: 1 }}>
+              <Typography level="title-md">Lien avec l’organisation permanente</Typography>
+              <Typography level="body-sm" sx={{ color: 'text.secondary' }}>
+                Associez ce rôle de projet à un poste de l’entreprise. Laissez « Rôle spécifique au projet » si ce rôle n’existe que dans ce projet.
+              </Typography>
+              <FormControl>
+                <FormLabel>Poste permanent de référence</FormLabel>
+                <Select
+                  value={selectedPosition.organizationPositionId ?? 'none'}
+                  disabled={!canEdit || updateOrganizationPosition.isLoading}
+                  onChange={(_event, value) => updateOrganizationPosition.mutate(value && value !== 'none' ? value : null)}
+                >
+                  <Option value="none">Rôle spécifique au projet</Option>
+                  {(organizationPositionsQuery.data ?? []).map(item => (
+                    <Option key={item.id} value={item.id}>{item.code} — {item.title}</Option>
+                  ))}
+                </Select>
+              </FormControl>
+              {selectedPosition.organizationPositionId && selectedPosition.organizationPosition && (
+                <Chip size="sm" color="success" variant="soft">Rattaché à {selectedPosition.organizationPosition.title}</Chip>
+              )}
+            </Card>
             {selectedPositionValidation && (
               <Card variant="soft" sx={{ gap: 1 }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
