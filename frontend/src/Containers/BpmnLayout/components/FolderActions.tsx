@@ -4,12 +4,10 @@ import { Add } from '@mui/icons-material';
 import { ActionButton } from '../../../Components/GenericComponents/ActionButton/ActionButton';
 
 type FolderActionsProps = {
-  projectId?: string | null;
   canCreateFolder: boolean;
 };
 
 export const FolderActions = ({
-  projectId,
   canCreateFolder,
 }: FolderActionsProps) => (
   <>
