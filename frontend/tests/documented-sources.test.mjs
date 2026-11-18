@@ -77,6 +77,21 @@ test('only Data Object Reference and Data Store Reference are documented BPMN el
   assert.doesNotMatch(controller, /'dataInput'|'dataOutput'/);
 });
 
+
+test('documented information supports an optional validity date without retention', async () => {
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
+  const entity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/projectDocumentedSource.ormEntity.ts');
+  const migration = await read('../backend/migrations/20261118_v3_documented_source_lifecycle.sql');
+
+  assert.match(controller, /const optionalDate/);
+  assert.match(controller, /validUntil: optionalDate\(body\.validUntil, 'validUntil'\)/);
+  assert.match(controller, /source\.validUntil = optionalDate\(body\.validUntil, 'validUntil'\)/);
+  assert.match(entity, /validUntil: string \| null/);
+  assert.match(migration, /"validUntil" date/);
+  assert.doesNotMatch(controller, /retention/);
+  assert.doesNotMatch(await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx'), /retention|Rétention/);
+});
+
 test('the documented information grid has integrated filtering and no selection checkboxes', async () => {
   const grid = await read('src/Components/BusinessComponents/ProcessDetails/DocumentedSourcesGrid.tsx');
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
