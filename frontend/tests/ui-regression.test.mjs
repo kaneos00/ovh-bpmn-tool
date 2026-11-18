@@ -349,9 +349,9 @@ test('V3 explorer exposes administrator management actions and their routes', as
   assert.ok(!processActions.includes('Comments'));
   assert.ok(!processActions.includes('Edit Business Process'));
   assert.ok(folderActions.includes('Nouveau dossier'));
-  assert.ok(folderActions.includes('Nouveau processus'));
+  assert.ok(!folderActions.includes('Nouveau processus'));
   assert.ok(folderActions.includes('canCreateFolder &&'));
-  assert.ok(folderActions.includes('canCreateProcess && projectId'));
+  assert.ok(!folderActions.includes('canCreateProcess'));
 });
 
 
