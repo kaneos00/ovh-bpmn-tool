@@ -92,10 +92,15 @@ const optionalText = (value: unknown, field: string): string | null => {
 const optionalDate = (value: unknown, field: string): string | null => {
   if (value === undefined || value === null || value === '') return null;
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    throw new BadRequestException(field + ' must be a date in YYYY-MM-DD format');
+    throw new BadRequestException(
+      field + ' must be a date in YYYY-MM-DD format',
+    );
   }
   const parsed = new Date(value + 'T00:00:00.000Z');
-  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
+  if (
+    Number.isNaN(parsed.getTime()) ||
+    parsed.toISOString().slice(0, 10) !== value
+  ) {
     throw new BadRequestException(field + ' is not a valid calendar date');
   }
   return value;
@@ -261,14 +266,16 @@ export class ProjectDocumentedSourceController {
         })
       : [];
 
-    const resourceById = new Map(resources.map((resource) => [resource.id, resource]));
+    const resourceById = new Map(
+      resources.map((resource) => [resource.id, resource]),
+    );
     const contentByResource = new Map<string, ContentTypeOrmEntity>();
     latestContents.forEach((content) => {
       if (!contentByResource.has(content.resourceId))
         contentByResource.set(content.resourceId, content);
     });
 
-    // Reconcile associations against the latest published BPMN model.
+    // Reconcile associations against the latest saved BPMN model.
     // A missing BPMN element removes only its association; its documented
     // information record is intentionally retained.
     const currentElementsByResource = new Map<string, BpmnDataElement[]>();
@@ -286,10 +293,16 @@ export class ProjectDocumentedSourceController {
       where: { projectId, elementType: In([...BPMN_DOCUMENTED_DATA_TYPES]) },
     });
     for (const reference of existingReferences) {
-      const currentElements = currentElementsByResource.get(reference.resourceId);
+      const currentElements = currentElementsByResource.get(
+        reference.resourceId,
+      );
       // Do not prune references for a process that has no published version.
       if (!currentElements) continue;
-      if (!currentElements.some((element) => element.elementId === reference.elementId)) {
+      if (
+        !currentElements.some(
+          (element) => element.elementId === reference.elementId,
+        )
+      ) {
         await this.references.delete({ id: reference.id });
       }
     }
@@ -333,7 +346,10 @@ export class ProjectDocumentedSourceController {
             sourceRepository.create({
               projectId,
               createdBy: userId,
-              kind: element.elementType === 'dataStoreReference' ? 'database' : 'file',
+              kind:
+                element.elementType === 'dataStoreReference'
+                  ? 'database'
+                  : 'file',
               name: element.elementName,
               description: element.description || null,
               link: element.link || null,
@@ -371,13 +387,17 @@ export class ProjectDocumentedSourceController {
       }),
     ]);
 
-    const referencesBySource = new Map<string, Array<Record<string, unknown>>>();
+    const referencesBySource = new Map<
+      string,
+      Array<Record<string, unknown>>
+    >();
     references.forEach((reference) => {
       const rows = referencesBySource.get(reference.sourceId) ?? [];
       rows.push({
         id: reference.id,
         resourceId: reference.resourceId,
-        processName: resourceById.get(reference.resourceId)?.name ?? reference.resourceId,
+        processName:
+          resourceById.get(reference.resourceId)?.name ?? reference.resourceId,
         elementId: reference.elementId,
         elementName: reference.elementName,
         elementType: reference.elementType,
@@ -386,7 +406,9 @@ export class ProjectDocumentedSourceController {
     });
 
     const linkedKeys = new Set(
-      references.map((reference) => reference.resourceId + ':' + reference.elementId),
+      references.map(
+        (reference) => reference.resourceId + ':' + reference.elementId,
+      ),
     );
     const unlinkedReferences: BpmnDataElement[] = [];
     currentElementsByResource.forEach((elements) => {
