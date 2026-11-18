@@ -13,15 +13,25 @@ const layout = read('../src/Containers/BpmnLayout/BpmnLayout.container.tsx');
 test('explorer distinguishes folders, common processes, variants and project-specific processes', () => {
   assert.match(tree, /FolderRounded sx=\{\{ color: '#c58a2b' \}\}/);
   assert.match(tree, /node\?\.usage === 'common'[\s\S]*?PublicOutlined/);
-  assert.match(tree, /node\?\.usage === 'variant'[\s\S]*?AltRoute/);
-  assert.match(tree, /DescriptionOutlined sx=\{\{ color: '#3975c6' \}\}/);
+  assert.match(tree, /node\?\.usage === 'variant' && node\?\.sourceResourceId[\s\S]*?AltRoute/);
+  assert.match(tree, /DescriptionOutlined sx=\{\{ color: getProcessStatusColor\(node\) \}\}/);
+  assert.match(tree, /PublicOutlined sx=\{\{ color: getProcessStatusColor\(node\) \}\}/);
 });
 
 test('explorer displays change-request indicators separately from remark indicators', () => {
   assert.match(projectController, /changeRequestsCountByProjectResource/);
   assert.match(projectController, /changeRequestsCount:/);
   assert.match(projectHook, /changeRequestsCount\?: number/);
+  assert.match(projectHook, /changeRequestStatus\?: 'submitted' \| 'in_progress' \| 'published'/);
   assert.match(treeHook, /changeRequestsCount: projectProcess\?\.changeRequestsCount \?\? 0/);
+  assert.match(treeHook, /changeRequestStatus: projectProcess\?\.changeRequestStatus \?\? null/);
+  assert.match(projectController, /ProcessChangeProposalStatus\.Submitted/);
+  assert.match(projectController, /ProcessChangeProposalStatus\.ChangesRequested/);
+  assert.match(projectController, /ProcessChangeProposalStatus\.Approved/);
+  assert.match(projectController, /ProcessChangeProposalStatus\.Published/);
+  assert.match(tree, /changeRequestStatus === 'submitted'[\s\S]*?return '#d32f2f'/);
+  assert.match(tree, /changeRequestStatus === 'in_progress'[\s\S]*?return '#ed6c02'/);
+  assert.match(tree, /changeRequestStatus === 'published'[\s\S]*?return '#2e7d32'/);
   assert.match(tree, /RateReviewOutlined/);
   assert.match(tree, /node\?\.changeRequestsCount/);
   assert.match(tree, /node\?\.remarksCount/);
