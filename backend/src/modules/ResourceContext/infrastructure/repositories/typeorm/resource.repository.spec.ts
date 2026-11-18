@@ -35,7 +35,7 @@ describe('ResourceTypeOrmRepository.delete', () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([{ id: 'root' }]);
+      .mockResolvedValueOnce([]);
 
     await expect(repository.delete('root')).resolves.toEqual({
       ok: true,
@@ -152,7 +152,9 @@ describe('ResourceTypeOrmRepository.delete', () => {
       .mockResolvedValueOnce([{ id: 'root' }])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([]);
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ id: 'root' }]);
 
     const result = await repository.delete('root');
 
