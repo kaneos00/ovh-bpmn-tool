@@ -17,6 +17,8 @@ type Props = {
   activeProjectId?: string | null;
   onProjectSelect?: (projectId: string) => void;
   showHistory?: boolean;
+  canGoBack?: boolean;
+  canGoForward?: boolean;
   onBack?: () => void;
   onForward?: () => void;
 };
@@ -31,6 +33,8 @@ export const ViewerExplorerPanel = ({
   activeProjectId = null,
   onProjectSelect,
   showHistory = false,
+  canGoBack = true,
+  canGoForward = true,
   onBack,
   onForward,
 }: Props) => {
@@ -119,6 +123,7 @@ export const ViewerExplorerPanel = ({
                 color="neutral"
                 title="Retour"
                 aria-label="Retour"
+                disabled={!canGoBack}
                 onClick={() => (onBack ?? (() => window.history.back()))()}
                 startDecorator={<ArrowBack />}
                 sx={{ flex: 1, minWidth: 0 }}
@@ -132,6 +137,7 @@ export const ViewerExplorerPanel = ({
                 color="neutral"
                 title="Suivant"
                 aria-label="Suivant"
+                disabled={!canGoForward}
                 onClick={() => (onForward ?? (() => window.history.forward()))()}
                 startDecorator={<ArrowForward />}
                 sx={{ flex: 1, minWidth: 0 }}
