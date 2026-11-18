@@ -4,7 +4,7 @@ import { AgGridReact } from 'ag-grid-react';
 import { themeQuartz, type ColDef, type SelectionChangedEvent, type CellValueChangedEvent } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-quartz.css';
-import Tree from 'react-d3-tree';
+import { Tree } from 'react-d3-tree';
 import {
   Alert, Button, Card, Chip, Divider, FormControl, FormLabel,
   Input, Option, Select, Stack, Typography,
@@ -25,6 +25,7 @@ const toTreeNode = (node: PositionNode): TreeNode => ({
   attributes: { id: node.id, active: String(node.active) },
   children: (node.children ?? []).map(toTreeNode),
 });
+const getNodeTitle = (name: string) => (name.length > 25 ? `${name.slice(0, 23)}…` : name);
 
 const positionsKey = ['organization-positions'];
 const functionsKey = ['job-architecture-functions'];
@@ -132,7 +133,7 @@ export const Component = () => {
                 <Tree data={treeQuery.data!} orientation="vertical" translate={{ x: 360, y: 65 }} pathFunc="step" separation={{ siblings: 1.2, nonSiblings: 1.5 }} nodeSize={{ x: 230, y: 105 }} renderCustomNodeElement={({ nodeDatum }) => (
                   <g>
                     <rect x="-92" y="-27" width="184" height="54" rx="9" fill={nodeDatum.attributes?.active === 'false' ? '#eef0f3' : '#eaf1ff'} stroke="#9bb4e8" />
-                    <text textAnchor="middle" y="-2" fill="#203047" fontSize="12" fontWeight="700">{nodeDatum.name.length > 25 ? nodeDatum.name.slice(0, 23) + '…' : nodeDatum.name}</text>
+                    <text textAnchor="middle" y="-2" fill="#203047" fontSize="12" fontWeight="700">{getNodeTitle(nodeDatum.name)}</text>
                     <text textAnchor="middle" y="15" fill="#657188" fontSize="10">{nodeDatum.attributes?.active === 'false' ? 'Inactif' : 'Poste vacant'}</text>
                   </g>
                 )} />}
