@@ -24,6 +24,33 @@ export class OrganizationController {
     return this.organization.getMyWorkspace(headers);
   }
 
+  @Get('positions/management')
+  @UseAcl([UserGroup.Admin])
+  getManagementGrid() {
+    return this.organization.getManagementGrid();
+  }
+
+  @Post('positions/bulk-assignments')
+  @UseAcl([UserGroup.Admin])
+  bulkAssign(
+    @Body() body: { positionIds?: unknown; userId?: unknown; startDate?: unknown },
+    @Headers() headers: RequestHeaders,
+  ) {
+    return this.organization.bulkAssign(body, headers);
+  }
+
+  @Post('assignments/bulk-end')
+  @UseAcl([UserGroup.Admin])
+  bulkEndAssignments(@Body() body: { assignmentIds?: unknown; endDate?: unknown }) {
+    return this.organization.bulkEndAssignments(body);
+  }
+
+  @Post('positions/bulk-deactivate')
+  @UseAcl([UserGroup.Admin])
+  bulkDeactivate(@Body() body: { positionIds?: unknown }) {
+    return this.organization.bulkDeactivate(body);
+  }
+
   @Get('overview')
   @UseAcl([UserGroup.Admin])
   getOverview() {
