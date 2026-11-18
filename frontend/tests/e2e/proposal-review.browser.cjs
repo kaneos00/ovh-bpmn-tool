@@ -412,31 +412,27 @@ async function main() {
     // made against the rendered explorer without a manual page reload: this
     // catches stale React Query data after the delete action returns.
     const disposableFolderName = 'CI E2E — dossier temporaire à supprimer';
-    const createdFolder = await reviewerPage.evaluate(async name => {
-      const response = await fetch('/bpmn-api/resources', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ name, description: 'Fixture temporaire E2E', type: 'folder' }),
-      });
-      const body = await response.json().catch(() => null);
-      return { status: response.status, body };
-    }, disposableFolderName);
-    assert.equal(
-      createdFolder.status,
-      201,
-      `Temporary folder creation failed: ${JSON.stringify(createdFolder.body)}`,
-    );
-    assert.ok(createdFolder.body?.id, 'Temporary folder creation returned no resource id');
+    await reviewerPage.goto(`${baseUrl}/root/add?type=folder`);
+    await reviewerPage.getByLabel('Name').fill(disposableFolderName);
+    await reviewerPage.getByLabel('Description').fill('Fixture temporaire E2E');
+    await reviewerPage.getByRole('button', { name: 'Create', exact: true }).click();
+    await reviewerPage.waitForURL('**/root');
+    await reviewerPage.getByText('Folder successfully created!').waitFor();
 
-    await reviewerPage.goto(`${baseUrl}/root`);
     const temporaryFolderNode = reviewerPage.getByRole('treeitem').filter({
       hasText: disposableFolderName,
     });
     await temporaryFolderNode.waitFor({ state: 'visible' });
+    const createdFolderId = await reviewerPage.evaluate(async name => {
+      const response = await fetch('/bpmn-api/resources/explorer/links', { credentials: 'same-origin' });
+      if (!response.ok) throw new Error(`Explorer returned HTTP ${response.status}`);
+      const explorer = await response.json();
+      return explorer.resources?.find(resource => resource.name === name)?.id ?? null;
+    }, disposableFolderName);
+    assert.ok(createdFolderId, 'The created folder is missing from the explorer API');
 
     await reviewerPage.goto(
-      `${baseUrl}/root/delete?targetResourceId=${createdFolder.body.id}`,
+      `${baseUrl}/root/delete?targetResourceId=${createdFolderId}`,
     );
     await reviewerPage.getByRole('button', { name: 'Delete', exact: true }).click();
     await reviewerPage.waitForURL('**/root');
@@ -455,7 +451,7 @@ async function main() {
         resourceStatus: resourceResponse.status,
         explorerContainsResource: explorer.resources?.some(resource => resource.id === resourceId) ?? false,
       };
-    }, createdFolder.body.id);
+    }, createdFolderId);
     assert.equal(deletedFolderState.resourceStatus, 404, 'Deleted folder is still available through the resource API');
     assert.equal(deletedFolderState.explorerContainsResource, false, 'Deleted folder is still returned by the explorer API');
 
