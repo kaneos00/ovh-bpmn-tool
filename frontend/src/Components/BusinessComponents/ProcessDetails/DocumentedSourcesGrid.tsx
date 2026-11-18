@@ -45,11 +45,8 @@ export const DocumentedSourcesGrid = <T extends object,>({
         columnDefs={columnDefs}
         getRowId={params => getRowId(params.data)}
         defaultColDef={{ sortable: true, filter: true, resizable: true, minWidth: 110, flex: 1, wrapText: true, autoHeight: true }}
-        // Restore the validated row-selection checkboxes at the start of each row.
-        rowSelection={{ mode: 'singleRow', enableClickSelection: true }}
-        // AG Grid v33 disables click-to-select by default. Selection drives
-        // the action toolbar rendered outside the grid.
-        rowSelection={{ mode: 'singleRow', enableClickSelection: true }}
+        // Keep single-row selection and explicitly show a checkbox at the start of each row.
+        rowSelection={{ mode: 'singleRow', checkboxes: true, enableClickSelection: true }}
         suppressCellFocus
         animateRows={false}
         pagination
