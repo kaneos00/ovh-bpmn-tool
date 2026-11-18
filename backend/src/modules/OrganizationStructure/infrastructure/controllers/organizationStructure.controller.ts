@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Headers, Param, Patch, Post, Query } from '@nestjs/common';
-import { UseAcl } from '../../../shared-kernel/modules/acl/infrastructure/acl.decorator';
+import { BadRequestException, Body, Controller, Get, Headers, Param, Patch, Post, Query } from '@nestjs/common';
+import { UseAcl } from '../../../../shared-kernel/modules/acl/infrastructure/acl.decorator';
 import { UserGroup } from '../../../shared-kernel/utils/UserGroup';
 import { OrganizationStructureService } from '../../organizationStructure.service';
 
@@ -58,7 +58,7 @@ export class OrganizationStructureController {
     @Body() body: { active?: boolean },
   ) {
     if (typeof body.active !== 'boolean') {
-      throw new Error('active must be a boolean');
+      throw new BadRequestException('active must be a boolean');
     }
     return this.organization.setPositionActive(positionId, body.active);
   }
