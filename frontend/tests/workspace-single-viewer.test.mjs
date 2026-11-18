@@ -261,3 +261,37 @@ test('source process history lists project variants and exposes draft variants f
   assert.match(details, /Brouillon à valider/);
   assert.ok(details.includes('Ouvrir pour valider'));
 });
+
+test('permanent-position administration stays in one editable AG Grid domain', async () => {
+  const routes = await read('src/routes.tsx');
+  const layout = await read('src/Containers/OrganizationAdmin/OrganizationAdminLayout.tsx');
+  const positions = await read('src/Containers/OrganizationPositions/index.tsx');
+  const structure = await read('src/Containers/OrganizationStructure/index.tsx');
+
+  assert.match(routes, /path: '\/organization\/positions',[\\s\\S]*?import\\('\.\/Containers\/OrganizationPositions'\\)/);
+  assert.match(layout, /key: 'positions', label: 'Postes'/);
+  assert.match(positions, /<AgGridReact<Position>/);
+  assert.match(positions, /editable: true/);
+  assert.match(positions, /floatingFilter: true/);
+  assert.match(positions, /quickFilterText=\{quickSearch\}/);
+  assert.match(positions, /rowSelection=\{\{ mode: 'multiRow'/);
+  assert.match(positions, /\/organization\/positions\/bulk-assignments/);
+  assert.match(positions, /\/organization\/assignments\/bulk-end/);
+  assert.match(positions, /\/organization\/positions\/bulk-deactivate/);
+  assert.match(positions, /setCreateOpen\(true\)/);
+  assert.doesNotMatch(positions, /projectId|ProjectJobPosition|RACI|BPMN/);
+  assert.doesNotMatch(structure, /bulk-assignments|bulk-end|bulk-deactivate|apiClient\.post\('\/organization\/positions'/);
+  assert.match(structure, /\/organization\/positions/);
+});
+
+test('bulk position administration preserves assignment history and guards occupied positions', async () => {
+  const positions = await read('src/Containers/OrganizationPositions/index.tsx');
+
+  assert.match(positions, /selectedWithAssignments = selected\.filter\(position => position\.assignment\)/);
+  assert.match(positions, /selectedVacant = selected\.filter\(position => !position\.assignment && position\.active\)/);
+  assert.match(positions, /assignmentIds: selected\.map\(position => position\.assignment\?\.id\)/);
+  assert.match(positions, /endDate/);
+  assert.match(positions, /selected\.some\(position => !!position\.assignment\)/);
+  assert.match(positions, /Retirer titulaire/);
+  assert.match(positions, /Désactiver/);
+});
