@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { WorkspacePageLayout } from '../../Components/GenericComponents/WorkspacePageLayout/WorkspacePageLayout';
 import { Breadcrumbs, type BreadcrumbItem } from '../../Components/GenericComponents/Breadcrumbs/Breadcrumbs';
 
-export type OrganizationAdminSection = 'overview' | 'users' | 'projects' | 'processes' | 'governance' | 'functions' | 'structure';
+export type OrganizationAdminSection = 'overview' | 'users' | 'projects' | 'processes' | 'governance' | 'functions' | 'structure' | 'positions';
 
 type OrganizationAdminLayoutProps = {
   activeSection: OrganizationAdminSection;
@@ -20,7 +20,7 @@ const navigation: Array<{ key: OrganizationAdminSection; label: string; icon: st
   { key: 'processes', label: 'Processus', icon: '⌘' },
   { key: 'governance', label: 'Acteurs et RACI', icon: '⬡' },
   { key: 'functions', label: 'Fiches de fonction', icon: '▤' },
-  { key: 'structure', label: 'Organigramme', icon: '⌘' },
+  { key: 'positions', label: 'Postes', icon: '▤' },\n  { key: 'structure', label: 'Organigramme', icon: '⌘' },
 ];
 
 export const OrganizationAdminLayout = ({
