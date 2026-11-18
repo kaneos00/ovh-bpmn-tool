@@ -528,7 +528,7 @@ test('V3 central viewer exposes process-level documented information backed by c
   assert.match(inventory, /access/);
   assert.match(inventory, /authorizedPeople/);
   assert.match(inventory, /restrictions/);
-  assert.ok(inventory.includes('apiClient.put(`/projects/${projectId}/documented-sources/${linked.id}`'));
+  assert.ok(inventory.includes('documented-sources/${linked.id}/references/${reference.id}'));
   assert.doesNotMatch(inventory, /XMLSerializer|onSave|inventory:manifest/);
 });
 
@@ -1079,18 +1079,19 @@ test('project documented information uses canonical sources within one process a
   assert.ok(inventory.includes("child.localName === 'documentation'"));
   assert.ok(inventory.includes("attribute.localName === 'link'"));
   assert.ok(inventory.includes('getReferencedElement'));
-  assert.ok(inventory.includes("['description', 'Description', 230]"));
-  assert.ok(inventory.includes("['link', 'Lien', 180]"));
   assert.ok(inventory.includes('DocumentedSourcesGrid<InventoryGridRow>'));
-  assert.ok(inventory.includes("'À créer'"));
   assert.ok(inventory.includes('/references'));
-  assert.ok(inventory.includes('/merge'));
+  assert.ok(!inventory.includes('/merge'));
   assert.ok(inventory.includes('sourceOptionLabel'));
   assert.ok(inventory.includes('reference.processName'));
   assert.ok(inventory.includes('description: source.description'));
-  assert.ok(controller.includes("if (!(source[field] ?? '').trim() && body[field] !== undefined)"));
-
-  assert.ok(inventory.includes('Confirmer la fusion des sources'));
+  assert.ok(inventory.includes('Dissocier'));
+  assert.ok(!inventory.includes('Créer la source du projet'));
+  assert.ok(controller.includes('originResourceId'));
+  assert.ok(controller.includes('originElementId'));
+  assert.ok(controller.includes('const hasReferenceFields = Boolean'));
+  assert.ok(controller.includes('unlinkedReferences'));
+  assert.ok(controller.includes('validUntil'));
   assert.doesNotMatch(inventory, /XMLSerializer|onSave|inventory:manifest/, 'documented source metadata is not written back into BPMN XML');
   assert.ok(details.includes('canManageSources={projectForProcess?.role === \'admin\'}'));
   assert.ok(details.includes('canEdit={projectForProcess?.role === \'admin\'}'));
@@ -1103,8 +1104,9 @@ test('project documented information uses canonical sources within one process a
   assert.ok(controller.includes('targetSourceId'));
   assert.ok(controller.includes('unlinkedReferences'));
   assert.ok(controller.includes('BPMN_DOCUMENTED_DATA_TYPES'));
-  assert.ok(controller.includes('conflictingFields'));
-  assert.ok(controller.includes('Fusion impossible : les liens sont différents'));
+  assert.ok(controller.includes('originResourceId'));
+  assert.ok(controller.includes('optionalDate'));
+  assert.doesNotMatch(controller, /@Post\\(':sourceId\\/merge'\\)/);
 
   assert.ok(sourceEntity.includes('mergedIntoId'));
   assert.ok(referenceEntity.includes('elementId'));
