@@ -506,9 +506,11 @@ async function main() {
     // Create a folder through the graphical form and verify that the
     // explorer receives it before any manual page reload.
     const createdFolderName = 'CI E2E — dossier créé via formulaire';
+    const demoFolderId = '20000000-0000-4000-8000-000000000001';
     await openProjectWorkspace(reviewerPage);
+    await reviewerPage.goto(`${baseUrl}/${demoFolderId}`);
     await reviewerPage.getByRole('button', { name: 'Créer un dossier' }).click();
-    await reviewerPage.waitForURL('**/root/add?type=folder');
+    await reviewerPage.waitForURL(`**/${demoFolderId}/add?type=folder`);
     await reviewerPage.getByLabel('Name').fill(createdFolderName);
     await reviewerPage.getByLabel('Description').fill('Dossier temporaire créé pour la recette navigateur.');
     const createFolderResponsePromise = reviewerPage.waitForResponse(response =>
@@ -535,7 +537,8 @@ async function main() {
       createFolderResponse.ok(),
       `Folder creation failed with HTTP ${createFolderResponse.status()}`,
     );
-    await reviewerPage.getByText('Processus du projet', { exact: true }).waitFor();
+    await reviewerPage.waitForURL(`**/${demoFolderId}`);
+    await reviewerPage.getByText('Démonstration BPMN V2', { exact: true }).waitFor();
     await reviewerPage.getByRole('treeitem').filter({ hasText: createdFolderName }).waitFor();
     const createdFolderVisibleInApi = await reviewerPage.evaluate(async folderName => {
       const response = await fetch('/bpmn-api/resources/explorer/links', {
