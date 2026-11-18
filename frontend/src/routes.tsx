@@ -40,7 +40,7 @@ async function requireGlobalAdmin({ request }: { request: Request }) {
 }
 
 
-const organizationSections = new Set(['overview', 'projects', 'processes', 'governance']);
+const organizationSections = new Set(['overview', 'projects', 'processes', 'governance', 'structure']);
 
 async function requireOrganizationSection(args: {
   request: Request;
@@ -87,6 +87,11 @@ export const routes = [
         path: '/organization/functions',
         loader: requireGlobalAdmin,
         lazy: () => import('./Containers/JobFunctions'),
+      },
+      {
+        path: '/organization/structure',
+        loader: requireGlobalAdmin,
+        lazy: () => import('./Containers/OrganizationStructure'),
       },
       {
         path: '/organization/:section',
