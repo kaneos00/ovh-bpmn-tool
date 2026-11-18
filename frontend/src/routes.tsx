@@ -89,6 +89,11 @@ export const routes = [
         lazy: () => import('./Containers/JobFunctions'),
       },
       {
+        path: '/organization/structure',
+        loader: requireGlobalAdmin,
+        lazy: () => import('./Containers/OrganizationStructure'),
+      },
+      {
         path: '/organization/:section',
         loader: requireOrganizationSection,
         lazy: () => import('./Containers/OrganizationAdmin'),
