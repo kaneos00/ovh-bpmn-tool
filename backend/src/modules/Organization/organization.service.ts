@@ -193,6 +193,9 @@ export class OrganizationService {
       throw new BadRequestException('positionIds must be a non-empty unique list');
     }
     return this.db.transaction(async (manager) => {
+      for (const positionId of (input.positionIds as string[]).slice().sort()) {
+        await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [positionId]);
+      }
       const repository = manager.getRepository(OrganizationPositionTypeOrmEntity);
       const positions = await repository.createQueryBuilder('position')
         .where('position.id IN (:...ids)', { ids: input.positionIds })
