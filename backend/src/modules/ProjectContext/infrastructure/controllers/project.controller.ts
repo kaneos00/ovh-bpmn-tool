@@ -30,7 +30,10 @@ import {
   ProjectMemberTypeOrmEntity,
 } from '../entities/projectMember.ormEntity';
 import { ProjectResourceAccessService } from '../../projectResourceAccess.service';
-import { ProcessChangeProposalStatus, ProcessChangeProposalTypeOrmEntity } from '../entities/processChangeProposal.ormEntity';
+import {
+  ProcessChangeProposalStatus,
+  ProcessChangeProposalTypeOrmEntity,
+} from '../entities/processChangeProposal.ormEntity';
 import { ProcessChangeProposalCommentTypeOrmEntity } from '../entities/processChangeProposalComment.ormEntity';
 
 type RequestHeaders = Record<string, string | undefined>;
@@ -166,7 +169,10 @@ export class ProjectController {
     // A submitted request has not yet been treated (red). Requests under
     // review or approved but not yet published are orange. Publication is
     // green. When several requests exist, the most urgent active state wins.
-    const changeRequestStatusByProjectResource = new Map<string, 'submitted' | 'in_progress' | 'published'>();
+    const changeRequestStatusByProjectResource = new Map<
+      string,
+      'submitted' | 'in_progress' | 'published'
+    >();
     for (const proposal of proposalsForWorkspace) {
       const key = `${proposal.projectId}:${proposal.sourceResourceId}`;
       const current = changeRequestStatusByProjectResource.get(key);
@@ -176,7 +182,9 @@ export class ProjectController {
         proposal.status === ProcessChangeProposalStatus.Approved ||
         proposal.status === ProcessChangeProposalStatus.ChangesRequested
       ) {
-        if (current !== 'submitted') changeRequestStatusByProjectResource.set(key, 'in_progress');
+        if (current !== 'submitted') {
+          changeRequestStatusByProjectResource.set(key, 'in_progress');
+        }
       } else if (
         proposal.status === ProcessChangeProposalStatus.Published &&
         !current
