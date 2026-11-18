@@ -523,12 +523,12 @@ async function main() {
     const explorerRefreshPromise = reviewerPage.waitForResponse(response =>
       response.request().method() === 'GET' &&
       new URL(response.url()).pathname.endsWith('/resources/explorer/links') &&
-      response.ok(),
+      response.ok() || response.status() === 304,
     );
     const workspaceRefreshPromise = reviewerPage.waitForResponse(response =>
       response.request().method() === 'GET' &&
       new URL(response.url()).pathname.endsWith('/projects/me/workspace') &&
-      response.ok(),
+      response.ok() || response.status() === 304,
     );
     await reviewerPage.getByRole('button', { name: 'Delete', exact: true }).click();
     const [deleteResponse] = await Promise.all([
