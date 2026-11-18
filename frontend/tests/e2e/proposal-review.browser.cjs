@@ -540,16 +540,55 @@ async function main() {
 
     await reviewerPage.goto(`${baseUrl}/root`);
     await reviewerPage.getByText('Processus du projet', { exact: true }).waitFor();
-    await reviewerPage.waitForFunction(() =>
-      !Array.from(document.querySelectorAll('[role="treeitem"]'))
-        .some(node => node.textContent?.includes('CI E2E — variante partenaire')),
+    const deletionState = await reviewerPage.evaluate(async ({ resourceId, resourceName }) => {
+      const [explorerResponse, workspaceResponse] = await Promise.all([
+        fetch('/bpmn-api/resources/explorer/links', {
+          credentials: 'same-origin',
+          cache: 'no-store',
+        }),
+        fetch('/bpmn-api/projects/me/workspace', {
+          credentials: 'same-origin',
+          cache: 'no-store',
+        }),
+      ]);
+      const [explorer, workspace] = await Promise.all([
+        explorerResponse.json(),
+        workspaceResponse.json(),
+      ]);
+      return {
+        matchingResources: explorer.resources
+          .filter(resource => resource.name === resourceName)
+          .map(resource => resource.id),
+        matchingWorkspaceProcesses: workspace.projects.flatMap(project =>
+          project.processes
+            .filter(process => process.resourceId === resourceId)
+            .map(process => ({ projectId: project.id, resourceId: process.resourceId })),
+        ),
+        matchingTreeItems: Array.from(document.querySelectorAll('[role="treeitem"]'))
+          .filter(node => node.textContent?.includes(resourceName))
+          .map(node => node.textContent),
+      };
+    }, {
+      resourceId: variantResourceId,
+      resourceName: 'CI E2E — variante partenaire',
+    });
+    assert.deepEqual(
+      deletionState.matchingResources,
+      [],
+      `The deleted variant or an orphan with the same name remains in explorer data: ${JSON.stringify(deletionState)}`,
+    );
+    assert.deepEqual(
+      deletionState.matchingWorkspaceProcesses,
+      [],
+      `The deleted variant remains linked to a project: ${JSON.stringify(deletionState)}`,
     );
     assert.equal(
       await reviewerPage.getByRole('button', {
         name: 'Ouvrir les actions de CI E2E — variante partenaire',
+        exact: true,
       }).count(),
       0,
-      'The deleted variant is still present in the explorer',
+      `The deleted variant is still present in the explorer: ${JSON.stringify(deletionState)}`,
     );
 
     process.stdout.write('Browser E2E passed: proposal workflow and explorer deletion/cache refresh.\\n');
