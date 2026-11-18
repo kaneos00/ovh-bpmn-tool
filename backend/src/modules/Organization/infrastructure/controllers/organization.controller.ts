@@ -33,7 +33,12 @@ export class OrganizationController {
   @Post('positions/bulk-assignments')
   @UseAcl([UserGroup.Admin])
   bulkAssign(
-    @Body() body: { positionIds?: unknown; userId?: unknown; startDate?: unknown },
+    @Body()
+    body: {
+      positionIds?: unknown;
+      userId?: unknown;
+      startDate?: unknown;
+    },
     @Headers() headers: RequestHeaders,
   ) {
     return this.organization.bulkAssign(body, headers);
@@ -41,7 +46,9 @@ export class OrganizationController {
 
   @Post('assignments/bulk-end')
   @UseAcl([UserGroup.Admin])
-  bulkEndAssignments(@Body() body: { assignmentIds?: unknown; endDate?: unknown }) {
+  bulkEndAssignments(
+    @Body() body: { assignmentIds?: unknown; endDate?: unknown },
+  ) {
     return this.organization.bulkEndAssignments(body);
   }
 
