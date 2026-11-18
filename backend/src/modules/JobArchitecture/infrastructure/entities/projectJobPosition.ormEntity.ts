@@ -13,6 +13,9 @@ export class ProjectJobPositionTypeOrmEntity extends AbstractEntity {
   @Column('uuid')
   functionId: string;
 
+  @Column({ type: 'uuid', nullable: true })
+  organizationPositionId: string | null;
+
   @Column({ type: 'varchar', length: 255 })
   title: string;
 
