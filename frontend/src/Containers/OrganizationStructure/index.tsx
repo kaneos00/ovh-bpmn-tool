@@ -172,7 +172,7 @@ export const Component = () => {
                   renderCustomNodeElement={({ nodeDatum }: any) => (
                     <g>
                       <rect x="-108" y="-34" width="216" height="72" rx="12" fill={nodeDatum.attributes?.root ? '#183451' : '#ffffff'} stroke={nodeDatum.attributes?.root ? '#183451' : '#cbd5e1'} strokeWidth="1.5" />
-                      <text textAnchor="middle" y="-8" fill={nodeDatum.attributes?.root ? '#ffffff' : '#1e293b'} fontSize="12" fontWeight="700">{nodeDatum.name.length > 27 ? nodeDatum.name.slice(0, 25) + '…' : nodeDatum.name}</text>
+                      <text textAnchor="middle" y="-8" fill={nodeDatum.attributes?.root ? '#ffffff' : '#1e293b'} fontSize="12" fontWeight="700">{nodeDatum.name.length > 27 ? `${nodeDatum.name.slice(0, 25)}…` : nodeDatum.name}</text>
                       <text textAnchor="middle" y="12" fill={nodeDatum.attributes?.root ? '#cbd5e1' : '#64748b'} fontSize="10">{nodeDatum.attributes?.root ? 'Structure permanente' : nodeDatum.attributes?.code}</text>
                       {!nodeDatum.attributes?.root && <text textAnchor="middle" y="27" fill={nodeDatum.attributes?.holder === 'Poste vacant' ? '#b45309' : '#2864d7'} fontSize="10">{nodeDatum.attributes?.holder}</text>}
                     </g>
