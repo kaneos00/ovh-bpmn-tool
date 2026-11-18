@@ -387,9 +387,8 @@ export class OrganizationService {
             userId,
             startDate,
             endDate,
-            note: typeof input.note === 'string'
-              ? input.note.trim() || null
-              : null,
+            note:
+              typeof input.note === 'string' ? input.note.trim() || null : null,
             createdBy: this.userId(headers),
           }),
         );
