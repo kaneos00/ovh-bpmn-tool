@@ -162,25 +162,13 @@ export const Component = () => {
   const canCreateFolder = Boolean(
     activeProjectId && (sessionRole === 'admin' || sessionRole === 'modeler'),
   );
-  const canCreateProcess = Boolean(
-    activeProjectId &&
-    (
-      sessionRole === 'admin' ||
-      (sessionRole === 'modeler' && (
-        activeProject?.role === 'admin' || activeProject?.role === 'modeler'
-      ))
-    ),
-  );
-
   const actions = useMemo(() => {
     const isRootFolder = isRoot(resourceId);
 
     if (isRootFolder) {
       return (
         <FolderActions
-          projectId={activeProjectId}
           canCreateFolder={canCreateFolder}
-          canCreateProcess={canCreateProcess}
         />
       );
     }
@@ -198,7 +186,6 @@ export const Component = () => {
     sessionRole,
     activeProjectId,
     canCreateFolder,
-    canCreateProcess,
   ]);
 
   return (
