@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import Tree from 'react-d3-tree';
+import { Tree } from 'react-d3-tree';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import {
   Alert, Box, Button, Card, Chip, FormControl, FormLabel, Input,
