@@ -37,6 +37,7 @@ type SourceFields = Pick<
   | 'access'
   | 'retention'
   | 'validUntil'
+  | 'containsPersonalData'
   | 'authorizedPeople'
   | 'restrictions'
 >;
@@ -94,6 +95,13 @@ const optionalDate = (value: unknown): string | null => {
   ) {
     throw new BadRequestException('validUntil must be a valid YYYY-MM-DD date');
   }
+  return value;
+};
+
+const optionalBoolean = (value: unknown, field: string): boolean => {
+  if (value === undefined || value === null) return false;
+  if (typeof value !== 'boolean')
+    throw new BadRequestException(field + ' must be a boolean');
   return value;
 };
 
@@ -404,6 +412,7 @@ export class ProjectDocumentedSourceController {
           access: optionalText(body.access, 'access'),
           retention: optionalText(body.retention, 'retention'),
           validUntil: optionalDate(body.validUntil),
+          containsPersonalData: optionalBoolean(body.containsPersonalData, 'containsPersonalData'),
           authorizedPeople: optionalText(
             body.authorizedPeople,
             'authorizedPeople',
@@ -455,6 +464,9 @@ export class ProjectDocumentedSourceController {
     });
     if (body.validUntil !== undefined) {
       source.validUntil = optionalDate(body.validUntil);
+    }
+    if (body.containsPersonalData !== undefined) {
+      source.containsPersonalData = optionalBoolean(body.containsPersonalData, 'containsPersonalData');
     }
     return this.sources.save(source);
   }
@@ -724,6 +736,7 @@ export class ProjectDocumentedSourceController {
         }
       });
       if (!target.name.trim() && source.name.trim()) target.name = source.name;
+      target.containsPersonalData = target.containsPersonalData || source.containsPersonalData;
       await sourceRepository.save(target);
 
       const sourceReferences = await referenceRepository.find({
