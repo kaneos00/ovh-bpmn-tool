@@ -268,7 +268,7 @@ test('permanent-position administration stays in one editable AG Grid domain', a
   const positions = await read('src/Containers/OrganizationPositions/index.tsx');
   const structure = await read('src/Containers/OrganizationStructure/index.tsx');
 
-  assert.match(routes, /path: '\/organization\/positions',[\\s\\S]*?import\\('\.\/Containers\/OrganizationPositions'\\)/);
+  assert.match(routes, /path: '\/organization\/positions',[\s\S]*?import\('\.\/Containers\/OrganizationPositions'\)/);
   assert.match(layout, /key: 'positions', label: 'Postes'/);
   assert.match(positions, /<AgGridReact<Position>/);
   assert.match(positions, /editable: true/);
