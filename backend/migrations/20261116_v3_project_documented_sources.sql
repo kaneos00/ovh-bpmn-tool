@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS project_documented_sources (
   retention text,
   "authorizedPeople" text,
   restrictions text,
+  "originResourceId" uuid REFERENCES resources(id) ON DELETE SET NULL,
+  "originElementId" varchar(255),
   "mergedIntoId" uuid REFERENCES project_documented_sources(id) ON DELETE SET NULL,
   "mergedAt" timestamptz,
   "mergedBy" varchar(64),
