@@ -33,6 +33,7 @@ type ProjectDocumentedSource = {
   access: string | null;
   retention?: string | null;
   validUntil: string | null;
+  containsPersonalData: boolean;
   authorizedPeople: string | null;
   restrictions: string | null;
   references: SourceReference[];
@@ -78,6 +79,7 @@ const emptySource = (id: string): ProjectDocumentedSource => ({
   access: '',
   retention: '',
   validUntil: null,
+  containsPersonalData: false,
   authorizedPeople: '',
   restrictions: '',
   references: [],
@@ -133,6 +135,7 @@ export const DataInventory = ({
       ...source,
       kind: normalizeKind(source.kind),
       validUntil: source.validUntil ?? null,
+      containsPersonalData: source.containsPersonalData ?? false,
       references: source.references ?? [],
     })));
   }, [projectSourcesQuery.data]);
@@ -142,7 +145,7 @@ export const DataInventory = ({
     if (projectId) await queryClient.invalidateQueries(['project-documented-sources', projectId]);
   };
 
-  const updateRow = (id: string, field: keyof ProjectDocumentedSource, value: string | null) => {
+  const updateRow = (id: string, field: keyof ProjectDocumentedSource, value: string | null | boolean) => {
     setSources(current => current.map(source => source.id === id ? { ...source, [field]: value } : source));
   };
 
@@ -160,6 +163,7 @@ export const DataInventory = ({
       location: row.location ?? '',
       access: row.access ?? '',
       validUntil: row.validUntil || null,
+      containsPersonalData: row.containsPersonalData,
       authorizedPeople: row.authorizedPeople ?? '',
       restrictions: row.restrictions ?? '',
     };
@@ -182,9 +186,11 @@ export const DataInventory = ({
     field: keyof ProjectDocumentedSource,
   ) => {
     if (!params.data) return;
-    const value = field === 'validUntil'
-      ? (String(params.newValue ?? '').trim() || null)
-      : String(params.newValue ?? '');
+    const value = field === 'containsPersonalData'
+      ? Boolean(params.newValue)
+      : field === 'validUntil'
+        ? (String(params.newValue ?? '').trim() || null)
+        : String(params.newValue ?? '');
     const updated = { ...params.data, [field]: value };
     updateRow(params.data.id, field, value);
     await saveRow(updated);
@@ -287,6 +293,21 @@ export const DataInventory = ({
     },
     textColumn('name', 'Nom', 190),
     textColumn('description', 'Description', 240),
+    {
+      headerName: 'Données personnelles',
+      field: 'containsPersonalData',
+      minWidth: 175,
+      editable: canManageSources && !savingId,
+      cellDataType: 'boolean',
+      cellRenderer: 'agCheckboxCellRenderer',
+      cellEditor: 'agCheckboxCellEditor',
+      tooltipValueGetter: params => params.value
+        ? 'La source contient des données personnelles'
+        : 'La source ne contient pas de données personnelles',
+      onCellValueChanged: (params: NewValueParams<InventoryGridRow>) => {
+        void handleCellChange(params, 'containsPersonalData');
+      },
+    },
     {
       headerName: 'Objet BPMN',
       minWidth: 240,
