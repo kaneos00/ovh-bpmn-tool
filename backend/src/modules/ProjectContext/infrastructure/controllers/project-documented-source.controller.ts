@@ -233,23 +233,12 @@ export class ProjectDocumentedSourceController {
     @Param('projectId') projectId: string,
     @Headers() headers: RequestHeaders,
   ) {
-    await this.access.assertProjectRole(
+    const userId = await this.access.assertProjectRole(
       projectId,
       headers,
       ProjectMemberRole.Viewer,
     );
-    const [sources, references, links] = await Promise.all([
-      this.sources.find({
-        where: { projectId, mergedIntoId: IsNull() },
-        order: { name: 'ASC' },
-      }),
-      this.references.find({
-        where: { projectId, elementType: In([...BPMN_DOCUMENTED_DATA_TYPES]) },
-        order: { createdAt: 'ASC' },
-      }),
-      this.projectProcesses.find({ where: { projectId } }),
-    ]);
-
+    const links = await this.projectProcesses.find({ where: { projectId } });
     const resourceIds = [...new Set(links.map((link) => link.resourceId))];
     const resources = resourceIds.length
       ? await this.resources.find({ where: { id: In(resourceIds) } })
@@ -264,26 +253,124 @@ export class ProjectDocumentedSourceController {
         })
       : [];
 
-    const resourceById = new Map(
-      resources.map((resource) => [resource.id, resource]),
-    );
+    const resourceById = new Map(resources.map((resource) => [resource.id, resource]));
     const contentByResource = new Map<string, ContentTypeOrmEntity>();
     publishedContents.forEach((content) => {
       if (!contentByResource.has(content.resourceId))
         contentByResource.set(content.resourceId, content);
     });
 
-    const referencesBySource = new Map<
-      string,
-      Array<Record<string, unknown>>
-    >();
+    // Reconcile associations against the latest published BPMN model.
+    // A missing BPMN element removes only its association; its documented
+    // information record is intentionally retained.
+    const currentElementsByResource = new Map<string, BpmnDataElement[]>();
+    for (const resourceId of resourceIds) {
+      const resource = resourceById.get(resourceId);
+      const content = contentByResource.get(resourceId);
+      if (!resource || !content) continue;
+      currentElementsByResource.set(
+        resourceId,
+        extractBpmnDataElements(content.content, resourceId, resource.name),
+      );
+    }
+
+    const existingReferences = await this.references.find({
+      where: { projectId, elementType: In([...BPMN_DOCUMENTED_DATA_TYPES]) },
+    });
+    for (const reference of existingReferences) {
+      const currentElements = currentElementsByResource.get(reference.resourceId);
+      // Do not prune references for a process that has no published version.
+      if (!currentElements) continue;
+      if (!currentElements.some((element) => element.elementId === reference.elementId)) {
+        await this.references.delete({ id: reference.id });
+      }
+    }
+
+    // First discovery of a BPMN DataSource creates an independent documented
+    // information record and its association. originResourceId/originElementId
+    // remain on the record after unlinking, preventing an automatic relink.
+    for (const [resourceId, elements] of currentElementsByResource) {
+      for (const element of elements) {
+        const existingReference = await this.references.findOne({
+          where: { projectId, resourceId, elementId: element.elementId },
+        });
+        if (existingReference) continue;
+
+        await this.dataSource.transaction(async (manager) => {
+          await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+            projectId + ':' + resourceId + ':' + element.elementId,
+          ]);
+          const referenceRepository = manager.getRepository(
+            ProjectDocumentedSourceReferenceTypeOrmEntity,
+          );
+          const sourceRepository = manager.getRepository(
+            ProjectDocumentedSourceTypeOrmEntity,
+          );
+          const [reference, origin] = await Promise.all([
+            referenceRepository.findOne({
+              where: { projectId, resourceId, elementId: element.elementId },
+            }),
+            sourceRepository.findOne({
+              where: {
+                projectId,
+                originResourceId: resourceId,
+                originElementId: element.elementId,
+                mergedIntoId: IsNull(),
+              },
+            }),
+          ]);
+          if (reference || origin) return;
+
+          const source = await sourceRepository.save(
+            sourceRepository.create({
+              projectId,
+              createdBy: userId,
+              kind: element.elementType === 'dataStoreReference' ? 'database' : 'file',
+              name: element.elementName,
+              description: element.description || null,
+              link: element.link || null,
+              location: element.location || null,
+              access: element.access || null,
+              retention: element.retention || null,
+              authorizedPeople: element.authorizedPeople || null,
+              restrictions: element.restrictions || null,
+              originResourceId: resourceId,
+              originElementId: element.elementId,
+            }),
+          );
+          await referenceRepository.save(
+            referenceRepository.create({
+              projectId,
+              sourceId: source.id,
+              resourceId,
+              elementId: element.elementId,
+              elementName: element.elementName,
+              elementType: element.elementType,
+              createdBy: userId,
+            }),
+          );
+        });
+      }
+    }
+
+    const [sources, references] = await Promise.all([
+      this.sources.find({
+        where: { projectId, mergedIntoId: IsNull() },
+        order: { name: 'ASC' },
+      }),
+      this.references.find({
+        where: { projectId, elementType: In([...BPMN_DOCUMENTED_DATA_TYPES]) },
+        order: { createdAt: 'ASC' },
+      }),
+    ]);
+
+    const referencesBySource = new Map<string, Array<Record<string, unknown>>>();
     references.forEach((reference) => {
       const rows = referencesBySource.get(reference.sourceId) ?? [];
       rows.push({
         id: reference.id,
         resourceId: reference.resourceId,
-        processName:
-          resourceById.get(reference.resourceId)?.name ?? reference.resourceId,
+        processName: resourceById.get(reference.resourceId)?.name ?? reference.resourceId,
         elementId: reference.elementId,
         elementName: reference.elementName,
         elementType: reference.elementType,
@@ -292,20 +379,11 @@ export class ProjectDocumentedSourceController {
     });
 
     const linkedKeys = new Set(
-      references.map(
-        (reference) => reference.resourceId + ':' + reference.elementId,
-      ),
+      references.map((reference) => reference.resourceId + ':' + reference.elementId),
     );
     const unlinkedReferences: BpmnDataElement[] = [];
-    resourceIds.forEach((resourceId) => {
-      const resource = resourceById.get(resourceId);
-      const content = contentByResource.get(resourceId);
-      if (!resource || !content) return;
-      extractBpmnDataElements(
-        content.content,
-        resourceId,
-        resource.name,
-      ).forEach((element) => {
+    currentElementsByResource.forEach((elements) => {
+      elements.forEach((element) => {
         if (!linkedKeys.has(element.resourceId + ':' + element.elementId))
           unlinkedReferences.push(element);
       });
