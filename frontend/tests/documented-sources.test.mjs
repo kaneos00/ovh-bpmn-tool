@@ -23,6 +23,16 @@ test('BPMN DataSources are automatically registered as independent documented in
   assert.match(migration, /"originElementId" varchar\(255\)/);
 });
 
+
+test('documented information can be created independently of any BPMN element', async () => {
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
+
+  assert.match(controller, /const hasReferenceFields = Boolean/);
+  assert.match(controller, /const reference = hasReferenceFields/);
+  assert.match(controller, /if \(!reference\) return \{ \.\.\.source, references: \[\] \}/);
+  assert.match(controller, /@Post\(':sourceId\/references'\)/);
+});
+
 test('saved BPMN drafts and published versions are reconciled idempotently', async () => {
   const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
 
