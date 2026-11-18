@@ -102,10 +102,27 @@ export class JobArchitectureController {
       functionId?: string;
       title?: string;
       description?: string | null;
+      organizationPositionId?: string | null;
     },
     @Headers() headers: RequestHeaders,
   ) {
     return this.jobArchitecture.createProjectPosition(projectId, body, headers);
+  }
+
+  @Patch('projects/:projectId/job-positions/:positionId/organization-position')
+  @UseAcl([UserGroup.RW])
+  setProjectPositionOrganization(
+    @Param('projectId') projectId: string,
+    @Param('positionId') positionId: string,
+    @Body() body: { organizationPositionId?: string | null },
+    @Headers() headers: RequestHeaders,
+  ) {
+    return this.jobArchitecture.setProjectPositionOrganization(
+      projectId,
+      positionId,
+      body.organizationPositionId ?? null,
+      headers,
+    );
   }
 
   @Patch('projects/:projectId/job-positions/:positionId/competency-blocks')
