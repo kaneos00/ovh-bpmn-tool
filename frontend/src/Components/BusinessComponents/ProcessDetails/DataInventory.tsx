@@ -45,7 +45,7 @@ type ProjectDocumentedSourcesResponse = {
   unlinkedReferences: Array<{ resourceId: string; processName: string; elementId: string; elementName: string; elementType: string }>;
 };
 
-type InventoryGridRow = InventorySource & { associationsLabel: string; projectStatus: string };
+type InventoryGridRow = InventorySource & { associationsLabel: string; sourceName: string; sourceKind: string; status: string };
 
 type Props = {
   xmlContent?: string;
@@ -409,7 +409,11 @@ export const DataInventory = ({
                   cellRenderer: (params: ICellRendererParams<InventoryGridRow>) => params.data ? (
                     <Stack direction="row" spacing={0.5} alignItems="center">
                       <BpmnDataSymbol type={params.data.bpmnType} />
-                      <Typography level="body-sm">{params.data.elementName}</Typography>
+                      {onElementSelect ? (
+                        <Button size="sm" variant="plain" color="neutral" onClick={() => { onShowDiagram?.(); onElementSelect(params.data!.id); }}>
+                          {params.data.elementName}
+                        </Button>
+                      ) : <Typography level="body-sm">{params.data.elementName}</Typography>}
                     </Stack>
                   ) : null,
                 },
