@@ -340,8 +340,7 @@ export class JobArchitectureService {
     if (!jobFunction) throw new NotFoundException('Job function not found');
 
     const title = this.requiredText(input.title, 'title', 255);
-    const organizationPositionId =
-      input.organizationPositionId?.trim() || null;
+    const organizationPositionId = input.organizationPositionId?.trim() || null;
     if (
       organizationPositionId &&
       !(await this.organizationPositions.findOne({
