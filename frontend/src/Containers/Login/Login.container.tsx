@@ -1,5 +1,5 @@
 import React, { FormEvent, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Alert,
   Box,
@@ -20,39 +20,8 @@ import {
 // that a successful IdP login grants application roles; the backend maps trusted claims.
 const apiBase = (import.meta.env.VITE_API_URL || '/bpmn-api').replace(/\/+$/, '');
 
-function getSafeV3Destination(requestedPath: string | null): string {
-  if (!requestedPath) return '/';
-
-  let destination: URL;
-  try {
-    destination = new URL(requestedPath, window.location.origin);
-  } catch {
-    return '/root';
-  }
-
-  // Never follow external, protocol-relative, login-loop, or legacy destinations.
-  if (
-    destination.origin !== window.location.origin ||
-    destination.pathname.startsWith('/login')
-  ) {
-    return '/root';
-  }
-
-  const path = destination.pathname;
-  const validV3Path =
-    path === '/' ||
-    path === '/home' ||
-    path === '/root' ||
-    /^\/[^/]+$/.test(path) ||
-    /^\/[^/]+\/modeler$/.test(path) ||
-    /^\/[^/]+\/viewer\/[^/]+$/.test(path);
-
-  return validV3Path ? `${path}${destination.search}${destination.hash}` : '/root';
-}
-
 export const Component = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -78,8 +47,9 @@ export const Component = () => {
         );
         return;
       }
-      const requestedPath = searchParams.get('next');
-      navigate(requestedPath ? getSafeV3Destination(requestedPath) : '/', { replace: true });
+      // The user's saved home preference is the single source of truth after login.
+      // The authenticated root route resolves /home or /projects from that preference.
+      navigate('/', { replace: true });
     } catch {
       setError('Le service de connexion est momentanément indisponible.');
     } finally {
