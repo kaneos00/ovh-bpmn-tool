@@ -401,10 +401,10 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                       ? <FolderOpenRounded color="primary" fontSize="small" />
                       : node?.type === 'folder'
                         ? <FolderRounded sx={{ color: '#c58a2b' }} fontSize="small" />
-                        : node?.usage === 'common'
-                          ? <PublicOutlined sx={{ color: '#16845b' }} fontSize="small" />
-                          : node?.usage === 'variant'
-                            ? <AltRoute sx={{ color: '#805ad5' }} fontSize="small" />
+                        : node?.usage === 'variant'
+                          ? <AltRoute sx={{ color: '#805ad5' }} fontSize="small" />
+                          : (node?.nature === 'global' || (!node?.nature && node?.usage === 'common'))
+                            ? <PublicOutlined sx={{ color: '#16845b' }} fontSize="small" />
                             : <DescriptionOutlined sx={{ color: '#3975c6' }} fontSize="small" />}
                     <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</Box>
                     {node?.usage === 'variant' && (
