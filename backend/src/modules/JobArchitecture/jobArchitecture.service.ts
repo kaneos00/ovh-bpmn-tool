@@ -423,7 +423,9 @@ export class JobArchitectureService {
     const position = await this.positions.findOne({
       where: { id: positionId, projectId, active: true },
     });
-    if (!position) throw new NotFoundException('Project job position not found');
+    if (!position) {
+      throw new NotFoundException('Project job position not found');
+    }
     if (organizationPositionId) {
       const organizationPosition = await this.organizationPositions.findOne({
         where: { id: organizationPositionId, active: true },
