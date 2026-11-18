@@ -35,11 +35,7 @@ describe('ResourceTypeOrmRepository.delete', () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([
-        { id: 'root' },
-        { id: 'child' },
-        { id: 'grandchild' },
-      ]);
+      .mockResolvedValueOnce([]);
 
     await expect(repository.delete('root')).resolves.toEqual({
       ok: true,
@@ -63,26 +59,19 @@ describe('ResourceTypeOrmRepository.delete', () => {
     );
     expect(manager.query).toHaveBeenNthCalledWith(
       4,
-      expect.stringContaining('UPDATE resources SET "sourceResourceId" = NULL'),
-      [['root', 'child', 'grandchild']],
-    );
-    expect(manager.query).toHaveBeenNthCalledWith(
-      5,
-      expect.stringContaining(
-        'UPDATE project_processes SET "sourceResourceId" = NULL',
-      ),
-      [['root', 'child', 'grandchild']],
-    );
-    expect(manager.query).toHaveBeenNthCalledWith(
-      6,
       expect.stringContaining(
         'DELETE FROM project_processes WHERE "resourceId"',
       ),
       [['root', 'child', 'grandchild']],
     );
     expect(manager.query).toHaveBeenNthCalledWith(
-      7,
+      5,
       expect.stringContaining('DELETE FROM resources'),
+      [['root', 'child', 'grandchild']],
+    );
+    expect(manager.query).toHaveBeenNthCalledWith(
+      6,
+      expect.stringContaining('SELECT id FROM resources'),
       [['root', 'child', 'grandchild']],
     );
   });
@@ -95,8 +84,7 @@ describe('ResourceTypeOrmRepository.delete', () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([{ id: 'folder' }]);
+      .mockResolvedValueOnce([]);
 
     await expect(repository.delete('folder')).resolves.toEqual({
       ok: true,
@@ -114,26 +102,19 @@ describe('ResourceTypeOrmRepository.delete', () => {
     );
     expect(manager.query).toHaveBeenNthCalledWith(
       5,
-      expect.stringContaining('UPDATE resources SET "sourceResourceId" = NULL'),
-      [['folder']],
-    );
-    expect(manager.query).toHaveBeenNthCalledWith(
-      6,
-      expect.stringContaining(
-        'UPDATE project_processes SET "sourceResourceId" = NULL',
-      ),
-      [['folder']],
-    );
-    expect(manager.query).toHaveBeenNthCalledWith(
-      7,
       expect.stringContaining(
         'DELETE FROM project_processes WHERE "resourceId"',
       ),
       [['folder']],
     );
     expect(manager.query).toHaveBeenNthCalledWith(
-      8,
+      6,
       expect.stringContaining('DELETE FROM resources'),
+      [['folder']],
+    );
+    expect(manager.query).toHaveBeenNthCalledWith(
+      7,
+      expect.stringContaining('SELECT id FROM resources'),
       [['folder']],
     );
     expect(manager.query).toHaveBeenCalledWith(
@@ -173,15 +154,14 @@ describe('ResourceTypeOrmRepository.delete', () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([]);
+      .mockResolvedValueOnce([{ id: 'root' }]);
 
     const result = await repository.delete('root');
 
     expect(result.ok).toBeNull();
     expect(result.fail).toBeInstanceOf(Error);
     expect(resourceRepository.manager.transaction).toHaveBeenCalledTimes(1);
-    expect(manager.query).toHaveBeenCalledTimes(7);
+    expect(manager.query).toHaveBeenCalledTimes(6);
   });
 });
 

@@ -1,4 +1,4 @@
-import { ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource, Repository } from 'typeorm';
 import { ResourceTypeOrmEntity } from '../ResourceContext/infrastructure/entities/resource.ormEntity';
@@ -166,5 +166,73 @@ describe('ProjectResourceAccessService proposal editing', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
 
     expect(projectProcesses.find).not.toHaveBeenCalled();
+  });
+
+  it('allows deleting a source when all dependent variants are in the same deleted tree', async () => {
+    projectProcesses.find
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ resourceId: 'variant-1' }]);
+
+    await expect(
+      service.assertCanDeleteResource(
+        'source-1',
+        new Set(['folder-1', 'source-1', 'variant-1']),
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  it('refuses deleting a source while a dependent variant survives outside the deleted tree', async () => {
+    projectProcesses.find
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ resourceId: 'variant-1' }]);
+
+    await expect(
+      service.assertCanDeleteResource(
+        'source-1',
+        new Set(['folder-1', 'source-1']),
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('does not block folder deletion for common or multi-project child processes that will be preserved', async () => {
+    resources.find
+      .mockResolvedValueOnce([
+        { id: 'shared-child', parentId: 'folder-1' },
+        { id: 'common-child', parentId: 'folder-1' },
+      ])
+      .mockResolvedValueOnce([]);
+    projectProcesses.find
+      .mockResolvedValueOnce([
+        {
+          resourceId: 'shared-child',
+          projectId: 'project-1',
+          usage: ProjectProcessUsage.ProjectSpecific,
+        },
+        {
+          resourceId: 'shared-child',
+          projectId: 'project-2',
+          usage: ProjectProcessUsage.ProjectSpecific,
+        },
+        {
+          resourceId: 'common-child',
+          projectId: 'project-1',
+          usage: ProjectProcessUsage.Common,
+        },
+      ])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+
+    await expect(
+      service.assertCanDeleteResourceTree('folder-1', {
+        'x-user': 'admin-1',
+        'x-groups': 'bpmn-tool-admin-org',
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(projectProcesses.find).toHaveBeenCalledTimes(4);
+    expect(projectProcesses.find).toHaveBeenCalledWith({
+      where: { resourceId: 'folder-1' },
+    });
   });
 });

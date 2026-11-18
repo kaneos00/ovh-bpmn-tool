@@ -68,7 +68,8 @@ export class ResourceTypeOrmRepository implements ResourceRepository {
            FROM project_processes
            WHERE "resourceId" = ANY($1::uuid[])
            GROUP BY "resourceId"
-           HAVING COUNT(DISTINCT "projectId") > 1`,
+           HAVING COUNT(DISTINCT "projectId") > 1
+              OR BOOL_OR(usage = 'common')`,
           [resourceIds],
         );
         const sharedIds = sharedResources.map(({ id }) => id);
@@ -98,27 +99,29 @@ export class ResourceTypeOrmRepository implements ResourceRepository {
           [deletableIds],
         );
 
-        // Keep variants outside the deleted subtree, but detach their source
-        // pointer in both the resource record and project association.
-        await manager.query(
-          'UPDATE resources SET "sourceResourceId" = NULL WHERE "sourceResourceId" = ANY($1::uuid[]) AND NOT (id = ANY($1::uuid[]))',
-          [deletableIds],
-        );
-        await manager.query(
-          'UPDATE project_processes SET "sourceResourceId" = NULL WHERE "sourceResourceId" = ANY($1::uuid[]) AND NOT ("resourceId" = ANY($1::uuid[]))',
-          [deletableIds],
-        );
+        // Surviving variants must keep their source association. The access
+        // guard rejects deleting a source while such variants remain; the
+        // project_processes FK/check constraints are the final DB safeguard.
+        // resources.sourceResourceId uses ON DELETE SET NULL for provenance
+        // records that are not constrained to represent a project variant.
         await manager.query(
           'DELETE FROM project_processes WHERE "resourceId" = ANY($1::uuid[])',
           [deletableIds],
         );
 
-        const deletedResources: Array<{ id: string }> = await manager.query(
-          'DELETE FROM resources WHERE id = ANY($1::uuid[]) RETURNING id',
+        // TypeORM's PostgreSQL driver may return a command result object
+        // for DELETE ... RETURNING rather than a plain row array. Verify the
+        // invariant with a regular SELECT instead of relying on that shape.
+        await manager.query(
+          'DELETE FROM resources WHERE id = ANY($1::uuid[])',
+          [deletableIds],
+        );
+        const remainingResources: Array<{ id: string }> = await manager.query(
+          'SELECT id FROM resources WHERE id = ANY($1::uuid[])',
           [deletableIds],
         );
 
-        if (deletedResources?.length !== deletableIds.length) {
+        if (remainingResources?.length) {
           throw new Error(
             'Error while deleting the complete resource hierarchy',
           );

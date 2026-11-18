@@ -346,7 +346,10 @@ export class ProjectResourceAccessService {
     return this.assertCanEditResource(resourceId, headers);
   }
 
-  async assertCanDeleteResource(resourceId: string) {
+  async assertCanDeleteResource(
+    resourceId: string,
+    resourceIdsBeingDeleted: Set<string> = new Set([resourceId]),
+  ) {
     const links = await this.projectProcesses.find({ where: { resourceId } });
     if (links.some((link) => link.usage === ProjectProcessUsage.Common)) {
       throw new ForbiddenException(
@@ -361,12 +364,18 @@ export class ProjectResourceAccessService {
       );
     }
 
-    const dependentVariants = await this.projectProcesses.count({
+    // A source and all its variants may be deleted together as one resource
+    // tree. A variant outside that tree must remain protected: its project
+    // association has a NOT NULL/check invariant and cannot be detached safely.
+    const dependentVariants = await this.projectProcesses.find({
       where: { sourceResourceId: resourceId },
     });
-    if (dependentVariants > 0) {
+    const survivingVariants = dependentVariants.filter(
+      (variant) => !resourceIdsBeingDeleted.has(variant.resourceId),
+    );
+    if (survivingVariants.length > 0) {
       throw new BadRequestException(
-        'This process is the source of one or more variants; remove those variants before deleting the source process',
+        'This process is the source of one or more variants outside the deleted resource tree; remove those variants before deleting the source process',
       );
     }
   }
@@ -400,9 +409,39 @@ export class ProjectResourceAccessService {
       parentIds = nextParentIds;
     }
 
-    for (const id of resourceIds) {
+    // The repository preserves common and multi-project processes found
+    // below a deleted folder. Exclude those resources from the deletion ACL
+    // and dependency checks, but never exempt the explicitly selected root:
+    // directly deleting a shared/common process must still be rejected.
+    const linksInTree = await this.projectProcesses.find({
+      where: { resourceId: In(resourceIds) },
+    });
+    const projectIdsByResource = new Map<string, Set<string>>();
+    const commonResourceIds = new Set<string>();
+    for (const link of linksInTree) {
+      const projectIds =
+        projectIdsByResource.get(link.resourceId) ?? new Set<string>();
+      projectIds.add(link.projectId);
+      projectIdsByResource.set(link.resourceId, projectIds);
+      if (link.usage === ProjectProcessUsage.Common) {
+        commonResourceIds.add(link.resourceId);
+      }
+    }
+    const preservedResourceIds = new Set([
+      ...commonResourceIds,
+      ...Array.from(projectIdsByResource.entries())
+        .filter(([, projectIds]) => projectIds.size > 1)
+        .map(([id]) => id),
+    ]);
+    const resourceIdsBeingDeleted = new Set(
+      resourceIds.filter(
+        (id) => id === resourceId || !preservedResourceIds.has(id),
+      ),
+    );
+
+    for (const id of resourceIdsBeingDeleted) {
       await this.assertCanEditResource(id, headers);
-      await this.assertCanDeleteResource(id);
+      await this.assertCanDeleteResource(id, resourceIdsBeingDeleted);
     }
   }
 
