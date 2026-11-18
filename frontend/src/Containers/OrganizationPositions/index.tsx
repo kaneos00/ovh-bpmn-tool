@@ -55,6 +55,9 @@ export const Component = () => {
   );
   const positions = positionsQuery.data ?? [];
   const users = (usersQuery.data ?? []).filter(user => user.active);
+  const selectedWithAssignments = selected.filter(position => position.assignment);
+  const selectedVacant = selected.filter(position => !position.assignment && position.active);
+  const selectedActive = selected.filter(position => position.active);
   const refresh = async () => {
     await queryClient.invalidateQueries(['organization-position-management']);
     await queryClient.invalidateQueries(['organization-structure']);
@@ -141,9 +144,6 @@ export const Component = () => {
     }
   };
 
-  const selectedWithAssignments = selected.filter(position => position.assignment);
-  const selectedVacant = selected.filter(position => !position.assignment && position.active);
-  const selectedActive = selected.filter(position => position.active);
   const busy = bulkAssign.isLoading || bulkEnd.isLoading || bulkDeactivate.isLoading;
 
   return (
@@ -192,12 +192,12 @@ export const Component = () => {
           </FormControl>
           <Button color="warning" variant="soft" disabled={selectedWithAssignments.length === 0 || busy}
             loading={bulkEnd.isLoading}
-            onClick={() => window.confirm(`Terminer ${selectedWithAssignments.length} affectation(s) à cette date ?`) && bulkEnd.mutate()}>
+            onClick={() => bulkEnd.mutate()}>
             Retirer titulaire ({selectedWithAssignments.length})
           </Button>
           <Button color="danger" variant="outlined" disabled={selectedActive.length === 0 || selected.some(position => !!position.assignment) || busy}
             loading={bulkDeactivate.isLoading}
-            onClick={() => window.confirm(`Désactiver ${selectedActive.length} poste(s) vacant(s) ?`) && bulkDeactivate.mutate()}>
+            onClick={() => bulkDeactivate.mutate()}>
             Désactiver ({selectedActive.length})
           </Button>
         </Stack>
