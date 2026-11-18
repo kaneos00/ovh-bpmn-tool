@@ -20,7 +20,8 @@ const navigation: Array<{ key: OrganizationAdminSection; label: string; icon: st
   { key: 'processes', label: 'Processus', icon: '⌘' },
   { key: 'governance', label: 'Acteurs et RACI', icon: '⬡' },
   { key: 'functions', label: 'Fiches de fonction', icon: '▤' },
-  { key: 'positions', label: 'Postes', icon: '▤' },\n  { key: 'structure', label: 'Organigramme', icon: '⌘' },
+  { key: 'positions', label: 'Postes', icon: '▤' },
+  { key: 'structure', label: 'Organigramme', icon: '⌘' },
 ];
 
 export const OrganizationAdminLayout = ({
