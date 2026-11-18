@@ -156,7 +156,9 @@ export class OrganizationService {
     const startDate = this.date(input.startDate, 'startDate');
     return this.db.transaction(async (manager) => {
       for (const positionId of positionIds) {
-        await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [positionId]);
+        await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+          positionId,
+        ]);
       }
       const activePositions = await manager
         .getRepository(OrganizationPositionTypeOrmEntity)
@@ -216,6 +218,7 @@ export class OrganizationService {
         'assignmentIds must be a non-empty unique list',
       );
     }
+    const assignmentIds = input.assignmentIds as string[];
     const endDate = this.date(input.endDate, 'endDate');
     return this.db.transaction(async (manager) => {
       const repository = manager.getRepository(
@@ -223,11 +226,11 @@ export class OrganizationService {
       );
       const assignments = await repository
         .createQueryBuilder('assignment')
-        .where('assignment.id IN (:...ids)', { ids: input.assignmentIds })
+        .where('assignment.id IN (:...ids)', { ids: assignmentIds })
         .setLock('pessimistic_write')
         .getMany();
       if (
-        assignments.length !== input.assignmentIds.length ||
+        assignments.length !== assignmentIds.length ||
         assignments.some((assignment) => endDate < assignment.startDate)
       ) {
         throw new ConflictException(
@@ -252,22 +255,22 @@ export class OrganizationService {
         'positionIds must be a non-empty unique list',
       );
     }
+    const positionIds = input.positionIds as string[];
     return this.db.transaction(async (manager) => {
-      for (const positionId of (input.positionIds as string[]).slice().sort()) {
-        await manager.query(
-          'SELECT pg_advisory_xact_lock(hashtext($1))',
-          [positionId],
-        );
+      for (const positionId of positionIds.slice().sort()) {
+        await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+          positionId,
+        ]);
       }
       const repository = manager.getRepository(
         OrganizationPositionTypeOrmEntity,
       );
       const positions = await repository
         .createQueryBuilder('position')
-        .where('position.id IN (:...ids)', { ids: input.positionIds })
+        .where('position.id IN (:...ids)', { ids: positionIds })
         .setLock('pessimistic_write')
         .getMany();
-      if (positions.length !== input.positionIds.length) {
+      if (positions.length !== positionIds.length) {
         throw new NotFoundException(
           'One or more selected positions do not exist',
         );
