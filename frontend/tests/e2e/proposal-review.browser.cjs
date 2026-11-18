@@ -14,6 +14,10 @@ async function signIn(page, username, password) {
   await page.locator('input[autocomplete="username"]').fill(username);
   await page.locator('input[autocomplete="current-password"]').fill(password);
   await page.getByRole('button', { name: 'Se connecter' }).click();
+  // Login landing is controlled by the user's saved home preference.
+  // Continue to the validation inbox explicitly for this workflow test.
+  await page.waitForURL(url => /\/(home|projects)$/.test(url.pathname));
+  await page.goto(`${baseUrl}/mes-demandes`);
   await page.waitForURL('**/mes-demandes');
 }
 
