@@ -451,7 +451,6 @@ export class ProjectDocumentedSourceController {
           link: optionalText(body.link, 'link'),
           location: optionalText(body.location, 'location'),
           access: optionalText(body.access, 'access'),
-          retention: optionalText(body.retention, 'retention'),
           authorizedPeople: optionalText(
             body.authorizedPeople,
             'authorizedPeople',
