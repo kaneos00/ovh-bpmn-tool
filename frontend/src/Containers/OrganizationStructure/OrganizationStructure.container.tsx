@@ -128,15 +128,19 @@ export const Component = () => {
           </Stack>
           {view === 'tree' ? (
             <div className="org-structure__tree">
-              {treeQuery.isLoading ? <Typography>Chargement de l’organigramme…</Typography> :
-                (treeQuery.data?.length ?? 0) === 0 ? <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Aucun poste créé. Ajoutez le premier poste dans le panneau de droite.</Typography> :
-                <Tree data={treeQuery.data!} orientation="vertical" translate={{ x: 360, y: 65 }} pathFunc="step" separation={{ siblings: 1.2, nonSiblings: 1.5 }} nodeSize={{ x: 230, y: 105 }} renderCustomNodeElement={({ nodeDatum }) => (
-                  <g>
-                    <rect x="-92" y="-27" width="184" height="54" rx="9" fill={nodeDatum.attributes?.active === 'false' ? '#eef0f3' : '#eaf1ff'} stroke="#9bb4e8" />
-                    <text textAnchor="middle" y="-2" fill="#203047" fontSize="12" fontWeight="700">{getNodeTitle(nodeDatum.name)}</text>
-                    <text textAnchor="middle" y="15" fill="#657188" fontSize="10">{nodeDatum.attributes?.active === 'false' ? 'Inactif' : 'Poste vacant'}</text>
-                  </g>
-                )} />}
+              <>
+                {treeQuery.isLoading && <Typography>Chargement de l’organigramme…</Typography>}
+                {!treeQuery.isLoading && !treeQuery.data?.length && <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Aucun poste créé. Ajoutez le premier poste dans le panneau de droite.</Typography>}
+                {!treeQuery.isLoading && !!treeQuery.data?.length && (
+                  <Tree data={treeQuery.data} orientation="vertical" translate={{ x: 360, y: 65 }} pathFunc="step" separation={{ siblings: 1.2, nonSiblings: 1.5 }} nodeSize={{ x: 230, y: 105 }} renderCustomNodeElement={({ nodeDatum }) => (
+                    <g>
+                      <rect x="-92" y="-27" width="184" height="54" rx="9" fill={nodeDatum.attributes?.active === 'false' ? '#eef0f3' : '#eaf1ff'} stroke="#9bb4e8" />
+                      <text textAnchor="middle" y="-2" fill="#203047" fontSize="12" fontWeight="700">{getNodeTitle(nodeDatum.name)}</text>
+                      <text textAnchor="middle" y="15" fill="#657188" fontSize="10">{nodeDatum.attributes?.active === 'false' ? 'Inactif' : 'Poste vacant'}</text>
+                    </g>
+                  )} />
+                )}
+              </>
             </div>
           ) : (
             <>
