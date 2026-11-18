@@ -56,7 +56,7 @@ type WorkspaceSummary = { userId: string; projects: WorkspaceProjectSummary[] };
 type PersonalOrganizationWorkspace = {
   userId: string;
   assignments: Array<{ id: string; positionId: string; code: string; title: string; description: string | null; functionId: string | null }>;
-  manager: { positionId: string; positionTitle: string; managerUserId: string | null } | null;
+  managers: Array<{ positionId: string; positionTitle: string; managerUserId: string | null }>;
   projects: Array<{ id: string; name: string; description: string | null; role: 'viewer' | 'modeler' | 'admin' }>;
   tasks: Array<{ projectId: string; projectName: string; projectPositionId: string; projectPositionTitle: string; actorName: string; taskId: string; taskName: string; resourceId: string; processName: string; role: 'R' | 'A' | 'C' | 'I' }>;
 };
@@ -484,10 +484,14 @@ export const Component = () => {
                     ) : (
                       <Alert color="neutral" variant="soft">Aucun poste permanent ne vous est actuellement affecté. Vos projets et rôles spécifiques restent accessibles ci-dessous.</Alert>
                     )}
-                    {personalOrganizationQuery.data.manager && (
-                      <Typography level="body-sm" color="neutral">
-                        Responsable hiérarchique : {personalOrganizationQuery.data.manager.managerUserId || 'titulaire non renseigné'} · {personalOrganizationQuery.data.manager.positionTitle}
-                      </Typography>
+                    {personalOrganizationQuery.data.managers.length > 0 && (
+                      <Stack spacing={0.25}>
+                        {personalOrganizationQuery.data.managers.map(manager => (
+                          <Typography key={manager.positionId} level="body-sm" color="neutral">
+                            Responsable hiérarchique : {manager.managerUserId || 'titulaire non renseigné'} · {manager.positionTitle}
+                          </Typography>
+                        ))}
+                      </Stack>
                     )}
                     <Divider />
                     <Typography level="title-sm">Mes responsabilités RACI</Typography>
