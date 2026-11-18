@@ -464,7 +464,7 @@ export const Component = () => {
               )}
 
               <Card variant="outlined" sx={{ gap: 1.25 }}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap">
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ flexWrap: 'wrap' }}>
                   <Box>
                     <Typography level="title-lg">Mon organisation & mes responsabilités</Typography>
                     <Typography level="body-sm" color="neutral">Votre poste permanent et les rôles qui vous sont associés dans les projets.</Typography>
@@ -498,7 +498,7 @@ export const Component = () => {
                         {personalOrganizationQuery.data.tasks.slice(0, 6).map((task, index) => (
                           <Stack key={`${task.projectId}-${task.resourceId}-${task.taskId}-${index}`} direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" spacing={1}>
                             <Box sx={{ minWidth: 0 }}>
-                              <Typography level="body-sm" fontWeight="lg">{task.taskName}</Typography>
+                              <Typography level="body-sm" sx={{ fontWeight: 700 }}>{task.taskName}</Typography>
                               <Typography level="body-xs" color="neutral">{task.projectName} · {task.processName} · {task.projectPositionTitle}</Typography>
                             </Box>
                             <Stack direction="row" spacing={1} alignItems="center">
