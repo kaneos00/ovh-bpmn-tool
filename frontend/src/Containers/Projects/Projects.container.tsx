@@ -19,7 +19,7 @@ import {
   TabPanel,
   Tabs,
   Typography,
-} from '@mui/joy';
+, Divider} from '@mui/joy';
 import { apiClient } from '../../queryClient';
 import { resourcesQuery } from '../../api/resources/resources.queries';
 import { contentsQuery } from '../../api/contents/contents.queries';
