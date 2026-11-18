@@ -1075,6 +1075,9 @@ test('project documented information uses canonical sources and retains the proj
   assert.ok(inventory.includes('type ProjectDocumentedSource'));
   assert.ok(inventory.includes('unlinkedReferences'));
   assert.ok(inventory.includes('/references'));
+  assert.ok(controller.includes('const hasReferenceFields = Boolean('));
+  assert.ok(controller.includes('const reference = hasReferenceFields'));
+  assert.ok(controller.includes('if (!reference) return { ...source, references: [] }'));
   assert.ok(inventory.includes('Date limite de validité'));
   assert.ok(inventory.includes('validUntil: row.validUntil || null'));
   assert.ok(inventory.includes("'À compléter'"));
