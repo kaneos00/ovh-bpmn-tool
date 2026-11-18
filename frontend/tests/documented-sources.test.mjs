@@ -41,7 +41,7 @@ test('validity limit is optional, editable with a date picker and persisted as a
   assert.match(projectGrid, /headerName: 'Date limite de validité', field: 'validUntil'/);
   assert.match(entity, /@Column\(\{ type: 'date', nullable: true \}\)\s+validUntil: string \| null/);
   assert.match(controller, /optionalDate\(body\.validUntil\)/);
-  assert.match(controller, /!\/\^\\\\d\{4\}-\\\\d\{2\}-\\\\d\{2\}\$\/\.test\(value\)/, 'validity date must use digit escapes rather than a literal backslash');
+  assert.match(controller, /!\/\^\\d\{4\}-\\d\{2\}-\\d\{2\}\$\/\.test\(value\)/, 'validity date must use digit escapes rather than a literal backslash');
   assert.match(migration, /ADD COLUMN IF NOT EXISTS "validUntil" date/);
 });
 
