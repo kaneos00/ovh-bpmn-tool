@@ -257,8 +257,15 @@ export class JobArchitectureService {
     }
   }
 
-  async listOrganizationPositionsForProject(projectId: string, headers: RequestHeaders) {
-    await this.projectAccess.assertProjectRole(projectId, headers, ProjectMemberRole.Viewer);
+  async listOrganizationPositionsForProject(
+    projectId: string,
+    headers: RequestHeaders,
+  ) {
+    await this.projectAccess.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Viewer,
+    );
     return this.organizationPositions.find({
       where: { active: true },
       select: { id: true, code: true, title: true, description: true },
@@ -287,7 +294,9 @@ export class JobArchitectureService {
       this.organizationPositions.find(),
     ]);
 
-    const organizationById = new Map(organizationRows.map((item) => [item.id, item]));
+    const organizationById = new Map(
+      organizationRows.map((item) => [item.id, item]),
+    );
     const functionById = new Map(functionRows.map((item) => [item.id, item]));
     const blocksByPosition = new Map<
       string,
@@ -302,7 +311,9 @@ export class JobArchitectureService {
     return positions.map((position) => ({
       ...position,
       function: functionById.get(position.functionId) ?? null,
-      organizationPosition: position.organizationPositionId ? organizationById.get(position.organizationPositionId) ?? null : null,
+      organizationPosition: position.organizationPositionId
+        ? (organizationById.get(position.organizationPositionId) ?? null)
+        : null,
       competencyBlocks: blocksByPosition.get(position.id) ?? [],
     }));
   }
@@ -329,9 +340,17 @@ export class JobArchitectureService {
     if (!jobFunction) throw new NotFoundException('Job function not found');
 
     const title = this.requiredText(input.title, 'title', 255);
-    const organizationPositionId = input.organizationPositionId?.trim() || null;
-    if (organizationPositionId && !(await this.organizationPositions.findOne({ where: { id: organizationPositionId, active: true } }))) {
-      throw new NotFoundException('Active permanent organization position not found');
+    const organizationPositionId =
+      input.organizationPositionId?.trim() || null;
+    if (
+      organizationPositionId &&
+      !(await this.organizationPositions.findOne({
+        where: { id: organizationPositionId, active: true },
+      }))
+    ) {
+      throw new NotFoundException(
+        'Active permanent organization position not found',
+      );
     }
     const functionLinks = await this.functionBlocks.find({
       where: { functionId },
@@ -397,14 +416,24 @@ export class JobArchitectureService {
     organizationPositionId: string | null,
     headers: RequestHeaders,
   ) {
-    await this.projectAccess.assertProjectRole(projectId, headers, ProjectMemberRole.Modeler);
-    const position = await this.positions.findOne({ where: { id: positionId, projectId, active: true } });
+    await this.projectAccess.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Modeler,
+    );
+    const position = await this.positions.findOne({
+      where: { id: positionId, projectId, active: true },
+    });
     if (!position) throw new NotFoundException('Project job position not found');
     if (organizationPositionId) {
       const organizationPosition = await this.organizationPositions.findOne({
         where: { id: organizationPositionId, active: true },
       });
-      if (!organizationPosition) throw new NotFoundException('Active permanent organization position not found');
+      if (!organizationPosition) {
+        throw new NotFoundException(
+          'Active permanent organization position not found',
+        );
+      }
     }
     position.organizationPositionId = organizationPositionId;
     return this.positions.save(position);
