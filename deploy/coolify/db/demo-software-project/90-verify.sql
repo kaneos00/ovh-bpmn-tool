@@ -10,7 +10,7 @@ BEGIN
   IF n <> 22 THEN RAISE EXCEPTION 'Expected 22 BPMN processes, got %', n; END IF;
 
   SELECT count(*) INTO n FROM project_raci_entries WHERE "projectId"='a1000000-0000-4000-8000-000000000001';
-  IF n <> 377 THEN RAISE EXCEPTION 'Expected 377 RACI entries, got %', n; END IF;
+  IF n <> 383 THEN RAISE EXCEPTION 'Expected 383 RACI entries, got %', n; END IF;
 
   SELECT count(*) INTO n FROM project_raci_actors WHERE "projectId"='a1000000-0000-4000-8000-000000000001';
   IF n <> 24 THEN RAISE EXCEPTION 'Expected 24 RACI actors, got %', n; END IF;
@@ -22,7 +22,7 @@ BEGIN
   IF n <> 17 THEN RAISE EXCEPTION 'Expected 17 position/RACI mappings, got %', n; END IF;
 
   SELECT count(*) INTO n FROM position_activity_mappings WHERE "projectId"='a1000000-0000-4000-8000-000000000001';
-  IF n <> 150 THEN RAISE EXCEPTION 'Expected 150 position/activity mappings, got %', n; END IF;
+  IF n <> 153 THEN RAISE EXCEPTION 'Expected 153 position/activity mappings, got %', n; END IF;
 
   SELECT count(*) INTO n
   FROM contents c
