@@ -33,8 +33,6 @@ describe('ResourceTypeOrmRepository.delete', () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
         { id: 'root' },
         { id: 'child' },
@@ -63,25 +61,13 @@ describe('ResourceTypeOrmRepository.delete', () => {
     );
     expect(manager.query).toHaveBeenNthCalledWith(
       4,
-      expect.stringContaining('UPDATE resources SET "sourceResourceId" = NULL'),
-      [['root', 'child', 'grandchild']],
-    );
-    expect(manager.query).toHaveBeenNthCalledWith(
-      5,
-      expect.stringContaining(
-        'UPDATE project_processes SET "sourceResourceId" = NULL',
-      ),
-      [['root', 'child', 'grandchild']],
-    );
-    expect(manager.query).toHaveBeenNthCalledWith(
-      6,
       expect.stringContaining(
         'DELETE FROM project_processes WHERE "resourceId"',
       ),
       [['root', 'child', 'grandchild']],
     );
     expect(manager.query).toHaveBeenNthCalledWith(
-      7,
+      5,
       expect.stringContaining('DELETE FROM resources'),
       [['root', 'child', 'grandchild']],
     );
@@ -114,25 +100,13 @@ describe('ResourceTypeOrmRepository.delete', () => {
     );
     expect(manager.query).toHaveBeenNthCalledWith(
       5,
-      expect.stringContaining('UPDATE resources SET "sourceResourceId" = NULL'),
-      [['folder']],
-    );
-    expect(manager.query).toHaveBeenNthCalledWith(
-      6,
-      expect.stringContaining(
-        'UPDATE project_processes SET "sourceResourceId" = NULL',
-      ),
-      [['folder']],
-    );
-    expect(manager.query).toHaveBeenNthCalledWith(
-      7,
       expect.stringContaining(
         'DELETE FROM project_processes WHERE "resourceId"',
       ),
       [['folder']],
     );
     expect(manager.query).toHaveBeenNthCalledWith(
-      8,
+      6,
       expect.stringContaining('DELETE FROM resources'),
       [['folder']],
     );
@@ -171,9 +145,6 @@ describe('ResourceTypeOrmRepository.delete', () => {
       .mockResolvedValueOnce([{ id: 'root' }])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([]);
 
     const result = await repository.delete('root');
@@ -181,7 +152,7 @@ describe('ResourceTypeOrmRepository.delete', () => {
     expect(result.ok).toBeNull();
     expect(result.fail).toBeInstanceOf(Error);
     expect(resourceRepository.manager.transaction).toHaveBeenCalledTimes(1);
-    expect(manager.query).toHaveBeenCalledTimes(7);
+    expect(manager.query).toHaveBeenCalledTimes(5);
   });
 });
 
