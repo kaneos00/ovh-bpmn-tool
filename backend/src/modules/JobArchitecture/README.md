@@ -73,3 +73,18 @@ A RACI actor must already exist and be active in the same project. An activity m
 Competency-level expected values are project overrides. If no override exists, the effective level inherits the block-level requirement, then the function reference level. Setting the override to `null` removes the override and restores inheritance.
 
 Current limitation: the supplied BPMN `taskId` is stored as the stable BPMN element identifier but is not yet checked against the BPMN XML payload. Diagnostics therefore identify missing RACI-to-position links and required blocks without activity mappings; they do not claim to validate XML element existence. Person assignment remains out of scope for this slice.
+
+
+## Permanent organization structure (phase 1 foundation)
+
+The separate `OrganizationStructureModule` owns the permanent company positions. It is deliberately distinct from project-specific positions in this module:
+
+- `organization_positions` stores title, optional description, optional reference to a job function, one optional parent position, ordering and active state;
+- a position has no person/incumbent field; named assignments are a later phase;
+- `GET /organization/positions` returns flat rows and `GET /organization/positions/tree` returns a nested hierarchy;
+- organization administrators can create positions, edit them and activate/deactivate them through the `/organization/positions` endpoints;
+- self-parenting and reporting cycles are rejected; an active child prevents deactivation of its parent;
+- deactivation is soft; no position is physically deleted;
+- this module does not write to project RACI, project BPMN resources or project job positions.
+
+The database migration is `20261118_v3_organization_positions.sql`. Frontend administration and automated tests remain follow-up work for this phase; this backend foundation must not be treated as a completed user-facing feature until those are delivered and CI passes.
