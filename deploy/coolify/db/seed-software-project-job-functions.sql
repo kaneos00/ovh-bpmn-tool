@@ -138,12 +138,3 @@ INSERT INTO job_function_activity_sections (id,"createdBy","functionId",code,tit
 ('88000000-0000-4000-8000-000000000015','demo-seed','84000000-0000-4000-8000-000000000015','ACT-01','Animation et amélioration continue','["Préparer et faciliter rituels et ateliers d''équipe","Rendre visibles avancement, obstacles, dépendances et décisions","Aider à clarifier et découper les éléments du backlog","Favoriser coopération, autonomie et résolution collective","Mesurer flux, prévisibilité et amélioration de l''équipe","Accompagner l''adaptation des pratiques au contexte projet"]::jsonb',1)
 ON CONFLICT (id) DO UPDATE SET title=EXCLUDED.title,tasks=EXCLUDED.tasks,"sortOrder"=EXCLUDED."sortOrder";
 
--- Link permanent organization positions to their reference function sheets.
-UPDATE organization_positions SET "functionId"=CASE code
-WHEN 'ORG-DO' THEN '84000000-0000-4000-8000-000000000001'::uuid
-WHEN 'ORG-DT' THEN '84000000-0000-4000-8000-000000000002'::uuid
-WHEN 'ORG-CDP' THEN '84000000-0000-4000-8000-000000000003'::uuid
-WHEN 'ORG-DEVLEAD' THEN '84000000-0000-4000-8000-000000000006'::uuid
-WHEN 'ORG-DEV' THEN '84000000-0000-4000-8000-000000000007'::uuid
-WHEN 'ORG-QA' THEN '84000000-0000-4000-8000-000000000009'::uuid
-ELSE "functionId" END WHERE code IN ('ORG-DO','ORG-DT','ORG-CDP','ORG-DEVLEAD','ORG-DEV','ORG-QA');
