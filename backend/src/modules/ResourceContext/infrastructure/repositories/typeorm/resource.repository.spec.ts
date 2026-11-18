@@ -80,8 +80,6 @@ describe('ResourceTypeOrmRepository.delete', () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([{ id: 'folder' }]);
 
     await expect(repository.delete('folder')).resolves.toEqual({
