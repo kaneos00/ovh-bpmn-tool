@@ -109,12 +109,19 @@ export class ResourceTypeOrmRepository implements ResourceRepository {
           [deletableIds],
         );
 
-        const deletedResources: Array<{ id: string }> = await manager.query(
-          'DELETE FROM resources WHERE id = ANY($1::uuid[]) RETURNING id',
+        // TypeORM's PostgreSQL driver may return a command result object
+        // for DELETE ... RETURNING rather than a plain row array. Verify the
+        // invariant with a regular SELECT instead of relying on that shape.
+        await manager.query(
+          'DELETE FROM resources WHERE id = ANY($1::uuid[])',
+          [deletableIds],
+        );
+        const remainingResources: Array<{ id: string }> = await manager.query(
+          'SELECT id FROM resources WHERE id = ANY($1::uuid[])',
           [deletableIds],
         );
 
-        if (deletedResources?.length !== deletableIds.length) {
+        if (remainingResources?.length) {
           throw new Error(
             'Error while deleting the complete resource hierarchy',
           );
