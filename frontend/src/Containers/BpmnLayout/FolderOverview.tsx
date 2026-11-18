@@ -11,6 +11,10 @@ import {
   Stack,
   Textarea,
   Typography,
+  Tabs,
+  TabList,
+  Tab,
+  TabPanel,
 } from '@mui/joy';
 import { CloseRounded, EditRounded, FolderOutlined, SaveRounded } from '@mui/icons-material';
 
@@ -18,6 +22,7 @@ import { resourcesQuery } from '../../api/resources/resources.queries';
 import { apiClient } from '../../queryClient';
 import { useActiveProject } from '../../shared/hooks/useActiveProject';
 import { ProjectProcessOverview } from './ProjectProcessOverview';
+import { ProjectDocumentedSources } from '../../Components/BusinessComponents/ProcessDetails/ProjectDocumentedSources';
 import { ResourceType } from '../../shared/types/BpmnResource';
 import type { Resource } from '../../Types';
 import { getProjectTrigram } from '../../shared/helpers/projectTrigram';
@@ -123,6 +128,12 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
   if (resourceId === 'root' && activeProject) {
     const rootFolders = children.filter(child => child.type === ResourceType.Folder);
     return (
+      <Tabs defaultValue="overview" sx={{ minWidth: 0 }}>
+        <TabList variant="soft" color="neutral" sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+          <Tab value="overview">Vue d’ensemble</Tab>
+          <Tab value="documented">Informations documentées</Tab>
+        </TabList>
+        <TabPanel value="overview" sx={{ px: 0, py: 1 }}>
       <Stack spacing={1.5} sx={{ minWidth: 0 }}>
         {resources.isError && (
           <Alert color="warning" variant="soft">
@@ -258,6 +269,11 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
           </Card>
         )}
       </Stack>
+        </TabPanel>
+        <TabPanel value="documented" sx={{ px: 0, py: 1 }}>
+          <ProjectDocumentedSources projectId={activeProjectId!} canManage={activeProject.role === 'admin'} />
+        </TabPanel>
+      </Tabs>
     );
   }
 
