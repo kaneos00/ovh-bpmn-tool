@@ -67,7 +67,7 @@ async function resolveHomeLanding() {
     if (reason instanceof Response) throw reason;
     // Keep the established landing page when preferences cannot be loaded.
   }
-  throw redirect('/root');
+  throw redirect('/projects');
 }
 
 async function redirectLegacyAccounts({ request }: { request: Request }) {
