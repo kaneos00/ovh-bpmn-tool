@@ -69,7 +69,8 @@ export const Component = () => {
         </Stack>
         {overviewQuery.isError && <Alert color="danger">Impossible de charger l’organigramme.</Alert>}
         <Card variant="outlined" sx={{ minHeight: 560, overflow: 'hidden', p: 1 }}>
-          {overviewQuery.isLoading ? <Typography>Chargement de l’organisation…</Typography> : positions.length ? (
+          {overviewQuery.isLoading && <Typography>Chargement de l’organisation…</Typography>}
+          {!overviewQuery.isLoading && positions.length > 0 && (
             <Box sx={{ width: '100%', height: 600 }}>
               <Tree
                 data={treeData}
@@ -93,7 +94,8 @@ export const Component = () => {
                 )}
               />
             </Box>
-          ) : (
+          )}
+          {!overviewQuery.isLoading && positions.length === 0 && (
             <Stack alignItems="center" justifyContent="center" sx={{ minHeight: 480 }} spacing={1}>
               <Typography level="h3">Aucun poste créé</Typography>
               <Button onClick={() => navigate('/organization/positions')}>Créer les premiers postes</Button>
