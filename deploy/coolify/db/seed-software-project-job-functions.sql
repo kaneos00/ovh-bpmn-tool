@@ -138,3 +138,26 @@ INSERT INTO job_function_activity_sections (id,"createdBy","functionId",code,tit
 ('88000000-0000-4000-8000-000000000015','demo-seed','84000000-0000-4000-8000-000000000015','ACT-01','Animation et amélioration continue','["Préparer et faciliter rituels et ateliers d''équipe","Rendre visibles avancement, obstacles, dépendances et décisions","Aider à clarifier et découper les éléments du backlog","Favoriser coopération, autonomie et résolution collective","Mesurer flux, prévisibilité et amélioration de l''équipe","Accompagner l''adaptation des pratiques au contexte projet"]::jsonb',1)
 ON CONFLICT (id) DO UPDATE SET title=EXCLUDED.title,tasks=EXCLUDED.tasks,"sortOrder"=EXCLUDED."sortOrder";
 
+
+-- Complementary roles for documentation and application support/maintenance.
+INSERT INTO job_functions (id,"createdBy",code,name,description,"reportingLine","otherTitles","documentDate","documentVersion","establishedBy","validatedBy",mission,active) VALUES
+ ('84000000-0000-4000-8000-000000000016','demo-seed','DOC','Rédacteur technique et documentaire','Produit et maintient la documentation utilisateur, technique et d exploitation de la solution.','Chef de projet ou responsable développement','["Technical Writer","Documentaliste projet"]'::jsonb,DATE '2026-11-18','1.0','Référentiel de démonstration','À valider par la direction','Garantir une documentation exacte, accessible, cohérente avec le produit et maintenue au fil des versions.',TRUE),
+ ('84000000-0000-4000-8000-000000000017','demo-seed','SUPPORT','Ingénieur support et maintenance applicative','Assure le support, le diagnostic et la maintenance corrective et évolutive de la solution après livraison.','Directeur des opérations ou responsable développement','["Application Support Engineer","Maintenance Engineer"]'::jsonb,DATE '2026-11-18','1.0','Référentiel de démonstration','À valider par la direction','Maintenir le service en conditions opérationnelles, traiter les incidents et organiser la maintenance de la solution.',TRUE)
+ON CONFLICT (id) DO UPDATE SET code=EXCLUDED.code,name=EXCLUDED.name,description=EXCLUDED.description,"reportingLine"=EXCLUDED."reportingLine","otherTitles"=EXCLUDED."otherTitles",mission=EXCLUDED.mission,active=TRUE;
+
+INSERT INTO job_function_competency_blocks (id,"createdBy","functionId","blockId","sortOrder") VALUES
+ ('87000000-0000-4000-8000-000000000144','demo-seed','84000000-0000-4000-8000-000000000016','85000000-0000-4000-8000-000000000002',1),
+ ('87000000-0000-4000-8000-000000000145','demo-seed','84000000-0000-4000-8000-000000000016','85000000-0000-4000-8000-000000000006',2),
+ ('87000000-0000-4000-8000-000000000146','demo-seed','84000000-0000-4000-8000-000000000016','85000000-0000-4000-8000-000000000010',3),
+ ('87000000-0000-4000-8000-000000000147','demo-seed','84000000-0000-4000-8000-000000000017','85000000-0000-4000-8000-000000000007',1),
+ ('87000000-0000-4000-8000-000000000148','demo-seed','84000000-0000-4000-8000-000000000017','85000000-0000-4000-8000-000000000004',2),
+ ('87000000-0000-4000-8000-000000000149','demo-seed','84000000-0000-4000-8000-000000000017','85000000-0000-4000-8000-000000000005',3),
+ ('87000000-0000-4000-8000-000000000150','demo-seed','84000000-0000-4000-8000-000000000017','85000000-0000-4000-8000-000000000010',4)
+ON CONFLICT (id) DO UPDATE SET "functionId"=EXCLUDED."functionId","blockId"=EXCLUDED."blockId","sortOrder"=EXCLUDED."sortOrder";
+
+INSERT INTO job_function_activity_sections (id,"createdBy","functionId",code,title,tasks,"sortOrder") VALUES
+ ('88000000-0000-4000-8000-000000000016','demo-seed','84000000-0000-4000-8000-000000000016','ACT-01','Documentation technique et utilisateur',
+  '["Définir le plan de documentation et les publics cibles","Rédiger guides utilisateur, procédures, aide en ligne et notes de version","Documenter architecture, interfaces, installation et exploitation avec les experts","Vérifier exactitude, cohérence, accessibilité et versionnement des contenus","Organiser les revues documentaires et intégrer les retours utilisateurs"]'::jsonb,1),
+ ('88000000-0000-4000-8000-000000000017','demo-seed','84000000-0000-4000-8000-000000000017','ACT-01','Support et maintien en conditions opérationnelles',
+  '["Qualifier les demandes, incidents et problèmes et appliquer les niveaux de service","Diagnostiquer les incidents et coordonner leur résolution avec les équipes techniques","Réaliser ou piloter les corrections et mises à jour de maintenance","Maintenir la base de connaissances, procédures de support et consignes d exploitation","Analyser les incidents récurrents et proposer des actions préventives","Organiser le transfert entre projet, exploitation et support"]'::jsonb,1)
+ON CONFLICT (id) DO UPDATE SET title=EXCLUDED.title,tasks=EXCLUDED.tasks,"sortOrder"=EXCLUDED."sortOrder";
