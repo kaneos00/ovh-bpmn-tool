@@ -156,10 +156,9 @@ export class OrganizationService {
     const startDate = this.date(input.startDate, 'startDate');
     return this.db.transaction(async (manager) => {
       for (const positionId of positionIds) {
-        await manager.query(
-          'SELECT pg_advisory_xact_lock(hashtext($1))',
-          [positionId],
-        );
+        await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+          positionId,
+        ]);
       }
       const activePositions = await manager
         .getRepository(OrganizationPositionTypeOrmEntity)
