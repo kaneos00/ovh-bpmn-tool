@@ -107,7 +107,6 @@ export const DataInventory = ({
   projectId,
   resourceId,
   requestedDocumentedSourceId,
-  requestedElementId,
   canManageSources = false,
   onElementSelect,
   onShowDiagram,
