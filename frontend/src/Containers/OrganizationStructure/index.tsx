@@ -147,7 +147,10 @@ export const Component = () => {
           <Chip color="primary" variant="soft">{positions.length} poste(s)</Chip>
         </Box>
 
-        {error && <Alert color="danger" onClose={() => setError('')}>{error}</Alert>}
+        {error && <Alert color="danger">
+          {error}
+          <Button size="sm" variant="plain" onClick={() => setError('')}>Fermer</Button>
+        </Alert>}
         {overviewQuery.isLoading && <Typography>Chargement de l’organisation…</Typography>}
         {overviewQuery.isError && <Alert color="danger">Impossible de charger l’organigramme.</Alert>}
 
