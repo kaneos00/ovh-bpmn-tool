@@ -187,7 +187,10 @@ describe('ProjectResourceAccessService proposal editing', () => {
       .mockResolvedValueOnce([{ resourceId: 'variant-1' }]);
 
     await expect(
-      service.assertCanDeleteResource('source-1', new Set(['folder-1', 'source-1'])),
+      service.assertCanDeleteResource(
+        'source-1',
+        new Set(['folder-1', 'source-1']),
+      ),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
