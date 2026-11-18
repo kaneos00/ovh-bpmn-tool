@@ -161,11 +161,16 @@ export const WorkspaceNavigation = () => {
     const raciPage = new URLSearchParams(location.search).get('raci') === '1' ||
       new URLSearchParams(location.search).get('tab') === 'raci';
     const heading = document.querySelector('main h1, main h2, [role="main"] h1, [role="main"] h2')?.textContent?.trim();
-    const label = raciPage ? 'Responsabilités / RACI'
-      : heading || (pathname === '/root' ? 'Explorer les processus'
-        : pathname.startsWith('/projects/') ? 'Projet'
-          : pathname === '/search' ? 'Résultats de recherche'
-            : `Page ${pathname.split('/').filter(Boolean).pop() || ''}`);
+    let label = heading || `Page ${pathname.split('/').filter(Boolean).pop() || ''}`;
+    if (raciPage) {
+      label = 'Responsabilités / RACI';
+    } else if (pathname === '/root') {
+      label = 'Explorer les processus';
+    } else if (pathname.startsWith('/projects/')) {
+      label = 'Projet';
+    } else if (pathname === '/search') {
+      label = 'Résultats de recherche';
+    }
     const entry = { key: location.key, href, label, visitedAt: Date.now() };
     recordNavigation(entry, navigationType);
     recordRecentPage(entry);
