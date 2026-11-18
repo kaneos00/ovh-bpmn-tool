@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from 'react-query';
 import { Alert, Box, Button, FormControl, FormLabel, Input, Modal, ModalDialog, Option, Select, Stack, Typography } from '@mui/joy';
-import { AddRounded, DescriptionOutlined, StorageRounded } from '@mui/icons-material';
+import { AddRounded, AppsRounded, DescriptionOutlined, StorageRounded } from '@mui/icons-material';
 import type { CellValueChangedEvent, ColDef } from 'ag-grid-community';
 import { DocumentedSourcesGrid } from './DocumentedSourcesGrid';
 import { apiClient } from '../../../queryClient';
@@ -24,6 +24,7 @@ type GridRow = {
 
 const kindLabels: Record<SourceKind, string> = { file: 'Fichier', database: 'Base de données', application: 'Application' };
 const objectIcon = (type: string) => type === 'dataStoreReference' ? <StorageRounded fontSize="small" /> : <DescriptionOutlined fontSize="small" />;
+const kindIcon = (kind: SourceKind) => kind === 'database' ? <StorageRounded fontSize="small" /> : kind === 'application' ? <AppsRounded fontSize="small" /> : <DescriptionOutlined fontSize="small" />;
 
 export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: string; canManage: boolean }) => {
   const navigate = useNavigate();
@@ -76,16 +77,16 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
   };
 
   const columns: ColDef<GridRow>[] = [
-    { headerName: 'Type', field: 'kind', minWidth: 125, editable: canManage, cellEditor: 'agSelectCellEditor', cellEditorParams: { values: ['file', 'database', 'application'] }, valueFormatter: p => kindLabels[p.value as SourceKind] ?? '' },
+    { headerName: 'Type', field: 'kind', minWidth: 145, editable: canManage, cellEditor: 'agSelectCellEditor', cellEditorParams: { values: ['file', 'database', 'application'] }, valueFormatter: p => kindLabels[p.value as SourceKind] ?? '', cellRenderer: (p: { value?: SourceKind }) => p.value ? <Stack direction="row" spacing={0.75} alignItems="center">{kindIcon(p.value)}<span>{kindLabels[p.value]}</span></Stack> : null },
     { headerName: 'Nom', field: 'name', minWidth: 180, editable: canManage },
     { headerName: 'Description', field: 'description', minWidth: 220, editable: canManage },
     { headerName: 'Objet BPMN', minWidth: 250, editable: false, autoHeight: true,
-      cellRenderer: (p: { data?: GridRow }) => p.data ? <Stack spacing={0.25}>{p.data.references.length ? p.data.references.map(ref => <Button key={ref.id} size="sm" variant="plain" color="neutral" startDecorator={objectIcon(ref.elementType)} sx={{ justifyContent: 'flex-start', whiteSpace: 'normal', textAlign: 'left' }} onClick={() => navigate(`/${ref.resourceId}?elementId=${encodeURIComponent(ref.elementId)}`)}>{ref.elementName} <Typography level="body-xs" color="neutral">— {ref.processName}</Typography></Button>) : <Typography level="body-sm" color="neutral">Non associé</Typography>}</Stack> : null },
+      cellRenderer: (p: { data?: GridRow }) => p.data ? <Stack spacing={0.25}>{p.data.references.length ? p.data.references.map(ref => <Stack key={ref.id} direction="row" spacing={0.5} alignItems="center"><Button size="sm" variant="plain" color="neutral" startDecorator={objectIcon(ref.elementType)} sx={{ justifyContent: 'flex-start', whiteSpace: 'normal', textAlign: 'left', flex: 1 }} onClick={() => navigate(`/${ref.resourceId}?elementId=${encodeURIComponent(ref.elementId)}`)}>{ref.elementName} <Typography level="body-xs" color="neutral">— {ref.processName}</Typography></Button>{canManage && <Button size="sm" variant="plain" color="danger" onClick={async () => { try { await apiClient.remove(`/projects/${projectId}/documented-sources/${p.data!.sourceId}/references/${ref.id}`); await queryClient.invalidateQueries(queryKey); } catch (e) { setError(e instanceof Error ? e.message : 'Impossible de délier cet objet BPMN.'); } }}>Délier</Button>}</Stack>) : <Typography level="body-sm" color="neutral">Non associé</Typography>}</Stack> : null },
     { headerName: 'Statut projet', field: 'projectStatus', minWidth: 130, editable: false },
     { headerName: 'Lien', field: 'link', minWidth: 170, editable: canManage },
     { headerName: 'Emplacement', field: 'location', minWidth: 150, editable: canManage },
     { headerName: 'Accès', field: 'access', minWidth: 140, editable: canManage },
-    { headerName: 'Date limite de validité', field: 'validUntil', minWidth: 175, editable: canManage, cellEditor: 'agTextCellEditor', valueFormatter: p => p.value || 'Sans limite' },
+    { headerName: 'Date limite de validité', field: 'validUntil', minWidth: 175, editable: canManage, cellEditor: 'agTextCellEditor' },
     { headerName: 'Personne autorisée', field: 'authorizedPeople', minWidth: 170, editable: canManage },
     { headerName: 'Restrictions', field: 'restrictions', minWidth: 190, editable: canManage },
   ];
