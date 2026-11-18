@@ -7,14 +7,14 @@ import path from 'node:path';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = relativePath => readFile(path.join(root, relativePath), 'utf8');
 
-test('the project workspace is the only project landing page and Viewer shell', async () => {
+test('the optional personalized home coexists with the project workspace and Viewer shell', async () => {
   const routes = await read('src/routes.tsx');
   const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
   const redirect = await read('src/Containers/ProjectWorkspaceRedirect/index.tsx');
   const overview = await read('src/Containers/BpmnLayout/FolderOverview.tsx');
 
-  assert.match(routes, /path: '\/'\s*,\s*loader: \(\) => redirect\('\/root'\)/);
-  assert.match(routes, /path: '\/home'\s*,\s*loader: \(\) => redirect\('\/root'\)/);
+  assert.match(routes, /path: '\/'\s*,\s*loader: resolveHomeLanding/);
+  assert.match(routes, /path: '\/home'\s*,\s*lazy: \(\) => import\('\.\/Containers\/HomeDashboard'\)/);
   assert.match(routes, /path: '\/projects\/:projectId\/viewer'[\s\S]*?import\('\.\/Containers\/ProjectWorkspaceRedirect'\)/);
   assert.doesNotMatch(routes, /import\('\.\/Containers\/Home'\)/);
   assert.doesNotMatch(routes, /import\('\.\/Containers\/ProjectViewer'\)/);

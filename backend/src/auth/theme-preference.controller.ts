@@ -25,27 +25,49 @@ export class ThemePreferenceController {
   @Get()
   async getPreferences(@Req() request: Request) {
     const userId = await this.getAuthenticatedUserId(request);
-    const rows: Array<{ theme: ThemeMode }> = await this.db.query(
-      'SELECT theme FROM app_user_preferences WHERE user_id = $1',
+    const rows: Array<{
+      theme: ThemeMode;
+      home_dashboard_enabled: boolean;
+    }> = await this.db.query(
+      'SELECT theme, home_dashboard_enabled FROM app_user_preferences WHERE user_id = $1',
       [userId],
     );
-    return { theme: rows[0]?.theme ?? null };
+    return {
+      theme: rows[0]?.theme ?? null,
+      homeDashboardEnabled: Boolean(rows[0]?.home_dashboard_enabled),
+    };
   }
 
   @Put()
   async savePreferences(
     @Req() request: Request,
-    @Body() body: { theme?: unknown },
+    @Body() body: { theme?: unknown; homeDashboardEnabled?: unknown },
   ) {
     const userId = await this.getAuthenticatedUserId(request);
-    if (body?.theme !== 'light' && body?.theme !== 'dark') {
+    if (
+      body?.theme !== undefined &&
+      body.theme !== 'light' &&
+      body.theme !== 'dark'
+    ) {
       throw new BadRequestException('Préférence de thème invalide.');
     }
+    if (
+      (body?.homeDashboardEnabled !== undefined &&
+        typeof body.homeDashboardEnabled !== 'boolean') ||
+      (body?.theme === undefined && body?.homeDashboardEnabled === undefined)
+    ) {
+      throw new BadRequestException('Préférence utilisateur invalide.');
+    }
     await this.db.query(
-      'INSERT INTO app_user_preferences (user_id, theme, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (user_id) DO UPDATE SET theme = EXCLUDED.theme, updated_at = NOW()',
-      [userId, body.theme],
+      "INSERT INTO app_user_preferences (user_id, theme, home_dashboard_enabled, updated_at) VALUES ($1, COALESCE($2, 'light'), COALESCE($3, FALSE), NOW()) ON CONFLICT (user_id) DO UPDATE SET theme = COALESCE($2, app_user_preferences.theme), home_dashboard_enabled = COALESCE($3, app_user_preferences.home_dashboard_enabled), updated_at = NOW()",
+      [userId, body.theme ?? null, body.homeDashboardEnabled ?? null],
     );
-    return { theme: body.theme };
+    return {
+      ...(body.theme !== undefined ? { theme: body.theme } : {}),
+      ...(body.homeDashboardEnabled !== undefined
+        ? { homeDashboardEnabled: body.homeDashboardEnabled }
+        : {}),
+    };
   }
 
   @Get('search-sort')

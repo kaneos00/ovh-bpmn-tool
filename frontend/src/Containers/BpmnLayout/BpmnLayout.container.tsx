@@ -16,6 +16,7 @@ import {
   FolderActions,
 } from './components';
 import { isFolder, isRoot } from '../../shared/helpers/resource';
+import { NAVIGATION_HISTORY_EVENT, readNavigationHistory } from '../../shared/utils/navigationHistory';
 
 import type { BpmnLayoutRouteParams } from '.';
 import { ResourceType } from '../../shared/types/BpmnResource';
@@ -51,6 +52,14 @@ export const Component = () => {
   });
   const folderResizeCleanupRef = useRef<(() => void) | null>(null);
   const [folderExplorerCollapsed, setFolderExplorerCollapsed] = useState(false);
+  const [navigationHistory, setNavigationHistory] = useState(readNavigationHistory);
+
+  useEffect(() => {
+    const refreshHistory = () => setNavigationHistory(readNavigationHistory());
+    window.addEventListener(NAVIGATION_HISTORY_EVENT, refreshHistory);
+    refreshHistory();
+    return () => window.removeEventListener(NAVIGATION_HISTORY_EVENT, refreshHistory);
+  }, []);
 
   useEffect(() => {
     window.localStorage.setItem('bpmn-viewer-explorer-width', String(folderExplorerWidth));
@@ -223,6 +232,8 @@ export const Component = () => {
                                   collapsed={folderExplorerCollapsed}
                                   onToggle={() => setFolderExplorerCollapsed(value => !value)}
                                   showHistory
+                                  canGoBack={navigationHistory.index > 0}
+                                  canGoForward={navigationHistory.index >= 0 && navigationHistory.index < navigationHistory.entries.length - 1}
                                   onBack={() => navigate(-1)}
                                   onForward={() => navigate(1)}
                                 />

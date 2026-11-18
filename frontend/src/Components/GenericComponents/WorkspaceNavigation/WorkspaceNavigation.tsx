@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useNavigationType } from 'react-router-dom';
+import { recordNavigation, recordRecentPage } from '../../../shared/utils/navigationHistory';
 import { Box, Button, Input, List, Option, Select, Sheet, Stack, Typography } from '@mui/joy';
 import { HomeRounded, Search } from '@mui/icons-material';
 import { useActiveProject } from '../../../shared/hooks/useActiveProject';
@@ -142,6 +143,7 @@ export const WorkspaceNavigation = () => {
   }, []);
   const navigate = useNavigate();
   const location = useLocation();
+  const navigationType = useNavigationType();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [scope, setScope] = useState<SearchScope>('all');
@@ -152,6 +154,27 @@ export const WorkspaceNavigation = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement | null>(null);
   const { projects, activeProject, activeProjectId, setActiveProject, projectProcessIds, isLoading: projectsLoading } = useActiveProject();
+
+  useEffect(() => {
+    const pathname = location.pathname;
+    const href = `${pathname}${location.search}`;
+    const raciPage = new URLSearchParams(location.search).get('raci') === '1' ||
+      new URLSearchParams(location.search).get('tab') === 'raci';
+    const heading = document.querySelector('main h1, main h2, [role="main"] h1, [role="main"] h2')?.textContent?.trim();
+    let label = heading || `Page ${pathname.split('/').filter(Boolean).pop() || ''}`;
+    if (raciPage) {
+      label = 'Responsabilités / RACI';
+    } else if (pathname === '/root') {
+      label = 'Explorer les processus';
+    } else if (pathname.startsWith('/projects/')) {
+      label = 'Projet';
+    } else if (pathname === '/search') {
+      label = 'Résultats de recherche';
+    }
+    const entry = { key: location.key, href, label, visitedAt: Date.now() };
+    recordNavigation(entry, navigationType);
+    recordRecentPage(entry);
+  }, [location.key, location.pathname, location.search, navigationType]);
   // Folder names are not part of the unified search endpoint. Keep the small
   // folder supplement, but never let a folder-list failure disable process,
   // BPMN, role, RACI or documented-information search.
