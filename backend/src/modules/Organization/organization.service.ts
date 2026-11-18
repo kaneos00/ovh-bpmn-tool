@@ -272,9 +272,7 @@ export class OrganizationService {
       return await this.positions.save(position);
     } catch (error) {
       if ((error as { code?: string }).code === '23505') {
-        throw new ConflictException(
-          'A position with this code already exists',
-        );
+        throw new ConflictException('A position with this code already exists');
       }
       throw error;
     }
@@ -357,7 +355,10 @@ export class OrganizationService {
 
     try {
       return await this.db.transaction(async (manager) => {
-        await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [positionId]);
+        await manager.query(
+          'SELECT pg_advisory_xact_lock(hashtext($1))',
+          [positionId],
+        );
         const overlap = await manager
           .getRepository(OrganizationAssignmentTypeOrmEntity)
           .createQueryBuilder('assignment')
@@ -387,7 +388,10 @@ export class OrganizationService {
             userId,
             startDate,
             endDate,
-            note: typeof input.note === 'string' ? input.note.trim() || null : null,
+            note:
+              typeof input.note === 'string'
+                ? input.note.trim() || null
+                : null,
             createdBy: this.userId(headers),
           }),
         );
@@ -421,9 +425,7 @@ export class OrganizationService {
         ? null
         : this.date(input.endDate, 'endDate');
     if (endDate && endDate < assignment.startDate) {
-      throw new BadRequestException(
-        'endDate cannot be earlier than startDate',
-      );
+      throw new BadRequestException('endDate cannot be earlier than startDate');
     }
 
     assignment.endDate = endDate;
