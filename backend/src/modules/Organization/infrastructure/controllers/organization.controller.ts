@@ -18,6 +18,12 @@ type RequestHeaders = Record<string, string | undefined>;
 export class OrganizationController {
   constructor(private readonly organization: OrganizationService) {}
 
+  @Get('me/workspace')
+  @UseAcl()
+  getMyWorkspace(@Headers() headers: RequestHeaders) {
+    return this.organization.getMyWorkspace(headers);
+  }
+
   @Get('overview')
   @UseAcl()
   getOverview() {
