@@ -1,4 +1,4 @@
-import { ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource, Repository } from 'typeorm';
 import { ResourceTypeOrmEntity } from '../ResourceContext/infrastructure/entities/resource.ormEntity';
@@ -166,5 +166,28 @@ describe('ProjectResourceAccessService proposal editing', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
 
     expect(projectProcesses.find).not.toHaveBeenCalled();
+  });
+
+  it('allows deleting a source when all dependent variants are in the same deleted tree', async () => {
+    projectProcesses.find
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ resourceId: 'variant-1' }]);
+
+    await expect(
+      service.assertCanDeleteResource(
+        'source-1',
+        new Set(['folder-1', 'source-1', 'variant-1']),
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  it('refuses deleting a source while a dependent variant survives outside the deleted tree', async () => {
+    projectProcesses.find
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ resourceId: 'variant-1' }]);
+
+    await expect(
+      service.assertCanDeleteResource('source-1', new Set(['folder-1', 'source-1'])),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 });
