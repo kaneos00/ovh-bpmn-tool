@@ -1,10 +1,7 @@
 import { Column, Entity, Index } from 'typeorm';
 import { AbstractEntity } from '../../../../shared-kernel/modules/infrastructure/db/abstract.entity';
 
-export type ProjectDocumentedSourceKind =
-  | 'file'
-  | 'database'
-  | 'application';
+export type ProjectDocumentedSourceKind = 'file' | 'database' | 'application';
 
 @Entity('project_documented_sources')
 @Index('project_documented_sources_project_active_idx', [
