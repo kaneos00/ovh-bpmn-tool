@@ -106,11 +106,12 @@ export const Component = () => {
         >
           {quickActions.map(({ label, description, Icon, run }) => {
             const disabled = !actionProject || (label === 'Ma fiche de poste' && !activeProjectId);
-            const tileStyle = label === 'Mes responsabilités'
-              ? { background: '#e9f2ff', foreground: '#2459a6', border: '#c7dcfa' }
-              : label === 'Explorer les processus'
-                ? { background: '#e8f6f1', foreground: '#18745c', border: '#bfe7d8' }
-                : { background: '#fff2df', foreground: '#9a5a12', border: '#f1d6aa' };
+            let tileStyle = { background: '#fff2df', foreground: '#9a5a12', border: '#f1d6aa' };
+            if (label === 'Mes responsabilités') {
+              tileStyle = { background: '#e9f2ff', foreground: '#2459a6', border: '#c7dcfa' };
+            } else if (label === 'Explorer les processus') {
+              tileStyle = { background: '#e8f6f1', foreground: '#18745c', border: '#bfe7d8' };
+            }
             return (
               <Card
                 key={label}
