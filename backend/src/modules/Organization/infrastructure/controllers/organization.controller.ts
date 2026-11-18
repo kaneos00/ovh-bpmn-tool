@@ -8,9 +8,9 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { UseAcl } from '../../../shared-kernel/modules/acl/infrastructure/acl.decorator';
-import { UserGroup } from '../../../shared-kernel/utils/UserGroup';
-import { OrganizationService } from '../organization.service';
+import { UseAcl } from '../../../../shared-kernel/modules/acl/infrastructure/acl.decorator';
+import { UserGroup } from '../../../../shared-kernel/utils/UserGroup';
+import { OrganizationService } from '../../organization.service';
 
 type RequestHeaders = Record<string, string | undefined>;
 
@@ -39,7 +39,13 @@ export class OrganizationController {
   @Post('positions')
   @UseAcl([UserGroup.Admin])
   createPosition(
-    @Body() body: { code?: unknown; title?: unknown; description?: unknown; functionId?: unknown },
+    @Body()
+    body: {
+      code?: unknown;
+      title?: unknown;
+      description?: unknown;
+      functionId?: unknown;
+    },
     @Headers() headers: RequestHeaders,
   ) {
     return this.organization.createPosition(body, headers);
@@ -55,7 +61,14 @@ export class OrganizationController {
   @UseAcl([UserGroup.Admin])
   updatePosition(
     @Param('positionId') positionId: string,
-    @Body() body: { code?: unknown; title?: unknown; description?: unknown; functionId?: unknown; active?: unknown },
+    @Body()
+    body: {
+      code?: unknown;
+      title?: unknown;
+      description?: unknown;
+      functionId?: unknown;
+      active?: unknown;
+    },
   ) {
     return this.organization.updatePosition(positionId, body);
   }
@@ -64,7 +77,13 @@ export class OrganizationController {
   @UseAcl([UserGroup.Admin])
   createAssignment(
     @Param('positionId') positionId: string,
-    @Body() body: { userId?: unknown; startDate?: unknown; endDate?: unknown; note?: unknown },
+    @Body()
+    body: {
+      userId?: unknown;
+      startDate?: unknown;
+      endDate?: unknown;
+      note?: unknown;
+    },
     @Headers() headers: RequestHeaders,
   ) {
     return this.organization.createAssignment(positionId, body, headers);
