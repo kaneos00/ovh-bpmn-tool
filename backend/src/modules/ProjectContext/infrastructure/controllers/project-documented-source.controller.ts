@@ -26,7 +26,7 @@ import { ProjectDocumentedSourceReferenceTypeOrmEntity } from '../entities/proje
 import { ProjectResourceAccessService } from '../../projectResourceAccess.service';
 
 type RequestHeaders = Record<string, string | undefined>;
-type SourceKind = 'file' | 'database' | 'application' | 'form';
+type SourceKind = 'file' | 'database' | 'application';
 type SourceFields = Pick<
   ProjectDocumentedSourceTypeOrmEntity,
   | 'kind'
@@ -35,7 +35,6 @@ type SourceFields = Pick<
   | 'link'
   | 'location'
   | 'access'
-  | 'retention'
   | 'authorizedPeople'
   | 'restrictions'
 >;
@@ -50,7 +49,6 @@ type BpmnDataElement = {
   link: string;
   location: string;
   access: string;
-  retention: string;
   authorizedPeople: string;
   restrictions: string;
 };
@@ -65,7 +63,7 @@ const parser = new XMLParser({
   trimValues: true,
 });
 
-const SOURCE_KINDS: SourceKind[] = ['file', 'database', 'application', 'form'];
+const SOURCE_KINDS: SourceKind[] = ['file', 'database', 'application'];
 
 const BPMN_DOCUMENTED_DATA_TYPES = new Set([
   'dataObjectReference',
@@ -76,7 +74,6 @@ const SOURCE_TEXT_FIELDS = [
   'link',
   'location',
   'access',
-  'retention',
   'authorizedPeople',
   'restrictions',
 ] as const;
@@ -158,7 +155,6 @@ const extractBpmnDataElements = (
             link: readAttribute(node, 'link'),
             location: readAttribute(node, 'location'),
             access: readAttribute(node, 'access'),
-            retention: readAttribute(node, 'retention'),
             authorizedPeople: readAttribute(node, 'authorizedPeople'),
             restrictions: readAttribute(node, 'restrictions'),
           });
@@ -199,7 +195,6 @@ const extractBpmnDataElements = (
           '',
         location: metadata.location || '',
         access: metadata.access || '',
-        retention: metadata.retention || '',
         authorizedPeople: metadata.authorizedPeople || '',
         restrictions: metadata.restrictions || '',
       });
@@ -331,7 +326,6 @@ export class ProjectDocumentedSourceController {
               link: element.link || null,
               location: element.location || null,
               access: element.access || null,
-              retention: element.retention || null,
               authorizedPeople: element.authorizedPeople || null,
               restrictions: element.restrictions || null,
               originResourceId: resourceId,
@@ -678,129 +672,6 @@ export class ProjectDocumentedSourceController {
 
     await this.references.delete({ id: reference.id });
     return { unlinked: true, referenceId };
-  }
-
-  @Post(':sourceId/merge')
-  @UseAcl([UserGroup.RW])
-  async merge(
-    @Param('projectId') projectId: string,
-    @Param('sourceId') sourceId: string,
-    @Body() body: { targetSourceId?: string },
-    @Headers() headers: RequestHeaders,
-  ) {
-    const userId = await this.access.assertProjectRole(
-      projectId,
-      headers,
-      ProjectMemberRole.Admin,
-    );
-    const targetId = body.targetSourceId?.trim();
-    if (!targetId || targetId === sourceId)
-      throw new BadRequestException(
-        'targetSourceId must identify another source',
-      );
-
-    return this.dataSource.transaction(async (manager) => {
-      const sourceRepository = manager.getRepository(
-        ProjectDocumentedSourceTypeOrmEntity,
-      );
-      const referenceRepository = manager.getRepository(
-        ProjectDocumentedSourceReferenceTypeOrmEntity,
-      );
-      const source = await sourceRepository.findOne({
-        where: { id: sourceId, projectId, mergedIntoId: IsNull() },
-      });
-      const target = await sourceRepository.findOne({
-        where: { id: targetId, projectId, mergedIntoId: IsNull() },
-      });
-      if (!source || !target)
-        throw new NotFoundException(
-          'Documented source not found in this project',
-        );
-
-      const [sourceReferencesForMerge, targetReferencesForMerge] =
-        await Promise.all([
-          referenceRepository.find({ where: { projectId, sourceId } }),
-          referenceRepository.find({
-            where: { projectId, sourceId: targetId },
-          }),
-        ]);
-      const resourceElementsForMerge = new Map<string, Set<string>>();
-      [...sourceReferencesForMerge, ...targetReferencesForMerge].forEach(
-        (reference) => {
-          const elementIds =
-            resourceElementsForMerge.get(reference.resourceId) ??
-            new Set<string>();
-          elementIds.add(reference.elementId);
-          resourceElementsForMerge.set(reference.resourceId, elementIds);
-        },
-      );
-      const crossElementDiagramConflict = [
-        ...resourceElementsForMerge.values(),
-      ].some((elementIds) => elementIds.size > 1);
-      if (crossElementDiagramConflict) {
-        throw new ConflictException(
-          'Fusion impossible : les deux sources sont déjà utilisées par des objets différents dans un même diagramme BPMN.',
-        );
-      }
-
-      const conflictingFields =
-        source.link?.trim() &&
-        target.link?.trim() &&
-        source.link.trim() !== target.link.trim()
-          ? ['link']
-          : [];
-      if (conflictingFields.length) {
-        throw new ConflictException(
-          'Fusion impossible : les liens sont différents. Choisissez le lien à conserver avant de recommencer.',
-        );
-      }
-
-      SOURCE_TEXT_FIELDS.forEach((field) => {
-        const sourceValue = (source[field] ?? '').trim();
-        const targetValue = (target[field] ?? '').trim();
-        if (!targetValue && sourceValue) {
-          target[field] = sourceValue;
-        } else if (
-          field !== 'link' &&
-          sourceValue &&
-          targetValue &&
-          sourceValue !== targetValue
-        ) {
-          const separator =
-            field === 'description' || field === 'restrictions'
-              ? '\n\n'
-              : ' ; ';
-          target[field] = [targetValue, sourceValue].join(separator);
-        }
-      });
-      if (!target.name.trim() && source.name.trim()) target.name = source.name;
-      await sourceRepository.save(target);
-
-      const sourceReferences = await referenceRepository.find({
-        where: { projectId, sourceId },
-      });
-      for (const reference of sourceReferences) {
-        const duplicate = await referenceRepository.findOne({
-          where: {
-            projectId,
-            resourceId: reference.resourceId,
-            elementId: reference.elementId,
-          },
-        });
-        if (duplicate && duplicate.id !== reference.id) {
-          await referenceRepository.delete({ id: reference.id });
-        } else {
-          reference.sourceId = targetId;
-          await referenceRepository.save(reference);
-        }
-      }
-
-      source.mergedIntoId = targetId;
-      source.mergedAt = new Date();
-      source.mergedBy = userId;
-      await sourceRepository.save(source);
-      return { merged: true, sourceId, targetSourceId: targetId };
-    });
   }
 
   private async findActiveSource(projectId: string, sourceId: string) {
