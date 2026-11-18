@@ -410,7 +410,36 @@ export class ProjectResourceAccessService {
     }
 
     const resourceIdsBeingDeleted = new Set(resourceIds);
-    for (const id of resourceIds) {
+    // The repository preserves common and multi-project processes found
+    // below a deleted folder. Exclude those resources from the deletion ACL
+    // and dependency checks, but never exempt the explicitly selected root:
+    // directly deleting a shared/common process must still be rejected.
+    const linksInTree = await this.projectProcesses.find({
+      where: { resourceId: In(resourceIds) },
+    });
+    const projectIdsByResource = new Map<string, Set<string>>();
+    const commonResourceIds = new Set<string>();
+    for (const link of linksInTree) {
+      const projectIds = projectIdsByResource.get(link.resourceId) ?? new Set<string>();
+      projectIds.add(link.projectId);
+      projectIdsByResource.set(link.resourceId, projectIds);
+      if (link.usage === ProjectProcessUsage.Common) {
+        commonResourceIds.add(link.resourceId);
+      }
+    }
+    const preservedResourceIds = new Set([
+      ...commonResourceIds,
+      ...Array.from(projectIdsByResource.entries())
+        .filter(([, projectIds]) => projectIds.size > 1)
+        .map(([id]) => id),
+    ]);
+    const resourceIdsBeingDeleted = new Set(
+      resourceIds.filter(
+        (id) => id === resourceId || !preservedResourceIds.has(id),
+      ),
+    );
+
+    for (const id of resourceIdsBeingDeleted) {
       await this.assertCanEditResource(id, headers);
       await this.assertCanDeleteResource(id, resourceIdsBeingDeleted);
     }
