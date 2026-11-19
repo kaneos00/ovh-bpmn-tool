@@ -619,12 +619,13 @@ export class OrganizationService {
     if (!assignment) {
       throw new NotFoundException('Organization assignment not found');
     }
-    if (input.endDate === undefined) {
-      throw new BadRequestException('endDate is required');
+    if (input.endDate === undefined && input.isActing === undefined) {
+      throw new BadRequestException('At least one assignment field must be provided');
     }
 
-    const endDate =
-      input.endDate === null || input.endDate === ''
+    const endDate = input.endDate === undefined
+      ? assignment.endDate
+      : input.endDate === null || input.endDate === ''
         ? null
         : this.date(input.endDate, 'endDate');
     if (endDate && endDate < assignment.startDate) {
