@@ -66,7 +66,7 @@ export class OrganizationService {
   async getMyWorkspace(headers: RequestHeaders) {
     const userId = this.userId(headers);
     const assignments = await this.db.query(
-      'SELECT assignment.id, assignment."positionId", assignment."startDate", assignment."endDate", position.code, position.title, position.description, position."functionId" FROM organization_assignments assignment JOIN organization_positions position ON position.id = assignment."positionId" WHERE assignment."userId" = $1 AND position.active = TRUE AND assignment."startDate" <= CURRENT_DATE AND (assignment."endDate" IS NULL OR assignment."endDate" >= CURRENT_DATE) ORDER BY assignment."startDate" DESC',
+      'SELECT assignment.id, assignment."positionId", assignment."startDate", assignment."endDate", assignment."isActing", position.code, position.title, position.description, position."functionId" FROM organization_assignments assignment JOIN organization_positions position ON position.id = assignment."positionId" WHERE assignment."userId" = $1 AND position.active = TRUE AND assignment."startDate" <= CURRENT_DATE AND (assignment."endDate" IS NULL OR assignment."endDate" >= CURRENT_DATE) ORDER BY assignment."startDate" DESC',
       [userId],
     );
     const positionIds = assignments.map(
@@ -136,6 +136,7 @@ export class OrganizationService {
       positionIds?: unknown;
       userId?: unknown;
       startDate?: unknown;
+      isActing?: unknown;
     },
     headers: RequestHeaders,
   ) {
@@ -154,6 +155,8 @@ export class OrganizationService {
       this.requiredText(input.userId, 'userId', 255),
     );
     const startDate = this.date(input.startDate, 'startDate');
+    const isActing = input.isActing === undefined ? false : input.isActing;
+    if (typeof isActing !== 'boolean') throw new BadRequestException('isActing must be boolean');
     return this.db.transaction(async (manager) => {
       for (const positionId of positionIds) {
         await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
@@ -196,6 +199,7 @@ export class OrganizationService {
             userId,
             startDate,
             endDate: null,
+            isActing,
             note: null,
             createdBy: this.userId(headers),
           }),
@@ -518,6 +522,7 @@ export class OrganizationService {
       userId?: unknown;
       startDate?: unknown;
       endDate?: unknown;
+      isActing?: unknown;
       note?: unknown;
     },
     headers: RequestHeaders,
@@ -533,6 +538,8 @@ export class OrganizationService {
       this.requiredText(input.userId, 'userId', 255),
     );
     const startDate = this.date(input.startDate, 'startDate');
+    const isActing = input.isActing === undefined ? false : input.isActing;
+    if (typeof isActing !== 'boolean') throw new BadRequestException('isActing must be boolean');
     const endDate =
       input.endDate === null ||
       input.endDate === undefined ||
@@ -585,6 +592,7 @@ export class OrganizationService {
             userId,
             startDate,
             endDate,
+            isActing,
             note:
               typeof input.note === 'string' ? input.note.trim() || null : null,
             createdBy: this.userId(headers),
@@ -604,7 +612,7 @@ export class OrganizationService {
     }
   }
 
-  async updateAssignment(assignmentId: string, input: { endDate?: unknown }) {
+  async updateAssignment(assignmentId: string, input: { endDate?: unknown; isActing?: unknown }) {
     const assignment = await this.assignments.findOne({
       where: { id: assignmentId },
     });
@@ -624,6 +632,10 @@ export class OrganizationService {
     }
 
     assignment.endDate = endDate;
+    if (input.isActing !== undefined) {
+      if (typeof input.isActing !== 'boolean') throw new BadRequestException('isActing must be boolean');
+      assignment.isActing = input.isActing;
+    }
     try {
       return await this.assignments.save(assignment);
     } catch (error) {
