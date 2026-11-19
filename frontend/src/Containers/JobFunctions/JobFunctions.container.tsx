@@ -415,7 +415,7 @@ export const Component = () => {
                   {documentQuery.data && (
                     <>
                       <Divider />
-                      <Typography level="title-lg">Identification et suivi documentaire</Typography>
+                      <Typography id="function-identification" level="title-lg">Identification et suivi documentaire</Typography>
                       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 1.5 }}>
                         <FormControl><FormLabel>Rattachement / entité</FormLabel><Input value={documentDraft.reportingLine} onChange={(event) => setDocumentDraft({ ...documentDraft, reportingLine: event.target.value })} placeholder="Direction des Opérations" /></FormControl>
                         <FormControl><FormLabel>Date</FormLabel><Input type="date" value={documentDraft.documentDate} onChange={(event) => setDocumentDraft({ ...documentDraft, documentDate: event.target.value })} /></FormControl>
@@ -433,7 +433,25 @@ export const Component = () => {
                 </Card>
 
                 {documentQuery.data && (
-                  <Card variant="outlined" sx={{ gap: 1.5 }}>
+                  <Card variant="soft" sx={{ gap: 1.25, position: 'sticky', top: 8, zIndex: 2, borderColor: 'divider' }}>
+                    <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" gap={1}>
+                      <Stack direction="row" gap={1} flexWrap="wrap">
+                        <Chip color="primary" variant="soft">{activities.length} activités</Chip>
+                        <Chip variant="soft">{competencyBlocks.reduce((total, block) => total + block.competencies.length, 0)} compétences</Chip>
+                        <Chip variant="soft">{customSections.length} rubriques complémentaires</Chip>
+                      </Stack>
+                      <Stack direction="row" gap={0.75} flexWrap="wrap">
+                        <Button size="sm" variant="outlined" onClick={() => document.getElementById('function-identification')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>Identification</Button>
+                        <Button size="sm" variant="outlined" onClick={() => document.getElementById('function-activities')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>Activités</Button>
+                        <Button size="sm" variant="outlined" onClick={() => document.getElementById('function-competencies')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>Compétences</Button>
+                        <Button size="sm" variant="outlined" onClick={() => document.getElementById('function-custom-sections')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>Compléments</Button>
+                      </Stack>
+                    </Stack>
+                  </Card>
+                )}
+
+                {documentQuery.data && (
+                  <Card id="function-activities" variant="outlined" sx={{ gap: 1.5, scrollMarginTop: 90 }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
                       <Box><Typography level="title-lg">Activités et tâches</Typography><Typography level="body-sm" sx={{ color: 'text.secondary' }}>Chaque bloc est une section indépendante avec son propre code et son contenu.</Typography></Box>
                       <Chip variant="soft">{activities.length} section(s)</Chip>
@@ -480,7 +498,7 @@ export const Component = () => {
                 )}
 
                 {documentQuery.data && (
-                  <Card variant="outlined" sx={{ gap: 1.5 }}>
+                  <Card id="function-competencies" variant="outlined" sx={{ gap: 1.5, scrollMarginTop: 90 }}>
                     <Typography level="title-lg">Compétences de référence</Typography>
                     <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Blocs et compétences rattachés à cette fonction dans le référentiel commun.</Typography>
                     {competencyBlocks.length === 0 && <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Aucun bloc de compétences n’est encore associé à cette fonction.</Typography>}
@@ -539,7 +557,7 @@ export const Component = () => {
                 )}
 
                 {documentQuery.data && (
-                  <Card variant="outlined" sx={{ gap: 1.5 }}>
+                  <Card id="function-custom-sections" variant="outlined" sx={{ gap: 1.5, scrollMarginTop: 90 }}>
                     <Typography level="title-lg">Rubriques complémentaires</Typography>
                     <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Ajoutez des rubriques spécifiques sans modifier le modèle documentaire commun. Leur contenu est structuré et pourra recevoir une présentation dédiée.</Typography>
                     {customSections.map((section) => (
