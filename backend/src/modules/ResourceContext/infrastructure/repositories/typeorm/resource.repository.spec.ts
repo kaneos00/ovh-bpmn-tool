@@ -80,6 +80,7 @@ describe('ResourceTypeOrmRepository.delete', () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([{ id: 'folder' }]);
 
     await expect(repository.delete('folder')).resolves.toEqual({
@@ -114,6 +115,43 @@ describe('ResourceTypeOrmRepository.delete', () => {
     expect(manager.query).toHaveBeenCalledWith(
       expect.stringContaining('SET "parentId" = NULL'),
       [['shared-process'], ['folder', 'shared-process']],
+    );
+  });
+
+
+  it('preserves a common process when deleting its parent folder', async () => {
+    manager.query
+      .mockResolvedValueOnce([{ id: 'folder' }, { id: 'common-process' }])
+      .mockResolvedValueOnce([{ id: 'common-process' }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ id: 'folder' }]);
+
+    await expect(repository.delete('folder')).resolves.toEqual({
+      ok: true,
+      fail: null,
+    });
+    expect(manager.query).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining("OR BOOL_OR(usage = 'common')"),
+      [['folder', 'common-process']],
+    );
+    expect(manager.query).toHaveBeenNthCalledWith(
+      3,
+      expect.stringContaining('SET "parentId" = NULL'),
+      [['common-process'], ['folder', 'common-process']],
+    );
+    expect(manager.query).toHaveBeenNthCalledWith(
+      6,
+      expect.stringContaining('DELETE FROM resources'),
+      [['folder']],
+    );
+    expect(manager.query).toHaveBeenNthCalledWith(
+      7,
+      expect.stringContaining('SELECT id FROM resources'),
+      [['folder']],
     );
   });
 
