@@ -8,7 +8,7 @@ import {
 } from 'ag-grid-community';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import {
-  Alert, Box, Button, Chip, FormControl, FormLabel, Input, Modal,
+  Alert, Box, Button, Checkbox, Chip, FormControl, FormLabel, Input, Modal,
   ModalDialog, ModalClose, Option, Select, Stack, Typography,
 } from '@mui/joy';
 import { apiClient } from '../../queryClient';
@@ -21,6 +21,7 @@ type Assignment = {
   userId: string;
   startDate: string;
   endDate: string | null;
+  isActing?: boolean;
 };
 type Position = {
   id: string;
@@ -38,6 +39,7 @@ export const Component = () => {
   const [quickSearch, setQuickSearch] = useState('');
   const [assignee, setAssignee] = useState<string | null>(null);
   const [assignmentDate, setAssignmentDate] = useState(new Date().toISOString().slice(0, 10));
+  const [isActing, setIsActing] = useState(false);
   const [endDate, setEndDate] = useState(new Date().toISOString().slice(0, 10));
   const [createOpen, setCreateOpen] = useState(false);
   const [newCode, setNewCode] = useState('');
@@ -85,10 +87,10 @@ export const Component = () => {
   );
   const bulkAssign = useMutation(
     () => apiClient.post('/organization/positions/bulk-assignments', {
-      positionIds: selectedVacant.map(position => position.id), userId: assignee, startDate: assignmentDate,
+      positionIds: selectedVacant.map(position => position.id), userId: assignee, startDate: assignmentDate, isActing,
     }),
     {
-      onSuccess: async () => { setSelected([]); setAssignee(null); setError(''); await refresh(); },
+      onSuccess: async () => { setSelected([]); setAssignee(null); setIsActing(false); setError(''); await refresh(); },
       onError: (reason: Error) => setError(reason.message),
     },
   );
@@ -118,7 +120,7 @@ export const Component = () => {
     {
       headerName: 'Titulaire',
       minWidth: 170,
-      valueGetter: params => params.data?.assignment?.userId ?? 'Poste vacant',
+      valueGetter: params => params.data?.assignment ? `${params.data.assignment.userId}${params.data.assignment.isActing ? ' · Intérim' : ''}` : 'Poste vacant',
       cellClass: params => params.data?.assignment ? 'org-position-holder' : 'org-position-vacant',
     },
     {
@@ -181,6 +183,10 @@ export const Component = () => {
             <FormLabel>Date de début</FormLabel>
             <Input type="date" value={assignmentDate} onChange={event => setAssignmentDate(event.target.value)} />
           </FormControl>
+          <Stack spacing={0.25} sx={{ minWidth: 155 }}>
+            <Checkbox checked={isActing} onChange={event => setIsActing(event.target.checked)} label="Affectation en intérim" />
+            <Typography level="body-xs" color="neutral">Sans date de fin par défaut</Typography>
+          </Stack>
           <Button disabled={!assignee || selectedVacant.length === 0 || busy} loading={bulkAssign.isLoading}
             onClick={() => bulkAssign.mutate()}>
             Affecter ({selectedVacant.length})
