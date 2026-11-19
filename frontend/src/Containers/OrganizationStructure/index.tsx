@@ -136,8 +136,15 @@ export const Component = () => {
                 renderCustomNodeElement={({ nodeDatum }: any) => {
                   const isRoot = Boolean(nodeDatum.attributes?.root);
                   const selected = nodeDatum.attributes?.id === selectedPositionId;
-                  const fill = isRoot ? '#183451' : selected ? '#e8efff' : '#ffffff';
-                  const stroke = isRoot ? '#183451' : selected ? '#2864d7' : '#cbd5e1';
+                  let fill = '#ffffff';
+                  let stroke = '#cbd5e1';
+                  if (isRoot) {
+                    fill = '#183451';
+                    stroke = '#183451';
+                  } else if (selected) {
+                    fill = '#e8efff';
+                    stroke = '#2864d7';
+                  }
                   const textColor = isRoot ? '#ffffff' : '#1e293b';
                   const secondaryTextColor = isRoot ? '#cbd5e1' : '#64748b';
                   return (
