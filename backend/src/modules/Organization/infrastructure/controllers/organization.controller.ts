@@ -38,6 +38,7 @@ export class OrganizationController {
       positionIds?: unknown;
       userId?: unknown;
       startDate?: unknown;
+      isActing?: unknown;
     },
     @Headers() headers: RequestHeaders,
   ) {
@@ -116,6 +117,7 @@ export class OrganizationController {
       userId?: unknown;
       startDate?: unknown;
       endDate?: unknown;
+      isActing?: unknown;
       note?: unknown;
     },
     @Headers() headers: RequestHeaders,
@@ -127,7 +129,7 @@ export class OrganizationController {
   @UseAcl([UserGroup.Admin])
   updateAssignment(
     @Param('assignmentId') assignmentId: string,
-    @Body() body: { endDate?: unknown },
+    @Body() body: { endDate?: unknown; isActing?: unknown },
   ) {
     return this.organization.updateAssignment(assignmentId, body);
   }
