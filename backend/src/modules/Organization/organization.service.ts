@@ -156,7 +156,9 @@ export class OrganizationService {
     );
     const startDate = this.date(input.startDate, 'startDate');
     const isActing = input.isActing === undefined ? false : input.isActing;
-    if (typeof isActing !== 'boolean') throw new BadRequestException('isActing must be boolean');
+    if (typeof isActing !== 'boolean') {
+      throw new BadRequestException('isActing must be boolean');
+    }
     return this.db.transaction(async (manager) => {
       for (const positionId of positionIds) {
         await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
@@ -612,7 +614,10 @@ export class OrganizationService {
     }
   }
 
-  async updateAssignment(assignmentId: string, input: { endDate?: unknown; isActing?: unknown }) {
+  async updateAssignment(
+    assignmentId: string,
+    input: { endDate?: unknown; isActing?: unknown },
+  ) {
     const assignment = await this.assignments.findOne({
       where: { id: assignmentId },
     });
@@ -620,21 +625,27 @@ export class OrganizationService {
       throw new NotFoundException('Organization assignment not found');
     }
     if (input.endDate === undefined && input.isActing === undefined) {
-      throw new BadRequestException('At least one assignment field must be provided');
+      throw new BadRequestException(
+        'At least one assignment field must be provided',
+      );
     }
 
-    const endDate = input.endDate === undefined
-      ? assignment.endDate
-      : input.endDate === null || input.endDate === ''
-        ? null
-        : this.date(input.endDate, 'endDate');
+    let endDate = assignment.endDate;
+    if (input.endDate !== undefined) {
+      endDate =
+        input.endDate === null || input.endDate === ''
+          ? null
+          : this.date(input.endDate, 'endDate');
+    }
     if (endDate && endDate < assignment.startDate) {
       throw new BadRequestException('endDate cannot be earlier than startDate');
     }
 
     assignment.endDate = endDate;
     if (input.isActing !== undefined) {
-      if (typeof input.isActing !== 'boolean') throw new BadRequestException('isActing must be boolean');
+      if (typeof input.isActing !== 'boolean') {
+        throw new BadRequestException('isActing must be boolean');
+      }
       assignment.isActing = input.isActing;
     }
     try {
