@@ -101,7 +101,9 @@ describe('ResourceTypeOrmRepository.delete', () => {
     );
     expect(manager.query).toHaveBeenNthCalledWith(
       5,
-      expect.stringContaining('DELETE FROM project_processes WHERE "resourceId"'),
+      expect.stringContaining(
+        'DELETE FROM project_processes WHERE "resourceId"',
+      ),
       [['folder']],
     );
     expect(manager.query).toHaveBeenNthCalledWith(
