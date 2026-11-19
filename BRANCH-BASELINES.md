@@ -38,3 +38,11 @@ Avant chaque comparaison ou portage :
 - confirmer que les deux appartiennent à la même lignée fonctionnelle attendue ;
 - lire les commits/PR intermédiaires et identifier les changements intentionnels ;
 - consigner les résultats et les incertitudes avant toute modification.
+
+## Branches examinées le 19 novembre 2026 — ne pas confondre avec la référence V0.8
+
+- `planning/admin-ux-v0.9` au commit `d5f3b2f61a3a7ac61eca798695bec10178294ae8` : branche distincte, issue de la lignée V3/architecture d'administration. Sa comparaison avec la référence V0.8 est divergente : ancêtre commun `8138ffe3d06ce6d011d0ce44b5520282dd50ff63`, 122 commits propres à cette branche et 189 commits de la référence non présents dans cette branche. **Ne pas la présenter comme une évolution directe de la V0.8 consolidée.**
+- `v3` au commit `d372f644922581728794516345a1308d4c78a84e` : branche V3 séparée. À traiter selon sa propre lignée et ses objectifs, sans la mélanger à la V0.8.
+- Ces informations décrivent l'état Git constaté ; elles ne prouvent pas quelle branche/quel SHA est effectivement déployé dans Coolify.
+
+Pour tout audit de l'instance `ovh-bpmn.vps-yma.ovh`, identifier d'abord le SHA réellement injecté dans le build ou la révision sélectionnée dans Coolify. Le nom de domaine, le nom d'une branche candidate et la dernière CI verte ne constituent pas une preuve du commit déployé.
