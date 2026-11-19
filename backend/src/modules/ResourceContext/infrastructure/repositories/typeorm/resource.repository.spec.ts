@@ -58,7 +58,9 @@ describe('ResourceTypeOrmRepository.delete', () => {
     );
     expect(manager.query).toHaveBeenNthCalledWith(
       4,
-      expect.stringContaining('DELETE FROM project_processes WHERE "resourceId"'),
+      expect.stringContaining(
+        'DELETE FROM project_processes WHERE "resourceId"',
+      ),
       [['root', 'child', 'grandchild']],
     );
     expect(manager.query).toHaveBeenNthCalledWith(
@@ -117,7 +119,6 @@ describe('ResourceTypeOrmRepository.delete', () => {
       [['shared-process'], ['folder', 'shared-process']],
     );
   });
-
 
   it('preserves a common process when deleting its parent folder', async () => {
     manager.query
