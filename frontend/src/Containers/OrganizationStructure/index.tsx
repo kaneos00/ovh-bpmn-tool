@@ -171,7 +171,7 @@ export const Component = () => {
               <>
                 <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                   <Box>
-                    <Typography level="overline">{selectedPosition.code}</Typography>
+                    <Typography level="body-xs" sx={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}>{selectedPosition.code}</Typography>
                     <Typography level="h2">{selectedPosition.title}</Typography>
                     <Typography level="body-sm" color="neutral">{selectedPosition.jobFunction?.name ?? 'Fonction non associée'}</Typography>
                   </Box>
