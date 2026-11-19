@@ -552,9 +552,7 @@ export class OrganizationService {
         : this.date(input.endDate, 'endDate');
 
     if (endDate && endDate < startDate) {
-      throw new BadRequestException(
-        'endDate cannot be earlier than startDate',
-      );
+      throw new BadRequestException('endDate cannot be earlier than startDate');
     }
 
     try {
