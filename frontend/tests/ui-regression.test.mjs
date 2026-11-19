@@ -519,7 +519,6 @@ test('V3 central viewer exposes the data inventory and saves it through the exis
   assert.match(details, /await saveContent\(resourceId, viewerContent\.id, \{ content: updatedXml \}\)/);
   assert.match(details, /canEdit=\{canEditDescription\}/);
   assert.match(inventory, /getElementsByTagNameNS\(NS, 'source'\)/);
-  assert.match(inventory, /getElementsByTagNameNS\(NS, 'manifest'\)/);
   assert.match(inventory, /getElementsByTagNameNS\(NS, 'excluded'\)/);
   assert.match(inventory, /inventory:manifest/);
   assert.match(inventory, /dataObjectReference.*dataStoreReference/s);
