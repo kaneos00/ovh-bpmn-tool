@@ -25,6 +25,9 @@ export class OrganizationAssignmentTypeOrmEntity extends AbstractEntity {
   @Column({ type: 'date', nullable: true })
   endDate: string | null;
 
+  @Column({ type: 'boolean', default: false })
+  isActing: boolean;
+
   @Column({ type: 'text', nullable: true })
   note: string | null;
 }
