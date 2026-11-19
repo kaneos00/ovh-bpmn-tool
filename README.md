@@ -1,4 +1,4 @@
-> **Repères de développement :** la branche historique `V0.8` est obsolète. La référence V0.8 consolidée est `feat/process-creation-metadata` au commit `93aff50b1bfd5763cc7cef78db0f553eccae3bb2`. Lire impérativement [BRANCH-BASELINES.md](./BRANCH-BASELINES.md) avant toute comparaison, reprise ou déploiement.
+> **AVERTISSEMENT — BRANCHES :** l’ancienne branche `V0.8` est **OBSOLÈTE** et ne doit plus servir de base. La référence V0.8 consolidée est `feat/process-creation-metadata` au commit `93aff50b1bfd5763cc7cef78db0f553eccae3bb2`. Lire [BRANCH-BASELINES.md](./BRANCH-BASELINES.md) avant toute comparaison, reprise ou déploiement.
 
 # BPMN Manager with bpmn-js
 
@@ -6,7 +6,7 @@
 
 This project is a comprehensive BPMN (Business Process Model and Notation) diagram manager, designed to help users organize, sort, delete, and manage their BPMN models intuitively and efficiently. Built on the powerful [bpmn-js](https://bpmn.io/) library, our solution offers a user-friendly interface with additional features to simplify the management of BPMN diagrams in complex environments.
 
-BPMN is a widely adopted standard for graphically representing business processes. However, as organizations handle numerous models, managing these diagrams can quickly become a challenge. This project aims to solve this issue by providing a centralized and easy-to-use platform to organize, manage and sort BPMN models, with advanced capabilities beyond the basic features offered by bpmn-js.
+BPMN is a widely adopted standard for graphically representing business processes. However, as organizations handle numerous models, managing and organizing these diagrams can quickly become a challenge. This project aims to solve this issue by providing a centralized and easy-to-use platform to organize, manage and sort BPMN models, with advanced capabilities beyond the basic features offered by bpmn-js.
 
 ### Why Use This Tool?
 
