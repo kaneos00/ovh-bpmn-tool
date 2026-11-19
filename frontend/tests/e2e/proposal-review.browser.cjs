@@ -524,22 +524,8 @@ async function main() {
       response.request().method() === 'POST' &&
       new URL(response.url()).pathname.endsWith('/resources'),
     );
-    const createExplorerRefreshPromise = reviewerPage.waitForResponse(response =>
-      response.request().method() === 'GET' &&
-      new URL(response.url()).pathname.endsWith('/resources/explorer/links') &&
-      (response.ok() || response.status() === 304),
-    );
-    const createWorkspaceRefreshPromise = reviewerPage.waitForResponse(response =>
-      response.request().method() === 'GET' &&
-      new URL(response.url()).pathname.endsWith('/projects/me/workspace') &&
-      (response.ok() || response.status() === 304),
-    );
     await reviewerPage.getByRole('button', { name: 'Create', exact: true }).click();
-    const [createFolderResponse] = await Promise.all([
-      createFolderResponsePromise,
-      createExplorerRefreshPromise,
-      createWorkspaceRefreshPromise,
-    ]);
+    const createFolderResponse = await createFolderResponsePromise;
     assert.ok(
       createFolderResponse.ok(),
       `Folder creation failed with HTTP ${createFolderResponse.status()}`,
