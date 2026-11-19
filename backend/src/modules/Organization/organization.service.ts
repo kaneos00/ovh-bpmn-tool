@@ -541,7 +541,9 @@ export class OrganizationService {
     );
     const startDate = this.date(input.startDate, 'startDate');
     const isActing = input.isActing === undefined ? false : input.isActing;
-    if (typeof isActing !== 'boolean') throw new BadRequestException('isActing must be boolean');
+    if (typeof isActing !== 'boolean') {
+      throw new BadRequestException('isActing must be boolean');
+    }
     const endDate =
       input.endDate === null ||
       input.endDate === undefined ||
@@ -550,7 +552,9 @@ export class OrganizationService {
         : this.date(input.endDate, 'endDate');
 
     if (endDate && endDate < startDate) {
-      throw new BadRequestException('endDate cannot be earlier than startDate');
+      throw new BadRequestException(
+        'endDate cannot be earlier than startDate',
+      );
     }
 
     try {
