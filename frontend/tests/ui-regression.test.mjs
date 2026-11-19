@@ -1103,3 +1103,26 @@ test('project documented information uses canonical sources within one process a
   assert.ok(search.includes("type: 'documented'"));
   assert.ok(searchPage.includes('<Option value="documented">Informations documentées</Option>'));
 });
+
+
+test('organization chart builds each position once, starts near the upper-left and opens position details', async () => {
+  const chart = await read('src/Containers/OrganizationStructure/index.tsx');
+
+  assert.ok(chart.includes('const visited = new Set<string>()'));
+  assert.ok(chart.includes('if (visited.has(id)) return null'));
+  assert.ok(chart.includes('translate={{ x: 170, y: 72 }}'));
+  assert.ok(chart.includes('setSelectedPositionId(nodeDatum.attributes.id)'));
+  assert.ok(chart.includes('/organization/positions/\u0024{selectedPositionId}'));
+  assert.ok(chart.includes('assignment.isActing ? \' · Intérim\''));
+});
+
+test('job function editor provides section navigation and live content counters', async () => {
+  const editor = await read('src/Containers/JobFunctions/JobFunctions.container.tsx');
+
+  assert.ok(editor.includes('position: \'sticky\''));
+  assert.ok(editor.includes('id="function-identification"'));
+  assert.ok(editor.includes('id="function-activities"'));
+  assert.ok(editor.includes('id="function-competencies"'));
+  assert.ok(editor.includes('id="function-custom-sections"'));
+  assert.ok(editor.includes('competencyBlocks.reduce'));
+});
