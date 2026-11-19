@@ -203,9 +203,21 @@ describe('ProjectResourceAccessService proposal editing', () => {
       .mockResolvedValueOnce([]);
     projectProcesses.find
       .mockResolvedValueOnce([
-        { resourceId: 'shared-child', projectId: 'project-1', usage: ProjectProcessUsage.ProjectSpecific },
-        { resourceId: 'shared-child', projectId: 'project-2', usage: ProjectProcessUsage.ProjectSpecific },
-        { resourceId: 'common-child', projectId: 'project-1', usage: ProjectProcessUsage.Common },
+        {
+          resourceId: 'shared-child',
+          projectId: 'project-1',
+          usage: ProjectProcessUsage.ProjectSpecific,
+        },
+        {
+          resourceId: 'shared-child',
+          projectId: 'project-2',
+          usage: ProjectProcessUsage.ProjectSpecific,
+        },
+        {
+          resourceId: 'common-child',
+          projectId: 'project-1',
+          usage: ProjectProcessUsage.Common,
+        },
       ])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
@@ -223,5 +235,4 @@ describe('ProjectResourceAccessService proposal editing', () => {
       where: { resourceId: 'folder-1' },
     });
   });
-
 });
