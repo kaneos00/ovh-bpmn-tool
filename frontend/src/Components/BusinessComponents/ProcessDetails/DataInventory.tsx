@@ -52,6 +52,8 @@ type Props = {
   canEdit: boolean;
   projectId?: string | null;
   resourceId: string;
+  requestedDocumentedSourceId?: string | null;
+  requestedElementId?: string | null;
   canManageSources?: boolean;
   onElementSelect?: (elementId: string) => void;
   onShowDiagram?: () => void;
@@ -198,7 +200,7 @@ const BpmnDataSymbol = ({ type }: { type: BpmnDataType }) => (
   </svg>
 );
 
-export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canManageSources = false, onElementSelect, onShowDiagram }: Props) => {
+export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, requestedDocumentedSourceId, requestedElementId, canManageSources = false, onElementSelect, onShowDiagram }: Props) => {
   const original = useMemo(() => readSources(xmlContent), [xmlContent]);
   const [sources, setSources] = useState<InventorySource[]>(original);
   const [saving, setSaving] = useState(false);
@@ -217,6 +219,14 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
   const projectSources = projectSourcesQuery.data?.sources ?? [];
 
   useEffect(() => setSources(original), [original]);
+
+  useEffect(() => {
+    if (!requestedDocumentedSourceId) return;
+    const source = projectSources.find(item => item.id === requestedDocumentedSourceId);
+    const reference = source?.references.find(item => item.resourceId === resourceId);
+    const targetElementId = reference?.elementId ?? requestedElementId;
+    if (targetElementId) setSelectedElementId(targetElementId);
+  }, [requestedDocumentedSourceId, requestedElementId, projectSources, resourceId]);
 
   const update = (id: string, field: keyof InventorySource, value: string) => {
     setSources(current => current.map(source => source.id === id ? { ...source, [field]: value } : source));
@@ -548,6 +558,7 @@ export const DataInventory = ({ xmlContent, canEdit, projectId, resourceId, canM
                   },
                 })),
               ] as ColDef<InventoryGridRow>[]}
+              selectedRowId={selectedElementId ?? undefined}
               onRowSelected={row => setSelectedElementId(row?.id ?? null)}
               onAdd={canManageSources ? () => { if (selectedSource) setEditingSourceId(selectedSource.id); } : undefined}
               addLabel="Créer la source du projet"

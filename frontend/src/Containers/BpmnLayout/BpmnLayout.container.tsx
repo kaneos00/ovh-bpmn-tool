@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useNavigate, useParams } from 'react-router-dom';
+import { useQuery } from 'react-query';
 import { Box, Chip, Sheet, Stack } from '@mui/joy';
 
 import { ProcessDetails } from '../../Components/BusinessComponents/ProcessDetails';
@@ -12,7 +13,6 @@ import { ViewerExplorerPanel } from '../../Components/BusinessComponents/ViewerE
 import { FolderOverview } from './FolderOverview';
 import {
   BpmnContentLoading,
-  BusinessProcessActions,
   FolderActions,
 } from './components';
 import { isFolder, isRoot } from '../../shared/helpers/resource';
@@ -22,12 +22,14 @@ import { ResourceType } from '../../shared/types/BpmnResource';
 import { useViewerRouteState } from '../../shared/hooks/useViewerRouteState';
 import { useViewerSelectionState } from '../../shared/hooks/useViewerSelectionState';
 import { useActiveProject } from '../../shared/hooks/useActiveProject';
+import { contentsQuery, getXmlContentQuery } from '../../api/contents/contents.queries';
+import { ContentStatusEnum, type Content } from '../../Types';
 
 import './BpmnLayoutContainer.scss';
 
 export const Component = () => {
   const { resourceId } = useParams() as BpmnLayoutRouteParams;
-  const { requestedElementId, requestedContentId, requestedRaciView } = useViewerRouteState();
+  const { requestedElementId, requestedContentId, requestedRaciView, requestedDocumentedSourceId } = useViewerRouteState();
   const navigate = useNavigate();
   const [sessionRole, setSessionRole] = useState<'admin' | 'modeler' | 'viewer' | null>(null);
 
@@ -83,6 +85,33 @@ export const Component = () => {
   const { resource, callbacks } = useBpmnLayout();
   const { projects, activeProject, activeProjectId, setActiveProject, isLoading: projectsLoading } = useActiveProject();
   const activeProcess = activeProject?.processes.find(process => process.resourceId === resourceId);
+  const processContentsRequest = contentsQuery(resourceId);
+  const { data: processContents = [] } = useQuery<Content[]>(
+    processContentsRequest.queryKey,
+    processContentsRequest.queryFn,
+    { enabled: Boolean(resourceId && resource?.type === ResourceType.Process) },
+  );
+  const publishedProcessContent = processContents.find(content => content.status === ContentStatusEnum.Published);
+  const processXmlRequest = getXmlContentQuery(resourceId, publishedProcessContent?.id ?? '');
+  const { data: processXml } = useQuery(
+    processXmlRequest.queryKey,
+    processXmlRequest.queryFn,
+    { enabled: Boolean(resource?.type === ResourceType.Process && publishedProcessContent?.id) },
+  );
+  const processHeaderMetadata = useMemo(() => {
+    if (!processXml) return { processNature: 'operationnel', processType: '' };
+    const doc = new DOMParser().parseFromString(processXml, 'application/xml');
+    const node = doc.getElementsByTagNameNS('https://ovh-bpmn-tool.local/schema/process-metadata', 'processMetadata')[0];
+    return {
+      processNature: node?.getAttribute('processNature') || 'operationnel',
+      processType: node?.getAttribute('processType') || '',
+    };
+  }, [processXml]);
+  const processTypeLabels: Record<string, string> = {
+    management: 'Management', projet: 'Projet',
+    support: 'Support', pilotage: 'Pilotage', surveillance: 'Surveillance',
+    'risques-prevention': 'Risques / prévention',
+  };
   let processUsageLabel: string | undefined;
   switch (activeProcess?.usage) {
     case 'common':
@@ -164,12 +193,9 @@ export const Component = () => {
       return <></>;
     }
 
-    // The modeler entry point is reserved for authenticated editing roles.
-    return sessionRole === 'admin' || sessionRole === 'modeler' ? (
-      <BusinessProcessActions
-        onModelerBtnClick={callbacks.header.onModelerBtnClick}
-      />
-    ) : <></>;
+    // The Modeler is opened from the contextual edit icon inside the Viewer,
+    // not from a second button in the page title.
+    return <></>;
   }, [
     resourceId,
     resource,
@@ -177,7 +203,6 @@ export const Component = () => {
     activeProjectId,
     canCreateFolder,
     canCreateProcess,
-    callbacks.header.onModelerBtnClick,
   ]);
 
   return (
@@ -193,7 +218,8 @@ export const Component = () => {
                             description={headerDescription}
                             titleAdornment={resource.type === ResourceType.Process ? (
                               <Stack direction="row" spacing={0.75} alignItems="center" useFlexGap flexWrap="wrap">
-                                <Chip size="sm" variant="soft" color="primary">Opérationnel</Chip>
+                                <Chip size="sm" variant="soft" color={processHeaderMetadata.processNature === 'organisationnel' ? 'primary' : 'success'}>{processHeaderMetadata.processNature === 'organisationnel' ? 'Organisationnel' : 'Opérationnel'}</Chip>
+                                {processHeaderMetadata.processType && processHeaderMetadata.processType !== 'operationnel' && <Chip size="sm" variant="soft" color="neutral">{processTypeLabels[processHeaderMetadata.processType] ?? processHeaderMetadata.processType}</Chip>}
                                 {processUsageLabel && <Chip size="sm" variant="soft" color="neutral">{processUsageLabel}</Chip>}
                               </Stack>
                             ) : undefined}
@@ -248,6 +274,7 @@ export const Component = () => {
                               onElementSelect={setSelectedElementId}
                               selectedContentId={requestedContentId}
                               requestedRaciView={requestedRaciView}
+                              requestedDocumentedSourceId={requestedDocumentedSourceId}
                               readOnlyShell
                             />
                           )}

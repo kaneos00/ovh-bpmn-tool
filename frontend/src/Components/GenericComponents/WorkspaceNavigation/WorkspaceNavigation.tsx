@@ -13,7 +13,7 @@ import { UserAccountMenu } from '../UserAccountMenu/UserAccountMenu';
 import { SearchResultItem } from '../SearchResultItem/SearchResultItem';
 import { getProjectTrigram } from '../../../shared/helpers/projectTrigram';
 
-type SearchScope = 'all' | 'processes' | 'bpmn' | 'roles' | 'raci';
+type SearchScope = 'all' | 'processes' | 'bpmn' | 'roles' | 'raci' | 'documented';
 const normalizeSearch = (value: string) =>
   value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr').trim();
 
@@ -22,6 +22,8 @@ const matchesTerm = (value: string, term: string) =>
 
 type SearchResult = {
   key: string;
+  type?: UnifiedSearchType;
+  documentedSourceId?: string;
   title: string;
   detail: string;
   resourceId?: string;
@@ -34,6 +36,14 @@ type SearchResult = {
 };
 
 const resultBadge = (detail: string) => {
+  if (/Information documentée/i.test(detail)) {
+    return {
+      label: 'Information documentée',
+      color: '#8a5a18',
+      background: '#fff3dc',
+      border: '#efd6a8',
+    };
+  }
   if (/\bRACI\b/i.test(detail)) {
     return {
       label: 'RACI',
@@ -142,9 +152,9 @@ export const WorkspaceNavigation = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement | null>(null);
   const { projects, activeProject, activeProjectId, setActiveProject, projectProcessIds, isLoading: projectsLoading } = useActiveProject();
-  // Folder names are not part of the unified BPMN endpoint. Keep the small
+  // Folder names are not part of the unified search endpoint. Keep the small
   // folder supplement, but never let a folder-list failure disable process,
-  // BPMN, role or RACI search.
+  // BPMN, role, RACI or documented-information search.
   const resourcesOptions = resourcesQuery();
   const resources = useQuery<Resource[]>(
     resourcesOptions.queryKey,
@@ -188,6 +198,7 @@ export const WorkspaceNavigation = () => {
     bpmn: 'bpmn',
     roles: 'actor',
     raci: 'raci',
+    documented: 'documented',
   };
   const searchOptions = unifiedSearchQuery({
     q: debouncedSearch,
@@ -216,11 +227,16 @@ export const WorkspaceNavigation = () => {
       actor: 'Rôle',
       documented: 'Information documentée',
     };
-    const detailLabel = result.field === 'testo annotazione' || result.field === 'descrizione'
-      ? 'Description'
-      : detailByType[result.type];
+    let detailLabel = detailByType[result.type];
+    if (result.type === 'documented') {
+      detailLabel = detailByType.documented;
+    } else if (result.field === 'testo annotazione' || result.field === 'descrizione') {
+      detailLabel = 'Description';
+    }
     return {
-      key: result.id,
+      key: `${result.type}:${result.projectId ?? ''}:${result.resourceId ?? ''}:${result.id}`,
+      type: result.type,
+      documentedSourceId: result.type === 'documented' ? result.id : undefined,
       title: result.label,
       detail: `${detailLabel} · ${result.excerpt || result.field}`,
       resourceId: result.resourceId,
@@ -266,6 +282,9 @@ export const WorkspaceNavigation = () => {
     const projectId = result.projectId ?? activeProjectId;
     if (projectId) params.set('projectId', projectId);
     if (result.elementId) params.set('elementId', result.elementId);
+    if (result.type === 'documented') {
+      if (result.documentedSourceId) params.set('documentedSourceId', result.documentedSourceId);
+    }
     if (result.openRaci) params.set('raci', '1');
     const query = params.toString();
     navigate(query ? `/${result.resourceId}?${query}` : `/${result.resourceId}`);
@@ -384,6 +403,7 @@ export const WorkspaceNavigation = () => {
               <Option value="bpmn">Éléments BPMN</Option>
               <Option value="roles">Rôles</Option>
               <Option value="raci">RACI</Option>
+              <Option value="documented">Informations documentées</Option>
             </Select>
             <Input
               size="sm"
@@ -393,7 +413,7 @@ export const WorkspaceNavigation = () => {
               slotProps={{ input: { ref: searchRef, 'aria-label': 'Rechercher dans tous les contenus', onKeyDown: event => {
                 if (event.key === 'Enter' && results[0]) openResult(results[0]);
               } } }}
-              placeholder="Rechercher processus, BPMN, rôles, RACI…  Ctrl K"
+              placeholder="Rechercher processus, BPMN, rôles, RACI, informations documentées…  Ctrl K"
               startDecorator={<Search fontSize="small" />}
               endDecorator={search.trim() ? <Button size="sm" variant="plain" onClick={() => { setSearch(''); setSearchOpen(true); }}>Effacer</Button> : null}
               sx={{ bgcolor: '#263e59', color: '#fff', borderColor: '#40556d', flex: 1, minWidth: 0, '--Input-placeholderColor': '#b4c3d5', '& input': { color: '#fff' }, '&:hover': { bgcolor: '#2b4664' } }}

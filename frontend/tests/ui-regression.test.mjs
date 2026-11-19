@@ -225,14 +225,15 @@ test('detail panel starts collapsed, opens on selection and closes when the sele
 });
 
 
-test('selected BPMN element shows a pedagogical type description immediately below its ID', async () => {
+test('selected BPMN element hides its technical ID outside edit mode and keeps its pedagogical type description', async () => {
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
 
   assert.ok(details.includes("exclusiveGateway: 'Passerelle exclusive : permet de choisir un seul chemin"));
   assert.ok(details.includes("parallelGateway: 'Passerelle parallèle : permet de lancer plusieurs chemins"));
   assert.ok(details.includes("startEvent: 'Événement de début : indique le déclenchement"));
   assert.ok(details.includes("endEvent: 'Événement de fin : indique la fin"));
-  assert.match(details, /Identifiant : \{selectedTask\.id\}<\/Typography>\s*<Typography level="body-sm" textColor="neutral">\{getElementTypeDescription\(selectedTask\.type\)\}/);
+  assert.match(details, /isEditingDescription && <Typography level="body-xs" textColor="neutral">Identifiant BPMN : \{selectedTask\.id\}<\/Typography>/);
+  assert.match(details, /<Typography level="body-sm" textColor="neutral">\{getElementTypeDescription\(selectedTask\.type\)\}/);
 });
 
 
@@ -1019,6 +1020,12 @@ test('approved BPMN proposals are read-only until the approved snapshot is publi
   assert.ok(styles.includes('.modelerReadOnly #diagramContainer'));
 });
 
+test('Viewer translates the pending BPMN remark status into French', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  assert.ok(details.includes("return 'À traiter';"));
+  assert.ok(!details.includes("return 'In attesa';"));
+});
+
 test('rejecting a BPMN remark requires a reason in the UI and backend', async () => {
   const panel = await read('src/Containers/ContentModeler/components/ProposalRemarksPanel.tsx');
   const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/process-change-proposal.controller.ts');
@@ -1104,4 +1111,86 @@ test('project documented information uses canonical sources within one process a
   assert.ok(migration.includes('project_documented_source_references_unique_element'));
   assert.ok(search.includes("type: 'documented'"));
   assert.ok(searchPage.includes('<Option value="documented">Informations documentées</Option>'));
+});
+
+
+test('user account menu provides direct access to all accessible projects', async () => {
+  const menu = await read('src/Components/GenericComponents/UserAccountMenu/UserAccountMenu.tsx');
+  assert.ok(menu.includes('WorkspacesOutlined'));
+  assert.match(menu, /navigate\('\/projects'\)/);
+  assert.match(menu, /Tous les projets/);
+});
+
+test('V0.8 keeps process nature, process type and repository usage as distinct metadata', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
+
+  assert.ok(details.includes("processNature: 'operationnel'"));
+  assert.ok(details.includes("processNature: node?.getAttribute('processNature') || 'operationnel'"));
+  assert.ok(details.includes('operationalPurpose'));
+  assert.ok(details.includes('operationalScope'));
+  assert.ok(details.includes('operationalMode'));
+  assert.ok(details.includes('specificities'));
+  assert.ok(details.includes('<Option value="organisationnel">Organisationnel</Option>'));
+  assert.ok(details.includes('Les processus organisationnels ont vocation à rester communs'));
+  assert.ok(layout.includes("processNature: node?.getAttribute('processNature') || 'operationnel'"));
+  assert.ok(layout.includes("processUsageLabel = 'Commun'"));
+  assert.ok(layout.includes("processUsageLabel = 'Variante'"));
+  assert.ok(layout.includes("processUsageLabel = 'Spécifique'"));
+  assert.doesNotMatch(layout, /BusinessProcessActions/, 'the title must not expose a duplicate Modeler button');
+});
+
+test('V0.8 exposes a linked subprocess target from the selected element details', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.ok(details.includes("element.localName === 'callActivity'"));
+  assert.ok(details.includes("element.localName === 'subProcess'"));
+  assert.ok(details.includes('resolveProcessTarget(selectedTask.linkedProcessTargetId, processInfo)'));
+  assert.ok(details.includes('Ouvrir le processus : {linkedProcess.name}'));
+});
+
+
+test('quick search exposes documented information and opens the matching search filter', async () => {
+  const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+  const results = await read('src/Containers/SearchResults/SearchResults.container.tsx');
+  const searchService = await read('../backend/src/modules/SearchContext/unified-search.service.ts');
+
+  assert.match(navigation, /type SearchScope = [^;]*'documented'/);
+  assert.match(navigation, /documented:\s*'documented'/);
+  assert.ok(navigation.includes('<Option value="documented">Informations documentées</Option>'));
+  assert.match(navigation, /label:\s*'Information documentée'/);
+  assert.match(navigation, /if \(type\) params\.set\('types', type\)/);
+  assert.ok(results.includes('<Option value="documented">Informations documentées</Option>'));
+  assert.match(results, /Information documentée/);
+  assert.match(searchService, /if \(includes\('documented'\) && allowedProjectIds\.length\)/);
+  assert.match(searchService, /findDocumentedSourceSearchMatch\(source, normalizedQuery\)/);
+});
+
+
+test('documented-information search opens the inventory record from both search entry points without merging BPMN results', async () => {
+  const navigation = await read('src/Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation.tsx');
+  const results = await read('src/Containers/SearchResults/SearchResults.container.tsx');
+  const routeState = await read('src/shared/hooks/useViewerRouteState.ts');
+  const layout = await read('src/Containers/BpmnLayout/BpmnLayout.container.tsx');
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
+  const grid = await read('src/Components/BusinessComponents/ProcessDetails/DocumentedSourcesGrid.tsx');
+
+  assert.ok(navigation.includes('<Option value="documented">Informations documentées</Option>'));
+  assert.ok(navigation.includes("result.type === 'documented'"));
+  assert.ok(navigation.includes("params.set('documentedSourceId', result.documentedSourceId)"));
+  assert.ok(navigation.includes("documentedSourceId: result.type === 'documented' ? result.id : undefined"));
+  assert.ok(navigation.includes("key: `${result.type}:${result.projectId ?? ''}:${result.resourceId ?? ''}:${result.id}`"));
+  assert.ok(navigation.includes("let detailLabel = detailByType[result.type]"));
+  assert.ok(navigation.includes("if (result.type === 'documented')"));
+  assert.ok(navigation.includes("detailLabel = detailByType.documented"));
+
+  assert.ok(results.includes("if (result.type === 'documented') params.set('documentedSourceId', result.id)"));
+  assert.ok(routeState.includes("requestedDocumentedSourceId: searchParams.get('documentedSourceId')"));
+  assert.ok(layout.includes('requestedDocumentedSourceId={requestedDocumentedSourceId}'));
+  assert.ok(details.includes('if (requestedDocumentedSourceId) setActiveViewerTab(4)'));
+  assert.ok(details.includes('requestedDocumentedSourceId={requestedDocumentedSourceId}'));
+  assert.ok(inventory.includes('item.id === requestedDocumentedSourceId'));
+  assert.ok(inventory.includes('selectedRowId={selectedElementId ?? undefined}'));
+  assert.ok(grid.includes('event.api.ensureNodeVisible(node, \'middle\')'));
 });

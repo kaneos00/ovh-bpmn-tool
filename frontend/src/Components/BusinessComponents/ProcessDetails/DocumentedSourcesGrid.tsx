@@ -15,6 +15,7 @@ type Props<T extends object> = {
   addLabel?: string;
   addDisabled?: boolean;
   onRowSelected?: (row: T | null) => void;
+  selectedRowId?: string;
   height?: number;
 };
 
@@ -26,6 +27,7 @@ export const DocumentedSourcesGrid = <T extends object,>({
   addLabel = 'Ajouter',
   addDisabled = false,
   onRowSelected,
+  selectedRowId,
   height = 520,
 }: Props<T>) => (
   <Box sx={{ width: '100%', minWidth: 0 }}>
@@ -48,6 +50,16 @@ export const DocumentedSourcesGrid = <T extends object,>({
         animateRows={false}
         pagination
         paginationPageSize={20}
+        onFirstDataRendered={event => {
+          if (!selectedRowId) return;
+          const node = event.api.getRowNode(selectedRowId);
+          if (node) { node.setSelected(true); event.api.ensureNodeVisible(node, 'middle'); }
+        }}
+        onRowDataUpdated={event => {
+          if (!selectedRowId) return;
+          const node = event.api.getRowNode(selectedRowId);
+          if (node) { node.setSelected(true); event.api.ensureNodeVisible(node, 'middle'); }
+        }}
         onRowClicked={event => onRowSelected?.(event.data ?? null)}
         onSelectionChanged={event => onRowSelected?.(event.api.getSelectedRows()[0] ?? null)}
         localeText={{
