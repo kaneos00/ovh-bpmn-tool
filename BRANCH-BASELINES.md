@@ -46,3 +46,7 @@ Avant chaque comparaison ou portage :
 - Ces informations décrivent l'état Git constaté ; elles ne prouvent pas quelle branche/quel SHA est effectivement déployé dans Coolify.
 
 Pour tout audit de l'instance `ovh-bpmn.vps-yma.ovh`, identifier d'abord le SHA réellement injecté dans le build ou la révision sélectionnée dans Coolify. Le nom de domaine, le nom d'une branche candidate et la dernière CI verte ne constituent pas une preuve du commit déployé.
+
+## Attention au guide de déploiement Coolify historique
+
+Le guide `deploy/coolify/README.md` consulté sur la branche candidate indique encore `feature/v2-workspace-views` comme branche de démonstration. Cette branche pointe sur `059d5803f18d1f4319a4261bc812ba3c4d01f893` (13 octobre 2026). Cette indication est historique et ne permet pas d'identifier la branche réellement configurée aujourd'hui dans Coolify. Ne pas l'utiliser comme preuve de la version déployée.
