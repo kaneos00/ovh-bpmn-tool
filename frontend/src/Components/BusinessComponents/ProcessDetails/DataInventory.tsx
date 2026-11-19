@@ -40,7 +40,6 @@ const emptySource = (): InventorySource => ({
 });
 
 const activityTypes = new Set(['task','userTask','manualTask','serviceTask','scriptTask','businessRuleTask','sendTask','receiveTask','callActivity','subProcess','transaction']);
-const DATA_ELEMENT_TYPES = new Set(['dataObjectReference', 'dataStoreReference', 'dataInput', 'dataOutput', 'dataObject', 'dataStore']);
 const readSources = (xml?: string): InventorySource[] => {
   if (!xml) return [];
   const doc = new DOMParser().parseFromString(xml, 'application/xml');
@@ -67,7 +66,6 @@ const readSources = (xml?: string): InventorySource[] => {
     if (activityTypes.has(byId.get(t)?.localName || '')) add(s, t, 'input');
   });
 
-  const manifest = Array.from(doc.getElementsByTagNameNS(NS, 'manifest'))[0];
   const excludedIds = new Set(
     Array.from(doc.getElementsByTagNameNS(NS, 'excluded'))
       .map(node => node.getAttribute('elementId') || '')
@@ -108,9 +106,6 @@ const readSources = (xml?: string): InventorySource[] => {
   const bySourceId = new Map<string, InventorySource>();
   saved.forEach(source => bySourceId.set(source.id, source));
   detected.forEach(source => { if (!bySourceId.has(source.id)) bySourceId.set(source.id, source); });
-  // Keep the manifest variable intentionally read: an empty legacy manifest
-  // is not an instruction to suppress automatic BPMN discovery.
-  void manifest;
   return Array.from(bySourceId.values()).filter(source => !excludedIds.has(source.id));
 };
 
@@ -145,6 +140,11 @@ export const DataInventory = ({ xmlContent, canEdit, onSave, onElementSelect, on
       const doc = new DOMParser().parseFromString(xmlContent, 'application/xml');
       if (doc.querySelector('parsererror')) throw new Error('Le BPMN publié est illisible.');
       const definitions = doc.documentElement;
+      const existingExcludedIds = new Set(
+        Array.from(doc.getElementsByTagNameNS(NS, 'excluded'))
+          .map(node => node.getAttribute('elementId') || '')
+          .filter(Boolean),
+      );
       let extension = Array.from(definitions.children).find(node => node.localName === 'extensionElements');
       if (!extension) {
         extension = doc.createElementNS(definitions.namespaceURI, definitions.prefix ? `${definitions.prefix}:extensionElements` : 'extensionElements');
@@ -156,11 +156,7 @@ export const DataInventory = ({ xmlContent, canEdit, onSave, onElementSelect, on
       // legacy manifest must not hide BPMN objects; exclusions preserve deliberate deletions.
       extension.appendChild(doc.createElementNS(NS, 'inventory:manifest'));
       const currentIds = new Set(sources.map(source => source.id));
-      const excludedIds = new Set(
-        Array.from(doc.getElementsByTagNameNS(NS, 'excluded'))
-          .map(node => node.getAttribute('elementId') || '')
-          .filter(Boolean),
-      );
+      const excludedIds = new Set(existingExcludedIds);
       original.forEach(source => {
         if (!currentIds.has(source.id) && source.id && !source.id.startsWith('source-')) excludedIds.add(source.id);
       });
