@@ -68,7 +68,8 @@ export class ResourceTypeOrmRepository implements ResourceRepository {
            FROM project_processes
            WHERE "resourceId" = ANY($1::uuid[])
            GROUP BY "resourceId"
-           HAVING COUNT(DISTINCT "projectId") > 1`,
+           HAVING COUNT(DISTINCT "projectId") > 1
+              OR BOOL_OR(usage = 'common')`,
           [resourceIds],
         );
         const sharedIds = sharedResources.map(({ id }) => id);
@@ -98,27 +99,25 @@ export class ResourceTypeOrmRepository implements ResourceRepository {
           [deletableIds],
         );
 
-        // Keep variants outside the deleted subtree, but detach their source
-        // pointer in both the resource record and project association.
-        await manager.query(
-          'UPDATE resources SET "sourceResourceId" = NULL WHERE "sourceResourceId" = ANY($1::uuid[]) AND NOT (id = ANY($1::uuid[]))',
-          [deletableIds],
-        );
-        await manager.query(
-          'UPDATE project_processes SET "sourceResourceId" = NULL WHERE "sourceResourceId" = ANY($1::uuid[]) AND NOT ("resourceId" = ANY($1::uuid[]))',
-          [deletableIds],
-        );
+        // Keep surviving variants linked to their source. The access guard
+        // rejects deletion when a dependent variant is outside this tree.
+        // The database foreign keys remain the final integrity safeguard.
         await manager.query(
           'DELETE FROM project_processes WHERE "resourceId" = ANY($1::uuid[])',
           [deletableIds],
         );
 
-        const deletedResources: Array<{ id: string }> = await manager.query(
-          'DELETE FROM resources WHERE id = ANY($1::uuid[]) RETURNING id',
+        await manager.query(
+          'DELETE FROM resources WHERE id = ANY($1::uuid[])',
+          [deletableIds],
+        );
+        // Avoid relying on TypeORM's driver-specific DELETE result shape.
+        const remainingResources: Array<{ id: string }> = await manager.query(
+          'SELECT id FROM resources WHERE id = ANY($1::uuid[])',
           [deletableIds],
         );
 
-        if (deletedResources?.length !== deletableIds.length) {
+        if (remainingResources?.length) {
           throw new Error(
             'Error while deleting the complete resource hierarchy',
           );
