@@ -136,6 +136,10 @@ export const Component = () => {
                 renderCustomNodeElement={({ nodeDatum }: any) => {
                   const isRoot = Boolean(nodeDatum.attributes?.root);
                   const selected = nodeDatum.attributes?.id === selectedPositionId;
+                  const fill = isRoot ? '#183451' : selected ? '#e8efff' : '#ffffff';
+                  const stroke = isRoot ? '#183451' : selected ? '#2864d7' : '#cbd5e1';
+                  const textColor = isRoot ? '#ffffff' : '#1e293b';
+                  const secondaryTextColor = isRoot ? '#cbd5e1' : '#64748b';
                   return (
                     <g
                       onClick={() => {
@@ -144,11 +148,11 @@ export const Component = () => {
                       style={{ cursor: isRoot ? 'default' : 'pointer' }}
                     >
                       <rect x="-108" y="-36" width="216" height="76" rx="12"
-                        fill={isRoot ? '#183451' : selected ? '#e8efff' : '#ffffff'}
-                        stroke={isRoot ? '#183451' : selected ? '#2864d7' : '#cbd5e1'}
+                        fill={fill}
+                        stroke={stroke}
                         strokeWidth={selected ? 2.5 : 1.5} />
-                      <text textAnchor="middle" y="-9" fill={isRoot ? '#ffffff' : '#1e293b'} fontSize="12" fontWeight="700">{nodeDatum.name}</text>
-                      <text textAnchor="middle" y="11" fill={isRoot ? '#cbd5e1' : '#64748b'} fontSize="10">{isRoot ? 'Socle commun' : nodeDatum.attributes?.code}</text>
+                      <text textAnchor="middle" y="-9" fill={textColor} fontSize="12" fontWeight="700">{nodeDatum.name}</text>
+                      <text textAnchor="middle" y="11" fill={secondaryTextColor} fontSize="10">{isRoot ? 'Socle commun' : nodeDatum.attributes?.code}</text>
                       {!isRoot && <text textAnchor="middle" y="27" fill={nodeDatum.attributes?.holder === 'Poste vacant' ? '#b45309' : '#2864d7'} fontSize="10">{nodeDatum.attributes?.holder}</text>}
                     </g>
                   );
