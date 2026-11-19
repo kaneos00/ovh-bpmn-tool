@@ -523,7 +523,7 @@ test('V3 central viewer exposes the data inventory and saves it through the exis
   assert.match(inventory, /inventory:manifest/);
   assert.match(inventory, /dataObjectReference.*dataStoreReference/s);
   assert.match(inventory, /dataObjectRef.*dataStoreRef/s);
-  assert.match(inventory, /\['dataObject', 'dataStore'\]/);
+  assert.match(inventory, /\['dataObject',\s*'dataStore'\]/);
   assert.match(inventory, /detected\.forEach\(source => \{ if \(!bySourceId\.has\(source\.id\)\)/);
   assert.match(inventory, /original\.forEach\(source => \{/);
   assert.match(inventory, /Gestion des accès/);
