@@ -5,7 +5,7 @@ import { EditOutlined, CenterFocusStrong } from '@mui/icons-material';
 export type InventorySource = {
   id: string;
   kind: 'file' | 'database';
-  bpmnType: 'dataObjectReference' | 'dataInput' | 'dataOutput' | 'dataStoreReference';
+  bpmnType: 'dataObjectReference' | 'dataInput' | 'dataOutput' | 'dataStoreReference' | 'dataObject' | 'dataStore';
   associations: Array<{ taskId: string; taskName: string; direction: 'input' | 'output' }>;
   name: string;
   description: string;
@@ -40,6 +40,7 @@ const emptySource = (): InventorySource => ({
 });
 
 const activityTypes = new Set(['task','userTask','manualTask','serviceTask','scriptTask','businessRuleTask','sendTask','receiveTask','callActivity','subProcess','transaction']);
+const DATA_ELEMENT_TYPES = new Set(['dataObjectReference', 'dataStoreReference', 'dataInput', 'dataOutput', 'dataObject', 'dataStore']);
 const readSources = (xml?: string): InventorySource[] => {
   if (!xml) return [];
   const doc = new DOMParser().parseFromString(xml, 'application/xml');
@@ -65,7 +66,13 @@ const readSources = (xml?: string): InventorySource[] => {
     if (activityTypes.has(byId.get(s)?.localName || '')) add(t, s, 'output');
     if (activityTypes.has(byId.get(t)?.localName || '')) add(s, t, 'input');
   });
-  const hasInventoryManifest = doc.getElementsByTagNameNS(NS, 'manifest').length > 0;
+
+  const manifest = Array.from(doc.getElementsByTagNameNS(NS, 'manifest'))[0];
+  const excludedIds = new Set(
+    Array.from(doc.getElementsByTagNameNS(NS, 'excluded'))
+      .map(node => node.getAttribute('elementId') || '')
+      .filter(Boolean),
+  );
   const saved = Array.from(doc.getElementsByTagNameNS(NS, 'source')).map(n => ({
     id: n.getAttribute('id') || emptySource().id,
     kind: n.getAttribute('kind') === 'database' ? 'database' as const : 'file' as const,
@@ -75,19 +82,42 @@ const readSources = (xml?: string): InventorySource[] => {
     retention: n.getAttribute('retention') || '', authorizedPeople: n.getAttribute('authorizedPeople') || '',
     restrictions: n.getAttribute('restrictions') || '', associations: links.get(n.getAttribute('id') || '') ?? [],
   }));
-  if (hasInventoryManifest || saved.length) return saved;
-  return elements.filter(n => ['dataObjectReference','dataStoreReference','dataInput','dataOutput'].includes(n.localName)).map(n => {
-    const id = n.getAttribute('id') || emptySource().id;
-    const bpmnType = n.localName as InventorySource['bpmnType'];
-    return { ...emptySource(), id, bpmnType, kind: bpmnType === 'dataStoreReference' ? 'database' as const : 'file' as const,
-      name: n.getAttribute('name') || id || 'Source sans nom', associations: links.get(id) ?? [] };
+
+  // A manifest records user edits; it must not hide BPMN data elements that
+  // were never imported (notably when an older version wrote an empty manifest).
+  const references = elements.filter(n => ['dataObjectReference','dataStoreReference','dataInput','dataOutput'].includes(n.localName));
+  const referencedDefinitions = new Set<string>();
+  references.forEach(node => {
+    const definitionId = node.getAttribute('dataObjectRef') || node.getAttribute('dataStoreRef');
+    if (definitionId) referencedDefinitions.add(definitionId);
   });
+  const definitions = elements.filter(n => ['dataObject','dataStore'].includes(n.localName) &&
+    !referencedDefinitions.has(n.getAttribute('id') || ''));
+  const detectedNodes = [...references, ...definitions];
+  const detected = detectedNodes.map(node => {
+    const id = node.getAttribute('id') || '';
+    const bpmnType = node.localName as InventorySource['bpmnType'];
+    const definitionId = node.getAttribute('dataObjectRef') || node.getAttribute('dataStoreRef') || '';
+    const definition = definitionId ? byId.get(definitionId) : undefined;
+    const name = node.getAttribute('name') || definition?.getAttribute('name') || id || 'Source sans nom';
+    const kind = ['dataStoreReference', 'dataStore'].includes(bpmnType) ? 'database' as const : 'file' as const;
+    const associations = links.get(id) ?? (definitionId ? links.get(definitionId) : undefined) ?? [];
+    return { ...emptySource(), id, bpmnType, kind, name, associations };
+  }).filter(source => source.id && !excludedIds.has(source.id));
+
+  const bySourceId = new Map<string, InventorySource>();
+  saved.forEach(source => bySourceId.set(source.id, source));
+  detected.forEach(source => { if (!bySourceId.has(source.id)) bySourceId.set(source.id, source); });
+  // Keep the manifest variable intentionally read: an empty legacy manifest
+  // is not an instruction to suppress automatic BPMN discovery.
+  void manifest;
+  return Array.from(bySourceId.values()).filter(source => !excludedIds.has(source.id));
 };
 
-const symbolLabel = (type: InventorySource['bpmnType']) => ({ dataObjectReference: 'Objet de données', dataInput: 'Entrée de données', dataOutput: 'Sortie de données', dataStoreReference: 'Magasin de données' }[type]);
+const symbolLabel = (type: InventorySource['bpmnType']) => ({ dataObjectReference: 'Objet de données', dataInput: 'Entrée de données', dataOutput: 'Sortie de données', dataStoreReference: 'Magasin de données', dataObject: 'Objet de données', dataStore: 'Magasin de données' }[type]);
 const BpmnDataSymbol = ({ type }: { type: InventorySource['bpmnType'] }) => (
   <svg width="34" height="38" viewBox="0 0 34 38" role="img" aria-label={symbolLabel(type)}>
-    {type === 'dataStoreReference' ? <g fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M5 8 C5 3 29 3 29 8 L29 29 C29 34 5 34 5 29 Z"/><path d="M5 8 C5 13 29 13 29 8 M5 29 C5 24 29 24 29 29"/></g> :
+    {['dataStoreReference', 'dataStore'].includes(type) ? <g fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M5 8 C5 3 29 3 29 8 L29 29 C29 34 5 34 5 29 Z"/><path d="M5 8 C5 13 29 13 29 8 M5 29 C5 24 29 24 29 29"/></g> :
     <g fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M6 3 H22 L29 10 V34 H6 Z"/><path d="M22 3 V10 H29"/>
       {type === 'dataInput' && <path d="M11 22 H24 M11 22 L15 18 M11 22 L15 26"/>}
       {type === 'dataOutput' && <path d="M11 22 H24 M20 18 L24 22 L20 26"/>}
@@ -120,11 +150,26 @@ export const DataInventory = ({ xmlContent, canEdit, onSave, onElementSelect, on
         extension = doc.createElementNS(definitions.namespaceURI, definitions.prefix ? `${definitions.prefix}:extensionElements` : 'extensionElements');
         definitions.insertBefore(extension, definitions.firstChild);
       }
-      Array.from(extension.children).filter(node => node.namespaceURI === NS && ['source', 'manifest'].includes(node.localName)).forEach(node => node.remove());
+      Array.from(extension.children).filter(node => node.namespaceURI === NS && ['source', 'manifest', 'excluded'].includes(node.localName)).forEach(node => node.remove());
       if (!definitions.lookupNamespaceURI('inventory')) definitions.setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:inventory', NS);
-      // Persist an explicit marker even for an empty list, otherwise removed
-      // entries would reappear from BPMN dataObjectReference/dataStoreReference.
+      // Persist the inventory marker and explicit exclusions separately. An empty
+      // legacy manifest must not hide BPMN objects; exclusions preserve deliberate deletions.
       extension.appendChild(doc.createElementNS(NS, 'inventory:manifest'));
+      const currentIds = new Set(sources.map(source => source.id));
+      const excludedIds = new Set(
+        Array.from(doc.getElementsByTagNameNS(NS, 'excluded'))
+          .map(node => node.getAttribute('elementId') || '')
+          .filter(Boolean),
+      );
+      original.forEach(source => {
+        if (!currentIds.has(source.id) && source.id && !source.id.startsWith('source-')) excludedIds.add(source.id);
+      });
+      currentIds.forEach(id => excludedIds.delete(id));
+      excludedIds.forEach(elementId => {
+        const node = doc.createElementNS(NS, 'inventory:excluded');
+        node.setAttribute('elementId', elementId);
+        extension!.appendChild(node);
+      });
       sources.forEach(source => {
         const node = doc.createElementNS(NS, 'inventory:source');
         (Object.keys(source) as (keyof InventorySource)[]).filter(key => key !== 'associations').forEach(key => node.setAttribute(key, String(source[key])));
@@ -169,7 +214,7 @@ export const DataInventory = ({ xmlContent, canEdit, onSave, onElementSelect, on
                   <td><Stack direction="row" spacing={0.75} alignItems="center" sx={{ minWidth: 180 }}>
                     {editing ? <Input size="sm" value={source.name} onChange={e => update(source.id, 'name', e.target.value)} placeholder="Nom de la source" aria-label="Nom de la source" /> : <Typography level="body-sm">{source.name || `Source ${index + 1}`}</Typography>}
                   </Stack>
-                  {editing && <select aria-label="Type de source BPMN" value={source.bpmnType} onChange={e => { const bpmnType = e.target.value as InventorySource['bpmnType']; setSources(current => current.map(item => item.id === source.id ? { ...item, bpmnType, kind: bpmnType === 'dataStoreReference' ? 'database' : 'file' } : item)); }}><option value="dataObjectReference">Objet de données</option><option value="dataInput">Entrée de données</option><option value="dataOutput">Sortie de données</option><option value="dataStoreReference">Magasin de données</option></select>}
+                  {editing && <select aria-label="Type de source BPMN" value={source.bpmnType} onChange={e => { const bpmnType = e.target.value as InventorySource['bpmnType']; setSources(current => current.map(item => item.id === source.id ? { ...item, bpmnType, kind: ['dataStoreReference', 'dataStore'].includes(bpmnType) ? 'database' : 'file' } : item)); }}><option value="dataObjectReference">Objet de données</option><option value="dataInput">Entrée de données</option><option value="dataOutput">Sortie de données</option><option value="dataStoreReference">Magasin de données</option></select>}
                   {!editing && <Box sx={{ mt: 0.5 }}><Chip size="sm" variant="soft">{source.kind === 'database' ? 'Base de données' : 'Fichier'}</Chip></Box>}</td>
                   <td><Stack spacing={0.5} sx={{ minWidth: 190 }}>{source.associations.length ? source.associations.map((a, i) => <Stack key={a.taskId + i} direction="row" spacing={0.5} alignItems="center"><Chip size="sm" color={a.direction === 'input' ? 'primary' : 'success'} variant="soft">{a.direction === 'input' ? 'Entrée' : 'Sortie'}</Chip>{onElementSelect ? <Button size="sm" variant="plain" color="neutral" onClick={() => { onShowDiagram?.(); onElementSelect(a.taskId); }} startDecorator={<CenterFocusStrong />}>{a.taskName}</Button> : <Typography level="body-sm">{a.taskName}</Typography>}</Stack>) : <Typography level="body-sm" textColor="neutral">Aucune association BPMN détectée</Typography>}</Stack></td>
                   <td>{area('description', 'Description et usage')}</td><td>{field('location', 'Chemin / serveur')}</td><td>{field('access', 'Gestion des accès')}</td><td>{field('retention', 'Durée')}</td><td>{field('authorizedPeople', 'Personnes / rôles')}</td><td>{area('restrictions', 'Modalités de restriction (masquage, chiffrement, limitation…)')}</td>
