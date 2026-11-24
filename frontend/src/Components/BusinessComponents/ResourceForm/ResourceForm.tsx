@@ -23,12 +23,14 @@ export type ResourceFormProps = {
   onFormSubmit?: (props: ResourceFormFields) => void;
   isLoading?: boolean;
   resource?: Resource;
+  type?: ResourceType;
 };
 
 export const ResourceForm: FC<ResourceFormProps> = ({
   onFormSubmit,
   isLoading = false,
   resource,
+  type,
 }) => {
   const { register, handleSubmit } = useForm<ResourceFormFields>({
     values: resource ?? undefined,
@@ -41,7 +43,10 @@ export const ResourceForm: FC<ResourceFormProps> = ({
         onFormSubmit?.(props);
       })}
     >
-      <input {...register('type')} type="hidden" />
+      <input
+        {...register('type', { value: type ?? resource?.type })}
+        type="hidden"
+      />
       <Stack spacing={2}>
         <FormControl>
           <FormLabel>Name</FormLabel>
