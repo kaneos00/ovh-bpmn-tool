@@ -97,8 +97,7 @@ jobs:
       - name: Build PostgreSQL image
         run: docker build --file deploy/coolify/Dockerfile.postgres --tag bpmn-v2-demo-postgres:ci .
       - name: Build database migration image
-        run: docker build --file deploy/coolify/Dockerfile.migrations --tag bpmn-v2-demo-migrations:ci .
-      - name: Install Playwright Chromium for browser workflow
+        run: docker build --file deploy/coolify/Dockerfile.migrations --tag bpmn-v2-demo-migrations:ci .      - name: Install Playwright Chromium for browser workflow
         run: |
           npm install --prefix /tmp/bpmn-playwright --no-save playwright@1.55.0
           node /tmp/bpmn-playwright/node_modules/playwright/cli.js install chromium
@@ -155,7 +154,7 @@ jobs:
           docker run --rm --network bpmn-v2-ci \
             --env PGPASSWORD="$DATABASE_PASSWORD" \
             --env DATABASE_USER="$DATABASE_USER" --env DATABASE_NAME="$DATABASE_NAME" \
-            bpmn-v2-demo-migrations:ci sh -ec 'until pg_isready -h database -U "$DATABASE_USER" -d "$DATABASE_NAME"; do sleep 1; done; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261014_v2_1_process_provenance.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261029_v3_user_theme_preference.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261029_v3_content_change_comments.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261102_v3_process_change_proposals.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261104_v3_process_change_proposal_comments.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261104_v3_process_change_proposal_remark_events.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261105_v3_project_member_remark_permission.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261105_v3_project_visual_identity.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261106_add_project_default_validator.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261108_v3_project_trigram.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261109_v3_process_change_proposal_clarification_events.sql'
+            bpmn-v2-demo-migrations:ci sh -ec 'until pg_isready -h database -U "$DATABASE_USER" -d "$DATABASE_NAME"; do sleep 1; done; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261014_v2_1_process_provenance.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261029_v3_user_theme_preference.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261029_v3_content_change_comments.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261102_v3_process_change_proposals.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261103_v3_user_search_sort_preference.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261104_v3_process_change_proposal_comments.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261104_v3_process_change_proposal_remark_events.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261105_v3_project_member_remark_permission.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261105_v3_project_visual_identity.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261106_add_project_default_validator.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261108_v3_project_trigram.sql; psql -v ON_ERROR_STOP=1 -h database -U "$DATABASE_USER" -d "$DATABASE_NAME" -f /opt/migrations/20261109_v3_process_change_proposal_clarification_events.sql'
 
           # Execute the explorer XPath against a real PostgreSQL server. This
           # exercises namespace-aware BPMN XML parsing, latest-published
@@ -171,6 +170,7 @@ jobs:
             < backend/tests/sql/resource-deletion.integration.sql
           test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.columns WHERE table_name='resources' AND column_name='sourceResourceId'")" = "1"
           test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.tables WHERE table_name='app_user_preferences'")" = "1"
+          test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.columns WHERE table_name='app_user_preferences' AND column_name='search_sort'")" = "1"
           test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.columns WHERE table_name='projects' AND column_name IN ('color', 'icon')")" = "2"
           test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.columns WHERE table_name='project_members' AND column_name='canSubmitRemarks'")" = "1"
           test "$(docker exec bpmn-v2-demo-db-ci psql -U "$DATABASE_USER" -d "$DATABASE_NAME" -Atc "SELECT count(*) FROM information_schema.tables WHERE table_name='process_change_proposals'")" = "1"
@@ -197,8 +197,7 @@ jobs:
           assert_status "401" "$status" "backend unauthenticated session"
           status="$(docker run --rm --network bpmn-v2-ci curlimages/curl:8.12.1 -sS -o /dev/null -w '%{http_code}' \
             -H 'content-type: application/json' -d '{"username":"demo-v2","password":"wrong"}' \
-            http://backend:3000/auth/login || true)"
-          assert_status "401" "$status" "backend invalid-password login"
+            http://backend:3000/auth/login || true)"          assert_status "401" "$status" "backend invalid-password login"
 
           docker run --detach --name bpmn-v2-demo-frontend-ci --network bpmn-v2-ci \
             --publish 127.0.0.1:18080:80 \
@@ -297,8 +296,7 @@ jobs:
 
           admin_session="$(curl --fail --silent --show-error \
             --cookie /tmp/bpmn-v2-ci.cookies \
-            http://127.0.0.1:18080/bpmn-api/auth/session)"
-          echo "$admin_session" | grep -q '"role":"admin"'
+            http://127.0.0.1:18080/bpmn-api/auth/session)"          echo "$admin_session" | grep -q '"role":"admin"'
           echo "$admin_session" | grep -q '"impersonating":false'
 
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
