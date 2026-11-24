@@ -505,7 +505,7 @@ async function main() {
 
     // Create a folder through the graphical form and verify that the
     // explorer receives it before any manual page reload.
-    const createdFolderName = 'CI E2E — dossier créé via formulaire';
+    const createdFolderName = 'CI E2E - dossier créé via formulaire';
     const demoFolderId = '20000000-0000-4000-8000-000000000001';
     await openProjectWorkspace(reviewerPage);
     await reviewerPage.goto(`${baseUrl}/${demoFolderId}`);
