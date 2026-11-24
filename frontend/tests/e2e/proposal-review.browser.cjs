@@ -532,7 +532,7 @@ async function main() {
       `Folder creation failed with HTTP ${createFolderResponse.status()}: ${createFolderResponseBody}`,
     );
     await reviewerPage.waitForURL(`**/${demoFolderId}`);
-    await reviewerPage.getByText('Démonstration BPMN V2', { exact: true }).waitFor();
+    await reviewerPage.getByRole('heading', { name: 'Démonstration BPMN V2', exact: true }).waitFor();
     await reviewerPage.getByRole('treeitem').filter({ hasText: createdFolderName }).waitFor();
     const createdFolderVisibleInApi = await reviewerPage.evaluate(async folderName => {
       const response = await fetch('/bpmn-api/resources/explorer/links', {
