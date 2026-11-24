@@ -533,7 +533,7 @@ async function main() {
     );
     await reviewerPage.waitForURL(`**/${demoFolderId}`);
     await reviewerPage.getByRole('heading', { name: 'Démonstration BPMN V2', exact: true }).waitFor();
-    await reviewerPage.getByRole('treeitem').filter({ hasText: createdFolderName }).waitFor();
+    await reviewerPage.getByRole('treeitem').filter({ hasText: createdFolderName }).last().waitFor();
     const createdFolderVisibleInApi = await reviewerPage.evaluate(async folderName => {
       const response = await fetch('/bpmn-api/resources/explorer/links', {
         credentials: 'same-origin',
