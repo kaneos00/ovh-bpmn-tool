@@ -440,6 +440,16 @@ test('RACI activity links select the BPMN element and return to the process tab'
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   assert.ok(details.includes('setActiveViewerTab(0)'));
   assert.ok(details.includes('onElementSelect?.(activity.elementId)'));
+  const grid = await read('src/Components/BusinessComponents/ProcessDetails/DocumentedSourcesGrid.tsx');
+  assert.ok(grid.includes('paginationGoToPage(Math.floor(node.rowIndex / 20))'));
+  assert.ok(grid.includes('getRowStyle={params =>'));
+  const modelerLayout = await read('src/Containers/BpmnLayout/hooks/useBpmnLayout.ts');
+  const modelerAction = await read('src/Containers/BpmnLayout/BpmnLayout.action.tsx');
+  const modelerContainer = await read('src/Containers/ContentModeler/ContentModeler.container.tsx');
+  assert.ok(modelerLayout.includes('navigate(`./modeler${location.search}`)'));
+  assert.ok(modelerAction.includes('redirect(`/${resourceId}/modeler${selectionQuery}`)'));
+  assert.ok(modelerContainer.includes('const returnToUrl = selectedElementId'));
+  assert.match(details, /if \(requestedDocumentedSourceId\) setActiveViewerTab\(4\)/);
   assert.ok(details.includes('CenterFocusStrong'));
   assert.ok(details.includes('aria-label="Voir l’activité dans le BPMN"'));
   assert.ok(details.includes('<Tabs value={activeViewerTab}'));
@@ -467,7 +477,8 @@ test('modeler exposes undo/redo controls and guards unsaved navigation', async (
   assert.ok(container.includes('nextLocation.pathname !== location.pathname'));
   assert.ok(container.includes('!nextLocation.pathname.startsWith(`${location.pathname}/`)'));
   assert.ok(container.includes('const location = useLocation()'));
-  assert.ok(container.includes('const returnToUrl = proposalId && (sourceResourceId || resource?.sourceResourceId)'));
+  assert.ok(container.includes('const returnPath = proposalId && (sourceResourceId || resource?.sourceResourceId)'));
+  assert.ok(container.includes('const returnToUrl = selectedElementId'));
   assert.ok(actionBar.includes('to={returnToUrl ?? `/${resourceId}`}'));
   assert.ok(container.includes("if (reviewRemarksMode || approvedProposalMode) homeSaveActionLabel = 'Enregistrer et quitter'"));
   assert.ok(container.includes('beforeunload'));
@@ -518,17 +529,15 @@ test('V3 central viewer exposes process-level documented information backed by c
   assert.match(details, /<Tab value=\{4\}>Informations documentées<\/Tab>/);
   assert.match(details, /<TabPanel value=\{4\} className="processViewerTabPanel">[\s\S]*?<DataInventory/s);
   assert.match(details, /canEdit=\{projectForProcess\?\.role === 'admin'\}/);
-  assert.match(inventory, /getElementsByTagNameNS\(NS, 'source'\)/);
-  assert.match(inventory, /child\.localName === 'documentation'/);
-  assert.match(inventory, /attribute\.localName === 'link'/);
-  assert.match(inventory, /getReferencedElement/);
-  assert.match(inventory, /savedIds/);
-  assert.match(inventory, /dataObjectReference.*dataStoreReference/s);
-  assert.match(inventory, /location/);
-  assert.match(inventory, /access/);
-  assert.match(inventory, /authorizedPeople/);
-  assert.match(inventory, /restrictions/);
-  assert.ok(inventory.includes('apiClient.put(`/projects/${projectId}/documented-sources/${linked.id}`'));
+  assert.match(inventory, /DocumentedSourcesGrid<InventoryGridRow>/);
+  assert.match(inventory, /Ajouter une ligne : information documentée/);
+  assert.ok(inventory.includes("cellEditorParams: { values: ['file', 'database', 'application'] }"));
+  assert.match(inventory, /application: 'Application'/);
+  assert.match(inventory, /headerName: 'Objet BPMN'/);
+  assert.match(inventory, /headerName: 'Statut projet'/);
+  assert.match(inventory, /headerName: 'Date limite de validité'/);
+  assert.match(inventory, /validUntil/);
+  assert.ok(inventory.includes('apiClient.put(`/projects/${projectId}/documented-sources/${row.id}`'));
   assert.doesNotMatch(inventory, /XMLSerializer|onSave|inventory:manifest/);
 });
 
@@ -543,6 +552,8 @@ test('canonical process viewer restores element selection and RACI tab from rout
   assert.ok(layout.includes('useViewerRouteState()'));
   assert.ok(layout.includes('useViewerSelectionState('));
   assert.ok(layout.includes('selectedElementId={selectedElementId}'));
+  assert.ok(layout.includes('setSearchParams(next, { replace: true })'));
+  assert.ok(layout.includes("next.set('elementId', normalizedId)"));
   assert.ok(layout.includes('requestedRaciView={requestedRaciView}'));
   assert.ok(selectionState.includes('setSelectedElementId(requestedElementId)'));
   assert.ok(details.includes('onElementSelect?.(activity.elementId)'));
@@ -1073,29 +1084,33 @@ test('project documented information uses canonical sources within one process a
   const sourceEntity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/projectDocumentedSource.ormEntity.ts');
   const referenceEntity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/projectDocumentedSourceReference.ormEntity.ts');
   const migration = await read('../backend/migrations/20261116_v3_project_documented_sources.sql');
+  const validityMigration = await read('../backend/migrations/20261117_v3_project_documented_sources_valid_until.sql');
   const search = await read('../backend/src/modules/SearchContext/unified-search.service.ts');
   const searchPage = await read('src/Containers/SearchResults/SearchResults.container.tsx');
 
-  assert.ok(inventory.includes("child.localName === 'documentation'"));
-  assert.ok(inventory.includes("attribute.localName === 'link'"));
-  assert.ok(inventory.includes('getReferencedElement'));
-  assert.ok(inventory.includes("['description', 'Description', 230]"));
-  assert.ok(inventory.includes("['link', 'Lien', 180]"));
   assert.ok(inventory.includes('DocumentedSourcesGrid<InventoryGridRow>'));
-  assert.ok(inventory.includes("'À créer'"));
-  assert.ok(inventory.includes('/references'));
-  assert.ok(inventory.includes('/merge'));
-  assert.ok(inventory.includes('sourceOptionLabel'));
-  assert.ok(inventory.includes('reference.processName'));
-  assert.ok(inventory.includes('description: source.description'));
+  assert.ok(inventory.includes('Ajouter une ligne : information documentée'));
+  assert.ok(inventory.includes("cellEditor: 'agSelectCellEditor'"));
+  assert.ok(inventory.includes("cellEditorParams: { values: ['file', 'database', 'application'] }"));
+  assert.match(inventory, /application: 'Application'/);
+  assert.match(inventory, /if \(kind === 'application' \|\| kind === 'form'\) return 'application'/);
+  assert.ok(inventory.includes('unlinkedReferences'));
+  assert.ok(inventory.includes('Associer un objet BPMN'));
+  assert.ok(inventory.includes('Supprimer l’association BPMN'));
+  assert.ok(inventory.includes('onElementSelect?.(reference.elementId)'));
+  assert.ok(inventory.includes('validUntil'));
+  assert.ok(inventory.includes("'Illimitée'"));
+  assert.ok(inventory.includes('Personnes autorisées'));
+  assert.ok(inventory.includes('Statut projet'));
+  assert.doesNotMatch(inventory, /headerName: 'Associations'/);
   assert.ok(controller.includes("if (!(source[field] ?? '').trim() && body[field] !== undefined)"));
-
-  assert.ok(inventory.includes('Confirmer la fusion des sources'));
+  assert.ok(controller.includes('const hasReferenceFields = Boolean('));
+  assert.ok(controller.includes('validUntil: optionalDate(body.validUntil, \'validUntil\')'));
   assert.doesNotMatch(inventory, /XMLSerializer|onSave|inventory:manifest/, 'documented source metadata is not written back into BPMN XML');
   assert.ok(details.includes('canManageSources={projectForProcess?.role === \'admin\'}'));
   assert.ok(details.includes('canEdit={projectForProcess?.role === \'admin\'}'));
-  assert.ok(details.includes('selectedDocumentedSource.description'));
-  assert.ok(details.includes('selectedDocumentedSource\n      ? selectedDocumentedSource.link'));
+  assert.ok(details.includes('selectedDocumentedSource?.description?.trim()'));
+  assert.ok(details.includes('selectedDocumentedSource?.link?.trim()'));
   assert.ok(details.includes('3. Lien'));
   assert.ok(details.includes('/documented-sources/'));
   assert.doesNotMatch(root, /ProjectDocumentedInformationOverview/, 'the project-wide page is intentionally deferred');
@@ -1107,6 +1122,8 @@ test('project documented information uses canonical sources within one process a
   assert.ok(controller.includes('Fusion impossible : les liens sont différents'));
 
   assert.ok(sourceEntity.includes('mergedIntoId'));
+  assert.ok(sourceEntity.includes('validUntil'));
+  assert.ok(validityMigration.includes('validUntil'));
   assert.ok(referenceEntity.includes('elementId'));
   assert.ok(migration.includes('project_documented_source_references_unique_element'));
   assert.ok(search.includes("type: 'documented'"));
@@ -1190,7 +1207,44 @@ test('documented-information search opens the inventory record from both search 
   assert.ok(layout.includes('requestedDocumentedSourceId={requestedDocumentedSourceId}'));
   assert.ok(details.includes('if (requestedDocumentedSourceId) setActiveViewerTab(4)'));
   assert.ok(details.includes('requestedDocumentedSourceId={requestedDocumentedSourceId}'));
-  assert.ok(inventory.includes('item.id === requestedDocumentedSourceId'));
-  assert.ok(inventory.includes('selectedRowId={selectedElementId ?? undefined}'));
+  assert.ok(inventory.includes('selectedRowId={requestedDocumentedSourceId ?? undefined}'));
+  assert.ok(grid.includes('selectedRowId?: string | null'));
   assert.ok(grid.includes('event.api.ensureNodeVisible(node, \'middle\')'));
+  assert.ok(grid.includes('event.api.flashCells({ rowNodes: [node] })'));
+  assert.ok(!grid.includes('rowSelection='), 'search navigation must not restore row-selection checkboxes');
+});
+
+test('Viewer resolves Data Object and Data Store references through their BPMN definitions', async () => {
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.ok(details.includes("element.localName === 'dataStoreReference'"));
+  assert.ok(details.includes("element.localName === 'dataObjectReference'"));
+  assert.ok(details.includes("element.getAttribute(referenceAttribute)?.trim()"));
+  assert.ok(details.includes("selectedDocumentedSource?.description?.trim()"));
+  assert.ok(details.includes("selectedDocumentedSource?.link?.trim()"));
+  assert.ok(details.includes('|| referencedElementName'));
+  assert.ok(details.includes('Identifiant référencé : {selectedTask.referencedElementId}'));
+});
+
+test('Viewer restores its selected BPMN element after returning from the Modeler', async () => {
+  const viewer = await read('src/Components/BusinessComponents/ProcessViewer/hooks/useProcessViewer.ts');
+
+  assert.ok(viewer.includes("window.addEventListener('popstate', reapplySelection)"));
+  assert.ok(viewer.includes("window.addEventListener('pageshow', reapplySelection)"));
+  assert.ok(viewer.includes("document.addEventListener('visibilitychange', reapplySelection)"));
+  assert.ok(viewer.includes("import { useLocation } from 'react-router-dom'"));
+  assert.ok(viewer.includes('location.pathname, location.search'));
+  assert.ok(viewer.includes('secondFrame = window.requestAnimationFrame'));
+  assert.ok(viewer.includes('applySelectionRef.current();'));
+});
+
+test('documented information inventory provides direct navigation to its BPMN element', async () => {
+  const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
+  const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+
+  assert.ok(inventory.includes('Ouvrir l’élément BPMN associé'));
+  assert.ok(inventory.includes('onShowDiagram?.();'));
+  assert.ok(inventory.includes('onElementSelect?.(reference.elementId)'));
+  assert.ok(inventory.includes('void unlink(row, reference)'));
+  assert.ok(details.includes('onElementSelect={elementId => { setActiveViewerTab(0); onElementSelect?.(elementId); }}'));
 });

@@ -800,6 +800,19 @@ export class UnifiedSearchService {
         order: { name: 'ASC' },
       });
       const documentedSourceIds = documentedSources.map((source) => source.id);
+      const projectProcessLinks = await this.projectProcesses.find({
+        where: {
+          projectId: In(allowedProjectIds),
+          resourceId: In([...resourceById.keys()]),
+        },
+        select: { projectId: true, resourceId: true },
+      });
+      const firstReadableProcessByProject = new Map<string, string>();
+      projectProcessLinks.forEach((link) => {
+        if (!firstReadableProcessByProject.has(link.projectId)) {
+          firstReadableProcessByProject.set(link.projectId, link.resourceId);
+        }
+      });
       const references = documentedSourceIds.length
         ? await this.documentedSourceReferences.find({
             where: {
@@ -842,7 +855,7 @@ export class UnifiedSearchService {
           excerpt: match.value.slice(0, 240),
           field: match.field,
           projectId: source.projectId,
-          resourceId: reference?.resourceId,
+          resourceId: reference?.resourceId ?? firstReadableProcessByProject.get(source.projectId),
           processName: reference
             ? resourceById.get(reference.resourceId)?.name
             : undefined,

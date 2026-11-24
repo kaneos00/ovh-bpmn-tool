@@ -60,7 +60,9 @@ test('selection marker is removed before the next selection is applied', async (
 
   assert.match(hook, /if \(previousId\) \{\s*canvas\.removeMarker\(previousId, 'task-selected'\);/);
   assert.match(hook, /canvas\.addMarker\(targetId, 'task-selected'\)/);
-  assert.match(hook, /useEffect\(\(\) => \{\s*applySelectionRef\.current\(\);\s*\}, \[selectedElementId\]\)/);
+  assert.match(hook, /location\.pathname, location\.search/);
+  assert.match(hook, /secondFrame = window\.requestAnimationFrame/);
+  assert.match(hook, /if \(importedRef\.current\) applySelectionRef\.current\(\)/);
 });
 
 test('Viewer opens at 1:1 with the BPMN upper-left corner aligned to the viewport', async () => {
