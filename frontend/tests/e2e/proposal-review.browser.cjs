@@ -525,7 +525,6 @@ async function main() {
       new URL(response.url()).pathname.endsWith('/resources'),
     );
     await reviewerPage.getByRole('button', { name: 'Create', exact: true }).click();
-    await reviewerPage.getByRole('button', { name: 'Create', exact: true }).click();
     const createFolderResponse = await createFolderResponsePromise;
     const createFolderResponseBody = await createFolderResponse.text();
     assert.ok(
