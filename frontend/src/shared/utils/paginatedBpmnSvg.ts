@@ -40,6 +40,8 @@ const HEADER_MM = 12;
 const FOOTER_MM = 12;
 // Fail fast rather than freezing the browser or triggering hundreds of downloads.
 const MAX_EXPORT_PAGES = 500;
+// Leave a small safety gutter so the centered SVG stroke is not clipped at the cut.
+const SHAPE_CUT_PADDING = 4;
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 export function calculateSvgPageLayout(
@@ -164,11 +166,219 @@ export function buildPageTiles(layout: SvgPageLayout): SvgPageTile[] {
   return layout.pages.map(tile => ({ ...tile }));
 }
 
+export type SvgShapeBounds = { x: number; y: number; width: number; height: number };
+
+/**
+ * Choose page origins that snap a nominal boundary to the start of a protected
+ * BPMN shape. buildShapeAwareTiles shortens the preceding viewport to that
+ * same coordinate, so no page contains a clipped fragment of the shape.
+ */
+export function buildAxisTileOrigins(
+  start: number,
+  extent: number,
+  tileSize: number,
+  protectedRanges: Array<{ start: number; end: number }>,
+): number[] {
+  if (![start, extent, tileSize].every(Number.isFinite) || extent <= 0 || tileSize <= 0) {
+    throw new Error('Les dimensions de pagination doivent être positives et finies.');
+  }
+  const end = start + extent;
+  const origins = [start];
+  while (origins[origins.length - 1] + tileSize < end) {
+    const current = origins[origins.length - 1];
+    const nominal = current + tileSize;
+    const crossing = protectedRanges
+      .filter(range => Number.isFinite(range.start) && Number.isFinite(range.end)
+        && range.start > current + 0.5 && range.start < nominal
+        && range.end > nominal && range.end - range.start <= tileSize)
+      .sort((a, b) => a.start - b.start)[0];
+    const next = crossing ? crossing.start : nominal;
+    if (!(next > current)) throw new Error('Impossible de calculer les recouvrements de pagination.');
+    origins.push(next);
+    if (origins.length > MAX_EXPORT_PAGES) {
+      throw new Error(`Le diagramme nécessite plus de ${MAX_EXPORT_PAGES} pages A4. Réduisez sa taille ou exportez-le par sections.`);
+    }
+  }
+  return origins;
+}
+
+export function extractShapeBounds(sourceSvg: SVGSVGElement): SvgShapeBounds[] {
+  if (typeof sourceSvg.querySelectorAll !== 'function') return [];
+  const bounds: SvgShapeBounds[] = [];
+  for (const shape of Array.from(sourceSvg.querySelectorAll('g.djs-element.djs-shape, g.djs-element.djs-label'))) {
+    const transform = shape.getAttribute('transform') ?? '';
+    // Real bpmn-js SVGs normally position shapes with matrix(1, 0, 0, 1, x, y),
+    // not translate(x, y). Support both forms and compute the transformed
+    // axis-aligned bounds so the pagination planner sees the actual coordinates.
+    let a = 1;
+    let b = 0;
+    let c = 0;
+    let d = 1;
+    let e = 0;
+    let f = 0;
+    if (transform) {
+      const translation = transform.match(/^\s*translate\(\s*(-?[\d.eE+-]+)(?:[ ,]+(-?[\d.eE+-]+))?\s*\)\s*$/);
+      const matrix = transform.match(/^\s*matrix\(\s*([^)]*)\s*\)\s*$/);
+      if (translation) {
+        e = Number(translation[1]);
+        f = Number(translation[2] ?? 0);
+      } else if (matrix) {
+        const values = matrix[1].split(/[ ,]+/).map(Number);
+        if (values.length !== 6 || !values.every(Number.isFinite)) continue;
+        [a, b, c, d, e, f] = values;
+      } else {
+        // Do not guess when an SVG shape uses an unsupported transform.
+        continue;
+      }
+    }
+    const visual = shape.querySelector('.djs-visual') ?? shape;
+    if (!visual) continue;
+
+    // Prefer the browser's SVG geometry engine: it handles rects, circles,
+    // ellipses, polygons and paths (including BPMN events/gateways). getBBox
+    // excludes the outer djs-shape transform, which is applied below.
+    // XML DOMs that lack getBBox use the rectangle fallback.
+    let localBounds: { x: number; y: number; width: number; height: number } | undefined;
+    const graphicsVisual = visual as SVGGraphicsElement;
+    if (typeof graphicsVisual.getBBox === 'function') {
+      try {
+        const box = graphicsVisual.getBBox();
+        if ([box.x, box.y, box.width, box.height].every(Number.isFinite)
+          && box.width > 0 && box.height > 0) {
+          localBounds = { x: box.x, y: box.y, width: box.width, height: box.height };
+        }
+      } catch {
+        // Some detached SVG DOMs cannot compute geometry; use the fallback below.
+      }
+    }
+
+    if (!localBounds) {
+      // Rectangles cover common BPMN tasks. Select the largest ordinary rect
+      // to avoid tiny decorative or hit-area rectangles.
+      const rects = typeof visual.querySelectorAll === 'function'
+        ? Array.from(visual.querySelectorAll('rect'))
+        : [visual.querySelector('rect')].filter((rect): rect is SVGRectElement => Boolean(rect));
+      const candidates = rects.map(rect => ({
+        x: Number(rect.getAttribute('x') ?? 0),
+        y: Number(rect.getAttribute('y') ?? 0),
+        width: Number(rect.getAttribute('width')),
+        height: Number(rect.getAttribute('height')),
+      })).filter(candidate =>
+        [candidate.x, candidate.y, candidate.width, candidate.height].every(Number.isFinite)
+        && candidate.width > 0 && candidate.height > 0,
+      ).sort((left, right) => right.width * right.height - left.width * left.height);
+      localBounds = candidates[0];
+    }
+
+    if (!localBounds) continue;
+    const { x, y, width, height } = localBounds;
+    if (![x, y, width, height, a, b, c, d, e, f].every(Number.isFinite)
+      || width <= 0 || height <= 0) continue;
+    const corners = [
+      [x, y], [x + width, y], [x, y + height], [x + width, y + height],
+    ].map(([px, py]) => ({ x: a * px + c * py + e, y: b * px + d * py + f }));
+    const minX = Math.min(...corners.map(point => point.x));
+    const maxX = Math.max(...corners.map(point => point.x));
+    const minY = Math.min(...corners.map(point => point.y));
+    const maxY = Math.max(...corners.map(point => point.y));
+    bounds.push({ x: minX, y: minY, width: maxX - minX, height: maxY - minY });
+  }
+  return bounds;
+}
+
+export function buildShapeAwareTiles(
+  layout: SvgPageLayout,
+  viewBox: { x: number; y: number; width: number; height: number },
+  shapes: SvgShapeBounds[],
+): SvgPageTile[] {
+  const xRanges = shapes
+    .filter(shape => [shape.x, shape.width].every(Number.isFinite) && shape.width > 0)
+    .map(shape => ({ start: shape.x - SHAPE_CUT_PADDING, end: shape.x + shape.width + SHAPE_CUT_PADDING }));
+  const yRanges = shapes
+    .filter(shape => [shape.y, shape.height].every(Number.isFinite) && shape.height > 0)
+    .map(shape => ({ start: shape.y - SHAPE_CUT_PADDING, end: shape.y + shape.height + SHAPE_CUT_PADDING }));
+
+  // Plan cuts against every protected shape, then validate the resulting cuts
+  // globally. This second pass is intentional: moving a cut around one shape
+  // must not leave it inside a different shape that happened to be farther
+  // from the original nominal boundary.
+  const safeOrigins = (start: number, extent: number, tileSize: number,
+    ranges: Array<{ start: number; end: number }>): number[] => {
+    const end = start + extent;
+    const origins = [start];
+    while (origins[origins.length - 1] + tileSize < end) {
+      const current = origins[origins.length - 1];
+      const nominal = current + tileSize;
+      let candidate = nominal;
+
+      // First move the nominal cut to the start of a shape it crosses.
+      // Then repeat the check at the *new* coordinate: that coordinate may
+      // itself fall inside another task (the exact failure in Parking test 4).
+      for (let pass = 0; pass < ranges.length + 1; pass += 1) {
+        let crossing: { start: number; end: number } | undefined;
+        for (const range of ranges) {
+          if (range.start > current + 0.5
+            && range.start < candidate - 0.5
+            && range.end > candidate
+            && range.end - range.start <= tileSize
+            && (!crossing || range.start < crossing.start)) {
+            crossing = range;
+          }
+        }
+        if (!crossing) break;
+        candidate = crossing.start;
+      }
+
+      if (!(candidate > current + 0.5)) {
+        throw new Error('Impossible de sécuriser toutes les coupures du diagramme.');
+      }
+      origins.push(candidate);
+      if (origins.length > MAX_EXPORT_PAGES) {
+        throw new Error(`Le diagramme nécessite plus de ${MAX_EXPORT_PAGES} pages A4. Réduisez sa taille ou exportez-le par sections.`);
+      }
+    }
+    return origins;
+  };
+  const xs = safeOrigins(viewBox.x, viewBox.width, layout.tileWidth, xRanges);
+  const ys = safeOrigins(viewBox.y, viewBox.height, layout.tileHeight, yRanges);
+  const count = xs.length * ys.length;
+  if (count > MAX_EXPORT_PAGES) {
+    throw new Error(`Le diagramme nécessite plus de ${MAX_EXPORT_PAGES} pages A4. Réduisez sa taille ou exportez-le par sections.`);
+  }
+  const axisSegments = (origins: number[], tileSize: number) =>
+    origins.map((origin, index) => {
+      const nextOrigin = origins[index + 1];
+      const naturalEnd = origin + tileSize;
+      // When the next page starts at a task boundary before the nominal page
+      // edge, stop this page there too. Otherwise the task would still appear
+      // clipped on the preceding page despite being complete on the next one.
+      const end = nextOrigin !== undefined && nextOrigin < naturalEnd - 0.5
+        ? nextOrigin
+        : naturalEnd;
+      return { origin, size: end - origin };
+    });
+  const xSegments = axisSegments(xs, layout.tileWidth);
+  const ySegments = axisSegments(ys, layout.tileHeight);
+  const tiles: SvgPageTile[] = [];
+  for (let row = 0; row < ySegments.length; row += 1) {
+    for (let column = 0; column < xSegments.length; column += 1) {
+      tiles.push({
+        page: tiles.length + 1, column, row,
+        x: xSegments[column].origin, y: ySegments[row].origin,
+        width: xSegments[column].size, height: ySegments[row].size,
+        columns: xSegments.length, rows: ySegments.length,
+      });
+    }
+  }
+  return tiles;
+}
+
 /**
  * Cuts the rendered BPMN SVG into printable A4 viewports. It deliberately does
  * not rewrite BPMN XML or invent BPMN events: page continuations are export-only
  * labels, so the process semantics remain unchanged.
  */
+
 export function paginateBpmnSvg(
   svgMarkup: string,
   options: PaginatedSvgOptions,
@@ -199,7 +409,7 @@ export function paginateBpmnSvg(
 
   const viewBox = parseViewBox(sourceSvg);
   const layout = calculateSvgPageLayout(viewBox, options.orientation);
-  const pageTiles = buildPageTiles(layout);
+  const pageTiles = buildShapeAwareTiles(layout, viewBox, extractShapeBounds(sourceSvg));
   const serializer = new XMLSerializer();
   const title = options.title?.trim() || 'Export BPMN';
   const fontOptions = {
@@ -240,14 +450,17 @@ export function paginateBpmnSvg(
     pageLabel.setAttribute('font-family', options.fontFamily);
     pageLabel.setAttribute('font-size', String(options.fontSizeMm));
     pageLabel.setAttribute('fill', '#52616b');
-    pageLabel.textContent = `Page ${tile.page}/${layout.pages.length}`;
+    pageLabel.textContent = `Page ${tile.page}/${pageTiles.length}`;
     pageSvg.appendChild(pageLabel);
 
     const nestedSvg = sourceSvg.cloneNode(true) as SVGSVGElement;
     nestedSvg.setAttribute('x', String(layout.contentXmm));
     nestedSvg.setAttribute('y', String(layout.contentYmm));
-    nestedSvg.setAttribute('width', String(layout.contentWidthMm));
-    nestedSvg.setAttribute('height', String(layout.contentHeightMm));
+    // Preserve the source SVG's print scale even when a task-aware cut shortens
+    // a viewport. Stretching a smaller viewBox over the full printable area
+    // would make individual pages use a different scale.
+    nestedSvg.setAttribute('width', String(tile.width * MM_PER_INCH / SVG_UNITS_PER_INCH));
+    nestedSvg.setAttribute('height', String(tile.height * MM_PER_INCH / SVG_UNITS_PER_INCH));
     nestedSvg.setAttribute('viewBox', `${tile.x} ${tile.y} ${tile.width} ${tile.height}`);
     nestedSvg.setAttribute('preserveAspectRatio', 'xMinYMin meet');
     nestedSvg.setAttribute('font-family', options.fontFamily);
