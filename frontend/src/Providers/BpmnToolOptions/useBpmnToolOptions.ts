@@ -17,14 +17,14 @@ export const useBpmnToolOptions = () => {
     return modules.map(({ declaration }) => declaration);
   };
 
-  const getModelerProviders = () => {
+  const getModelerProviders = useCallback(() => {
     return (modelerOptions?.providers ?? []).map(provider => {
       return {
         priority: 500,
         ...provider,
       };
     });
-  };
+  }, [modelerOptions?.providers]);
 
   const getModelerDiffChangeHandler = () => {
     return modelerOptions?.diff?.changeHandler;

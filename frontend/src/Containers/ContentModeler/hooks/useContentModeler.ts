@@ -76,14 +76,14 @@ export const useContentModeler = (bpmnModelerInstance: Modeler) => {
         const fileContent = new Blob([content], { type: 'text/xml' });
         const fileName = `${resource.name}_v${draftContent.version}`;
         hiddenElement.setAttribute('download', `${fileName}.${exportType}`);
-        hiddenElement.setAttribute(
-          'href',
-          window.URL.createObjectURL(fileContent),
-        );
+        const objectUrl = window.URL.createObjectURL(fileContent);
+        hiddenElement.setAttribute('href', objectUrl);
         hiddenElement.style.display = 'none';
         document.body.appendChild(hiddenElement);
         hiddenElement.click();
         document.body.removeChild(hiddenElement);
+        // Revoke the temporary URL after the browser has started the download.
+        window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000);
       }
     },
     [draftContent, resource, resourceId],

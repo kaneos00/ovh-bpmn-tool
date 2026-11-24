@@ -155,41 +155,68 @@ export const useCompare = (leftContent: string, rightContent: string) => {
 
   // Load content for left side
   useEffect(() => {
-    if (!leftRef.current && !leftSideLoaded) {
-      return;
-    }
+    let active = true;
 
-    if (!leftContent) {
-      return;
+    if (!leftRef.current || !leftContent) {
+      return () => {
+        active = false;
+      };
     }
 
     leftViewer
       .importXML(leftContent)
       .then(() => {
-        attachViewer(leftRef, leftViewer);
-        setLeftSideLoaded(true);
+        if (active && leftRef.current) {
+          attachViewer(leftRef, leftViewer);
+          setLeftSideLoaded(true);
+        }
       })
-      .catch(e => console.error('leftSide: ', e));
-  }, [leftSideLoaded, leftContent]);
+      .catch(e => {
+        if (active) {
+          console.error('leftSide: ', e);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [leftViewer, leftContent, attachViewer]);
 
   // Load content for right side
   useEffect(() => {
-    if (!rightRef.current && !rightSideLoaded) {
-      return;
-    }
+    let active = true;
 
-    if (!rightContent) {
-      return;
+    if (!rightRef.current || !rightContent) {
+      return () => {
+        active = false;
+      };
     }
 
     rightViewer
       .importXML(rightContent)
       .then(() => {
-        attachViewer(rightRef, rightViewer);
-        setRightSideLoaded(true);
+        if (active && rightRef.current) {
+          attachViewer(rightRef, rightViewer);
+          setRightSideLoaded(true);
+        }
       })
-      .catch(e => console.error('rightSide: ', e));
-  }, [rightSideLoaded, rightContent]);
+      .catch(e => {
+        if (active) {
+          console.error('rightSide: ', e);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [rightViewer, rightContent, attachViewer]);
+
+  useEffect(() => {
+    return () => {
+      leftViewer.destroy();
+      rightViewer.destroy();
+    };
+  }, [leftViewer, rightViewer]);
 
   // Search for diff and sync viewers
   useEffect(() => {

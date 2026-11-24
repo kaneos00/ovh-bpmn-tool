@@ -237,4 +237,4 @@ function RechercheModule(eventBus: any, elementRegistry: any, selection: any, ca
 RechercheModule.$inject = ['eventBus', 'elementRegistry', 'selection', 'canvas', 'rechercheService'];
 
 export default { __init__: ['rechercheModule', 'rechercheService'], rechercheService: ['type', RechercheService], rechercheModule: ['type', RechercheModule] };
-
+*/
