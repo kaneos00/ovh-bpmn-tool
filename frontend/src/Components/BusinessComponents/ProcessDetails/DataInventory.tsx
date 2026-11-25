@@ -7,6 +7,7 @@ export type InventorySource = {
   kind: 'file' | 'database';
   bpmnType: 'dataObjectReference' | 'dataInput' | 'dataOutput' | 'dataStoreReference' | 'dataObject' | 'dataStore';
   associations: Array<{ taskId: string; taskName: string; direction: 'input' | 'output' }>;
+  bpmnName: string;
   name: string;
   description: string;
   location: string;
@@ -30,6 +31,7 @@ const emptySource = (): InventorySource => ({
   kind: 'file',
   bpmnType: 'dataObjectReference',
   associations: [],
+  bpmnName: '',
   name: '',
   description: '',
   location: '',
@@ -40,6 +42,26 @@ const emptySource = (): InventorySource => ({
 });
 
 const activityTypes = new Set(['task','userTask','manualTask','serviceTask','scriptTask','businessRuleTask','sendTask','receiveTask','callActivity','subProcess','transaction']);
+const readDocumentation = (node?: Element): string | null => {
+  if (!node) return null;
+  const documentation = Array.from(node.children).find(child => child.localName === 'documentation');
+  return documentation ? documentation.textContent || '' : null;
+};
+
+const writeDocumentation = (doc: XMLDocument, elementId: string, value: string) => {
+  const element = Array.from(doc.getElementsByTagName('*')).find(node => node.getAttribute('id') === elementId);
+  if (!element) return;
+  let documentation = Array.from(element.children).find(child => child.localName === 'documentation');
+  if (!documentation) {
+    const qualifiedName = element.prefix ? element.prefix + ':documentation' : 'documentation';
+    documentation = doc.createElementNS(element.namespaceURI, qualifiedName);
+    const extensionElements = Array.from(element.children).find(child => child.localName === 'extensionElements');
+    if (extensionElements) element.insertBefore(documentation, extensionElements);
+    else element.appendChild(documentation);
+  }
+  documentation.textContent = value;
+};
+
 const readSources = (xml?: string): InventorySource[] => {
   if (!xml) return [];
   const doc = new DOMParser().parseFromString(xml, 'application/xml');
@@ -75,7 +97,7 @@ const readSources = (xml?: string): InventorySource[] => {
     id: n.getAttribute('id') || emptySource().id,
     kind: n.getAttribute('kind') === 'database' ? 'database' as const : 'file' as const,
     bpmnType: (n.getAttribute('bpmnType') || 'dataObjectReference') as InventorySource['bpmnType'],
-    name: n.getAttribute('name') || '', description: n.getAttribute('description') || '',
+    bpmnName: '', name: n.getAttribute('name') || '', description: n.getAttribute('description') || '',
     location: n.getAttribute('location') || '', access: n.getAttribute('access') || '',
     retention: n.getAttribute('retention') || '', authorizedPeople: n.getAttribute('authorizedPeople') || '',
     restrictions: n.getAttribute('restrictions') || '', associations: links.get(n.getAttribute('id') || '') ?? [],
@@ -97,14 +119,24 @@ const readSources = (xml?: string): InventorySource[] => {
     const bpmnType = node.localName as InventorySource['bpmnType'];
     const definitionId = node.getAttribute('dataObjectRef') || node.getAttribute('dataStoreRef') || '';
     const definition = definitionId ? byId.get(definitionId) : undefined;
-    const name = node.getAttribute('name') || definition?.getAttribute('name') || id || 'Source sans nom';
+    const bpmnName = node.getAttribute('name') || definition?.getAttribute('name') || id || 'Source sans nom';
+    const description = readDocumentation(node) ?? readDocumentation(definition) ?? '';
     const kind = ['dataStoreReference', 'dataStore'].includes(bpmnType) ? 'database' as const : 'file' as const;
     const associations = links.get(id) ?? (definitionId ? links.get(definitionId) : undefined) ?? [];
-    return { ...emptySource(), id, bpmnType, kind, name, associations };
+    return { ...emptySource(), id, bpmnType, kind, bpmnName, name: bpmnName, description, associations };
   }).filter(source => source.id && !excludedIds.has(source.id));
 
+  const detectedById = new Map(detected.map(source => [source.id, source]));
   const bySourceId = new Map<string, InventorySource>();
-  saved.forEach(source => bySourceId.set(source.id, source));
+  saved.forEach(source => {
+    const live = detectedById.get(source.id);
+    bySourceId.set(source.id, live ? {
+      ...source,
+      bpmnName: live.bpmnName,
+      description: live.description,
+      associations: live.associations,
+    } : source);
+  });
   detected.forEach(source => { if (!bySourceId.has(source.id)) bySourceId.set(source.id, source); });
   return Array.from(bySourceId.values()).filter(source => !excludedIds.has(source.id));
 };
@@ -140,6 +172,7 @@ export const DataInventory = ({ xmlContent, canEdit, onSave, onElementSelect, on
       const doc = new DOMParser().parseFromString(xmlContent, 'application/xml');
       if (doc.querySelector('parsererror')) throw new Error('Le BPMN publié est illisible.');
       const definitions = doc.documentElement;
+      sources.forEach(source => writeDocumentation(doc, source.id, source.description));
       const existingExcludedIds = new Set(
         Array.from(doc.getElementsByTagNameNS(NS, 'excluded'))
           .map(node => node.getAttribute('elementId') || '')
@@ -168,7 +201,7 @@ export const DataInventory = ({ xmlContent, canEdit, onSave, onElementSelect, on
       });
       sources.forEach(source => {
         const node = doc.createElementNS(NS, 'inventory:source');
-        (Object.keys(source) as (keyof InventorySource)[]).filter(key => key !== 'associations').forEach(key => node.setAttribute(key, String(source[key])));
+        (Object.keys(source) as (keyof InventorySource)[]).filter(key => key !== 'associations' && key !== 'bpmnName').forEach(key => node.setAttribute(key, String(source[key])));
         extension!.appendChild(node);
       });
       await onSave(new XMLSerializer().serializeToString(doc));
@@ -196,7 +229,7 @@ export const DataInventory = ({ xmlContent, canEdit, onSave, onElementSelect, on
         {!sources.length ? <Typography level="body-sm" color="neutral">Aucune source d’information n’a été répertoriée. Ajoutez un fichier ou une base pour compléter l’inventaire.</Typography> : (
           <Box sx={{ overflow: 'auto', maxWidth: '100%' }}>
             <Table size="sm" stickyHeader hoverRow sx={{ minWidth: 1250, '& th': { whiteSpace: 'nowrap' }, '& td': { verticalAlign: 'top' } }}>
-              <thead><tr><th>Symbole BPMN</th><th>Source</th><th>Utilisation dans le processus</th><th>Description</th><th>Emplacement</th><th>Accès</th><th>Rétention</th><th>Personnes autorisées</th><th>Restrictions</th><th style={{ width: 84 }}>Actions</th></tr></thead>
+              <thead><tr><th>Symbole BPMN</th><th>Nom BPMN</th><th>Nom de l’information documentée</th><th>Utilisation dans le processus</th><th>Description</th><th>Emplacement</th><th>Accès</th><th>Rétention</th><th>Personnes autorisées</th><th>Restrictions</th><th style={{ width: 84 }}>Actions</th></tr></thead>
               <tbody>{sources.map((source, index) => {
                 const editing = canEdit && editingSourceId === source.id;
                 const field = (key: keyof InventorySource, placeholder: string) => editing
@@ -207,8 +240,9 @@ export const DataInventory = ({ xmlContent, canEdit, onSave, onElementSelect, on
                   : <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', minWidth: 130 }}>{source[key] || '—'}</Typography>;
                 return <tr key={source.id}>
                   <td><Stack direction="row" spacing={0.5} alignItems="center"><BpmnDataSymbol type={source.bpmnType} /><Typography level="body-xs">{symbolLabel(source.bpmnType)}</Typography></Stack></td>
+                  <td><Typography level="body-sm">{source.bpmnName || '—'}</Typography></td>
                   <td><Stack direction="row" spacing={0.75} alignItems="center" sx={{ minWidth: 180 }}>
-                    {editing ? <Input size="sm" value={source.name} onChange={e => update(source.id, 'name', e.target.value)} placeholder="Nom de la source" aria-label="Nom de la source" /> : <Typography level="body-sm">{source.name || `Source ${index + 1}`}</Typography>}
+                    {editing ? <Input size="sm" value={source.name} onChange={e => update(source.id, 'name', e.target.value)} placeholder="Nom de l’information documentée" aria-label="Nom de l’information documentée" /> : <Typography level="body-sm">{source.name || `Information documentée ${index + 1}`}</Typography>}
                   </Stack>
                   {editing && <select aria-label="Type de source BPMN" value={source.bpmnType} onChange={e => { const bpmnType = e.target.value as InventorySource['bpmnType']; setSources(current => current.map(item => item.id === source.id ? { ...item, bpmnType, kind: ['dataStoreReference', 'dataStore'].includes(bpmnType) ? 'database' : 'file' } : item)); }}><option value="dataObjectReference">Objet de données</option><option value="dataInput">Entrée de données</option><option value="dataOutput">Sortie de données</option><option value="dataStoreReference">Magasin de données</option><option value="dataObject">Définition d’objet de données</option><option value="dataStore">Définition de magasin de données</option></select>}
                   {!editing && <Box sx={{ mt: 0.5 }}><Chip size="sm" variant="soft">{source.kind === 'database' ? 'Base de données' : 'Fichier'}</Chip></Box>}</td>
