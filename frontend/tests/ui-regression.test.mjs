@@ -529,6 +529,13 @@ test('V3 central viewer exposes the data inventory and saves it through the exis
   assert.match(inventory, /Gestion des accès/);
   assert.match(inventory, /Personnes autorisées/);
   assert.match(inventory, /Modalités de restriction/);
+  assert.match(inventory, /bpmnName: string/);
+  assert.match(inventory, /Nom BPMN/);
+  assert.match(inventory, /Nom de l’information documentée/);
+  assert.match(inventory, /readDocumentation/);
+  assert.match(inventory, /writeDocumentation\(doc, source\.id, source\.description\)/);
+  assert.match(inventory, /live\.bpmnDescription !== null \? live\.bpmnDescription : source\.description/);
+  assert.match(inventory, /key !== 'bpmnDescription'/);
 });
 
 test('canonical process viewer restores element selection and RACI tab from route query parameters', async () => {
