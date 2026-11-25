@@ -39,6 +39,8 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
   const [newKind, setNewKind] = useState<SourceKind>('file');
   const [error, setError] = useState('');
   const [importingReference, setImportingReference] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<GridRow | null>(null);
+  const [pendingMerge, setPendingMerge] = useState<{ source: GridRow; target: GridRow } | null>(null);
   const queryKey = ['project-documented-sources', projectId];
   const query = useQuery<ResponseData>(queryKey, () => apiClient.get(`/projects/${projectId}/documented-sources`), { enabled: Boolean(projectId) });
   const data = query.data;
@@ -146,16 +148,13 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     { headerName: 'Restrictions', field: 'restrictions', minWidth: 190, editable: canManage },
     { headerName: 'Actions', minWidth: 190, sortable: false, filter: false, cellRenderer: (p: { data?: GridRow }) => p.data && canManage ? <Stack direction="row" spacing={0.5}>
       {p.data.references.length === 0 && <Button size="sm" variant="plain" color="danger" startDecorator={<DeleteOutlineRounded />} onClick={async () => {
-        if (!window.confirm(`Supprimer définitivement « ${p.data!.name} » ?`)) return;
-        try { await apiClient.remove(`/projects/${projectId}/documented-sources/${p.data!.sourceId}`); await refresh(); setError(''); }
-        catch (e) { setError(e instanceof Error ? e.message : 'Suppression impossible.'); }
+        setPendingDelete(p.data!);
       }}>Supprimer</Button>}
       <Select size="sm" value={null} placeholder="Fusionner avec…" onChange={async (_, targetId) => {
         if (typeof targetId !== 'string' || !targetId) return;
         const target = rows.find(item => item.sourceId === targetId);
-        if (!window.confirm(`Fusionner « ${p.data!.name} » dans « ${target?.name ?? 'la cible'} » ? Les associations BPMN seront transférées.`)) return;
-        try { await apiClient.post(`/projects/${projectId}/documented-sources/${p.data!.sourceId}/merge`, { targetSourceId: targetId }); await refresh(); setError(''); }
-        catch (e) { setError(e instanceof Error ? e.message : 'Fusion impossible.'); }
+        if (!target) return;
+        setPendingMerge({ source: p.data!, target });
       }}>
         {rows.filter(item => item.sourceId !== p.data!.sourceId).map(item => <Option key={item.sourceId} value={item.sourceId}>{item.name}</Option>)}
       </Select>
@@ -188,6 +187,34 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     </Stack>}
     {canManage && !(data?.unlinkedReferences ?? []).length && <Alert color="neutral" variant="soft">Vous pouvez créer une information documentée sans association BPMN, puis la relier à un objet ou magasin de données ultérieurement.</Alert>}
     <DocumentedSourcesGrid<GridRow> rowData={rows} columnDefs={columns} getRowId={row => row.id} height={560} onCellValueChanged={saveCell} />
+    <Modal open={Boolean(pendingDelete)} onClose={() => setPendingDelete(null)}>
+      <ModalDialog>
+        <Typography level="title-lg">Confirmer la suppression</Typography>
+        <Typography>Supprimer définitivement « {pendingDelete?.name} » ?</Typography>
+        <Stack direction="row" justifyContent="flex-end" spacing={1}>
+          <Button variant="outlined" color="neutral" onClick={() => setPendingDelete(null)}>Annuler</Button>
+          <Button color="danger" onClick={async () => {
+            if (!pendingDelete) return;
+            try { await apiClient.remove(`/projects/${projectId}/documented-sources/${pendingDelete.sourceId}`); await refresh(); setError(''); setPendingDelete(null); }
+            catch (e) { setError(e instanceof Error ? e.message : 'Suppression impossible.'); }
+          }}>Supprimer</Button>
+        </Stack>
+      </ModalDialog>
+    </Modal>
+    <Modal open={Boolean(pendingMerge)} onClose={() => setPendingMerge(null)}>
+      <ModalDialog>
+        <Typography level="title-lg">Confirmer la fusion</Typography>
+        <Typography>Fusionner « {pendingMerge?.source.name} » dans « {pendingMerge?.target.name} » ? Les associations BPMN seront transférées.</Typography>
+        <Stack direction="row" justifyContent="flex-end" spacing={1}>
+          <Button variant="outlined" color="neutral" onClick={() => setPendingMerge(null)}>Annuler</Button>
+          <Button onClick={async () => {
+            if (!pendingMerge) return;
+            try { await apiClient.post(`/projects/${projectId}/documented-sources/${pendingMerge.source.sourceId}/merge`, { targetSourceId: pendingMerge.target.sourceId }); await refresh(); setError(''); setPendingMerge(null); }
+            catch (e) { setError(e instanceof Error ? e.message : 'Fusion impossible.'); }
+          }}>Fusionner</Button>
+        </Stack>
+      </ModalDialog>
+    </Modal>
     <Modal open={adding} onClose={() => setAdding(false)}>
       <ModalDialog sx={{ width: 'min(560px, calc(100vw - 32px))' }}>
         <Typography level="title-lg">Ajouter une information documentée</Typography>
