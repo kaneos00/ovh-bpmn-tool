@@ -106,6 +106,36 @@ La **responsabilité** précise la contribution attendue d'une personne ou d'un 
 
 Elle ne découle pas automatiquement du titre du poste. Elle doit être explicitée dans le contexte concerné, notamment au moyen du RACI.
 
+### 2.7 Fonction et vocabulaire recommandé
+
+Le mot **fonction** est ambigu. Il peut désigner le poste occupé dans l'organisation (« fonction de chef de projet »), un domaine de contribution (« fonction de pilotage ») ou le rôle exercé dans un contexte. Pour le modèle KHI Flows, retenir :
+- **Poste** : position relativement stable dans l'organisation.
+- **Rôle** : contribution attendue dans un projet ou un autre contexte.
+- **Mission** : grand domaine de contribution durable décrit dans une fiche de poste.
+- **Fonction** : terme descriptif à éviter comme nom d'objet lorsque son sens n'est pas précisé.
+
+Dans le langage courant, « emploi », « poste » et « fonction occupée » peuvent être employés comme synonymes. « Casquette » est un terme informel proche de rôle. En revanche, poste et rôle ne sont pas interchangeables dans le modèle : une personne occupant le poste de chef de projet peut exercer un autre rôle sur un projet donné, et un rôle peut être tenu par une personne issue d'un autre poste.
+
+### 2.8 Activité, tâche et autres termes proches
+
+| Termes | Relation | Terme à privilégier dans KHI Flows |
+|---|---|---|
+| Activité / opération | Parfois proches, mais « opération » peut aussi désigner une action élémentaire | **Activité** pour un ensemble cohérent de travaux |
+| Tâche / action / travail élémentaire / work item | Termes proches ; une action décrit souvent le contenu d'une tâche | **Tâche** pour l'unité affectable et suivie |
+| Mission / activité | Une mission est un domaine durable de contribution ; une activité est un ensemble de travaux dans un contexte donné | **Mission** dans la fiche de poste, **activité** dans le projet |
+| Étape / phase / jalon | Non synonymes : séquence, période ou regroupement, et point de contrôle daté | Les conserver distincts |
+| Responsable / réalisateur | Non synonymes : répondre du résultat et exécuter le travail | **A** et **R** dans le RACI |
+
+**Activité et tâche ne sont pas synonymes.** Une activité regroupe un ou plusieurs travaux cohérents ; une tâche est une unité suffisamment précise pour être exécutée, affectée et suivie. Le niveau de granularité et le besoin de suivi déterminent le choix.
+
+Exemple :
+- **Activité :** préparer le lancement du projet.
+  - **Tâche :** consolider les objectifs et le périmètre.
+  - **Tâche :** préparer l'ordre du jour de la réunion de lancement.
+  - **Tâche :** envoyer l'invitation aux participants.
+
+Si un élément est suffisamment précis pour être exécuté et suivi seul, il peut être une tâche. S'il regroupe plusieurs tâches ou représente un domaine de travail plus large, il doit être modélisé comme une activité.
+
 ## 3. Comment les notions s'articulent
 
 Le modèle logique peut être représenté ainsi :
