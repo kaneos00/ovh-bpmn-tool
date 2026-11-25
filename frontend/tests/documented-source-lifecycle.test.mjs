@@ -20,6 +20,8 @@ test('a documented source can only be deleted when no BPMN reference remains', a
   assert.match(controller, /await sourceRepository\.delete\(\{ id: sourceId, projectId \}\)/);
   assert.match(projectGrid, /references\.length === 0[\s\S]*?apiClient\.remove/);
   assert.match(processGrid, /row\.references\.length > 0/);
+  assert.match(processGrid, /retention: row\.retention \?\? ''/);
+  assert.match(processGrid, /row\.references\.filter\(item => item\.resourceId === resourceId\)/);
   assert.match(processGrid, /apiClient\.remove\(\`\/projects/);
 });
 
@@ -36,4 +38,5 @@ test('the project registry exposes merge and keeps the operation inside one proj
   assert.match(projectGrid, /documented-sources.*merge/);
   assert.match(controller, /@Post\(':sourceId\/merge'\)/);
   assert.match(controller, /where: \{ id: targetId, projectId, mergedIntoId: IsNull\(\) \}/);
+  assert.match(controller, /target\.validUntil = source\.validUntil/);
 });
