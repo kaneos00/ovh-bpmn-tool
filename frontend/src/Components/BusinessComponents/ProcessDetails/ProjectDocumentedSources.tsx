@@ -43,11 +43,15 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
   const data = query.data;
   const rows = useMemo<GridRow[]>(() => (data?.sources ?? []).map(source => ({
     id: source.id, sourceId: source.id, kind: source.kind === 'form' ? 'file' : source.kind,
-    name: source.name, description: source.description ?? '', references: source.references,
-    projectStatus: source.references.length ? `Associé · ${source.references.length}` : 'Non associé',
+    name: source.name, description: source.description ?? '', references: source.references ?? [],
+    projectStatus: source.references?.length ? `Associé · ${source.references.length}` : 'Non associé',
     link: source.link ?? '', location: source.location ?? '', access: source.access ?? '',
     validUntil: source.validUntil ?? '', authorizedPeople: source.authorizedPeople ?? '', restrictions: source.restrictions ?? '',
   })), [data?.sources]);
+
+  const refresh = async () => {
+    await queryClient.invalidateQueries(queryKey);
+  };
 
   const saveCell = async (event: CellValueChangedEvent<GridRow>) => {
     const row = event.data;
@@ -57,24 +61,40 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     if (!field) return;
     try {
       await apiClient.put(`/projects/${projectId}/documented-sources/${row.sourceId}`, { [field]: event.newValue });
-      await queryClient.invalidateQueries(queryKey);
+      await refresh();
       setError('');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Enregistrement impossible.');
-      await queryClient.invalidateQueries(queryKey);
+      await refresh();
     }
   };
 
   const addSource = async () => {
-    const ref = (data?.unlinkedReferences ?? []).find(item => `${item.resourceId}:${item.elementId}` === selectedReference);
-    if (!ref || !newName.trim()) return;
+    if (!newName.trim()) return;
+    const ref = selectedReference
+      ? (data?.unlinkedReferences ?? []).find(item => `${item.resourceId}:${item.elementId}` === selectedReference)
+      : undefined;
+    if (selectedReference && !ref) {
+      setError('L’objet BPMN sélectionné n’est plus disponible. Actualisez la liste puis réessayez.');
+      return;
+    }
     try {
       await apiClient.post(`/projects/${projectId}/documented-sources`, {
-        resourceId: ref.resourceId, elementId: ref.elementId, elementName: ref.elementName,
-        elementType: ref.elementType, name: newName.trim(), kind: newKind,
+        name: newName.trim(),
+        kind: newKind,
+        ...(ref ? {
+          resourceId: ref.resourceId,
+          elementId: ref.elementId,
+          elementName: ref.elementName,
+          elementType: ref.elementType,
+        } : {}),
       });
-      setAdding(false); setSelectedReference(null); setNewName(''); setNewKind('file'); setError('');
-      await queryClient.invalidateQueries(queryKey);
+      setAdding(false);
+      setSelectedReference(null);
+      setNewName('');
+      setNewKind('file');
+      setError('');
+      await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Création impossible.');
     }
@@ -85,7 +105,7 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     { headerName: 'Nom', field: 'name', minWidth: 180, editable: canManage },
     { headerName: 'Description', field: 'description', minWidth: 220, editable: canManage },
     { headerName: 'Objet BPMN', minWidth: 250, editable: false, autoHeight: true,
-      cellRenderer: (p: { data?: GridRow }) => p.data ? <Stack spacing={0.25}>{p.data.references.length ? p.data.references.map(ref => <Stack key={ref.id} direction="row" spacing={0.5} alignItems="center"><Button size="sm" variant="plain" color="neutral" startDecorator={objectIcon(ref.elementType)} sx={{ justifyContent: 'flex-start', whiteSpace: 'normal', textAlign: 'left', flex: 1 }} onClick={() => navigate(`/${ref.resourceId}?elementId=${encodeURIComponent(ref.elementId)}`)}>{ref.elementName} <Typography level="body-xs" color="neutral">— {ref.processName}</Typography></Button>{canManage && <Button size="sm" variant="plain" color="danger" onClick={async () => { try { await apiClient.remove(`/projects/${projectId}/documented-sources/${p.data!.sourceId}/references/${ref.id}`); await queryClient.invalidateQueries(queryKey); } catch (e) { setError(e instanceof Error ? e.message : 'Impossible de délier cet objet BPMN.'); } }}>Délier</Button>}</Stack>) : <Typography level="body-sm" color="neutral">Non associé</Typography>}{canManage && (data?.unlinkedReferences ?? []).some(candidate => !p.data!.references.some(ref => ref.resourceId === candidate.resourceId)) && <Select size="sm" placeholder="Associer un objet BPMN…" value={null} onChange={async (_, value) => { const candidate = (data?.unlinkedReferences ?? []).find(item => `${item.resourceId}:${item.elementId}` === value); if (!candidate) return; try { await apiClient.post(`/projects/${projectId}/documented-sources/${p.data!.sourceId}/references`, { resourceId: candidate.resourceId, elementId: candidate.elementId, elementName: candidate.elementName, elementType: candidate.elementType }); await queryClient.invalidateQueries(queryKey); } catch (e) { setError(e instanceof Error ? e.message : 'Impossible d’associer cet objet BPMN.'); } }}><Option value="" disabled>Choisir un objet</Option>{(data?.unlinkedReferences ?? []).filter(candidate => !p.data!.references.some(ref => ref.resourceId === candidate.resourceId)).map(candidate => <Option key={`${candidate.resourceId}:${candidate.elementId}`} value={`${candidate.resourceId}:${candidate.elementId}`}>{candidate.elementName} — {candidate.processName}</Option>)}</Select>}</Stack> : null },
+      cellRenderer: (p: { data?: GridRow }) => p.data ? <Stack spacing={0.25}>{p.data.references.length ? p.data.references.map(ref => <Stack key={ref.id} direction="row" spacing={0.5} alignItems="center"><Button size="sm" variant="plain" color="neutral" startDecorator={objectIcon(ref.elementType)} sx={{ justifyContent: 'flex-start', whiteSpace: 'normal', textAlign: 'left', flex: 1 }} onClick={() => navigate(`/${ref.resourceId}?elementId=${encodeURIComponent(ref.elementId)}`)}>{ref.elementName} <Typography level="body-xs" color="neutral">— {ref.processName}</Typography></Button>{canManage && <Button size="sm" variant="plain" color="danger" onClick={async () => { try { await apiClient.remove(`/projects/${projectId}/documented-sources/${p.data!.sourceId}/references/${ref.id}`); await refresh(); } catch (e) { setError(e instanceof Error ? e.message : 'Impossible de délier cet objet BPMN.'); } }}>Délier</Button>}</Stack>) : <Typography level="body-sm" color="neutral">Non associé</Typography>}{canManage && (data?.unlinkedReferences ?? []).some(candidate => !p.data!.references.some(ref => ref.resourceId === candidate.resourceId)) && <Select size="sm" placeholder="Associer un objet BPMN…" value={null} onChange={async (_, value) => { const candidate = (data?.unlinkedReferences ?? []).find(item => `${item.resourceId}:${item.elementId}` === value); if (!candidate) return; try { await apiClient.post(`/projects/${projectId}/documented-sources/${p.data!.sourceId}/references`, { resourceId: candidate.resourceId, elementId: candidate.elementId, elementName: candidate.elementName, elementType: candidate.elementType }); await refresh(); } catch (e) { setError(e instanceof Error ? e.message : 'Impossible d’associer cet objet BPMN.'); } }}><Option value="" disabled>Choisir un objet</Option>{(data?.unlinkedReferences ?? []).filter(candidate => !p.data!.references.some(ref => ref.resourceId === candidate.resourceId)).map(candidate => <Option key={`${candidate.resourceId}:${candidate.elementId}`} value={`${candidate.resourceId}:${candidate.elementId}`}>{candidate.elementName} — {candidate.processName}</Option>)}</Select>}</Stack> : null },
     { headerName: 'Statut projet', field: 'projectStatus', minWidth: 130, editable: false },
     { headerName: 'Lien', field: 'link', minWidth: 170, editable: canManage },
     { headerName: 'Emplacement', field: 'location', minWidth: 150, editable: canManage },
@@ -101,19 +121,19 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
   return <Stack spacing={1.25} sx={{ minWidth: 0 }}>
     <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
       <Box><Typography level="title-lg">Informations documentées</Typography><Typography level="body-sm" color="neutral">Référentiel documentaire central du projet, lié aux objets et magasins de données BPMN.</Typography></Box>
-      {canManage && <Button size="sm" startDecorator={<AddRounded />} onClick={() => setAdding(true)} disabled={!data?.unlinkedReferences.length}>Ajouter une ligne</Button>}
+      {canManage && <Button size="sm" startDecorator={<AddRounded />} onClick={() => setAdding(true)}>Ajouter une ligne</Button>}
     </Stack>
     {error && <Alert color="danger" variant="soft">{error}</Alert>}
-    {canManage && !data?.unlinkedReferences.length && <Alert color="primary" variant="soft">Tous les objets et magasins de données détectés sont déjà associés. Pour ajouter une ligne, créez d’abord un objet de données ou un magasin de données dans un diagramme BPMN.</Alert>}
+    {canManage && !(data?.unlinkedReferences ?? []).length && <Alert color="neutral" variant="soft">Vous pouvez créer une information documentée sans association BPMN, puis la relier à un objet ou magasin de données ultérieurement.</Alert>}
     <DocumentedSourcesGrid<GridRow> rowData={rows} columnDefs={columns} getRowId={row => row.id} height={560} onCellValueChanged={saveCell} />
     <Modal open={adding} onClose={() => setAdding(false)}>
       <ModalDialog sx={{ width: 'min(560px, calc(100vw - 32px))' }}>
         <Typography level="title-lg">Ajouter une information documentée</Typography>
         <Stack spacing={1.5}>
-          <FormControl required><FormLabel>Objet BPMN à associer</FormLabel><Select value={selectedReference} onChange={(_, value) => { setSelectedReference(value); const ref = data?.unlinkedReferences.find(item => `${item.resourceId}:${item.elementId}` === value); if (ref && !newName) setNewName(ref.elementName); }} placeholder="Sélectionner un objet ou magasin de données">{(data?.unlinkedReferences ?? []).map(ref => <Option key={`${ref.resourceId}:${ref.elementId}`} value={`${ref.resourceId}:${ref.elementId}`}>{ref.elementName} — {ref.processName}</Option>)}</Select></FormControl>
-          <FormControl required><FormLabel>Nom</FormLabel><Input value={newName} onChange={e => setNewName(e.target.value)} /></FormControl>
+          <FormControl required><FormLabel>Nom</FormLabel><Input autoFocus value={newName} onChange={e => setNewName(e.target.value)} /></FormControl>
           <FormControl><FormLabel>Type</FormLabel><Select value={newKind} onChange={(_, value) => value && setNewKind(value as SourceKind)}><Option value="file">Fichier</Option><Option value="database">Base de données</Option><Option value="application">Application</Option></Select></FormControl>
-          <Stack direction="row" justifyContent="flex-end" spacing={1}><Button variant="outlined" color="neutral" onClick={() => setAdding(false)}>Annuler</Button><Button onClick={addSource} disabled={!selectedReference || !newName.trim()}>Ajouter</Button></Stack>
+          <FormControl><FormLabel>Objet BPMN à associer (facultatif)</FormLabel><Select value={selectedReference ?? ''} onChange={(_, value) => { setSelectedReference(value || null); if (value) { const ref = data?.unlinkedReferences.find(item => `${item.resourceId}:${item.elementId}` === value); if (ref && !newName.trim()) setNewName(ref.elementName); } }} placeholder="Créer sans association BPMN">{(data?.unlinkedReferences ?? []).map(ref => <Option key={`${ref.resourceId}:${ref.elementId}`} value={`${ref.resourceId}:${ref.elementId}`}>{ref.elementName} — {ref.processName}</Option>)}</Select></FormControl>
+          <Stack direction="row" justifyContent="flex-end" spacing={1}><Button variant="outlined" color="neutral" onClick={() => setAdding(false)}>Annuler</Button><Button onClick={() => void addSource()} disabled={!newName.trim()}>Créer</Button></Stack>
         </Stack>
       </ModalDialog>
     </Modal>
