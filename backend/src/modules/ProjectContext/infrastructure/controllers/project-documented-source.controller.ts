@@ -148,7 +148,7 @@ const walk = (
   });
 };
 
-const extractBpmnDataElements = (
+export const extractBpmnDataElements = (
   xml: string,
   resourceId: string,
   processName: string,
