@@ -45,6 +45,13 @@ type UnlinkedBpmnReference = {
   elementId: string;
   elementName: string;
   elementType: BpmnDataType;
+  description?: string;
+  link?: string;
+  location?: string;
+  access?: string;
+  retention?: string;
+  authorizedPeople?: string;
+  restrictions?: string;
 };
 
 type ProjectDocumentedSourcesResponse = {
@@ -117,6 +124,7 @@ export const DataInventory = ({
   const [sources, setSources] = useState<ProjectDocumentedSource[]>([]);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [associatingId, setAssociatingId] = useState<string | null>(null);
+  const [importingElementId, setImportingElementId] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   const projectSourcesQuery = useQuery<ProjectDocumentedSourcesResponse>(
@@ -226,6 +234,34 @@ export const DataInventory = ({
       setError(e instanceof Error ? e.message : 'Impossible d’associer cet objet BPMN.');
     } finally {
       setAssociatingId(null);
+    }
+  };
+
+  const importLegacyReference = async (reference: UnlinkedBpmnReference) => {
+    if (!projectId || !canManageSources || importingElementId) return;
+    setImportingElementId(reference.elementId);
+    setError('');
+    try {
+      await apiClient.post(`/projects/${projectId}/documented-sources`, {
+        name: reference.elementName,
+        kind: reference.elementType === 'dataStoreReference' ? 'database' : 'file',
+        description: reference.description ?? '',
+        link: reference.link ?? '',
+        location: reference.location ?? '',
+        access: reference.access ?? '',
+        retention: reference.retention ?? '',
+        authorizedPeople: reference.authorizedPeople ?? '',
+        restrictions: reference.restrictions ?? '',
+        resourceId: reference.resourceId,
+        elementId: reference.elementId,
+        elementName: reference.elementName,
+        elementType: reference.elementType,
+      });
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Impossible d’importer cette information BPMN.');
+    } finally {
+      setImportingElementId(null);
     }
   };
 
@@ -440,9 +476,24 @@ export const DataInventory = ({
           height={560}
         />
         {unlinkedReferences.length > 0 && (
-          <Typography level="body-xs" color="neutral">
-            {unlinkedReferences.length} objet(s) BPMN disponible(s) pour une association dans ce processus.
-          </Typography>
+          <Stack spacing={1}>
+            <Typography level="title-sm">Objets BPMN non inscrits au référentiel</Typography>
+            <Typography level="body-xs" color="neutral">
+              Ces informations sont présentes dans le diagramme mais ne figurent pas encore dans le registre du projet. Vous pouvez les importer avec leurs métadonnées.
+            </Typography>
+            {unlinkedReferences.map(reference => (
+              <Stack key={reference.elementId} direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 'sm', p: 1 }}>
+                <Stack spacing={0.25} sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography level="body-sm" fontWeight="md">{reference.elementName} — {reference.elementType === 'dataStoreReference' ? 'Magasin de données' : 'Objet de données'}</Typography>
+                  {reference.description && <Typography level="body-xs" color="neutral">{reference.description}</Typography>}
+                  {(reference.link || reference.location || reference.access || reference.retention || reference.authorizedPeople || reference.restrictions) && (
+                    <Typography level="body-xs" color="neutral">{[reference.link, reference.location, reference.access, reference.retention, reference.authorizedPeople, reference.restrictions].filter(Boolean).join(' · ')}</Typography>
+                  )}
+                </Stack>
+                {canManageSources && <Button size="sm" variant="outlined" loading={importingElementId === reference.elementId} disabled={Boolean(importingElementId)} onClick={() => void importLegacyReference(reference)}>Importer</Button>}
+              </Stack>
+            ))}
+          </Stack>
         )}
       </Stack>
     </Box>
