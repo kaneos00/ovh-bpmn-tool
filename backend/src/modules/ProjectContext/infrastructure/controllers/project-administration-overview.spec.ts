@@ -56,6 +56,13 @@ describe('ProjectController administration overview', () => {
     ),
   };
 
+  const projectResourceAccess = {
+    getAuthenticatedUserId: jest.fn(
+      (headers: Record<string, string | undefined>) => headers['x-user'] ?? '',
+    ),
+    hasOrganizationAdminRole: jest.fn(() => false),
+  };
+
   let controller: ProjectController;
 
   beforeEach(() => {
@@ -124,13 +131,7 @@ describe('ProjectController administration overview', () => {
       projectMembers as never,
       processChangeProposals as never,
       processChangeProposalComments as never,
-      {
-        getAuthenticatedUserId: jest.fn(
-          (headers: Record<string, string | undefined>) =>
-            headers['x-user'] ?? '',
-        ),
-        hasOrganizationAdminRole: jest.fn(() => false),
-      } as never,
+      projectResourceAccess as never,
     );
   });
 
@@ -212,10 +213,7 @@ describe('ProjectController administration overview', () => {
 
   it('includes all projects and grants admin context to organization administrators', async () => {
     projectMembers.find.mockResolvedValue([]);
-    const access = controller['projectResourceAccess'] as unknown as {
-      hasOrganizationAdminRole: jest.Mock;
-    };
-    access.hasOrganizationAdminRole.mockReturnValue(true);
+    projectResourceAccess.hasOrganizationAdminRole.mockReturnValue(true);
 
     const result = await controller.getMyWorkspace({
       'x-user': 'org-admin',
