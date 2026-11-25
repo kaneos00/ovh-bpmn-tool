@@ -604,8 +604,8 @@ export class ProjectDocumentedSourceController {
       const targetAlreadyUsed = await referenceRepository.findOne({
         where: {
           projectId,
-          sourceId: targetSourceId,
           resourceId: reference.resourceId,
+          elementId: reference.elementId,
         },
       });
       if (targetAlreadyUsed && targetAlreadyUsed.id !== reference.id)
