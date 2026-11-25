@@ -77,25 +77,33 @@ export class ProjectController {
   @UseAcl()
   async getMyWorkspace(@Headers() headers: RequestHeaders) {
     const userId = this.projectResourceAccess.getAuthenticatedUserId(headers);
+    const isOrganizationAdmin =
+      this.projectResourceAccess.hasOrganizationAdminRole(headers);
     const memberships = await this.projectMembers.find({
       where: { userId },
       order: { createdAt: 'ASC' },
     });
-    if (!memberships.length) return { userId, projects: [] };
+    if (!memberships.length && !isOrganizationAdmin) {
+      return { userId, projects: [] };
+    }
 
-    const projectIds = [
-      ...new Set(memberships.map(({ projectId }) => projectId)),
-    ];
-    const [projects, links] = await Promise.all([
-      this.projects.find({
-        where: { id: In(projectIds) },
-        order: { name: 'ASC' },
-      }),
-      this.projectProcesses.find({
-        where: { projectId: In(projectIds) },
-        order: { createdAt: 'ASC' },
-      }),
-    ]);
+    // Organization administrators can navigate project resources without
+    // being added as ordinary project members. Include those projects in the
+    // workspace so project-scoped Viewer features receive their project
+    // context instead of silently becoming unavailable.
+    const projects = isOrganizationAdmin
+      ? await this.projects.find({ order: { name: 'ASC' } })
+      : await this.projects.find({
+          where: { id: In(memberships.map(({ projectId }) => projectId)) },
+          order: { name: 'ASC' },
+        });
+    const projectIds = projects.map(({ id }) => id);
+    const links = projectIds.length
+      ? await this.projectProcesses.find({
+          where: { projectId: In(projectIds) },
+          order: { createdAt: 'ASC' },
+        })
+      : [];
     const resourceIds = [...new Set(links.map(({ resourceId }) => resourceId))];
     const resources = resourceIds.length
       ? await this.resources.find({
@@ -201,6 +209,11 @@ export class ProjectController {
     const roleByProject = new Map(
       memberships.map(({ projectId, role }) => [projectId, role]),
     );
+    if (isOrganizationAdmin) {
+      projects.forEach((project) =>
+        roleByProject.set(project.id, ProjectMemberRole.Admin),
+      );
+    }
     const canSubmitRemarksByProject = new Map(
       memberships.map(({ projectId, canSubmitRemarks }) => [
         projectId,
