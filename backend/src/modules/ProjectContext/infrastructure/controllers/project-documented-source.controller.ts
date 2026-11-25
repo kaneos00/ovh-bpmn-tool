@@ -350,7 +350,7 @@ export class ProjectDocumentedSourceController {
   }
 
   @Post()
-  @UseAcl([UserGroup.RW])
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
   async create(
     @Param('projectId') projectId: string,
     @Body()
@@ -439,7 +439,7 @@ export class ProjectDocumentedSourceController {
   }
 
   @Put(':sourceId')
-  @UseAcl([UserGroup.RW])
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
   async update(
     @Param('projectId') projectId: string,
     @Param('sourceId') sourceId: string,
@@ -481,7 +481,7 @@ export class ProjectDocumentedSourceController {
   }
 
   @Post(':sourceId/references')
-  @UseAcl([UserGroup.RW])
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
   async addReference(
     @Param('projectId') projectId: string,
     @Param('sourceId') sourceId: string,
@@ -565,7 +565,7 @@ export class ProjectDocumentedSourceController {
   }
 
   @Put(':sourceId/references/:referenceId')
-  @UseAcl([UserGroup.RW])
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
   async changeReferenceSource(
     @Param('projectId') projectId: string,
     @Param('sourceId') sourceId: string,
@@ -631,7 +631,7 @@ export class ProjectDocumentedSourceController {
   }
 
   @Delete(':sourceId/references/:referenceId')
-  @UseAcl([UserGroup.RW])
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
   async unlinkReference(
     @Param('projectId') projectId: string,
     @Param('sourceId') sourceId: string,
@@ -655,7 +655,7 @@ export class ProjectDocumentedSourceController {
   }
 
   @Post(':sourceId/merge')
-  @UseAcl([UserGroup.RW])
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
   async merge(
     @Param('projectId') projectId: string,
     @Param('sourceId') sourceId: string,
