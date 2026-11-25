@@ -72,3 +72,8 @@ Les rôles projet ne sont pas des rôles globaux. Les postes permanents de l'org
 - La V0.8 continue sur sa branche de stabilisation, sans cherry-pick de ce chantier.
 - Après validation de la V0.8, reprendre ce cadrage, créer les tickets détaillés puis une branche de développement V0.10 depuis la base stabilisée.
 - Intégrer les évolutions via PR et CI ; aucun déploiement sans demande explicite.
+
+
+## Cadrages fonctionnels associés
+
+- [Postes, fiches de poste, rôles, activités, tâches et RACI](../functional/postes-roles-activites-raci.md) : définitions, articulation des notions et exemple détaillé de chef de projet, notamment la séparation entre pilotage projet et avant-vente.
