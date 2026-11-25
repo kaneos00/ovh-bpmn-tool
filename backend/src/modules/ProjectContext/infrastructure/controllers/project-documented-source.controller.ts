@@ -509,8 +509,10 @@ export class ProjectDocumentedSourceController {
       const referenceRepository = manager.getRepository(
         ProjectDocumentedSourceReferenceTypeOrmEntity,
       );
+      // Lock the source row so deletion cannot race with a new BPMN association.
       const source = await sourceRepository.findOne({
         where: { id: sourceId, projectId, mergedIntoId: IsNull() },
+        lock: { mode: 'pessimistic_write' },
       });
       if (!source) throw new NotFoundException('Documented source not found');
 
@@ -528,24 +530,9 @@ export class ProjectDocumentedSourceController {
         );
       }
 
-      // Serialize concurrent attempts to reuse one source in the same BPMN resource.
-      await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
-        projectId + ':' + sourceId + ':' + reference.resourceId,
-      ]);
-
-      const sourceAlreadyUsedInDiagram = await referenceRepository.findOne({
-        where: {
-          projectId,
-          sourceId,
-          resourceId: reference.resourceId,
-        },
-      });
-      if (sourceAlreadyUsedInDiagram) {
-        throw new ConflictException(
-          'This documented source is already linked to an object in this BPMN diagram',
-        );
-      }
-
+      // A documented source may be reused by several BPMN elements,
+      // including several elements in the same diagram. The unique
+      // project/resource/element index prevents duplicate element links.
       SOURCE_TEXT_FIELDS.forEach((field) => {
         if (!(source[field] ?? '').trim() && body[field] !== undefined) {
           source[field] = optionalText(body[field], field);
@@ -630,6 +617,47 @@ export class ProjectDocumentedSourceController {
     });
   }
 
+  @Delete(':sourceId')
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
+  async deleteSource(
+    @Param('projectId') projectId: string,
+    @Param('sourceId') sourceId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    await this.access.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Admin,
+      { allowOrganizationAdmin: true },
+    );
+
+    return this.dataSource.transaction(async (manager) => {
+      const sourceRepository = manager.getRepository(
+        ProjectDocumentedSourceTypeOrmEntity,
+      );
+      const referenceRepository = manager.getRepository(
+        ProjectDocumentedSourceReferenceTypeOrmEntity,
+      );
+      const source = await sourceRepository.findOne({
+        where: { id: sourceId, projectId, mergedIntoId: IsNull() },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!source) throw new NotFoundException('Documented source not found');
+
+      const referenceCount = await referenceRepository.count({
+        where: { projectId, sourceId },
+      });
+      if (referenceCount > 0) {
+        throw new ConflictException(
+          'Impossible de supprimer cette information documentée : elle est encore associée à un ou plusieurs objets BPMN. Déliez d’abord tous ses objets BPMN.',
+        );
+      }
+
+      await sourceRepository.delete({ id: sourceId, projectId });
+      return { deleted: true, sourceId };
+    });
+  }
+
   @Delete(':sourceId/references/:referenceId')
   @UseAcl([UserGroup.RW, UserGroup.Admin])
   async unlinkReference(
@@ -699,25 +727,9 @@ export class ProjectDocumentedSourceController {
             where: { projectId, sourceId: targetId },
           }),
         ]);
-      const resourceElementsForMerge = new Map<string, Set<string>>();
-      [...sourceReferencesForMerge, ...targetReferencesForMerge].forEach(
-        (reference) => {
-          const elementIds =
-            resourceElementsForMerge.get(reference.resourceId) ??
-            new Set<string>();
-          elementIds.add(reference.elementId);
-          resourceElementsForMerge.set(reference.resourceId, elementIds);
-        },
-      );
-      const crossElementDiagramConflict = [
-        ...resourceElementsForMerge.values(),
-      ].some((elementIds) => elementIds.size > 1);
-      if (crossElementDiagramConflict) {
-        throw new ConflictException(
-          'Fusion impossible : les deux sources sont déjà utilisées par des objets différents dans un même diagramme BPMN.',
-        );
-      }
-
+      // Several BPMN elements in one diagram may reference the same
+      // documented source. Duplicate references to the same element are
+      // consolidated below; distinct elements are all retained.
       const conflictingFields =
         source.link?.trim() &&
         target.link?.trim() &&
