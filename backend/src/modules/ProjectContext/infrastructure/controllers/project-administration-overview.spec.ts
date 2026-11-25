@@ -129,6 +129,7 @@ describe('ProjectController administration overview', () => {
           (headers: Record<string, string | undefined>) =>
             headers['x-user'] ?? '',
         ),
+        hasOrganizationAdminRole: jest.fn(() => false),
       } as never,
     );
   });
@@ -207,6 +208,35 @@ describe('ProjectController administration overview', () => {
       projects: [],
     });
     expect(projects.find).not.toHaveBeenCalled();
+  });
+
+  it('includes all projects and grants admin context to organization administrators', async () => {
+    projectMembers.find.mockResolvedValue([]);
+    const access = controller['projectResourceAccess'] as unknown as {
+      hasOrganizationAdminRole: jest.Mock;
+    };
+    access.hasOrganizationAdminRole.mockReturnValue(true);
+
+    const result = await controller.getMyWorkspace({
+      'x-user': 'org-admin',
+      'x-groups': 'bpmn-tool-admin-org',
+    });
+
+    expect(projects.find).toHaveBeenCalledWith({ order: { name: 'ASC' } });
+    expect(result.projects).toHaveLength(2);
+    expect(result.projects[0]).toMatchObject({
+      id: 'project-a',
+      role: ProjectMemberRole.Admin,
+      processes: [{ resourceId: 'process-shared' }],
+    });
+    expect(result.projects[1]).toMatchObject({
+      id: 'project-b',
+      role: ProjectMemberRole.Admin,
+      processes: [
+        { resourceId: 'process-shared' },
+        { resourceId: 'process-variant' },
+      ],
+    });
   });
 
   it('shows the same shared resource for every project that references it', async () => {
