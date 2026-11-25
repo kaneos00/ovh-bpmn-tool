@@ -23,7 +23,7 @@ export const Component = () => {
       open
       onClose={callbacks.onModalClose}
     >
-      <ResourceForm onFormSubmit={callbacks.onFormSubmit} />
+      <ResourceForm type={type} onFormSubmit={callbacks.onFormSubmit} />
     </BaseModal>
   );
 };

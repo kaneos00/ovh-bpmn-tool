@@ -519,13 +519,23 @@ test('V3 central viewer exposes the data inventory and saves it through the exis
   assert.match(details, /await saveContent\(resourceId, viewerContent\.id, \{ content: updatedXml \}\)/);
   assert.match(details, /canEdit=\{canEditDescription\}/);
   assert.match(inventory, /getElementsByTagNameNS\(NS, 'source'\)/);
-  assert.match(inventory, /getElementsByTagNameNS\(NS, 'manifest'\)/);
-  assert.match(inventory, /hasInventoryManifest \|\| saved\.length/);
+  assert.match(inventory, /getElementsByTagNameNS\(NS, 'excluded'\)/);
   assert.match(inventory, /inventory:manifest/);
   assert.match(inventory, /dataObjectReference.*dataStoreReference/s);
+  assert.match(inventory, /dataObjectRef.*dataStoreRef/s);
+  assert.match(inventory, /\['dataObject',\s*'dataStore'\]/);
+  assert.match(inventory, /detected\.forEach\(source => \{ if \(!bySourceId\.has\(source\.id\)\)/);
+  assert.match(inventory, /original\.forEach\(source => \{/);
   assert.match(inventory, /Gestion des accès/);
   assert.match(inventory, /Personnes autorisées/);
   assert.match(inventory, /Modalités de restriction/);
+  assert.match(inventory, /bpmnName: string/);
+  assert.match(inventory, /Nom BPMN/);
+  assert.match(inventory, /Nom de l’information documentée/);
+  assert.match(inventory, /readDocumentation/);
+  assert.match(inventory, /writeDocumentation\(doc, source\.id, source\.description\)/);
+  assert.match(inventory, /live\.bpmnDescription !== null \? live\.bpmnDescription : source\.description/);
+  assert.match(inventory, /key !== 'bpmnDescription'/);
 });
 
 test('canonical process viewer restores element selection and RACI tab from route query parameters', async () => {
