@@ -18,7 +18,6 @@ import { UseAcl } from '../../../../shared-kernel/modules/acl/infrastructure/acl
 import { UserGroup } from '../../../../shared-kernel/utils/UserGroup';
 import { ContentTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/content.ormEntity';
 import { ResourceTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/resource.ormEntity';
-import { ContentStatusEnum } from '../../../ResourceContext/shared/types/Content';
 import { ProjectMemberRole } from '../entities/projectMember.ormEntity';
 import { ProjectProcessTypeOrmEntity } from '../entities/projectProcess.ormEntity';
 import { ProjectDocumentedSourceTypeOrmEntity } from '../entities/projectDocumentedSource.ormEntity';
