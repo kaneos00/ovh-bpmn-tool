@@ -8,6 +8,7 @@ export type InventorySource = {
   bpmnType: 'dataObjectReference' | 'dataInput' | 'dataOutput' | 'dataStoreReference' | 'dataObject' | 'dataStore';
   associations: Array<{ taskId: string; taskName: string; direction: 'input' | 'output' }>;
   bpmnName: string;
+  bpmnDescription: string | null;
   name: string;
   description: string;
   location: string;
@@ -32,6 +33,7 @@ const emptySource = (): InventorySource => ({
   bpmnType: 'dataObjectReference',
   associations: [],
   bpmnName: '',
+  bpmnDescription: null,
   name: '',
   description: '',
   location: '',
@@ -97,7 +99,7 @@ const readSources = (xml?: string): InventorySource[] => {
     id: n.getAttribute('id') || emptySource().id,
     kind: n.getAttribute('kind') === 'database' ? 'database' as const : 'file' as const,
     bpmnType: (n.getAttribute('bpmnType') || 'dataObjectReference') as InventorySource['bpmnType'],
-    bpmnName: '', name: n.getAttribute('name') || '', description: n.getAttribute('description') || '',
+    bpmnName: '', bpmnDescription: null, name: n.getAttribute('name') || '', description: n.getAttribute('description') || '',
     location: n.getAttribute('location') || '', access: n.getAttribute('access') || '',
     retention: n.getAttribute('retention') || '', authorizedPeople: n.getAttribute('authorizedPeople') || '',
     restrictions: n.getAttribute('restrictions') || '', associations: links.get(n.getAttribute('id') || '') ?? [],
@@ -120,10 +122,11 @@ const readSources = (xml?: string): InventorySource[] => {
     const definitionId = node.getAttribute('dataObjectRef') || node.getAttribute('dataStoreRef') || '';
     const definition = definitionId ? byId.get(definitionId) : undefined;
     const bpmnName = node.getAttribute('name') || definition?.getAttribute('name') || id || 'Source sans nom';
-    const description = readDocumentation(node) ?? readDocumentation(definition) ?? '';
+    const bpmnDescription = readDocumentation(node) ?? readDocumentation(definition);
+    const description = bpmnDescription ?? '';
     const kind = ['dataStoreReference', 'dataStore'].includes(bpmnType) ? 'database' as const : 'file' as const;
     const associations = links.get(id) ?? (definitionId ? links.get(definitionId) : undefined) ?? [];
-    return { ...emptySource(), id, bpmnType, kind, bpmnName, name: bpmnName, description, associations };
+    return { ...emptySource(), id, bpmnType, kind, bpmnName, bpmnDescription, name: bpmnName, description, associations };
   }).filter(source => source.id && !excludedIds.has(source.id));
 
   const detectedById = new Map(detected.map(source => [source.id, source]));
@@ -133,7 +136,8 @@ const readSources = (xml?: string): InventorySource[] => {
     bySourceId.set(source.id, live ? {
       ...source,
       bpmnName: live.bpmnName,
-      description: live.description,
+      bpmnDescription: live.bpmnDescription,
+      description: live.bpmnDescription !== null ? live.bpmnDescription : source.description,
       associations: live.associations,
     } : source);
   });
@@ -201,7 +205,7 @@ export const DataInventory = ({ xmlContent, canEdit, onSave, onElementSelect, on
       });
       sources.forEach(source => {
         const node = doc.createElementNS(NS, 'inventory:source');
-        (Object.keys(source) as (keyof InventorySource)[]).filter(key => key !== 'associations' && key !== 'bpmnName').forEach(key => node.setAttribute(key, String(source[key])));
+        (Object.keys(source) as (keyof InventorySource)[]).filter(key => key !== 'associations' && key !== 'bpmnName' && key !== 'bpmnDescription').forEach(key => node.setAttribute(key, String(source[key])));
         extension!.appendChild(node);
       });
       await onSave(new XMLSerializer().serializeToString(doc));
