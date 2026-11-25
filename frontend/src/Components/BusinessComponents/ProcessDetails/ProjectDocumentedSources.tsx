@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from 'react-query';
 import { Alert, Box, Button, FormControl, FormLabel, Input, Modal, ModalDialog, Option, Select, Stack, Typography } from '@mui/joy';
-import { AddRounded, AppsRounded, DescriptionOutlined, StorageRounded } from '@mui/icons-material';
+import { AddRounded, AppsRounded, DeleteOutlineRounded, DescriptionOutlined, StorageRounded } from '@mui/icons-material';
 import type { CellValueChangedEvent, ColDef } from 'ag-grid-community';
 import { DocumentedSourcesGrid } from './DocumentedSourcesGrid';
 import { apiClient } from '../../../queryClient';
@@ -12,14 +12,14 @@ type SourceReference = { id: string; resourceId: string; elementId: string; elem
 type Source = {
   id: string; kind: SourceKind | 'form'; name: string; description: string | null; link: string | null;
   location: string | null; access: string | null; retention: string | null; validUntil: string | null;
-  authorizedPeople: string | null; restrictions: string | null; references: SourceReference[];
+  authorizedPeople: string | null; restrictions: string | null; containsPersonalData: boolean; references: SourceReference[];
 };
 type UnlinkedReference = { resourceId: string; processName: string; elementId: string; elementName: string; elementType: string; description?: string; link?: string; location?: string; access?: string; retention?: string; authorizedPeople?: string; restrictions?: string };
 type ResponseData = { sources: Source[]; unlinkedReferences: UnlinkedReference[] };
 type GridRow = {
   id: string; sourceId: string; kind: SourceKind; name: string; description: string; references: SourceReference[];
-  projectStatus: string; link: string; location: string; access: string; validUntil: string;
-  authorizedPeople: string; restrictions: string;
+  link: string; location: string; access: string; retention: string; validUntil: string;
+  authorizedPeople: string; restrictions: string; containsPersonalData: boolean;
 };
 
 const kindLabels: Record<SourceKind, string> = { file: 'Fichier', database: 'Base de données', application: 'Application' };
@@ -45,9 +45,9 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
   const rows = useMemo<GridRow[]>(() => (data?.sources ?? []).map(source => ({
     id: source.id, sourceId: source.id, kind: source.kind === 'form' ? 'file' : source.kind,
     name: source.name, description: source.description ?? '', references: source.references ?? [],
-    projectStatus: source.references?.length ? `Associé · ${source.references.length}` : 'Non associé',
     link: source.link ?? '', location: source.location ?? '', access: source.access ?? '',
-    validUntil: source.validUntil ?? '', authorizedPeople: source.authorizedPeople ?? '', restrictions: source.restrictions ?? '',
+    retention: source.retention ?? '', validUntil: source.validUntil ?? '', authorizedPeople: source.authorizedPeople ?? '', restrictions: source.restrictions ?? '',
+    containsPersonalData: source.containsPersonalData ?? false,
   })), [data?.sources]);
 
   const refresh = async () => {
@@ -57,7 +57,7 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
   const saveCell = async (event: CellValueChangedEvent<GridRow>) => {
     const row = event.data;
     if (!row?.sourceId || !canManage || event.newValue === event.oldValue) return;
-    const fieldMap: Record<string, string> = { kind: 'kind', name: 'name', description: 'description', link: 'link', location: 'location', access: 'access', validUntil: 'validUntil', authorizedPeople: 'authorizedPeople', restrictions: 'restrictions' };
+    const fieldMap: Record<string, string> = { kind: 'kind', name: 'name', description: 'description', link: 'link', location: 'location', access: 'access', retention: 'retention', validUntil: 'validUntil', authorizedPeople: 'authorizedPeople', restrictions: 'restrictions', containsPersonalData: 'containsPersonalData' };
     const field = fieldMap[String(event.colDef.field ?? '')];
     if (!field) return;
     try {
@@ -136,13 +136,30 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     { headerName: 'Description', field: 'description', minWidth: 220, editable: canManage },
     { headerName: 'Objet BPMN', minWidth: 250, editable: false, autoHeight: true,
       cellRenderer: (p: { data?: GridRow }) => p.data ? <Stack spacing={0.25}>{p.data.references.length ? p.data.references.map(ref => <Stack key={ref.id} direction="row" spacing={0.5} alignItems="center"><Button size="sm" variant="plain" color="neutral" startDecorator={objectIcon(ref.elementType)} sx={{ justifyContent: 'flex-start', whiteSpace: 'normal', textAlign: 'left', flex: 1 }} onClick={() => navigate(`/${ref.resourceId}?elementId=${encodeURIComponent(ref.elementId)}`)}>{ref.elementName} <Typography level="body-xs" color="neutral">— {ref.processName}</Typography></Button>{canManage && <Button size="sm" variant="plain" color="danger" onClick={async () => { try { await apiClient.remove(`/projects/${projectId}/documented-sources/${p.data!.sourceId}/references/${ref.id}`); await refresh(); } catch (e) { setError(e instanceof Error ? e.message : 'Impossible de délier cet objet BPMN.'); } }}>Délier</Button>}</Stack>) : <Typography level="body-sm" color="neutral">Non associé</Typography>}{canManage && (data?.unlinkedReferences ?? []).some(candidate => !p.data!.references.some(ref => ref.resourceId === candidate.resourceId && ref.elementId === candidate.elementId)) && <Select size="sm" placeholder="Associer un objet BPMN…" value={null} onChange={async (_, value) => { const candidate = (data?.unlinkedReferences ?? []).find(item => `${item.resourceId}:${item.elementId}` === value); if (!candidate) return; try { await apiClient.post(`/projects/${projectId}/documented-sources/${p.data!.sourceId}/references`, { resourceId: candidate.resourceId, elementId: candidate.elementId, elementName: candidate.elementName, elementType: candidate.elementType }); await refresh(); } catch (e) { setError(e instanceof Error ? e.message : 'Impossible d’associer cet objet BPMN.'); } }}><Option value="" disabled>Choisir un objet</Option>{(data?.unlinkedReferences ?? []).filter(candidate => !p.data!.references.some(ref => ref.resourceId === candidate.resourceId && ref.elementId === candidate.elementId)).map(candidate => <Option key={`${candidate.resourceId}:${candidate.elementId}`} value={`${candidate.resourceId}:${candidate.elementId}`}>{candidate.elementName} — {candidate.processName}</Option>)}</Select>}</Stack> : null },
-    { headerName: 'Statut projet', field: 'projectStatus', minWidth: 130, editable: false },
     { headerName: 'Lien', field: 'link', minWidth: 170, editable: canManage },
     { headerName: 'Emplacement', field: 'location', minWidth: 150, editable: canManage },
     { headerName: 'Accès', field: 'access', minWidth: 140, editable: canManage },
+    { headerName: 'Durée de conservation', field: 'retention', minWidth: 180, editable: canManage },
     { headerName: 'Date limite de validité', field: 'validUntil', minWidth: 175, editable: canManage, cellEditor: 'agTextCellEditor' },
-    { headerName: 'Personne autorisée', field: 'authorizedPeople', minWidth: 170, editable: canManage },
+    { headerName: 'Données personnelles', field: 'containsPersonalData', minWidth: 175, editable: canManage, cellDataType: 'boolean', cellRenderer: 'agCheckboxCellRenderer', cellEditor: 'agCheckboxCellEditor' },
+    { headerName: 'Personnes autorisées', field: 'authorizedPeople', minWidth: 190, editable: canManage },
     { headerName: 'Restrictions', field: 'restrictions', minWidth: 190, editable: canManage },
+    { headerName: 'Actions', minWidth: 190, sortable: false, filter: false, cellRenderer: (p: { data?: GridRow }) => p.data && canManage ? <Stack direction="row" spacing={0.5}>
+      {p.data.references.length === 0 && <Button size="sm" variant="plain" color="danger" startDecorator={<DeleteOutlineRounded />} onClick={async () => {
+        if (!window.confirm(`Supprimer définitivement « ${p.data!.name} » ?`)) return;
+        try { await apiClient.remove(`/projects/${projectId}/documented-sources/${p.data!.sourceId}`); await refresh(); setError(''); }
+        catch (e) { setError(e instanceof Error ? e.message : 'Suppression impossible.'); }
+      }}>Supprimer</Button>}
+      <Select size="sm" value={null} placeholder="Fusionner avec…" onChange={async (_, targetId) => {
+        if (typeof targetId !== 'string' || !targetId) return;
+        const target = rows.find(item => item.sourceId === targetId);
+        if (!window.confirm(`Fusionner « ${p.data!.name} » dans « ${target?.name ?? 'la cible'} » ? Les associations BPMN seront transférées.`)) return;
+        try { await apiClient.post(`/projects/${projectId}/documented-sources/${p.data!.sourceId}/merge`, { targetSourceId: targetId }); await refresh(); setError(''); }
+        catch (e) { setError(e instanceof Error ? e.message : 'Fusion impossible.'); }
+      }}>
+        {rows.filter(item => item.sourceId !== p.data!.sourceId).map(item => <Option key={item.sourceId} value={item.sourceId}>{item.name}</Option>)}
+      </Select>
+    </Stack> : null },
   ];
 
   if (query.isLoading) return <Typography level="body-sm" color="neutral">Chargement des informations documentées…</Typography>;
