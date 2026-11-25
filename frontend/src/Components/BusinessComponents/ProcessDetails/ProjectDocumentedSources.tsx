@@ -175,7 +175,7 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
       <ModalDialog sx={{ width: 'min(560px, calc(100vw - 32px))' }}>
         <Typography level="title-lg">Ajouter une information documentée</Typography>
         <Stack spacing={1.5}>
-          <FormControl required><FormLabel>Nom</FormLabel><Input autoFocus value={newName} onChange={e => setNewName(e.target.value)} /></FormControl>
+          <FormControl required><FormLabel>Nom</FormLabel><Input value={newName} onChange={e => setNewName(e.target.value)} /></FormControl>
           <FormControl><FormLabel>Type</FormLabel><Select value={newKind} onChange={(_, value) => value && setNewKind(value as SourceKind)}><Option value="file">Fichier</Option><Option value="database">Base de données</Option><Option value="application">Application</Option></Select></FormControl>
           <FormControl><FormLabel>Objet BPMN à associer (facultatif)</FormLabel><Select value={selectedReference ?? ''} onChange={(_, value) => { setSelectedReference(value || null); if (value) { const ref = data?.unlinkedReferences.find(item => `${item.resourceId}:${item.elementId}` === value); if (ref && !newName.trim()) setNewName(ref.elementName); } }} placeholder="Créer sans association BPMN">{(data?.unlinkedReferences ?? []).map(ref => <Option key={`${ref.resourceId}:${ref.elementId}`} value={`${ref.resourceId}:${ref.elementId}`}>{ref.elementName} — {ref.processName}</Option>)}</Select></FormControl>
           <Stack direction="row" justifyContent="flex-end" spacing={1}><Button variant="outlined" color="neutral" onClick={() => setAdding(false)}>Annuler</Button><Button onClick={() => void addSource()} disabled={!newName.trim()}>Créer</Button></Stack>
