@@ -17,6 +17,12 @@ test('project workspace restores the central documented information tab', async 
   }
   assert.match(registry, /Ajouter une ligne/);
   assert.match(registry, /onCellValueChanged/);
+  assert.match(registry, /Objet BPMN à associer \(facultatif\)/, 'project sources must be creatable without a BPMN association');
+  assert.match(registry, /const importLegacyReference = async/);
+  assert.match(registry, /Objets BPMN non encore inscrits au référentiel/);
+  assert.match(registry, /ref\.authorizedPeople/);
+  assert.match(registry, /resourceId: ref\.resourceId/);
+  assert.match(registry, /elementType: ref\.elementType/);
   assert.match(registry, /navigate\(\`\/\$\{ref\.resourceId\}\?elementId=/);
 });
 
