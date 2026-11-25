@@ -45,7 +45,8 @@ Dans ce modèle actuel, l'enregistrement `project_documented_sources` porte à l
 
 - Une information documentée peut exister sans association BPMN.
 - Un élément BPMN ne peut être associé qu'à une seule information documentée dans un même projet.
-- Une information documentée peut être associée à plusieurs éléments BPMN.
+- Une information documentée peut être associée à plusieurs éléments BPMN, y compris plusieurs éléments d'un même diagramme.
+- La suppression d'une information documentée est autorisée uniquement lorsqu'elle ne possède plus aucune association BPMN. Tant qu'au moins une association existe, l'API doit refuser la suppression ; l'utilisateur doit d'abord délier tous les objets BPMN.
 - L'association est enregistrée dans le contexte du projet et reste indépendante des autres projets.
 - La déliaison supprime uniquement l'association ; elle ne supprime pas l'information documentée.
 - Le nom de l'élément BPMN reste celui du diagramme ; le nom de l'information documentée reste celui de la fiche documentaire.
@@ -132,7 +133,8 @@ La première phase peut traiter les doublons strictement à l'intérieur d'un pr
 ## 6. Critères de validation de la phase 1
 
 - Les informations documentées déjà enregistrées sont visibles dans la liste du projet.
-- La création, la modification et la suppression contrôlée fonctionnent.
+- La création et la modification fonctionnent.
+- La suppression fonctionne uniquement après déliaison de tous les objets BPMN ; le backend applique ce contrôle même si l'interface masque l'action de suppression.
 - L'association à un élément BPMN existant fonctionne, y compris lorsque l'information est créée avant ou après le processus.
 - Une association existante est correctement affichée et peut être déliée.
 - Un élément BPMN ne peut pas être associé deux fois dans le même projet.
