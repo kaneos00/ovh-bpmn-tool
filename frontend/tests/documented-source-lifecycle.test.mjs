@@ -11,6 +11,8 @@ test('a documented source can only be deleted when no BPMN reference remains', a
   const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
   const projectGrid = await read('src/Components/BusinessComponents/ProcessDetails/ProjectDocumentedSources.tsx');
   const processGrid = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
+  assert.doesNotMatch(projectGrid, /Statut projet|projectStatus/);
+  assert.doesNotMatch(processGrid, /Statut projet|projectStatus/);
   assert.match(controller, /@Delete\(':sourceId'\)[\s\S]*?async deleteSource/);
   assert.match(controller, /lock: \{ mode: 'pessimistic_write' \}/);
   assert.match(controller, /const referenceCount = await referenceRepository\.count\(/);
