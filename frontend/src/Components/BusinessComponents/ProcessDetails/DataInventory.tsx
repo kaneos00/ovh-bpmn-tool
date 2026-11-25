@@ -170,6 +170,7 @@ export const DataInventory = ({
       link: row.link ?? '',
       location: row.location ?? '',
       access: row.access ?? '',
+      retention: row.retention ?? '',
       validUntil: row.validUntil || null,
       containsPersonalData: row.containsPersonalData,
       authorizedPeople: row.authorizedPeople ?? '',
