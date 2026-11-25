@@ -4,6 +4,7 @@ import { Alert, Box, Button, IconButton, Option, Select, Stack, Typography } fro
 import {
   AppsOutlined,
   AttachFileOutlined,
+  DeleteOutlineOutlined,
   LinkOffOutlined,
   StorageOutlined,
 } from '@mui/icons-material';
@@ -60,7 +61,6 @@ type ProjectDocumentedSourcesResponse = {
 };
 
 type InventoryGridRow = ProjectDocumentedSource & {
-  projectStatus: string;
   isNew?: boolean;
 };
 
@@ -265,6 +265,18 @@ export const DataInventory = ({
     }
   };
 
+  const deleteSource = async (row: ProjectDocumentedSource) => {
+    if (!projectId || !canManageSources || row.references.length > 0) return;
+    if (!window.confirm(`Supprimer définitivement « ${row.name} » ?`)) return;
+    setError('');
+    try {
+      await apiClient.remove(`/projects/${projectId}/documented-sources/${row.id}`);
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Impossible de supprimer cette information documentée.');
+    }
+  };
+
   const unlink = async (row: ProjectDocumentedSource, reference: SourceReference) => {
     if (!projectId || !canManageSources || associatingId) return;
     setAssociatingId(row.id);
@@ -279,16 +291,13 @@ export const DataInventory = ({
     }
   };
 
-  const rows: InventoryGridRow[] = sources.map(source => {
-    return {
-      ...source,
-      projectStatus: source.id.startsWith('new-') ? 'À compléter' : 'Présente dans le projet',
-      isNew: source.id.startsWith('new-'),
-    };
-  });
+  const rows: InventoryGridRow[] = sources.map(source => ({
+    ...source,
+    isNew: source.id.startsWith('new-'),
+  }));
 
   const textColumn = (
-    field: 'name' | 'description' | 'link' | 'location' | 'access' | 'authorizedPeople' | 'restrictions',
+    field: 'name' | 'description' | 'link' | 'location' | 'access' | 'retention' | 'authorizedPeople' | 'restrictions',
     headerName: string,
     minWidth: number,
   ): ColDef<InventoryGridRow> => ({
@@ -424,10 +433,10 @@ export const DataInventory = ({
         );
       },
     },
-    { headerName: 'Statut projet', field: 'projectStatus', minWidth: 160, editable: false },
     textColumn('link', 'Lien', 190),
     textColumn('location', 'Emplacement', 160),
     textColumn('access', 'Accès', 150),
+    textColumn('retention', 'Durée de conservation', 190),
     {
       headerName: 'Date limite de validité',
       field: 'validUntil',
@@ -442,6 +451,24 @@ export const DataInventory = ({
     },
     textColumn('authorizedPeople', 'Personnes autorisées', 190),
     textColumn('restrictions', 'Restrictions', 200),
+    {
+      headerName: 'Actions',
+      minWidth: 125,
+      sortable: false,
+      filter: false,
+      cellRenderer: (params: ICellRendererParams<InventoryGridRow>) => {
+        const row = params.data;
+        if (!row || !canManageSources || row.references.length > 0 || row.id.startsWith('new-')) return null;
+        return (
+          <IconButton size="sm" variant="plain" color="danger" title="Supprimer cette information documentée non associée" aria-label={`Supprimer ${row.name}`} onClick={event => {
+            event.stopPropagation();
+            void deleteSource(row);
+          }}>
+            <DeleteOutlineOutlined />
+          </IconButton>
+        );
+      },
+    },
   ];
 
   return (
