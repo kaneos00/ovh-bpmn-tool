@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from 'react-query';
-import { Alert, Box, Button, IconButton, Option, Select, Stack, Typography } from '@mui/joy';
+import { Alert, Box, Button, IconButton, Modal, ModalDialog, Option, Select, Stack, Typography } from '@mui/joy';
 import {
   AppsOutlined,
   AttachFileOutlined,
@@ -126,6 +126,7 @@ export const DataInventory = ({
   const [associatingId, setAssociatingId] = useState<string | null>(null);
   const [importingElementId, setImportingElementId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [pendingDelete, setPendingDelete] = useState<ProjectDocumentedSource | null>(null);
 
   const projectSourcesQuery = useQuery<ProjectDocumentedSourcesResponse>(
     ['project-documented-sources', projectId],
@@ -268,11 +269,11 @@ export const DataInventory = ({
 
   const deleteSource = async (row: ProjectDocumentedSource) => {
     if (!projectId || !canManageSources || row.references.length > 0) return;
-    if (!window.confirm(`Supprimer définitivement « ${row.name} » ?`)) return;
-    setError('');
+        setError('');
     try {
       await apiClient.remove(`/projects/${projectId}/documented-sources/${row.id}`);
       await refresh();
+      setPendingDelete(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Impossible de supprimer cette information documentée.');
     }
@@ -466,7 +467,7 @@ export const DataInventory = ({
         return (
           <IconButton size="sm" variant="plain" color="danger" title="Supprimer cette information documentée non associée" aria-label={`Supprimer ${row.name}`} onClick={event => {
             event.stopPropagation();
-            void deleteSource(row);
+            setPendingDelete(row);
           }}>
             <DeleteOutlineOutlined />
           </IconButton>
@@ -497,6 +498,16 @@ export const DataInventory = ({
             Aucun projet actif : le référentiel des informations documentées n’est pas disponible.
           </Alert>
         )}
+        <Modal open={Boolean(pendingDelete)} onClose={() => setPendingDelete(null)}>
+          <ModalDialog>
+            <Typography level="title-lg">Confirmer la suppression</Typography>
+            <Typography>Supprimer définitivement « {pendingDelete?.name} » ?</Typography>
+            <Stack direction="row" justifyContent="flex-end" spacing={1}>
+              <Button variant="outlined" color="neutral" onClick={() => setPendingDelete(null)}>Annuler</Button>
+              <Button color="danger" onClick={() => pendingDelete && void deleteSource(pendingDelete)}>Supprimer</Button>
+            </Stack>
+          </ModalDialog>
+        </Modal>
         <DocumentedSourcesGrid<InventoryGridRow>
           rowData={rows}
           columnDefs={columnDefs}
