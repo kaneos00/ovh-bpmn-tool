@@ -720,13 +720,9 @@ export class ProjectDocumentedSourceController {
           'Documented source not found in this project',
         );
 
-      const [sourceReferencesForMerge, targetReferencesForMerge] =
-        await Promise.all([
-          referenceRepository.find({ where: { projectId, sourceId } }),
-          referenceRepository.find({
-            where: { projectId, sourceId: targetId },
-          }),
-        ]);
+      const sourceReferencesForMerge = await referenceRepository.find({
+        where: { projectId, sourceId },
+      });
       // Several BPMN elements in one diagram may reference the same
       // documented source. Duplicate references to the same element are
       // consolidated below; distinct elements are all retained.
