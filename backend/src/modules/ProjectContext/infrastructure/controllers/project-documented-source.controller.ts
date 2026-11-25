@@ -728,9 +728,6 @@ export class ProjectDocumentedSourceController {
           'Documented source not found in this project',
         );
 
-      const sourceReferencesForMerge = await referenceRepository.find({
-        where: { projectId, sourceId },
-      });
       // Several BPMN elements in one diagram may reference the same
       // documented source. Duplicate references to the same element are
       // consolidated below; distinct elements are all retained.
@@ -767,7 +764,10 @@ export class ProjectDocumentedSourceController {
       if (!target.name.trim() && source.name.trim()) target.name = source.name;
       target.containsPersonalData =
         target.containsPersonalData || source.containsPersonalData;
-      if (!target.validUntil || (source.validUntil && source.validUntil < target.validUntil)) {
+      if (
+        !target.validUntil ||
+        (source.validUntil && source.validUntil < target.validUntil)
+      ) {
         target.validUntil = source.validUntil;
       }
       await sourceRepository.save(target);
