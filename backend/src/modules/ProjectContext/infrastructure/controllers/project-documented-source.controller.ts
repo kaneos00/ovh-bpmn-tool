@@ -279,12 +279,13 @@ export class ProjectDocumentedSourceController {
     const resources = resourceIds.length
       ? await this.resources.find({ where: { id: In(resourceIds) } })
       : [];
-    const publishedContents = resourceIds.length
+    // Documented metadata can be present in the current draft before a
+    // process is published. Prefer the newest content for each resource,
+    // regardless of status, otherwise newly-created project processes have
+    // no discoverable BPMN data elements and the project registry looks empty.
+    const processContents = resourceIds.length
       ? await this.contents.find({
-          where: {
-            resourceId: In(resourceIds),
-            status: ContentStatusEnum.Published,
-          },
+          where: { resourceId: In(resourceIds) },
           order: { version: 'DESC', updatedAt: 'DESC' },
         })
       : [];
@@ -293,7 +294,7 @@ export class ProjectDocumentedSourceController {
       resources.map((resource) => [resource.id, resource]),
     );
     const contentByResource = new Map<string, ContentTypeOrmEntity>();
-    publishedContents.forEach((content) => {
+    processContents.forEach((content) => {
       if (!contentByResource.has(content.resourceId))
         contentByResource.set(content.resourceId, content);
     });
