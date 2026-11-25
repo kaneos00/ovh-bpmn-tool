@@ -363,73 +363,76 @@ export const DataInventory = ({
       cellRenderer: (params: ICellRendererParams<InventoryGridRow>) => {
         const row = params.data;
         if (!row) return null;
-        const reference = row.references.find(item => item.resourceId === resourceId);
-        if (reference) {
-          return (
-            <Stack direction="row" spacing={0.5} alignItems="center">
-              <IconButton
-                size="sm"
-                variant="plain"
-                color="primary"
-                title="Ouvrir l’élément BPMN associé"
-                aria-label={`Ouvrir ${reference.elementName} dans le diagramme BPMN`}
-                onClick={event => {
-                  event.stopPropagation();
-                  onShowDiagram?.();
-                  onElementSelect?.(reference.elementId);
-                }}
-              >
-                <BpmnDataSymbol type={reference.elementType} />
-              </IconButton>
-              <Button
-                size="sm"
-                variant="plain"
-                color="primary"
-                sx={{ flex: 1, justifyContent: 'flex-start', minWidth: 0, px: 0.5, textAlign: 'left' }}
-                title="Ouvrir cet objet dans le diagramme BPMN"
-                onClick={event => {
-                  event.stopPropagation();
-                  onShowDiagram?.();
-                  onElementSelect?.(reference.elementId);
-                }}
-              >
-                {reference.elementName}
-              </Button>
-              {canManageSources && (
+        const references = row.references.filter(item => item.resourceId === resourceId);
+        return (
+          <Stack spacing={0.5}>
+            {references.length === 0 && <Typography level="body-sm" color="neutral">Non associé</Typography>}
+            {references.map(reference => (
+              <Stack key={reference.id} direction="row" spacing={0.5} alignItems="center">
                 <IconButton
                   size="sm"
                   variant="plain"
-                  color="danger"
-                  title="Supprimer l’association BPMN"
-                  aria-label="Supprimer l’association BPMN"
-                  disabled={associatingId === row.id}
+                  color="primary"
+                  title="Ouvrir l’élément BPMN associé"
+                  aria-label={`Ouvrir ${reference.elementName} dans le diagramme BPMN`}
                   onClick={event => {
                     event.stopPropagation();
-                    void unlink(row, reference);
+                    onShowDiagram?.();
+                    onElementSelect?.(reference.elementId);
                   }}
                 >
-                  <LinkOffOutlined />
+                  <BpmnDataSymbol type={reference.elementType} />
                 </IconButton>
-              )}
-            </Stack>
-          );
-        }
-        return (
-          <Select
-            size="sm"
-            value={null}
-            placeholder="Associer un objet BPMN…"
-            disabled={!canManageSources || row.id.startsWith('new-') || Boolean(associatingId)}
-            onClick={event => event.stopPropagation()}
-            onChange={(_, value) => { if (typeof value === 'string') void associate(row, value); }}
-            aria-label="Associer un objet BPMN non encore associé"
-          >
-            {unlinkedReferences.map(item => (
-              <Option key={item.elementId} value={item.elementId}>
-                {item.elementName} — {item.elementType === 'dataStoreReference' ? 'Base de données' : 'Objet de données'}
-              </Option>
+                <Button
+                  size="sm"
+                  variant="plain"
+                  color="primary"
+                  sx={{ flex: 1, justifyContent: 'flex-start', minWidth: 0, px: 0.5, textAlign: 'left' }}
+                  title="Ouvrir cet objet dans le diagramme BPMN"
+                  onClick={event => {
+                    event.stopPropagation();
+                    onShowDiagram?.();
+                    onElementSelect?.(reference.elementId);
+                  }}
+                >
+                  {reference.elementName}
+                </Button>
+                {canManageSources && (
+                  <IconButton
+                    size="sm"
+                    variant="plain"
+                    color="danger"
+                    title="Supprimer l’association BPMN"
+                    aria-label="Supprimer l’association BPMN"
+                    disabled={associatingId === row.id}
+                    onClick={event => {
+                      event.stopPropagation();
+                      void unlink(row, reference);
+                    }}
+                  >
+                    <LinkOffOutlined />
+                  </IconButton>
+                )}
+              </Stack>
             ))}
-          </Select>
+            {canManageSources && unlinkedReferences.length > 0 && (
+              <Select
+                size="sm"
+                value={null}
+                placeholder="Associer un objet BPMN…"
+                disabled={row.id.startsWith('new-') || Boolean(associatingId)}
+                onClick={event => event.stopPropagation()}
+                onChange={(_, value) => { if (typeof value === 'string') void associate(row, value); }}
+                aria-label="Associer un objet BPMN non encore associé"
+              >
+                {unlinkedReferences.map(item => (
+                  <Option key={item.elementId} value={item.elementId}>
+                    {item.elementName} — {item.elementType === 'dataStoreReference' ? 'Base de données' : 'Objet de données'}
+                  </Option>
+                ))}
+              </Select>
+            )}
+          </Stack>
         );
       },
     },
