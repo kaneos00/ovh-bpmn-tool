@@ -1080,7 +1080,7 @@ test('project documented information uses canonical sources and retains the proj
   assert.ok(controller.includes('if (!reference) return { ...source, references: [] }'));
   assert.ok(inventory.includes('Date limite de validité'));
   assert.ok(inventory.includes('validUntil: row.validUntil || null'));
-  assert.ok(inventory.includes("'À compléter'"));
+  assert.doesNotMatch(inventory, /Statut projet|projectStatus|À compléter/);
   assert.ok(inventory.includes('handleCellChange'));
   assert.ok(inventory.includes('onElementSelect?.(reference.elementId)'));
   assert.doesNotMatch(inventory, /XMLSerializer|onSave|inventory:manifest/, 'documented source metadata is not written back into BPMN XML');
