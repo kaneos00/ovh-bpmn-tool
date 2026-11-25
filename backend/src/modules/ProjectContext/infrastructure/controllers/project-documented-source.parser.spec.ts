@@ -16,7 +16,11 @@ describe('extractBpmnDataElements', () => {
         </bpmn:process>
       </bpmn:definitions>`;
 
-    const elements = extractBpmnDataElements(xml, 'resource-1', 'Gestion des contrats');
+    const elements = extractBpmnDataElements(
+      xml,
+      'resource-1',
+      'Gestion des contrats',
+    );
 
     expect(elements).toHaveLength(2);
     expect(elements[0]).toMatchObject({
@@ -42,7 +46,13 @@ describe('extractBpmnDataElements', () => {
   });
 
   it('ignores malformed or unsafe XML instead of breaking the project registry', () => {
-    expect(extractBpmnDataElements('<!DOCTYPE x [<!ENTITY e SYSTEM "file:///etc/passwd">]><x>&e;</x>', 'r', 'p')).toEqual([]);
+    expect(
+      extractBpmnDataElements(
+        '<!DOCTYPE x [<!ENTITY e SYSTEM "file:///etc/passwd">]><x>&e;</x>',
+        'r',
+        'p',
+      ),
+    ).toEqual([]);
     expect(extractBpmnDataElements('<not-xml', 'r', 'p')).toEqual([]);
   });
 });
