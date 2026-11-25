@@ -767,6 +767,9 @@ export class ProjectDocumentedSourceController {
       if (!target.name.trim() && source.name.trim()) target.name = source.name;
       target.containsPersonalData =
         target.containsPersonalData || source.containsPersonalData;
+      if (!target.validUntil || (source.validUntil && source.validUntil < target.validUntil)) {
+        target.validUntil = source.validUntil;
+      }
       await sourceRepository.save(target);
 
       const sourceReferences = await referenceRepository.find({
