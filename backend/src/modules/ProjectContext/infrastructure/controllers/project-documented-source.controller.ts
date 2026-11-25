@@ -589,6 +589,7 @@ export class ProjectDocumentedSourceController {
             projectId,
             mergedIntoId: IsNull(),
           },
+          lock: { mode: 'pessimistic_write' },
         }),
         referenceRepository.findOne({
           where: { id: referenceId, projectId, sourceId },
@@ -709,12 +710,16 @@ export class ProjectDocumentedSourceController {
       const referenceRepository = manager.getRepository(
         ProjectDocumentedSourceReferenceTypeOrmEntity,
       );
-      const source = await sourceRepository.findOne({
-        where: { id: sourceId, projectId, mergedIntoId: IsNull() },
-      });
-      const target = await sourceRepository.findOne({
-        where: { id: targetId, projectId, mergedIntoId: IsNull() },
-      });
+      const [source, target] = await Promise.all([
+        sourceRepository.findOne({
+          where: { id: sourceId, projectId, mergedIntoId: IsNull() },
+          lock: { mode: 'pessimistic_write' },
+        }),
+        sourceRepository.findOne({
+          where: { id: targetId, projectId, mergedIntoId: IsNull() },
+          lock: { mode: 'pessimistic_write' },
+        }),
+      ]);
       if (!source || !target)
         throw new NotFoundException(
           'Documented source not found in this project',
