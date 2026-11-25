@@ -261,6 +261,7 @@ export class ProjectDocumentedSourceController {
       projectId,
       headers,
       ProjectMemberRole.Viewer,
+    { allowOrganizationAdmin: true },
     );
     const [sources, references, links] = await Promise.all([
       this.sources.find({
@@ -365,6 +366,7 @@ export class ProjectDocumentedSourceController {
       projectId,
       headers,
       ProjectMemberRole.Admin,
+    { allowOrganizationAdmin: true },
     );
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     if (!name || name.length > 255)
@@ -448,6 +450,7 @@ export class ProjectDocumentedSourceController {
       projectId,
       headers,
       ProjectMemberRole.Admin,
+    { allowOrganizationAdmin: true },
     );
     const source = await this.findActiveSource(projectId, sourceId);
     if (body.kind !== undefined) {
@@ -495,6 +498,7 @@ export class ProjectDocumentedSourceController {
       projectId,
       headers,
       ProjectMemberRole.Admin,
+    { allowOrganizationAdmin: true },
     );
     const reference = await this.validateReference(projectId, body);
 
@@ -573,6 +577,7 @@ export class ProjectDocumentedSourceController {
       projectId,
       headers,
       ProjectMemberRole.Admin,
+    { allowOrganizationAdmin: true },
     );
     const targetSourceId = body.targetSourceId?.trim();
     if (!targetSourceId || targetSourceId === sourceId)
@@ -637,6 +642,7 @@ export class ProjectDocumentedSourceController {
       projectId,
       headers,
       ProjectMemberRole.Admin,
+    { allowOrganizationAdmin: true },
     );
     const reference = await this.references.findOne({
       where: { id: referenceId, projectId, sourceId },
@@ -660,6 +666,7 @@ export class ProjectDocumentedSourceController {
       projectId,
       headers,
       ProjectMemberRole.Admin,
+    { allowOrganizationAdmin: true },
     );
     const targetId = body.targetSourceId?.trim();
     if (!targetId || targetId === sourceId)
