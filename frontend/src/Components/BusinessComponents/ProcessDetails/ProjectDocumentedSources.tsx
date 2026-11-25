@@ -14,7 +14,7 @@ type Source = {
   location: string | null; access: string | null; retention: string | null; validUntil: string | null;
   authorizedPeople: string | null; restrictions: string | null; references: SourceReference[];
 };
-type UnlinkedReference = { resourceId: string; processName: string; elementId: string; elementName: string; elementType: string };
+type UnlinkedReference = { resourceId: string; processName: string; elementId: string; elementName: string; elementType: string; description?: string; link?: string; location?: string; access?: string; retention?: string; authorizedPeople?: string; restrictions?: string };
 type ResponseData = { sources: Source[]; unlinkedReferences: UnlinkedReference[] };
 type GridRow = {
   id: string; sourceId: string; kind: SourceKind; name: string; description: string; references: SourceReference[];
@@ -38,6 +38,7 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
   const [newName, setNewName] = useState('');
   const [newKind, setNewKind] = useState<SourceKind>('file');
   const [error, setError] = useState('');
+  const [importingReference, setImportingReference] = useState<string | null>(null);
   const queryKey = ['project-documented-sources', projectId];
   const query = useQuery<ResponseData>(queryKey, () => apiClient.get(`/projects/${projectId}/documented-sources`), { enabled: Boolean(projectId) });
   const data = query.data;
@@ -100,6 +101,35 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     }
   };
 
+  const importLegacyReference = async (ref: UnlinkedReference) => {
+    const key = `${ref.resourceId}:${ref.elementId}`;
+    if (!canManage || importingReference) return;
+    setImportingReference(key);
+    setError('');
+    try {
+      await apiClient.post(`/projects/${projectId}/documented-sources`, {
+        name: ref.elementName,
+        kind: ref.elementType === 'dataStoreReference' ? 'database' : 'file',
+        description: ref.description ?? '',
+        link: ref.link ?? '',
+        location: ref.location ?? '',
+        access: ref.access ?? '',
+        retention: ref.retention ?? '',
+        authorizedPeople: ref.authorizedPeople ?? '',
+        restrictions: ref.restrictions ?? '',
+        resourceId: ref.resourceId,
+        elementId: ref.elementId,
+        elementName: ref.elementName,
+        elementType: ref.elementType,
+      });
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Import de l’information BPMN impossible.');
+    } finally {
+      setImportingReference(null);
+    }
+  };
+
   const columns: ColDef<GridRow>[] = [
     { headerName: 'Type', field: 'kind', minWidth: 145, editable: canManage, cellEditor: 'agSelectCellEditor', cellEditorParams: { values: ['file', 'database', 'application'] }, valueFormatter: p => kindLabels[p.value as SourceKind] ?? '', cellRenderer: (p: { value?: SourceKind }) => p.value ? <Stack direction="row" spacing={0.75} alignItems="center">{kindIcon(p.value)}<span>{kindLabels[p.value]}</span></Stack> : null },
     { headerName: 'Nom', field: 'name', minWidth: 180, editable: canManage },
@@ -124,6 +154,21 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
       {canManage && <Button size="sm" startDecorator={<AddRounded />} onClick={() => setAdding(true)}>Ajouter une ligne</Button>}
     </Stack>
     {error && <Alert color="danger" variant="soft">{error}</Alert>}
+    {(data?.unlinkedReferences ?? []).length > 0 && <Stack spacing={1}>
+      <Typography level="title-md">Objets BPMN non encore inscrits au référentiel</Typography>
+      <Typography level="body-sm" color="neutral">Les objets de données et magasins détectés dans les diagrammes sont affichés ici, y compris leurs descriptions et métadonnées historiques. Importez-les pour les faire apparaître dans la liste centrale du projet.</Typography>
+      {(data?.unlinkedReferences ?? []).map(ref => {
+        const key = `${ref.resourceId}:${ref.elementId}`;
+        return <Stack key={key} direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 'sm', p: 1 }}>
+          <Stack spacing={0.25} sx={{ flex: 1, minWidth: 0 }}>
+            <Typography level="body-sm" fontWeight="md">{ref.elementName} <Typography component="span" level="body-xs" color="neutral">— {ref.processName} · {ref.elementType === 'dataStoreReference' ? 'Magasin de données' : 'Objet de données'}</Typography></Typography>
+            {ref.description && <Typography level="body-xs" color="neutral">{ref.description}</Typography>}
+            {(ref.link || ref.location || ref.access || ref.retention || ref.authorizedPeople || ref.restrictions) && <Typography level="body-xs" color="neutral">{[ref.link, ref.location, ref.access, ref.retention, ref.authorizedPeople, ref.restrictions].filter(Boolean).join(' · ')}</Typography>}
+          </Stack>
+          {canManage && <Button size="sm" variant="outlined" loading={importingReference === key} disabled={Boolean(importingReference)} onClick={() => void importLegacyReference(ref)}>Importer</Button>}
+        </Stack>;
+      })}
+    </Stack>}
     {canManage && !(data?.unlinkedReferences ?? []).length && <Alert color="neutral" variant="soft">Vous pouvez créer une information documentée sans association BPMN, puis la relier à un objet ou magasin de données ultérieurement.</Alert>}
     <DocumentedSourcesGrid<GridRow> rowData={rows} columnDefs={columns} getRowId={row => row.id} height={560} onCellValueChanged={saveCell} />
     <Modal open={adding} onClose={() => setAdding(false)}>
