@@ -710,16 +710,19 @@ export class ProjectDocumentedSourceController {
       const referenceRepository = manager.getRepository(
         ProjectDocumentedSourceReferenceTypeOrmEntity,
       );
-      const [source, target] = await Promise.all([
-        sourceRepository.findOne({
-          where: { id: sourceId, projectId, mergedIntoId: IsNull() },
-          lock: { mode: 'pessimistic_write' },
-        }),
-        sourceRepository.findOne({
-          where: { id: targetId, projectId, mergedIntoId: IsNull() },
-          lock: { mode: 'pessimistic_write' },
-        }),
-      ]);
+      // Lock both rows in a stable order to avoid deadlocks between
+      // simultaneous merge operations and serialize against deletion.
+      const [firstId, secondId] = [sourceId, targetId].sort();
+      const firstSource = await sourceRepository.findOne({
+        where: { id: firstId, projectId, mergedIntoId: IsNull() },
+        lock: { mode: 'pessimistic_write' },
+      });
+      const secondSource = await sourceRepository.findOne({
+        where: { id: secondId, projectId, mergedIntoId: IsNull() },
+        lock: { mode: 'pessimistic_write' },
+      });
+      const source = sourceId === firstId ? firstSource : secondSource;
+      const target = targetId === firstId ? firstSource : secondSource;
       if (!source || !target)
         throw new NotFoundException(
           'Documented source not found in this project',
