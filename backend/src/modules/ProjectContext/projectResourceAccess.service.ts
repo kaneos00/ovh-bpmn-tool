@@ -72,8 +72,18 @@ export class ProjectResourceAccessService {
     projectId: string,
     headers: RequestHeaders,
     minimumRole: ProjectMemberRole,
+    options: { allowOrganizationAdmin?: boolean } = {},
   ): Promise<string> {
     const userId = this.getAuthenticatedUserId(headers);
+    // Organization administrators may act on project-level resources even
+    // when they are not ordinary members of that project. Keep this opt-in so
+    // existing project-role checks retain their stricter behavior.
+    if (
+      options.allowOrganizationAdmin &&
+      this.hasOrganizationAdminRole(headers)
+    ) {
+      return userId;
+    }
     const membership = await this.projectMembers.findOne({
       where: { projectId, userId },
     });
