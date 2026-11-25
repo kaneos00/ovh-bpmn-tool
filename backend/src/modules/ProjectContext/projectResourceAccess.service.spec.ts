@@ -54,6 +54,37 @@ describe('ProjectResourceAccessService proposal editing', () => {
     jest.clearAllMocks();
   });
 
+  it('allows organization administrators to bypass project membership when explicitly requested', async () => {
+    await expect(
+      service.assertProjectRole(
+        'project-1',
+        {
+          'x-user': 'admin-1',
+          'x-groups': 'bpmn-tool-admin-org',
+        },
+        ProjectMemberRole.Admin,
+        { allowOrganizationAdmin: true },
+      ),
+    ).resolves.toBe('admin-1');
+
+    expect(projectMembers.findOne).not.toHaveBeenCalled();
+  });
+
+  it('does not grant organization administrators a project-role bypass by default', async () => {
+    projectMembers.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.assertProjectRole(
+        'project-1',
+        {
+          'x-user': 'admin-1',
+          'x-groups': 'bpmn-tool-admin-org',
+        },
+        ProjectMemberRole.Admin,
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
   it('allows the assigned validator to edit a project-specific proposal workspace', async () => {
     processChangeProposals.findOne.mockResolvedValue({
       projectId: 'project-1',
