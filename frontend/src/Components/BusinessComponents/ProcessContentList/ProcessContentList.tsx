@@ -68,13 +68,13 @@ export const ProcessContentList = ({
         editCommentAction,
         {
           id: `publish_${content.id}`,
-          label: 'Publier',
+          label: 'Publish',
           icon: <Publish fontSize="small" />,
           onClick: () => onContentPublish(content.id),
         },
         {
           id: `erase_${content.id}`,
-          label: 'Supprimer',
+          label: 'Erase',
           icon: <Delete fontSize="small" />,
           onClick: () => onContentErase(content.id),
         },
@@ -94,7 +94,7 @@ export const ProcessContentList = ({
         : []),
       {
         id: `clone_${content.id}`,
-        label: 'Cloner',
+        label: 'Clone',
         icon: <FileCopy fontSize="small" />,
         onClick: () => onContentClone(content.id),
         disabled: hasDraft,
