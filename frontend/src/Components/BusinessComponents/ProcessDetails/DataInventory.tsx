@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from 'react-query';
-import { Alert, Box, Button, IconButton, Option, Select, Stack, Typography } from '@mui/joy';
+import { Alert, Box, Button, IconButton, Modal, ModalDialog, Option, Select, Stack, Typography } from '@mui/joy';
 import {
   AppsOutlined,
   AttachFileOutlined,
+  DeleteOutlineOutlined,
   LinkOffOutlined,
   StorageOutlined,
 } from '@mui/icons-material';
@@ -45,6 +46,13 @@ type UnlinkedBpmnReference = {
   elementId: string;
   elementName: string;
   elementType: BpmnDataType;
+  description?: string;
+  link?: string;
+  location?: string;
+  access?: string;
+  retention?: string;
+  authorizedPeople?: string;
+  restrictions?: string;
 };
 
 type ProjectDocumentedSourcesResponse = {
@@ -53,7 +61,6 @@ type ProjectDocumentedSourcesResponse = {
 };
 
 type InventoryGridRow = ProjectDocumentedSource & {
-  projectStatus: string;
   isNew?: boolean;
 };
 
@@ -117,7 +124,9 @@ export const DataInventory = ({
   const [sources, setSources] = useState<ProjectDocumentedSource[]>([]);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [associatingId, setAssociatingId] = useState<string | null>(null);
+  const [importingElementId, setImportingElementId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [pendingDelete, setPendingDelete] = useState<ProjectDocumentedSource | null>(null);
 
   const projectSourcesQuery = useQuery<ProjectDocumentedSourcesResponse>(
     ['project-documented-sources', projectId],
@@ -162,6 +171,7 @@ export const DataInventory = ({
       link: row.link ?? '',
       location: row.location ?? '',
       access: row.access ?? '',
+      retention: row.retention ?? '',
       validUntil: row.validUntil || null,
       containsPersonalData: row.containsPersonalData,
       authorizedPeople: row.authorizedPeople ?? '',
@@ -229,6 +239,46 @@ export const DataInventory = ({
     }
   };
 
+  const importLegacyReference = async (reference: UnlinkedBpmnReference) => {
+    if (!projectId || !canManageSources || importingElementId) return;
+    setImportingElementId(reference.elementId);
+    setError('');
+    try {
+      await apiClient.post(`/projects/${projectId}/documented-sources`, {
+        name: reference.elementName,
+        kind: reference.elementType === 'dataStoreReference' ? 'database' : 'file',
+        description: reference.description ?? '',
+        link: reference.link ?? '',
+        location: reference.location ?? '',
+        access: reference.access ?? '',
+        retention: reference.retention ?? '',
+        authorizedPeople: reference.authorizedPeople ?? '',
+        restrictions: reference.restrictions ?? '',
+        resourceId: reference.resourceId,
+        elementId: reference.elementId,
+        elementName: reference.elementName,
+        elementType: reference.elementType,
+      });
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Impossible d’importer cette information BPMN.');
+    } finally {
+      setImportingElementId(null);
+    }
+  };
+
+  const deleteSource = async (row: ProjectDocumentedSource) => {
+    if (!projectId || !canManageSources || row.references.length > 0) return;
+        setError('');
+    try {
+      await apiClient.remove(`/projects/${projectId}/documented-sources/${row.id}`);
+      await refresh();
+      setPendingDelete(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Impossible de supprimer cette information documentée.');
+    }
+  };
+
   const unlink = async (row: ProjectDocumentedSource, reference: SourceReference) => {
     if (!projectId || !canManageSources || associatingId) return;
     setAssociatingId(row.id);
@@ -243,16 +293,13 @@ export const DataInventory = ({
     }
   };
 
-  const rows: InventoryGridRow[] = sources.map(source => {
-    return {
-      ...source,
-      projectStatus: source.id.startsWith('new-') ? 'À compléter' : 'Présente dans le projet',
-      isNew: source.id.startsWith('new-'),
-    };
-  });
+  const rows: InventoryGridRow[] = sources.map(source => ({
+    ...source,
+    isNew: source.id.startsWith('new-'),
+  }));
 
   const textColumn = (
-    field: 'name' | 'description' | 'link' | 'location' | 'access' | 'authorizedPeople' | 'restrictions',
+    field: 'name' | 'description' | 'link' | 'location' | 'access' | 'retention' | 'authorizedPeople' | 'restrictions',
     headerName: string,
     minWidth: number,
   ): ColDef<InventoryGridRow> => ({
@@ -318,80 +365,83 @@ export const DataInventory = ({
       cellRenderer: (params: ICellRendererParams<InventoryGridRow>) => {
         const row = params.data;
         if (!row) return null;
-        const reference = row.references.find(item => item.resourceId === resourceId);
-        if (reference) {
-          return (
-            <Stack direction="row" spacing={0.5} alignItems="center">
-              <IconButton
-                size="sm"
-                variant="plain"
-                color="primary"
-                title="Ouvrir l’élément BPMN associé"
-                aria-label={`Ouvrir ${reference.elementName} dans le diagramme BPMN`}
-                onClick={event => {
-                  event.stopPropagation();
-                  onShowDiagram?.();
-                  onElementSelect?.(reference.elementId);
-                }}
-              >
-                <BpmnDataSymbol type={reference.elementType} />
-              </IconButton>
-              <Button
-                size="sm"
-                variant="plain"
-                color="primary"
-                sx={{ flex: 1, justifyContent: 'flex-start', minWidth: 0, px: 0.5, textAlign: 'left' }}
-                title="Ouvrir cet objet dans le diagramme BPMN"
-                onClick={event => {
-                  event.stopPropagation();
-                  onShowDiagram?.();
-                  onElementSelect?.(reference.elementId);
-                }}
-              >
-                {reference.elementName}
-              </Button>
-              {canManageSources && (
+        const references = row.references.filter(item => item.resourceId === resourceId);
+        return (
+          <Stack spacing={0.5}>
+            {references.length === 0 && <Typography level="body-sm" color="neutral">Non associé</Typography>}
+            {references.map(reference => (
+              <Stack key={reference.id} direction="row" spacing={0.5} alignItems="center">
                 <IconButton
                   size="sm"
                   variant="plain"
-                  color="danger"
-                  title="Supprimer l’association BPMN"
-                  aria-label="Supprimer l’association BPMN"
-                  disabled={associatingId === row.id}
+                  color="primary"
+                  title="Ouvrir l’élément BPMN associé"
+                  aria-label={`Ouvrir ${reference.elementName} dans le diagramme BPMN`}
                   onClick={event => {
                     event.stopPropagation();
-                    void unlink(row, reference);
+                    onShowDiagram?.();
+                    onElementSelect?.(reference.elementId);
                   }}
                 >
-                  <LinkOffOutlined />
+                  <BpmnDataSymbol type={reference.elementType} />
                 </IconButton>
-              )}
-            </Stack>
-          );
-        }
-        return (
-          <Select
-            size="sm"
-            value={null}
-            placeholder="Associer un objet BPMN…"
-            disabled={!canManageSources || row.id.startsWith('new-') || Boolean(associatingId)}
-            onClick={event => event.stopPropagation()}
-            onChange={(_, value) => { if (typeof value === 'string') void associate(row, value); }}
-            aria-label="Associer un objet BPMN non encore associé"
-          >
-            {unlinkedReferences.map(item => (
-              <Option key={item.elementId} value={item.elementId}>
-                {item.elementName} — {item.elementType === 'dataStoreReference' ? 'Base de données' : 'Objet de données'}
-              </Option>
+                <Button
+                  size="sm"
+                  variant="plain"
+                  color="primary"
+                  sx={{ flex: 1, justifyContent: 'flex-start', minWidth: 0, px: 0.5, textAlign: 'left' }}
+                  title="Ouvrir cet objet dans le diagramme BPMN"
+                  onClick={event => {
+                    event.stopPropagation();
+                    onShowDiagram?.();
+                    onElementSelect?.(reference.elementId);
+                  }}
+                >
+                  {reference.elementName}
+                </Button>
+                {canManageSources && (
+                  <IconButton
+                    size="sm"
+                    variant="plain"
+                    color="danger"
+                    title="Supprimer l’association BPMN"
+                    aria-label="Supprimer l’association BPMN"
+                    disabled={associatingId === row.id}
+                    onClick={event => {
+                      event.stopPropagation();
+                      void unlink(row, reference);
+                    }}
+                  >
+                    <LinkOffOutlined />
+                  </IconButton>
+                )}
+              </Stack>
             ))}
-          </Select>
+            {canManageSources && unlinkedReferences.length > 0 && (
+              <Select
+                size="sm"
+                value={null}
+                placeholder="Associer un objet BPMN…"
+                disabled={row.id.startsWith('new-') || Boolean(associatingId)}
+                onClick={event => event.stopPropagation()}
+                onChange={(_, value) => { if (typeof value === 'string') void associate(row, value); }}
+                aria-label="Associer un objet BPMN non encore associé"
+              >
+                {unlinkedReferences.map(item => (
+                  <Option key={item.elementId} value={item.elementId}>
+                    {item.elementName} — {item.elementType === 'dataStoreReference' ? 'Base de données' : 'Objet de données'}
+                  </Option>
+                ))}
+              </Select>
+            )}
+          </Stack>
         );
       },
     },
-    { headerName: 'Statut projet', field: 'projectStatus', minWidth: 160, editable: false },
     textColumn('link', 'Lien', 190),
     textColumn('location', 'Emplacement', 160),
     textColumn('access', 'Accès', 150),
+    textColumn('retention', 'Durée de conservation', 190),
     {
       headerName: 'Date limite de validité',
       field: 'validUntil',
@@ -406,6 +456,24 @@ export const DataInventory = ({
     },
     textColumn('authorizedPeople', 'Personnes autorisées', 190),
     textColumn('restrictions', 'Restrictions', 200),
+    {
+      headerName: 'Actions',
+      minWidth: 125,
+      sortable: false,
+      filter: false,
+      cellRenderer: (params: ICellRendererParams<InventoryGridRow>) => {
+        const row = params.data;
+        if (!row || !canManageSources || row.references.length > 0 || row.id.startsWith('new-')) return null;
+        return (
+          <IconButton size="sm" variant="plain" color="danger" title="Supprimer cette information documentée non associée" aria-label={`Supprimer ${row.name}`} onClick={event => {
+            event.stopPropagation();
+            setPendingDelete(row);
+          }}>
+            <DeleteOutlineOutlined />
+          </IconButton>
+        );
+      },
+    },
   ];
 
   return (
@@ -430,6 +498,16 @@ export const DataInventory = ({
             Aucun projet actif : le référentiel des informations documentées n’est pas disponible.
           </Alert>
         )}
+        <Modal open={Boolean(pendingDelete)} onClose={() => setPendingDelete(null)}>
+          <ModalDialog>
+            <Typography level="title-lg">Confirmer la suppression</Typography>
+            <Typography>Supprimer définitivement « {pendingDelete?.name} » ?</Typography>
+            <Stack direction="row" justifyContent="flex-end" spacing={1}>
+              <Button variant="outlined" color="neutral" onClick={() => setPendingDelete(null)}>Annuler</Button>
+              <Button color="danger" onClick={() => pendingDelete && void deleteSource(pendingDelete)}>Supprimer</Button>
+            </Stack>
+          </ModalDialog>
+        </Modal>
         <DocumentedSourcesGrid<InventoryGridRow>
           rowData={rows}
           columnDefs={columnDefs}
@@ -440,9 +518,24 @@ export const DataInventory = ({
           height={560}
         />
         {unlinkedReferences.length > 0 && (
-          <Typography level="body-xs" color="neutral">
-            {unlinkedReferences.length} objet(s) BPMN disponible(s) pour une association dans ce processus.
-          </Typography>
+          <Stack spacing={1}>
+            <Typography level="title-sm">Objets BPMN non inscrits au référentiel</Typography>
+            <Typography level="body-xs" color="neutral">
+              Ces informations sont présentes dans le diagramme mais ne figurent pas encore dans le registre du projet. Vous pouvez les importer avec leurs métadonnées.
+            </Typography>
+            {unlinkedReferences.map(reference => (
+              <Stack key={reference.elementId} direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 'sm', p: 1 }}>
+                <Stack spacing={0.25} sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography level="body-sm" fontWeight="md">{reference.elementName} — {reference.elementType === 'dataStoreReference' ? 'Magasin de données' : 'Objet de données'}</Typography>
+                  {reference.description && <Typography level="body-xs" color="neutral">{reference.description}</Typography>}
+                  {(reference.link || reference.location || reference.access || reference.retention || reference.authorizedPeople || reference.restrictions) && (
+                    <Typography level="body-xs" color="neutral">{[reference.link, reference.location, reference.access, reference.retention, reference.authorizedPeople, reference.restrictions].filter(Boolean).join(' · ')}</Typography>
+                  )}
+                </Stack>
+                {canManageSources && <Button size="sm" variant="outlined" loading={importingElementId === reference.elementId} disabled={Boolean(importingElementId)} onClick={() => void importLegacyReference(reference)}>Importer</Button>}
+              </Stack>
+            ))}
+          </Stack>
         )}
       </Stack>
     </Box>

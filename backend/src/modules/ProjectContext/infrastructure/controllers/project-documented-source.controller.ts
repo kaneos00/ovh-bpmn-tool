@@ -18,7 +18,6 @@ import { UseAcl } from '../../../../shared-kernel/modules/acl/infrastructure/acl
 import { UserGroup } from '../../../../shared-kernel/utils/UserGroup';
 import { ContentTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/content.ormEntity';
 import { ResourceTypeOrmEntity } from '../../../ResourceContext/infrastructure/entities/resource.ormEntity';
-import { ContentStatusEnum } from '../../../ResourceContext/shared/types/Content';
 import { ProjectMemberRole } from '../entities/projectMember.ormEntity';
 import { ProjectProcessTypeOrmEntity } from '../entities/projectProcess.ormEntity';
 import { ProjectDocumentedSourceTypeOrmEntity } from '../entities/projectDocumentedSource.ormEntity';
@@ -148,7 +147,7 @@ const walk = (
   });
 };
 
-const extractBpmnDataElements = (
+export const extractBpmnDataElements = (
   xml: string,
   resourceId: string,
   processName: string,
@@ -261,6 +260,7 @@ export class ProjectDocumentedSourceController {
       projectId,
       headers,
       ProjectMemberRole.Viewer,
+      { allowOrganizationAdmin: true },
     );
     const [sources, references, links] = await Promise.all([
       this.sources.find({
@@ -278,12 +278,13 @@ export class ProjectDocumentedSourceController {
     const resources = resourceIds.length
       ? await this.resources.find({ where: { id: In(resourceIds) } })
       : [];
-    const publishedContents = resourceIds.length
+    // Documented metadata can be present in the current draft before a
+    // process is published. Prefer the newest content for each resource,
+    // regardless of status, otherwise newly-created project processes have
+    // no discoverable BPMN data elements and the project registry looks empty.
+    const processContents = resourceIds.length
       ? await this.contents.find({
-          where: {
-            resourceId: In(resourceIds),
-            status: ContentStatusEnum.Published,
-          },
+          where: { resourceId: In(resourceIds) },
           order: { version: 'DESC', updatedAt: 'DESC' },
         })
       : [];
@@ -292,7 +293,7 @@ export class ProjectDocumentedSourceController {
       resources.map((resource) => [resource.id, resource]),
     );
     const contentByResource = new Map<string, ContentTypeOrmEntity>();
-    publishedContents.forEach((content) => {
+    processContents.forEach((content) => {
       if (!contentByResource.has(content.resourceId))
         contentByResource.set(content.resourceId, content);
     });
@@ -349,7 +350,7 @@ export class ProjectDocumentedSourceController {
   }
 
   @Post()
-  @UseAcl([UserGroup.RW])
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
   async create(
     @Param('projectId') projectId: string,
     @Body()
@@ -365,6 +366,7 @@ export class ProjectDocumentedSourceController {
       projectId,
       headers,
       ProjectMemberRole.Admin,
+      { allowOrganizationAdmin: true },
     );
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     if (!name || name.length > 255)
@@ -437,7 +439,7 @@ export class ProjectDocumentedSourceController {
   }
 
   @Put(':sourceId')
-  @UseAcl([UserGroup.RW])
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
   async update(
     @Param('projectId') projectId: string,
     @Param('sourceId') sourceId: string,
@@ -448,6 +450,7 @@ export class ProjectDocumentedSourceController {
       projectId,
       headers,
       ProjectMemberRole.Admin,
+      { allowOrganizationAdmin: true },
     );
     const source = await this.findActiveSource(projectId, sourceId);
     if (body.kind !== undefined) {
@@ -478,7 +481,7 @@ export class ProjectDocumentedSourceController {
   }
 
   @Post(':sourceId/references')
-  @UseAcl([UserGroup.RW])
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
   async addReference(
     @Param('projectId') projectId: string,
     @Param('sourceId') sourceId: string,
@@ -495,6 +498,7 @@ export class ProjectDocumentedSourceController {
       projectId,
       headers,
       ProjectMemberRole.Admin,
+      { allowOrganizationAdmin: true },
     );
     const reference = await this.validateReference(projectId, body);
 
@@ -505,8 +509,10 @@ export class ProjectDocumentedSourceController {
       const referenceRepository = manager.getRepository(
         ProjectDocumentedSourceReferenceTypeOrmEntity,
       );
+      // Lock the source row so deletion cannot race with a new BPMN association.
       const source = await sourceRepository.findOne({
         where: { id: sourceId, projectId, mergedIntoId: IsNull() },
+        lock: { mode: 'pessimistic_write' },
       });
       if (!source) throw new NotFoundException('Documented source not found');
 
@@ -524,24 +530,9 @@ export class ProjectDocumentedSourceController {
         );
       }
 
-      // Serialize concurrent attempts to reuse one source in the same BPMN resource.
-      await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
-        projectId + ':' + sourceId + ':' + reference.resourceId,
-      ]);
-
-      const sourceAlreadyUsedInDiagram = await referenceRepository.findOne({
-        where: {
-          projectId,
-          sourceId,
-          resourceId: reference.resourceId,
-        },
-      });
-      if (sourceAlreadyUsedInDiagram) {
-        throw new ConflictException(
-          'This documented source is already linked to an object in this BPMN diagram',
-        );
-      }
-
+      // A documented source may be reused by several BPMN elements,
+      // including several elements in the same diagram. The unique
+      // project/resource/element index prevents duplicate element links.
       SOURCE_TEXT_FIELDS.forEach((field) => {
         if (!(source[field] ?? '').trim() && body[field] !== undefined) {
           source[field] = optionalText(body[field], field);
@@ -561,7 +552,7 @@ export class ProjectDocumentedSourceController {
   }
 
   @Put(':sourceId/references/:referenceId')
-  @UseAcl([UserGroup.RW])
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
   async changeReferenceSource(
     @Param('projectId') projectId: string,
     @Param('sourceId') sourceId: string,
@@ -573,6 +564,7 @@ export class ProjectDocumentedSourceController {
       projectId,
       headers,
       ProjectMemberRole.Admin,
+      { allowOrganizationAdmin: true },
     );
     const targetSourceId = body.targetSourceId?.trim();
     if (!targetSourceId || targetSourceId === sourceId)
@@ -597,6 +589,7 @@ export class ProjectDocumentedSourceController {
             projectId,
             mergedIntoId: IsNull(),
           },
+          lock: { mode: 'pessimistic_write' },
         }),
         referenceRepository.findOne({
           where: { id: referenceId, projectId, sourceId },
@@ -611,8 +604,8 @@ export class ProjectDocumentedSourceController {
       const targetAlreadyUsed = await referenceRepository.findOne({
         where: {
           projectId,
-          sourceId: targetSourceId,
           resourceId: reference.resourceId,
+          elementId: reference.elementId,
         },
       });
       if (targetAlreadyUsed && targetAlreadyUsed.id !== reference.id)
@@ -625,8 +618,49 @@ export class ProjectDocumentedSourceController {
     });
   }
 
+  @Delete(':sourceId')
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
+  async deleteSource(
+    @Param('projectId') projectId: string,
+    @Param('sourceId') sourceId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    await this.access.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Admin,
+      { allowOrganizationAdmin: true },
+    );
+
+    return this.dataSource.transaction(async (manager) => {
+      const sourceRepository = manager.getRepository(
+        ProjectDocumentedSourceTypeOrmEntity,
+      );
+      const referenceRepository = manager.getRepository(
+        ProjectDocumentedSourceReferenceTypeOrmEntity,
+      );
+      const source = await sourceRepository.findOne({
+        where: { id: sourceId, projectId, mergedIntoId: IsNull() },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!source) throw new NotFoundException('Documented source not found');
+
+      const referenceCount = await referenceRepository.count({
+        where: { projectId, sourceId },
+      });
+      if (referenceCount > 0) {
+        throw new ConflictException(
+          'Impossible de supprimer cette information documentée : elle est encore associée à un ou plusieurs objets BPMN. Déliez d’abord tous ses objets BPMN.',
+        );
+      }
+
+      await sourceRepository.delete({ id: sourceId, projectId });
+      return { deleted: true, sourceId };
+    });
+  }
+
   @Delete(':sourceId/references/:referenceId')
-  @UseAcl([UserGroup.RW])
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
   async unlinkReference(
     @Param('projectId') projectId: string,
     @Param('sourceId') sourceId: string,
@@ -637,6 +671,7 @@ export class ProjectDocumentedSourceController {
       projectId,
       headers,
       ProjectMemberRole.Admin,
+      { allowOrganizationAdmin: true },
     );
     const reference = await this.references.findOne({
       where: { id: referenceId, projectId, sourceId },
@@ -649,17 +684,18 @@ export class ProjectDocumentedSourceController {
   }
 
   @Post(':sourceId/merge')
-  @UseAcl([UserGroup.RW])
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
   async merge(
     @Param('projectId') projectId: string,
     @Param('sourceId') sourceId: string,
-    @Body() body: { targetSourceId?: string },
+    @Body() body: { targetSourceId?: string; name?: string; description?: string | null },
     @Headers() headers: RequestHeaders,
   ) {
     const userId = await this.access.assertProjectRole(
       projectId,
       headers,
       ProjectMemberRole.Admin,
+      { allowOrganizationAdmin: true },
     );
     const targetId = body.targetSourceId?.trim();
     if (!targetId || targetId === sourceId)
@@ -674,43 +710,27 @@ export class ProjectDocumentedSourceController {
       const referenceRepository = manager.getRepository(
         ProjectDocumentedSourceReferenceTypeOrmEntity,
       );
-      const source = await sourceRepository.findOne({
-        where: { id: sourceId, projectId, mergedIntoId: IsNull() },
+      // Lock both rows in a stable order to avoid deadlocks between
+      // simultaneous merge operations and serialize against deletion.
+      const [firstId, secondId] = [sourceId, targetId].sort();
+      const firstSource = await sourceRepository.findOne({
+        where: { id: firstId, projectId, mergedIntoId: IsNull() },
+        lock: { mode: 'pessimistic_write' },
       });
-      const target = await sourceRepository.findOne({
-        where: { id: targetId, projectId, mergedIntoId: IsNull() },
+      const secondSource = await sourceRepository.findOne({
+        where: { id: secondId, projectId, mergedIntoId: IsNull() },
+        lock: { mode: 'pessimistic_write' },
       });
+      const source = sourceId === firstId ? firstSource : secondSource;
+      const target = targetId === firstId ? firstSource : secondSource;
       if (!source || !target)
         throw new NotFoundException(
           'Documented source not found in this project',
         );
 
-      const [sourceReferencesForMerge, targetReferencesForMerge] =
-        await Promise.all([
-          referenceRepository.find({ where: { projectId, sourceId } }),
-          referenceRepository.find({
-            where: { projectId, sourceId: targetId },
-          }),
-        ]);
-      const resourceElementsForMerge = new Map<string, Set<string>>();
-      [...sourceReferencesForMerge, ...targetReferencesForMerge].forEach(
-        (reference) => {
-          const elementIds =
-            resourceElementsForMerge.get(reference.resourceId) ??
-            new Set<string>();
-          elementIds.add(reference.elementId);
-          resourceElementsForMerge.set(reference.resourceId, elementIds);
-        },
-      );
-      const crossElementDiagramConflict = [
-        ...resourceElementsForMerge.values(),
-      ].some((elementIds) => elementIds.size > 1);
-      if (crossElementDiagramConflict) {
-        throw new ConflictException(
-          'Fusion impossible : les deux sources sont déjà utilisées par des objets différents dans un même diagramme BPMN.',
-        );
-      }
-
+      // Several BPMN elements in one diagram may reference the same
+      // documented source. Duplicate references to the same element are
+      // consolidated below; distinct elements are all retained.
       const conflictingFields =
         source.link?.trim() &&
         target.link?.trim() &&
@@ -742,8 +762,22 @@ export class ProjectDocumentedSourceController {
         }
       });
       if (!target.name.trim() && source.name.trim()) target.name = source.name;
+      if (body.name !== undefined) {
+        const mergedName = body.name.trim();
+        if (!mergedName || mergedName.length > 255)
+          throw new BadRequestException('name must contain 1 to 255 characters');
+        target.name = mergedName;
+      }
+      if (body.description !== undefined)
+        target.description = optionalText(body.description, 'description');
       target.containsPersonalData =
         target.containsPersonalData || source.containsPersonalData;
+      if (
+        !target.validUntil ||
+        (source.validUntil && source.validUntil < target.validUntil)
+      ) {
+        target.validUntil = source.validUntil;
+      }
       await sourceRepository.save(target);
 
       const sourceReferences = await referenceRepository.find({

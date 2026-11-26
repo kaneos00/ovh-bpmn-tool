@@ -17,3 +17,11 @@ Project membership roles are represented in the database as `viewer`, `modeler`,
 ## Database
 
 Apply migrations in order after the existing `init.sql`: `20261011_v2_project_context.sql`, `20261011_v2_project_raci.sql`, then `20261012_v2_project_raci_actors.sql`. TypeORM schema synchronization is disabled, so these tables are not created automatically. Run migrations against a test database before any production rollout.
+
+## Informations documentées
+
+Le registre documentaire du projet est porté actuellement par `project_documented_sources` et ses associations BPMN par `project_documented_source_references`. Les informations sont aujourd'hui propres à un projet ; aucune source organisationnelle partagée n'est encore introduite dans ce module.
+
+La liste du projet et son mécanisme d'association BPMN constituent la base fonctionnelle à stabiliser en première phase. La cible à terme est une liste unifiée qui pourra présenter des informations locales et des informations du référentiel organisationnel. Dans cette cible, chaque association BPMN passe par une entrée du catalogue du projet ; le diagramme BPMN ne référence jamais directement une information globale.
+
+Les décisions, règles de cycle de vie, limites entre l'existant et la cible, et critères de validation sont décrits dans [l'architecture du registre des informations documentées](../../../docs/architecture/documented-information-registry.md).

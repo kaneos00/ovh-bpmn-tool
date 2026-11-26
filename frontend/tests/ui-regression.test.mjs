@@ -524,7 +524,7 @@ test('V3 central viewer exposes the validated documented information table backe
   assert.match(inventory, /cellEditor: 'agDateStringCellEditor'/);
   assert.match(inventory, /valueFormatter: params => params\.value \|\| 'Illimitée'/);
   assert.match(inventory, /selectedRowId=\{requestedDocumentedSourceId \?\? undefined\}/);
-  assert.match(grid, /rowSelection=\{\{ mode: 'singleRow', checkboxes: true, enableClickSelection: true \}\}/);
+  assert.match(grid, /rowSelection=\{multiSelect \? \{ mode: 'multiRow', checkboxes: true, headerCheckbox: true, enableClickSelection: true \} : \{ mode: 'singleRow', checkboxes: false, enableClickSelection: true \}\}/);
   assert.match(grid, /event\.api\.ensureNodeVisible\(node, 'middle'\)/);
 });
 
@@ -1080,7 +1080,7 @@ test('project documented information uses canonical sources and retains the proj
   assert.ok(controller.includes('if (!reference) return { ...source, references: [] }'));
   assert.ok(inventory.includes('Date limite de validité'));
   assert.ok(inventory.includes('validUntil: row.validUntil || null'));
-  assert.ok(inventory.includes("'À compléter'"));
+  assert.doesNotMatch(inventory, /Statut projet|projectStatus|À compléter/);
   assert.ok(inventory.includes('handleCellChange'));
   assert.ok(inventory.includes('onElementSelect?.(reference.elementId)'));
   assert.doesNotMatch(inventory, /XMLSerializer|onSave|inventory:manifest/, 'documented source metadata is not written back into BPMN XML');
@@ -1191,6 +1191,7 @@ test('documented-information search focuses the canonical inventory row and reta
   assert.ok(details.includes('requestedDocumentedSourceId={requestedDocumentedSourceId}'));
   assert.ok(inventory.includes('selectedRowId={requestedDocumentedSourceId ?? undefined}'));
   assert.ok(grid.includes('event.api.ensureNodeVisible(node, \'middle\')'));
-  assert.ok(grid.includes('checkboxes: true'));
+  assert.ok(grid.includes("mode: 'multiRow', checkboxes: true, headerCheckbox: true"));
+  assert.ok(grid.includes("mode: 'singleRow', checkboxes: false"));
 });
 

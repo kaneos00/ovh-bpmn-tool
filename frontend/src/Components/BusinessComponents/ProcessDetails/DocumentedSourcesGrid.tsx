@@ -17,6 +17,8 @@ type Props<T extends object> = {
   onRowSelected?: (row: T | null) => void;
   onCellValueChanged?: (event: CellValueChangedEvent<T>) => void;
   selectedRowId?: string;
+  multiSelect?: boolean;
+  onSelectionChanged?: (rows: T[]) => void;
   height?: number;
 };
 
@@ -30,6 +32,8 @@ export const DocumentedSourcesGrid = <T extends object,>({
   onRowSelected,
   onCellValueChanged,
   selectedRowId,
+  multiSelect = false,
+  onSelectionChanged,
   height = 520,
 }: Props<T>) => (
   <Box sx={{ width: '100%', minWidth: 0 }}>
@@ -44,9 +48,9 @@ export const DocumentedSourcesGrid = <T extends object,>({
         rowData={rowData}
         columnDefs={columnDefs}
         getRowId={params => getRowId(params.data)}
-        defaultColDef={{ sortable: true, filter: true, resizable: true, minWidth: 110, flex: 1, wrapText: true, autoHeight: true }}
-        // Keep single-row selection and explicitly show a checkbox at the start of each row.
-        rowSelection={{ mode: 'singleRow', checkboxes: true, enableClickSelection: true }}
+        defaultColDef={{ sortable: true, filter: true, resizable: true, minWidth: 110, flex: 1, wrapText: true, autoHeight: true, cellStyle: { cursor: 'text' }, tooltipValueGetter: params => params.value == null ? '' : 'Cliquer deux fois pour modifier' }}
+        singleClickEdit
+        rowSelection={multiSelect ? { mode: 'multiRow', checkboxes: true, headerCheckbox: true, enableClickSelection: true } : { mode: 'singleRow', checkboxes: false, enableClickSelection: true }}
         suppressCellFocus
         animateRows={false}
         pagination
@@ -63,7 +67,7 @@ export const DocumentedSourcesGrid = <T extends object,>({
         }}
         onCellValueChanged={event => onCellValueChanged?.(event)}
         onRowClicked={event => onRowSelected?.(event.data ?? null)}
-        onSelectionChanged={event => onRowSelected?.(event.api.getSelectedRows()[0] ?? null)}
+        onSelectionChanged={event => { onRowSelected?.(event.api.getSelectedRows()[0] ?? null); onSelectionChanged?.(event.api.getSelectedRows()); }}
         localeText={{
           page: 'Page',
           to: 'à',
