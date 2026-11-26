@@ -128,7 +128,7 @@ test('folder context menu creates child folders and project-linked processes in 
 
 test('new process creation seeds an editable BPMN draft before project attachment', async () => {
   const action = await read('src/Containers/AddResource/AddResource.action.ts');
-  assert.ok(action.includes("'/resources/' + createdResourceId + '/contents'"));
+  assert.ok(action.includes('`/resources/${createdResourceId}/contents`'));
   assert.match(action, /initialBpmn/);
   assert.ok(action.includes('`/projects/${projectId}/processes`'));
   assert.ok(action.indexOf('initialBpmn') < action.indexOf('/processes'));
