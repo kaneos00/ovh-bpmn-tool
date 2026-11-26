@@ -1,14 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Checkbox, IconButton, Stack, Table, Textarea, Typography } from '@mui/joy';
-import { flexRender } from '@tanstack/react-table';
+import { Box, Checkbox, Chip, IconButton, Stack, Textarea, Typography } from '@mui/joy';
 import { AccountTreeOutlined, Delete, FileCopy, Publish, EditOutlined, Check, Close } from '@mui/icons-material';
+import type { ColDef, ICellRendererParams } from 'ag-grid-community';
 
 import { useProcessContentList } from './hooks/useProcessContentList';
-
 import { ContentStatusEnum, type Content } from '../../../Types';
-import type { Cell } from '@tanstack/react-table';
+import { formatDateTime } from '../../../shared/helpers/date';
 import { ActionsMenu } from './components/ActionsMenu';
+import { SharedDataGrid } from '../../GenericComponents/SharedDataGrid';
 
 type ProcessContentListProps = {
   resourceId: string;
@@ -44,13 +44,7 @@ export const ProcessContentList = ({
   onCancelChangeComment,
 }: ProcessContentListProps) => {
   const navigate = useNavigate();
-  const {
-    table,
-    hasDraft,
-    // hasDraftLintError,
-    checkedContents,
-    onContentCheck,
-  } = useProcessContentList(contents);
+  const { hasDraft, checkedContents, onContentCheck } = useProcessContentList(contents);
 
   const getContentActions = (content: Content) => {
     if (!canManageVersions) return [];
@@ -61,7 +55,6 @@ export const ProcessContentList = ({
       icon: <EditOutlined fontSize="small" />,
       onClick: () => onEditChangeComment?.(content.id),
     };
-
     const openInModelerAction = {
       id: `open_modeler_${content.id}`,
       label: 'Ouvrir dans le modeleur',
@@ -75,13 +68,13 @@ export const ProcessContentList = ({
         editCommentAction,
         {
           id: `publish_${content.id}`,
-          label: 'Publish',
+          label: 'Publier',
           icon: <Publish fontSize="small" />,
           onClick: () => onContentPublish(content.id),
         },
         {
           id: `erase_${content.id}`,
-          label: 'Erase',
+          label: 'Supprimer',
           icon: <Delete fontSize="small" />,
           onClick: () => onContentErase(content.id),
         },
@@ -92,18 +85,16 @@ export const ProcessContentList = ({
       openInModelerAction,
       editCommentAction,
       ...(content.status === ContentStatusEnum.Obsolete
-        ? [
-            {
-              id: `erase_${content.id}`,
-              label: 'Erase',
-              icon: <Delete fontSize="small" />,
-              onClick: () => onContentErase(content.id),
-            },
-          ]
+        ? [{
+            id: `erase_${content.id}`,
+            label: 'Supprimer',
+            icon: <Delete fontSize="small" />,
+            onClick: () => onContentErase(content.id),
+          }]
         : []),
       {
         id: `clone_${content.id}`,
-        label: 'Clone',
+        label: 'Cloner',
         icon: <FileCopy fontSize="small" />,
         onClick: () => onContentClone(content.id),
         disabled: hasDraft,
@@ -111,82 +102,127 @@ export const ProcessContentList = ({
     ];
   };
 
-  const getCellContent = (cell: Cell<Content, unknown>) => {
-    switch (cell.column.id) {
-      case 'versionSelect':
+  const columns: ColDef<Content>[] = [
+    {
+      colId: 'versionSelect',
+      headerName: '',
+      width: 52,
+      minWidth: 52,
+      maxWidth: 52,
+      pinned: 'left',
+      sortable: false,
+      filter: false,
+      resizable: false,
+      cellRenderer: (params: ICellRendererParams<Content>) => params.data ? (
+        <Checkbox
+          value={params.data.id}
+          checked={checkedContents.includes(params.data.id)}
+          onChange={event => onContentChecked(onContentCheck(event))}
+          slotProps={{ input: { 'aria-label': `Sélectionner la version ${params.data.version ?? 'N/A'}` } }}
+        />
+      ) : null,
+    },
+    {
+      headerName: 'Version',
+      field: 'version',
+      minWidth: 90,
+      maxWidth: 120,
+      valueFormatter: params => params.value ?? 'N/A',
+    },
+    {
+      headerName: 'Statut',
+      field: 'status',
+      minWidth: 125,
+      cellRenderer: (params: ICellRendererParams<Content>) => {
+        if (!params.value) return null;
+        const isPublished = params.value === ContentStatusEnum.Published;
+        const isDraft = params.value === ContentStatusEnum.Draft;
         return (
-          <Checkbox
-            value={cell.row.original.id}
-            checked={checkedContents.includes(cell.row.original.id)}
-            onChange={event => {
-              onContentChecked(onContentCheck(event));
-            }}
-          />
+          <Chip size="sm" variant="soft" color={isPublished ? 'success' : isDraft ? 'warning' : 'neutral'}>
+            {isPublished ? 'Publiée' : isDraft ? 'Brouillon' : 'Obsolète'}
+          </Chip>
         );
-      case 'changeComment': {
-        const content = cell.row.original;
+      },
+    },
+    { headerName: 'Auteur', field: 'createdBy', minWidth: 150 },
+    {
+      headerName: 'Créée le',
+      field: 'createdAt',
+      minWidth: 155,
+      valueFormatter: params => params.value ? formatDateTime(params.value) : '—',
+    },
+    {
+      headerName: 'Modifiée le',
+      field: 'updatedAt',
+      minWidth: 155,
+      valueFormatter: params => params.value ? formatDateTime(params.value) : '—',
+    },
+    {
+      headerName: 'Commentaire des modifications',
+      field: 'changeComment',
+      minWidth: 230,
+      flex: 2,
+      cellRenderer: (params: ICellRendererParams<Content>) => {
+        const content = params.data;
+        if (!content) return null;
         const editing = editingChangeCommentId === content.id;
         return editing ? (
-          <Stack spacing={0.5} sx={{ minWidth: 220 }}>
-            <Textarea size="sm" minRows={1} maxRows={4} value={changeCommentDrafts[content.id] ?? content.changeComment ?? ''} placeholder="Commentaire de modification" onChange={event => onChangeCommentDraft?.(content.id, event.target.value)} />
+          <Stack spacing={0.5} sx={{ minWidth: 220, py: 0.5 }}>
+            <Textarea
+              size="sm"
+              minRows={1}
+              maxRows={4}
+              value={changeCommentDrafts[content.id] ?? content.changeComment ?? ''}
+              placeholder="Commentaire de modification"
+              onChange={event => onChangeCommentDraft?.(content.id, event.target.value)}
+            />
             <Stack direction="row" spacing={0.5} justifyContent="flex-end">
               <IconButton size="sm" title="Enregistrer le commentaire" aria-label="Enregistrer le commentaire" disabled={savingChangeCommentId !== null} onClick={() => onSaveChangeComment?.(content.id)}><Check /></IconButton>
               <IconButton size="sm" title="Annuler" aria-label="Annuler" variant="plain" onClick={() => onCancelChangeComment?.(content.id)}><Close /></IconButton>
             </Stack>
           </Stack>
-        ) : <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', minWidth: 160 }}>{content.changeComment?.trim() || '—'}</Typography>;
-      }
-      case 'actions':
-        return (
-          <Stack spacing={1} direction="row" justifyContent="flex-end">
-            <ActionsMenu
-              size="sm"
-              actions={getContentActions(cell.row.original)}
-            />
-          </Stack>
+        ) : (
+          <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap', minWidth: 160, py: 0.5 }}>
+            {content.changeComment?.trim() || '—'}
+          </Typography>
         );
-      default:
-        return flexRender(cell.column.columnDef.cell, cell.getContext());
-    }
-  };
+      },
+    },
+    {
+      colId: 'actions',
+      headerName: 'Actions',
+      width: 100,
+      minWidth: 100,
+      maxWidth: 130,
+      sortable: false,
+      filter: false,
+      cellRenderer: (params: ICellRendererParams<Content>) => params.data ? (
+        <Stack direction="row" justifyContent="flex-end">
+          <ActionsMenu size="sm" actions={getContentActions(params.data)} />
+        </Stack>
+      ) : null,
+    },
+  ];
 
   return (
-    <Table
-      stickyHeader
-      hoverRow
-      sx={{
-        tableLayout: 'auto',
-        '--TableCell-headBackground': 'white',
-        '--Table-headerUnderlineThickness': '1px',
-        '--TableRow-hoverBackground': theme =>
-          theme.vars.palette.background.level1,
-      }}
-    >
-      <thead>
-        {table.getHeaderGroups().map(headerGroup => (
-          <tr key={headerGroup.id}>
-            {headerGroup.headers.map(header => (
-              <th key={header.id}>
-                {header.isPlaceholder
-                  ? null
-                  : flexRender(
-                      header.column.columnDef.header,
-                      header.getContext(),
-                    )}
-              </th>
-            ))}
-          </tr>
-        ))}
-      </thead>
-      <tbody>
-        {table.getRowModel().rows.map(row => (
-          <tr key={row.id}>
-            {row.getVisibleCells().map(cell => {
-              return <td key={cell.id}>{getCellContent(cell)}</td>;
-            })}
-          </tr>
-        ))}
-      </tbody>
-    </Table>
+    <Box sx={{ width: '100%', minWidth: 0 }}>
+      <SharedDataGrid<Content>
+        rowData={contents}
+        columnDefs={columns}
+        getRowId={row => row.id}
+        preferenceKey={`process-versions-${resourceId}`}
+        mode="read"
+        selection={false}
+        advancedFilter
+        quickFilter
+        height={Math.min(640, Math.max(240, contents.length * 62 + 120))}
+        paginationPageSize={15}
+        selectionToolbar={checkedContents.length > 0 ? (
+          <Chip size="sm" variant="soft" color="primary">
+            {checkedContents.length} version(s) sélectionnée(s) pour comparaison
+          </Chip>
+        ) : null}
+      />
+    </Box>
   );
 };
