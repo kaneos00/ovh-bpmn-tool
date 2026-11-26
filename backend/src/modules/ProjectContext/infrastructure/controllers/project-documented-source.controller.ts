@@ -350,7 +350,11 @@ export class ProjectDocumentedSourceController {
         }))
         // In a process view, show process-linked sources and project-level
         // sources that have not yet been associated with any BPMN element.
-        .filter((source) => !requestedResourceId || source.references.length === 0 || source.references.length > 0),
+        .filter((source) =>
+          !requestedResourceId ||
+          !references.some((reference) => reference.sourceId === source.id) ||
+          source.references.length > 0,
+        ),
       unlinkedReferences: unlinkedReferences.sort(
         (left, right) =>
           left.processName.localeCompare(right.processName, 'fr') ||
