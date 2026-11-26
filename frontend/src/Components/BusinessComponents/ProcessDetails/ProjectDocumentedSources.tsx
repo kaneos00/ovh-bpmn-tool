@@ -138,7 +138,6 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
       <Box><Typography level="title-lg">Informations documentées</Typography><Typography level="body-sm" color="neutral">Référentiel documentaire central du projet, lié aux objets et magasins de données BPMN.</Typography></Box>
       {canManage && <Stack direction="row" spacing={1}>
         {selectedMergeIds.length >= 2 && rows.filter(row => selectedMergeIds.includes(row.sourceId)).every(row => row.resourceId === rows.find(candidate => candidate.sourceId === selectedMergeIds[0])?.resourceId) && <Button size="sm" variant="outlined" onClick={() => { const selected = rows.filter(row => selectedMergeIds.includes(row.sourceId)); setMergeName(selected[0]?.name ?? ''); setMergeDescription(selected[0]?.description ?? ''); setMergeDialogOpen(true); }}>Fusionner ({selectedMergeIds.length})</Button>}
-        <Button size="sm" startDecorator={<AddRounded />} onClick={() => { setSelectedProcessId(data?.processes.length === 1 ? data.processes[0].resourceId : ''); setSelectedReference(null); setAdding(true); }}>Ajouter</Button>
       </Stack>}
     </Stack>
     {error && <Alert color="danger" variant="soft">{error}</Alert>}
