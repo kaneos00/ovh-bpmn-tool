@@ -2,7 +2,6 @@
 set -eu
 : "${POSTGRES_USER:?POSTGRES_USER required}"
 : "${POSTGRES_DB:?POSTGRES_DB required}"
-: "${DEMO_AUTH_USER:?Set DEMO_AUTH_USER to the user who should own the reference project}"
 PROJECT_ID='8a000000-0000-4000-8000-000000000001'
 echo "This operation deletes only the KHI-FLOWS reference project and its uniquely namespaced resources."
 echo "Database: $POSTGRES_DB | Project: $PROJECT_ID"
