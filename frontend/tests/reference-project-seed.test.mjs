@@ -17,7 +17,7 @@ test('NovaSys seed preserves the project documented-information registry and per
   assert.equal(rows.length, 84, 'all 84 documented sources must have a complete row');
   assert.equal(rows.filter(row => row[1] === 'true').length, 5, 'five HR/payroll sources contain personal data');
   assert.match(seed.slice(end, end + 250), /"containsPersonalData"=EXCLUDED\."containsPersonalData"/);
-  const familyStart = seed.indexOf('UPDATE resources\\nSET "processMetadata"');
+  const familyStart = seed.indexOf('UPDATE resources\nSET "processMetadata"');
   const familyEnd = seed.indexOf('INSERT INTO contents', familyStart);
   assert.ok(familyStart >= 0 && familyEnd > familyStart, 'process family metadata must be seeded');
   const familyBlock = seed.slice(familyStart, familyEnd);
