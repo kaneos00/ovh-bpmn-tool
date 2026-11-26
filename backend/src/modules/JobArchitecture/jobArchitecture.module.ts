@@ -7,6 +7,7 @@ import { ProjectRaciEntryTypeOrmEntity } from '../ProjectContext/infrastructure/
 import { ContentTypeOrmEntity } from '../ResourceContext/infrastructure/entities/content.ormEntity';
 import { CompetencyBlockTypeOrmEntity } from './infrastructure/entities/competencyBlock.ormEntity';
 import { CompetencyTypeOrmEntity } from './infrastructure/entities/competency.ormEntity';
+import { CompetencyBlockCompetencyTypeOrmEntity } from './infrastructure/entities/competencyBlockCompetency.ormEntity';
 import { JobFunctionActivitySectionTypeOrmEntity } from './infrastructure/entities/jobFunctionActivitySection.ormEntity';
 import { JobFunctionCompetencyBlockTypeOrmEntity } from './infrastructure/entities/jobFunctionCompetencyBlock.ormEntity';
 import { JobFunctionCustomSectionTypeOrmEntity } from './infrastructure/entities/jobFunctionCustomSection.ormEntity';
@@ -31,6 +32,7 @@ import { JobFunctionDocumentService } from './jobFunctionDocument.service';
       JobFunctionCustomSectionTypeOrmEntity,
       CompetencyBlockTypeOrmEntity,
       CompetencyTypeOrmEntity,
+      CompetencyBlockCompetencyTypeOrmEntity,
       JobFunctionCompetencyBlockTypeOrmEntity,
       ProjectJobPositionTypeOrmEntity,
       OrganizationPositionTypeOrmEntity,
