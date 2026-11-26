@@ -6,6 +6,7 @@ export type RenderTree = {
   targetId?: string;
   usage?: 'common' | 'variant' | 'project-specific';
   nature?: 'global' | 'specific' | string;
+  family?: string;
   sourceResourceId?: string | null;
   remarksCount?: number;
   changeRequestsCount?: number;
