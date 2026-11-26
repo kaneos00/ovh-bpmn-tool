@@ -30,9 +30,7 @@ import { ProjectRaciManager } from '../../Components/BusinessComponents/ProjectR
 import { ProjectProcessHierarchy } from './ProjectProcessHierarchy';
 import { WorkspacePageLayout } from '../../Components/GenericComponents/WorkspacePageLayout/WorkspacePageLayout';
 import { Header } from '../../Components/GenericComponents/Header/Header';
-import { useActiveProject, type WorkspaceProject } from '../../shared/hooks/useActiveProject';
-import type { ColDef } from 'ag-grid-community';
-import { SharedDataGrid } from '../../Components/GenericComponents/SharedDataGrid';
+import { useActiveProject } from '../../shared/hooks/useActiveProject';
 import { ViewerExplorerPanel } from '../../Components/BusinessComponents/ViewerExplorerPanel/ViewerExplorerPanel';
 import { getProjectTrigram } from '../../shared/helpers/projectTrigram';
 import '../../Components/BusinessComponents/ProcessDetails/ProcessDetails.scss';
@@ -311,101 +309,6 @@ export const Component = () => {
       specific: links.filter((link) => link.usage === 'project-specific').length,
     };
   }, [linkedProcessesQuery.data]);
-  const accessibleProjectColumns: ColDef<WorkspaceProject>[] = [
-    {
-      headerName: 'Projet',
-      field: 'name',
-      minWidth: 210,
-      cellRenderer: (params: { data?: WorkspaceProject }) => params.data ? (
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 42, height: 28, px: 0.75, borderRadius: '7px', bgcolor: params.data.color || '#2864d7', color: '#fff', fontSize: 11, fontWeight: 800 }}>
-            {getProjectTrigram(params.data.name, params.data.trigram)}
-          </Box>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography level="title-sm">{params.data.name}</Typography>
-            {params.data.description && <Typography level="body-xs" color="neutral">{params.data.description}</Typography>}
-          </Box>
-        </Stack>
-      ) : null,
-    },
-    {
-      headerName: 'Accès',
-      field: 'role',
-      minWidth: 150,
-      valueFormatter: params => projectRoleLabels[params.value as WorkspaceProject['role']] ?? params.value,
-    },
-    {
-      headerName: 'Processus',
-      colId: 'processCount',
-      minWidth: 110,
-      valueGetter: params => params.data?.processes.length ?? 0,
-      cellDataType: 'number',
-    },
-    {
-      headerName: 'Ouvrir',
-      colId: 'open',
-      sortable: false,
-      filter: false,
-      editable: false,
-      minWidth: 110,
-      cellRenderer: (params: { data?: WorkspaceProject }) => params.data ? (
-        <Button size="sm" variant="outlined" onClick={() => {
-          setActiveProject(params.data!.id);
-          navigate('/root');
-        }}>Ouvrir</Button>
-      ) : null,
-    },
-  ];
-
-  const linkedProcessColumns: ColDef<ProjectProcessLink>[] = [
-    {
-      headerName: 'Processus',
-      field: 'resourceId',
-      minWidth: 230,
-      cellRenderer: (params: { data?: ProjectProcessLink }) => params.data ? (
-        <Stack spacing={0.25}>
-          <Typography level="title-sm">{params.data.resource?.name ?? params.data.resourceId}</Typography>
-          <Typography level="body-xs" color="neutral">{PROCESS_USAGE_LABELS[params.data.usage]}</Typography>
-        </Stack>
-      ) : null,
-    },
-    {
-      headerName: 'Usage',
-      field: 'usage',
-      minWidth: 170,
-      valueFormatter: params => PROCESS_USAGE_LABELS[params.value as ProjectProcessLink['usage']] ?? params.value,
-    },
-    {
-      headerName: 'Actions',
-      colId: 'actions',
-      sortable: false,
-      filter: false,
-      editable: false,
-      minWidth: 290,
-      cellRenderer: (params: { data?: ProjectProcessLink }) => {
-        const link = params.data;
-        if (!link) return null;
-        return (
-          <Stack direction="row" spacing={0.5} alignItems="center">
-            {link.resource && <Button size="sm" variant="soft" onClick={() => {
-              if (projectId) setActiveProject(projectId);
-              navigate(\`/\${link.resourceId}\`);
-            }}>Ouvrir</Button>}
-            {link.usage === 'common' && (
-              <Button size="sm" variant="solid" loading={createProcessVariant.isLoading}
-                disabled={createProcessVariant.isLoading}
-                onClick={() => createProcessVariant.mutate(link.resourceId)}>
-                Créer une variante
-              </Button>
-            )}
-            <Button size="sm" color="danger" variant="plain" loading={unlinkProcess.isLoading}
-              onClick={() => unlinkProcess.mutate(link.resourceId)}>Retirer</Button>
-          </Stack>
-        );
-      },
-    },
-  ];
-
 
   useEffect(() => {
     window.localStorage.setItem('bpmn-viewer-explorer-width', String(explorerWidth));
@@ -573,16 +476,47 @@ export const Component = () => {
                     <Typography level="body-sm" color="neutral">Aucun projet ne vous est actuellement associé.</Typography>
                   </Card>
                 )}
-                <SharedDataGrid<WorkspaceProject>
-                  rowData={accessibleProjects}
-                  columnDefs={accessibleProjectColumns}
-                  getRowId={row => row.id}
-                  preferenceKey="workspace-projects"
-                  mode="read"
-                  selection={false}
-                  height={Math.min(520, Math.max(220, accessibleProjects.length * 56 + 96))}
-                  paginationPageSize={15}
-                />
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, minmax(0, 1fr))' }, gap: 1.25 }}>
+                  {accessibleProjects.map(project => (
+                    <Card key={project.id} variant="outlined" sx={{ gap: 1.25 }}>
+                      <Stack direction="row" spacing={1} alignItems="flex-start">
+                        <Box
+                          component="span"
+                          title={project.name}
+                          sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 42, height: 30, px: 0.75, borderRadius: '7px', bgcolor: project.color || '#2864d7', color: '#fff', fontSize: 11, fontWeight: 800, letterSpacing: '0.04em', flexShrink: 0 }}
+                        >
+                          {getProjectTrigram(project.name, project.trigram)}
+                        </Box>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography level="title-md">{project.name}</Typography>
+                          {project.description && (
+                            <Typography level="body-sm" color="neutral">{project.description}</Typography>
+                          )}
+                        </Box>
+                        <Chip size="sm" variant="soft" color={projectRoleColors[project.role]}>
+                          {projectRoleLabels[project.role]}
+                        </Chip>
+                      </Stack>
+                      <Chip size="sm" variant="outlined" sx={{ alignSelf: 'flex-start' }}>
+                        {project.processes.length} processus associés
+                      </Chip>
+                      {project.processes.length > 0 && (
+                        <Typography level="body-sm" color="neutral">
+                          {project.processes.slice(0, 3).map(process => process.name).join(' · ')}
+                          {project.processes.length > 3 ? ` · +${project.processes.length - 3} autre(s)` : ''}
+                        </Typography>
+                      )}
+                      <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                        <Button variant="soft" onClick={() => { setActiveProject(project.id); navigate('/root'); }}>
+                          Ouvrir le projet
+                        </Button>
+                        <Button variant="outlined" color="neutral" onClick={() => navigate(`/projects/${project.id}`)}>
+                          Administration
+                        </Button>
+                      </Stack>
+                    </Card>
+                  ))}
+                </Box>
               </Stack>
             </Stack>
           </Sheet>
@@ -778,18 +712,32 @@ export const Component = () => {
           {(linkedProcessesQuery.data ?? []).length === 0 && !linkedProcessesQuery.isLoading && (
             <Typography level="body-sm">Aucun processus associé. Vous pouvez en ajouter depuis le référentiel ci-dessus.</Typography>
           )}
-          {(linkedProcessesQuery.data ?? []).length > 0 && (
-            <SharedDataGrid<ProjectProcessLink>
-              rowData={linkedProcessesQuery.data ?? []}
-              columnDefs={linkedProcessColumns}
-              getRowId={row => row.id}
-              preferenceKey={\`project-\${projectId}-processes\`}
-              mode="read"
-              selection={false}
-              height={Math.min(520, Math.max(220, (linkedProcessesQuery.data ?? []).length * 56 + 96))}
-              paginationPageSize={15}
-            />
-          )}
+          <Stack spacing={1}>
+            {(linkedProcessesQuery.data ?? []).map((link) => (
+              <Card key={link.id} variant="outlined" orientation="horizontal" sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography level="title-md">{link.resource?.name ?? link.resourceId}</Typography>
+                  <Typography level="body-sm">
+                    {PROCESS_USAGE_LABELS[link.usage]}
+                  </Typography>
+                </Box>
+                <Stack direction="row" spacing={1}>
+                  {link.resource && <Button variant="soft" onClick={() => { if (projectId) setActiveProject(projectId); navigate(`/${link.resourceId}`); }}>Ouvrir</Button>}
+                  {link.usage === 'common' && (
+                    <Button
+                      variant="solid"
+                      loading={createProcessVariant.isLoading}
+                      disabled={createProcessVariant.isLoading}
+                      onClick={() => createProcessVariant.mutate(link.resourceId)}
+                    >
+                      Créer une variante modifiable
+                    </Button>
+                  )}
+                  <Button color="danger" variant="plain" loading={unlinkProcess.isLoading} onClick={() => unlinkProcess.mutate(link.resourceId)}>Retirer</Button>
+                </Stack>
+              </Card>
+            ))}
+          </Stack>
           <ProjectProcessHierarchy
             processes={(linkedProcessesQuery.data ?? [])
               .filter(link => Boolean(link.resource))
