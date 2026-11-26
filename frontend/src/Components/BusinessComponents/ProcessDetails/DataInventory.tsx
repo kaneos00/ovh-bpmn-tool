@@ -491,7 +491,11 @@ export const DataInventory = ({
           addLabel="Ajouter une ligne : information documentée"
           height={560}
         />
-
+        {unlinkedReferences.length > 0 && (
+          <Typography level="body-xs" color="neutral">
+            {unlinkedReferences.length} objet(s) BPMN disponible(s) pour une association dans ce processus.
+          </Typography>
+        )}
       </Stack>
     </Box>
   );
