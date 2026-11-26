@@ -71,12 +71,15 @@ test('explorer endpoint is a single batched metadata request, not a per-process 
 });
 
 
-test('shared root folders remain visible without an active project and alongside project processes', async () => {
+test('project explorer excludes unrelated folders and keeps only ancestors of its processes', async () => {
   const hook = await read('src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts');
 
   assert.match(hook, /if \(!effectiveProjectId\) return \(resources \?\? \[\]\)\.filter\(item => item\.type === ResourceType\.Folder\)/);
-  assert.match(hook, /Root folders are global navigation nodes/);
-  assert.match(hook, /allResources[\s\S]*?filter\(item => item\.type === ResourceType\.Folder\)[\s\S]*?allowedIds\.add\(folder\.id\)/);
+  assert.match(hook, /const allowedIds = new Set\(effectiveProcessIds\)/);
+  assert.match(hook, /effectiveProcessIds\.forEach\(id => \{/);
+  assert.match(hook, /const parent = byId\.get\(parentId\)/);
+  assert.match(hook, /parent\.type !== ResourceType\.Folder/);
+  assert.doesNotMatch(hook, /allResources[\s\S]*?filter\(item => item\.type === ResourceType\.Folder\)[\s\S]*?allowedIds\.add\(folder\.id\)/);
   assert.match(hook, /return allResources\.filter\(item => allowedIds\.has\(item\.id\)\)/);
 });
 

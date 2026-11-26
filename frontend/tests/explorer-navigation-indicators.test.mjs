@@ -49,3 +49,12 @@ test('folder creation actions are hidden inside a folder while root actions rema
   const folderGuard = layout.indexOf('if (!resource || resource.type === ResourceType.Folder) {');
   assert.ok(folderGuard >= 0 && layout.indexOf('return <></>', folderGuard) > folderGuard);
 });
+
+test('explorer uses distinct family colors and icons when process family metadata is present', () => {
+  assert.match(treeHook, /family: item\.processMetadata\?\.family/);
+  for (const [family, icon] of [['GOV', 'AccountBalanceOutlined'], ['HR', 'GroupsOutlined'], ['FIN', 'PaymentsOutlined'], ['IT', 'ComputerOutlined'], ['DEL', 'CodeOutlined'], ['MNT', 'BuildCircleOutlined']]) {
+    assert.match(tree, new RegExp(`\\b${icon}\\b`), `missing ${family} icon`);
+    assert.match(tree, new RegExp(`${family}: '#[0-9a-f]{6}'`), `missing ${family} color`);
+  }
+  assert.match(tree, /getProcessFamilyIcon\(node\)/);
+});
