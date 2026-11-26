@@ -181,6 +181,7 @@ export const useFolderTree = (selectedResourceId: string) => {
         targetId,
         usage: projectProcess?.usage,
         nature: item.processMetadata?.nature,
+        family: item.processMetadata?.family,
         sourceResourceId: projectProcess?.sourceResourceId,
         remarksCount: projectProcess?.remarksCount ?? 0,
         changeRequestsCount: projectProcess?.changeRequestsCount ?? 0,
