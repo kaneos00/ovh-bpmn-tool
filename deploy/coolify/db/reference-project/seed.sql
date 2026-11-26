@@ -6,7 +6,7 @@ BEGIN;
 
 INSERT INTO projects (id,"createdBy",name,description) VALUES ('8a000000-0000-4000-8000-000000000001','reference-seed','Référence métier — ESN NovaSys','Projet de référence autonome : organisation fictive de services numériques, processus transverses, RACI et informations documentées.') ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, description=EXCLUDED.description;
 
-INSERT INTO project_members (id,"createdBy","projectId","userId",role) VALUES ('8a000001-0000-4000-8000-000000000001','reference-seed','8a000000-0000-4000-8000-000000000001', :'demo_user','admin') ON CONFLICT ("projectId","userId") DO NOTHING;
+INSERT INTO project_members (id,"createdBy","projectId","userId",role,"canSubmitRemarks") VALUES ('8a000001-0000-4000-8000-000000000001','reference-seed','8a000000-0000-4000-8000-000000000001', :'demo_user','admin',TRUE) ON CONFLICT ("projectId","userId") DO UPDATE SET "canSubmitRemarks"=TRUE;
 
 INSERT INTO resources (id,"createdBy",name,description,depth,"parentId","authToken",type) VALUES
 ('8b000000-0000-4000-8000-000000000001','reference-seed','Référence métier — ESN NovaSys','Référentiel complet de processus et données fictives.',0,NULL,NULL,'folder'),
