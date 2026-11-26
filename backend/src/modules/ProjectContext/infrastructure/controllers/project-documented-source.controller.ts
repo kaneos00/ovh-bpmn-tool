@@ -330,13 +330,16 @@ export class ProjectDocumentedSourceController {
       const resource = resourceById.get(resourceId);
       const content = contentByResource.get(resourceId);
       if (!resource || !content) return;
-      extractBpmnDataElements(content.content, resourceId, resource.name)
-        .forEach((element) => {
-          bpmnElementByKey.set(
-            element.resourceId + ':' + element.elementId,
-            element,
-          );
-        });
+      extractBpmnDataElements(
+        content.content,
+        resourceId,
+        resource.name,
+      ).forEach((element) => {
+        bpmnElementByKey.set(
+          element.resourceId + ':' + element.elementId,
+          element,
+        );
+      });
     });
 
     const referencesBySource = new Map<
