@@ -61,6 +61,7 @@ type ProjectDocumentedSourcesResponse = {
 };
 
 type InventoryGridRow = ProjectDocumentedSource & {
+  origin: string;
   isNew?: boolean;
 };
 
@@ -295,6 +296,7 @@ export const DataInventory = ({
 
   const rows: InventoryGridRow[] = sources.map(source => ({
     ...source,
+    origin: 'Projet',
     isNew: source.id.startsWith('new-'),
   }));
 
@@ -315,6 +317,8 @@ export const DataInventory = ({
   });
 
   const columnDefs: ColDef<InventoryGridRow>[] = [
+    textColumn('name', 'Nom', 220),
+    { headerName: 'Origine', field: 'origin', minWidth: 120, editable: false },
     {
       headerName: 'Type',
       field: 'kind',
@@ -341,7 +345,6 @@ export const DataInventory = ({
         void handleCellChange(params, 'kind');
       },
     },
-    textColumn('name', 'Nom', 190),
     textColumn('description', 'Description', 240),
     {
       headerName: 'Données personnelles',
