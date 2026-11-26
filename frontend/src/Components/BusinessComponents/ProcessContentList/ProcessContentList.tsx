@@ -87,7 +87,7 @@ export const ProcessContentList = ({
       ...(content.status === ContentStatusEnum.Obsolete
         ? [{
             id: `erase_${content.id}`,
-            label: 'Supprimer',
+            label: 'Erase',
             icon: <Delete fontSize="small" />,
             onClick: () => onContentErase(content.id),
           }]
