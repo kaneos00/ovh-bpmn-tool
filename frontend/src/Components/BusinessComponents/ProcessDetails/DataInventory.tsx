@@ -440,7 +440,7 @@ export const DataInventory = ({
           selection="single"
           advancedFilter
           selectedRowId={requestedDocumentedSourceId ?? undefined}
-          onAdd={canManageSources ? addRow : undefined>
+          onAdd={canManageSources ? addRow : undefined}>
           addLabel="Ajouter une ligne : information documentée"
           height={560}
         />
