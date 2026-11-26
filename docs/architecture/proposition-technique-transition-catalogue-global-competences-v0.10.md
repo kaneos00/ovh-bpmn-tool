@@ -1,150 +1,124 @@
-# Proposition technique détaillée — transition vers le référentiel global des compétences
+# Proposition technique — refonte du référentiel global des compétences
 
 **Branche :** `planning/admin-ux-v0.10`  
-**Statut :** proposition technique à valider après inventaire des données ; ce document ne constitue pas une migration exécutable.
+**Statut :** décision de conception retenue ; schéma et migration à implémenter après vérification finale des consommateurs.
 
-## 1. Décision de prudence
+## 1. Décision actée
 
-Le modèle actuel ne peut pas devenir global par simple suppression de `competencies.blockId` : les exigences projet ont une FK composite vers `competencies(blockId,id)`, et les mappings BPMN dépendent des blocs projet.
+La base concernée est une base de test. Il n'est donc pas nécessaire de conserver les anciennes compétences, leurs identifiants, leurs codes historiques ou une correspondance vers le nouveau modèle.
 
-La stratégie la plus sûre est une transition en deux identités :
-- conserver temporairement les compétences historiques et leurs identifiants dans `competencies` ;
-- introduire un catalogue global indépendant ;
-- établir une correspondance explicite entre chaque compétence historique et une entrée du catalogue global ;
-- migrer les lecteurs/écrivains projet après validation de cette correspondance ;
-- ne retirer les anciennes contraintes qu'en toute dernière étape.
+La stratégie retenue est une **migration de remplacement**, et non une migration additive de compatibilité :
 
-Cela évite de tenter une fusion implicite des compétences qui partagent actuellement un code ou un libellé.
+- supprimer les anciennes définitions de compétences et les données de test qui leur sont directement rattachées ;
+- créer un catalogue global de compétences, indépendant de tout bloc ;
+- recréer les associations nécessaires entre compétences globales et blocs projet ;
+- recréer les associations de compétences aux blocs de missions et aux compétences transversales des fiches de poste ;
+- adapter les API, services, contrôleurs et interfaces pour utiliser le nouveau modèle ;
+- ne conserver aucune table de correspondance historique ni double écriture.
 
-## 2. Schéma cible proposé
+Les identifiants des compétences seront régénérés. Aucun rapprochement automatique entre anciennes et nouvelles compétences n'est requis.
+
+## 2. Modèle cible
 
 ### 2.1 Catalogue global
 
-Nouvelle table conceptuelle `competency_catalog` :
+La table `competencies` devient le catalogue global (ou est remplacée par une table dédiée si les conventions de migration du projet le justifient).
+
+Champs métier :
 - `id` UUID PK ;
-- `code` varchar(64), unique après résolution des collisions ;
-- `name` varchar(255) ;
+- `code` varchar(64), unique globalement ;
+- `name` varchar(255), obligatoire ;
 - `description` text nullable ;
-- `category` varchar(24), contrainte sur `technical`, `methodological`, `functional`, `behavioral` ;
+- `category` obligatoire : `methodological`, `technical`, `functional` ou `behavioral` ;
 - `active` boolean ;
 - colonnes d'audit usuelles.
 
-Le niveau de référence ne doit pas être porté ici. Le niveau attendu est défini par les associations.
+La définition globale ne contient ni `blockId` ni niveau attendu. Aucune étiquette secondaire ni famille multiple.
 
-### 2.2 Correspondance historique
+Le code est unique dans tout le catalogue. Le contrôle des intitulés similaires avertit l'utilisateur sans fusionner automatiquement les entrées.
 
-Nouvelle table conceptuelle `legacy_competency_catalog_links` :
-- `legacyCompetencyId` UUID PK/FK vers `competencies(id)` ;
-- `catalogCompetencyId` UUID FK vers `competency_catalog(id)` ;
-- colonnes d'audit.
+### 2.2 Association compétence ↔ bloc de compétences projet
 
-Règle initiale : chaque compétence historique reçoit sa propre entrée catalogue, sans dédoublonnage automatique. Plusieurs compétences historiques pourront pointer vers une même entrée catalogue uniquement après décision métier explicite et documentée.
+Le modèle `competency_blocks` reste distinct : il est utilisé par le périmètre des postes projet et les mappings BPMN existants.
 
-Cette table rend la reprise traçable et permet de conserver les identifiants utilisés dans les exigences projet pendant la transition.
+Créer une association explicite, par exemple `competency_block_competencies` :
+- `blockId` UUID FK vers `competency_blocks` ;
+- `competencyId` UUID FK vers le catalogue global `competencies` ;
+- ordre d'affichage éventuel ;
+- unicité `(blockId, competencyId)`.
 
-### 2.3 Appartenance aux anciens blocs projet
+Une même compétence globale peut appartenir à plusieurs blocs projet. Cette association remplace l'appartenance actuellement portée par `competencies.blockId`.
 
-Nouvelle table conceptuelle `competency_block_catalog_links` :
-- `blockId` UUID FK vers `competency_blocks(id)` ;
-- `catalogCompetencyId` UUID FK vers `competency_catalog(id)` ;
-- contrainte unique `(blockId, catalogCompetencyId)`.
+### 2.3 Exigences de compétences des postes projet
 
-Elle remplace progressivement l'appartenance implicite portée par `competencies.blockId`. Pendant la coexistence, elle est alimentée à partir de `competencies.blockId` via la correspondance historique.
+Adapter `position_competency_requirements` pour référencer la compétence globale et vérifier son appartenance au bloc via `competency_block_competencies`.
 
-### 2.4 Exigences de compétences des postes projet
+Le niveau `requiredLevel` reste porté par l'exigence propre au poste projet. Il ne revient pas sur la définition globale.
 
-Pendant la première phase, conserver intégralement `position_competency_requirements` et ses FK actuelles. Ne pas supprimer ni modifier les FK composites dans la migration additive initiale.
+Les lignes d'exigences de la base de test peuvent être supprimées lors de la migration de remise à zéro ; elles seront recréées depuis le nouveau référentiel lorsque les postes projet seront reconfigurés. Ne pas supprimer pour autant les blocs de postes projet ni les mappings BPMN qui n'ont pas de dépendance directe à l'identifiant de compétence.
 
-Après bascule applicative et validation :
-- ajouter une référence `catalogCompetencyId` à l'exigence (ou créer une table de remplacement dédiée) ;
-- vérifier l'appartenance au bloc via `competency_block_catalog_links` ;
-- conserver `requiredLevel` comme niveau spécifique au poste projet ;
-- préserver la traçabilité vers l'identifiant historique.
+### 2.4 Blocs de missions des fiches de poste
 
-Le choix entre ajout de colonne et table de remplacement dépendra du besoin de conserver plusieurs versions d'une exigence et des conventions de migration du dépôt. Ne pas trancher sans examiner les usages complets et les données.
+Créer des tables propres aux fiches de poste. Ne pas réutiliser `competency_blocks`, qui reste le conteneur projet historique :
 
-### 2.5 Blocs de missions des fiches de poste
-
-Créer des tables distinctes, sans réutiliser `competency_blocks` :
 - `job_position_mission_blocks` : fiche de référence, code stable, intitulé, description, ordre ;
 - `job_position_mission_activities` : bloc, texte descriptif, ordre ;
-- `job_position_mission_competencies` : bloc, `catalogCompetencyId`, niveau attendu 1..5 ;
-- `job_position_transversal_competencies` : fiche/poste, `catalogCompetencyId`, niveau attendu 1..5.
+- `job_position_mission_competencies` : bloc, `competencyId`, niveau attendu 1..5 ;
+- `job_position_transversal_competencies` : fiche/poste, `competencyId`, niveau attendu 1..5.
 
-Les cardinalités (exactement quatre blocs, 1–4 activités et 1–4 compétences par bloc) doivent être validées dans le service métier et les transactions de sauvegarde. Les contraintes SQL simples ne suffisent pas à imposer proprement des cardinalités entre lignes ; un contrôle de service transactionnel est préférable.
+Cardinalités métier :
+- exactement quatre blocs par fiche ;
+- de 1 à 4 activités descriptives par bloc ;
+- de 1 à 4 compétences par bloc ;
+- compétences transversales associées directement à la fiche, sans cinquième bloc.
 
-Le parent exact des blocs de missions reste à confirmer : `JobFunction` est aujourd'hui la fiche/fonction de référence, tandis que `OrganizationPosition.functionId` la référence depuis le poste permanent. La conception doit éviter de dupliquer les quatre blocs pour chaque poste permanent si plusieurs postes partagent une même fiche.
+Les cardinalités entre lignes sont contrôlées dans le service métier et les transactions de sauvegarde. Le parent canonique des blocs reste à confirmer entre `JobFunction` et une éventuelle entité de fiche de poste dédiée ; ne pas créer une duplication par poste permanent si plusieurs postes partagent une même fiche.
 
-## 3. Plan de transition par migrations
+## 3. Périmètre de remise à zéro
 
-### Migration 1 — extension additive et non destructive
-- créer le catalogue global ;
-- créer les liens entre compétences historiques et catalogue ;
-- créer les liens entre blocs projet et catalogue ;
-- créer les tables des blocs de missions et associations de fiche ;
-- ajouter les index et FK sans supprimer les anciens ;
-- initialiser les correspondances historiques en conservant une entrée catalogue par compétence historique.
+La migration peut supprimer les données de compétences de test et les associations d'exigences projet, mais doit distinguer les dépendances :
 
-### Migration 2 — bascule du référentiel global
-- exposer le CRUD du catalogue global ;
-- adapter les sélecteurs des fiches de poste au catalogue ;
-- adapter la lecture des blocs projet via les liens explicites ;
-- écrire les liens historiques et globaux de manière cohérente pendant la période de coexistence ;
-- ajouter les tests de non-régression sur exigences projet et mappings BPMN.
+| Élément existant | Traitement retenu |
+|---|---|
+| `competencies` | Remplacement par le catalogue global ; identifiants régénérés |
+| `competencies.blockId` | Supprimé ; remplacé par l'association explicite bloc ↔ compétence |
+| `competencies.referenceLevel` | Supprimé ; niveaux portés par les associations |
+| `position_competency_requirements` | Données de test supprimées puis modèle adapté au catalogue global |
+| `competency_blocks` | Conservé pour le périmètre projet tant que ses usages le nécessitent |
+| `position_competency_blocks` | Conservé |
+| `position_activity_mappings` | Conservé ; ses liens BPMN vers les blocs ne doivent pas être altérés |
+| `job_function_competency_blocks` | À supprimer ou remplacer après audit des consommateurs ; ne pas le convertir automatiquement en bloc de mission |
 
-### Migration 3 — bascule des exigences projet
-- migrer les exigences vers l'identifiant catalogue ;
-- contrôler le nombre de lignes, les niveaux et les associations bloc/compétence avant et après ;
-- activer les nouvelles FK/contraintes ;
-- garder les colonnes et tables historiques en lecture seule pendant une période de vérification.
+Avant toute suppression, vérifier les FK et usages applicatifs exacts, y compris les migrations, DTO, services, contrôleurs, tests et composants frontend. Une dépendance qui ne porte que sur `blockId` ne doit pas être cassée par la remise à zéro des compétences.
 
-### Migration 4 — retrait différé
-Uniquement après recherche exhaustive du code, validation des données et preuve qu'aucun consommateur n'utilise encore les anciens liens :
-- retirer les anciennes FK composites ;
-- retirer `competencies.blockId` et éventuellement la table historique si la politique de conservation le permet ;
-- retirer `referenceLevel` après migration de tous ses consommateurs ;
-- conserver une table de correspondance/audit si elle est nécessaire à la traçabilité.
+## 4. Ordre d'implémentation
 
-## 4. Invariants et contrôles obligatoires
+1. **Audit final des consommateurs** : recherche exhaustive de `competencyId`, `competencies`, `blockId`, `referenceLevel`, `requiredLevel`, `jobFunctionCompetencyBlocks` et des relations ORM.
+2. **Schéma SQL cible** : définir les nouvelles tables, clés, contraintes, index et règles de suppression.
+3. **Migration de test destructive** : supprimer les anciennes définitions et exigences de compétences, créer le catalogue global et les associations explicites ; ne toucher aux données BPMN/mappings que si une dépendance démontrée l'impose.
+4. **Backend** : CRUD global, filtres famille/statut, désactivation/réactivation, associations projet et associations fiche de poste.
+5. **Frontend** : écran indépendant de gestion du catalogue, sélecteurs de compétences dans les fiches et usages projet.
+6. **Tests** : migrations à blanc, contraintes, API, permissions, non-régression des postes projet, mappings BPMN et RACI.
+7. **CI** : exécuter sur la branche de travail après les changements applicatifs ; ne pas annoncer de validation avant résultat observé.
 
-Avant/après chaque migration, comparer :
-- nombre de compétences historiques ;
-- nombre d'entrées catalogue ;
-- nombre de liens historiques et liens bloc/catalogue ;
-- nombre d'exigences projet ;
-- nombre de mappings BPMN ;
-- distribution des niveaux attendus ;
-- distribution des familles et statuts ;
-- nombre d'orphelins dans chaque relation.
+## 5. Règles d'intégrité et de comportement
 
-Contrôles fonctionnels :
-- une compétence globale peut être utilisée par plusieurs blocs projet et plusieurs fiches de poste ;
-- désactiver une compétence ne supprime aucune association ni exigence historique ;
-- une compétence inactive reste visible dans les contextes historiques ;
-- aucune compétence inactive n'est proposée pour une nouvelle association par défaut ;
-- un changement de famille ou de libellé ne change pas l'identité de la compétence ;
-- les niveaux restent attachés à chaque association ;
-- les quatre blocs de mission ne sont jamais confondus avec les blocs de compétences projet ;
-- les mappings BPMN et le RACI ne sont ni recalculés ni déduits par cette migration.
+- Une compétence globale peut être associée à plusieurs blocs projet et plusieurs fiches.
+- Une compétence utilisée ne peut pas être supprimée physiquement ; elle est désactivée.
+- Une compétence inactive reste visible dans les contextes existants, mais n'est pas proposée par défaut pour une nouvelle association.
+- Retirer une association ne supprime jamais la compétence globale.
+- Les niveaux attendus sont stockés sur chaque association.
+- Les familles sont exclusives : méthodologique, technique, fonctionnelle, savoir-être.
+- Les tâches opérationnelles restent dans BPMN.
+- Les blocs de missions des fiches de poste sont distincts des blocs de compétences projet.
+- Aucun changement automatique des affectations, tâches BPMN, Lanes ou RACI n'est induit par la refonte du catalogue.
 
-## 5. Risques à traiter avant de coder
+## 6. Conditions avant migration
 
-1. **Doublons métier :** plusieurs lignes historiques peuvent décrire la même compétence ; ne pas fusionner automatiquement.
-2. **Codes répétés :** l'unicité actuelle est par bloc, alors que le catalogue demande une unicité globale. Il faut une règle de recodification ou de fusion validée.
-3. **Familles historiques :** les valeurs actuelles ne couvrent pas Fonctionnelle ; le reclassement doit être humainement validé.
-4. **Cascades SQL :** les FK existantes peuvent supprimer les exigences projet lorsqu'une compétence est supprimée. Le futur catalogue et ses liens doivent privilégier `RESTRICT`/désactivation plutôt que cascade destructive.
-5. **Concurrence d'écriture :** pendant la coexistence, définir une seule source de vérité et une stratégie de double-écriture transactionnelle ; éviter les doubles écritures indépendantes depuis le frontend.
-6. **Réversibilité :** documenter le rollback avant chaque bascule. Une fusion de compétences n'est pas réversible sans table de correspondance et historique des décisions.
+La base de test doit être explicitement ciblée et sauvegardée avant exécution. La migration doit refuser de s'exécuter sur une base identifiée comme production. Le caractère « base de test » autorise la perte des anciennes données de compétences, pas une suppression aveugle des autres données métier.
 
-## 6. Décisions restant ouvertes
+Le résultat attendu après migration est un catalogue global vide ou alimenté avec un jeu de données de référence validé, sans reprise automatique des anciennes compétences. Les exigences projet seront reconfigurées ensuite.
 
-- Validation du nom et de la structure physique des tables.
-- Politique d'unicité du code global : obligatoire ou code interne généré, avec libellé comme donnée de recherche.
-- Choix d'un parent canonique pour les blocs de missions : `JobFunction` ou nouvelle entité explicite `JobPositionReference`.
-- Stratégie de migration des exigences projet : ajout de colonne ou table de remplacement.
-- Règles d'archivage des anciennes compétences et conservation de la correspondance.
-- Résultat de la recherche exhaustive locale `rg` et inventaire réel d'une base représentative.
+## 7. État de réalisation
 
-## 7. Hors périmètre de cette proposition
-
-Aucune migration SQL exécutable n'est fournie ici. Aucun code applicatif, aucune base réelle et aucun pipeline CI n'ont été modifiés ou exécutés. Cette proposition sert à cadrer le modèle avant le schéma définitif.
+Ce document acte la stratégie de remplacement. À ce stade, aucune migration SQL, modification applicative, exécution de test ou CI n'a été effectuée par cette mise à jour documentaire.
