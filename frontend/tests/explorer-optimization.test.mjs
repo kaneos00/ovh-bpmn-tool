@@ -24,7 +24,7 @@ test('explorer follows the process currently open instead of retaining an unrela
 test('explorer provides root-level creation actions without requiring a folder selection', async () => {
   const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
 
-  assert.match(tree, /navigate\('\/root\/add\?type=folder'\)/);
+  assert.match(tree, /type=folder\$\{activeProjectId \? `&projectId=/);
   assert.ok(tree.includes('navigate(`/root/add?type=process&projectId=${encodeURIComponent(activeProjectId)}`)'));
 });
 
@@ -113,7 +113,7 @@ test('project home is a first-level tree item and opens the workspace root', asy
   assert.ok(tree.includes("node?.id === 'project-home'"));
   assert.ok(tree.includes("contextMenu?.nodeId === 'project-home'"));
   assert.ok(tree.includes("onNodeClick(targetId)"));
-  assert.ok(tree.includes("navigate('/root/add?type=folder')"));
+  assert.ok(tree.includes('type=folder${activeProjectId ? `&projectId='));
   assert.ok(!tree.includes('Racine — ${activeProject.name}'));
 });
 
@@ -122,6 +122,7 @@ test('folder context menu creates child folders and project-linked processes in 
 
   assert.ok(tree.includes('type=process&projectId=${encodeURIComponent(activeProjectId!)}'));
   assert.ok(tree.includes('Créer un sous-répertoire'));
+  assert.ok(tree.includes('type=folder${activeProjectId ? `&projectId='));
 });
 
 
