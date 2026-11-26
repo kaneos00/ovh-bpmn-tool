@@ -22,16 +22,11 @@ describe('extractBpmnDataElements', () => {
       'Gestion des contrats',
     );
 
-    expect(elements).toHaveLength(2);
+    // Only BPMN data stores are eligible for documented-information associations.
+    expect(elements).toHaveLength(1);
     expect(elements[0]).toMatchObject({
       resourceId: 'resource-1',
       processName: 'Gestion des contrats',
-      elementId: 'contract-ref',
-      elementName: 'Contrat',
-      elementType: 'dataObjectReference',
-      description: 'Contrat signé et archivé',
-    });
-    expect(elements[1]).toMatchObject({
       elementId: 'crm-ref',
       elementName: 'CRM',
       elementType: 'dataStoreReference',
