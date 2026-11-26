@@ -68,6 +68,19 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
     const allResources = resources.data ?? [];
     const allowedIds = new Set(projectProcessIds);
     const byId = new Map(allResources.map(item => [item.id, item]));
+    activeProject?.folders.forEach(folder => {
+      allowedIds.add(folder.resourceId);
+      if (!byId.has(folder.resourceId)) {
+        byId.set(folder.resourceId, {
+          id: folder.resourceId,
+          name: folder.name,
+          parentId: folder.parentId ?? undefined,
+          depth: 0,
+          description: '',
+          type: ResourceType.Folder,
+        } as Resource);
+      }
+    });
 
     // The workspace endpoint is authoritative for project membership. Keep
     // project-linked processes reachable even when the global resource list
@@ -82,6 +95,18 @@ export const FolderOverview = ({ resource }: FolderOverviewProps) => {
           type: ResourceType.Process,
           sourceResourceId: process.sourceResourceId,
         } as Resource);
+      }
+    });
+    activeProject?.folders.forEach(folder => {
+      let current = byId.get(folder.resourceId);
+      const visited = new Set<string>([folder.resourceId]);
+      while (current?.parentId && !visited.has(current.parentId)) {
+        const parentId = current.parentId;
+        visited.add(parentId);
+        const parent = byId.get(parentId);
+        if (!parent || parent.type !== ResourceType.Folder) break;
+        allowedIds.add(parentId);
+        current = parent;
       }
     });
     projectProcessIds.forEach(id => {
