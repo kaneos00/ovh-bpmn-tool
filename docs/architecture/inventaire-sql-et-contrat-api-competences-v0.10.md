@@ -1,24 +1,38 @@
-# Étape suivante — inventaire SQL en lecture seule et contrat du référentiel des compétences
+# Inventaire des dépendances et contrat API — référentiel global des compétences
 
 **Branche :** `planning/admin-ux-v0.10`  
-**Statut :** préparation à exécuter sur une base de test représentative.  
-**Important :** les requêtes ci-dessous n'effectuent aucune écriture. Elles doivent être exécutées par un opérateur autorisé sur une base de test restaurée depuis une sauvegarde récente. Aucun accès à une base applicative n'a été effectué pendant cette préparation.
+**Statut :** cadrage technique à exécuter avant migration destructive de la base de test.
 
-## 1. Objectif de l'inventaire
+## 1. Décision de reprise
 
-Établir les faits avant de concevoir la migration :
-- volumes des compétences et blocs ;
-- collisions de codes et intitulés identiques ;
-- familles présentes ou inattendues ;
-- valeurs de niveau historiques ;
-- dépendances des exigences de postes projet ;
-- compétences inactives et associations projet.
+La base est une base de test. Les anciennes compétences, leurs identifiants et leurs exigences de test ne doivent pas être conservés. Le modèle cible remplace directement l'ancien : aucune table de correspondance historique, aucun dédoublonnage ni double écriture.
 
-Exporter les résultats avec les identifiants pour permettre une revue métier. Ne pas fusionner les lignes automatiquement.
+La migration pourra supprimer les lignes de compétences et d'exigences projet, mais elle ne doit pas supprimer les blocs de postes projet, les mappings d'activités BPMN, les processus, les tâches, les Lanes ou le RACI sans dépendance directe démontrée.
 
-## 2. Requêtes SQL de diagnostic (PostgreSQL)
+## 2. Dépendances à vérifier dans le code et le schéma
 
-### 2.1 Volumes globaux
+L'ancien modèle comprend notamment :
+- `competencies.blockId` vers `competency_blocks` ;
+- `competencies.referenceLevel` ;
+- `position_competency_requirements`, avec références à `positionId`, `blockId` et `competencyId` ;
+- `position_competency_blocks` ;
+- `position_activity_mappings`, qui référence un bloc projet et une tâche BPMN ;
+- `job_function_competency_blocks`.
+
+La nouvelle architecture doit :
+1. retirer `blockId` et `referenceLevel` de la définition globale ;
+2. créer une liaison explicite `competency_block_competencies` ;
+3. faire référencer les exigences projet à la compétence globale et au bloc via cette liaison ;
+4. créer les tables indépendantes des blocs de missions et des associations de compétences de fiche de poste ;
+5. retirer `job_function_competency_blocks` seulement après migration de tous ses consommateurs, sans assimiler ses anciens blocs à des blocs de missions.
+
+L'audit doit couvrir ORM/entities, migrations SQL, services, DTO, contrôleurs, tests, composants frontend, appels API et scripts de seed.
+
+## 3. Inventaire SQL en lecture seule
+
+Ces requêtes servent à confirmer les noms de contraintes, tables et règles de suppression sur la base cible. Elles ne préservent pas les anciennes données : elles permettent seulement de vérifier ce qui sera affecté.
+
+### 3.1 Tables et volumes
 
 ```sql
 SELECT
@@ -29,114 +43,7 @@ SELECT
   (SELECT count(*) FROM job_function_competency_blocks) AS function_block_links;
 ```
 
-### 2.2 Répartition par famille et statut
-
-```sql
-SELECT category, active, count(*) AS competency_count
-FROM competencies
-GROUP BY category, active
-ORDER BY category, active;
-```
-
-### 2.3 Inventaire complet avec usages et niveaux historiques
-
-```sql
-SELECT
-  c.id AS competency_id,
-  c.code,
-  c.name,
-  c.description,
-  c.category,
-  c.active,
-  c."referenceLevel",
-  b.id AS legacy_block_id,
-  b.code AS legacy_block_code,
-  b.name AS legacy_block_name,
-  count(DISTINCT r.id) AS project_requirement_count,
-  count(DISTINCT r."positionId") AS project_position_count,
-  min(r."requiredLevel") AS min_project_required_level,
-  max(r."requiredLevel") AS max_project_required_level
-FROM competencies c
-JOIN competency_blocks b ON b.id = c."blockId"
-LEFT JOIN position_competency_requirements r ON r."competencyId" = c.id
-GROUP BY c.id, b.id
-ORDER BY lower(c.name), c.code, b.code;
-```
-
-### 2.4 Codes répétés entre blocs (candidats à revue, pas des doublons certains)
-
-```sql
-SELECT
-  lower(trim(c.code)) AS normalized_code,
-  count(*) AS row_count,
-  count(DISTINCT c."blockId") AS block_count,
-  array_agg(c.id::text ORDER BY c.id) AS competency_ids,
-  array_agg(b.code ORDER BY b.code) AS legacy_block_codes,
-  array_agg(c.name ORDER BY c.name) AS names
-FROM competencies c
-JOIN competency_blocks b ON b.id = c."blockId"
-GROUP BY lower(trim(c.code))
-HAVING count(*) > 1
-ORDER BY row_count DESC, normalized_code;
-```
-
-### 2.5 Intitulés identiques après normalisation (candidats à revue)
-
-```sql
-SELECT
-  lower(regexp_replace(trim(c.name), '\\s+', ' ', 'g')) AS normalized_name,
-  count(*) AS row_count,
-  array_agg(c.id::text ORDER BY c.id) AS competency_ids,
-  array_agg(c.code ORDER BY c.code) AS codes,
-  array_agg(b.code ORDER BY b.code) AS legacy_block_codes,
-  array_agg(c.category ORDER BY c.category) AS categories
-FROM competencies c
-JOIN competency_blocks b ON b.id = c."blockId"
-GROUP BY lower(regexp_replace(trim(c.name), '\\s+', ' ', 'g'))
-HAVING count(*) > 1
-ORDER BY row_count DESC, normalized_name;
-```
-
-### 2.6 Familles et niveaux inattendus
-
-```sql
-SELECT id, code, name, category
-FROM competencies
-WHERE category NOT IN ('technical', 'methodological', 'behavioral')
-ORDER BY category, code;
-
-SELECT id, code, name, "referenceLevel"
-FROM competencies
-WHERE "referenceLevel" IS NOT NULL
-  AND "referenceLevel" NOT BETWEEN 1 AND 5
-ORDER BY code;
-
-SELECT id, "positionId", "blockId", "competencyId", "requiredLevel"
-FROM position_competency_requirements
-WHERE "requiredLevel" IS NOT NULL
-  AND "requiredLevel" NOT BETWEEN 1 AND 5
-ORDER BY "positionId", "blockId", "competencyId";
-```
-
-### 2.7 Références orphelines et intégrité des relations
-
-Les contraintes FK sont normalement censées empêcher les orphelins. Ces requêtes servent de contrôle préalable :
-
-```sql
-SELECT r.*
-FROM position_competency_requirements r
-LEFT JOIN competencies c ON c.id = r."competencyId"
-LEFT JOIN position_competency_blocks pb
-  ON pb."positionId" = r."positionId" AND pb."blockId" = r."blockId"
-WHERE c.id IS NULL OR pb.id IS NULL;
-
-SELECT c.id, c.code, c.name, c."blockId"
-FROM competencies c
-LEFT JOIN competency_blocks b ON b.id = c."blockId"
-WHERE b.id IS NULL;
-```
-
-### 2.8 Dépendances FK et règles ON DELETE actuelles
+### 3.2 Dépendances de clés étrangères
 
 ```sql
 SELECT
@@ -161,93 +68,86 @@ WHERE tc.constraint_type = 'FOREIGN KEY'
     'competencies',
     'position_competency_requirements',
     'position_competency_blocks',
+    'position_activity_mappings',
     'job_function_competency_blocks'
   ) OR ccu.table_name IN ('competencies', 'competency_blocks'))
 ORDER BY tc.table_name, tc.constraint_name;
 ```
 
-## 3. Livrables attendus de l'inventaire
+### 3.3 Vérifier les associations BPMN à préserver
 
-L'exécution doit produire :
-1. un CSV complet des compétences, blocs sources et usages projet ;
-2. un CSV des collisions de codes ;
-3. un CSV des intitulés identiques normalisés ;
-4. un relevé des familles/niveaux atypiques ;
-5. un relevé des contraintes FK et règles de suppression ;
-6. une synthèse des volumes.
+```sql
+SELECT
+  count(*) AS mapping_count,
+  count(DISTINCT "positionId") AS project_position_count,
+  count(DISTINCT "blockId") AS referenced_project_block_count
+FROM position_activity_mappings;
+```
 
-La revue métier classe chaque collision dans une des catégories : même compétence à fusionner, compétences différentes à conserver, intitulé/code à corriger, ou cas à investiguer. Toute fusion doit produire une table de correspondance ancienne identité → identité cible et un accord explicite.
+### 3.4 Vérifier les exigences projet à remettre à zéro
 
-## 4. Contrat API cible — référentiel global
+```sql
+SELECT
+  count(*) AS requirement_count,
+  count(DISTINCT "positionId") AS project_position_count,
+  count(DISTINCT "blockId") AS project_block_count
+FROM position_competency_requirements;
+```
 
-Les routes ci-dessous sont une proposition de contrat, à aligner sur les conventions NestJS/DTO/authentification déjà utilisées dans le backend avant implémentation.
+## 4. Schéma API cible
 
-| Méthode | Route proposée | Usage |
+Routes proposées, à aligner sur les conventions NestJS et les ACL du dépôt :
+
+| Méthode | Route | Usage |
 |---|---|---|
 | GET | `/job-architecture/competencies` | Liste paginée, recherche, filtre famille/statut |
 | GET | `/job-architecture/competencies/:id` | Détail et usages |
 | POST | `/job-architecture/competencies` | Création |
-| PATCH | `/job-architecture/competencies/:id` | Modification des champs descriptifs et famille |
-| PATCH | `/job-architecture/competencies/:id/status` | Activation/désactivation explicite |
-
-Paramètres de liste proposés :
-- `search` : recherche sur code, intitulé et description ;
-- `category` : une des quatre familles ;
-- `active` : true/false ;
-- `page`, `pageSize` ;
-- tri selon les conventions communes de l'application.
+| PATCH | `/job-architecture/competencies/:id` | Modification |
+| PATCH | `/job-architecture/competencies/:id/status` | Activation/désactivation |
 
 Champs de création :
-- `code` ;
-- `name` ;
-- `description` ;
+- `code` unique global ;
+- `name` obligatoire ;
+- `description` facultative ;
 - `category` obligatoire : `methodological`, `technical`, `functional` ou `behavioral`.
 
-Le niveau attendu et le bloc ne font pas partie du DTO de création global.
+Le DTO global ne contient ni `blockId`, ni niveau attendu.
 
-## 5. Règles de validation API
+Filtres de liste : `search`, `category`, `active`, `page`, `pageSize`, tri selon les conventions de l'application.
 
-- Code global unique après traitement explicite des collisions historiques.
-- Intitulé obligatoire ; description facultative.
+## 5. Règles API
+
+- Code unique global, vérifié côté serveur.
+- Intitulé similaire : avertissement anti-doublon, sans fusion.
 - Famille obligatoire et strictement limitée aux quatre valeurs.
-- Refuser une création dont le code est déjà utilisé ; signaler les intitulés identiques/proches comme avertissement de doublon potentiel, sans fusion.
 - Une compétence utilisée ne peut pas être supprimée physiquement.
-- La désactivation conserve toutes les associations et références projet.
-- Une compétence inactive reste consultable et modifiable ; elle est exclue par défaut des recherches de sélection pour une nouvelle association.
-- Une association historique existante reste valide même si sa compétence est inactive.
-- Les changements de famille ou d'intitulé n'altèrent pas les identifiants ni les associations.
-- Toute opération d'écriture exige l'autorisation de gestion du référentiel commun, à distinguer du simple accès Viewer aux projets.
+- Désactivation sans suppression des associations.
+- Les compétences inactives restent consultables et visibles dans les contextes existants, mais sont exclues par défaut des sélecteurs de nouvelles associations.
+- Les niveaux sont définis sur les associations projet ou fiche de poste.
+- Écriture réservée aux utilisateurs ayant le droit de gérer le référentiel commun.
 
-## 6. Contrat de réponse liste proposé
+## 6. Tests d'acceptation
 
-Chaque ligne de liste doit exposer :
-- `id`, `code`, `name`, `description`, `category`, `active` ;
-- `usageCount` (nombre d'associations, tous contextes confondus) ;
-- éventuellement `projectUsageCount` et `jobProfileUsageCount` si ces compteurs sont calculables efficacement.
-
-Le nombre d'utilisations est informatif ; les suppressions et désactivations doivent rester contrôlées côté serveur, pas seulement par l'interface.
-
-## 7. Critères de tests API
-
-- CRUD complet avec les quatre familles et validation des valeurs inconnues.
-- Code en doublon refusé de manière déterministe.
-- Intitulé similaire signalé mais non fusionné.
-- Recherche et filtres combinés, pagination et tri stables.
-- Désactivation d'une compétence utilisée sans perte d'associations.
-- Réactivation sans recréation d'associations.
+- CRUD et validation des quatre familles.
+- Unicité globale du code.
+- Avertissement de doublon sur intitulé similaire, sans fusion.
+- Recherche, filtres combinés, pagination et tri.
+- Désactivation/réactivation sans perte d'associations.
 - Refus de suppression physique d'une compétence référencée.
-- Maintien de la lecture des exigences projet existantes.
-- Refus d'écriture pour un utilisateur sans droit d'administration du référentiel.
-- Contrôle de non-régression des routes et écrans existants de fonctions/postes projet.
+- Association d'une compétence à plusieurs blocs projet.
+- Niveau indépendant par association.
+- Exigences projet fonctionnelles après remise à zéro et recréation.
+- Non-régression des mappings BPMN, tâches, processus, Lanes et RACI.
+- Autorisations d'administration vérifiées côté API.
 
-## 8. Limites et prochaine action
+## 7. Étapes avant implémentation
 
-Les requêtes sont préparées mais **n'ont pas été exécutées** : aucune connexion DB ni copie de données n'est disponible dans cette tâche. Il faut faire exécuter ces SELECT sur une base de test représentative, puis verser les résultats (CSV ou synthèse) dans la revue d'architecture.
+1. Effectuer une recherche exhaustive dans le dépôt des consommateurs des entités et champs cités.
+2. Vérifier les contraintes et dépendances sur la base de test.
+3. Préparer une sauvegarde et une migration destructive explicitement gardée contre une exécution en production.
+4. Implémenter le schéma cible, le backend et les écrans.
+5. Exécuter migrations et tests sur la base de test.
+6. Relancer le CI et vérifier le résultat.
 
-Après cette revue, l'ordre recommandé est :
-1. confirmer le modèle de reprise à partir des données réelles ;
-2. figer les DTO et permissions selon les conventions backend ;
-3. implémenter le CRUD et ses tests ;
-4. réaliser les migrations additives uniquement lorsque les données et dépendances sont connues.
-
-Aucun code applicatif, schéma SQL ou donnée n'est modifié par ce document.
+Aucune requête ci-dessus n'a été exécutée sur la base. Cette mise à jour documentaire n'a modifié ni code applicatif, ni schéma, ni données, ni CI.
