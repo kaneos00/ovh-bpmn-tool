@@ -60,11 +60,21 @@ WHERE "resourceId" IS NULL;
 ALTER TABLE project_documented_sources
   ALTER COLUMN "resourceId" SET NOT NULL;
 
-ALTER TABLE project_documented_sources
-  ADD CONSTRAINT project_documented_sources_process_fk
-  FOREIGN KEY ("projectId", "resourceId")
-  REFERENCES project_processes ("projectId", "resourceId")
-  ON DELETE CASCADE;
+DO $
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'project_documented_sources_process_fk'
+      AND conrelid = 'project_documented_sources'::regclass
+  ) THEN
+    ALTER TABLE project_documented_sources
+      ADD CONSTRAINT project_documented_sources_process_fk
+      FOREIGN KEY ("projectId", "resourceId")
+      REFERENCES project_processes ("projectId", "resourceId")
+      ON DELETE CASCADE;
+  END IF;
+END $;
 
 CREATE INDEX IF NOT EXISTS project_documented_sources_process_active_idx
   ON project_documented_sources ("projectId", "resourceId", "mergedIntoId");
