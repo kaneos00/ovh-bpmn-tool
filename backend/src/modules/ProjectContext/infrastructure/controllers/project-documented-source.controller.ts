@@ -577,11 +577,8 @@ export class ProjectDocumentedSourceController {
         lock: { mode: 'pessimistic_write' },
       });
       if (!source) throw new NotFoundException('Documented source not found');
-      if (source.resourceId !== reference.resourceId)
-        throw new BadRequestException(
-          'A documented source can only be associated with BPMN elements from its owning process',
-        );
-
+      // A project-level documented source may be referenced from any process
+      // in the project when the BPMN data store represents the same file/database.
       const existing = await referenceRepository.findOne({
         where: {
           projectId,
@@ -663,11 +660,8 @@ export class ProjectDocumentedSourceController {
       ]);
       if (!source || !target || !reference)
         throw new NotFoundException('Documented source reference not found');
-      if (target.resourceId !== reference.resourceId)
-        throw new BadRequestException(
-          'A documented source can only receive BPMN elements from its owning process',
-        );
-
+      // Associations are project-scoped, not restricted to the source's
+      // owning process. The target reference itself remains process-specific.
       await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
         projectId + ':' + targetSourceId + ':' + reference.resourceId,
       ]);
