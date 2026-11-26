@@ -18,7 +18,7 @@ test('project workspace restores the central documented information tab', async 
   assert.doesNotMatch(registry, /Statut projet/);
   assert.match(registry, /Ajouter<\/Button>/);
   assert.match(registry, /onCellValueChanged/);
-  assert.match(registry, /Objet BPMN à associer \\(facultatif\\)/, 'project sources must be creatable without a BPMN association');
+  assert.match(registry, /Objet BPMN à associer \(facultatif\)/, 'project sources must be creatable without a BPMN association');
   assert.match(registry, /origin: 'Projet'/);
   assert.doesNotMatch(registry, /Objets BPMN non encore inscrits au référentiel/, 'unlinked BPMN objects are available from the add dialog, not a second list');
   assert.match(registry, /resourceId: ref\.resourceId/);
