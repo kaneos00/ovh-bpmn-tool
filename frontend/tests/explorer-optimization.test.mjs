@@ -138,7 +138,7 @@ test('project folders are explicitly linked and visible even when empty', async 
   const action = await read('src/Containers/AddResource/AddResource.action.ts');
   const workspace = await read('src/shared/hooks/useActiveProject.ts');
   const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project.controller.ts');
-  assert.match(action, /apiClient.post\('\/projects\/' \+ projectId \+ '\/folders'/);
+  assert.ok(action.includes('`/projects/${projectId}/folders`'));
   assert.match(workspace, /folders: Array<\{ resourceId: string; name: string; parentId: string \| null \}>/);
   assert.match(controller, /INSERT INTO project_folders/);
   assert.match(controller, /folders: folderLinks/);
