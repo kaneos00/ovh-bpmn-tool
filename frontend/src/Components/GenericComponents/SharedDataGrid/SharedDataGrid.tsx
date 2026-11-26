@@ -117,7 +117,7 @@ const compareRule = <T extends object>(row: T, rule: FilterRule, field: FilterFi
       ? [raw.getFullYear(), String(raw.getMonth() + 1).padStart(2, '0'), String(raw.getDate()).padStart(2, '0')].join('-')
       : String(raw ?? '').slice(0, 10);
     const expected = rule.value.slice(0, 10);
-    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(actual) || !/^\\d{4}-\\d{2}-\\d{2}$/.test(expected)) return false;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(actual) || !/^\d{4}-\d{2}-\d{2}$/.test(expected)) return false;
     switch (rule.operator) {
       case 'equals': return actual === expected;
       case 'before': return actual < expected;
