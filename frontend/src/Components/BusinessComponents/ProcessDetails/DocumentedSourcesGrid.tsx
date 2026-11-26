@@ -49,6 +49,7 @@ export const DocumentedSourcesGrid = <T extends object,>({
         columnDefs={columnDefs}
         getRowId={params => getRowId(params.data)}
         defaultColDef={{ sortable: true, filter: true, resizable: true, minWidth: 110, flex: 1, wrapText: true, autoHeight: true, cellStyle: { cursor: 'text' }, tooltipValueGetter: params => params.value == null ? '' : 'Cliquer deux fois pour modifier' }}
+        singleClickEdit
         rowSelection={multiSelect ? { mode: 'multiRow', checkboxes: true, headerCheckbox: true, enableClickSelection: true } : { mode: 'singleRow', checkboxes: false, enableClickSelection: true }}
         suppressCellFocus
         animateRows={false}
