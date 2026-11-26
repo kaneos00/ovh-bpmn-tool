@@ -43,7 +43,7 @@ Le niveau attendu est porté par l'association compétence ↔ bloc de mission, 
 
 Une table de liaison explicite relie les compétences globales aux `competency_blocks`. Une compétence peut appartenir à plusieurs blocs projet. Cette association remplace `competencies.blockId`.
 
-Les blocs projet existants ne sont pas transformés en blocs de missions et les mappings BPMN qui les référencent sont conservés.
+Les blocs projet existants ne sont pas transformés en blocs de missions. Les liens fonction ↔ blocs projet, les blocs de postes projet et les mappings BPMN qui les référencent sont conservés.
 
 ### 3.2 Exigences des postes projet
 
@@ -69,7 +69,7 @@ La migration de remplacement est autorisée à :
 - supprimer les anciennes lignes de `competencies` ;
 - supprimer `referenceLevel` et `blockId` de l'ancien modèle ;
 - supprimer les exigences de compétences projet existantes, qui seront reconfigurées ;
-- supprimer les anciennes associations fonction ↔ blocs de compétences si l'audit confirme qu'elles ne sont plus consommées.
+- conserver les associations fonction ↔ blocs de compétences : elles alimentent les blocs initiaux des postes projet.
 
 Elle doit conserver par défaut :
 - `competency_blocks` tant que le modèle projet en dépend ;
@@ -112,3 +112,14 @@ Les données de compétence de test ne sont pas reprises automatiquement. Le nou
 ## 8. Limites
 
 Le modèle est documenté sur la base de l'inspection statique du dépôt. La recherche exhaustive des consommateurs et l'exécution sur la base de test restent des étapes préalables à l'écriture et à l'exécution de la migration. Aucune donnée n'a été supprimée et aucune migration n'a encore été exécutée.
+
+
+## 9. Précision issue de l'inspection des consommateurs
+
+Le service backend utilise effectivement `job_function_competency_blocks` pour composer `listFunctions()` et pour initialiser les blocs d'un nouveau poste projet. Cette table n'est donc pas une simple ancienne association à supprimer. Elle reste dans le modèle projet.
+
+Les exigences de niveau existent à deux granularités différentes :
+- `position_competency_blocks.requiredLevel` : niveau global demandé pour le bloc ;
+- `position_competency_requirements.requiredLevel` : niveau demandé pour une compétence précise.
+
+La refonte du catalogue ne doit pas fusionner ces deux niveaux. Seules les exigences individuelles peuvent être remises à zéro dans la base de test ; les applicabilités et niveaux des blocs projet sont conservés.
