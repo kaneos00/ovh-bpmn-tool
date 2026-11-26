@@ -98,6 +98,19 @@ export class ProjectController {
           order: { name: 'ASC' },
         });
     const projectIds = projects.map(({ id }) => id);
+    const folderLinks: Array<{ projectId: string; folderId: string }> = projectIds.length
+      ? await this.dataSource.query(
+          'SELECT "projectId", "folderId" FROM project_folders WHERE "projectId" = ANY($1::uuid[])',
+          [projectIds],
+        )
+      : [];
+    const folderIds = [...new Set(folderLinks.map((link) => link.folderId))];
+    const projectFolders = folderIds.length
+      ? await this.resources.find({
+          where: { id: In(folderIds), type: ResourceTypeEnum.Folder },
+        })
+      : [];
+    const folderById = new Map(projectFolders.map((folder) => [folder.id, folder]));
     const links = projectIds.length
       ? await this.projectProcesses.find({
           where: { projectId: In(projectIds) },
@@ -253,6 +266,15 @@ export class ProjectController {
               `${link.projectId}:${link.resourceId}`,
             ) ?? null,
         })),
+        folders: folderLinks
+          .filter((link) => link.projectId === project.id)
+          .map((link) => {
+            const folder = folderById.get(link.folderId);
+            return folder
+              ? { resourceId: folder.id, name: folder.name, parentId: folder.parentId ?? null }
+              : null;
+          })
+          .filter((folder): folder is { resourceId: string; name: string; parentId: string | null } => folder !== null),
       })),
     };
   }
@@ -665,6 +687,27 @@ export class ProjectController {
       ...link,
       resource: byId.get(link.resourceId) ?? null,
     }));
+  }
+
+  @Post(':projectId/folders')
+  @UseAcl([UserGroup.RW])
+  async linkFolder(
+    @Param('projectId') projectId: string,
+    @Body() body: { resourceId?: string },
+    @Headers() headers: RequestHeaders,
+  ) {
+    const userId = this.projectResourceAccess.getAuthenticatedUserId(headers);
+    await this.assertProjectRole(projectId, headers, ProjectMemberRole.Modeler);
+    if (!body.resourceId) throw new BadRequestException('resourceId is required');
+    const folder = await this.resources.findOneBy({ id: body.resourceId });
+    if (!folder || folder.type !== ResourceTypeEnum.Folder) {
+      throw new BadRequestException('resourceId must identify an existing folder');
+    }
+    await this.dataSource.query(
+      'INSERT INTO project_folders ("projectId", "folderId", "createdBy") VALUES ($1, $2, $3) ON CONFLICT ("projectId", "folderId") DO NOTHING',
+      [projectId, body.resourceId, userId],
+    );
+    return { projectId, resourceId: body.resourceId };
   }
 
   @Post(':projectId/processes')
