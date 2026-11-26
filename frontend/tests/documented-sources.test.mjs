@@ -82,13 +82,19 @@ test('unlinked BPMN objects remain available directly in the association column'
   assert.doesNotMatch(inventory, /const importLegacyReference = async/);
 });
 
-test('BPMN associations are limited to unlinked data objects and stores in the active process', async () => {
+test('BPMN associations are limited to data stores in the active process', async () => {
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
 
   assert.match(inventory, /filter\(reference => reference\.resourceId === resourceId\)/);
   assert.match(inventory, /unlinkedReferences\.find\(item => item\.elementId === elementId\)/);
   assert.match(inventory, /elementType: reference\.elementType/);
-  assert.match(inventory, /type BpmnDataType = 'dataObjectReference' \| 'dataStoreReference'/);
+  assert.match(inventory, /type BpmnDataType = 'dataObjectReference' \| 'dataStoreReference'/, 'legacy data-object links remain displayable');
+  assert.match(inventory, /documented-sources\?resourceId=\$\{encodeURIComponent\(resourceId\)\}/);
+  assert.match(controller, /const BPMN_DOCUMENTED_DATA_TYPES = new Set\(\['dataStoreReference'\]\)/);
+  assert.match(controller, /const supported = new Set\(\['dataStoreReference'\]\)/);
+  assert.match(controller, /@Query\('resourceId'\) requestedResourceId\?: string/);
+  assert.match(controller, /Only BPMN data stores can be associated with documented sources/);
 });
 
 test('unlinking a BPMN object removes only its reference, not the documented source', async () => {
