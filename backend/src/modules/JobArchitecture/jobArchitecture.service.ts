@@ -13,6 +13,7 @@ import { ProjectRaciActorTypeOrmEntity } from '../ProjectContext/infrastructure/
 import { ProjectRaciEntryTypeOrmEntity } from '../ProjectContext/infrastructure/entities/projectRaciEntry.ormEntity';
 import { CompetencyBlockTypeOrmEntity } from './infrastructure/entities/competencyBlock.ormEntity';
 import { CompetencyTypeOrmEntity } from './infrastructure/entities/competency.ormEntity';
+import { CompetencyBlockCompetencyTypeOrmEntity } from './infrastructure/entities/competencyBlockCompetency.ormEntity';
 import { JobFunctionCompetencyBlockTypeOrmEntity } from './infrastructure/entities/jobFunctionCompetencyBlock.ormEntity';
 import { JobFunctionTypeOrmEntity } from './infrastructure/entities/jobFunction.ormEntity';
 import {
@@ -41,6 +42,8 @@ export class JobArchitectureService {
     private readonly blocks: Repository<CompetencyBlockTypeOrmEntity>,
     @InjectRepository(CompetencyTypeOrmEntity)
     private readonly competencies: Repository<CompetencyTypeOrmEntity>,
+    @InjectRepository(CompetencyBlockCompetencyTypeOrmEntity)
+    private readonly blockCompetencies: Repository<CompetencyBlockCompetencyTypeOrmEntity>,
     @InjectRepository(JobFunctionCompetencyBlockTypeOrmEntity)
     private readonly functionBlocks: Repository<JobFunctionCompetencyBlockTypeOrmEntity>,
     @InjectRepository(ProjectJobPositionTypeOrmEntity)
@@ -66,7 +69,7 @@ export class JobArchitectureService {
   ) {}
 
   async listFunctions() {
-    const [functions, links, blocks, competencies] = await Promise.all([
+    const [functions, links, blocks, competencies, competencyLinks] = await Promise.all([
       this.functions.find({
         where: { active: true },
         order: { name: 'ASC' },
@@ -80,14 +83,18 @@ export class JobArchitectureService {
         where: { active: true },
         order: { code: 'ASC' },
       }),
+      this.blockCompetencies.find({ order: { sortOrder: 'ASC' } }),
     ]);
 
     const blockById = new Map(blocks.map((block) => [block.id, block]));
+    const competencyById = new Map(competencies.map((item) => [item.id, item]));
     const competenciesByBlock = new Map<string, CompetencyTypeOrmEntity[]>();
-    for (const competency of competencies) {
-      const current = competenciesByBlock.get(competency.blockId) ?? [];
+    for (const link of competencyLinks) {
+      const competency = competencyById.get(link.competencyId);
+      if (!competency) continue;
+      const current = competenciesByBlock.get(link.blockId) ?? [];
       current.push(competency);
-      competenciesByBlock.set(competency.blockId, current);
+      competenciesByBlock.set(link.blockId, current);
     }
 
     const linksByFunction = new Map<
@@ -175,39 +182,32 @@ export class JobArchitectureService {
     }
   }
 
+  async listCompetencies() {
+    return this.competencies.find({ order: { category: 'ASC', code: 'ASC' } });
+  }
+
   async createCompetency(
-    blockId: string,
     input: {
       code?: string;
       name?: string;
       description?: string | null;
-      referenceLevel?: number | null;
-      category?: 'technical' | 'methodological' | 'behavioral';
+      category?: 'technical' | 'methodological' | 'functional' | 'behavioral';
     },
     headers: RequestHeaders,
   ) {
-    const block = await this.blocks.findOne({
-      where: { id: blockId, active: true },
-    });
-    if (!block) throw new NotFoundException('Competency block not found');
-
     const code = this.requiredText(input.code, 'code', 64).toUpperCase();
     const name = this.requiredText(input.name, 'name', 255);
-    const referenceLevel = this.validateLevel(input.referenceLevel);
     const category = input.category ?? 'technical';
-    if (!['technical', 'methodological', 'behavioral'].includes(category)) {
+    if (!['technical', 'methodological', 'functional', 'behavioral'].includes(category)) {
       throw new BadRequestException('Competency category is invalid');
     }
     const createdBy = this.projectAccess.getAuthenticatedUserId(headers);
-
     try {
       return await this.competencies.save(
         this.competencies.create({
-          blockId,
           code,
           name,
           description: input.description?.trim() || null,
-          referenceLevel,
           category,
           active: true,
           createdBy,
@@ -215,9 +215,32 @@ export class JobArchitectureService {
       );
     } catch (error) {
       if ((error as { code?: string }).code === '23505') {
-        throw new ConflictException(
-          'A competency with this code already exists in this block',
-        );
+        throw new ConflictException('A competency with this code already exists');
+      }
+      throw error;
+    }
+  }
+
+  async addCompetencyToBlock(
+    blockId: string,
+    competencyId: string,
+    headers: RequestHeaders,
+  ) {
+    const [block, competency] = await Promise.all([
+      this.blocks.findOne({ where: { id: blockId, active: true } }),
+      this.competencies.findOne({ where: { id: competencyId, active: true } }),
+    ]);
+    if (!block) throw new NotFoundException('Competency block not found');
+    if (!competency) throw new NotFoundException('Active competency not found');
+    const createdBy = this.projectAccess.getAuthenticatedUserId(headers);
+    const sortOrder = await this.blockCompetencies.count({ where: { blockId } });
+    try {
+      return await this.blockCompetencies.save(
+        this.blockCompetencies.create({ blockId, competencyId, sortOrder, createdBy }),
+      );
+    } catch (error) {
+      if ((error as { code?: string }).code === '23505') {
+        throw new ConflictException('This competency is already assigned to the block');
       }
       throw error;
     }
@@ -574,63 +597,39 @@ export class JobArchitectureService {
     positionId: string,
     headers: RequestHeaders,
   ) {
-    await this.projectAccess.assertProjectRole(
-      projectId,
-      headers,
-      ProjectMemberRole.Viewer,
-    );
-    const position = await this.positions.findOne({
-      where: { id: positionId, projectId, active: true },
-    });
-    if (!position) {
-      throw new NotFoundException('Project job position not found');
-    }
+    await this.projectAccess.assertProjectRole(projectId, headers, ProjectMemberRole.Viewer);
+    const position = await this.positions.findOne({ where: { id: positionId, projectId, active: true } });
+    if (!position) throw new NotFoundException('Project job position not found');
 
-    const positionBlocks = await this.positionBlocks.find({
-      where: { positionId },
-    });
+    const positionBlocks = await this.positionBlocks.find({ where: { positionId } });
     if (!positionBlocks.length) return [];
     const blockIds = positionBlocks.map((block) => block.blockId);
-    const [competencies, overrides] = await Promise.all([
-      this.competencies.find({
-        where: blockIds.map((blockId) => ({ blockId, active: true })),
-        order: { code: 'ASC' },
-      }),
+    const [links, competencies, overrides] = await Promise.all([
+      this.blockCompetencies.find({ where: blockIds.map((blockId) => ({ blockId })), order: { sortOrder: 'ASC' } }),
+      this.competencies.find({ where: { active: true }, order: { code: 'ASC' } }),
       this.competencyRequirements.find({ where: { positionId } }),
     ]);
-    const blockById = new Map(
-      positionBlocks.map((block) => [block.blockId, block]),
-    );
-    const overrideByCompetencyId = new Map(
-      overrides.map((override) => [override.competencyId, override]),
-    );
+    const competencyById = new Map(competencies.map((item) => [item.id, item]));
+    const blockById = new Map(positionBlocks.map((block) => [block.blockId, block]));
+    const overrideByKey = new Map(overrides.map((item) => [`${item.blockId}:${item.competencyId}`, item]));
 
-    return competencies.map((competency) => {
-      const block = blockById.get(competency.blockId);
-      const override = overrideByCompetencyId.get(competency.id);
-      const isApplicable =
-        block !== undefined &&
-        ['required', 'optional'].includes(block.applicability);
-      const requiredLevel = isApplicable
-        ? (override?.requiredLevel ??
-          block.requiredLevel ??
-          competency.referenceLevel)
-        : null;
-      const levelSource =
-        override?.requiredLevel != null
-          ? 'position'
-          : block?.requiredLevel != null
-            ? 'block'
-            : 'function';
-
-      return {
+    return links.flatMap((link) => {
+      const competency = competencyById.get(link.competencyId);
+      const block = blockById.get(link.blockId);
+      if (!competency || !block) return [];
+      const override = overrideByKey.get(`${link.blockId}:${link.competencyId}`);
+      const isApplicable = ['required', 'optional'].includes(block.applicability);
+      const requiredLevel = isApplicable ? (override?.requiredLevel ?? block.requiredLevel) : null;
+      const levelSource = override?.requiredLevel != null ? 'position' : block.requiredLevel != null ? 'block' : 'function';
+      return [{
         ...competency,
-        applicability: block?.applicability ?? 'not_assessed',
-        blockRequiredLevel: block?.requiredLevel ?? null,
+        blockId: link.blockId,
+        applicability: block.applicability,
+        blockRequiredLevel: block.requiredLevel ?? null,
         competencyLevelOverride: override?.requiredLevel ?? null,
         requiredLevel,
         levelSource: isApplicable ? levelSource : 'not_applicable',
-      };
+      }];
     });
   }
 
@@ -639,118 +638,60 @@ export class JobArchitectureService {
     positionId: string,
     input: {
       competencies?: Array<{
+        blockId?: string;
         competencyId?: string;
         requiredLevel?: number | null;
       }>;
     },
     headers: RequestHeaders,
   ) {
-    const userId = await this.projectAccess.assertProjectRole(
-      projectId,
-      headers,
-      ProjectMemberRole.Modeler,
-    );
-    const position = await this.positions.findOne({
-      where: { id: positionId, projectId, active: true },
-    });
-    if (!position) {
-      throw new NotFoundException('Project job position not found');
-    }
-    if (!Array.isArray(input.competencies)) {
-      throw new BadRequestException('competencies must be an array');
-    }
+    const userId = await this.projectAccess.assertProjectRole(projectId, headers, ProjectMemberRole.Modeler);
+    const position = await this.positions.findOne({ where: { id: positionId, projectId, active: true } });
+    if (!position) throw new NotFoundException('Project job position not found');
+    if (!Array.isArray(input.competencies)) throw new BadRequestException('competencies must be an array');
 
-    const positionBlocks = await this.positionBlocks.find({
-      where: { positionId },
-    });
-    const blockById = new Map(
-      positionBlocks.map((block) => [block.blockId, block]),
-    );
+    const positionBlocks = await this.positionBlocks.find({ where: { positionId } });
+    const blockById = new Map(positionBlocks.map((block) => [block.blockId, block]));
     const seen = new Set<string>();
     const normalized = input.competencies.map((item, index) => {
-      const competencyId = this.requiredText(
-        item.competencyId,
-        `competencies[${index}].competencyId`,
-        36,
-      );
-      if (seen.has(competencyId)) {
-        throw new BadRequestException(
-          `Competency ${competencyId} is duplicated`,
-        );
-      }
-      seen.add(competencyId);
-      return {
-        competencyId,
-        requiredLevel: this.validateLevel(item.requiredLevel),
-      };
+      const blockId = this.requiredText(item.blockId, `competencies[${index}].blockId`, 36);
+      const competencyId = this.requiredText(item.competencyId, `competencies[${index}].competencyId`, 36);
+      const key = `${blockId}:${competencyId}`;
+      if (seen.has(key)) throw new BadRequestException(`Competency ${competencyId} is duplicated in block ${blockId}`);
+      seen.add(key);
+      return { blockId, competencyId, requiredLevel: this.validateLevel(item.requiredLevel) };
     });
 
-    const competencyRows = normalized.length
-      ? await this.competencies.find({
-          where: normalized.map((item) => ({
-            id: item.competencyId,
-            active: true,
-          })),
-        })
-      : [];
-    const competencyById = new Map(
-      competencyRows.map((competency) => [competency.id, competency]),
-    );
+    const competencyIds = [...new Set(normalized.map((item) => item.competencyId))];
+    const competencyRows = competencyIds.length ? await this.competencies.find({ where: competencyIds.map((id) => ({ id, active: true })) }) : [];
+    const competencyById = new Map(competencyRows.map((item) => [item.id, item]));
+    const links = normalized.length ? await this.blockCompetencies.find({ where: normalized.map(({ blockId, competencyId }) => ({ blockId, competencyId })) }) : [];
+    const linkKeys = new Set(links.map((item) => `${item.blockId}:${item.competencyId}`));
+
     const validated = normalized.map((item) => {
-      const competency = competencyById.get(item.competencyId);
-      if (!competency) {
-        throw new NotFoundException(
-          `Active competency ${item.competencyId} not found`,
-        );
-      }
-      const block = blockById.get(competency.blockId);
+      const block = blockById.get(item.blockId);
       if (!block || !['required', 'optional'].includes(block.applicability)) {
-        throw new BadRequestException(
-          'Competency overrides require a required or optional position block',
-        );
+        throw new BadRequestException('Competency overrides require a required or optional position block');
       }
-      return {
-        competencyId: competency.id,
-        blockId: competency.blockId,
-        requiredLevel: item.requiredLevel,
-      };
+      if (!competencyById.has(item.competencyId) || !linkKeys.has(`${item.blockId}:${item.competencyId}`)) {
+        throw new BadRequestException('The competency is not assigned to the specified competency block');
+      }
+      return item;
     });
 
     return this.dataSource.transaction(async (manager) => {
-      const repository = manager.getRepository(
-        PositionCompetencyRequirementTypeOrmEntity,
-      );
+      const repository = manager.getRepository(PositionCompetencyRequirementTypeOrmEntity);
       const existingRows = await repository.find({ where: { positionId } });
-      const existingByCompetencyId = new Map(
-        existingRows.map((row) => [row.competencyId, row]),
-      );
-      const rowsToSave = validated
-        .filter((item) => item.requiredLevel !== null)
-        .map((item) => {
-          const existing = existingByCompetencyId.get(item.competencyId);
-          return existing
-            ? repository.merge(existing, {
-                requiredLevel: item.requiredLevel,
-                createdBy: userId,
-              })
-            : repository.create({
-                positionId,
-                blockId: item.blockId,
-                competencyId: item.competencyId,
-                requiredLevel: item.requiredLevel,
-                createdBy: userId,
-              });
-        });
-      const inheritedCompetencyIds = validated
-        .filter((item) => item.requiredLevel === null)
-        .map((item) => item.competencyId);
-      if (inheritedCompetencyIds.length) {
-        await repository.delete(
-          inheritedCompetencyIds.map((competencyId) => ({
-            positionId,
-            competencyId,
-          })),
-        );
+      const existingByKey = new Map(existingRows.map((row) => [`${row.blockId}:${row.competencyId}`, row]));
+      const rowsToSave = validated.filter((item) => item.requiredLevel !== null).map((item) => {
+        const existing = existingByKey.get(`${item.blockId}:${item.competencyId}`);
+        return existing
+          ? repository.merge(existing, { requiredLevel: item.requiredLevel })
+          : repository.create({ positionId, ...item, createdBy: userId });
+      });
+      const inherited = validated.filter((item) => item.requiredLevel === null);
+      for (const item of inherited) {
+        await repository.delete({ positionId, blockId: item.blockId, competencyId: item.competencyId });
       }
       return rowsToSave.length ? repository.save(rowsToSave) : [];
     });
