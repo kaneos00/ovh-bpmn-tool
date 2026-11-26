@@ -72,14 +72,14 @@ test('a documented information row can be created before it has a BPMN associati
   assert.match(controller, /if \(!reference\) return \{ \.\.\.source, references: \[\] \}/);
 });
 
-test('legacy BPMN documented metadata can be imported from the process inventory', async () => {
+test('unlinked BPMN objects remain available directly in the association column', async () => {
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
-  assert.match(inventory, /Objets BPMN non inscrits au référentiel/);
-  assert.match(inventory, /const importLegacyReference = async/);
-  assert.match(inventory, /description: reference\.description \?\? ''/);
-  assert.match(inventory, /authorizedPeople: reference\.authorizedPeople \?\? ''/);
-  assert.match(inventory, /resourceId: reference\.resourceId/);
-  assert.match(inventory, /elementType: reference\.elementType/);
+  assert.match(inventory, /placeholder="Associer un objet BPMN…"/);
+  assert.match(inventory, /unlinkedReferences\.map\(item =>/);
+  assert.match(inventory, /const associate = async/);
+  assert.match(inventory, /objet\(s\) BPMN disponible\(s\) pour une association dans ce processus/);
+  assert.doesNotMatch(inventory, /Objets BPMN non inscrits au référentiel/);
+  assert.doesNotMatch(inventory, /const importLegacyReference = async/);
 });
 
 test('BPMN associations are limited to unlinked data objects and stores in the active process', async () => {
