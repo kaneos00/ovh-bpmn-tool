@@ -57,7 +57,7 @@ export type SharedDataGridProps<TData extends object> = {
   getRowId?: (data: TData) => string;
   selection?: SelectionConfig;
   editing?: boolean;
-  editType?: 'fullRow' | 'cell';
+  editType?: 'fullRow';
   advancedFilter?: AdvancedFilterConfig<TData>;
   columnFilters?: boolean;
   quickFilterText?: string;
