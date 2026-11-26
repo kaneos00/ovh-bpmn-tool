@@ -338,11 +338,13 @@ export const SharedDataGrid = <TData extends object>({
       {(advancedFilter || quickSearch) && (
         <div className="shared-data-grid-toolbar">
           {quickSearch && <input className="shared-data-grid-search" type="search" placeholder={quickSearchPlaceholder} value={internalQuickSearch} onChange={(event) => setInternalQuickSearch(event.target.value)} />}
-          <button type="button" className={filterOpen ? 'is-active' : ''} onClick={() => setFilterOpen((value) => !value)}>
-            {advancedFilter.label ?? 'Filtrage avancé'}
-            {appliedFilter && <span className="shared-data-grid-filter-dot" aria-label="Filtre appliqué" />}
-          </button>
-          {appliedFilter && <button type="button" onClick={() => { setAppliedFilter(null); setDraftFilter(createGroup(advancedFilter.fields)); }}>Effacer le filtre</button>}
+          {advancedFilter && <>
+            <button type="button" className={filterOpen ? 'is-active' : ''} onClick={() => setFilterOpen((value) => !value)}>
+              {advancedFilter.label ?? 'Filtrage avancé'}
+              {appliedFilter && <span className="shared-data-grid-filter-dot" aria-label="Filtre appliqué" />}
+            </button>
+            {appliedFilter && <button type="button" onClick={() => { setAppliedFilter(null); setDraftFilter(createGroup(advancedFilter.fields)); }}>Effacer le filtre</button>}
+          </>}
         </div>
       )}
       {advancedFilter && filterOpen && (
