@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   AllCommunityModule,
   ModuleRegistry,
@@ -6,6 +6,7 @@ import {
   type ColDef,
   type GridApi,
   type GridReadyEvent,
+  type GetRowIdParams,
   type RowClickedEvent,
   type SelectionChangedEvent,
   type CellValueChangedEvent,
@@ -334,6 +335,22 @@ export const SharedDataGrid = <TData extends object>({
       return defaultColDef?.suppressKeyboardEvent?.(params) ?? false;
     },
   }), [defaultColDef, editing, columnFilters]);
+  const gridGetRowId = useMemo(
+    () => getRowId ? (params: GetRowIdParams<TData>) => getRowId(params.data) : undefined,
+    [getRowId],
+  );
+  const handleTabToNextCell = useCallback((params: TabToNextCellParams<TData>) => {
+    if (!params.editing) return params.nextCellPosition ?? false;
+    const columns = params.api.getAllDisplayedColumns();
+    if (!columns.length) return false;
+    const currentIndex = columns.findIndex((column) => column.getColId() === params.previousCellPosition.column.getColId());
+    const nextIndex = (currentIndex + (params.backwards ? -1 : 1) + columns.length) % columns.length;
+    return {
+      rowIndex: params.previousCellPosition.rowIndex,
+      rowPinned: params.previousCellPosition.rowPinned,
+      column: columns[nextIndex],
+    };
+  }, []);
   const effectiveSelection = useMemo(() => selection ?? (editing ? { mode: 'multiRow' as const } : undefined), [selection, editing]);
   const rowSelection = useMemo(() => effectiveSelection ? ({
     mode: effectiveSelection.mode,
@@ -371,10 +388,9 @@ export const SharedDataGrid = <TData extends object>({
           rowData={visibleRows}
           columnDefs={safeColumnDefs}
           defaultColDef={mergedDefaultColDef}
-          getRowId={getRowId ? (params) => getRowId(params.data) : undefined}
+          getRowId={gridGetRowId}
           rowSelection={rowSelection}
           editType={editing ? editType : undefined}
-          quickFilterText={undefined}
           loading={loading}
           overlayNoRowsTemplate={emptyMessage}
           pagination={pagination}
@@ -383,18 +399,7 @@ export const SharedDataGrid = <TData extends object>({
           onSelectionChanged={onSelectionChanged}
           onRowClicked={onRowClicked}
           onCellValueChanged={onCellValueChanged}
-          tabToNextCell={editing && editType === 'fullRow' ? (params: TabToNextCellParams<TData>) => {
-            if (!params.editing) return params.nextCellPosition ?? false;
-            const columns = params.api.getAllDisplayedColumns();
-            if (!columns.length) return false;
-            const currentIndex = columns.findIndex((column) => column.getColId() === params.previousCellPosition.column.getColId());
-            const nextIndex = (currentIndex + (params.backwards ? -1 : 1) + columns.length) % columns.length;
-            return {
-              rowIndex: params.previousCellPosition.rowIndex,
-              rowPinned: params.previousCellPosition.rowPinned,
-              column: columns[nextIndex],
-            };
-          } : undefined}
+          tabToNextCell={editing && editType === 'fullRow' ? handleTabToNextCell
         />
       </div>
     </section>
