@@ -65,7 +65,7 @@ export const action = async ({
         await apiClient.post(`/resources/${createdResourceId}/contents`, { content: initialBpmn });
       } catch (draftError) {
         try { await deleteResource(createdResourceId); } catch { /* best-effort cleanup */ }
-        throw new Error('Le brouillon initial du processus n’a pas pu être créé : ' + (draftError instanceof Error ? draftError.message : 'erreur inconnue'));
+        throw new Error(`Le brouillon initial du processus n’a pas pu être créé : ${draftError instanceof Error ? draftError.message : 'erreur inconnue'}`);
       }
     }
 
