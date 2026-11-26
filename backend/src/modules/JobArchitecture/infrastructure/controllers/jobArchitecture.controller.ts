@@ -74,6 +74,22 @@ export class JobArchitectureController {
     return this.jobArchitecture.createCompetency(body, headers);
   }
 
+  @Patch('job-architecture/competencies/:competencyId')
+  @UseAcl([UserGroup.Admin])
+  updateCompetency(
+    @Param('competencyId') competencyId: string,
+    @Body()
+    body: {
+      code?: string;
+      name?: string;
+      description?: string | null;
+      category?: 'technical' | 'methodological' | 'functional' | 'behavioral';
+      active?: boolean;
+    },
+  ) {
+    return this.jobArchitecture.updateCompetency(competencyId, body);
+  }
+
   @Post('job-architecture/competency-blocks/:blockId/competencies/:competencyId')
   @UseAcl([UserGroup.Admin])
   addCompetencyToBlock(
