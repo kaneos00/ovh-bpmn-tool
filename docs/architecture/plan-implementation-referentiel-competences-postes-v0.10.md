@@ -180,3 +180,8 @@ La remise à zéro de la base de test porte sur les définitions de compétences
 - Exigences individuelles projet recréées après la migration ; niveaux portés par ces associations.
 - Tables des quatre blocs de missions et de leurs activités/compétences créées séparément.
 - Sauvegarde de la base de test, garde anti-production, migration, tests backend/frontend puis CI.
+
+
+## 10. État de la migration SQL
+
+Le fichier `backend/migrations/20261126_v0_10_competency_catalog_reset.sql` a été ajouté avec garde par marqueur explicite et nom exact de base. Il n'est pas encore exécuté ni intégré au Compose de Coolify : le backend courant dépend toujours de l'ancien modèle. Le branchement de la migration doit accompagner les changements d'entités et de services.
