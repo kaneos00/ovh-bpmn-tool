@@ -26,7 +26,7 @@ Socle réutilisable dans toute l'organisation :
 - fiches de poste de référence ;
 - compétences et niveaux attendus.
 
-Les blocs de missions décrivent les domaines de contribution habituels. Ils peuvent contenir des activités descriptives et référencer les compétences attendues. Les compétences et leurs niveaux cibles restent structurés séparément des descriptions d'activités.
+Les blocs de missions décrivent les domaines de contribution habituels. Ils peuvent contenir des activités descriptives et référencer les compétences attendues. Les compétences et leurs niveaux cibles restent structurés séparément des descriptions d'activités. Chaque compétence appartient à une seule famille, sans étiquette secondaire : **Méthodologique**, **Technique**, **Fonctionnelle** ou **Savoir-être**. Le référentiel des compétences est administré dans une rubrique dédiée, distincte de la liste des postes.
 
 Une fiche de poste assemble les blocs pertinents et précise leur portée pour le poste. Une adaptation locale ne doit pas modifier silencieusement le bloc commun : elle doit être identifiable comme une déclinaison ou une surcharge propre au poste.
 
@@ -64,10 +64,17 @@ Règles de composition retenues pour la première version de l'interface :
 - Chaque bloc possède un intitulé et une description courte.
 - Chaque bloc contient de **1 à 4 activités** descriptives. Elles expriment les contributions habituelles attendues dans le poste. Elles ne constituent pas un second catalogue de tâches opérationnelles : les tâches exécutables et leurs enchaînements restent modélisés dans BPMN.
 - Chaque bloc référence de **1 à 4 compétences** du référentiel commun.
+- Une compétence appartient à une et une seule famille : Méthodologique, Technique, Fonctionnelle ou Savoir-être. Aucune étiquette secondaire ni famille multiple n'est prévue.
+- Le poste peut également référencer directement des compétences transversales, indépendamment des quatre blocs. Ces associations poste ↔ compétence ont leur propre niveau attendu et ne constituent pas un cinquième bloc.
 - Une même compétence peut être associée à plusieurs blocs d'un même poste et à plusieurs postes. Il s'agit d'une référence partagée, pas d'une copie de la compétence.
 - Le niveau attendu (1 à 5) est porté par l'association entre une compétence et un bloc/poste, et non par la définition globale de la compétence. Une même compétence peut donc avoir un niveau attendu différent selon le bloc ou le poste.
 - Le niveau attendu est affiché et modifié avec un slider cranté à cinq positions : **1 Notions, 2 Élémentaire, 3 Opérationnel, 4 Avancé, 5 Expert**. Le chiffre, le libellé et une courte aide contextuelle restent visibles.
 - La création d'une compétence peut être déclenchée depuis la page du poste, mais crée un élément dans le référentiel commun après contrôle des doublons. La compétence nouvellement créée peut ensuite être réutilisée dans d'autres blocs et postes.
+- Le référentiel commun des compétences dispose de sa propre liste d'administration : recherche, filtres par famille et statut, consultation, création et modification.
+- Une compétence comporte un intitulé, une description courte, une famille unique et un statut actif/inactif. La famille est choisie selon la nature principale de la capacité ; si deux natures sont réellement distinctes, la compétence est reformulée ou décomposée.
+- Avant création, le système signale les compétences proches pour éviter les doublons ; aucune fusion automatique n'est effectuée.
+- Une compétence inactive reste conservée pour l'historique et les fiches qui l'utilisent, mais n'est plus proposée par défaut pour de nouvelles associations. Elle peut être réactivée.
+- Une compétence référencée ne peut pas être supprimée physiquement ; elle doit être désactivée. Une compétence sans aucune référence peut être supprimée.
 - La suppression d'une association compétence ↔ bloc ne supprime pas la compétence du référentiel. Une compétence déjà utilisée ne doit pas être supprimée physiquement ; elle peut être désactivée en conservant l'historique.
 
 La page d'administration du poste regroupe les informations générales, les quatre blocs, leurs activités et leurs compétences. Les ajouts et modifications sont effectués en ligne dans cette page ; l'enregistrement du poste est global. La fiche de poste consultable est une vue de synthèse générée à partir de ces données.
@@ -142,8 +149,9 @@ Cette table est un cadrage basé sur l'inspection du code et des migrations de l
 1. Créer ou sélectionner un bloc de missions commun.
 2. Décrire sa finalité et ses activités habituelles.
 3. Associer les compétences et niveaux cibles.
-4. Composer une fiche de poste à partir des blocs.
-5. Créer ou maintenir les postes types et leurs fiches de référence.
+4. Maintenir le référentiel commun des compétences et leurs quatre familles exclusives.
+5. Composer une fiche de poste à partir des blocs, puis associer les compétences transversales.
+6. Créer ou maintenir les postes types et leurs fiches de référence.
 
 ### Administration de l'organisation générale
 1. Créer les unités et postes.
