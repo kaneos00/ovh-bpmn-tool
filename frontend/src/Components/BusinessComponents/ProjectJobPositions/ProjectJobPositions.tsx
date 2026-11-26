@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { type ColDef, type ICellRendererParams } from 'ag-grid-community';
+import React, { useCallback, useMemo, useState } from 'react';
+import { type ColDef, type ICellRendererParams, type RowClickedEvent } from 'ag-grid-community';
 import { SharedDataGrid, type GridFilterField } from '../../GenericComponents/SharedDataGrid';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import {
@@ -179,6 +179,12 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
     ] },
     { field: 'description', label: 'Description', type: 'text' },
   ], []);
+  const getPositionRowId = useCallback((row: PositionGridRow) => row.id, []);
+  const handlePositionRowClicked = useCallback((event: RowClickedEvent<PositionGridRow>) => {
+    if (!event.data) return;
+    setSelectedPositionId(event.data.id);
+    setError('');
+  }, []);
   const selectedPosition = (positionsQuery.data ?? []).find(item => item.id === selectedPositionId) ?? null;
   const selectedPositionValidation = diagnosticsQuery.data?.positionValidation.find(
     item => item.positionId === selectedPositionId,
@@ -398,11 +404,12 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
               <SharedDataGrid<PositionGridRow>
                 rowData={gridRows}
                 columnDefs={gridColumns}
-                getRowId={row => row.id}
-                advancedFilter={{ fields: gridFilterFields }}
+                advancedFilter={{ fields: gridFilterFields, label: 'Filtre avancé' }}
+                quickSearch
+                getRowId={getPositionRowId}
                 height={360}
                 emptyMessage="Aucun poste organisationnel pour ce projet."
-                onRowClicked={event => { if (!event.data) return; setSelectedPositionId(event.data.id); setError(''); }}
+                onRowClicked={handlePositionRowClicked}
               />
             )}
             {!positionsQuery.isLoading && !positionsQuery.isError && !gridRows.length &&
