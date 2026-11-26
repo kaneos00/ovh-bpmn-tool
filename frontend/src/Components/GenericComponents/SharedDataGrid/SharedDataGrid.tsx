@@ -4,7 +4,6 @@ import {
   ModuleRegistry,
   themeQuartz,
   type ColDef,
-  type GridApi,
   type GridReadyEvent,
   type GetRowIdParams,
   type RowClickedEvent,
