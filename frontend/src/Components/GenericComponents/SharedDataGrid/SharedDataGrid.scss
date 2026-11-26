@@ -1,0 +1,9 @@
+.khi-shared-grid { --ag-font-family: Inter, system-ui, sans-serif; --ag-font-size: 12px; --ag-border-color: var(--joy-palette-neutral-outlinedBorder, #d9dfe7); --ag-header-background-color: var(--joy-palette-background-level1, #f7f8fa); --ag-row-hover-color: var(--joy-palette-background-level1, #f3f6fa); }
+.khi-shared-grid .ag-root-wrapper { border-radius: 8px; }
+.khi-shared-grid .ag-header-cell-text { font-weight: 650; }
+.khi-shared-grid .ag-row-selected .ag-cell { background: var(--joy-palette-primary-softBg, #e8f2fc) !important; }
+.khi-shared-grid .ag-row-editing .ag-cell { background: var(--joy-palette-background-level1, #f7f9fb) !important; }
+.khi-shared-grid-selection-slot { min-height: 48px; display: flex; align-items: stretch; }
+.khi-shared-grid-column-option { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 5px; font-size: 12px; cursor: pointer; }
+.khi-shared-grid-column-option:hover { background: var(--joy-palette-background-level1, #f3f6fa); }
+.khi-shared-grid-column-option input { accent-color: var(--joy-palette-primary-500, #2878b9); }
