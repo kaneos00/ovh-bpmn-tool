@@ -150,10 +150,11 @@ const matchesFilter = <T extends object>(row: T, node: FilterNode, fields: Filte
     const field = fields.find(item => item.id === node.field);
     return !field || !ruleHasValue(node) || compareRule(row, node, field);
   }
-  if (!node.children.length) return true;
+  const activeChildren = node.children.filter(child => activeRuleCount(child) > 0);
+  if (!activeChildren.length) return true;
   return node.logic === 'AND'
-    ? node.children.every(child => matchesFilter(row, child, fields))
-    : node.children.some(child => matchesFilter(row, child, fields));
+    ? activeChildren.every(child => matchesFilter(row, child, fields))
+    : activeChildren.some(child => matchesFilter(row, child, fields));
 };
 
 const operatorsByType: Record<FilterField['type'], { value: string; label: string }[]> = {
@@ -332,9 +333,14 @@ export function SharedDataGrid<T extends object>({
   const [visibleColumns, setVisibleColumns] = useState<string[]>([]);
   const storageKey = useMemo(() => `khi-grid-column-state:${preferenceKey}`, [preferenceKey]);
 
+  const effectiveColumnDefs = useMemo(() => columnDefs.map((column, index) => ({
+    ...column,
+    colId: columnId(column, index),
+    editable: mode === 'edit' ? (column.editable ?? true) : false,
+  })), [columnDefs, mode]);
+
   const fields = useMemo<FilterField[]>(() => columnDefs
-    .map((column, index) => {
-      const id = columnId(column, index);
+    .map(column => {
       if (!column.field || column.filter === false) return null;
       return {
         id: String(column.field),
@@ -417,10 +423,9 @@ export function SharedDataGrid<T extends object>({
     };
   }, [selection]);
 
-  const filteredColumns = useMemo(() => columnDefs
+  const filteredColumns = useMemo(() => effectiveColumnDefs
     .map((column, index) => ({ column, id: columnId(column, index) }))
-    .filter(({ column }) => !column.hide)
-    .filter(({ column, id }) => String(column.headerName || column.field || id).toLocaleLowerCase('fr').includes(columnSearch.toLocaleLowerCase('fr'))), [columnDefs, columnSearch]);
+    .filter(({ column, id }) => String(column.headerName || column.field || id).toLocaleLowerCase('fr').includes(columnSearch.toLocaleLowerCase('fr'))), [effectiveColumnDefs, columnSearch]);
 
   const resetColumns = () => {
     try { window.localStorage.removeItem(storageKey); } catch { /* no-op */ }
@@ -501,7 +506,7 @@ export function SharedDataGrid<T extends object>({
                   ))}
                 </Stack>
                 <Stack direction="row" justifyContent="space-between" sx={{ mt: 1 }}>
-                  <Button size="sm" variant="plain" onClick={() => apiRef.current?.setColumnsVisible(columnDefs.map((column, index) => columnId(column, index)), true)}>Tout afficher</Button>
+                  <Button size="sm" variant="plain" onClick={() => apiRef.current?.setColumnsVisible(effectiveColumnDefs.map((column, index) => columnId(column, index)), true)}>Tout afficher</Button>
                   <Button size="sm" variant="plain" onClick={resetColumns}>Réinitialiser</Button>
                 </Stack>
               </Box>
@@ -537,7 +542,7 @@ export function SharedDataGrid<T extends object>({
         <AgGridReact<T>
           theme={themeQuartz}
           rowData={rowData}
-          columnDefs={columnDefs}
+          columnDefs={effectiveColumnDefs}
           getRowId={params => getRowId(params.data)}
           defaultColDef={{
             sortable: true,
@@ -547,7 +552,7 @@ export function SharedDataGrid<T extends object>({
             flex: 1,
             wrapText: true,
             autoHeight: true,
-            editable: mode === 'edit',
+            editable: false,
           }}
           rowSelection={selectionOptions}
           editType={mode === 'edit' ? 'fullRow' : undefined}
