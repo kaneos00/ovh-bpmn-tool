@@ -14,7 +14,7 @@ import type {
   IRowNode,
   RowSelectionOptions,
 } from 'ag-grid-community';
-import { Box, Button, Chip, Input, Option, Select, Stack, Typography } from '@mui/joy';
+import { Box, Button, Input, Option, Select, Stack, Typography } from '@mui/joy';
 import {
   AddOutlined,
   CloseOutlined,
@@ -82,12 +82,6 @@ const ruleHasValue = (rule: FilterRule) => ['empty', 'notEmpty'].includes(rule.o
 const activeRuleCount = (node: FilterNode): number => node.kind === 'rule'
   ? (ruleHasValue(node) ? 1 : 0)
   : node.children.reduce((total, child) => total + activeRuleCount(child), 0);
-
-const updateFilterNode = (node: FilterNode, id: string, update: (current: FilterNode) => FilterNode): FilterNode => {
-  if (node.id === id) return update(node);
-  if (node.kind === 'group') return { ...node, children: node.children.map(child => updateFilterNode(child, id, update)) };
-  return node;
-};
 
 const removeFilterNode = (node: FilterGroup, id: string): FilterGroup => ({
   ...node,
@@ -324,7 +318,6 @@ export function SharedDataGrid<T extends object>({
   quickFilter = true,
 }: SharedDataGridProps<T>) {
   const apiRef = useRef<GridApi<T> | null>(null);
-  const idCounter = useRef(0);
   const [search, setSearch] = useState('');
   const [showColumns, setShowColumns] = useState(false);
   const [columnSearch, setColumnSearch] = useState('');
