@@ -1,372 +1,158 @@
-# Articulation entre postes, rôles, activités, tâches et RACI
+# Modèle fonctionnel — postes, fiches de poste, organisation et projets
 
-**Statut :** cadrage fonctionnel — document de préparation V0.10  
-**Périmètre :** organisation, fiches de poste, rôles projet et responsabilités  
-**Principe :** ce document décrit le modèle fonctionnel cible. Il ne demande aucune modification du code de la V0.8.
+**Statut :** décision de cadrage pour la V0.10  
+**Périmètre :** référentiel organisationnel, organisation permanente, organisations projet et préparation du raccordement BPMN/RACI.  
+**Principe :** privilégier la réutilisation de JobArchitecture, Organization, ProjectContext, ProjectJobPosition et du moteur RACI existants. Pas de second annuaire, de second référentiel de tâches ni de second moteur RACI.
 
-## 1. Objectif
+## 1. Principe directeur
 
-KHI Flows doit permettre de décrire l'organisation permanente d'une structure, puis de préciser comment les personnes contribuent à un projet donné.
+Le modèle repose sur cinq responsabilités distinctes :
 
-Il faut éviter une confusion fréquente : considérer que la personne qui porte un intitulé de poste ou un rôle dans un projet est automatiquement responsable de toutes les activités associées au projet.
+1. **La fiche de poste décrit ce qu'un poste recouvre** : finalité, blocs de missions habituelles, activités descriptives, compétences et niveaux attendus, limites et interfaces.
+2. **La personne occupe un poste** dans l'organisation générale, avec une affectation datée et historisée. Un poste existe indépendamment de son titulaire et peut être vacant.
+3. **Le projet attribue une ou plusieurs missions à une personne** : il précise les blocs de missions ou contributions confiés dans ce contexte. Une personne peut recevoir plusieurs missions sur un même projet et sur plusieurs projets. Une mission projet peut être plus restreinte ou adaptée à la fiche de poste.
+4. **Les tâches décrivent le travail à réaliser**. Les tâches opérationnelles des processus restent dans BPMN ; l'organisation ne crée pas un deuxième catalogue de tâches.
+5. **Le RACI précise qui fait quoi** pour les activités/tâches du contexte concerné. Il reste la source de vérité des responsabilités opérationnelles ; le poste ou la mission ne déduit jamais automatiquement un R, un A, un C ou un I.
 
-Exemple : une personne désignée comme **chef de projet** sur un projet n'est pas nécessairement responsable de l'avant-vente. Si l'avant-vente est réalisée par un commercial ou un responsable de compte, cette responsabilité doit rester attribuée à ce dernier dans le RACI.
+Le vocabulaire « mission projet » désigne la contribution confiée à une personne dans un projet. « Rôle » peut être utilisé comme intitulé ou qualification de cette mission, mais ne constitue pas un objet métier distinct à maintenir en doublon.
 
-Le modèle doit donc distinguer :
-- ce qui relève de l'organisation permanente ;
-- les rôles nécessaires à un projet ;
-- les activités et tâches réellement réalisées ;
-- les responsabilités attribuées aux personnes pour ce projet.
+## 2. Les trois niveaux d'organisation
 
-## 2. Définitions : ne pas confondre les notions
+### Niveau 1 — Commun : référentiel organisationnel
 
-### 2.1 Poste
+Socle réutilisable dans toute l'organisation :
+- fonctions et blocs de missions communs ;
+- postes types ;
+- fiches de poste de référence ;
+- compétences et niveaux attendus.
 
-Le **poste** est une position dans l'organisation. Il décrit une fonction relativement stable, indépendamment d'un projet particulier.
+Les blocs de missions décrivent les domaines de contribution habituels. Ils peuvent contenir des activités descriptives et référencer les compétences attendues. Les compétences et leurs niveaux cibles restent structurés séparément des descriptions d'activités.
 
-Exemples :
-- Chef de projet
-- Directeur de projet
-- Consultant fonctionnel
-- Architecte technique
-- Responsable commercial
+Une fiche de poste assemble les blocs pertinents et précise leur portée pour le poste. Une adaptation locale ne doit pas modifier silencieusement le bloc commun : elle doit être identifiable comme une déclinaison ou une surcharge propre au poste.
 
-Un poste est généralement rattaché à une entité, une équipe ou un service. Une personne peut occuper un ou plusieurs postes selon l'organisation.
+### Niveau 2 — Organisation générale
 
-Le poste répond à la question : **« Quelle fonction cette personne occupe-t-elle dans l'organisation ? »**
+Représentation de l'organisation habituelle :
+- directions et services / unités organisationnelles ;
+- postes occupés ou vacants ;
+- personnes affectées aux postes ;
+- responsables hiérarchiques.
 
-### 2.2 Fiche de poste
+La hiérarchie relie les postes, pas les personnes. Les affectations des personnes aux postes sont datées et historisées. Le changement de titulaire ne modifie pas l'organigramme.
 
-La **fiche de poste** décrit le contenu attendu d'un poste dans l'organisation. Elle formalise notamment :
-- la finalité du poste ;
-- son périmètre et ses limites ;
-- ses missions et responsabilités habituelles ;
-- les activités auxquelles il contribue ;
-- ses interfaces avec les autres postes ;
-- les compétences et l'autonomie attendues.
+### Niveau 3 — Projet : organisation propre au projet
 
-Une fiche de poste décrit un cadre de référence. Elle ne constitue pas, à elle seule, une affectation à toutes les tâches d'un projet.
+Chaque projet peut composer sa propre organisation :
+- postes et fonctions mobilisés depuis le référentiel commun ;
+- postes ou rôles spécifiques au projet lorsque nécessaire ;
+- personnes affectées aux postes/rôles du projet ;
+- missions particulières confiées à ces personnes ;
+- responsabilités spécifiques, définies dans le RACI.
 
-### 2.3 Rôle
+**Présentation attendue : une vue graphique d'organigramme projet.** Elle affiche uniquement les postes/rôles utiles au projet, leurs liens hiérarchiques ou de coordination propres à ce projet, les titulaires et les éventuelles missions. Les postes communs sont visuellement identifiés comme issus du référentiel ; les postes spécifiques sont distingués. La hiérarchie projet ne modifie jamais l'organigramme général.
 
-Un **rôle** est une fonction attendue dans un contexte donné, par exemple dans un projet, un processus ou une instance de gouvernance.
+Un projet réutilise les postes communs sans les recopier. Il peut adapter le contexte, les missions confiées et les relations projet. Il peut également créer un poste spécifique, sans polluer le référentiel commun.
 
-Exemples de rôles projet :
-- Sponsor
-- Chef de projet
-- Responsable de lot
-- Référent métier
-- Responsable qualité
-- Contributeur technique
+## 3. Définitions métier
 
-Le rôle répond à la question : **« Quelle fonction cette personne doit-elle assurer dans ce contexte précis ? »**
+### Poste
+Position relativement stable dans l'organisation, indépendante de la personne qui l'occupe et des projets auxquels elle participe.
 
-Un rôle est donc contextuel. Une personne peut :
-- assurer plusieurs rôles dans un même projet, si cela est explicitement prévu ;
-- assurer des rôles différents d'un projet à l'autre ;
-- ne pas exercer, dans un projet, toutes les missions habituellement associées à son poste.
+### Fiche de poste
+Description formalisée du contenu attendu d'un poste : finalité, blocs de missions, activités habituelles, compétences et niveaux cibles, autonomie, limites, interfaces et rattachements.
 
-Un rôle projet ne doit pas être confondu avec un rôle global donnant des droits d'accès à l'application. Les permissions applicatives constituent une notion distincte.
+### Bloc de missions
+Ensemble cohérent de contributions relevant d'un domaine du poste (ex. CDP-1 Cadrage, CDP-2 Pilotage, CDP-3 Clôture). Il peut décrire des activités habituelles et les compétences requises. Il n'est pas un processus BPMN et ne constitue pas un catalogue parallèle de tâches opérationnelles.
 
-### 2.4 Activité
+### Mission projet
+Contribution confiée à une personne dans un projet, généralement par référence à un ou plusieurs blocs de missions de sa fiche de poste. Elle peut être partielle, adaptée ou spécifique au projet. Il n'est pas obligatoire qu'une mission projet corresponde à un bloc de la fiche de poste.
 
-Une **activité** est un ensemble cohérent de travaux contribuant à un résultat. Elle peut regrouper plusieurs tâches.
+### Activité et tâche
+Dans le référentiel de poste, les activités peuvent être décrites à titre indicatif. Dans l'exécution opérationnelle, les processus BPMN portent les activités/tâches modélisées. Pour éviter les doublons, les tâches opérationnelles restent dans BPMN. Le niveau exact de granularité est celui du modèle BPMN existant ; aucun second référentiel ne doit être créé.
 
-Exemples :
-- Avant-vente et contractualisation
-- Cadrage du projet
-- Planification et pilotage
-- Conception de la solution
-- Réalisation
-- Recette et validation
-- Livraison et clôture
+### RACI
+Répartition explicite des rôles R (réalise), A (redevable), C (consulté) et I (informé) sur les éléments de travail pertinents. Le RACI est contextuel au projet/processus et ne se déduit pas de l'intitulé du poste, de la Lane ou de la mission.
 
-L'activité répond à la question : **« Quel travail doit être réalisé ? »**
+## 4. Articulation avec BPMN et les processus propres aux projets
 
-Une activité peut mobiliser plusieurs rôles et plusieurs personnes. Elle peut également être partagée entre plusieurs équipes.
+Les processus BPMN peuvent être communs ou spécifiques à un projet. Les deux catégories doivent pouvoir contribuer au même référentiel de missions.
 
-### 2.5 Tâche
+- Une Lane peut être associée à un poste ou à un type d'acteur. Cette association qualifie le rôle organisationnel représenté par la Lane ; elle ne désigne pas nécessairement la personne qui exécute la tâche.
+- Les tâches contenues dans une Lane sont candidates au rattachement à un ou plusieurs blocs de missions compatibles avec le poste.
+- Le rattachement tâche BPMN ↔ bloc de mission est explicite et révisable. La Lane peut proposer les blocs compatibles, mais ne suffit pas toujours à déterminer le bloc : une Lane peut contenir des tâches de plusieurs missions.
+- Pour un processus spécifique à un projet, les rattachements peuvent reprendre ceux d'un processus commun lorsqu'une correspondance d'origine fiable existe ; ils peuvent aussi être adaptés ou définis spécifiquement.
+- Les identifiants de processus, de ressource BPMN, d'élément BPMN et de bloc de mission doivent être conservés. Ne pas s'appuyer uniquement sur les libellés des Lanes ou des tâches.
+- Les acteurs externes (client, fournisseur, partenaire) restent possibles dans les Lanes et ne doivent pas être forcés dans un poste interne.
 
-Une **tâche** est une unité de travail suffisamment précise pour être exécutée, suivie et, si nécessaire, affectée à une personne.
+Le RACI reste propre au contexte projet/processus. Le rapprochement vérifie ensuite si la personne désignée dans le RACI possède une mission projet couvrant la tâche. C'est un contrôle de cohérence, pas une affectation automatique.
 
-Exemples :
-- Recueillir le besoin du client
-- Préparer le planning initial
-- Organiser le comité de pilotage
-- Réaliser les tests d'intégration
-- Envoyer le livrable pour validation
+## 5. Règles de cohérence
 
-La tâche répond à la question : **« Quelle action concrète faut-il réaliser ? »**
+KHI-FLOWS pourra signaler notamment :
+- une tâche d'une Lane associée à un poste sans bloc de mission correspondant ;
+- une tâche rattachée à plusieurs blocs, lorsque cette multiplicité mérite validation ;
+- une mission projet sans tâche/processus associé, si un rattachement est attendu ;
+- une tâche couverte par un bloc mais sans responsabilité RACI ;
+- une personne RACI qui n'a pas de mission projet correspondante ;
+- une personne qui porte une responsabilité hors des missions qui lui ont été confiées ;
+- un niveau de compétence inférieur au niveau cible du bloc.
 
-Une tâche peut être rattachée à une activité et à un processus ou lot du projet. Elle possède son propre état d'avancement et peut avoir une ou plusieurs personnes affectées selon les règles de gestion retenues.
+Ces diagnostics ne doivent pas transformer automatiquement une situation atypique en erreur : une responsabilité ponctuelle hors mission ou une mission non matérialisée dans BPMN peut être légitime et doit pouvoir être justifiée.
 
-### 2.6 Responsabilité
+## 6. Réutilisation de l'architecture V0.10
 
-La **responsabilité** précise la contribution attendue d'une personne ou d'un rôle pour une activité ou une tâche.
-
-Elle ne découle pas automatiquement du titre du poste. Elle doit être explicitée dans le contexte concerné, notamment au moyen du RACI.
-
-### 2.7 Fonction et vocabulaire recommandé
-
-Le mot **fonction** est ambigu. Il peut désigner le poste occupé dans l'organisation (« fonction de chef de projet »), un domaine de contribution (« fonction de pilotage ») ou le rôle exercé dans un contexte. Pour le modèle KHI Flows, retenir :
-- **Poste** : position relativement stable dans l'organisation.
-- **Rôle** : contribution attendue dans un projet ou un autre contexte.
-- **Mission** : grand domaine de contribution durable décrit dans une fiche de poste.
-- **Fonction** : terme descriptif à éviter comme nom d'objet lorsque son sens n'est pas précisé.
-
-Dans le langage courant, « emploi », « poste » et « fonction occupée » peuvent être employés comme synonymes. « Casquette » est un terme informel proche de rôle. En revanche, poste et rôle ne sont pas interchangeables dans le modèle : une personne occupant le poste de chef de projet peut exercer un autre rôle sur un projet donné, et un rôle peut être tenu par une personne issue d'un autre poste.
-
-### 2.8 Activité, tâche et autres termes proches
-
-| Termes | Relation | Terme à privilégier dans KHI Flows |
+| Besoin métier | Élément existant à privilégier | Évolution à instruire |
 |---|---|---|
-| Activité / opération | Parfois proches, mais « opération » peut aussi désigner une action élémentaire | **Activité** pour un ensemble cohérent de travaux |
-| Tâche / action / travail élémentaire / work item | Termes proches ; une action décrit souvent le contenu d'une tâche | **Tâche** pour l'unité affectable et suivie |
-| Mission / activité | Une mission est un domaine durable de contribution ; une activité est un ensemble de travaux dans un contexte donné | **Mission** dans la fiche de poste, **activité** dans le projet |
-| Étape / phase / jalon | Non synonymes : séquence, période ou regroupement, et point de contrôle daté | Les conserver distincts |
-| Responsable / réalisateur | Non synonymes : répondre du résultat et exécuter le travail | **A** et **R** dans le RACI |
+| Fonctions / blocs communs et compétences | JobArchitecture : JobFunction, sections d'activités, CompetencyBlock, Competency | Clarifier les blocs de missions et distinguer contenu descriptif / compétences |
+| Poste permanent | OrganizationPosition | Réutiliser |
+| Fiche et titulaire | JobFunction / OrganizationAssignment | Clarifier le lien poste ↔ fiche de référence si nécessaire |
+| Organigramme général | OrganizationPositionRelation | Réutiliser et compléter les unités si nécessaire |
+| Déclinaison d'un poste dans un projet | ProjectJobPosition.organizationPositionId | Réutiliser |
+| Poste spécifique projet | ProjectJobPosition sans poste permanent lié | Réutiliser |
+| Affectation nominative au poste projet / mission projet | Pas de lien complet identifié dans l'audit | Ajouter une affectation projet datée, sans créer un annuaire |
+| Organigramme projet | ProjectJobPosition | Ajouter des relations hiérarchiques projet et une vue graphique |
+| Lien tâche BPMN ↔ bloc | PositionActivityMapping | Faire évoluer/clarifier le rattachement au bloc de mission |
+| Lien poste projet ↔ acteur RACI | PositionRaciActorMapping | Réutiliser, puis relier les acteurs aux personnes affectées |
+| Entrées RACI et tâches BPMN | Modules RACI / Resource / Process existants | Ne pas dupliquer ni réécrire leurs données |
 
-**Activité et tâche ne sont pas synonymes.** Une activité regroupe un ou plusieurs travaux cohérents ; une tâche est une unité suffisamment précise pour être exécutée, affectée et suivie. Le niveau de granularité et le besoin de suivi déterminent le choix.
+Cette table est un cadrage basé sur l'inspection du code et des migrations de la branche planning/admin-ux-v0.10. Les migrations et tests doivent être exécutés pour confirmer le comportement en environnement.
 
-Exemple :
-- **Activité :** préparer le lancement du projet.
-  - **Tâche :** consolider les objectifs et le périmètre.
-  - **Tâche :** préparer l'ordre du jour de la réunion de lancement.
-  - **Tâche :** envoyer l'invitation aux participants.
+## 7. Parcours utilisateur cible
 
-Si un élément est suffisamment précis pour être exécuté et suivi seul, il peut être une tâche. S'il regroupe plusieurs tâches ou représente un domaine de travail plus large, il doit être modélisé comme une activité.
+### Administration du référentiel commun
+1. Créer ou sélectionner un bloc de missions commun.
+2. Décrire sa finalité et ses activités habituelles.
+3. Associer les compétences et niveaux cibles.
+4. Composer une fiche de poste à partir des blocs.
+5. Créer ou maintenir les postes types et leurs fiches de référence.
 
-## 3. Comment les notions s'articulent
-
-Le modèle logique peut être représenté ainsi :
-
-```mermaid
-flowchart TD
-    O[Organisation] --> P[Poste]
-    P --> F[Fiche de poste]
-    F --> M[Missions et activités habituelles]
-    F -. peut contribuer à définir .-> R[Référentiel des rôles]
-    R --> RP[Rôle dans un projet]
-    PROJ[Projet] --> RP
-    RP --> A[Affectation d'une personne au rôle]
-    PROJ --> ACT[Activités du projet]
-    ACT --> T[Tâches du projet]
-    RP -. intervient sur .-> ACT
-    A --> RAC[RACI projet]
-    ACT --> RAC
-    T --> RAC
-    RAC --> EX[Responsabilités explicites]
-```
-
-Lecture importante :
-- la fiche de poste aide à définir les missions et les compétences attendues ;
-- le référentiel des rôles fournit des rôles réutilisables dans les projets ;
-- le projet sélectionne les activités et tâches qui font partie de son périmètre ;
-- les personnes sont affectées aux rôles du projet ;
-- le RACI précise les responsabilités effectives pour les activités ou tâches retenues.
-
-Il n'existe donc pas de propagation automatique du type « la personne est chef de projet, donc elle est responsable de toutes les tâches du projet ».
-
-## 4. Exemple détaillé : poste de chef de projet
-
-### 4.1 Exemple de fiche de poste
-
-**Intitulé :** Chef de projet  
-**Finalité :** organiser et piloter l'exécution d'un projet afin d'atteindre les objectifs convenus en respectant le périmètre, les délais, les coûts, la qualité et les modalités de gouvernance.
-
-| Domaine | Missions et responsabilités habituelles |
-|---|---|
-| Cadrage | Contribuer à clarifier les objectifs, le périmètre, les livrables et les hypothèses |
-| Organisation | Construire l'organisation projet, identifier les acteurs et clarifier les responsabilités |
-| Planification | Construire et maintenir le planning, identifier les dépendances et jalons |
-| Pilotage | Suivre l'avancement, les charges, les coûts, les risques et les points de blocage |
-| Coordination | Organiser les réunions, coordonner les contributeurs et faciliter les arbitrages |
-| Qualité | Organiser les contrôles, revues et validations prévus dans le dispositif projet |
-| Communication | Préparer le reporting et communiquer les alertes aux parties prenantes |
-| Clôture | Organiser le bilan, la clôture opérationnelle et la capitalisation |
-
-**Limites du poste :**
-- Le chef de projet ne réalise pas nécessairement lui-même les travaux des différents lots.
-- Il ne devient pas automatiquement responsable métier, technique, commercial ou contractuel.
-- Il n'est pas automatiquement responsable de l'avant-vente ni de la négociation commerciale.
-- Il coordonne et pilote les responsabilités attribuées aux autres acteurs, sans se substituer à eux.
-
-Cette fiche est un exemple de référence à adapter à l'organisation réelle. Elle ne signifie pas que toutes les missions sont présentes dans tous les projets.
-
-### 4.2 Exemple d'un projet
-
-Considérons un projet de mise en place d'une solution chez un client.
-
-Les acteurs sont :
-- **Responsable commercial** : porte la relation commerciale et l'avant-vente.
-- **Chef de projet** : prend en charge le pilotage du projet après décision de lancement.
-- **Responsable de lot technique** : organise et suit les travaux techniques.
-- **Référent métier client** : exprime les besoins et valide les résultats métier.
-- **Sponsor** : porte les objectifs et les arbitrages majeurs.
-
-Dans cet exemple, la personne qui assure le rôle de chef de projet ne prend pas en charge le bloc « Avant-vente ».
-
-### 4.3 Activités et responsabilités RACI
-
-RACI signifie :
-- **R — Responsible (réalisateur)** : réalise concrètement le travail.
-- **A — Accountable (redevable / approbateur)** : porte la responsabilité finale du résultat et en répond. Il est recommandé de désigner un seul A par ligne.
-- **C — Consulted (consulté)** : apporte un avis ou une expertise, dans un échange à double sens.
-- **I — Informed (informé)** : reçoit l'information, sans être nécessairement sollicité pour contribuer.
-
-Exemple de matrice RACI simplifiée :
-
-| Activité / résultat | Resp. commercial | Chef de projet | Resp. lot technique | Référent métier | Sponsor |
-|---|:---:|:---:|:---:|:---:|:---:|
-| Qualification de l'opportunité | A/R | I | C | C | I |
-| Proposition commerciale et chiffrage | A/R | C | C | I | I |
-| Négociation et contractualisation | A/R | C | I | I | C |
-| Cadrage opérationnel du projet | C | A/R | C | C | I |
-| Planning et coordination | I | A/R | R | C | I |
-| Réalisation du lot technique | I | A | R | C | I |
-| Validation métier | I | C | C | A/R | I |
-| Suivi global et reporting projet | I | A/R | C | C | I |
-| Arbitrage majeur de périmètre | C | R | C | C | A |
-
-Cette matrice est illustrative : la répartition réelle dépend du contrat, de la gouvernance et de l'organisation du projet. Une ligne RACI doit être définie pour un résultat ou un périmètre suffisamment clair. Si plusieurs résultats sont mélangés dans une même ligne, il faut la décomposer.
-
-**Ce que montre l'exemple :**
-- Le responsable commercial est A/R sur l'avant-vente et la contractualisation.
-- Le chef de projet est informé de ces travaux ou consulté lorsque cela est utile ; il n'en devient pas responsable du seul fait de son rôle projet.
-- Le chef de projet devient A/R sur le cadrage opérationnel et le pilotage global.
-- Le responsable de lot réalise les travaux techniques.
-- Le référent métier porte la validation métier.
-- Le sponsor assume les arbitrages majeurs.
-
-Le RACI rend ainsi explicite la répartition des responsabilités au lieu de la déduire d'un intitulé de poste.
-
-### 4.4 Vue synthétique : poste, rôle et RACI
-
-| Niveau | Exemple | Ce que cela définit |
-|---|---|---|
-| Poste organisationnel | Chef de projet | La fonction occupée dans l'organisation |
-| Fiche de poste | Fiche « Chef de projet » | Les missions, compétences et limites habituelles |
-| Rôle projet | Chef de projet du projet Alpha | La fonction exercée dans ce projet précis |
-| Activité projet | Pilotage du projet | Le domaine de travail à réaliser |
-| Tâche projet | Préparer le comité de pilotage | L'action concrète à exécuter |
-| RACI | Chef de projet = A/R | La responsabilité attribuée pour cette activité ou tâche |
-
-## 5. Règles fonctionnelles proposées pour KHI Flows
-
-### 5.1 Référentiel organisationnel
-
-Le référentiel d'organisation doit permettre de gérer :
-- les postes ;
-- les fiches de poste associées ;
-- les missions et activités habituelles ;
-- les compétences attendues ;
-- les liens hiérarchiques ou fonctionnels, si le périmètre de l'application les couvre.
-
-Un poste est un élément organisationnel relativement stable. Il ne doit pas être créé à nouveau pour chaque projet.
-
-### 5.2 Référentiel des rôles
-
-Le référentiel des rôles décrit les fonctions susceptibles d'être mobilisées dans un projet.
-
-Pour chaque rôle, prévoir au minimum :
-- un nom et une description ;
-- sa finalité ;
-- ses responsabilités typiques ;
-- ses limites et exclusions ;
-- les compétences utiles ;
-- les postes qui peuvent habituellement contribuer à l'exercer, sans imposer une équivalence automatique.
-
-Un poste peut contribuer à plusieurs rôles. Un rôle peut être exercé par des personnes occupant des postes différents.
-
-### 5.3 Configuration d'un projet
-
-Pour chaque projet, il faut pouvoir :
-1. sélectionner les rôles utiles au projet ;
-2. affecter une ou plusieurs personnes à ces rôles selon les règles retenues ;
-3. sélectionner ou définir les activités et tâches du projet ;
-4. établir le RACI pour ces activités ou tâches ;
-5. vérifier que les responsabilités nécessaires sont attribuées ;
-6. identifier les activités non prises en charge ou les responsabilités manquantes.
-
-La présence d'un rôle dans le projet ne doit pas affecter automatiquement toutes les activités du projet.
-
-### 5.4 Lien avec les processus et les tâches
-
-Les activités et tâches peuvent provenir :
-- d'un processus ou d'un modèle de processus ;
-- d'un plan de projet ;
-- d'une liste de tâches propre au projet.
-
-Le RACI doit pouvoir être associé au niveau pertinent : activité, tâche ou étape de processus. Il faut éviter de dupliquer inutilement une responsabilité à plusieurs niveaux lorsque l'héritage est ambigu.
-
-Si un RACI défini au niveau d'une activité est décliné sur ses tâches, les règles d'héritage doivent être explicites. Une responsabilité héritée doit pouvoir être identifiée comme telle et remplacée par une affectation spécifique lorsque nécessaire.
-
-### 5.5 Ne pas confondre rôle métier et permission applicative
-
-Un rôle « Chef de projet » dans un projet décrit une responsabilité métier. Il ne doit pas automatiquement donner tous les droits d'administration dans KHI Flows.
-
-Les droits d'accès à l'application, les rôles métier et les responsabilités RACI doivent rester trois dimensions distinctes, même si des règles de correspondance peuvent être étudiées ultérieurement.
-
-## 6. Parcours utilisateur cible
-
-### Administration générale
-1. Créer ou mettre à jour un poste.
-2. Rédiger la fiche de poste correspondante.
-3. Définir les missions, activités habituelles, compétences et limites.
-4. Maintenir le référentiel des rôles projet.
-5. Relier éventuellement les postes aux rôles qu'ils peuvent contribuer à exercer.
+### Administration de l'organisation générale
+1. Créer les unités et postes.
+2. Construire l'organigramme graphique.
+3. Affecter les personnes aux postes avec dates.
+4. Conserver l'historique des affectations et les postes vacants.
 
 ### Administration d'un projet
-1. Ouvrir le projet.
-2. Choisir les rôles nécessaires, par exemple Chef de projet, Responsable de lot et Référent métier.
-3. Affecter les personnes aux rôles.
-4. Définir les activités et tâches réellement incluses dans le projet.
-5. Construire ou compléter le RACI.
-6. Contrôler les lignes sans A, sans R ou avec plusieurs A, selon les règles de gouvernance retenues.
-7. Vérifier que le RACI correspond bien au périmètre contractuel et opérationnel du projet.
+1. Sélectionner les postes communs mobilisés ou créer un poste spécifique.
+2. Construire l'organigramme graphique du projet sans modifier l'organisation générale.
+3. Affecter les personnes aux postes/rôles du projet.
+4. Attribuer une ou plusieurs missions à chaque personne, en réutilisant les blocs communs lorsque pertinent.
+5. Dans une tranche ultérieure, associer les Lanes et tâches BPMN aux postes et blocs.
+6. Renseigner et contrôler le RACI existant.
 
-## 7. Règles de cohérence et cas à traiter
+## 8. Hors périmètre de la première tranche
 
-- Une personne peut occuper un poste sans être affectée à un projet.
-- Une personne peut exercer un rôle projet différent de son poste principal.
-- Un rôle projet peut être partagé entre plusieurs personnes, si la répartition est explicitée.
-- Une personne peut exercer plusieurs rôles dans un même projet, sous réserve de traiter les conflits de responsabilités.
-- Le fait d'être chef de projet ne rend pas automatiquement responsable de l'avant-vente, de la réalisation technique ou de la validation métier.
-- Une activité hors périmètre du projet ne doit pas apparaître comme une responsabilité implicite du chef de projet.
-- Une ligne RACI doit permettre d'identifier clairement le résultat concerné, le A et le ou les R.
-- Les changements d'affectation doivent être historisables ou, au minimum, traçables dans le contexte du projet.
-- Les fiches de poste sont des références organisationnelles ; le RACI du projet est la référence pour la répartition effective des responsabilités dans ce projet.
+- Refonte du viewer BPMN.
+- Création d'un second moteur RACI.
+- Création d'un second catalogue de tâches opérationnelles.
+- Gestion RH complète (paie, rémunération, évaluation, données sensibles).
+- Déduction automatique des responsabilités RACI depuis un poste ou une Lane.
+- Modification de l'organisation générale par une action effectuée dans un projet.
 
-## 8. Périmètre de préparation V0.10
+## 9. Décision de cadrage
 
-Ce document sert de base à la conception fonctionnelle. Il ne préjuge pas du modèle de données existant ni des écrans déjà disponibles.
+Le modèle cible est organisé autour de trois niveaux : **référentiel commun → organisation générale → organisation projet**.
 
-Avant tout développement, il faudra :
-1. inventorier les objets et écrans existants concernant postes, fiches de poste, rôles, activités, tâches, acteurs et RACI ;
-2. identifier les objets déjà présents à réutiliser ;
-3. cartographier les relations existantes et les éventuelles ambiguïtés ;
-4. définir les règles de création, d'affectation, d'héritage et de traçabilité ;
-5. produire les parcours et maquettes ;
-6. établir les critères d'acceptation et les tests.
+La fiche de poste décrit ce qu'un poste recouvre ; la personne occupe un poste ; le projet attribue une ou plusieurs missions à une personne ; les tâches décrivent le travail à réaliser ; le RACI précise qui fait quoi.
 
-### Hors périmètre immédiat
-- Aucun développement fonctionnel dans la V0.8.
-- Aucune modification immédiate du modèle de données.
-- Aucune automatisation qui déduirait le RACI uniquement à partir du poste ou du rôle.
-- Aucun déploiement lié à ce document.
-
-## 9. Critères d'acceptation fonctionnels à instruire
-
-La future implémentation devra permettre de démontrer que :
-- les postes et fiches de poste sont gérés indépendamment des projets ;
-- les rôles projet sont sélectionnés et affectés dans le contexte d'un projet ;
-- les activités et tâches du projet sont identifiables ;
-- le RACI peut attribuer des responsabilités différentes selon les activités et tâches ;
-- le chef de projet n'est pas automatiquement responsable de toutes les activités ;
-- l'avant-vente peut être attribuée au responsable commercial, sans affectation implicite au chef de projet ;
-- les responsabilités manquantes ou incohérentes sont détectables ;
-- les droits applicatifs restent distincts des rôles métier et du RACI.
-
----
-
-**Décision de cadrage à retenir :** le poste décrit la fonction dans l'organisation, le rôle décrit la fonction exercée dans un contexte, l'activité et la tâche décrivent le travail à réaliser, et le RACI décrit qui réalise, qui est redevable, qui est consulté et qui est informé. Ces notions sont liées, mais aucune ne doit être déduite automatiquement d'une autre.
+L'implémentation doit d'abord stabiliser le module Organisation et les fiches de poste de manière autonome. Les correspondances BPMN/RACI seront raccordées ensuite, en réutilisant les objets et moteurs existants.
