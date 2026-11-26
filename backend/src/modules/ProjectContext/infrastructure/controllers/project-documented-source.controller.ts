@@ -688,7 +688,7 @@ export class ProjectDocumentedSourceController {
   async merge(
     @Param('projectId') projectId: string,
     @Param('sourceId') sourceId: string,
-    @Body() body: { targetSourceId?: string },
+    @Body() body: { targetSourceId?: string; name?: string; description?: string | null },
     @Headers() headers: RequestHeaders,
   ) {
     const userId = await this.access.assertProjectRole(
@@ -762,6 +762,14 @@ export class ProjectDocumentedSourceController {
         }
       });
       if (!target.name.trim() && source.name.trim()) target.name = source.name;
+      if (body.name !== undefined) {
+        const mergedName = body.name.trim();
+        if (!mergedName || mergedName.length > 255)
+          throw new BadRequestException('name must contain 1 to 255 characters');
+        target.name = mergedName;
+      }
+      if (body.description !== undefined)
+        target.description = optionalText(body.description, 'description');
       target.containsPersonalData =
         target.containsPersonalData || source.containsPersonalData;
       if (
