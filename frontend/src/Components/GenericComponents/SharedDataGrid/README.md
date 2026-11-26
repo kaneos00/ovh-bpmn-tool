@@ -70,6 +70,8 @@ Combine `selection`, `editing`, `advancedFilter` and `quickSearch` as required. 
 - Row click does not select a row unless `enableClickSelection` is explicitly enabled.
 - Native checkbox selection when configured.
 - Read-only is the default; editing must be explicitly enabled.
+- Full-row edit mode keeps Tab/Shift+Tab inside the row and wraps at the first/last displayed column.
+- Escape cancels the current edit and clears row selection; saving/committing an edit does not clear selection.
 - Advanced filter and quick search are optional.
 - Stable row IDs are recommended for all mutable datasets.
 
