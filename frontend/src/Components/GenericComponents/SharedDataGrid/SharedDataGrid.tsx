@@ -305,7 +305,7 @@ export const SharedDataGrid = <TData extends object>({
       result = result.filter((row) => matchesFilter(row, appliedFilter, advancedFilter.fields));
     }
     return result;
-  }, [rowData, quickFilterText, advancedFilter, appliedFilter]);
+  }, [rowData, quickFilterText, advancedFilter?.fields, appliedFilter]);
 
   const safeColumnDefs = useMemo(
     () => editing ? columnDefs : columnDefs.map((column) => ({ ...column, editable: false })),
@@ -319,12 +319,13 @@ export const SharedDataGrid = <TData extends object>({
     ...defaultColDef,
     editable: editing ? (defaultColDef?.editable ?? true) : false,
   }), [defaultColDef, editing, columnFilters]);
-  const rowSelection = useMemo(() => selection ? ({
-    mode: selection.mode,
-    checkboxes: selection.checkboxes ?? true,
-    headerCheckbox: selection.mode === 'multiRow' && (selection.headerCheckbox ?? true),
-    enableClickSelection: selection.enableClickSelection ?? false,
-  }) : undefined, [selection]);
+  const effectiveSelection = selection ?? (editing ? { mode: 'multiRow' as const } : undefined);
+  const rowSelection = useMemo(() => effectiveSelection ? ({
+    mode: effectiveSelection.mode,
+    checkboxes: effectiveSelection.checkboxes ?? true,
+    headerCheckbox: effectiveSelection.mode === 'multiRow' && (effectiveSelection.headerCheckbox ?? true),
+    enableClickSelection: effectiveSelection.enableClickSelection ?? false,
+  }) : undefined, [effectiveSelection]);
 
   return (
     <section className={`shared-data-grid ${className}`}>
