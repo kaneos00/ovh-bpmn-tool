@@ -24,5 +24,5 @@ test('NovaSys seed preserves the project documented-information registry and per
   for (const family of ['GOV', 'HR', 'FIN', 'IT', 'DEL', 'MNT']) {
     assert.ok(familyBlock.includes(`THEN '${family}'`), `missing process family ${family}`);
   }
-  assert.match(seed, /"canSubmitRemarks"\) VALUES[\\s\\S]*?TRUE\) ON CONFLICT[\\s\\S]*?"canSubmitRemarks"=TRUE/);
+  assert.match(seed, /"canSubmitRemarks"\) VALUES[\s\S]*?TRUE\) ON CONFLICT[\s\S]*?"canSubmitRemarks"=TRUE/);
 });
