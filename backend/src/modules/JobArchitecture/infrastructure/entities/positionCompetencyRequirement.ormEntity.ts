@@ -4,7 +4,7 @@ import { AbstractEntity } from '../../../../shared-kernel/modules/infrastructure
 @Entity('position_competency_requirements')
 @Index(
   'position_competency_requirements_unique',
-  ['positionId', 'competencyId'],
+  ['positionId', 'blockId', 'competencyId'],
   { unique: true },
 )
 export class PositionCompetencyRequirementTypeOrmEntity extends AbstractEntity {
