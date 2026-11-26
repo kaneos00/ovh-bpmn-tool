@@ -90,7 +90,7 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     { headerName: 'Lien', field: 'link', minWidth: 170, editable: canManage },
     { headerName: 'Emplacement', field: 'location', minWidth: 150, editable: canManage },
     { headerName: 'Accès', field: 'access', minWidth: 140, editable: canManage },
-    { headerName: 'Date limite de validité', field: 'validUntil', minWidth: 175, editable: canManage, cellEditor: 'agTextCellEditor' },
+    { headerName: 'Date limite de validité', field: 'validUntil', cellDataType: 'dateString', minWidth: 175, editable: canManage, cellEditor: 'agTextCellEditor' },
     { headerName: 'Personne autorisée', field: 'authorizedPeople', minWidth: 170, editable: canManage },
     { headerName: 'Restrictions', field: 'restrictions', minWidth: 190, editable: canManage },
   ];
