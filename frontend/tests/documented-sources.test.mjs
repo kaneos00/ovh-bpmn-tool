@@ -91,9 +91,13 @@ test('unlinking a BPMN object removes only its reference, not the documented sou
 
 test('documented information rows keep their leading selection checkboxes and search focus', async () => {
   const grid = await read('src/Components/BusinessComponents/ProcessDetails/DocumentedSourcesGrid.tsx');
+  const sharedGrid = await read('src/Components/GenericComponents/SharedDataGrid/SharedDataGrid.tsx');
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
 
-  assert.match(grid, /rowSelection=\{\{ mode: 'singleRow', checkboxes: true, enableClickSelection: true \}\}/);
-  assert.match(grid, /event\.api\.ensureNodeVisible\(node, 'middle'\)/);
+  assert.match(grid, /selection = 'single'/);
+  assert.match(grid, /selection=\{selection\}/);
+  assert.match(sharedGrid, /rowSelection=\{selectionOptions\}/);
+  assert.match(sharedGrid, /checkboxes: true/);
+  assert.match(sharedGrid, /ensureNodeVisible\(node, 'middle'\)/);
   assert.match(inventory, /selectedRowId=\{requestedDocumentedSourceId \?\? undefined\}/);
 });
