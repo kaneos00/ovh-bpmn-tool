@@ -59,6 +59,7 @@ export type SharedDataGridProps<TData extends object> = {
   editing?: boolean;
   editType?: 'fullRow' | 'cell';
   advancedFilter?: AdvancedFilterConfig<TData>;
+  columnFilters?: boolean;
   quickFilterText?: string;
   defaultColDef?: ColDef<TData>;
   height?: number | string;
@@ -91,7 +92,7 @@ const createGroup = <TData,>(fields: GridFilterField<TData>[]): GridFilterGroup 
   children: fields.length ? [createRule(fields)] : [],
 });
 
-const operatorsFor = (type: GridFilterField<unknown>['type'] = 'text') => {
+const operatorsFor = (type: 'text' | 'number' | 'date' | 'select' = 'text') => {
   if (type === 'number') return [['equals', 'est égal à'], ['gt', 'supérieur à'], ['gte', 'supérieur ou égal à'], ['lt', 'inférieur à'], ['lte', 'inférieur ou égal à']] as const;
   if (type === 'date') return [['equals', 'est le'], ['before', 'est avant le'], ['after', 'est après le']] as const;
   if (type === 'select') return [['equals', 'est égal à'], ['notEquals', 'est différent de']] as const;
@@ -275,6 +276,7 @@ export const SharedDataGrid = <TData extends object>({
   editing = false,
   editType = 'fullRow',
   advancedFilter,
+  columnFilters = true,
   quickFilterText,
   defaultColDef,
   height = 360,
@@ -312,11 +314,11 @@ export const SharedDataGrid = <TData extends object>({
   const mergedDefaultColDef = useMemo<ColDef<TData>>(() => ({
     sortable: true,
     resizable: true,
-    filter: true,
+    filter: columnFilters,
     minWidth: 100,
     ...defaultColDef,
     editable: editing ? (defaultColDef?.editable ?? true) : false,
-  }), [defaultColDef, editing]);
+  }), [defaultColDef, editing, columnFilters]);
   const rowSelection = useMemo(() => selection ? ({
     mode: selection.mode,
     checkboxes: selection.checkboxes ?? true,
