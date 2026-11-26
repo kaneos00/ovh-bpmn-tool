@@ -36,6 +36,12 @@ import {
   Search,
   MoreVert,
   FolderOpenRounded,
+  AccountBalanceOutlined,
+  GroupsOutlined,
+  PaymentsOutlined,
+  ComputerOutlined,
+  CodeOutlined,
+  BuildCircleOutlined,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { ControlledTreeEnvironment, Tree } from 'react-complex-tree';
@@ -57,12 +63,38 @@ const FAVORITES_KEY = 'bpmn-tool:favorite-resources';
 const RECENT_KEY = 'bpmn-tool:recent-resources';
 const VIEW_KEY = 'bpmn-tool:explorer-view';
 
+const PROCESS_FAMILY_COLORS: Record<string, string> = {
+  GOV: '#455a64',
+  HR: '#8e24aa',
+  FIN: '#00897b',
+  IT: '#1565c0',
+  DEL: '#ef6c00',
+  MNT: '#2e7d32',
+};
+
 const getProcessStatusColor = (node?: RenderTree) => {
   if (node?.changeRequestStatus === 'submitted') return '#d32f2f';
   if (node?.changeRequestStatus === 'in_progress') return '#ed6c02';
   if (node?.changeRequestStatus === 'published') return '#2e7d32';
   if (node?.usage === 'variant' && node.sourceResourceId) return '#2e7d32';
-  return node?.usage === 'variant' ? '#805ad5' : node?.nature === 'global' || (!node?.nature && node?.usage === 'common') ? '#16845b' : '#3975c6';
+  if (node?.nature === 'global' || (!node?.nature && node?.usage === 'common')) return '#16845b';
+  if (node?.usage === 'variant') return '#805ad5';
+  return PROCESS_FAMILY_COLORS[node?.family ?? ''] ?? '#3975c6';
+};
+
+const getProcessFamilyIcon = (node?: RenderTree) => {
+  const color = PROCESS_FAMILY_COLORS[node?.family ?? ''];
+  if (!color) return null;
+  const props = { sx: { color }, fontSize: 'small' as const };
+  switch (node?.family) {
+    case 'GOV': return <AccountBalanceOutlined {...props} />;
+    case 'HR': return <GroupsOutlined {...props} />;
+    case 'FIN': return <PaymentsOutlined {...props} />;
+    case 'IT': return <ComputerOutlined {...props} />;
+    case 'DEL': return <CodeOutlined {...props} />;
+    case 'MNT': return <BuildCircleOutlined {...props} />;
+    default: return null;
+  }
 };
 
 const readIds = (key: string): string[] => {
@@ -413,7 +445,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                           ? <AltRoute sx={{ color: getProcessStatusColor(node) }} fontSize="small" />
                           : (node?.nature === 'global' || (!node?.nature && node?.usage === 'common'))
                             ? <PublicOutlined sx={{ color: getProcessStatusColor(node) }} fontSize="small" />
-                            : <DescriptionOutlined sx={{ color: getProcessStatusColor(node) }} fontSize="small" />}
+                            : getProcessFamilyIcon(node) ?? <DescriptionOutlined sx={{ color: getProcessStatusColor(node) }} fontSize="small" />}
                     <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</Box>
                     {node?.usage === 'variant' && Boolean(node?.sourceResourceId) && (
                       <Chip size="sm" variant="soft" color="primary" title="Variante de processus">
