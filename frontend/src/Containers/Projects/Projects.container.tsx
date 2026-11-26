@@ -357,6 +357,55 @@ export const Component = () => {
     },
   ];
 
+  const linkedProcessColumns: ColDef<ProjectProcessLink>[] = [
+    {
+      headerName: 'Processus',
+      field: 'resourceId',
+      minWidth: 230,
+      cellRenderer: (params: { data?: ProjectProcessLink }) => params.data ? (
+        <Stack spacing={0.25}>
+          <Typography level="title-sm">{params.data.resource?.name ?? params.data.resourceId}</Typography>
+          <Typography level="body-xs" color="neutral">{PROCESS_USAGE_LABELS[params.data.usage]}</Typography>
+        </Stack>
+      ) : null,
+    },
+    {
+      headerName: 'Usage',
+      field: 'usage',
+      minWidth: 170,
+      valueFormatter: params => PROCESS_USAGE_LABELS[params.value as ProjectProcessLink['usage']] ?? params.value,
+    },
+    {
+      headerName: 'Actions',
+      colId: 'actions',
+      sortable: false,
+      filter: false,
+      editable: false,
+      minWidth: 290,
+      cellRenderer: (params: { data?: ProjectProcessLink }) => {
+        const link = params.data;
+        if (!link) return null;
+        return (
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            {link.resource && <Button size="sm" variant="soft" onClick={() => {
+              if (projectId) setActiveProject(projectId);
+              navigate(\`/\${link.resourceId}\`);
+            }}>Ouvrir</Button>}
+            {link.usage === 'common' && (
+              <Button size="sm" variant="solid" loading={createProcessVariant.isLoading}
+                disabled={createProcessVariant.isLoading}
+                onClick={() => createProcessVariant.mutate(link.resourceId)}>
+                Créer une variante
+              </Button>
+            )}
+            <Button size="sm" color="danger" variant="plain" loading={unlinkProcess.isLoading}
+              onClick={() => unlinkProcess.mutate(link.resourceId)}>Retirer</Button>
+          </Stack>
+        );
+      },
+    },
+  ];
+
 
   useEffect(() => {
     window.localStorage.setItem('bpmn-viewer-explorer-width', String(explorerWidth));
@@ -729,32 +778,18 @@ export const Component = () => {
           {(linkedProcessesQuery.data ?? []).length === 0 && !linkedProcessesQuery.isLoading && (
             <Typography level="body-sm">Aucun processus associé. Vous pouvez en ajouter depuis le référentiel ci-dessus.</Typography>
           )}
-          <Stack spacing={1}>
-            {(linkedProcessesQuery.data ?? []).map((link) => (
-              <Card key={link.id} variant="outlined" orientation="horizontal" sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography level="title-md">{link.resource?.name ?? link.resourceId}</Typography>
-                  <Typography level="body-sm">
-                    {PROCESS_USAGE_LABELS[link.usage]}
-                  </Typography>
-                </Box>
-                <Stack direction="row" spacing={1}>
-                  {link.resource && <Button variant="soft" onClick={() => { if (projectId) setActiveProject(projectId); navigate(`/${link.resourceId}`); }}>Ouvrir</Button>}
-                  {link.usage === 'common' && (
-                    <Button
-                      variant="solid"
-                      loading={createProcessVariant.isLoading}
-                      disabled={createProcessVariant.isLoading}
-                      onClick={() => createProcessVariant.mutate(link.resourceId)}
-                    >
-                      Créer une variante modifiable
-                    </Button>
-                  )}
-                  <Button color="danger" variant="plain" loading={unlinkProcess.isLoading} onClick={() => unlinkProcess.mutate(link.resourceId)}>Retirer</Button>
-                </Stack>
-              </Card>
-            ))}
-          </Stack>
+          {(linkedProcessesQuery.data ?? []).length > 0 && (
+            <SharedDataGrid<ProjectProcessLink>
+              rowData={linkedProcessesQuery.data ?? []}
+              columnDefs={linkedProcessColumns}
+              getRowId={row => row.id}
+              preferenceKey={\`project-\${projectId}-processes\`}
+              mode="read"
+              selection={false}
+              height={Math.min(520, Math.max(220, (linkedProcessesQuery.data ?? []).length * 56 + 96))}
+              paginationPageSize={15}
+            />
+          )}
           <ProjectProcessHierarchy
             processes={(linkedProcessesQuery.data ?? [])
               .filter(link => Boolean(link.resource))
