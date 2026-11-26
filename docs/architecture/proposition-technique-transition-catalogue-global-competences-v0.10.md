@@ -135,3 +135,8 @@ L'inspection ciblée de `JobArchitectureService` et des entités ORM confirme le
 - Les correspondances RACI sont stockées séparément dans `position_raci_actor_mappings`.
 
 En conséquence, la migration ne doit pas supprimer `job_function_competency_blocks`, `competency_blocks`, `position_competency_blocks`, `position_activity_mappings` ni les mappings RACI. Elle remplace la définition des compétences et la relation compétence ↔ bloc, et remet à zéro uniquement les exigences individuelles de compétences de la base de test. Les deux niveaux d'exigence (niveau du bloc et niveau de la compétence) restent distincts.
+
+
+## 9. Fichier de migration SQL
+
+Le premier SQL gardé est disponible dans `backend/migrations/20261126_v0_10_competency_catalog_reset.sql`. Il n'est pas encore branché au Dockerfile ou au Compose de Coolify : le backend doit d'abord être adapté, car il dépend encore de `blockId` et `referenceLevel`. L'intégration et l'activation seront réalisées ensemble pour éviter un déploiement avec schéma et code incompatibles.
