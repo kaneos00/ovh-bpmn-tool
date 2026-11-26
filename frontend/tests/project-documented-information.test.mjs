@@ -12,14 +12,15 @@ test('project workspace restores the central documented information tab', async 
   const registry = await read('src/Components/BusinessComponents/ProcessDetails/ProjectDocumentedSources.tsx');
   assert.match(overview, /<Tab value="documented">Informations documentées<\/Tab>/);
   assert.match(overview, /<ProjectDocumentedSources projectId=\{activeProjectId!\}/);
-  for (const column of ['Type', 'Nom', 'Description', 'Objet BPMN', 'Lien', 'Emplacement', 'Accès', 'Durée de conservation', 'Date limite de validité', 'Données personnelles', 'Personnes autorisées', 'Restrictions']) {
+  for (const column of ['Nom', 'Origine', 'Type', 'Description', 'Objet BPMN', 'Lien', 'Emplacement', 'Accès', 'Durée de conservation', 'Date limite de validité', 'Données personnelles', 'Personnes autorisées', 'Restrictions']) {
     assert.ok(registry.includes(`headerName: '${column}'`), `missing column ${column}`);
   }
-  assert.match(registry, /Ajouter une ligne/);
+  assert.doesNotMatch(registry, /Statut projet/);
+  assert.match(registry, /Ajouter</);
   assert.match(registry, /onCellValueChanged/);
-  assert.match(registry, /Objet BPMN à associer \(facultatif\)/, 'project sources must be creatable without a BPMN association');
-  assert.match(registry, /const importLegacyReference = async/);
-  assert.match(registry, /Objets BPMN non encore inscrits au référentiel/);
+  assert.match(registry, /Objet BPMN à associer \\(facultatif\\)/, 'project sources must be creatable without a BPMN association');
+  assert.match(registry, /origin: 'Projet'/);
+  assert.doesNotMatch(registry, /Objets BPMN non encore inscrits au référentiel/, 'unlinked BPMN objects are available from the add dialog, not a second list');
   assert.match(registry, /ref\.authorizedPeople/);
   assert.match(registry, /resourceId: ref\.resourceId/);
   assert.match(registry, /elementType: ref\.elementType/);
