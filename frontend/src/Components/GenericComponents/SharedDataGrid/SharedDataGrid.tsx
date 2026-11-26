@@ -79,9 +79,10 @@ const fieldType = <T extends object>(column: ColDef<T>): FilterField['type'] => 
 };
 
 const ruleHasValue = (rule: FilterRule) => ['empty', 'notEmpty'].includes(rule.operator) || rule.value.trim() !== '';
-const activeRuleCount = (node: FilterNode): number => node.kind === 'rule'
-  ? (ruleHasValue(node) ? 1 : 0)
-  : node.children.reduce((total, child) => total + activeRuleCount(child), 0);
+const activeRuleCount = (node: FilterNode): number => {
+  if (node.kind === 'rule') return ruleHasValue(node) ? 1 : 0;
+  return node.children.reduce((total, child) => total + activeRuleCount(child), 0);
+};
 
 const removeFilterNode = (node: FilterGroup, id: string): FilterGroup => ({
   ...node,
@@ -194,6 +195,9 @@ function FilterRuleEditor({
   const field = fields.find(item => item.id === rule.field) ?? fields[0];
   if (!field) return null;
   const operators = operatorsByType[field.type];
+  let inputType: 'text' | 'number' | 'date' = 'text';
+  if (field.type === 'number') inputType = 'number';
+  else if (field.type === 'date') inputType = 'date';
   const changeField = (fieldId: string) => {
     const next = fields.find(item => item.id === fieldId) ?? fields[0];
     onChange({
@@ -221,7 +225,7 @@ function FilterRuleEditor({
             </Select>
           : <Input
               size="sm"
-              type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
+              type={inputType}
               value={rule.value}
               onChange={event => onChange({ ...rule, value: event.target.value })}
               placeholder="Valeur à comparer…"
