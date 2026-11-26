@@ -127,7 +127,7 @@ const compareRule = <T extends object>(row: T, rule: FilterRule, field: FilterFi
   }
 
   if (field.type === 'boolean') {
-    const actual = Boolean(raw);
+    const actual = raw === true || raw === 'true' || raw === 1;
     const expected = rule.value === 'true';
     return rule.operator === 'notEquals' ? actual !== expected : actual === expected;
   }
