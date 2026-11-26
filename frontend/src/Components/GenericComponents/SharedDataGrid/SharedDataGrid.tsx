@@ -9,6 +9,7 @@ import {
   type RowClickedEvent,
   type SelectionChangedEvent,
   type CellValueChangedEvent,
+  type TabToNextCellParams,
 } from 'ag-grid-community';
 import { AgGridReact } from 'ag-grid-react';
 import './SharedDataGrid.scss';
@@ -324,6 +325,14 @@ export const SharedDataGrid = <TData extends object>({
     minWidth: 100,
     ...defaultColDef,
     editable: editing ? (defaultColDef?.editable ?? true) : false,
+    suppressKeyboardEvent: (params) => {
+      if (params.editing && params.event.key === 'Escape') {
+        params.api.stopEditing(true);
+        params.api.deselectAll();
+        return true;
+      }
+      return defaultColDef?.suppressKeyboardEvent?.(params) ?? false;
+    },
   }), [defaultColDef, editing, columnFilters]);
   const effectiveSelection = useMemo(() => selection ?? (editing ? { mode: 'multiRow' as const } : undefined), [selection, editing]);
   const rowSelection = useMemo(() => effectiveSelection ? ({
@@ -374,6 +383,18 @@ export const SharedDataGrid = <TData extends object>({
           onSelectionChanged={onSelectionChanged}
           onRowClicked={onRowClicked}
           onCellValueChanged={onCellValueChanged}
+          tabToNextCell={editing && editType === 'fullRow' ? (params: TabToNextCellParams<TData>) => {
+            if (!params.editing) return params.nextCellPosition ?? false;
+            const columns = params.api.getAllDisplayedColumns();
+            if (!columns.length) return false;
+            const currentIndex = columns.findIndex((column) => column.getColId() === params.previousCellPosition.column.getColId());
+            const nextIndex = (currentIndex + (params.backwards ? -1 : 1) + columns.length) % columns.length;
+            return {
+              rowIndex: params.previousCellPosition.rowIndex,
+              rowPinned: params.previousCellPosition.rowPinned,
+              column: columns[nextIndex],
+            };
+          } : undefined}
         />
       </div>
     </section>
