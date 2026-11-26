@@ -89,8 +89,35 @@ export const useFolderTree = (selectedResourceId: string) => {
       }
     });
 
+    // Explicit project folder links keep empty folders visible. Add workspace
+    // folder metadata when the global explorer endpoint omits restricted items.
+    (projectForTree?.folders ?? []).forEach(folder => {
+      if (!byId.has(folder.resourceId)) {
+        byId.set(folder.resourceId, {
+          id: folder.resourceId,
+          name: folder.name,
+          parentId: folder.parentId ?? undefined,
+          depth: 0,
+          description: '',
+          type: ResourceType.Folder,
+        } as Resource);
+      }
+    });
     const allResources = Array.from(byId.values());
     const allowedIds = new Set(effectiveProcessIds);
+    (projectForTree?.folders ?? []).forEach(folder => {
+      let current = byId.get(folder.resourceId);
+      const visited = new Set<string>([folder.resourceId]);
+      while (current?.type === ResourceType.Folder && current.parentId && !visited.has(current.parentId)) {
+        const parentId = current.parentId;
+        visited.add(parentId);
+        const parent = byId.get(parentId);
+        if (!parent || parent.type !== ResourceType.Folder) break;
+        allowedIds.add(parentId);
+        current = parent;
+      }
+      allowedIds.add(folder.resourceId);
+    });
     // A project tree contains only its attached processes and the folder
     // ancestors needed to preserve their hierarchy. Never add every folder:
     // legacy/demo folders without a process in this project otherwise leak
