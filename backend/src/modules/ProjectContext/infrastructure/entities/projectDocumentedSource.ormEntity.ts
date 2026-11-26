@@ -16,6 +16,9 @@ export class ProjectDocumentedSourceTypeOrmEntity extends AbstractEntity {
   @Column('uuid')
   projectId: string;
 
+  @Column('uuid')
+  resourceId: string;
+
   @Column({ type: 'varchar', length: 24, default: 'file' })
   kind: ProjectDocumentedSourceKind;
 

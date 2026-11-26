@@ -265,7 +265,7 @@ export class ProjectDocumentedSourceController {
       ProjectMemberRole.Viewer,
       { allowOrganizationAdmin: true },
     );
-    const [sources, references, links] = await Promise.all([
+    const [allSources, references, links] = await Promise.all([
       this.sources.find({
         where: { projectId, mergedIntoId: IsNull() },
         order: { name: 'ASC' },
@@ -276,6 +276,9 @@ export class ProjectDocumentedSourceController {
       }),
       this.projectProcesses.find({ where: { projectId } }),
     ]);
+    const sources = requestedResourceId
+      ? allSources.filter((source) => source.resourceId === requestedResourceId)
+      : allSources;
 
     const linkedResourceIds = [
       ...new Set(links.map((link) => link.resourceId)),
@@ -358,19 +361,19 @@ export class ProjectDocumentedSourceController {
     });
 
     return {
-      sources: sources
-        .map((source) => ({
-          ...source,
-          references: referencesBySource.get(source.id) ?? [],
-        }))
-        // In a process view, show process-linked sources and project-level
-        // sources that have not yet been associated with any BPMN element.
-        .filter(
-          (source) =>
-            !requestedResourceId ||
-            !references.some((reference) => reference.sourceId === source.id) ||
-            source.references.length > 0,
-        ),
+      sources: sources.map((source) => ({
+        ...source,
+        processName:
+          resourceById.get(source.resourceId)?.name ?? source.resourceId,
+        references: referencesBySource.get(source.id) ?? [],
+      })),
+      processes: links.map((link) => ({
+        resourceId: link.resourceId,
+        processName:
+          resourceById.get(link.resourceId)?.name ?? link.resourceId,
+      })).sort((left, right) =>
+        left.processName.localeCompare(right.processName, 'fr'),
+      ),
       unlinkedReferences: unlinkedReferences.sort(
         (left, right) =>
           left.processName.localeCompare(right.processName, 'fr') ||
@@ -385,7 +388,7 @@ export class ProjectDocumentedSourceController {
     @Param('projectId') projectId: string,
     @Body()
     body: SourceFields & {
-      resourceId?: string;
+      resourceId: string;
       elementId?: string;
       elementName?: string;
       elementType?: string;
@@ -404,11 +407,15 @@ export class ProjectDocumentedSourceController {
     const kind = body.kind ?? 'file';
     if (!SOURCE_KINDS.includes(kind))
       throw new BadRequestException('Unsupported source kind');
+    const resourceId = body.resourceId?.trim();
+    if (!resourceId)
+      throw new BadRequestException('resourceId is required: documented information must belong to a process');
+    await this.validateProcess(projectId, resourceId);
     const hasReferenceFields = Boolean(
-      body.resourceId || body.elementId || body.elementName || body.elementType,
+      body.elementId || body.elementName || body.elementType,
     );
     const reference = hasReferenceFields
-      ? await this.validateReference(projectId, body)
+      ? await this.validateReference(projectId, { ...body, resourceId })
       : null;
 
     return this.dataSource.transaction(async (manager) => {
@@ -435,6 +442,7 @@ export class ProjectDocumentedSourceController {
       const source = await sourceRepository.save(
         sourceRepository.create({
           projectId,
+          resourceId,
           createdBy: userId,
           kind,
           name,
@@ -545,6 +553,10 @@ export class ProjectDocumentedSourceController {
         lock: { mode: 'pessimistic_write' },
       });
       if (!source) throw new NotFoundException('Documented source not found');
+      if (source.resourceId !== reference.resourceId)
+        throw new BadRequestException(
+          'A documented source can only be associated with BPMN elements from its owning process',
+        );
 
       const existing = await referenceRepository.findOne({
         where: {
@@ -627,6 +639,10 @@ export class ProjectDocumentedSourceController {
       ]);
       if (!source || !target || !reference)
         throw new NotFoundException('Documented source reference not found');
+      if (target.resourceId !== reference.resourceId)
+        throw new BadRequestException(
+          'A documented source can only receive BPMN elements from its owning process',
+        );
 
       await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
         projectId + ':' + targetSourceId + ':' + reference.resourceId,
@@ -762,6 +778,10 @@ export class ProjectDocumentedSourceController {
         throw new NotFoundException(
           'Documented source not found in this project',
         );
+      if (source.resourceId !== target.resourceId)
+        throw new BadRequestException(
+          'Documented information can only be merged when they belong to the same process',
+        );
 
       // Several BPMN elements in one diagram may reference the same
       // documented source. Duplicate references to the same element are
@@ -884,6 +904,11 @@ export class ProjectDocumentedSourceController {
         'Only BPMN data stores can be associated with documented sources',
       );
     }
+    await this.validateProcess(projectId, resourceId);
+    return { resourceId, elementId, elementName, elementType };
+  }
+
+  private async validateProcess(projectId: string, resourceId: string) {
     const linkedProcess = await this.projectProcesses.findOne({
       where: { projectId, resourceId },
     });
@@ -891,6 +916,6 @@ export class ProjectDocumentedSourceController {
       throw new BadRequestException(
         'The process is not linked to this project',
       );
-    return { resourceId, elementId, elementName, elementType };
+    return linkedProcess;
   }
 }

@@ -115,3 +115,28 @@ test('documented information grid supports project multi-selection and process s
   assert.match(grid, /event\.api\.ensureNodeVisible\(node, 'middle'\)/);
   assert.match(inventory, /selectedRowId=\{requestedDocumentedSourceId \?\? undefined\}/);
 });
+
+
+test('documented information always belongs to one project process, independently of BPMN association', async () => {
+  const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
+  const projectGrid = await read('src/Components/BusinessComponents/ProcessDetails/ProjectDocumentedSources.tsx');
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
+  const entity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/projectDocumentedSource.ormEntity.ts');
+
+  assert.match(inventory, /const payload = \{\s*resourceId,/);
+  assert.match(projectGrid, /resourceId: selectedProcessId/);
+  assert.match(projectGrid, /FormLabel>Processus<\/FormLabel>/);
+  assert.match(controller, /resourceId is required: documented information must belong to a process/);
+  assert.match(controller, /allSources\.filter\(\(source\) => source\.resourceId === requestedResourceId\)/);
+  assert.doesNotMatch(controller, /project-level sources that have not yet been associated/);
+  assert.match(entity, /@Column\('uuid'\)\s+resourceId: string/);
+});
+
+test('BPMN association remains optional and cannot cross process ownership', async () => {
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
+  assert.match(controller, /if \(!reference\) return \{ \.\.\.source, references: \[\] \}/);
+  assert.match(controller, /source\.resourceId !== reference\.resourceId/);
+  assert.match(controller, /source\.resourceId !== target\.resourceId/);
+  assert.match(controller, /source\.resourceId !== target\.resourceId/);
+  assert.match(controller, /Only BPMN data stores can be associated with documented sources/);
+});

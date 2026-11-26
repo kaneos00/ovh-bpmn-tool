@@ -26,6 +26,8 @@ type SourceReference = {
 
 type ProjectDocumentedSource = {
   id: string;
+  resourceId: string;
+  processName?: string;
   kind: SourceKind | 'form';
   name: string;
   description: string | null;
@@ -165,6 +167,7 @@ export const DataInventory = ({
     setSavingId(row.id);
     setError('');
     const payload = {
+      resourceId,
       kind: normalizeKind(row.kind),
       name: row.name.trim(),
       description: row.description ?? '',
@@ -267,7 +270,7 @@ export const DataInventory = ({
 
   const rows: InventoryGridRow[] = sources.map(source => ({
     ...source,
-    origin: 'Projet',
+    origin: source.processName ?? 'Processus',
     isNew: source.id.startsWith('new-'),
   }));
 
