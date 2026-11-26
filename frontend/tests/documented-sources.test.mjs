@@ -64,7 +64,7 @@ test('a documented information row can be created before it has a BPMN associati
 
   assert.match(inventory, /const addRow = \(\) =>/);
   assert.match(inventory, /const id = `new-\$\{Date\.now\(\)\}`/);
-  assert.match(inventory, /setSources\(current => \[\.\.\.current, emptySource\(id\)\]\)/);
+  assert.match(inventory, /setSources\(current => \[\.\.\.current, emptySource\(id, resourceId\)\]\)/);
   assert.match(inventory, /if \(row\.id\.startsWith\('new-'\)\)/);
   assert.match(inventory, /apiClient\.post\(\`\/projects\/\$\{projectId\}\/documented-sources\`, payload\)/);
   assert.match(controller, /const hasReferenceFields = Boolean\(/);
