@@ -72,7 +72,7 @@ WHERE "resourceId" IS NULL;
 ALTER TABLE project_documented_sources
   ALTER COLUMN "resourceId" SET NOT NULL;
 
-DO $
+DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1
@@ -86,7 +86,7 @@ BEGIN
       REFERENCES project_processes ("projectId", "resourceId")
       ON DELETE CASCADE;
   END IF;
-END $;
+END $$;
 
 CREATE INDEX IF NOT EXISTS project_documented_sources_process_active_idx
   ON project_documented_sources ("projectId", "resourceId", "mergedIntoId");
