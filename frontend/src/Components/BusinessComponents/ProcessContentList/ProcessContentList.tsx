@@ -148,12 +148,14 @@ export const ProcessContentList = ({
     {
       headerName: 'Créée le',
       field: 'createdAt',
+      cellDataType: 'dateString',
       minWidth: 155,
       valueFormatter: params => params.value ? formatDateTime(params.value) : '—',
     },
     {
       headerName: 'Modifiée le',
       field: 'updatedAt',
+      cellDataType: 'dateString',
       minWidth: 155,
       valueFormatter: params => params.value ? formatDateTime(params.value) : '—',
     },
