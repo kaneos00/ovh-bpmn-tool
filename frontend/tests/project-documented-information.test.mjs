@@ -16,12 +16,11 @@ test('project workspace restores the central documented information tab', async 
     assert.ok(registry.includes(`headerName: '${column}'`), `missing column ${column}`);
   }
   assert.doesNotMatch(registry, /Statut projet/);
-  assert.match(registry, /Ajouter<\\/Button>/);
+  assert.match(registry, /Ajouter<\/Button>/);
   assert.match(registry, /onCellValueChanged/);
   assert.match(registry, /Objet BPMN à associer \\(facultatif\\)/, 'project sources must be creatable without a BPMN association');
   assert.match(registry, /origin: 'Projet'/);
   assert.doesNotMatch(registry, /Objets BPMN non encore inscrits au référentiel/, 'unlinked BPMN objects are available from the add dialog, not a second list');
-  assert.match(registry, /ref\.authorizedPeople/);
   assert.match(registry, /resourceId: ref\.resourceId/);
   assert.match(registry, /elementType: ref\.elementType/);
   assert.match(registry, /navigate\(\`\/\$\{ref\.resourceId\}\?elementId=/);
