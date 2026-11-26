@@ -51,6 +51,28 @@ INSERT INTO resources (id,"createdBy",name,description,depth,"parentId","authTok
 ('8b000001-0000-4000-8000-000000000033','reference-seed','Clôturer la maintenance et organiser la réversibilité','Informer, transférer données et connaissances, révoquer accès et clôturer',2,'8b000000-0000-4000-8000-000000000007',NULL,'process')
 ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, description=EXCLUDED.description, depth=EXCLUDED.depth, "parentId"=EXCLUDED."parentId", type=EXCLUDED.type;
 
+UPDATE resources
+SET "processMetadata" = COALESCE("processMetadata", '{}'::jsonb) || jsonb_build_object(
+  'nature', 'specific',
+  'family', CASE "parentId"
+    WHEN '8b000000-0000-4000-8000-000000000002' THEN 'GOV'
+    WHEN '8b000000-0000-4000-8000-000000000003' THEN 'HR'
+    WHEN '8b000000-0000-4000-8000-000000000004' THEN 'FIN'
+    WHEN '8b000000-0000-4000-8000-000000000005' THEN 'IT'
+    WHEN '8b000000-0000-4000-8000-000000000006' THEN 'DEL'
+    WHEN '8b000000-0000-4000-8000-000000000007' THEN 'MNT'
+  END
+)
+WHERE type = 'process'
+  AND "parentId" IN (
+    '8b000000-0000-4000-8000-000000000002',
+    '8b000000-0000-4000-8000-000000000003',
+    '8b000000-0000-4000-8000-000000000004',
+    '8b000000-0000-4000-8000-000000000005',
+    '8b000000-0000-4000-8000-000000000006',
+    '8b000000-0000-4000-8000-000000000007'
+  );
+
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000001','reference-seed','8b000001-0000-4000-8000-000000000001','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_GOV01" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
  <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
