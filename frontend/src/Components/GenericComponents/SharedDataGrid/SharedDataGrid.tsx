@@ -583,10 +583,8 @@ export function SharedDataGrid<T extends object>({
               event.api.deselectAll();
               event.node.setSelected(true);
             }
-            const clickedColumnId = event.column?.getColId();
-            const editableColumn = clickedColumnId && event.column?.isCellEditable(event.node)
-              ? clickedColumnId
-              : event.api.getAllDisplayedColumns().find(column => column.isCellEditable(event.node))?.getColId();
+            const editableColumn = event.api.getAllDisplayedColumns()
+              .find(column => column.isCellEditable(event.node))?.getColId();
             if (editableColumn) event.api.startEditingCell({ rowIndex: event.rowIndex, colKey: editableColumn });
           }}
           localeText={translatedLocale}
