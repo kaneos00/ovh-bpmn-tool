@@ -28,7 +28,8 @@ Le processus parent « Gérer le service et la maintenance du logiciel » appell
 
 - Arborescence de ressources et processus BPMN publiés avec identifiants stables.
 - Projet avec rôle administrateur affecté à `DEMO_AUTH_USER`.
-- Acteurs RACI propres au projet et affectations R/A/C par activité.
+- Acteurs RACI propres au projet et affectations R/A/C par activité, avec une répartition adaptée aux familles de processus.
+- Références de données persistantes BPMN (`DataStoreReference`) vers les applications et bases fictives, en plus des objets documentaires (`DataObjectReference`).
 - Informations documentées de type fichier, application et base de données, avec métadonnées de conservation, accès et données personnelles.
 - Associations BPMN des objets de données au registre des informations documentées.
 - Applications fictives : ITSM, ERP, SIRH, CMDB, dépôt Git, CI/CD, supervision et base documentaire.
@@ -41,7 +42,7 @@ Ce jeu de données n'est **pas** ajouté au démarrage automatique de la démons
 2. Pour remettre uniquement le référentiel à zéro, exécuter `reset.sh` avec `CONFIRM_REFERENCE_PROJECT_RESET=YES`.
 3. Réexécuter `seed.sql`.
 
-Le script de remise à zéro cible le seul projet par son UUID stable, ses tables liées et les ressources de son espace de noms. Il ne supprime aucun autre projet ni les graines historiques. Toujours vérifier la base ciblée avant confirmation.
+Le script de remise à zéro cible le seul projet par son UUID stable, ses tables liées, l'arborescence de ressources sous son dossier racine et les ressources actuellement affectées au projet. Il capture aussi les ressources ajoutées pendant les essais. Les ressources encore référencées par un autre projet sont conservées, avec leur contenu ; les ressources non partagées sont supprimées de la feuille vers la racine. Il ne supprime aucun autre projet ni les graines historiques. Toujours vérifier la base ciblée avant confirmation.
 
 ## Contrat de non-régression
 
