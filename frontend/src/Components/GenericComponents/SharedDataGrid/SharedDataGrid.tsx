@@ -97,6 +97,7 @@ const compareRule = <T extends object>(row: T, rule: FilterRule, field: FilterFi
   if (!rule.value.trim()) return true;
 
   if (field.type === 'number') {
+    if (raw === null || raw === undefined || raw === '') return false;
     const actual = Number(raw);
     const expected = Number(rule.value);
     if (!Number.isFinite(actual) || !Number.isFinite(expected)) return false;
@@ -112,11 +113,13 @@ const compareRule = <T extends object>(row: T, rule: FilterRule, field: FilterFi
   }
 
   if (field.type === 'date') {
-    const actual = new Date(String(raw ?? '')).getTime();
-    const expected = new Date(rule.value).getTime();
-    if (!Number.isFinite(actual) || !Number.isFinite(expected)) return false;
+    const actual = raw instanceof Date
+      ? [raw.getFullYear(), String(raw.getMonth() + 1).padStart(2, '0'), String(raw.getDate()).padStart(2, '0')].join('-')
+      : String(raw ?? '').slice(0, 10);
+    const expected = rule.value.slice(0, 10);
+    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(actual) || !/^\\d{4}-\\d{2}-\\d{2}$/.test(expected)) return false;
     switch (rule.operator) {
-      case 'equals': return new Date(actual).toDateString() === new Date(expected).toDateString();
+      case 'equals': return actual === expected;
       case 'before': return actual < expected;
       case 'after': return actual > expected;
       default: return true;
@@ -197,7 +200,7 @@ function FilterRuleEditor({
       ...rule,
       field: next.id,
       operator: next.type === 'text' ? 'contains' : 'equals',
-      value: '',
+      value: next.type === 'boolean' ? 'true' : '',
     });
   };
 
@@ -348,7 +351,7 @@ export function SharedDataGrid<T extends object>({
     id: makeId('rule'),
     field: fields[0]?.id ?? '',
     operator: fields[0]?.type === 'number' || fields[0]?.type === 'date' || fields[0]?.type === 'boolean' ? 'equals' : 'contains',
-    value: '',
+    value: fields[0]?.type === 'boolean' ? 'true' : '',
   }), [fields]);
   const createGroup = useCallback((): FilterGroup => ({
     kind: 'group',
