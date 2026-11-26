@@ -61,6 +61,8 @@ export type SharedDataGridProps<TData extends object> = {
   advancedFilter?: AdvancedFilterConfig<TData>;
   columnFilters?: boolean;
   quickFilterText?: string;
+  quickSearch?: boolean;
+  quickSearchPlaceholder?: string;
   defaultColDef?: ColDef<TData>;
   height?: number | string;
   pagination?: boolean;
@@ -278,6 +280,8 @@ export const SharedDataGrid = <TData extends object>({
   advancedFilter,
   columnFilters = true,
   quickFilterText,
+  quickSearch = false,
+  quickSearchPlaceholder = 'Rechercher dans les données…',
   defaultColDef,
   height = 360,
   pagination = false,
@@ -291,13 +295,15 @@ export const SharedDataGrid = <TData extends object>({
   onCellValueChanged,
 }: SharedDataGridProps<TData>) => {
   const [filterOpen, setFilterOpen] = useState(false);
+  const [internalQuickSearch, setInternalQuickSearch] = useState('');
+  const activeQuickFilter = quickFilterText ?? internalQuickSearch;
   const [draftFilter, setDraftFilter] = useState<GridFilterGroup>(() => createGroup(advancedFilter?.fields ?? []));
   const [appliedFilter, setAppliedFilter] = useState<GridFilterGroup | null>(null);
 
   const visibleRows = useMemo(() => {
     let result = rowData;
-    if (quickFilterText?.trim()) {
-      const query = quickFilterText.trim().toLocaleLowerCase();
+    if (activeQuickFilter?.trim()) {
+      const query = activeQuickFilter.trim().toLocaleLowerCase();
       result = result.filter((row) => Object.values(row).some((value) =>
         String(value ?? '').toLocaleLowerCase().includes(query)));
     }
@@ -305,7 +311,7 @@ export const SharedDataGrid = <TData extends object>({
       result = result.filter((row) => matchesFilter(row, appliedFilter, advancedFilter.fields));
     }
     return result;
-  }, [rowData, quickFilterText, advancedFilter?.fields, appliedFilter]);
+  }, [rowData, activeQuickFilter, advancedFilter?.fields, appliedFilter]);
 
   const safeColumnDefs = useMemo(
     () => editing ? columnDefs : columnDefs.map((column) => ({ ...column, editable: false })),
@@ -319,7 +325,7 @@ export const SharedDataGrid = <TData extends object>({
     ...defaultColDef,
     editable: editing ? (defaultColDef?.editable ?? true) : false,
   }), [defaultColDef, editing, columnFilters]);
-  const effectiveSelection = selection ?? (editing ? { mode: 'multiRow' as const } : undefined);
+  const effectiveSelection = useMemo(() => selection ?? (editing ? { mode: 'multiRow' as const } : undefined), [selection, editing]);
   const rowSelection = useMemo(() => effectiveSelection ? ({
     mode: effectiveSelection.mode,
     checkboxes: effectiveSelection.checkboxes ?? true,
@@ -329,10 +335,11 @@ export const SharedDataGrid = <TData extends object>({
 
   return (
     <section className={`shared-data-grid ${className}`}>
-      {advancedFilter && (
+      {(advancedFilter || quickSearch) && (
         <div className="shared-data-grid-toolbar">
+          {quickSearch && <input className="shared-data-grid-search" type="search" placeholder={quickSearchPlaceholder} value={internalQuickSearch} onChange={(event) => setInternalQuickSearch(event.target.value)} />}
           <button type="button" className={filterOpen ? 'is-active' : ''} onClick={() => setFilterOpen((value) => !value)}>
-            Filtrage avancé
+            {advancedFilter.label ?? 'Filtrage avancé'}
             {appliedFilter && <span className="shared-data-grid-filter-dot" aria-label="Filtre appliqué" />}
           </button>
           {appliedFilter && <button type="button" onClick={() => { setAppliedFilter(null); setDraftFilter(createGroup(advancedFilter.fields)); }}>Effacer le filtre</button>}
