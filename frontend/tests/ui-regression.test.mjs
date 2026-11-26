@@ -1199,3 +1199,28 @@ test('documented-information search focuses the canonical inventory row and reta
   assert.ok(sharedGrid.includes('checkboxes: true'));
 });
 
+
+
+test('V0.8 business screens reuse the shared configurable data grid without changing administration', async () => {
+  const shared = await read('src/Components/GenericComponents/SharedDataGrid/SharedDataGrid.tsx');
+  const wrapper = await read('src/Components/BusinessComponents/ProcessDetails/DocumentedSourcesGrid.tsx');
+  const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
+  const projectSources = await read('src/Components/BusinessComponents/ProcessDetails/ProjectDocumentedSources.tsx');
+  const versions = await read('src/Components/BusinessComponents/ProcessContentList/ProcessContentList.tsx');
+  const organizationAdmin = await read('src/Containers/OrganizationAdmin/OrganizationAdmin.container.tsx');
+  const userAccounts = await read('src/Containers/UserAccounts/index.tsx');
+
+  assert.ok(wrapper.includes("import { SharedDataGrid } from '../../GenericComponents/SharedDataGrid'"));
+  assert.ok(inventory.includes('<DocumentedSourcesGrid<InventoryGridRow>'));
+  assert.ok(projectSources.includes('<DocumentedSourcesGrid<GridRow>'));
+  assert.ok(versions.includes('<SharedDataGrid<Content>'));
+  assert.ok(shared.includes('FilterGroupEditor'));
+  assert.ok(shared.includes('isExternalFilterPresent'));
+  assert.ok(shared.includes('doesExternalFilterPass'));
+  assert.ok(shared.includes('applyColumnState'));
+  assert.ok(shared.includes('exportDataAsCsv'));
+  assert.ok(shared.includes('rowSelection={selectionOptions}'));
+  assert.ok(shared.includes('min-height: 48px') || (await read('src/Components/GenericComponents/SharedDataGrid/SharedDataGrid.scss')).includes('min-height: 48px'));
+  assert.ok(!organizationAdmin.includes('SharedDataGrid'));
+  assert.ok(!userAccounts.includes('SharedDataGrid'));
+});
