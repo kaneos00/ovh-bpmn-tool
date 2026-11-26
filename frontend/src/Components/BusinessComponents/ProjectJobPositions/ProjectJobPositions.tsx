@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { AgGridReact } from 'ag-grid-react';
-import { AllCommunityModule, ModuleRegistry, themeQuartz, type ColDef, type ICellRendererParams } from 'ag-grid-community';
+import { type ColDef, type ICellRendererParams } from 'ag-grid-community';
+import { SharedDataGrid, type GridFilterField } from '../../GenericComponents/SharedDataGrid';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import {
   Alert, Box, Button, Card, Checkbox, Chip, Divider, FormControl, FormLabel,
@@ -12,8 +12,6 @@ import type { Content, Resource } from '../../../Types';
 import { ContentStatusEnum } from '../../../Types';
 import { ResourceType } from '../../../shared/types/BpmnResource';
 import { deriveRaciMatrixFromXml } from '../../../extensions/raci-viewer';
-
-ModuleRegistry.registerModules([AllCommunityModule]);
 
 type JobFunction = {
   id: string; code: string; name: string; description?: string | null;
@@ -168,6 +166,18 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
       },
     },
     { field: 'description', headerName: 'Description', flex: 1.5, minWidth: 180 },
+  ], []);
+  const gridFilterFields = useMemo<GridFilterField<PositionGridRow>[]>(() => [
+    { field: 'title', label: 'Poste', type: 'text' },
+    { field: 'functionName', label: 'Fonction de référence', type: 'text' },
+    { field: 'competencyBlockCount', label: 'Nombre de blocs', type: 'number' },
+    { field: 'readinessStatus', label: 'Préparation', type: 'select', options: [
+      { value: 'ready', label: 'Prêt à valider' },
+      { value: 'to_review', label: 'À vérifier' },
+      { value: 'to_complete', label: 'À compléter' },
+      { value: 'pending', label: 'Calcul en cours' },
+    ] },
+    { field: 'description', label: 'Description', type: 'text' },
   ], []);
   const selectedPosition = (positionsQuery.data ?? []).find(item => item.id === selectedPositionId) ?? null;
   const selectedPositionValidation = diagnosticsQuery.data?.positionValidation.find(
@@ -385,18 +395,15 @@ export const ProjectJobPositions = ({ projectId, canEdit }: { projectId: string;
             {positionsQuery.isLoading && <Typography level="body-sm">Chargement des postes…</Typography>}
             {positionsQuery.isError && <Alert color="danger">La liste des postes n’est pas disponible.</Alert>}
             {!positionsQuery.isLoading && !positionsQuery.isError && gridRows.length > 0 && (
-              <Box sx={{ width: '100%', height: 360, minWidth: 0 }}>
-                <AgGridReact<PositionGridRow>
-                  theme={themeQuartz}
-                  rowData={gridRows}
-                  columnDefs={gridColumns}
-                  defaultColDef={{ sortable: true, filter: true, resizable: true }}
-                  getRowId={params => params.data.id}
-                  onRowClicked={event => { if (!event.data) return; setSelectedPositionId(event.data.id); setError(''); }}
-                  animateRows
-                  overlayNoRowsTemplate="Aucun poste organisationnel pour ce projet."
-                />
-              </Box>
+              <SharedDataGrid<PositionGridRow>
+                rowData={gridRows}
+                columnDefs={gridColumns}
+                getRowId={row => row.id}
+                advancedFilter={{ fields: gridFilterFields }}
+                height={360}
+                emptyMessage="Aucun poste organisationnel pour ce projet."
+                onRowClicked={event => { if (!event.data) return; setSelectedPositionId(event.data.id); setError(''); }}
+              />
             )}
             {!positionsQuery.isLoading && !positionsQuery.isError && !gridRows.length &&
               <Typography level="body-sm" sx={{ color: 'text.secondary' }}>Aucun poste organisationnel n’a encore été créé pour ce projet.</Typography>}
