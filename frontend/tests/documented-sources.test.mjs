@@ -100,11 +100,11 @@ test('unlinking a BPMN object removes only its reference, not the documented sou
   assert.match(controller, /this\.references\.delete\(\{ id: reference\.id \}\)/);
 });
 
-test('documented information rows keep their leading selection checkboxes and search focus', async () => {
+test('documented information grid supports project multi-selection and process single-selection', async () => {
   const grid = await read('src/Components/BusinessComponents/ProcessDetails/DocumentedSourcesGrid.tsx');
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
 
-  assert.match(grid, /rowSelection=\{\{ mode: 'singleRow', checkboxes: true, enableClickSelection: true \}\}/);
+  assert.match(grid, /rowSelection=\{multiSelect \? \{ mode: 'multiRow', checkboxes: true, headerCheckbox: true, enableClickSelection: true \} : \{ mode: 'singleRow', checkboxes: false, enableClickSelection: true \}\}/);
   assert.match(grid, /event\.api\.ensureNodeVisible\(node, 'middle'\)/);
   assert.match(inventory, /selectedRowId=\{requestedDocumentedSourceId \?\? undefined\}/);
 });
