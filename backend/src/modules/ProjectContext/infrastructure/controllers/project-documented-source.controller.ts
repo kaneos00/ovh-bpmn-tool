@@ -277,13 +277,24 @@ export class ProjectDocumentedSourceController {
       this.projectProcesses.find({ where: { projectId } }),
     ]);
 
-    const linkedResourceIds = [...new Set(links.map((link) => link.resourceId))];
-    if (requestedResourceId && !linkedResourceIds.includes(requestedResourceId)) {
-      throw new BadRequestException('The process is not linked to this project');
+    const linkedResourceIds = [
+      ...new Set(links.map((link) => link.resourceId)),
+    ];
+    if (
+      requestedResourceId &&
+      !linkedResourceIds.includes(requestedResourceId)
+    ) {
+      throw new BadRequestException(
+        'The process is not linked to this project',
+      );
     }
-    const resourceIds = requestedResourceId ? [requestedResourceId] : linkedResourceIds;
+    const resourceIds = requestedResourceId
+      ? [requestedResourceId]
+      : linkedResourceIds;
     const scopedReferences = requestedResourceId
-      ? references.filter((reference) => reference.resourceId === requestedResourceId)
+      ? references.filter(
+          (reference) => reference.resourceId === requestedResourceId,
+        )
       : references;
     const resources = resourceIds.length
       ? await this.resources.find({ where: { id: In(resourceIds) } })
@@ -354,10 +365,11 @@ export class ProjectDocumentedSourceController {
         }))
         // In a process view, show process-linked sources and project-level
         // sources that have not yet been associated with any BPMN element.
-        .filter((source) =>
-          !requestedResourceId ||
-          !references.some((reference) => reference.sourceId === source.id) ||
-          source.references.length > 0,
+        .filter(
+          (source) =>
+            !requestedResourceId ||
+            !references.some((reference) => reference.sourceId === source.id) ||
+            source.references.length > 0,
         ),
       unlinkedReferences: unlinkedReferences.sort(
         (left, right) =>
