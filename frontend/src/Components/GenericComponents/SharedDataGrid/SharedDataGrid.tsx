@@ -278,7 +278,7 @@ export const SharedDataGrid = <TData extends object>({
   editing = false,
   editType = 'fullRow',
   advancedFilter,
-  columnFilters = true,
+  columnFilters = false,
   quickFilterText,
   quickSearch = false,
   quickSearchPlaceholder = 'Rechercher dans les données…',
