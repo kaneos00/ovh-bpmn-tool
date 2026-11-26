@@ -329,7 +329,7 @@ export function SharedDataGrid<T extends object>({
   const effectiveColumnDefs = useMemo(() => columnDefs.map((column, index) => ({
     ...column,
     colId: columnId(column, index),
-    editable: mode === 'edit' ? (column.editable ?? true) : false,
+    editable: mode === 'edit' ? (column.editable ?? Boolean(column.field)) : false,
   })), [columnDefs, mode]);
 
   const fields = useMemo<FilterField[]>(() => columnDefs
