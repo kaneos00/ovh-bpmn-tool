@@ -221,6 +221,40 @@ export class JobArchitectureService {
     }
   }
 
+  async updateCompetency(
+    competencyId: string,
+    input: {
+      code?: string;
+      name?: string;
+      description?: string | null;
+      category?: 'technical' | 'methodological' | 'functional' | 'behavioral';
+      active?: boolean;
+    },
+  ) {
+    const competency = await this.competencies.findOne({ where: { id: competencyId } });
+    if (!competency) throw new NotFoundException('Competency not found');
+
+    if (input.code !== undefined) competency.code = this.requiredText(input.code, 'code', 64).toUpperCase();
+    if (input.name !== undefined) competency.name = this.requiredText(input.name, 'name', 255);
+    if (input.description !== undefined) competency.description = input.description?.trim() || null;
+    if (input.category !== undefined) {
+      if (!['technical', 'methodological', 'functional', 'behavioral'].includes(input.category)) {
+        throw new BadRequestException('Competency category is invalid');
+      }
+      competency.category = input.category;
+    }
+    if (input.active !== undefined) competency.active = input.active;
+
+    try {
+      return await this.competencies.save(competency);
+    } catch (error) {
+      if ((error as { code?: string }).code === '23505') {
+        throw new ConflictException('A competency with this code already exists');
+      }
+      throw error;
+    }
+  }
+
   async addCompetencyToBlock(
     blockId: string,
     competencyId: string,
