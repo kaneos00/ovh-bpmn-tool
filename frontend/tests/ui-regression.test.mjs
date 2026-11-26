@@ -525,7 +525,7 @@ test('V3 central viewer exposes the validated documented information table backe
   assert.match(inventory, /cellEditor: 'agDateStringCellEditor'/);
   assert.match(inventory, /valueFormatter: params => params\.value \|\| 'Illimitée'/);
   assert.match(inventory, /selectedRowId=\{requestedDocumentedSourceId \?\? undefined\}/);
-  assert.match(grid, /selection="single"/);
+  assert.match(grid, /selection = 'single'/);
   assert.match(sharedGrid, /rowSelection=\{selectionOptions\}/);
   assert.match(sharedGrid, /checkboxes: true/);
   assert.match(sharedGrid, /ensureNodeVisible\(node, 'middle'\)/);
@@ -1194,7 +1194,7 @@ test('documented-information search focuses the canonical inventory row and reta
   assert.ok(details.includes('if (requestedDocumentedSourceId) setActiveViewerTab(4)'));
   assert.ok(details.includes('requestedDocumentedSourceId={requestedDocumentedSourceId}'));
   assert.ok(inventory.includes('selectedRowId={requestedDocumentedSourceId ?? undefined}'));
-  assert.ok(grid.includes('selection="single"'));
+  assert.ok(inventory.includes('selection="single"'));
   assert.ok(sharedGrid.includes('ensureNodeVisible(node, \'middle\')'));
   assert.ok(sharedGrid.includes('checkboxes: true'));
 });
