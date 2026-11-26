@@ -5,10 +5,22 @@ ALTER TABLE project_documented_sources
 
 -- Backfill sources whose existing BPMN references identify one unambiguous process.
 WITH ownership AS (
-  SELECT "sourceId", MIN("resourceId"::text)::uuid AS "resourceId"
-  FROM project_documented_source_references
-  GROUP BY "sourceId"
-  HAVING COUNT(DISTINCT "resourceId") = 1
+  SELECT
+    reference."sourceId",
+    MIN(reference."resourceId"::text)::uuid AS "resourceId"
+  FROM project_documented_source_references AS reference
+  JOIN project_documented_sources AS source
+    ON source.id = reference."sourceId"
+  JOIN project_processes AS process
+    ON process."projectId" = source."projectId"
+   AND process."resourceId" = reference."resourceId"
+  GROUP BY reference."sourceId"
+  HAVING COUNT(DISTINCT reference."resourceId") = 1
+     AND COUNT(*) = (
+       SELECT COUNT(*)
+       FROM project_documented_source_references AS all_references
+       WHERE all_references."sourceId" = reference."sourceId"
+     )
 )
 UPDATE project_documented_sources AS source
 SET "resourceId" = ownership."resourceId"
