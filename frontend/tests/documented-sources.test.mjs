@@ -10,8 +10,9 @@ const read = relativePath => readFile(path.join(root, relativePath), 'utf8');
 test('documented information table keeps the validated column order', async () => {
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
   const headers = [
-    "headerName: 'Type'",
     "textColumn('name', 'Nom'",
+    "headerName: 'Origine'",
+    "headerName: 'Type'",
     "textColumn('description', 'Description'",
     "headerName: 'Données personnelles'",
     "headerName: 'Objet BPMN'",
