@@ -48,13 +48,21 @@ export const action = async ({
 
     // Create the first editable BPMN draft before linking the process to a project.
     if (resourceType === ResourceType.Process) {
-      const initialBpmn = '<?xml version="1.0" encoding="UTF-8"?>\n' +
-        '<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_Initial" targetNamespace="http://bpmn.io/schema/bpmn">' +
-        '<bpmn:process id="Process_Initial" isExecutable="false"><bpmn:startEvent id="StartEvent_Initial" name="Début" /></bpmn:process>' +
-        '<bpmndi:BPMNDiagram id="BPMNDiagram_Initial"><bpmndi:BPMNPlane id="BPMNPlane_Initial" bpmnElement="Process_Initial"><bpmndi:BPMNShape id="StartEvent_Initial_di" bpmnElement="StartEvent_Initial"><dc:Bounds x="180" y="160" width="36" height="36" /></bpmndi:BPMNShape></bpmndi:BPMNPlane></bpmndi:BPMNDiagram>' +
-        '</bpmn:definitions>';
+      const initialBpmn = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_Initial" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_Initial" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_Initial" name="Début" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Initial">
+    <bpmndi:BPMNPlane id="BPMNPlane_Initial" bpmnElement="Process_Initial">
+      <bpmndi:BPMNShape id="StartEvent_Initial_di" bpmnElement="StartEvent_Initial">
+        <dc:Bounds x="180" y="160" width="36" height="36" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>`;
       try {
-        await apiClient.post('/resources/' + createdResourceId + '/contents', { content: initialBpmn });
+        await apiClient.post(`/resources/${createdResourceId}/contents`, { content: initialBpmn });
       } catch (draftError) {
         try { await deleteResource(createdResourceId); } catch { /* best-effort cleanup */ }
         throw new Error('Le brouillon initial du processus n’a pas pu être créé : ' + (draftError instanceof Error ? draftError.message : 'erreur inconnue'));
@@ -66,7 +74,7 @@ export const action = async ({
     // just-created orphan resource rather than leaving it outside the project.
     if (resourceType === ResourceType.Folder && projectId) {
       try {
-        await apiClient.post('/projects/' + projectId + '/folders', { resourceId: createdResourceId });
+        await apiClient.post(`/projects/${projectId}/folders`, { resourceId: createdResourceId });
       } catch (linkError) {
         try { await deleteResource(createdResourceId); } catch { /* best-effort cleanup */ }
         throw linkError;
