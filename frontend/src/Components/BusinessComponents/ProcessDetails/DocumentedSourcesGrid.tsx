@@ -1,11 +1,6 @@
 import React from 'react';
-import { AgGridReact } from 'ag-grid-react';
-import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
 import type { CellValueChangedEvent, ColDef } from 'ag-grid-community';
-import { AddOutlined } from '@mui/icons-material';
-import { Box, Button, Stack } from '@mui/joy';
-
-ModuleRegistry.registerModules([AllCommunityModule]);
+import { SharedDataGrid } from '../../GenericComponents/SharedDataGrid';
 
 type Props<T extends object> = {
   rowData: T[];
@@ -32,57 +27,22 @@ export const DocumentedSourcesGrid = <T extends object,>({
   selectedRowId,
   height = 520,
 }: Props<T>) => (
-  <Box sx={{ width: '100%', minWidth: 0 }}>
-    {onAdd && (
-      <Stack direction="row" justifyContent="flex-end" sx={{ mb: 1 }}>
-        <Button size="sm" startDecorator={<AddOutlined />} disabled={addDisabled} onClick={onAdd}>{addLabel}</Button>
-      </Stack>
-    )}
-    <Box sx={{ width: '100%', height, minWidth: 0 }}>
-      <AgGridReact<T>
-        theme={themeQuartz}
-        rowData={rowData}
-        columnDefs={columnDefs}
-        getRowId={params => getRowId(params.data)}
-        defaultColDef={{ sortable: true, filter: true, resizable: true, minWidth: 110, flex: 1, wrapText: true, autoHeight: true }}
-        // Keep single-row selection and explicitly show a checkbox at the start of each row.
-        rowSelection={{ mode: 'singleRow', checkboxes: true, enableClickSelection: true }}
-        suppressCellFocus
-        animateRows={false}
-        pagination
-        paginationPageSize={20}
-        onFirstDataRendered={event => {
-          if (!selectedRowId) return;
-          const node = event.api.getRowNode(selectedRowId);
-          if (node) { node.setSelected(true); event.api.ensureNodeVisible(node, 'middle'); }
-        }}
-        onRowDataUpdated={event => {
-          if (!selectedRowId) return;
-          const node = event.api.getRowNode(selectedRowId);
-          if (node) { node.setSelected(true); event.api.ensureNodeVisible(node, 'middle'); }
-        }}
-        onCellValueChanged={event => onCellValueChanged?.(event)}
-        onRowClicked={event => onRowSelected?.(event.data ?? null)}
-        onSelectionChanged={event => onRowSelected?.(event.api.getSelectedRows()[0] ?? null)}
-        localeText={{
-          page: 'Page',
-          to: 'à',
-          of: 'sur',
-          next: 'Suivant',
-          previous: 'Précédent',
-          noRowsToShow: 'Aucune information documentée',
-          searchOoo: 'Rechercher…',
-          selectAll: 'Tout sélectionner',
-          blanks: 'Vides',
-          filterOoo: 'Filtrer…',
-          equals: 'Égal à',
-          notEqual: 'Différent de',
-          contains: 'Contient',
-          notContains: 'Ne contient pas',
-          startsWith: 'Commence par',
-          endsWith: 'Termine par',
-        }}
-      />
-    </Box>
-  </Box>
+  <SharedDataGrid<T>
+    rowData={rowData}
+    columnDefs={columnDefs}
+    getRowId={getRowId}
+    preferenceKey="process-documented-sources"
+    mode="edit"
+    editTrigger="cell"
+    selection="single"
+    selectedRowId={selectedRowId}
+    onAdd={onAdd}
+    addLabel={addLabel}
+    addDisabled={addDisabled}
+    onRowSelected={onRowSelected}
+    onCellValueChanged={onCellValueChanged}
+    height={height}
+    paginationPageSize={20}
+    localeText={{ noRowsToShow: 'Aucune information documentée' }}
+  />
 );
