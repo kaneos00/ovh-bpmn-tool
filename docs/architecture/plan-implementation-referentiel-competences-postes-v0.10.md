@@ -65,7 +65,7 @@ Les activités actuelles peuvent fournir une base de migration ou de reprise, ma
 
 ### 2.2 Lien fiche de poste / poste permanent
 
-`OrganizationPosition.functionId` fournit déjà un lien vers `JobFunction`. La préparation doit confirmer le comportement attendu lorsque :
+`OrganizationPosition.functionId` fournit déjà un lien vers `JobFunction`. Le comportement actuel est à confirmer lorsque :
 - plusieurs postes permanents réutilisent la même fiche de fonction ;
 - un poste permanent n’a pas encore de fiche liée ;
 - le code et l’intitulé du poste diffèrent du code et du nom de la fiche de référence ;
@@ -94,7 +94,7 @@ Parcours :
 - contrôle de doublons potentiels avant confirmation ;
 - consultation/modification ;
 - désactivation/réactivation ;
-- suppression physique uniquement si aucune association ni référence historique ne subsiste.
+- aucune suppression physique depuis l'API ; une compétence utilisée est désactivée.
 
 La désactivation ne retire pas la compétence des fiches existantes. Une compétence inactive reste lisible dans les historiques et n’est plus proposée par défaut dans les nouveaux rattachements.
 
@@ -116,7 +116,7 @@ La sélection d’une compétence ouvre une recherche dans le référentiel glob
 
 ## 4. Évolution de données à instruire — sans migration prématurée
 
-Les points suivants sont des besoins à concevoir et valider avant d’écrire une migration :
+Les points suivants sont des besoins à concevoir et valider avant d’écrire la migration de remplacement :
 
 - rendre la compétence indépendante d’un bloc ;
 - introduire les quatre familles exclusives, dont Fonctionnelle ;
@@ -125,15 +125,17 @@ Les points suivants sont des besoins à concevoir et valider avant d’écrire u
 - créer les associations bloc de missions ↔ compétence avec niveau attendu ;
 - créer l’association poste/fonction ↔ compétence transversale avec niveau attendu ;
 - définir les règles de suppression, désactivation, réactivation et conservation des associations ;
-- migrer les compétences existantes en préservant leur identifiant, leur code, leur description, leur famille approchée et leurs usages projet ;
-- traiter explicitement les compétences actuellement répétées dans plusieurs blocs : dédoublonnage assisté, jamais fusion automatique ;
-- préserver la compatibilité des exigences de compétences des postes projet et leur logique d’override.
+- remplacer le modèle des compétences sur la base de test, sans préserver les identifiants, codes ou définitions historiques ;
+- remettre à zéro les anciennes lignes de compétences et les exigences individuelles de compétences projet ;
+- créer l'association explicite compétence globale ↔ bloc de compétences projet ;
+- conserver les blocs projet, les liens fonction ↔ blocs, les applicabilités des blocs, les mappings d'activités BPMN et les correspondances RACI ;
+- conserver la distinction entre niveau du bloc projet et niveau d'une compétence individuelle.
 
-Aucune migration ne doit être écrite avant d’avoir établi l’inventaire réel des données et la stratégie de reprise. Les suppressions en cascade actuelles doivent être examinées avec une base représentative.
+La migration peut être destructive pour les données de compétences de la base de test, après sauvegarde et avec une garde empêchant l'exécution en production. L'inventaire doit surtout confirmer les FK et consommateurs à préserver. Aucune remise à zéro ne doit toucher les données projet/BPMN sans dépendance directe démontrée.
 
 ## 5. Séquencement proposé
 
-1. **Modèle et stratégie de reprise** : valider la séparation compétence globale / bloc de missions / association et inventorier les données existantes.
+1. **Modèle et stratégie de remplacement** : valider la séparation compétence globale / blocs de compétences projet / blocs de missions, puis inventorier les dépendances à préserver.
 2. **Référentiel des compétences** : modèle, API CRUD, contrôle anti-doublon, désactivation et tests.
 3. **Fiche de poste** : quatre blocs, activités, associations compétences/niveaux et compétences transversales.
 4. **Liste des postes** : liaison explicite vers la fiche de référence et accès à la fiche consultable.
@@ -155,3 +157,26 @@ Aucune migration ne doit être écrite avant d’avoir établi l’inventaire r�
 ## 7. Périmètre de cette analyse
 
 Cette analyse est une inspection statique des sources et migrations de la branche. Elle ne constitue pas une validation runtime. Aucun code applicatif, aucune migration et aucun test CI n’ont été exécutés ou modifiés dans cette tranche.
+
+
+## 8. Précision sur les dépendances projet confirmées
+
+L'inspection ciblée du backend confirme que `JobArchitectureService.listFunctions()` lit `job_function_competency_blocks` et construit les blocs de compétences présentés pour chaque fonction. `createProjectPosition()` reprend ces associations pour initialiser `position_competency_blocks`.
+
+Les tables `competency_blocks`, `job_function_competency_blocks`, `position_competency_blocks` et `position_activity_mappings` sont donc des éléments actifs du flux projet et doivent être conservés. Les mappings d'activités BPMN ne référencent pas directement une compétence ; ils relient un poste projet, une ressource/processus, une tâche BPMN et un bloc applicable.
+
+Deux niveaux de besoin restent distincts :
+- `position_competency_blocks.requiredLevel` : niveau demandé pour le bloc ;
+- `position_competency_requirements.requiredLevel` : niveau demandé pour une compétence individuelle.
+
+La remise à zéro de la base de test porte sur les définitions de compétences et les exigences individuelles. Elle ne doit pas effacer l'applicabilité ou le niveau des blocs, ni les mappings BPMN ou RACI.
+
+## 9. Stratégie de migration retenue
+
+- Pas de table de correspondance des anciennes compétences.
+- Pas de reprise ou de dédoublonnage des anciennes définitions.
+- Nouveau catalogue global avec code unique et quatre familles.
+- Nouvelle liaison compétence ↔ bloc projet.
+- Exigences individuelles projet recréées après la migration ; niveaux portés par ces associations.
+- Tables des quatre blocs de missions et de leurs activités/compétences créées séparément.
+- Sauvegarde de la base de test, garde anti-production, migration, tests backend/frontend puis CI.
