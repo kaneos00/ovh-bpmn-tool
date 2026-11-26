@@ -81,11 +81,24 @@ export type SharedDataGridProps<TData extends object> = {
 let filterSequence = 0;
 const nextFilterId = () => `grid-filter-${++filterSequence}`;
 
+const defaultOperator = (type: 'text' | 'number' | 'date' | 'select' = 'text') => {
+  if (type === 'number') return 'gte';
+  if (type === 'date') return 'after';
+  if (type === 'select') return 'equals';
+  return 'contains';
+};
+
+const inputTypeFor = (type: 'text' | 'number' | 'date' | 'select') => {
+  if (type === 'number') return 'number';
+  if (type === 'date') return 'date';
+  return 'text';
+};
+
 const createRule = <TData,>(fields: GridFilterField<TData>[]): GridFilterRule => ({
   kind: 'rule',
   id: nextFilterId(),
   field: String(fields[0]?.field ?? ''),
-  operator: fields[0]?.type === 'number' ? 'gte' : fields[0]?.type === 'date' ? 'after' : 'contains',
+  operator: defaultOperator(fields[0]?.type),
   value: '',
 });
 
@@ -224,7 +237,7 @@ const FilterGroupEditor = <TData,>({
                   onChange(patchNode(node, child.id, () => ({
                     ...child,
                     field: event.target.value,
-                    operator: nextType === 'number' ? 'gte' : nextType === 'date' ? 'after' : nextType === 'select' ? 'equals' : 'contains',
+                    operator: defaultOperator(nextType),
                     value: '',
                   })));
                 }}
@@ -254,7 +267,7 @@ const FilterGroupEditor = <TData,>({
               ) : (
                 <input
                   aria-label="Valeur"
-                  type={fieldType(fields, child.field) === 'number' ? 'number' : fieldType(fields, child.field) === 'date' ? 'date' : 'text'}
+                  type={inputTypeFor(fieldType(fields, child.field))}
                   value={child.value}
                   onChange={(event) => onChange(patchNode(node, child.id, () => ({ ...child, value: event.target.value })))}
                 />
