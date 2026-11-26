@@ -367,13 +367,15 @@ export class ProjectDocumentedSourceController {
           resourceById.get(source.resourceId)?.name ?? source.resourceId,
         references: referencesBySource.get(source.id) ?? [],
       })),
-      processes: links.map((link) => ({
-        resourceId: link.resourceId,
-        processName:
-          resourceById.get(link.resourceId)?.name ?? link.resourceId,
-      })).sort((left, right) =>
-        left.processName.localeCompare(right.processName, 'fr'),
-      ),
+      processes: links
+        .map((link) => ({
+          resourceId: link.resourceId,
+          processName:
+            resourceById.get(link.resourceId)?.name ?? link.resourceId,
+        }))
+        .sort((left, right) =>
+          left.processName.localeCompare(right.processName, 'fr'),
+        ),
       unlinkedReferences: unlinkedReferences.sort(
         (left, right) =>
           left.processName.localeCompare(right.processName, 'fr') ||
@@ -409,7 +411,9 @@ export class ProjectDocumentedSourceController {
       throw new BadRequestException('Unsupported source kind');
     const resourceId = body.resourceId?.trim();
     if (!resourceId)
-      throw new BadRequestException('resourceId is required: documented information must belong to a process');
+      throw new BadRequestException(
+        'resourceId is required: documented information must belong to a process',
+      );
     await this.validateProcess(projectId, resourceId);
     const hasReferenceFields = Boolean(
       body.elementId || body.elementName || body.elementType,
