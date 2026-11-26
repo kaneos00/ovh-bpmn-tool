@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import {
   Alert, Box, Button, Chip, CircularProgress, Input, Sheet, Stack,
-  Table, Textarea, Typography,
+  Textarea, Typography,
 } from '@mui/joy';
 import { Search, VisibilityOutlined, EditOutlined } from '@mui/icons-material';
+import type { ColDef } from 'ag-grid-community';
+import { SharedDataGrid } from '../../Components/GenericComponents/SharedDataGrid';
 import { WorkspaceNavigation } from '../../Components/GenericComponents/WorkspaceNavigation/WorkspaceNavigation';
 import { apiClient } from '../../queryClient';
 
@@ -125,6 +127,69 @@ export const Component = () => {
     }
     navigate(`/${proposal.sourceResourceId}`);
   };
+  const proposalColumns: ColDef<Proposal>[] = [
+    {
+      headerName: 'Processus',
+      field: 'processName',
+      minWidth: 210,
+      cellRenderer: (params: { data?: Proposal }) => params.data ? (
+        <Stack spacing={0.25}>
+          <Typography level="title-sm">{params.data.processName}</Typography>
+          <Typography level="body-xs" color="neutral">Demande · {params.data.id.slice(0, 8)}</Typography>
+        </Stack>
+      ) : null,
+    },
+    { headerName: 'Projet', field: 'projectName', minWidth: 160 },
+    { headerName: 'Créée le', field: 'createdAt', minWidth: 120, valueFormatter: params => formatDate(params.value) },
+    {
+      headerName: 'Validateur',
+      field: 'validatorName',
+      minWidth: 170,
+      cellRenderer: (params: { data?: Proposal }) => params.data ? (
+        <Stack spacing={0.25}>
+          <Typography level="body-sm">{params.data.validatorName || 'À définir'}</Typography>
+          {params.data.validatorWarning && <Typography level="body-xs" color="warning">{params.data.validatorWarning}</Typography>}
+        </Stack>
+      ) : null,
+    },
+    {
+      headerName: 'Dernière activité',
+      field: 'latestActivityAt',
+      minWidth: 190,
+      cellRenderer: (params: { data?: Proposal }) => params.data ? (
+        <Stack spacing={0.25}>
+          <Typography level="body-sm">{formatDate(params.data.latestActivityAt)}</Typography>
+          {params.data.latestActivityComment && <Typography level="body-xs" color="neutral">{params.data.latestActivityComment}</Typography>}
+        </Stack>
+      ) : null,
+    },
+    {
+      headerName: 'Statut',
+      field: 'status',
+      minWidth: 155,
+      cellRenderer: (params: { data?: Proposal }) => {
+        if (!params.data) return null;
+        const status = statusPresentation[params.data.status] ?? statusPresentation.draft;
+        return <Chip size="sm" variant="soft" color={status.color}>{status.label}</Chip>;
+      },
+    },
+    {
+      headerName: 'Action',
+      colId: 'actions',
+      sortable: false,
+      filter: false,
+      minWidth: 130,
+      editable: false,
+      cellRenderer: (params: { data?: Proposal }) => params.data ? (
+        <Button size="sm" variant="outlined" color="primary"
+          startDecorator={['draft', 'changes_requested'].includes(params.data.status) ? <EditOutlined /> : <VisibilityOutlined />}
+          onClick={() => openProposal(params.data!)}>
+          {['draft', 'changes_requested'].includes(params.data.status) ? 'Reprendre' : 'Consulter'}
+        </Button>
+      ) : null,
+    },
+  ];
+
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.level1' }}>
@@ -314,46 +379,18 @@ export const Component = () => {
               </Box>
             )}
             {!isLoading && !isError && filtered.length > 0 && (
-              <Box sx={{ overflowX: 'auto' }}>
-                <Table hoverRow size="md" borderAxis="none" sx={{ minWidth: 920, '& th': { bgcolor: 'background.level1', color: 'text.tertiary', fontSize: 'xs', fontWeight: 700 }, '& td': { py: 1.5, verticalAlign: 'middle' } }}>
-                  <thead><tr><th>Processus</th><th>Projet</th><th>Créée le</th><th>Validateur</th><th>Dernière activité</th><th>Statut</th><th /></tr></thead>
-                  <tbody>
-                    {filtered.map(proposal => {
-                      const status = statusPresentation[proposal.status] ?? statusPresentation.draft;
-                      return (
-                        <tr key={proposal.id}>
-                          <td>
-                            <Typography level="title-sm">{proposal.processName}</Typography>
-                            <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>Demande · {proposal.id.slice(0, 8)}</Typography>
-                          </td>
-                          <td><Typography level="body-sm">{proposal.projectName}</Typography></td>
-                          <td><Typography level="body-sm">{formatDate(proposal.createdAt)}</Typography></td>
-                          <td>
-                            <Typography level="body-sm">
-                              {proposal.validatorName || 'À définir'}
-                            </Typography>
-                            {proposal.validatorWarning && (
-                              <Typography level="body-xs" color="warning">
-                                {proposal.validatorWarning}
-                              </Typography>
-                            )}
-                          </td>
-                          <td>
-                            <Typography level="body-sm">{formatDate(proposal.latestActivityAt)}</Typography>
-                            {proposal.latestActivityComment && <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>{proposal.latestActivityComment}</Typography>}
-                          </td>
-                          <td><Chip size="sm" variant="soft" color={status.color}>{status.label}</Chip></td>
-                          <td>
-                            <Button size="sm" variant="outlined" color="primary" startDecorator={['draft', 'changes_requested'].includes(proposal.status) ? <EditOutlined /> : <VisibilityOutlined />} onClick={() => openProposal(proposal)}>
-                              {['draft', 'changes_requested'].includes(proposal.status) ? 'Reprendre' : 'Consulter'}
-                            </Button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </Table>
-              </Box>
+              <SharedDataGrid<Proposal>
+                rowData={filtered}
+                columnDefs={proposalColumns}
+                getRowId={row => row.id}
+                preferenceKey="my-process-change-proposals"
+                mode="read"
+                selection={false}
+                advancedFilter
+                quickFilter={false}
+                height={Math.min(560, Math.max(240, filtered.length * 52 + 96))}
+                paginationPageSize={15}
+              />
             )}
             <Stack direction="row" justifyContent="space-between" sx={{ p: 1.5, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'background.level1' }}>
               <Typography level="body-xs" sx={{ color: 'text.tertiary' }}>{filtered.length} demande(s) affichée(s)</Typography>

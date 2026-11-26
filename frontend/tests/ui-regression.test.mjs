@@ -515,6 +515,7 @@ test('V3 central viewer exposes the validated documented information table backe
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
   const grid = await read('src/Components/BusinessComponents/ProcessDetails/DocumentedSourcesGrid.tsx');
+  const sharedGrid = await read('src/Components/GenericComponents/SharedDataGrid/SharedDataGrid.tsx');
 
   assert.match(details, /<Tab value=\{4\}>Informations documentées<\/Tab>/);
   assert.match(details, /<TabPanel value=\{4\} className="processViewerTabPanel">[\s\S]*?<DataInventory/s);
@@ -524,8 +525,10 @@ test('V3 central viewer exposes the validated documented information table backe
   assert.match(inventory, /cellEditor: 'agDateStringCellEditor'/);
   assert.match(inventory, /valueFormatter: params => params\.value \|\| 'Illimitée'/);
   assert.match(inventory, /selectedRowId=\{requestedDocumentedSourceId \?\? undefined\}/);
-  assert.match(grid, /rowSelection=\{\{ mode: 'singleRow', checkboxes: true, enableClickSelection: true \}\}/);
-  assert.match(grid, /event\.api\.ensureNodeVisible\(node, 'middle'\)/);
+  assert.match(grid, /selection = 'single'/);
+  assert.match(sharedGrid, /rowSelection=\{selectionOptions\}/);
+  assert.match(sharedGrid, /checkboxes: true/);
+  assert.match(sharedGrid, /ensureNodeVisible\(node, 'middle'\)/);
 });
 
 test('canonical process viewer restores element selection and RACI tab from route query parameters', async () => {
@@ -1179,6 +1182,7 @@ test('documented-information search focuses the canonical inventory row and reta
   const details = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
   const grid = await read('src/Components/BusinessComponents/ProcessDetails/DocumentedSourcesGrid.tsx');
+  const sharedGrid = await read('src/Components/GenericComponents/SharedDataGrid/SharedDataGrid.tsx');
 
   assert.ok(navigation.includes('<Option value="documented">Informations documentées</Option>'));
   assert.ok(navigation.includes("result.type === 'documented'"));
@@ -1190,7 +1194,33 @@ test('documented-information search focuses the canonical inventory row and reta
   assert.ok(details.includes('if (requestedDocumentedSourceId) setActiveViewerTab(4)'));
   assert.ok(details.includes('requestedDocumentedSourceId={requestedDocumentedSourceId}'));
   assert.ok(inventory.includes('selectedRowId={requestedDocumentedSourceId ?? undefined}'));
-  assert.ok(grid.includes('event.api.ensureNodeVisible(node, \'middle\')'));
-  assert.ok(grid.includes('checkboxes: true'));
+  assert.ok(inventory.includes('selection="single"'));
+  assert.ok(sharedGrid.includes('ensureNodeVisible(node, \'middle\')'));
+  assert.ok(sharedGrid.includes('checkboxes: true'));
 });
 
+
+
+test('V0.8 business screens reuse the shared configurable data grid without changing administration', async () => {
+  const shared = await read('src/Components/GenericComponents/SharedDataGrid/SharedDataGrid.tsx');
+  const wrapper = await read('src/Components/BusinessComponents/ProcessDetails/DocumentedSourcesGrid.tsx');
+  const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
+  const projectSources = await read('src/Components/BusinessComponents/ProcessDetails/ProjectDocumentedSources.tsx');
+  const versions = await read('src/Components/BusinessComponents/ProcessContentList/ProcessContentList.tsx');
+  const organizationAdmin = await read('src/Containers/OrganizationAdmin/OrganizationAdmin.container.tsx');
+  const userAccounts = await read('src/Containers/UserAccounts/index.tsx');
+
+  assert.ok(wrapper.includes("import { SharedDataGrid } from '../../GenericComponents/SharedDataGrid'"));
+  assert.ok(inventory.includes('<DocumentedSourcesGrid<InventoryGridRow>'));
+  assert.ok(projectSources.includes('<DocumentedSourcesGrid<GridRow>'));
+  assert.ok(versions.includes('<SharedDataGrid<Content>'));
+  assert.ok(shared.includes('FilterGroupEditor'));
+  assert.ok(shared.includes('isExternalFilterPresent'));
+  assert.ok(shared.includes('doesExternalFilterPass'));
+  assert.ok(shared.includes('applyColumnState'));
+  assert.ok(shared.includes('exportDataAsCsv'));
+  assert.ok(shared.includes('rowSelection={selectionOptions}'));
+  assert.ok(shared.includes('min-height: 48px') || (await read('src/Components/GenericComponents/SharedDataGrid/SharedDataGrid.scss')).includes('min-height: 48px'));
+  assert.ok(!organizationAdmin.includes('SharedDataGrid'));
+  assert.ok(!userAccounts.includes('SharedDataGrid'));
+});

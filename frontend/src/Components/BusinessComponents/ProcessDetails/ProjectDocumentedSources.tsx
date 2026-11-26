@@ -90,7 +90,7 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     { headerName: 'Lien', field: 'link', minWidth: 170, editable: canManage },
     { headerName: 'Emplacement', field: 'location', minWidth: 150, editable: canManage },
     { headerName: 'Accès', field: 'access', minWidth: 140, editable: canManage },
-    { headerName: 'Date limite de validité', field: 'validUntil', minWidth: 175, editable: canManage, cellEditor: 'agTextCellEditor' },
+    { headerName: 'Date limite de validité', field: 'validUntil', cellDataType: 'dateString', minWidth: 175, editable: canManage, cellEditor: 'agTextCellEditor' },
     { headerName: 'Personne autorisée', field: 'authorizedPeople', minWidth: 170, editable: canManage },
     { headerName: 'Restrictions', field: 'restrictions', minWidth: 190, editable: canManage },
   ];
@@ -105,7 +105,17 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     </Stack>
     {error && <Alert color="danger" variant="soft">{error}</Alert>}
     {canManage && !data?.unlinkedReferences.length && <Alert color="primary" variant="soft">Tous les objets et magasins de données détectés sont déjà associés. Pour ajouter une ligne, créez d’abord un objet de données ou un magasin de données dans un diagramme BPMN.</Alert>}
-    <DocumentedSourcesGrid<GridRow> rowData={rows} columnDefs={columns} getRowId={row => row.id} height={560} onCellValueChanged={saveCell} />
+    <DocumentedSourcesGrid<GridRow>
+      rowData={rows}
+      columnDefs={columns}
+      getRowId={row => row.id}
+      preferenceKey={`project-documented-sources-${projectId}`}
+      mode={canManage ? 'edit' : 'read'}
+      selection="single"
+      advancedFilter
+      height={560}
+      onCellValueChanged={saveCell}
+    />
     <Modal open={adding} onClose={() => setAdding(false)}>
       <ModalDialog sx={{ width: 'min(560px, calc(100vw - 32px))' }}>
         <Typography level="title-lg">Ajouter une information documentée</Typography>
