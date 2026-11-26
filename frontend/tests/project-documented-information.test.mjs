@@ -16,7 +16,7 @@ test('project workspace restores the central documented information tab', async 
     assert.ok(registry.includes(`headerName: '${column}'`), `missing column ${column}`);
   }
   assert.doesNotMatch(registry, /Statut projet/);
-  assert.match(registry, /Ajouter</);
+  assert.match(registry, /Ajouter<\\/Button>/);
   assert.match(registry, /onCellValueChanged/);
   assert.match(registry, /Objet BPMN à associer \\(facultatif\\)/, 'project sources must be creatable without a BPMN association');
   assert.match(registry, /origin: 'Projet'/);
