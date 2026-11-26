@@ -129,8 +129,8 @@ export const DataInventory = ({
   const [pendingDelete, setPendingDelete] = useState<ProjectDocumentedSource | null>(null);
 
   const projectSourcesQuery = useQuery<ProjectDocumentedSourcesResponse>(
-    ['project-documented-sources', projectId],
-    () => apiClient.get(`/projects/${projectId}/documented-sources`),
+    ['project-documented-sources', projectId, resourceId],
+    () => apiClient.get(`/projects/${projectId}/documented-sources?resourceId=${encodeURIComponent(resourceId)}`),
     { enabled: Boolean(projectId), refetchOnMount: 'always' },
   );
   const projectSources = projectSourcesQuery.data?.sources ?? [];
@@ -151,7 +151,7 @@ export const DataInventory = ({
 
 
   const refresh = async () => {
-    if (projectId) await queryClient.invalidateQueries(['project-documented-sources', projectId]);
+    if (projectId) await queryClient.invalidateQueries(['project-documented-sources', projectId, resourceId]);
   };
 
   const updateRow = (id: string, field: keyof ProjectDocumentedSource, value: string | null | boolean) => {
