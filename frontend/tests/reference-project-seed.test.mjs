@@ -13,7 +13,7 @@ test('NovaSys seed preserves the project documented-information registry and per
   assert.ok(start >= 0 && end > start, 'documented-source INSERT block must exist');
   const block = seed.slice(start, end);
   assert.match(block, /retention,"containsPersonalData","createdBy"/);
-  const rows = [...block.matchAll(/\\('8d[0-9a-f-]+',[^\\n]*?,(true|false),'reference-seed'\\)/g)];
+  const rows = [...block.matchAll(/\('8d[0-9a-f-]+',[^\n]*?,(true|false),'reference-seed'\)/g)];
   assert.equal(rows.length, 84, 'all 84 documented sources must have a complete row');
   assert.equal(rows.filter(row => row[1] === 'true').length, 5, 'five HR/payroll sources contain personal data');
   assert.match(seed.slice(end, end + 250), /"containsPersonalData"=EXCLUDED\."containsPersonalData"/);
