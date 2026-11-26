@@ -12,6 +12,10 @@ import { JobFunctionActivitySectionTypeOrmEntity } from './infrastructure/entiti
 import { JobFunctionCompetencyBlockTypeOrmEntity } from './infrastructure/entities/jobFunctionCompetencyBlock.ormEntity';
 import { JobFunctionCustomSectionTypeOrmEntity } from './infrastructure/entities/jobFunctionCustomSection.ormEntity';
 import { JobFunctionTypeOrmEntity } from './infrastructure/entities/jobFunction.ormEntity';
+import { JobFunctionMissionBlockTypeOrmEntity } from './infrastructure/entities/jobFunctionMissionBlock.ormEntity';
+import { JobFunctionMissionActivityTypeOrmEntity } from './infrastructure/entities/jobFunctionMissionActivity.ormEntity';
+import { JobFunctionMissionCompetencyTypeOrmEntity } from './infrastructure/entities/jobFunctionMissionCompetency.ormEntity';
+import { JobFunctionTransversalCompetencyTypeOrmEntity } from './infrastructure/entities/jobFunctionTransversalCompetency.ormEntity';
 import { PositionActivityMappingTypeOrmEntity } from './infrastructure/entities/positionActivityMapping.ormEntity';
 import { PositionCompetencyBlockTypeOrmEntity } from './infrastructure/entities/positionCompetencyBlock.ormEntity';
 import { PositionCompetencyRequirementTypeOrmEntity } from './infrastructure/entities/positionCompetencyRequirement.ormEntity';
@@ -28,6 +32,10 @@ import { JobFunctionDocumentService } from './jobFunctionDocument.service';
     ProjectContextModule,
     TypeOrmModule.forFeature([
       JobFunctionTypeOrmEntity,
+      JobFunctionMissionBlockTypeOrmEntity,
+      JobFunctionMissionActivityTypeOrmEntity,
+      JobFunctionMissionCompetencyTypeOrmEntity,
+      JobFunctionTransversalCompetencyTypeOrmEntity,
       JobFunctionActivitySectionTypeOrmEntity,
       JobFunctionCustomSectionTypeOrmEntity,
       CompetencyBlockTypeOrmEntity,
