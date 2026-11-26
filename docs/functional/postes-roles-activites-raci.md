@@ -53,6 +53,25 @@ Chaque projet peut composer sa propre organisation :
 
 Un projet réutilise les postes communs sans les recopier. Il peut adapter le contexte, les missions confiées et les relations projet. Il peut également créer un poste spécifique, sans polluer le référentiel commun.
 
+## 2.1. Règles de composition d'une fiche de poste — niveau 1
+
+La page d'administration d'un poste permet de gérer directement, sans navigation obligatoire vers un autre écran, les quatre blocs de missions du poste, leurs activités et leurs compétences associées.
+
+Règles de composition retenues pour la première version de l'interface :
+
+- Chaque poste comporte **quatre blocs de missions**, ni plus ni moins dans le modèle de référence initial.
+- Chaque bloc possède un code stable construit à partir du code court du poste et de son rang : par exemple `CDP-1`, `CDP-2`, `CDP-3`, `CDP-4` pour le poste Chef de projet. Le code court du poste est défini à la création ; le code complet ne dépend pas de l'intitulé libre du bloc.
+- Chaque bloc possède un intitulé et une description courte.
+- Chaque bloc contient de **1 à 4 activités** descriptives. Elles expriment les contributions habituelles attendues dans le poste. Elles ne constituent pas un second catalogue de tâches opérationnelles : les tâches exécutables et leurs enchaînements restent modélisés dans BPMN.
+- Chaque bloc référence de **1 à 4 compétences** du référentiel commun.
+- Une même compétence peut être associée à plusieurs blocs d'un même poste et à plusieurs postes. Il s'agit d'une référence partagée, pas d'une copie de la compétence.
+- Le niveau attendu (1 à 5) est porté par l'association entre une compétence et un bloc/poste, et non par la définition globale de la compétence. Une même compétence peut donc avoir un niveau attendu différent selon le bloc ou le poste.
+- Le niveau attendu est affiché et modifié avec un slider cranté à cinq positions : **1 Notions, 2 Élémentaire, 3 Opérationnel, 4 Avancé, 5 Expert**. Le chiffre, le libellé et une courte aide contextuelle restent visibles.
+- La création d'une compétence peut être déclenchée depuis la page du poste, mais crée un élément dans le référentiel commun après contrôle des doublons. La compétence nouvellement créée peut ensuite être réutilisée dans d'autres blocs et postes.
+- La suppression d'une association compétence ↔ bloc ne supprime pas la compétence du référentiel. Une compétence déjà utilisée ne doit pas être supprimée physiquement ; elle peut être désactivée en conservant l'historique.
+
+La page d'administration du poste regroupe les informations générales, les quatre blocs, leurs activités et leurs compétences. Les ajouts et modifications sont effectués en ligne dans cette page ; l'enregistrement du poste est global. La fiche de poste consultable est une vue de synthèse générée à partir de ces données.
+
 ## 3. Définitions métier
 
 ### Poste
