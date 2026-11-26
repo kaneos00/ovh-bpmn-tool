@@ -322,19 +322,39 @@ export class ProjectDocumentedSourceController {
         contentByResource.set(content.resourceId, content);
     });
 
+    // Resolve the displayed BPMN object name from the latest process XML.
+    // The persisted association keeps its stable elementId; its cached
+    // elementName must not become the source of truth after a diagram rename.
+    const bpmnElementByKey = new Map<string, BpmnDataElement>();
+    resourceIds.forEach((resourceId) => {
+      const resource = resourceById.get(resourceId);
+      const content = contentByResource.get(resourceId);
+      if (!resource || !content) return;
+      extractBpmnDataElements(content.content, resourceId, resource.name)
+        .forEach((element) => {
+          bpmnElementByKey.set(
+            element.resourceId + ':' + element.elementId,
+            element,
+          );
+        });
+    });
+
     const referencesBySource = new Map<
       string,
       Array<Record<string, unknown>>
     >();
     scopedReferences.forEach((reference) => {
       const rows = referencesBySource.get(reference.sourceId) ?? [];
+      const currentElement = bpmnElementByKey.get(
+        reference.resourceId + ':' + reference.elementId,
+      );
       rows.push({
         id: reference.id,
         resourceId: reference.resourceId,
         processName:
           resourceById.get(reference.resourceId)?.name ?? reference.resourceId,
         elementId: reference.elementId,
-        elementName: reference.elementName,
+        elementName: currentElement?.elementName ?? reference.elementName,
         elementType: reference.elementType,
       });
       referencesBySource.set(reference.sourceId, rows);
