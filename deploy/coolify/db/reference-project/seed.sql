@@ -53,6 +53,14 @@ ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, description=EXCLUDED.descript
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000001','reference-seed','8b000001-0000-4000-8000-000000000001','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_GOV01" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_GOV01" name="Piloter l''entreprise et les capacités" isExecutable="false">
   <bpmn:startEvent id="Start_GOV01" name="Début"><bpmn:outgoing>Flow_GOV01_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_GOV01_1" name="[Direction générale] Qualifier et planifier le besoin"><bpmn:incoming>Flow_GOV01_1</bpmn:incoming><bpmn:outgoing>Flow_GOV01_2</bpmn:outgoing></bpmn:task>
@@ -67,6 +75,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:dataObject id="Data_GOV01_2" name="Tableau de bord de capacité"/><bpmn:dataObjectReference id="DataRef_GOV01_2" dataObjectRef="Data_GOV01_2" name="Tableau de bord de capacité"/>
   <bpmn:association id="Assoc_GOV01_1" sourceRef="Task_GOV01_1" targetRef="DataRef_GOV01_1" associationDirection="One"/>
   <bpmn:association id="Assoc_GOV01_2" sourceRef="Task_GOV01_2" targetRef="DataRef_GOV01_2" associationDirection="One"/>
+  <bpmn:dataStoreReference id="DataStoreRef_GOV01_ERP" dataStoreRef="Store_ERP" name="ERP et comptabilité"/><bpmn:association id="Assoc_GOV01_ERP" sourceRef="Task_GOV01_3" targetRef="DataStoreRef_GOV01_ERP" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_GOV01_DOCS" dataStoreRef="Store_DOCS" name="Base documentaire"/><bpmn:association id="Assoc_GOV01_DOCS" sourceRef="Task_GOV01_3" targetRef="DataStoreRef_GOV01_DOCS" associationDirection="One"/>
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Budget, portefeuille et plan de capacité</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_GOV01"><bpmndi:BPMNPlane id="Plane_GOV01" bpmnElement="Process_GOV01">
@@ -84,6 +93,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000002','reference-seed','8b000001-0000-4000-8000-000000000002','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_GOV02" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_GOV02" name="Gérer une opportunité et contractualiser" isExecutable="false">
   <bpmn:startEvent id="Start_GOV02" name="Début"><bpmn:outgoing>Flow_GOV02_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_GOV02_1" name="[Direction commerciale] Qualifier et planifier le besoin"><bpmn:incoming>Flow_GOV02_1</bpmn:incoming><bpmn:outgoing>Flow_GOV02_2</bpmn:outgoing></bpmn:task>
@@ -100,6 +117,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:association id="Assoc_GOV02_1" sourceRef="Task_GOV02_1" targetRef="DataRef_GOV02_1" associationDirection="One"/>
   <bpmn:association id="Assoc_GOV02_2" sourceRef="Task_GOV02_2" targetRef="DataRef_GOV02_2" associationDirection="One"/>
   <bpmn:association id="Assoc_GOV02_3" sourceRef="Task_GOV02_3" targetRef="DataRef_GOV02_3" associationDirection="One"/>
+  <bpmn:dataStoreReference id="DataStoreRef_GOV02_ERP" dataStoreRef="Store_ERP" name="ERP et comptabilité"/><bpmn:association id="Assoc_GOV02_ERP" sourceRef="Task_GOV02_3" targetRef="DataStoreRef_GOV02_ERP" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_GOV02_DOCS" dataStoreRef="Store_DOCS" name="Base documentaire"/><bpmn:association id="Assoc_GOV02_DOCS" sourceRef="Task_GOV02_3" targetRef="DataStoreRef_GOV02_DOCS" associationDirection="One"/>
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Qualification, offre, commande et contrat client</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_GOV02"><bpmndi:BPMNPlane id="Plane_GOV02" bpmnElement="Process_GOV02">
@@ -117,6 +135,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000003','reference-seed','8b000001-0000-4000-8000-000000000003','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_GOV03" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_GOV03" name="Piloter un projet client" isExecutable="false">
   <bpmn:startEvent id="Start_GOV03" name="Début"><bpmn:outgoing>Flow_GOV03_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_GOV03_1" name="[Chef de projet] Qualifier et planifier le besoin"><bpmn:incoming>Flow_GOV03_1</bpmn:incoming><bpmn:outgoing>Flow_GOV03_2</bpmn:outgoing></bpmn:task>
@@ -133,6 +159,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:association id="Assoc_GOV03_1" sourceRef="Task_GOV03_1" targetRef="DataRef_GOV03_1" associationDirection="One"/>
   <bpmn:association id="Assoc_GOV03_2" sourceRef="Task_GOV03_2" targetRef="DataRef_GOV03_2" associationDirection="One"/>
   <bpmn:association id="Assoc_GOV03_3" sourceRef="Task_GOV03_3" targetRef="DataRef_GOV03_3" associationDirection="One"/>
+  <bpmn:dataStoreReference id="DataStoreRef_GOV03_ERP" dataStoreRef="Store_ERP" name="ERP et comptabilité"/><bpmn:association id="Assoc_GOV03_ERP" sourceRef="Task_GOV03_3" targetRef="DataStoreRef_GOV03_ERP" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_GOV03_DOCS" dataStoreRef="Store_DOCS" name="Base documentaire"/><bpmn:association id="Assoc_GOV03_DOCS" sourceRef="Task_GOV03_3" targetRef="DataStoreRef_GOV03_DOCS" associationDirection="One"/>
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Lancement, planification, suivi, risques et clôture</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_GOV03"><bpmndi:BPMNPlane id="Plane_GOV03" bpmnElement="Process_GOV03">
@@ -150,6 +177,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000004','reference-seed','8b000001-0000-4000-8000-000000000004','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_GOV04" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_GOV04" name="Gérer les commandes clients et la facturation" isExecutable="false">
   <bpmn:startEvent id="Start_GOV04" name="Début"><bpmn:outgoing>Flow_GOV04_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_GOV04_1" name="[Responsable financier] Qualifier et planifier le besoin"><bpmn:incoming>Flow_GOV04_1</bpmn:incoming><bpmn:outgoing>Flow_GOV04_2</bpmn:outgoing></bpmn:task>
@@ -166,6 +201,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:association id="Assoc_GOV04_1" sourceRef="Task_GOV04_1" targetRef="DataRef_GOV04_1" associationDirection="One"/>
   <bpmn:association id="Assoc_GOV04_2" sourceRef="Task_GOV04_2" targetRef="DataRef_GOV04_2" associationDirection="One"/>
   <bpmn:association id="Assoc_GOV04_3" sourceRef="Task_GOV04_3" targetRef="DataRef_GOV04_3" associationDirection="One"/>
+  <bpmn:dataStoreReference id="DataStoreRef_GOV04_ERP" dataStoreRef="Store_ERP" name="ERP et comptabilité"/><bpmn:association id="Assoc_GOV04_ERP" sourceRef="Task_GOV04_3" targetRef="DataStoreRef_GOV04_ERP" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_GOV04_DOCS" dataStoreRef="Store_DOCS" name="Base documentaire"/><bpmn:association id="Assoc_GOV04_DOCS" sourceRef="Task_GOV04_3" targetRef="DataStoreRef_GOV04_DOCS" associationDirection="One"/>
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Réception commande, jalons, validation du service fait et déclenchement facture</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_GOV04"><bpmndi:BPMNPlane id="Plane_GOV04" bpmnElement="Process_GOV04">
@@ -183,6 +219,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000005','reference-seed','8b000001-0000-4000-8000-000000000005','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_HR01" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_HR01" name="Recruter un collaborateur" isExecutable="false">
   <bpmn:startEvent id="Start_HR01" name="Début"><bpmn:outgoing>Flow_HR01_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_HR01_1" name="[Responsable RH] Qualifier et planifier le besoin"><bpmn:incoming>Flow_HR01_1</bpmn:incoming><bpmn:outgoing>Flow_HR01_2</bpmn:outgoing></bpmn:task>
@@ -197,6 +241,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:dataObject id="Data_HR01_2" name="Fiche de poste"/><bpmn:dataObjectReference id="DataRef_HR01_2" dataObjectRef="Data_HR01_2" name="Fiche de poste"/>
   <bpmn:association id="Assoc_HR01_1" sourceRef="Task_HR01_1" targetRef="DataRef_HR01_1" associationDirection="One"/>
   <bpmn:association id="Assoc_HR01_2" sourceRef="Task_HR01_2" targetRef="DataRef_HR01_2" associationDirection="One"/>
+  
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Besoin, validation, sélection et proposition</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_HR01"><bpmndi:BPMNPlane id="Plane_HR01" bpmnElement="Process_HR01">
@@ -214,6 +259,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000006','reference-seed','8b000001-0000-4000-8000-000000000006','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_HR02" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_HR02" name="Établir et signer le contrat de travail" isExecutable="false">
   <bpmn:startEvent id="Start_HR02" name="Début"><bpmn:outgoing>Flow_HR02_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_HR02_1" name="[Responsable RH] Qualifier et planifier le besoin"><bpmn:incoming>Flow_HR02_1</bpmn:incoming><bpmn:outgoing>Flow_HR02_2</bpmn:outgoing></bpmn:task>
@@ -228,6 +281,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:dataObject id="Data_HR02_2" name="Preuve de signature"/><bpmn:dataObjectReference id="DataRef_HR02_2" dataObjectRef="Data_HR02_2" name="Preuve de signature"/>
   <bpmn:association id="Assoc_HR02_1" sourceRef="Task_HR02_1" targetRef="DataRef_HR02_1" associationDirection="One"/>
   <bpmn:association id="Assoc_HR02_2" sourceRef="Task_HR02_2" targetRef="DataRef_HR02_2" associationDirection="One"/>
+  
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Préparer, vérifier, signer et archiver le contrat</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_HR02"><bpmndi:BPMNPlane id="Plane_HR02" bpmnElement="Process_HR02">
@@ -245,6 +299,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000007','reference-seed','8b000001-0000-4000-8000-000000000007','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_HR03" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_HR03" name="Réaliser l''intégration d''un collaborateur" isExecutable="false">
   <bpmn:startEvent id="Start_HR03" name="Début"><bpmn:outgoing>Flow_HR03_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_HR03_1" name="[Responsable RH] Qualifier et planifier le besoin"><bpmn:incoming>Flow_HR03_1</bpmn:incoming><bpmn:outgoing>Flow_HR03_2</bpmn:outgoing></bpmn:task>
@@ -259,6 +321,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:dataObject id="Data_HR03_2" name="Charte informatique signée"/><bpmn:dataObjectReference id="DataRef_HR03_2" dataObjectRef="Data_HR03_2" name="Charte informatique signée"/>
   <bpmn:association id="Assoc_HR03_1" sourceRef="Task_HR03_1" targetRef="DataRef_HR03_1" associationDirection="One"/>
   <bpmn:association id="Assoc_HR03_2" sourceRef="Task_HR03_2" targetRef="DataRef_HR03_2" associationDirection="One"/>
+  
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Préparer l''arrivée, accès, matériel, accueil et période d''essai</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_HR03"><bpmndi:BPMNPlane id="Plane_HR03" bpmnElement="Process_HR03">
@@ -276,6 +339,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000008','reference-seed','8b000001-0000-4000-8000-000000000008','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_HR04" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_HR04" name="Commander et attribuer un équipement" isExecutable="false">
   <bpmn:startEvent id="Start_HR04" name="Début"><bpmn:outgoing>Flow_HR04_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_HR04_1" name="[Responsable moyens généraux] Qualifier et planifier le besoin"><bpmn:incoming>Flow_HR04_1</bpmn:incoming><bpmn:outgoing>Flow_HR04_2</bpmn:outgoing></bpmn:task>
@@ -292,6 +363,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:association id="Assoc_HR04_1" sourceRef="Task_HR04_1" targetRef="DataRef_HR04_1" associationDirection="One"/>
   <bpmn:association id="Assoc_HR04_2" sourceRef="Task_HR04_2" targetRef="DataRef_HR04_2" associationDirection="One"/>
   <bpmn:association id="Assoc_HR04_3" sourceRef="Task_HR04_3" targetRef="DataRef_HR04_3" associationDirection="One"/>
+  
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Demande, achat, inventaire, remise et restitution</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_HR04"><bpmndi:BPMNPlane id="Plane_HR04" bpmnElement="Process_HR04">
@@ -309,6 +381,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000009','reference-seed','8b000001-0000-4000-8000-000000000009','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_HR05" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_HR05" name="Gérer les affectations aux projets" isExecutable="false">
   <bpmn:startEvent id="Start_HR05" name="Début"><bpmn:outgoing>Flow_HR05_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_HR05_1" name="[Direction des opérations] Qualifier et planifier le besoin"><bpmn:incoming>Flow_HR05_1</bpmn:incoming><bpmn:outgoing>Flow_HR05_2</bpmn:outgoing></bpmn:task>
@@ -323,6 +403,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:dataObject id="Data_HR05_2" name="Affectation projet"/><bpmn:dataObjectReference id="DataRef_HR05_2" dataObjectRef="Data_HR05_2" name="Affectation projet"/>
   <bpmn:association id="Assoc_HR05_1" sourceRef="Task_HR05_1" targetRef="DataRef_HR05_1" associationDirection="One"/>
   <bpmn:association id="Assoc_HR05_2" sourceRef="Task_HR05_2" targetRef="DataRef_HR05_2" associationDirection="One"/>
+  
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Compétences, disponibilité, affectation et fin de mission</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_HR05"><bpmndi:BPMNPlane id="Plane_HR05" bpmnElement="Process_HR05">
@@ -340,6 +421,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000010','reference-seed','8b000001-0000-4000-8000-000000000010','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_HR06" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_HR06" name="Gérer les absences et congés" isExecutable="false">
   <bpmn:startEvent id="Start_HR06" name="Début"><bpmn:outgoing>Flow_HR06_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_HR06_1" name="[Responsable RH] Qualifier et planifier le besoin"><bpmn:incoming>Flow_HR06_1</bpmn:incoming><bpmn:outgoing>Flow_HR06_2</bpmn:outgoing></bpmn:task>
@@ -354,6 +443,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:dataObject id="Data_HR06_2" name="Calendrier des absences"/><bpmn:dataObjectReference id="DataRef_HR06_2" dataObjectRef="Data_HR06_2" name="Calendrier des absences"/>
   <bpmn:association id="Assoc_HR06_1" sourceRef="Task_HR06_1" targetRef="DataRef_HR06_1" associationDirection="One"/>
   <bpmn:association id="Assoc_HR06_2" sourceRef="Task_HR06_2" targetRef="DataRef_HR06_2" associationDirection="One"/>
+  
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Demande, validation hiérarchique et transmission paie</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_HR06"><bpmndi:BPMNPlane id="Plane_HR06" bpmnElement="Process_HR06">
@@ -371,6 +461,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000011','reference-seed','8b000001-0000-4000-8000-000000000011','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_HR07" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_HR07" name="Réaliser les entretiens et évaluations" isExecutable="false">
   <bpmn:startEvent id="Start_HR07" name="Début"><bpmn:outgoing>Flow_HR07_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_HR07_1" name="[Manager] Qualifier et planifier le besoin"><bpmn:incoming>Flow_HR07_1</bpmn:incoming><bpmn:outgoing>Flow_HR07_2</bpmn:outgoing></bpmn:task>
@@ -385,6 +483,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:dataObject id="Data_HR07_2" name="Objectifs annuels"/><bpmn:dataObjectReference id="DataRef_HR07_2" dataObjectRef="Data_HR07_2" name="Objectifs annuels"/>
   <bpmn:association id="Assoc_HR07_1" sourceRef="Task_HR07_1" targetRef="DataRef_HR07_1" associationDirection="One"/>
   <bpmn:association id="Assoc_HR07_2" sourceRef="Task_HR07_2" targetRef="DataRef_HR07_2" associationDirection="One"/>
+  
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Préparation, entretien, objectifs et plan d''action</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_HR07"><bpmndi:BPMNPlane id="Plane_HR07" bpmnElement="Process_HR07">
@@ -402,6 +501,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000012','reference-seed','8b000001-0000-4000-8000-000000000012','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_HR08" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_HR08" name="Gérer les formations et compétences" isExecutable="false">
   <bpmn:startEvent id="Start_HR08" name="Début"><bpmn:outgoing>Flow_HR08_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_HR08_1" name="[Responsable RH] Qualifier et planifier le besoin"><bpmn:incoming>Flow_HR08_1</bpmn:incoming><bpmn:outgoing>Flow_HR08_2</bpmn:outgoing></bpmn:task>
@@ -416,6 +523,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:dataObject id="Data_HR08_2" name="Attestation de formation"/><bpmn:dataObjectReference id="DataRef_HR08_2" dataObjectRef="Data_HR08_2" name="Attestation de formation"/>
   <bpmn:association id="Assoc_HR08_1" sourceRef="Task_HR08_1" targetRef="DataRef_HR08_1" associationDirection="One"/>
   <bpmn:association id="Assoc_HR08_2" sourceRef="Task_HR08_2" targetRef="DataRef_HR08_2" associationDirection="One"/>
+  
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Recueillir les besoins, planifier et évaluer</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_HR08"><bpmndi:BPMNPlane id="Plane_HR08" bpmnElement="Process_HR08">
@@ -433,6 +541,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000013','reference-seed','8b000001-0000-4000-8000-000000000013','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_FIN01" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_FIN01" name="Traiter les notes de frais" isExecutable="false">
   <bpmn:startEvent id="Start_FIN01" name="Début"><bpmn:outgoing>Flow_FIN01_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_FIN01_1" name="[Responsable financier] Qualifier et planifier le besoin"><bpmn:incoming>Flow_FIN01_1</bpmn:incoming><bpmn:outgoing>Flow_FIN01_2</bpmn:outgoing></bpmn:task>
@@ -447,6 +563,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:dataObject id="Data_FIN01_2" name="Justificatifs"/><bpmn:dataObjectReference id="DataRef_FIN01_2" dataObjectRef="Data_FIN01_2" name="Justificatifs"/>
   <bpmn:association id="Assoc_FIN01_1" sourceRef="Task_FIN01_1" targetRef="DataRef_FIN01_1" associationDirection="One"/>
   <bpmn:association id="Assoc_FIN01_2" sourceRef="Task_FIN01_2" targetRef="DataRef_FIN01_2" associationDirection="One"/>
+  <bpmn:dataStoreReference id="DataStoreRef_FIN01_ERP" dataStoreRef="Store_ERP" name="ERP et comptabilité"/><bpmn:association id="Assoc_FIN01_ERP" sourceRef="Task_FIN01_3" targetRef="DataStoreRef_FIN01_ERP" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_FIN01_SIRH" dataStoreRef="Store_SIRH" name="SIRH et paie"/><bpmn:association id="Assoc_FIN01_SIRH" sourceRef="Task_FIN01_3" targetRef="DataStoreRef_FIN01_SIRH" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_FIN01_DOCS" dataStoreRef="Store_DOCS" name="Base documentaire"/><bpmn:association id="Assoc_FIN01_DOCS" sourceRef="Task_FIN01_3" targetRef="DataStoreRef_FIN01_DOCS" associationDirection="One"/>
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Dépôt, contrôle justificatifs, validation et remboursement</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_FIN01"><bpmndi:BPMNPlane id="Plane_FIN01" bpmnElement="Process_FIN01">
@@ -464,6 +581,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000014','reference-seed','8b000001-0000-4000-8000-000000000014','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_FIN02" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_FIN02" name="Préparer et exécuter la paie" isExecutable="false">
   <bpmn:startEvent id="Start_FIN02" name="Début"><bpmn:outgoing>Flow_FIN02_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_FIN02_1" name="[Gestionnaire paie] Qualifier et planifier le besoin"><bpmn:incoming>Flow_FIN02_1</bpmn:incoming><bpmn:outgoing>Flow_FIN02_2</bpmn:outgoing></bpmn:task>
@@ -478,6 +603,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:dataObject id="Data_FIN02_2" name="Bulletin de paie"/><bpmn:dataObjectReference id="DataRef_FIN02_2" dataObjectRef="Data_FIN02_2" name="Bulletin de paie"/>
   <bpmn:association id="Assoc_FIN02_1" sourceRef="Task_FIN02_1" targetRef="DataRef_FIN02_1" associationDirection="One"/>
   <bpmn:association id="Assoc_FIN02_2" sourceRef="Task_FIN02_2" targetRef="DataRef_FIN02_2" associationDirection="One"/>
+  <bpmn:dataStoreReference id="DataStoreRef_FIN02_ERP" dataStoreRef="Store_ERP" name="ERP et comptabilité"/><bpmn:association id="Assoc_FIN02_ERP" sourceRef="Task_FIN02_3" targetRef="DataStoreRef_FIN02_ERP" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_FIN02_SIRH" dataStoreRef="Store_SIRH" name="SIRH et paie"/><bpmn:association id="Assoc_FIN02_SIRH" sourceRef="Task_FIN02_3" targetRef="DataStoreRef_FIN02_SIRH" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_FIN02_DOCS" dataStoreRef="Store_DOCS" name="Base documentaire"/><bpmn:association id="Assoc_FIN02_DOCS" sourceRef="Task_FIN02_3" targetRef="DataStoreRef_FIN02_DOCS" associationDirection="One"/>
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Collecter variables, contrôler, valider et produire bulletins</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_FIN02"><bpmndi:BPMNPlane id="Plane_FIN02" bpmnElement="Process_FIN02">
@@ -495,6 +621,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000015','reference-seed','8b000001-0000-4000-8000-000000000015','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_FIN03" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_FIN03" name="Acheter un bien ou un service" isExecutable="false">
   <bpmn:startEvent id="Start_FIN03" name="Début"><bpmn:outgoing>Flow_FIN03_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_FIN03_1" name="[Acheteur] Qualifier et planifier le besoin"><bpmn:incoming>Flow_FIN03_1</bpmn:incoming><bpmn:outgoing>Flow_FIN03_2</bpmn:outgoing></bpmn:task>
@@ -511,6 +645,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:association id="Assoc_FIN03_1" sourceRef="Task_FIN03_1" targetRef="DataRef_FIN03_1" associationDirection="One"/>
   <bpmn:association id="Assoc_FIN03_2" sourceRef="Task_FIN03_2" targetRef="DataRef_FIN03_2" associationDirection="One"/>
   <bpmn:association id="Assoc_FIN03_3" sourceRef="Task_FIN03_3" targetRef="DataRef_FIN03_3" associationDirection="One"/>
+  <bpmn:dataStoreReference id="DataStoreRef_FIN03_ERP" dataStoreRef="Store_ERP" name="ERP et comptabilité"/><bpmn:association id="Assoc_FIN03_ERP" sourceRef="Task_FIN03_3" targetRef="DataStoreRef_FIN03_ERP" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_FIN03_SIRH" dataStoreRef="Store_SIRH" name="SIRH et paie"/><bpmn:association id="Assoc_FIN03_SIRH" sourceRef="Task_FIN03_3" targetRef="DataStoreRef_FIN03_SIRH" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_FIN03_DOCS" dataStoreRef="Store_DOCS" name="Base documentaire"/><bpmn:association id="Assoc_FIN03_DOCS" sourceRef="Task_FIN03_3" targetRef="DataStoreRef_FIN03_DOCS" associationDirection="One"/>
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Expression du besoin, consultation, commande et réception</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_FIN03"><bpmndi:BPMNPlane id="Plane_FIN03" bpmnElement="Process_FIN03">
@@ -528,6 +663,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000016','reference-seed','8b000001-0000-4000-8000-000000000016','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_FIN04" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_FIN04" name="Suivre le temps et la rentabilité projet" isExecutable="false">
   <bpmn:startEvent id="Start_FIN04" name="Début"><bpmn:outgoing>Flow_FIN04_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_FIN04_1" name="[Contrôle de gestion] Qualifier et planifier le besoin"><bpmn:incoming>Flow_FIN04_1</bpmn:incoming><bpmn:outgoing>Flow_FIN04_2</bpmn:outgoing></bpmn:task>
@@ -542,6 +685,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:dataObject id="Data_FIN04_2" name="Tableau de rentabilité"/><bpmn:dataObjectReference id="DataRef_FIN04_2" dataObjectRef="Data_FIN04_2" name="Tableau de rentabilité"/>
   <bpmn:association id="Assoc_FIN04_1" sourceRef="Task_FIN04_1" targetRef="DataRef_FIN04_1" associationDirection="One"/>
   <bpmn:association id="Assoc_FIN04_2" sourceRef="Task_FIN04_2" targetRef="DataRef_FIN04_2" associationDirection="One"/>
+  <bpmn:dataStoreReference id="DataStoreRef_FIN04_ERP" dataStoreRef="Store_ERP" name="ERP et comptabilité"/><bpmn:association id="Assoc_FIN04_ERP" sourceRef="Task_FIN04_3" targetRef="DataStoreRef_FIN04_ERP" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_FIN04_SIRH" dataStoreRef="Store_SIRH" name="SIRH et paie"/><bpmn:association id="Assoc_FIN04_SIRH" sourceRef="Task_FIN04_3" targetRef="DataStoreRef_FIN04_SIRH" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_FIN04_DOCS" dataStoreRef="Store_DOCS" name="Base documentaire"/><bpmn:association id="Assoc_FIN04_DOCS" sourceRef="Task_FIN04_3" targetRef="DataStoreRef_FIN04_DOCS" associationDirection="One"/>
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Saisie temps, contrôle, analyse budget et marge</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_FIN04"><bpmndi:BPMNPlane id="Plane_FIN04" bpmnElement="Process_FIN04">
@@ -559,6 +703,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000017','reference-seed','8b000001-0000-4000-8000-000000000017','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_IT01" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_IT01" name="Traiter un ticket de support interne" isExecutable="false">
   <bpmn:startEvent id="Start_IT01" name="Début"><bpmn:outgoing>Flow_IT01_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_IT01_1" name="[Responsable support] Qualifier et planifier le besoin"><bpmn:incoming>Flow_IT01_1</bpmn:incoming><bpmn:outgoing>Flow_IT01_2</bpmn:outgoing></bpmn:task>
@@ -573,6 +725,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:dataObject id="Data_IT01_2" name="Base de connaissances"/><bpmn:dataObjectReference id="DataRef_IT01_2" dataObjectRef="Data_IT01_2" name="Base de connaissances"/>
   <bpmn:association id="Assoc_IT01_1" sourceRef="Task_IT01_1" targetRef="DataRef_IT01_1" associationDirection="One"/>
   <bpmn:association id="Assoc_IT01_2" sourceRef="Task_IT01_2" targetRef="DataRef_IT01_2" associationDirection="One"/>
+  
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Enregistrer, qualifier, prioriser, résoudre ou escalader, valider et clôturer</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_IT01"><bpmndi:BPMNPlane id="Plane_IT01" bpmnElement="Process_IT01">
@@ -590,6 +743,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000018','reference-seed','8b000001-0000-4000-8000-000000000018','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_IT02" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_IT02" name="Gérer le parc et le cycle de vie matériel" isExecutable="false">
   <bpmn:startEvent id="Start_IT02" name="Début"><bpmn:outgoing>Flow_IT02_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_IT02_1" name="[Responsable IT] Qualifier et planifier le besoin"><bpmn:incoming>Flow_IT02_1</bpmn:incoming><bpmn:outgoing>Flow_IT02_2</bpmn:outgoing></bpmn:task>
@@ -604,6 +765,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:dataObject id="Data_IT02_2" name="Registre des équipements"/><bpmn:dataObjectReference id="DataRef_IT02_2" dataObjectRef="Data_IT02_2" name="Registre des équipements"/>
   <bpmn:association id="Assoc_IT02_1" sourceRef="Task_IT02_1" targetRef="DataRef_IT02_1" associationDirection="One"/>
   <bpmn:association id="Assoc_IT02_2" sourceRef="Task_IT02_2" targetRef="DataRef_IT02_2" associationDirection="One"/>
+  
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Inventorier, affecter, maintenir, restituer et réformer</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_IT02"><bpmndi:BPMNPlane id="Plane_IT02" bpmnElement="Process_IT02">
@@ -621,6 +783,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000019','reference-seed','8b000001-0000-4000-8000-000000000019','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_IT03" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_IT03" name="Gérer les accès et habilitations" isExecutable="false">
   <bpmn:startEvent id="Start_IT03" name="Début"><bpmn:outgoing>Flow_IT03_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_IT03_1" name="[Responsable sécurité] Qualifier et planifier le besoin"><bpmn:incoming>Flow_IT03_1</bpmn:incoming><bpmn:outgoing>Flow_IT03_2</bpmn:outgoing></bpmn:task>
@@ -635,6 +805,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:dataObject id="Data_IT03_2" name="Matrice des habilitations"/><bpmn:dataObjectReference id="DataRef_IT03_2" dataObjectRef="Data_IT03_2" name="Matrice des habilitations"/>
   <bpmn:association id="Assoc_IT03_1" sourceRef="Task_IT03_1" targetRef="DataRef_IT03_1" associationDirection="One"/>
   <bpmn:association id="Assoc_IT03_2" sourceRef="Task_IT03_2" targetRef="DataRef_IT03_2" associationDirection="One"/>
+  
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Demander, approuver, provisionner, revoir et révoquer les accès</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_IT03"><bpmndi:BPMNPlane id="Plane_IT03" bpmnElement="Process_IT03">
@@ -652,6 +823,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000020','reference-seed','8b000001-0000-4000-8000-000000000020','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_IT04" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_IT04" name="Gérer les sauvegardes et restaurations" isExecutable="false">
   <bpmn:startEvent id="Start_IT04" name="Début"><bpmn:outgoing>Flow_IT04_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_IT04_1" name="[Administrateur systèmes] Qualifier et planifier le besoin"><bpmn:incoming>Flow_IT04_1</bpmn:incoming><bpmn:outgoing>Flow_IT04_2</bpmn:outgoing></bpmn:task>
@@ -666,6 +845,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:dataObject id="Data_IT04_2" name="Rapport de restauration"/><bpmn:dataObjectReference id="DataRef_IT04_2" dataObjectRef="Data_IT04_2" name="Rapport de restauration"/>
   <bpmn:association id="Assoc_IT04_1" sourceRef="Task_IT04_1" targetRef="DataRef_IT04_1" associationDirection="One"/>
   <bpmn:association id="Assoc_IT04_2" sourceRef="Task_IT04_2" targetRef="DataRef_IT04_2" associationDirection="One"/>
+  
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Planifier, surveiller, tester et restaurer</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_IT04"><bpmndi:BPMNPlane id="Plane_IT04" bpmnElement="Process_IT04">
@@ -683,6 +863,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000021','reference-seed','8b000001-0000-4000-8000-000000000021','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_DEL01" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_DEL01" name="Recueillir et valider les exigences client" isExecutable="false">
   <bpmn:startEvent id="Start_DEL01" name="Début"><bpmn:outgoing>Flow_DEL01_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_DEL01_1" name="[Business analyst] Qualifier et planifier le besoin"><bpmn:incoming>Flow_DEL01_1</bpmn:incoming><bpmn:outgoing>Flow_DEL01_2</bpmn:outgoing></bpmn:task>
@@ -697,6 +885,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:dataObject id="Data_DEL01_2" name="Backlog produit"/><bpmn:dataObjectReference id="DataRef_DEL01_2" dataObjectRef="Data_DEL01_2" name="Backlog produit"/>
   <bpmn:association id="Assoc_DEL01_1" sourceRef="Task_DEL01_1" targetRef="DataRef_DEL01_1" associationDirection="One"/>
   <bpmn:association id="Assoc_DEL01_2" sourceRef="Task_DEL01_2" targetRef="DataRef_DEL01_2" associationDirection="One"/>
+  <bpmn:dataStoreReference id="DataStoreRef_DEL01_GIT" dataStoreRef="Store_GIT" name="Dépôt Git"/><bpmn:association id="Assoc_DEL01_GIT" sourceRef="Task_DEL01_3" targetRef="DataStoreRef_DEL01_GIT" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_DEL01_CICD" dataStoreRef="Store_CICD" name="CI/CD"/><bpmn:association id="Assoc_DEL01_CICD" sourceRef="Task_DEL01_3" targetRef="DataStoreRef_DEL01_CICD" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_DEL01_DOCS" dataStoreRef="Store_DOCS" name="Base documentaire"/><bpmn:association id="Assoc_DEL01_DOCS" sourceRef="Task_DEL01_3" targetRef="DataStoreRef_DEL01_DOCS" associationDirection="One"/>
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Ateliers, exigences, priorisation et validation</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_DEL01"><bpmndi:BPMNPlane id="Plane_DEL01" bpmnElement="Process_DEL01">
@@ -714,6 +903,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000022','reference-seed','8b000001-0000-4000-8000-000000000022','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_DEL02" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_DEL02" name="Concevoir et développer un logiciel" isExecutable="false">
   <bpmn:startEvent id="Start_DEL02" name="Début"><bpmn:outgoing>Flow_DEL02_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_DEL02_1" name="[Tech lead] Qualifier et planifier le besoin"><bpmn:incoming>Flow_DEL02_1</bpmn:incoming><bpmn:outgoing>Flow_DEL02_2</bpmn:outgoing></bpmn:task>
@@ -730,6 +927,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:association id="Assoc_DEL02_1" sourceRef="Task_DEL02_1" targetRef="DataRef_DEL02_1" associationDirection="One"/>
   <bpmn:association id="Assoc_DEL02_2" sourceRef="Task_DEL02_2" targetRef="DataRef_DEL02_2" associationDirection="One"/>
   <bpmn:association id="Assoc_DEL02_3" sourceRef="Task_DEL02_3" targetRef="DataRef_DEL02_3" associationDirection="One"/>
+  <bpmn:dataStoreReference id="DataStoreRef_DEL02_GIT" dataStoreRef="Store_GIT" name="Dépôt Git"/><bpmn:association id="Assoc_DEL02_GIT" sourceRef="Task_DEL02_3" targetRef="DataStoreRef_DEL02_GIT" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_DEL02_CICD" dataStoreRef="Store_CICD" name="CI/CD"/><bpmn:association id="Assoc_DEL02_CICD" sourceRef="Task_DEL02_3" targetRef="DataStoreRef_DEL02_CICD" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_DEL02_DOCS" dataStoreRef="Store_DOCS" name="Base documentaire"/><bpmn:association id="Assoc_DEL02_DOCS" sourceRef="Task_DEL02_3" targetRef="DataStoreRef_DEL02_DOCS" associationDirection="One"/>
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Conception, développement, revue de code et intégration</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_DEL02"><bpmndi:BPMNPlane id="Plane_DEL02" bpmnElement="Process_DEL02">
@@ -747,6 +945,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000023','reference-seed','8b000001-0000-4000-8000-000000000023','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_DEL03" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_DEL03" name="Réaliser les tests internes" isExecutable="false">
   <bpmn:startEvent id="Start_DEL03" name="Début"><bpmn:outgoing>Flow_DEL03_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_DEL03_1" name="[Responsable qualité] Qualifier et planifier le besoin"><bpmn:incoming>Flow_DEL03_1</bpmn:incoming><bpmn:outgoing>Flow_DEL03_2</bpmn:outgoing></bpmn:task>
@@ -761,6 +967,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:dataObject id="Data_DEL03_2" name="Rapport de tests"/><bpmn:dataObjectReference id="DataRef_DEL03_2" dataObjectRef="Data_DEL03_2" name="Rapport de tests"/>
   <bpmn:association id="Assoc_DEL03_1" sourceRef="Task_DEL03_1" targetRef="DataRef_DEL03_1" associationDirection="One"/>
   <bpmn:association id="Assoc_DEL03_2" sourceRef="Task_DEL03_2" targetRef="DataRef_DEL03_2" associationDirection="One"/>
+  <bpmn:dataStoreReference id="DataStoreRef_DEL03_GIT" dataStoreRef="Store_GIT" name="Dépôt Git"/><bpmn:association id="Assoc_DEL03_GIT" sourceRef="Task_DEL03_3" targetRef="DataStoreRef_DEL03_GIT" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_DEL03_CICD" dataStoreRef="Store_CICD" name="CI/CD"/><bpmn:association id="Assoc_DEL03_CICD" sourceRef="Task_DEL03_3" targetRef="DataStoreRef_DEL03_CICD" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_DEL03_DOCS" dataStoreRef="Store_DOCS" name="Base documentaire"/><bpmn:association id="Assoc_DEL03_DOCS" sourceRef="Task_DEL03_3" targetRef="DataStoreRef_DEL03_DOCS" associationDirection="One"/>
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Stratégie, tests, anomalies et décision de livraison</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_DEL03"><bpmndi:BPMNPlane id="Plane_DEL03" bpmnElement="Process_DEL03">
@@ -778,6 +985,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000024','reference-seed','8b000001-0000-4000-8000-000000000024','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_DEL04" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_DEL04" name="Organiser la recette et l''acceptation client" isExecutable="false">
   <bpmn:startEvent id="Start_DEL04" name="Début"><bpmn:outgoing>Flow_DEL04_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_DEL04_1" name="[Chef de projet] Qualifier et planifier le besoin"><bpmn:incoming>Flow_DEL04_1</bpmn:incoming><bpmn:outgoing>Flow_DEL04_2</bpmn:outgoing></bpmn:task>
@@ -792,6 +1007,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:dataObject id="Data_DEL04_2" name="PV de recette client"/><bpmn:dataObjectReference id="DataRef_DEL04_2" dataObjectRef="Data_DEL04_2" name="PV de recette client"/>
   <bpmn:association id="Assoc_DEL04_1" sourceRef="Task_DEL04_1" targetRef="DataRef_DEL04_1" associationDirection="One"/>
   <bpmn:association id="Assoc_DEL04_2" sourceRef="Task_DEL04_2" targetRef="DataRef_DEL04_2" associationDirection="One"/>
+  <bpmn:dataStoreReference id="DataStoreRef_DEL04_GIT" dataStoreRef="Store_GIT" name="Dépôt Git"/><bpmn:association id="Assoc_DEL04_GIT" sourceRef="Task_DEL04_3" targetRef="DataStoreRef_DEL04_GIT" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_DEL04_CICD" dataStoreRef="Store_CICD" name="CI/CD"/><bpmn:association id="Assoc_DEL04_CICD" sourceRef="Task_DEL04_3" targetRef="DataStoreRef_DEL04_CICD" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_DEL04_DOCS" dataStoreRef="Store_DOCS" name="Base documentaire"/><bpmn:association id="Assoc_DEL04_DOCS" sourceRef="Task_DEL04_3" targetRef="DataStoreRef_DEL04_DOCS" associationDirection="One"/>
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Livrer en recette, exécuter UAT, traiter réserves et obtenir PV</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_DEL04"><bpmndi:BPMNPlane id="Plane_DEL04" bpmnElement="Process_DEL04">
@@ -809,6 +1025,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000025','reference-seed','8b000001-0000-4000-8000-000000000025','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_DEL05" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_DEL05" name="Déployer et livrer une version" isExecutable="false">
   <bpmn:startEvent id="Start_DEL05" name="Début"><bpmn:outgoing>Flow_DEL05_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_DEL05_1" name="[Responsable DevOps] Qualifier et planifier le besoin"><bpmn:incoming>Flow_DEL05_1</bpmn:incoming><bpmn:outgoing>Flow_DEL05_2</bpmn:outgoing></bpmn:task>
@@ -823,6 +1047,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:dataObject id="Data_DEL05_2" name="Notes de version"/><bpmn:dataObjectReference id="DataRef_DEL05_2" dataObjectRef="Data_DEL05_2" name="Notes de version"/>
   <bpmn:association id="Assoc_DEL05_1" sourceRef="Task_DEL05_1" targetRef="DataRef_DEL05_1" associationDirection="One"/>
   <bpmn:association id="Assoc_DEL05_2" sourceRef="Task_DEL05_2" targetRef="DataRef_DEL05_2" associationDirection="One"/>
+  <bpmn:dataStoreReference id="DataStoreRef_DEL05_GIT" dataStoreRef="Store_GIT" name="Dépôt Git"/><bpmn:association id="Assoc_DEL05_GIT" sourceRef="Task_DEL05_3" targetRef="DataStoreRef_DEL05_GIT" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_DEL05_CICD" dataStoreRef="Store_CICD" name="CI/CD"/><bpmn:association id="Assoc_DEL05_CICD" sourceRef="Task_DEL05_3" targetRef="DataStoreRef_DEL05_CICD" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_DEL05_DOCS" dataStoreRef="Store_DOCS" name="Base documentaire"/><bpmn:association id="Assoc_DEL05_DOCS" sourceRef="Task_DEL05_3" targetRef="DataStoreRef_DEL05_DOCS" associationDirection="One"/>
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Préparer release, approuver changement, déployer et vérifier</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_DEL05"><bpmndi:BPMNPlane id="Plane_DEL05" bpmnElement="Process_DEL05">
@@ -840,6 +1065,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000026','reference-seed','8b000001-0000-4000-8000-000000000026','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_MNT00" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_MNT00" name="Gérer le service et la maintenance du logiciel" isExecutable="false">
   <bpmn:startEvent id="Start_MNT00" name="Début"><bpmn:outgoing>Flow_MNT00_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:callActivity id="Task_MNT00_1" name="[Service manager] Prendre en charge un logiciel livré" calledElement="Process_MNT01"><bpmn:incoming>Flow_MNT00_1</bpmn:incoming><bpmn:outgoing>Flow_MNT00_2</bpmn:outgoing></bpmn:callActivity>
@@ -864,6 +1097,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:association id="Assoc_MNT00_1" sourceRef="Task_MNT00_1" targetRef="DataRef_MNT00_1" associationDirection="One"/>
   <bpmn:association id="Assoc_MNT00_2" sourceRef="Task_MNT00_2" targetRef="DataRef_MNT00_2" associationDirection="One"/>
   <bpmn:association id="Assoc_MNT00_3" sourceRef="Task_MNT00_3" targetRef="DataRef_MNT00_3" associationDirection="One"/>
+  <bpmn:dataStoreReference id="DataStoreRef_MNT00_ITSM" dataStoreRef="Store_ITSM" name="Application ITSM"/><bpmn:association id="Assoc_MNT00_ITSM" sourceRef="Task_MNT00_7" targetRef="DataStoreRef_MNT00_ITSM" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT00_GIT" dataStoreRef="Store_GIT" name="Dépôt Git"/><bpmn:association id="Assoc_MNT00_GIT" sourceRef="Task_MNT00_7" targetRef="DataStoreRef_MNT00_GIT" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT00_CICD" dataStoreRef="Store_CICD" name="CI/CD"/><bpmn:association id="Assoc_MNT00_CICD" sourceRef="Task_MNT00_7" targetRef="DataStoreRef_MNT00_CICD" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT00_MON" dataStoreRef="Store_MON" name="Supervision"/><bpmn:association id="Assoc_MNT00_MON" sourceRef="Task_MNT00_7" targetRef="DataStoreRef_MNT00_MON" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT00_DOCS" dataStoreRef="Store_DOCS" name="Base documentaire"/><bpmn:association id="Assoc_MNT00_DOCS" sourceRef="Task_MNT00_7" targetRef="DataStoreRef_MNT00_DOCS" associationDirection="One"/>
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Organiser la prise en charge et piloter incidents, correctifs, évolutions, versions et revues</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_MNT00"><bpmndi:BPMNPlane id="Plane_MNT00" bpmnElement="Process_MNT00">
@@ -889,6 +1123,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000027','reference-seed','8b000001-0000-4000-8000-000000000027','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_MNT01" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_MNT01" name="Prendre en charge un logiciel livré" isExecutable="false">
   <bpmn:startEvent id="Start_MNT01" name="Début"><bpmn:outgoing>Flow_MNT01_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_MNT01_1" name="[Service manager] Qualifier et planifier le besoin"><bpmn:incoming>Flow_MNT01_1</bpmn:incoming><bpmn:outgoing>Flow_MNT01_2</bpmn:outgoing></bpmn:task>
@@ -903,6 +1145,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:dataObject id="Data_MNT01_2" name="Fiche de configuration"/><bpmn:dataObjectReference id="DataRef_MNT01_2" dataObjectRef="Data_MNT01_2" name="Fiche de configuration"/>
   <bpmn:association id="Assoc_MNT01_1" sourceRef="Task_MNT01_1" targetRef="DataRef_MNT01_1" associationDirection="One"/>
   <bpmn:association id="Assoc_MNT01_2" sourceRef="Task_MNT01_2" targetRef="DataRef_MNT01_2" associationDirection="One"/>
+  <bpmn:dataStoreReference id="DataStoreRef_MNT01_ITSM" dataStoreRef="Store_ITSM" name="Application ITSM"/><bpmn:association id="Assoc_MNT01_ITSM" sourceRef="Task_MNT01_3" targetRef="DataStoreRef_MNT01_ITSM" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT01_GIT" dataStoreRef="Store_GIT" name="Dépôt Git"/><bpmn:association id="Assoc_MNT01_GIT" sourceRef="Task_MNT01_3" targetRef="DataStoreRef_MNT01_GIT" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT01_CICD" dataStoreRef="Store_CICD" name="CI/CD"/><bpmn:association id="Assoc_MNT01_CICD" sourceRef="Task_MNT01_3" targetRef="DataStoreRef_MNT01_CICD" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT01_MON" dataStoreRef="Store_MON" name="Supervision"/><bpmn:association id="Assoc_MNT01_MON" sourceRef="Task_MNT01_3" targetRef="DataStoreRef_MNT01_MON" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT01_DOCS" dataStoreRef="Store_DOCS" name="Base documentaire"/><bpmn:association id="Assoc_MNT01_DOCS" sourceRef="Task_MNT01_3" targetRef="DataStoreRef_MNT01_DOCS" associationDirection="One"/>
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Transfert projet-maintenance, inventaire versions, SLA et supervision</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_MNT01"><bpmndi:BPMNPlane id="Plane_MNT01" bpmnElement="Process_MNT01">
@@ -920,6 +1163,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000028','reference-seed','8b000001-0000-4000-8000-000000000028','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_MNT02" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_MNT02" name="Traiter les incidents et demandes clients" isExecutable="false">
   <bpmn:startEvent id="Start_MNT02" name="Début"><bpmn:outgoing>Flow_MNT02_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_MNT02_1" name="[Support N1] Qualifier et planifier le besoin"><bpmn:incoming>Flow_MNT02_1</bpmn:incoming><bpmn:outgoing>Flow_MNT02_2</bpmn:outgoing></bpmn:task>
@@ -934,6 +1185,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:dataObject id="Data_MNT02_2" name="Historique des incidents"/><bpmn:dataObjectReference id="DataRef_MNT02_2" dataObjectRef="Data_MNT02_2" name="Historique des incidents"/>
   <bpmn:association id="Assoc_MNT02_1" sourceRef="Task_MNT02_1" targetRef="DataRef_MNT02_1" associationDirection="One"/>
   <bpmn:association id="Assoc_MNT02_2" sourceRef="Task_MNT02_2" targetRef="DataRef_MNT02_2" associationDirection="One"/>
+  <bpmn:dataStoreReference id="DataStoreRef_MNT02_ITSM" dataStoreRef="Store_ITSM" name="Application ITSM"/><bpmn:association id="Assoc_MNT02_ITSM" sourceRef="Task_MNT02_3" targetRef="DataStoreRef_MNT02_ITSM" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT02_GIT" dataStoreRef="Store_GIT" name="Dépôt Git"/><bpmn:association id="Assoc_MNT02_GIT" sourceRef="Task_MNT02_3" targetRef="DataStoreRef_MNT02_GIT" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT02_CICD" dataStoreRef="Store_CICD" name="CI/CD"/><bpmn:association id="Assoc_MNT02_CICD" sourceRef="Task_MNT02_3" targetRef="DataStoreRef_MNT02_CICD" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT02_MON" dataStoreRef="Store_MON" name="Supervision"/><bpmn:association id="Assoc_MNT02_MON" sourceRef="Task_MNT02_3" targetRef="DataStoreRef_MNT02_MON" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT02_DOCS" dataStoreRef="Store_DOCS" name="Base documentaire"/><bpmn:association id="Assoc_MNT02_DOCS" sourceRef="Task_MNT02_3" targetRef="DataStoreRef_MNT02_DOCS" associationDirection="One"/>
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Enregistrer, qualifier, prioriser, diagnostiquer, escalader et confirmer la résolution</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_MNT02"><bpmndi:BPMNPlane id="Plane_MNT02" bpmnElement="Process_MNT02">
@@ -951,6 +1203,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000029','reference-seed','8b000001-0000-4000-8000-000000000029','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_MNT03" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_MNT03" name="Réaliser une maintenance corrective" isExecutable="false">
   <bpmn:startEvent id="Start_MNT03" name="Début"><bpmn:outgoing>Flow_MNT03_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_MNT03_1" name="[Tech lead] Qualifier et planifier le besoin"><bpmn:incoming>Flow_MNT03_1</bpmn:incoming><bpmn:outgoing>Flow_MNT03_2</bpmn:outgoing></bpmn:task>
@@ -967,6 +1227,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:association id="Assoc_MNT03_1" sourceRef="Task_MNT03_1" targetRef="DataRef_MNT03_1" associationDirection="One"/>
   <bpmn:association id="Assoc_MNT03_2" sourceRef="Task_MNT03_2" targetRef="DataRef_MNT03_2" associationDirection="One"/>
   <bpmn:association id="Assoc_MNT03_3" sourceRef="Task_MNT03_3" targetRef="DataRef_MNT03_3" associationDirection="One"/>
+  <bpmn:dataStoreReference id="DataStoreRef_MNT03_ITSM" dataStoreRef="Store_ITSM" name="Application ITSM"/><bpmn:association id="Assoc_MNT03_ITSM" sourceRef="Task_MNT03_3" targetRef="DataStoreRef_MNT03_ITSM" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT03_GIT" dataStoreRef="Store_GIT" name="Dépôt Git"/><bpmn:association id="Assoc_MNT03_GIT" sourceRef="Task_MNT03_3" targetRef="DataStoreRef_MNT03_GIT" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT03_CICD" dataStoreRef="Store_CICD" name="CI/CD"/><bpmn:association id="Assoc_MNT03_CICD" sourceRef="Task_MNT03_3" targetRef="DataStoreRef_MNT03_CICD" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT03_MON" dataStoreRef="Store_MON" name="Supervision"/><bpmn:association id="Assoc_MNT03_MON" sourceRef="Task_MNT03_3" targetRef="DataStoreRef_MNT03_MON" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT03_DOCS" dataStoreRef="Store_DOCS" name="Base documentaire"/><bpmn:association id="Assoc_MNT03_DOCS" sourceRef="Task_MNT03_3" targetRef="DataStoreRef_MNT03_DOCS" associationDirection="One"/>
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Reproduire, analyser, corriger, tester et livrer le correctif</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_MNT03"><bpmndi:BPMNPlane id="Plane_MNT03" bpmnElement="Process_MNT03">
@@ -984,6 +1245,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000030','reference-seed','8b000001-0000-4000-8000-000000000030','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_MNT04" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_MNT04" name="Gérer une demande d''évolution" isExecutable="false">
   <bpmn:startEvent id="Start_MNT04" name="Début"><bpmn:outgoing>Flow_MNT04_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_MNT04_1" name="[Chef de projet] Qualifier et planifier le besoin"><bpmn:incoming>Flow_MNT04_1</bpmn:incoming><bpmn:outgoing>Flow_MNT04_2</bpmn:outgoing></bpmn:task>
@@ -1000,6 +1269,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:association id="Assoc_MNT04_1" sourceRef="Task_MNT04_1" targetRef="DataRef_MNT04_1" associationDirection="One"/>
   <bpmn:association id="Assoc_MNT04_2" sourceRef="Task_MNT04_2" targetRef="DataRef_MNT04_2" associationDirection="One"/>
   <bpmn:association id="Assoc_MNT04_3" sourceRef="Task_MNT04_3" targetRef="DataRef_MNT04_3" associationDirection="One"/>
+  <bpmn:dataStoreReference id="DataStoreRef_MNT04_ITSM" dataStoreRef="Store_ITSM" name="Application ITSM"/><bpmn:association id="Assoc_MNT04_ITSM" sourceRef="Task_MNT04_3" targetRef="DataStoreRef_MNT04_ITSM" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT04_GIT" dataStoreRef="Store_GIT" name="Dépôt Git"/><bpmn:association id="Assoc_MNT04_GIT" sourceRef="Task_MNT04_3" targetRef="DataStoreRef_MNT04_GIT" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT04_CICD" dataStoreRef="Store_CICD" name="CI/CD"/><bpmn:association id="Assoc_MNT04_CICD" sourceRef="Task_MNT04_3" targetRef="DataStoreRef_MNT04_CICD" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT04_MON" dataStoreRef="Store_MON" name="Supervision"/><bpmn:association id="Assoc_MNT04_MON" sourceRef="Task_MNT04_3" targetRef="DataStoreRef_MNT04_MON" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT04_DOCS" dataStoreRef="Store_DOCS" name="Base documentaire"/><bpmn:association id="Assoc_MNT04_DOCS" sourceRef="Task_MNT04_3" targetRef="DataStoreRef_MNT04_DOCS" associationDirection="One"/>
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Analyser impact, chiffrer, faire approuver et intégrer au backlog</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_MNT04"><bpmndi:BPMNPlane id="Plane_MNT04" bpmnElement="Process_MNT04">
@@ -1017,6 +1287,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000031','reference-seed','8b000001-0000-4000-8000-000000000031','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_MNT05" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_MNT05" name="Gérer une version et une mise en production" isExecutable="false">
   <bpmn:startEvent id="Start_MNT05" name="Début"><bpmn:outgoing>Flow_MNT05_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_MNT05_1" name="[Responsable DevOps] Qualifier et planifier le besoin"><bpmn:incoming>Flow_MNT05_1</bpmn:incoming><bpmn:outgoing>Flow_MNT05_2</bpmn:outgoing></bpmn:task>
@@ -1031,6 +1309,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:dataObject id="Data_MNT05_2" name="PV de mise en production"/><bpmn:dataObjectReference id="DataRef_MNT05_2" dataObjectRef="Data_MNT05_2" name="PV de mise en production"/>
   <bpmn:association id="Assoc_MNT05_1" sourceRef="Task_MNT05_1" targetRef="DataRef_MNT05_1" associationDirection="One"/>
   <bpmn:association id="Assoc_MNT05_2" sourceRef="Task_MNT05_2" targetRef="DataRef_MNT05_2" associationDirection="One"/>
+  <bpmn:dataStoreReference id="DataStoreRef_MNT05_ITSM" dataStoreRef="Store_ITSM" name="Application ITSM"/><bpmn:association id="Assoc_MNT05_ITSM" sourceRef="Task_MNT05_3" targetRef="DataStoreRef_MNT05_ITSM" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT05_GIT" dataStoreRef="Store_GIT" name="Dépôt Git"/><bpmn:association id="Assoc_MNT05_GIT" sourceRef="Task_MNT05_3" targetRef="DataStoreRef_MNT05_GIT" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT05_CICD" dataStoreRef="Store_CICD" name="CI/CD"/><bpmn:association id="Assoc_MNT05_CICD" sourceRef="Task_MNT05_3" targetRef="DataStoreRef_MNT05_CICD" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT05_MON" dataStoreRef="Store_MON" name="Supervision"/><bpmn:association id="Assoc_MNT05_MON" sourceRef="Task_MNT05_3" targetRef="DataStoreRef_MNT05_MON" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT05_DOCS" dataStoreRef="Store_DOCS" name="Base documentaire"/><bpmn:association id="Assoc_MNT05_DOCS" sourceRef="Task_MNT05_3" targetRef="DataStoreRef_MNT05_DOCS" associationDirection="One"/>
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Préparer, approuver, déployer, contrôler et revenir arrière si besoin</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_MNT05"><bpmndi:BPMNPlane id="Plane_MNT05" bpmnElement="Process_MNT05">
@@ -1048,6 +1327,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000032','reference-seed','8b000001-0000-4000-8000-000000000032','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_MNT06" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_MNT06" name="Réaliser la revue périodique de service" isExecutable="false">
   <bpmn:startEvent id="Start_MNT06" name="Début"><bpmn:outgoing>Flow_MNT06_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_MNT06_1" name="[Service manager] Qualifier et planifier le besoin"><bpmn:incoming>Flow_MNT06_1</bpmn:incoming><bpmn:outgoing>Flow_MNT06_2</bpmn:outgoing></bpmn:task>
@@ -1062,6 +1349,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:dataObject id="Data_MNT06_2" name="Compte rendu de service"/><bpmn:dataObjectReference id="DataRef_MNT06_2" dataObjectRef="Data_MNT06_2" name="Compte rendu de service"/>
   <bpmn:association id="Assoc_MNT06_1" sourceRef="Task_MNT06_1" targetRef="DataRef_MNT06_1" associationDirection="One"/>
   <bpmn:association id="Assoc_MNT06_2" sourceRef="Task_MNT06_2" targetRef="DataRef_MNT06_2" associationDirection="One"/>
+  <bpmn:dataStoreReference id="DataStoreRef_MNT06_ITSM" dataStoreRef="Store_ITSM" name="Application ITSM"/><bpmn:association id="Assoc_MNT06_ITSM" sourceRef="Task_MNT06_3" targetRef="DataStoreRef_MNT06_ITSM" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT06_GIT" dataStoreRef="Store_GIT" name="Dépôt Git"/><bpmn:association id="Assoc_MNT06_GIT" sourceRef="Task_MNT06_3" targetRef="DataStoreRef_MNT06_GIT" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT06_CICD" dataStoreRef="Store_CICD" name="CI/CD"/><bpmn:association id="Assoc_MNT06_CICD" sourceRef="Task_MNT06_3" targetRef="DataStoreRef_MNT06_CICD" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT06_MON" dataStoreRef="Store_MON" name="Supervision"/><bpmn:association id="Assoc_MNT06_MON" sourceRef="Task_MNT06_3" targetRef="DataStoreRef_MNT06_MON" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT06_DOCS" dataStoreRef="Store_DOCS" name="Base documentaire"/><bpmn:association id="Assoc_MNT06_DOCS" sourceRef="Task_MNT06_3" targetRef="DataStoreRef_MNT06_DOCS" associationDirection="One"/>
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Mesurer SLA, incidents, disponibilité, satisfaction et actions préventives</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_MNT06"><bpmndi:BPMNPlane id="Plane_MNT06" bpmnElement="Process_MNT06">
@@ -1079,6 +1367,14 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
 
 INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngContent","updatedBy") VALUES ('8c000000-0000-4000-8000-000000000033','reference-seed','8b000001-0000-4000-8000-000000000033','published',1,'<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_MNT07" targetNamespace="https://khi-flows.example/reference-it-company" exporter="KHI Flows" exporterVersion="reference-1.0">
+ <bpmn:dataStore id="Store_ITSM" name="Application ITSM"/>
+ <bpmn:dataStore id="Store_ERP" name="ERP et comptabilité"/>
+ <bpmn:dataStore id="Store_SIRH" name="SIRH et paie"/>
+ <bpmn:dataStore id="Store_CMDB" name="CMDB"/>
+ <bpmn:dataStore id="Store_GIT" name="Dépôt Git"/>
+ <bpmn:dataStore id="Store_CICD" name="CI/CD"/>
+ <bpmn:dataStore id="Store_MON" name="Supervision"/>
+ <bpmn:dataStore id="Store_DOCS" name="Base documentaire"/>
  <bpmn:process id="Process_MNT07" name="Clôturer la maintenance et organiser la réversibilité" isExecutable="false">
   <bpmn:startEvent id="Start_MNT07" name="Début"><bpmn:outgoing>Flow_MNT07_1</bpmn:outgoing></bpmn:startEvent>
   <bpmn:task id="Task_MNT07_1" name="[Service manager] Qualifier et planifier le besoin"><bpmn:incoming>Flow_MNT07_1</bpmn:incoming><bpmn:outgoing>Flow_MNT07_2</bpmn:outgoing></bpmn:task>
@@ -1093,6 +1389,7 @@ INSERT INTO contents (id,"createdBy","resourceId",status,version,content,"pngCon
   <bpmn:dataObject id="Data_MNT07_2" name="PV de fin de service"/><bpmn:dataObjectReference id="DataRef_MNT07_2" dataObjectRef="Data_MNT07_2" name="PV de fin de service"/>
   <bpmn:association id="Assoc_MNT07_1" sourceRef="Task_MNT07_1" targetRef="DataRef_MNT07_1" associationDirection="One"/>
   <bpmn:association id="Assoc_MNT07_2" sourceRef="Task_MNT07_2" targetRef="DataRef_MNT07_2" associationDirection="One"/>
+  <bpmn:dataStoreReference id="DataStoreRef_MNT07_ITSM" dataStoreRef="Store_ITSM" name="Application ITSM"/><bpmn:association id="Assoc_MNT07_ITSM" sourceRef="Task_MNT07_3" targetRef="DataStoreRef_MNT07_ITSM" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT07_GIT" dataStoreRef="Store_GIT" name="Dépôt Git"/><bpmn:association id="Assoc_MNT07_GIT" sourceRef="Task_MNT07_3" targetRef="DataStoreRef_MNT07_GIT" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT07_CICD" dataStoreRef="Store_CICD" name="CI/CD"/><bpmn:association id="Assoc_MNT07_CICD" sourceRef="Task_MNT07_3" targetRef="DataStoreRef_MNT07_CICD" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT07_MON" dataStoreRef="Store_MON" name="Supervision"/><bpmn:association id="Assoc_MNT07_MON" sourceRef="Task_MNT07_3" targetRef="DataStoreRef_MNT07_MON" associationDirection="One"/><bpmn:dataStoreReference id="DataStoreRef_MNT07_DOCS" dataStoreRef="Store_DOCS" name="Base documentaire"/><bpmn:association id="Assoc_MNT07_DOCS" sourceRef="Task_MNT07_3" targetRef="DataStoreRef_MNT07_DOCS" associationDirection="One"/>
   <bpmn:documentation>Processus du projet de référence. Les données sont fictives. Référentiel métier : Informer, transférer données et connaissances, révoquer accès et clôturer</bpmn:documentation>
  </bpmn:process>
  <bpmndi:BPMNDiagram id="Diagram_MNT07"><bpmndi:BPMNPlane id="Plane_MNT07" bpmnElement="Process_MNT07">
@@ -1640,7 +1937,82 @@ INSERT INTO project_documented_source_references (id,"projectId","sourceId","res
 ('91000000-0000-4000-8000-000000000072','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000072','8b000001-0000-4000-8000-000000000032','DataRef_MNT06_1','Rapport SLA','DataObjectReference','reference-seed'),
 ('91000000-0000-4000-8000-000000000073','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000073','8b000001-0000-4000-8000-000000000032','DataRef_MNT06_2','Compte rendu de service','DataObjectReference','reference-seed'),
 ('91000000-0000-4000-8000-000000000074','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000074','8b000001-0000-4000-8000-000000000033','DataRef_MNT07_1','Plan de réversibilité','DataObjectReference','reference-seed'),
-('91000000-0000-4000-8000-000000000075','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000075','8b000001-0000-4000-8000-000000000033','DataRef_MNT07_2','PV de fin de service','DataObjectReference','reference-seed')
+('91000000-0000-4000-8000-000000000075','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000075','8b000001-0000-4000-8000-000000000033','DataRef_MNT07_2','PV de fin de service','DataObjectReference','reference-seed'),
+('92000000-0000-4000-8000-000000000001','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000077','8b000001-0000-4000-8000-000000000001','DataStoreRef_GOV01_ERP','ERP et comptabilité','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000002','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000083','8b000001-0000-4000-8000-000000000001','DataStoreRef_GOV01_DOCS','Base documentaire','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000003','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000077','8b000001-0000-4000-8000-000000000002','DataStoreRef_GOV02_ERP','ERP et comptabilité','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000004','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000083','8b000001-0000-4000-8000-000000000002','DataStoreRef_GOV02_DOCS','Base documentaire','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000005','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000077','8b000001-0000-4000-8000-000000000003','DataStoreRef_GOV03_ERP','ERP et comptabilité','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000006','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000083','8b000001-0000-4000-8000-000000000003','DataStoreRef_GOV03_DOCS','Base documentaire','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000007','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000077','8b000001-0000-4000-8000-000000000004','DataStoreRef_GOV04_ERP','ERP et comptabilité','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000008','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000083','8b000001-0000-4000-8000-000000000004','DataStoreRef_GOV04_DOCS','Base documentaire','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000009','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000077','8b000001-0000-4000-8000-000000000013','DataStoreRef_FIN01_ERP','ERP et comptabilité','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000010','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000078','8b000001-0000-4000-8000-000000000013','DataStoreRef_FIN01_SIRH','SIRH et paie','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000011','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000083','8b000001-0000-4000-8000-000000000013','DataStoreRef_FIN01_DOCS','Base documentaire','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000012','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000077','8b000001-0000-4000-8000-000000000014','DataStoreRef_FIN02_ERP','ERP et comptabilité','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000013','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000078','8b000001-0000-4000-8000-000000000014','DataStoreRef_FIN02_SIRH','SIRH et paie','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000014','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000083','8b000001-0000-4000-8000-000000000014','DataStoreRef_FIN02_DOCS','Base documentaire','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000015','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000077','8b000001-0000-4000-8000-000000000015','DataStoreRef_FIN03_ERP','ERP et comptabilité','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000016','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000078','8b000001-0000-4000-8000-000000000015','DataStoreRef_FIN03_SIRH','SIRH et paie','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000017','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000083','8b000001-0000-4000-8000-000000000015','DataStoreRef_FIN03_DOCS','Base documentaire','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000018','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000077','8b000001-0000-4000-8000-000000000016','DataStoreRef_FIN04_ERP','ERP et comptabilité','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000019','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000078','8b000001-0000-4000-8000-000000000016','DataStoreRef_FIN04_SIRH','SIRH et paie','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000020','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000083','8b000001-0000-4000-8000-000000000016','DataStoreRef_FIN04_DOCS','Base documentaire','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000021','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000080','8b000001-0000-4000-8000-000000000021','DataStoreRef_DEL01_GIT','Dépôt Git','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000022','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000081','8b000001-0000-4000-8000-000000000021','DataStoreRef_DEL01_CICD','CI/CD','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000023','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000083','8b000001-0000-4000-8000-000000000021','DataStoreRef_DEL01_DOCS','Base documentaire','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000024','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000080','8b000001-0000-4000-8000-000000000022','DataStoreRef_DEL02_GIT','Dépôt Git','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000025','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000081','8b000001-0000-4000-8000-000000000022','DataStoreRef_DEL02_CICD','CI/CD','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000026','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000083','8b000001-0000-4000-8000-000000000022','DataStoreRef_DEL02_DOCS','Base documentaire','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000027','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000080','8b000001-0000-4000-8000-000000000023','DataStoreRef_DEL03_GIT','Dépôt Git','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000028','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000081','8b000001-0000-4000-8000-000000000023','DataStoreRef_DEL03_CICD','CI/CD','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000029','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000083','8b000001-0000-4000-8000-000000000023','DataStoreRef_DEL03_DOCS','Base documentaire','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000030','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000080','8b000001-0000-4000-8000-000000000024','DataStoreRef_DEL04_GIT','Dépôt Git','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000031','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000081','8b000001-0000-4000-8000-000000000024','DataStoreRef_DEL04_CICD','CI/CD','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000032','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000083','8b000001-0000-4000-8000-000000000024','DataStoreRef_DEL04_DOCS','Base documentaire','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000033','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000080','8b000001-0000-4000-8000-000000000025','DataStoreRef_DEL05_GIT','Dépôt Git','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000034','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000081','8b000001-0000-4000-8000-000000000025','DataStoreRef_DEL05_CICD','CI/CD','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000035','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000083','8b000001-0000-4000-8000-000000000025','DataStoreRef_DEL05_DOCS','Base documentaire','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000036','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000076','8b000001-0000-4000-8000-000000000026','DataStoreRef_MNT00_ITSM','Application ITSM','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000037','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000080','8b000001-0000-4000-8000-000000000026','DataStoreRef_MNT00_GIT','Dépôt Git','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000038','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000081','8b000001-0000-4000-8000-000000000026','DataStoreRef_MNT00_CICD','CI/CD','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000039','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000082','8b000001-0000-4000-8000-000000000026','DataStoreRef_MNT00_MON','Supervision','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000040','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000083','8b000001-0000-4000-8000-000000000026','DataStoreRef_MNT00_DOCS','Base documentaire','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000041','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000076','8b000001-0000-4000-8000-000000000027','DataStoreRef_MNT01_ITSM','Application ITSM','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000042','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000080','8b000001-0000-4000-8000-000000000027','DataStoreRef_MNT01_GIT','Dépôt Git','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000043','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000081','8b000001-0000-4000-8000-000000000027','DataStoreRef_MNT01_CICD','CI/CD','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000044','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000082','8b000001-0000-4000-8000-000000000027','DataStoreRef_MNT01_MON','Supervision','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000045','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000083','8b000001-0000-4000-8000-000000000027','DataStoreRef_MNT01_DOCS','Base documentaire','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000046','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000076','8b000001-0000-4000-8000-000000000028','DataStoreRef_MNT02_ITSM','Application ITSM','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000047','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000080','8b000001-0000-4000-8000-000000000028','DataStoreRef_MNT02_GIT','Dépôt Git','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000048','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000081','8b000001-0000-4000-8000-000000000028','DataStoreRef_MNT02_CICD','CI/CD','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000049','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000082','8b000001-0000-4000-8000-000000000028','DataStoreRef_MNT02_MON','Supervision','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000050','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000083','8b000001-0000-4000-8000-000000000028','DataStoreRef_MNT02_DOCS','Base documentaire','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000051','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000076','8b000001-0000-4000-8000-000000000029','DataStoreRef_MNT03_ITSM','Application ITSM','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000052','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000080','8b000001-0000-4000-8000-000000000029','DataStoreRef_MNT03_GIT','Dépôt Git','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000053','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000081','8b000001-0000-4000-8000-000000000029','DataStoreRef_MNT03_CICD','CI/CD','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000054','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000082','8b000001-0000-4000-8000-000000000029','DataStoreRef_MNT03_MON','Supervision','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000055','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000083','8b000001-0000-4000-8000-000000000029','DataStoreRef_MNT03_DOCS','Base documentaire','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000056','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000076','8b000001-0000-4000-8000-000000000030','DataStoreRef_MNT04_ITSM','Application ITSM','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000057','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000080','8b000001-0000-4000-8000-000000000030','DataStoreRef_MNT04_GIT','Dépôt Git','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000058','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000081','8b000001-0000-4000-8000-000000000030','DataStoreRef_MNT04_CICD','CI/CD','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000059','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000082','8b000001-0000-4000-8000-000000000030','DataStoreRef_MNT04_MON','Supervision','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000060','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000083','8b000001-0000-4000-8000-000000000030','DataStoreRef_MNT04_DOCS','Base documentaire','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000061','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000076','8b000001-0000-4000-8000-000000000031','DataStoreRef_MNT05_ITSM','Application ITSM','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000062','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000080','8b000001-0000-4000-8000-000000000031','DataStoreRef_MNT05_GIT','Dépôt Git','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000063','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000081','8b000001-0000-4000-8000-000000000031','DataStoreRef_MNT05_CICD','CI/CD','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000064','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000082','8b000001-0000-4000-8000-000000000031','DataStoreRef_MNT05_MON','Supervision','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000065','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000083','8b000001-0000-4000-8000-000000000031','DataStoreRef_MNT05_DOCS','Base documentaire','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000066','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000076','8b000001-0000-4000-8000-000000000032','DataStoreRef_MNT06_ITSM','Application ITSM','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000067','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000080','8b000001-0000-4000-8000-000000000032','DataStoreRef_MNT06_GIT','Dépôt Git','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000068','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000081','8b000001-0000-4000-8000-000000000032','DataStoreRef_MNT06_CICD','CI/CD','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000069','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000082','8b000001-0000-4000-8000-000000000032','DataStoreRef_MNT06_MON','Supervision','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000070','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000083','8b000001-0000-4000-8000-000000000032','DataStoreRef_MNT06_DOCS','Base documentaire','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000071','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000076','8b000001-0000-4000-8000-000000000033','DataStoreRef_MNT07_ITSM','Application ITSM','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000072','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000080','8b000001-0000-4000-8000-000000000033','DataStoreRef_MNT07_GIT','Dépôt Git','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000073','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000081','8b000001-0000-4000-8000-000000000033','DataStoreRef_MNT07_CICD','CI/CD','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000074','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000082','8b000001-0000-4000-8000-000000000033','DataStoreRef_MNT07_MON','Supervision','DataStoreReference','reference-seed'),
+('92000000-0000-4000-8000-000000000075','8a000000-0000-4000-8000-000000000001','8d000000-0000-4000-8000-000000000083','8b000001-0000-4000-8000-000000000033','DataStoreRef_MNT07_DOCS','Base documentaire','DataStoreReference','reference-seed')
 ON CONFLICT ("projectId","resourceId","elementId") DO NOTHING;
 
 COMMIT;
