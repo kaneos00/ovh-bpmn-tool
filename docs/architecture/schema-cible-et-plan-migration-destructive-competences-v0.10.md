@@ -198,3 +198,21 @@ Avant de considérer le chantier validé :
 ## 7. Points non réalisés
 
 Ce document ne crée pas encore le fichier SQL exécutable, les entités TypeORM ou les API. Le nom exact de la base de test et le mécanisme de sauvegarde ne sont pas établis. La migration destructive ne doit pas être lancée avant ces prérequis.
+
+
+## 8. Fichier SQL préparé et statut d'intégration
+
+Un premier fichier SQL gardé a été créé :
+`backend/migrations/20261126_v0_10_competency_catalog_reset.sql`.
+
+Il :
+- exige les paramètres psql `allow_destructive_competency_reset=true` et `expected_database=<nom exact>` ;
+- vérifie que le nom de base courant correspond au nom explicitement attendu ;
+- refuse les bases système ;
+- vérifie la présence des tables source attendues ;
+- échoue si une table non examinée référence directement `competencies` ;
+- supprime les anciennes compétences et exigences individuelles ;
+- crée le catalogue global, les associations bloc/compétence et les tables de missions ;
+- laisse les blocs projet, leur applicabilité, les mappings BPMN et RACI intacts.
+
+**Le fichier n'est pas encore intégré au conteneur de migrations ni à `compose.yaml`.** C'est intentionnel : le backend actuel lit encore `competency.blockId` et `competency.referenceLevel`. Brancher ou exécuter le SQL avant la mise à jour des entités et services rendrait l'application incompatible avec le schéma. L'intégration Coolify sera faite dans la même tranche que le backend cible, avec une activation explicite et un nom de base de test confirmé.
