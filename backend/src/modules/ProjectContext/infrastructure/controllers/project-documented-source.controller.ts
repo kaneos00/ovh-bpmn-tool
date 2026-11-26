@@ -70,6 +70,10 @@ const parser = new XMLParser({
 const SOURCE_KINDS: SourceKind[] = ['file', 'database', 'application', 'form'];
 
 const BPMN_DOCUMENTED_DATA_TYPES = new Set(['dataStoreReference']);
+const BPMN_DISPLAYED_DATA_TYPES = new Set([
+  'dataObjectReference',
+  'dataStoreReference',
+]);
 const SOURCE_TEXT_FIELDS = [
   'description',
   'link',
@@ -267,7 +271,7 @@ export class ProjectDocumentedSourceController {
         order: { name: 'ASC' },
       }),
       this.references.find({
-        where: { projectId, elementType: In([...BPMN_DOCUMENTED_DATA_TYPES]) },
+        where: { projectId, elementType: In([...BPMN_DISPLAYED_DATA_TYPES]) },
         order: { createdAt: 'ASC' },
       }),
       this.projectProcesses.find({ where: { projectId } }),
