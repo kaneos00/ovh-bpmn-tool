@@ -66,7 +66,7 @@ Combine `selection`, `editing`, `advancedFilter` and `quickSearch` as required. 
 ## Shared defaults
 
 - AG Grid Community with the Quartz theme.
-- Sorting, resizing and column filters enabled by default.
+- Sorting and resizing enabled by default; basic column filters are opt-in.
 - Row click does not select a row unless `enableClickSelection` is explicitly enabled.
 - Native checkbox selection when configured.
 - Read-only is the default; editing must be explicitly enabled.
