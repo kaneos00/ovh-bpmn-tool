@@ -135,11 +135,11 @@ test('documented information always belongs to one project process, independentl
 test('BPMN associations may cross process boundaries while the documented source keeps its owning process', async () => {
   const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
   const projectGrid = await read('src/Components/BusinessComponents/ProcessDetails/ProjectDocumentedSources.tsx');
-  assert.match(controller, /if \\(!reference\\) return \\{ \\.\\.\\.source, references: \\[\\] \\}/);
-  assert.doesNotMatch(controller, /source\\.resourceId !== reference\\.resourceId/);
-  assert.doesNotMatch(controller, /target\\.resourceId !== reference\\.resourceId/);
-  assert.match(controller, /await this\\.validateReference\\(projectId, body\\)/);
-  assert.match(controller, /Only BPMN data stores can be associated with documented sources/);
-  assert.match(projectGrid, /Associer un objet BPMN du projet…/);
-  assert.match(projectGrid, /filter\\(candidate => !p\\.data!\\.references\\.some/);
+  assert.ok(controller.includes('if (!reference) return { ...source, references: [] }'));
+  assert.doesNotMatch(controller, /source\.resourceId !== reference\.resourceId/);
+  assert.doesNotMatch(controller, /target\.resourceId !== reference\.resourceId/);
+  assert.ok(controller.includes('await this.validateReference(projectId, body)'));
+  assert.ok(controller.includes('Only BPMN data stores can be associated with documented sources'));
+  assert.ok(projectGrid.includes('Associer un objet BPMN du projet…'));
+  assert.ok(projectGrid.includes('filter(candidate => !p.data!.references.some'));
 });
