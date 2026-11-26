@@ -79,8 +79,9 @@ type Props = {
   onShowDiagram?: () => void;
 };
 
-const emptySource = (id: string): ProjectDocumentedSource => ({
+const emptySource = (id: string, resourceId: string): ProjectDocumentedSource => ({
   id,
+  resourceId,
   kind: 'file',
   name: '',
   description: '',
@@ -214,7 +215,7 @@ export const DataInventory = ({
 
   const addRow = () => {
     const id = `new-${Date.now()}`;
-    setSources(current => [...current, emptySource(id)]);
+    setSources(current => [...current, emptySource(id, resourceId)]);
   };
 
   const associate = async (row: ProjectDocumentedSource, elementId: string) => {
