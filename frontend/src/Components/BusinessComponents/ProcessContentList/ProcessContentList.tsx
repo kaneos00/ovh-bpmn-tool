@@ -137,11 +137,16 @@ export const ProcessContentList = ({
         if (!params.value) return null;
         const isPublished = params.value === ContentStatusEnum.Published;
         const isDraft = params.value === ContentStatusEnum.Draft;
-        return (
-          <Chip size="sm" variant="soft" color={isPublished ? 'success' : isDraft ? 'warning' : 'neutral'}>
-            {isPublished ? 'Publiée' : isDraft ? 'Brouillon' : 'Obsolète'}
-          </Chip>
-        );
+        let color: 'success' | 'warning' | 'neutral' = 'neutral';
+        let label = 'Obsolète';
+        if (isPublished) {
+          color = 'success';
+          label = 'Publiée';
+        } else if (isDraft) {
+          color = 'warning';
+          label = 'Brouillon';
+        }
+        return <Chip size="sm" variant="soft" color={color}>{label}</Chip>;
       },
     },
     { headerName: 'Auteur', field: 'createdBy', minWidth: 150 },
