@@ -24,7 +24,7 @@ La nouvelle architecture doit :
 2. créer une liaison explicite `competency_block_competencies` ;
 3. faire référencer les exigences projet à la compétence globale et au bloc via cette liaison ;
 4. créer les tables indépendantes des blocs de missions et des associations de compétences de fiche de poste ;
-5. retirer `job_function_competency_blocks` seulement après migration de tous ses consommateurs, sans assimiler ses anciens blocs à des blocs de missions.
+5. conserver `job_function_competency_blocks` : le service l'utilise pour construire les fonctions et initialiser les blocs des postes projet ; ne pas assimiler ses anciens blocs à des blocs de missions.
 
 L'audit doit couvrir ORM/entities, migrations SQL, services, DTO, contrôleurs, tests, composants frontend, appels API et scripts de seed.
 
@@ -40,7 +40,7 @@ SELECT
   (SELECT count(*) FROM competencies) AS competencies,
   (SELECT count(*) FROM position_competency_blocks) AS project_position_blocks,
   (SELECT count(*) FROM position_competency_requirements) AS project_competency_requirements,
-  (SELECT count(*) FROM job_function_competency_blocks) AS function_block_links;
+  (SELECT count(*) FROM job_function_competency_blocks) AS function_block_links,\n  (SELECT count(*) FROM position_activity_mappings) AS bpmn_activity_mappings;
 ```
 
 ### 3.2 Dépendances de clés étrangères
@@ -151,3 +151,12 @@ Filtres de liste : `search`, `category`, `active`, `page`, `pageSize`, tri selon
 6. Relancer le CI et vérifier le résultat.
 
 Aucune requête ci-dessus n'a été exécutée sur la base. Cette mise à jour documentaire n'a modifié ni code applicatif, ni schéma, ni données, ni CI.
+
+
+## 8. Précision issue de l'inspection du code
+
+`JobArchitectureService.listFunctions()` consomme `job_function_competency_blocks` pour afficher les blocs rattachés à une fonction et les compétences qu'ils contiennent. `createProjectPosition()` consomme ces mêmes liens pour initialiser `position_competency_blocks`. Ils doivent donc être conservés.
+
+`position_activity_mappings` référence un bloc applicable d'un poste projet, pas une compétence. La remise à zéro des compétences ne justifie donc pas la suppression de ces mappings.
+
+Enfin, deux niveaux distincts sont présents : le niveau éventuel du bloc (`position_competency_blocks.requiredLevel`) et le niveau d'une compétence dans ce bloc (`position_competency_requirements.requiredLevel`). La migration ne doit effacer que le second avec les exigences individuelles de test.
