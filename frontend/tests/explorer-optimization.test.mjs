@@ -130,8 +130,8 @@ test('new process creation seeds an editable BPMN draft before project attachmen
   const action = await read('src/Containers/AddResource/AddResource.action.ts');
   assert.ok(action.includes("'/resources/' + createdResourceId + '/contents'"));
   assert.match(action, /initialBpmn/);
-  assert.ok(action.includes("'/projects/' + projectId + '/processes'"));
-  assert.ok(action.indexOf('initialBpmn') < action.indexOf("apiClient.post('/projects/' + projectId + '/processes'"));
+  assert.ok(action.includes('`/projects/${projectId}/processes`'));
+  assert.ok(action.indexOf('initialBpmn') < action.indexOf('/processes'));
 });
 
 test('project folders are explicitly linked and visible even when empty', async () => {
