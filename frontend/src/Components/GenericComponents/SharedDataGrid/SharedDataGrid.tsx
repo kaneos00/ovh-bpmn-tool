@@ -298,7 +298,7 @@ export const SharedDataGrid = <TData extends object>({
 }: SharedDataGridProps<TData>) => {
   const [filterOpen, setFilterOpen] = useState(false);
   const [internalQuickSearch, setInternalQuickSearch] = useState('');
-  const activeQuickFilter = quickFilterText ?? internalQuickSearch;
+  const activeQuickFilter = quickSearch ? internalQuickSearch : quickFilterText;
   const [draftFilter, setDraftFilter] = useState<GridFilterGroup>(() => createGroup(advancedFilter?.fields ?? []));
   const [appliedFilter, setAppliedFilter] = useState<GridFilterGroup | null>(null);
 
