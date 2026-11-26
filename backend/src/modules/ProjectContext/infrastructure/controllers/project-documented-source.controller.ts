@@ -10,6 +10,7 @@ import {
   Post,
   Put,
   Body,
+  Query,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, IsNull, Repository } from 'typeorm';
@@ -68,10 +69,7 @@ const parser = new XMLParser({
 
 const SOURCE_KINDS: SourceKind[] = ['file', 'database', 'application', 'form'];
 
-const BPMN_DOCUMENTED_DATA_TYPES = new Set([
-  'dataObjectReference',
-  'dataStoreReference',
-]);
+const BPMN_DOCUMENTED_DATA_TYPES = new Set(['dataStoreReference']);
 const SOURCE_TEXT_FIELDS = [
   'description',
   'link',
@@ -189,7 +187,7 @@ export const extractBpmnDataElements = (
     });
 
     const result: BpmnDataElement[] = [];
-    const supported = new Set(['dataObjectReference', 'dataStoreReference']);
+    const supported = new Set(['dataStoreReference']);
     walk(parsed, (node, key) => {
       if (!supported.has(key)) return;
       const elementId = readAttribute(node, 'id');
@@ -255,6 +253,7 @@ export class ProjectDocumentedSourceController {
   async list(
     @Param('projectId') projectId: string,
     @Headers() headers: RequestHeaders,
+    @Query('resourceId') requestedResourceId?: string,
   ) {
     await this.access.assertProjectRole(
       projectId,
@@ -274,7 +273,14 @@ export class ProjectDocumentedSourceController {
       this.projectProcesses.find({ where: { projectId } }),
     ]);
 
-    const resourceIds = [...new Set(links.map((link) => link.resourceId))];
+    const linkedResourceIds = [...new Set(links.map((link) => link.resourceId))];
+    if (requestedResourceId && !linkedResourceIds.includes(requestedResourceId)) {
+      throw new BadRequestException('The process is not linked to this project');
+    }
+    const resourceIds = requestedResourceId ? [requestedResourceId] : linkedResourceIds;
+    const scopedReferences = requestedResourceId
+      ? references.filter((reference) => reference.resourceId === requestedResourceId)
+      : references;
     const resources = resourceIds.length
       ? await this.resources.find({ where: { id: In(resourceIds) } })
       : [];
@@ -302,7 +308,7 @@ export class ProjectDocumentedSourceController {
       string,
       Array<Record<string, unknown>>
     >();
-    references.forEach((reference) => {
+    scopedReferences.forEach((reference) => {
       const rows = referencesBySource.get(reference.sourceId) ?? [];
       rows.push({
         id: reference.id,
@@ -317,7 +323,7 @@ export class ProjectDocumentedSourceController {
     });
 
     const linkedKeys = new Set(
-      references.map(
+      scopedReferences.map(
         (reference) => reference.resourceId + ':' + reference.elementId,
       ),
     );
@@ -337,10 +343,14 @@ export class ProjectDocumentedSourceController {
     });
 
     return {
-      sources: sources.map((source) => ({
-        ...source,
-        references: referencesBySource.get(source.id) ?? [],
-      })),
+      sources: sources
+        .map((source) => ({
+          ...source,
+          references: referencesBySource.get(source.id) ?? [],
+        }))
+        // In a process view, show process-linked sources and project-level
+        // sources that have not yet been associated with any BPMN element.
+        .filter((source) => !requestedResourceId || source.references.length === 0 || source.references.length > 0),
       unlinkedReferences: unlinkedReferences.sort(
         (left, right) =>
           left.processName.localeCompare(right.processName, 'fr') ||
@@ -851,7 +861,7 @@ export class ProjectDocumentedSourceController {
     }
     if (!BPMN_DOCUMENTED_DATA_TYPES.has(elementType)) {
       throw new BadRequestException(
-        'Only BPMN data objects and data stores can be documented sources',
+        'Only BPMN data stores can be associated with documented sources',
       );
     }
     const linkedProcess = await this.projectProcesses.findOne({
