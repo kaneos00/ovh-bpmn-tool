@@ -40,7 +40,10 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
   const [error, setError] = useState('');
   const [importingReference, setImportingReference] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<GridRow | null>(null);
-  const [pendingMerge, setPendingMerge] = useState<{ source: GridRow; target: GridRow } | null>(null);
+  const [selectedMergeIds, setSelectedMergeIds] = useState<string[]>([]);
+  const [mergeName, setMergeName] = useState('');
+  const [mergeDescription, setMergeDescription] = useState('');
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
   const queryKey = ['project-documented-sources', projectId];
   const query = useQuery<ResponseData>(queryKey, () => apiClient.get(`/projects/${projectId}/documented-sources`), { enabled: Boolean(projectId) });
   const data = query.data;
@@ -146,19 +149,7 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     { headerName: 'Données personnelles', field: 'containsPersonalData', minWidth: 175, editable: canManage, cellDataType: 'boolean', cellRenderer: 'agCheckboxCellRenderer', cellEditor: 'agCheckboxCellEditor' },
     { headerName: 'Personnes autorisées', field: 'authorizedPeople', minWidth: 190, editable: canManage },
     { headerName: 'Restrictions', field: 'restrictions', minWidth: 190, editable: canManage },
-    { headerName: 'Actions', minWidth: 190, sortable: false, filter: false, cellRenderer: (p: { data?: GridRow }) => p.data && canManage ? <Stack direction="row" spacing={0.5}>
-      {p.data.references.length === 0 && <Button size="sm" variant="plain" color="danger" startDecorator={<DeleteOutlineRounded />} onClick={async () => {
-        setPendingDelete(p.data!);
-      }}>Supprimer</Button>}
-      <Select size="sm" value={null} placeholder="Fusionner avec…" onChange={async (_, targetId) => {
-        if (typeof targetId !== 'string' || !targetId) return;
-        const target = rows.find(item => item.sourceId === targetId);
-        if (!target) return;
-        setPendingMerge({ source: p.data!, target });
-      }}>
-        {rows.filter(item => item.sourceId !== p.data!.sourceId).map(item => <Option key={item.sourceId} value={item.sourceId}>{item.name}</Option>)}
-      </Select>
-    </Stack> : null },
+    { headerName: 'Actions', minWidth: 130, sortable: false, filter: false, cellRenderer: (p: { data?: GridRow }) => p.data && canManage && p.data.references.length === 0 ? <Button size="sm" variant="plain" color="danger" startDecorator={<DeleteOutlineRounded />} onClick={() => setPendingDelete(p.data!)}>Supprimer</Button> : null },
   ];
 
   if (query.isLoading) return <Typography level="body-sm" color="neutral">Chargement des informations documentées…</Typography>;
@@ -167,7 +158,10 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
   return <Stack spacing={1.25} sx={{ minWidth: 0 }}>
     <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
       <Box><Typography level="title-lg">Informations documentées</Typography><Typography level="body-sm" color="neutral">Référentiel documentaire central du projet, lié aux objets et magasins de données BPMN.</Typography></Box>
-      {canManage && <Button size="sm" startDecorator={<AddRounded />} onClick={() => setAdding(true)}>Ajouter une ligne</Button>}
+      {canManage && <Stack direction="row" spacing={1}>
+        {selectedMergeIds.length >= 2 && <Button size="sm" variant="outlined" onClick={() => { const selected = rows.filter(row => selectedMergeIds.includes(row.sourceId)); setMergeName(selected[0]?.name ?? ''); setMergeDescription(selected[0]?.description ?? ''); setMergeDialogOpen(true); }}>Fusionner ({selectedMergeIds.length})</Button>}
+        <Button size="sm" startDecorator={<AddRounded />} onClick={() => setAdding(true)}>Ajouter une ligne</Button>
+      </Stack>}
     </Stack>
     {error && <Alert color="danger" variant="soft">{error}</Alert>}
     {(data?.unlinkedReferences ?? []).length > 0 && <Stack spacing={1}>
@@ -186,7 +180,7 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
       })}
     </Stack>}
     {canManage && !(data?.unlinkedReferences ?? []).length && <Alert color="neutral" variant="soft">Vous pouvez créer une information documentée sans association BPMN, puis la relier à un objet ou magasin de données ultérieurement.</Alert>}
-    <DocumentedSourcesGrid<GridRow> rowData={rows} columnDefs={columns} getRowId={row => row.id} height={560} onCellValueChanged={saveCell} />
+    <DocumentedSourcesGrid<GridRow> rowData={rows} columnDefs={columns} getRowId={row => row.id} height={560} onCellValueChanged={saveCell} multiSelect={canManage} onSelectionChanged={selected => setSelectedMergeIds(selected.map(row => row.sourceId))} />
     <Modal open={Boolean(pendingDelete)} onClose={() => setPendingDelete(null)}>
       <ModalDialog>
         <Typography level="title-lg">Confirmer la suppression</Typography>
@@ -201,17 +195,30 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
         </Stack>
       </ModalDialog>
     </Modal>
-    <Modal open={Boolean(pendingMerge)} onClose={() => setPendingMerge(null)}>
-      <ModalDialog>
-        <Typography level="title-lg">Confirmer la fusion</Typography>
-        <Typography>Fusionner « {pendingMerge?.source.name} » dans « {pendingMerge?.target.name} » ? Les associations BPMN seront transférées.</Typography>
-        <Stack direction="row" justifyContent="flex-end" spacing={1}>
-          <Button variant="outlined" color="neutral" onClick={() => setPendingMerge(null)}>Annuler</Button>
-          <Button onClick={async () => {
-            if (!pendingMerge) return;
-            try { await apiClient.post(`/projects/${projectId}/documented-sources/${pendingMerge.source.sourceId}/merge`, { targetSourceId: pendingMerge.target.sourceId }); await refresh(); setError(''); setPendingMerge(null); }
-            catch (e) { setError(e instanceof Error ? e.message : 'Fusion impossible.'); }
-          }}>Fusionner</Button>
+    <Modal open={mergeDialogOpen} onClose={() => setMergeDialogOpen(false)}>
+      <ModalDialog sx={{ width: 'min(560px, calc(100vw - 32px))' }}>
+        <Typography level="title-lg">Fusionner les informations documentées</Typography>
+        <Typography level="body-sm" color="neutral">Les {selectedMergeIds.length} lignes sélectionnées seront regroupées en une seule information documentée. Toutes les associations BPMN seront conservées.</Typography>
+        <Stack spacing={1.5}>
+          <FormControl required><FormLabel>Nom de l’information fusionnée</FormLabel><Input value={mergeName} onChange={event => setMergeName(event.target.value)} /></FormControl>
+          <FormControl><FormLabel>Description de l’information fusionnée</FormLabel><Input value={mergeDescription} onChange={event => setMergeDescription(event.target.value)} /></FormControl>
+          <Stack direction="row" justifyContent="flex-end" spacing={1}>
+            <Button variant="outlined" color="neutral" onClick={() => setMergeDialogOpen(false)}>Annuler</Button>
+            <Button disabled={!mergeName.trim() || selectedMergeIds.length < 2} onClick={async () => {
+              const selected = rows.filter(row => selectedMergeIds.includes(row.sourceId));
+              if (selected.length < 2) return;
+              const target = selected[0];
+              try {
+                for (const source of selected.slice(1)) {
+                  await apiClient.post(`/projects/${projectId}/documented-sources/${source.sourceId}/merge`, { targetSourceId: target.sourceId, name: mergeName.trim(), description: mergeDescription });
+                }
+                await refresh(); setError(''); setSelectedMergeIds([]); setMergeDialogOpen(false);
+              } catch (e) {
+                setError(e instanceof Error ? e.message : 'Fusion impossible. Les fusions déjà effectuées ont été conservées.');
+                await refresh();
+              }
+            }}>Fusionner les éléments</Button>
+          </Stack>
         </Stack>
       </ModalDialog>
     </Modal>
