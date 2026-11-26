@@ -53,21 +53,35 @@ export class JobArchitectureController {
     return this.jobArchitecture.createBlock(body, headers);
   }
 
-  @Post('job-architecture/competency-blocks/:blockId/competencies')
+  @Get('job-architecture/competencies')
+  @UseAcl()
+  listCompetencies() {
+    return this.jobArchitecture.listCompetencies();
+  }
+
+  @Post('job-architecture/competencies')
   @UseAcl([UserGroup.Admin])
   createCompetency(
-    @Param('blockId') blockId: string,
     @Body()
     body: {
       code?: string;
       name?: string;
       description?: string | null;
-      referenceLevel?: number | null;
-      category?: 'technical' | 'methodological' | 'behavioral';
+      category?: 'technical' | 'methodological' | 'functional' | 'behavioral';
     },
     @Headers() headers: RequestHeaders,
   ) {
-    return this.jobArchitecture.createCompetency(blockId, body, headers);
+    return this.jobArchitecture.createCompetency(body, headers);
+  }
+
+  @Post('job-architecture/competency-blocks/:blockId/competencies/:competencyId')
+  @UseAcl([UserGroup.Admin])
+  addCompetencyToBlock(
+    @Param('blockId') blockId: string,
+    @Param('competencyId') competencyId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    return this.jobArchitecture.addCompetencyToBlock(blockId, competencyId, headers);
   }
 
   @Post('job-architecture/functions/:functionId/blocks/:blockId')
@@ -188,6 +202,7 @@ export class JobArchitectureController {
     @Body()
     body: {
       competencies?: Array<{
+        blockId?: string;
         competencyId?: string;
         requiredLevel?: number | null;
       }>;
