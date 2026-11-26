@@ -91,17 +91,20 @@ export const useFolderTree = (selectedResourceId: string) => {
 
     const allResources = Array.from(byId.values());
     const allowedIds = new Set(effectiveProcessIds);
-    // Root folders are global navigation nodes, not project-owned resources.
-    // Include them in every project tree; process entries remain restricted to
-    // the selected project's workspace membership.
-    allResources
-      .filter(item => item.type === ResourceType.Folder)
-      .forEach(folder => allowedIds.add(folder.id));
+    // A project tree contains only its attached processes and the folder
+    // ancestors needed to preserve their hierarchy. Never add every folder:
+    // legacy/demo folders without a process in this project otherwise leak
+    // into every project's explorer.
     effectiveProcessIds.forEach(id => {
       let current = byId.get(id);
-      while (current?.parentId) {
-        allowedIds.add(current.parentId);
-        current = byId.get(current.parentId);
+      const visited = new Set<string>([id]);
+      while (current?.parentId && !visited.has(current.parentId)) {
+        const parentId = current.parentId;
+        visited.add(parentId);
+        const parent = byId.get(parentId);
+        if (!parent || parent.type !== ResourceType.Folder) break;
+        allowedIds.add(parentId);
+        current = parent;
       }
     });
     return allResources.filter(item => allowedIds.has(item.id));
