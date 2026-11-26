@@ -10,10 +10,11 @@ Fil d'Ariane :
 
 `Administration / Référentiel commun / Postes / [Intitulé du poste]`
 
-Deux écrans principaux :
+Trois rubriques principales :
 
-1. **Accueil de la section Postes** : grille/liste des postes, recherche, filtres, création et accès à la fiche.
-2. **Administration d'un poste** : formulaire unique et condensé regroupant les informations générales et les quatre blocs de missions.
+1. **Postes** : grille/liste des postes, recherche, filtres, création et accès à la fiche.
+2. **Compétences** : référentiel commun des compétences, avec recherche, filtres et gestion du cycle de vie.
+3. **Administration d'un poste** : formulaire unique et condensé regroupant les informations générales, les quatre blocs de missions et les compétences transversales.
 
 La fiche de poste consultable est une vue de synthèse accessible depuis la page d'administration. Elle n'est pas un second formulaire de saisie.
 
@@ -38,9 +39,54 @@ Comportements :
 - action de consultation de la fiche de poste ;
 - création d'un poste avec définition de son code court.
 
-## 3. Page d'administration d'un poste
+## 3. Référentiel commun des compétences
 
-### 3.1 En-tête et informations générales
+Cette rubrique est indépendante de l'administration des postes. Elle permet de maintenir une liste commune, réutilisable dans toutes les fiches de poste.
+
+### 3.1 Liste des compétences
+
+Présenter une grille avec au minimum :
+
+| Colonne | Contenu |
+|---|---|
+| Compétence | Intitulé |
+| Famille | Méthodologique / Technique / Fonctionnelle / Savoir-être |
+| Description | Définition courte |
+| Utilisations | Nombre d'associations à des blocs et à des postes |
+| Statut | Active / Inactive |
+| Actions | Consulter / Modifier / Désactiver |
+
+Fonctions : recherche par intitulé ou description, filtres par famille et statut, tri, création et ouverture d'une compétence. La liste doit permettre de repérer les compétences déjà utilisées.
+
+### 3.2 Création et modification
+
+Une compétence comporte obligatoirement :
+- un intitulé clair, formulé comme une capacité maîtrisable ;
+- une description courte précisant ce que recouvre la compétence ;
+- une et une seule famille : **Méthodologique**, **Technique**, **Fonctionnelle** ou **Savoir-être** ;
+- un statut actif/inactif.
+
+Aucune étiquette secondaire ni famille multiple. La famille est déterminée par la nature principale de la capacité. Si une formulation recouvre réellement deux natures différentes, la compétence doit être reformulée ou décomposée en compétences distinctes.
+
+Avant création, rechercher les doublons potentiels à partir de l'intitulé et de la description. Avertir l'utilisateur des compétences proches et lui permettre de consulter celles-ci avant de confirmer la création. Ne pas fusionner automatiquement des compétences.
+
+La modification de l'intitulé, de la description ou de la famille ne doit pas créer une nouvelle compétence ni casser ses associations existantes. La modification de famille doit être explicite et visible dans l'historique si l'application dispose d'une traçabilité des changements.
+
+### 3.3 Désactivation et suppression
+
+- Une compétence non utilisée peut être supprimée si aucune donnée ne la référence.
+- Une compétence déjà associée à un bloc ou à un poste ne doit pas être supprimée physiquement : elle peut être désactivée.
+- Une compétence inactive reste visible dans les associations historiques et les fiches existantes ; elle n'est plus proposée par défaut pour de nouvelles associations.
+- Une action de réactivation permet de la rendre à nouveau disponible.
+- La désactivation ne retire pas automatiquement la compétence des fiches de poste qui l'utilisent.
+
+### 3.4 Utilisation depuis une fiche de poste
+
+Depuis l'administration d'un poste, l'utilisateur recherche et sélectionne une compétence active existante. Il peut aussi lancer une création rapide, qui applique les mêmes contrôles anti-doublons et crée une entrée dans le référentiel commun. Une compétence ainsi créée devient réutilisable dans les autres postes.
+
+## 4. Page d'administration d'un poste
+
+### 4.1 En-tête et informations générales
 
 Afficher le fil d'Ariane, le code et l'intitulé du poste, le statut et les actions principales.
 
@@ -50,7 +96,7 @@ Champs :
 - fonction de rattachement ;
 - finalité du poste (texte court).
 
-### 3.2 Quatre blocs de missions
+### 4.2 Quatre blocs de missions
 
 La page affiche quatre sections, toujours dans le même écran. Chaque section comprend :
 
@@ -62,7 +108,7 @@ La page affiche quatre sections, toujours dans le même écran. Chaque section c
 
 Les quatre blocs sont les emplacements de référence du poste. Ils peuvent être présentés sous forme de cartes compactes, éventuellement repliables, sans navigation vers une page séparée.
 
-### 3.3 Activités
+### 4.3 Activités
 
 Chaque activité est une ligne éditable directement dans le bloc :
 - libellé ;
@@ -71,7 +117,7 @@ Chaque activité est une ligne éditable directement dans le bloc :
 
 Les activités décrivent les contributions habituelles du poste. Elles ne sont pas un catalogue de tâches opérationnelles. Les tâches exécutables demeurent dans les processus BPMN ; leur éventuel rattachement aux blocs sera traité dans une phase ultérieure.
 
-### 3.4 Compétences réutilisables
+### 4.4 Compétences associées aux blocs
 
 Le bouton « Ajouter une compétence » ouvre une sélection dans le référentiel commun, avec recherche et filtre par famille.
 
@@ -86,7 +132,7 @@ Une compétence est un objet partagé :
 
 Chaque association compétence ↔ bloc porte son propre niveau attendu. Le niveau ne doit donc pas être stocké uniquement sur la définition globale de la compétence.
 
-### 3.5 Échelle et slider de compétence
+### 4.5 Échelle et slider de compétence
 
 Chaque compétence affiche un slider cranté à cinq positions, avec valeur numérique et libellé visibles :
 
@@ -104,7 +150,15 @@ Le slider :
 - présente une aide contextuelle courte ;
 - est indépendant pour chaque association compétence ↔ bloc.
 
-### 3.6 Actions et sauvegarde
+### 4.6 Compétences transversales du poste
+
+En fin de page, prévoir une section distincte « Compétences transversales du poste ». Elle regroupe les compétences nécessaires à l'ensemble du poste, indépendamment d'un bloc de missions (par exemple écoute, coopération ou adaptabilité).
+
+Ces compétences sont sélectionnées dans le même référentiel commun que les compétences des blocs. Elles ne constituent pas un cinquième bloc de missions. Une compétence transversale peut également être associée à un bloc si elle y est particulièrement attendue ; les deux associations restent distinctes et peuvent porter des niveaux attendus différents.
+
+Chaque association directe poste ↔ compétence porte son propre niveau attendu, selon la même échelle de 1 à 5.
+
+### 4.7 Actions et sauvegarde
 
 - Ajout et modification des blocs, activités et associations de compétences directement sur la page.
 - Pas de navigation obligatoire pour créer une activité ou associer une compétence.
@@ -128,7 +182,8 @@ La fiche est générée depuis le référentiel ; toute modification s'effectue 
 ## 5. Règles de données à respecter
 
 - Les codes des blocs sont stables et ne changent pas lorsque leur intitulé est modifié.
-- Une compétence est globale et réutilisable ; son niveau attendu est contextuel à son association au bloc.
+- Une compétence est globale et réutilisable ; elle appartient à une seule famille parmi Méthodologique, Technique, Fonctionnelle et Savoir-être, sans étiquette secondaire.
+- Une compétence peut être associée à un bloc ou directement au poste comme compétence transversale. Chaque association porte son propre niveau attendu.
 - Les quatre blocs appartiennent au poste ; les compétences sont partagées entre blocs et postes.
 - Les activités du référentiel de poste restent descriptives ; ne pas créer un deuxième catalogue de tâches BPMN.
 - Une évolution du référentiel commun doit rester identifiable et ne pas écraser silencieusement les adaptations propres à un projet.
@@ -148,6 +203,8 @@ L'audit V0.10 a identifié des objets existants `JobFunction`, sections d'activi
 - vérifier comment les quatre blocs peuvent réutiliser les objets existants ;
 - confirmer où le niveau attendu est actuellement stocké ;
 - vérifier si une compétence peut déjà être associée à plusieurs blocs/fonctions sans duplication ;
+- vérifier comment gérer les compétences directement transversales au poste et le niveau attendu de cette association ;
+- vérifier les possibilités de désactivation et les références historiques des compétences ;
 - clarifier le lien entre `OrganizationPosition` et la fiche de poste ;
 - ne créer une migration que pour un manque confirmé par l'inspection du code, des contraintes SQL et des tests.
 
