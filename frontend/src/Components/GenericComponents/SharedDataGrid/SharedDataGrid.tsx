@@ -399,7 +399,7 @@ export const SharedDataGrid = <TData extends object>({
           onSelectionChanged={onSelectionChanged}
           onRowClicked={onRowClicked}
           onCellValueChanged={onCellValueChanged}
-          tabToNextCell={editing && editType === 'fullRow' ? handleTabToNextCell
+          tabToNextCell={editing && editType === 'fullRow' ? handleTabToNextCell : undefined}
         />
       </div>
     </section>
