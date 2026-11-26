@@ -395,6 +395,7 @@ export const DataInventory = ({
     {
       headerName: 'Date limite de validité',
       field: 'validUntil',
+      cellDataType: 'dateString',
       minWidth: 175,
       editable: canManageSources && !savingId,
       cellEditor: 'agDateStringCellEditor',
