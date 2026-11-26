@@ -22,7 +22,8 @@ DELETE FROM contents WHERE "resourceId" IN (
   SELECT id FROM resources WHERE id::text LIKE '8b000000-%' OR id::text LIKE '8b000001-%'
 );
 DELETE FROM resources WHERE id::text LIKE '8b000001-%';
-DELETE FROM resources WHERE id::text LIKE '8b000000-%';
+DELETE FROM resources WHERE id::text LIKE '8b000000-%' AND depth = 1;
+DELETE FROM resources WHERE id::text LIKE '8b000000-%' AND depth = 0;
 DELETE FROM projects WHERE id = :'project_id';
 COMMIT;
 SQL
