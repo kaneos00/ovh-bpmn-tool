@@ -434,8 +434,12 @@ export const DataInventory = ({
           rowData={rows}
           columnDefs={columnDefs}
           getRowId={row => row.id}
+          preferenceKey={`process-documented-sources-${projectId ?? 'none'}-${resourceId}`}
+          mode={canManageSources ? 'edit' : 'read'}
+          selection="single"
+          advancedFilter
           selectedRowId={requestedDocumentedSourceId ?? undefined}
-          onAdd={canManageSources ? addRow : undefined}
+          onAdd={canManageSources ? addRow : undefined>
           addLabel="Ajouter une ligne : information documentée"
           height={560}
         />
