@@ -12,6 +12,11 @@ export type ProjectDocumentedSourceKind =
   'projectId',
   'mergedIntoId',
 ])
+@Index('project_documented_sources_process_active_idx', [
+  'projectId',
+  'resourceId',
+  'mergedIntoId',
+])
 export class ProjectDocumentedSourceTypeOrmEntity extends AbstractEntity {
   @Column('uuid')
   projectId: string;
