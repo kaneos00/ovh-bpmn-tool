@@ -87,9 +87,9 @@ La migration peut supprimer les données de compétences de test et les associat
 | `competency_blocks` | Conservé pour le périmètre projet tant que ses usages le nécessitent |
 | `position_competency_blocks` | Conservé |
 | `position_activity_mappings` | Conservé ; ses liens BPMN vers les blocs ne doivent pas être altérés |
-| `job_function_competency_blocks` | À supprimer ou remplacer après audit des consommateurs ; ne pas le convertir automatiquement en bloc de mission |
+| `job_function_competency_blocks` | Conservé : le service le lit pour rattacher les blocs de compétences à une fonction et initialiser les blocs des postes projet |
 
-Avant toute suppression, vérifier les FK et usages applicatifs exacts, y compris les migrations, DTO, services, contrôleurs, tests et composants frontend. Une dépendance qui ne porte que sur `blockId` ne doit pas être cassée par la remise à zéro des compétences.
+L'inspection du service confirme que `listFunctions()` assemble les compétences par `competency_blocks` et que `createProjectPosition()` reprend les liens `job_function_competency_blocks` pour initialiser `position_competency_blocks`. Ces deux tables et leurs liens sont donc des éléments actifs du flux projet, pas des données à effacer avec les compétences. Avant toute suppression, vérifier les FK et usages applicatifs exacts, y compris les migrations, DTO, services, contrôleurs, tests et composants frontend. Une dépendance qui ne porte que sur `blockId` ne doit pas être cassée par la remise à zéro des compétences.
 
 ## 4. Ordre d'implémentation
 
@@ -122,3 +122,16 @@ Le résultat attendu après migration est un catalogue global vide ou alimenté 
 ## 7. État de réalisation
 
 Ce document acte la stratégie de remplacement. À ce stade, aucune migration SQL, modification applicative, exécution de test ou CI n'a été effectuée par cette mise à jour documentaire.
+
+
+## 8. Précision issue de l'inspection du code
+
+L'inspection ciblée de `JobArchitectureService` et des entités ORM confirme les points suivants :
+
+- `listFunctions()` charge `job_function_competency_blocks`, les `competency_blocks` et les compétences, puis construit les données de fonction utilisées par le frontend.
+- `createProjectPosition()` reprend les `job_function_competency_blocks` pour créer les `position_competency_blocks` du poste projet.
+- `position_activity_mappings` référence `position_competency_blocks` par `(positionId, blockId)`, et non une compétence individuelle.
+- `position_competency_requirements` porte une exigence individuelle par compétence ; son `requiredLevel` est distinct du `requiredLevel` porté par `position_competency_blocks`.
+- Les correspondances RACI sont stockées séparément dans `position_raci_actor_mappings`.
+
+En conséquence, la migration ne doit pas supprimer `job_function_competency_blocks`, `competency_blocks`, `position_competency_blocks`, `position_activity_mappings` ni les mappings RACI. Elle remplace la définition des compétences et la relation compétence ↔ bloc, et remet à zéro uniquement les exigences individuelles de compétences de la base de test. Les deux niveaux d'exigence (niveau du bloc et niveau de la compétence) restent distincts.
