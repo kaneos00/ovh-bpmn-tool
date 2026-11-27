@@ -4,6 +4,7 @@ import {
 } from './project-documented-source.controller';
 import { ProjectDocumentedSourceTypeOrmEntity } from '../entities/projectDocumentedSource.ormEntity';
 import { ProjectDocumentedSourceReferenceTypeOrmEntity } from '../entities/projectDocumentedSourceReference.ormEntity';
+import { ProjectDocumentedSourceProcessTypeOrmEntity } from '../entities/projectDocumentedSourceProcess.ormEntity';
 
 describe('extractBpmnDataElements', () => {
   it('recovers documented metadata from BPMN data references and legacy source extensions', () => {
@@ -93,6 +94,10 @@ describe('ProjectDocumentedSourceController.synchronize', () => {
         return value;
       }),
     };
+    const membershipRepository = {
+      create: jest.fn((value: Record<string, unknown>) => value),
+      save: jest.fn(async (value: Record<string, unknown>) => value),
+    };
     const manager = {
       query: jest.fn().mockResolvedValue(undefined),
       getRepository: jest.fn((entity: unknown) =>
@@ -100,7 +105,9 @@ describe('ProjectDocumentedSourceController.synchronize', () => {
           ? sourceRepository
           : entity === ProjectDocumentedSourceReferenceTypeOrmEntity
             ? referenceRepository
-            : undefined,
+            : entity === ProjectDocumentedSourceProcessTypeOrmEntity
+              ? membershipRepository
+              : undefined,
       ),
     };
     const controller = Object.create(
@@ -151,13 +158,16 @@ describe('ProjectDocumentedSourceController.synchronize', () => {
     expect(sourceRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({
         projectId: 'project-1',
-        resourceId: 'process-1',
         kind: 'database',
         name: 'Base CRM',
         createdBy: 'user-1',
       }),
     );
     expect(referenceRepository.save).toHaveBeenCalledTimes(2);
+    expect(membershipRepository.save).toHaveBeenCalledTimes(2);
+    expect(membershipRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ projectId: 'project-1', resourceId: 'process-1', createdBy: 'user-1' }),
+    );
     expect(referenceRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({
         projectId: 'project-1',
