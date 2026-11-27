@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from 'react-query';
-import { Alert, Box, Button, IconButton, Modal, ModalDialog, Option, Select, Stack, Typography } from '@mui/joy';
+import { Alert, Box, Button, FormControl, FormLabel, IconButton, Input, Modal, ModalDialog, Option, Select, Stack, Typography } from '@mui/joy';
 import {
   AppsOutlined,
   AttachFileOutlined,
@@ -81,23 +81,6 @@ type Props = {
 
 const isSupportedBpmnDataType = (type: string) => type === 'dataObjectReference' || type === 'dataStoreReference';
 
-const emptySource = (id: string, resourceId: string): ProjectDocumentedSource => ({
-  id,
-  resourceId,
-  kind: 'file',
-  name: '',
-  description: '',
-  link: '',
-  location: '',
-  access: '',
-  retention: '',
-  validUntil: null,
-  containsPersonalData: false,
-  authorizedPeople: '',
-  restrictions: '',
-  references: [],
-});
-
 const normalizeKind = (kind: ProjectDocumentedSource['kind']): SourceKind => {
   if (kind === 'database') return 'database';
   if (kind === 'application' || kind === 'form') return 'application';
@@ -132,6 +115,9 @@ export const DataInventory = ({
   const [associatingId, setAssociatingId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [pendingDelete, setPendingDelete] = useState<ProjectDocumentedSource | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newKind, setNewKind] = useState<SourceKind>('file');
 
   const projectSourcesQuery = useQuery<ProjectDocumentedSourcesResponse>(
     ['project-documented-sources', projectId, resourceId],
@@ -184,11 +170,7 @@ export const DataInventory = ({
       restrictions: row.restrictions ?? '',
     };
     try {
-      if (row.id.startsWith('new-')) {
-        await apiClient.post(`/projects/${projectId}/documented-sources`, payload);
-      } else {
-        await apiClient.put(`/projects/${projectId}/documented-sources/${row.id}`, payload);
-      }
+      await apiClient.put(`/projects/${projectId}/documented-sources/${row.id}`, payload);
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Impossible d’enregistrer cette information documentée.');
@@ -215,17 +197,26 @@ export const DataInventory = ({
     await saveRow(updated);
   };
 
-  const addRow = () => {
-    const id = `new-${Date.now()}`;
-    setSources(current => [...current, emptySource(id, resourceId)]);
+  const addSource = async () => {
+    if (!projectId || !canManageSources || !newName.trim()) return;
+    setError('');
+    try {
+      await apiClient.post(`/projects/${projectId}/documented-sources`, {
+        resourceId,
+        name: newName.trim(),
+        kind: newKind,
+      });
+      setAdding(false);
+      setNewName('');
+      setNewKind('file');
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Impossible de créer cette information documentée.');
+    }
   };
 
   const associate = async (row: ProjectDocumentedSource, elementId: string) => {
     if (!projectId || !canManageSources || associatingId) return;
-    if (row.id.startsWith('new-')) {
-      setError('Enregistre d’abord l’information documentée avant de lui associer un objet BPMN.');
-      return;
-    }
     const reference = unlinkedReferences.find(item => item.elementId === elementId);
     if (!reference) return;
     setAssociatingId(row.id);
@@ -274,7 +265,6 @@ export const DataInventory = ({
   const rows: InventoryGridRow[] = sources.map(source => ({
     ...source,
     origin: source.processName ?? 'Processus',
-    isNew: source.id.startsWith('new-'),
   }));
 
   const textColumn = (
@@ -443,7 +433,7 @@ export const DataInventory = ({
       filter: false,
       cellRenderer: (params: ICellRendererParams<InventoryGridRow>) => {
         const row = params.data;
-        if (!row || !canManageSources || row.references.length > 0 || row.id.startsWith('new-')) return null;
+        if (!row || !canManageSources || row.references.length > 0) return null;
         return (
           <IconButton size="sm" variant="plain" color="danger" title="Retirer cette information de ce processus" aria-label={`Retirer ${row.name} de ce processus`} onClick={event => {
             event.stopPropagation();
@@ -466,6 +456,7 @@ export const DataInventory = ({
               Fiches utilisées par ce processus. Créez une fiche ici, puis associez-la si besoin à un Data Object ou un Data Store. Les fiches peuvent être réutilisées dans d’autres processus.
             </Typography>
           </Box>
+          {canManageSources && <Button size="sm" onClick={() => setAdding(true)}>Créer une information documentée</Button>}
         </Stack>
         {error && <Alert color="danger" variant="soft">{error}</Alert>}
         {projectSourcesQuery.isError && (
@@ -478,6 +469,32 @@ export const DataInventory = ({
             Aucun projet actif : le référentiel des informations documentées n’est pas disponible.
           </Alert>
         )}
+        <Modal open={adding} onClose={() => setAdding(false)}>
+          <ModalDialog sx={{ width: 'min(520px, calc(100vw - 32px))' }}>
+            <Typography level="title-lg">Créer une information documentée</Typography>
+            <Typography level="body-sm" color="neutral">
+              La fiche sera ajoutée au référentiel du projet et rattachée à ce processus. Son association à un élément BPMN est facultative.
+            </Typography>
+            <Stack spacing={1.5}>
+              <FormControl required>
+                <FormLabel>Nom de l’information</FormLabel>
+                <Input autoFocus value={newName} onChange={event => setNewName(event.target.value)} />
+              </FormControl>
+              <FormControl>
+                <FormLabel>Type</FormLabel>
+                <Select value={newKind} onChange={(_, value) => value && setNewKind(value as SourceKind)}>
+                  <Option value="file">Fichier / document</Option>
+                  <Option value="database">Base de données</Option>
+                  <Option value="application">Application</Option>
+                </Select>
+              </FormControl>
+              <Stack direction="row" justifyContent="flex-end" spacing={1}>
+                <Button variant="outlined" color="neutral" onClick={() => setAdding(false)}>Annuler</Button>
+                <Button onClick={() => void addSource()} disabled={!newName.trim()}>Créer la fiche</Button>
+              </Stack>
+            </Stack>
+          </ModalDialog>
+        </Modal>
         <Modal open={Boolean(pendingDelete)} onClose={() => setPendingDelete(null)}>
           <ModalDialog>
             <Typography level="title-lg">Confirmer la suppression</Typography>
@@ -493,8 +510,6 @@ export const DataInventory = ({
           columnDefs={columnDefs}
           getRowId={row => row.id}
           selectedRowId={requestedDocumentedSourceId ?? undefined}
-          onAdd={canManageSources ? addRow : undefined}
-          addLabel="Créer une information documentée dans ce processus"
           height={560}
         />
         {unlinkedReferences.length > 0 && (
