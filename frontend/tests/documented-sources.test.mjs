@@ -29,6 +29,25 @@ test('documented information table keeps the validated column order', async () =
   assert.deepEqual(positions, [...positions].sort((a, b) => a - b));
 });
 
+test('BPMN description is independent from fiche description and follows each live BPMN association', async () => {
+  const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
+  const projectGrid = await read('src/Components/BusinessComponents/ProcessDetails/ProjectDocumentedSources.tsx');
+  const processDetails = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
+
+  assert.match(inventory, /textColumn\('description', 'Description'/);
+  assert.match(inventory, /headerName: 'Description BPMN'/);
+  assert.match(inventory, /reference\.bpmnDescription/);
+  assert.match(inventory, /onSaveBpmnDescription\(reference\.elementId, value\)/);
+  assert.match(processDetails, /const saveBpmnDescription = async/);
+  assert.match(processDetails, /documentation\.textContent = description/);
+  assert.match(processDetails, /onSaveBpmnDescription=\{saveBpmnDescription\}/);
+  assert.match(controller, /bpmnDescription: currentElement\?\.bpmnDescription/);
+  assert.match(controller, /node\.documentation !== undefined/);
+  assert.match(projectGrid, /headerName: 'Description BPMN'/);
+  assert.match(projectGrid, /ref\.bpmnDescription/);
+});
+
 test('validity limit is optional, editable with a date picker and persisted as a date', async () => {
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
   const projectGrid = await read('src/Components/BusinessComponents/ProcessDetails/ProjectDocumentedSources.tsx');
