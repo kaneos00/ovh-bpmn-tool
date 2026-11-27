@@ -18,7 +18,7 @@ Un projet peut :
 ## 2. Les trois niveaux
 
 1. **Commun — référentiel organisationnel :** fonctions et blocs de missions communs, postes types, fiches de poste de référence, compétences et niveaux attendus.
-2. **Organisation générale :** directions/services ou unités, postes occupés ou vacants, titulaires et responsables hiérarchiques.
+2. **Organisation générale :** directions, postes occupés ou vacants et titulaires. Les services/unités intermédiaires ne sont pas requis dans le cadrage actuel.
 3. **Projet — organisation graphique dédiée :** postes communs mobilisés, postes spécifiques, titulaires, missions projet et relations propres au projet.
 
 ## 3. Composition et héritage
@@ -119,3 +119,17 @@ Une relation créée dans un projet ne modifie jamais organization_position_rela
 5. Raccorder ultérieurement les Lanes, tâches BPMN et RACI.
 
 **Décision :** l'organisation projet est une composition graphique, héritant du référentiel commun et pouvant accueillir des postes spécifiques. Elle reste indépendante de l'organigramme général.
+
+
+## Addendum de cohérence fonctionnelle — décisions du 27 novembre 2026
+
+Les décisions consolidées dans [le modèle organisationnel responsabilités/activités](../functional/modele-organisation-responsabilites-activites.md#10-décisions-de-cadrage-consolidées--27-novembre-2026) prévalent sur toute formulation antérieure de ce document qui leur serait contraire :
+
+- un poste comporte **au maximum quatre responsabilités** (ou blocs de missions), sans obligation d'en remplir quatre ; chaque responsabilité comporte **au maximum quatre activités** ;
+- le référentiel d'activités organisationnelles est unique et les activités sont reliées explicitement aux éléments BPMN ; une même activité de référence peut être utilisée par plusieurs éléments BPMN dans plusieurs processus ;
+- la responsabilité organisationnelle est portée par le poste et reste distincte des rôles opérationnels RACI ; aucune entrée RACI n'est déduite automatiquement de la fiche de poste ;
+- la structure permanente retenue pour le cadrage est **Directions → Postes → Titulaires** ; les services/unités intermédiaires ne sont pas requis à ce stade ;
+- le titulaire structurel n'est pas nécessairement l'unique personne qui réalise le travail : une personne peut réaliser tout ou partie des responsabilités d'un poste et contribuer à plusieurs postes. Les affectations opérationnelles doivent être distinguées de la titularisation ;
+- le lien entre fonction-type, poste et fiche de poste reste **non arbitré**. Aucune hypothèse de partage, d'héritage ou de personnalisation ne doit être présentée comme une décision acquise.
+
+Les passages ci-dessus constituent un cadrage fonctionnel et ne décrivent pas des capacités techniques déjà livrées. Aucun audit technique V0.10, aucune modification de code et aucune migration ne sont inclus dans cette harmonisation documentaire.
