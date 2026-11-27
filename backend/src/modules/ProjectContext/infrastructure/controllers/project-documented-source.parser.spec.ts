@@ -66,7 +66,9 @@ describe('extractBpmnDataElements', () => {
       </bpmn:process>
     </bpmn:definitions>`;
     const [element] = extractBpmnDataElements(xml, 'r', 'Processus');
-    expect(element).toEqual(expect.objectContaining({ elementId: 'ref', bpmnDescription: '' }));
+    expect(element).toEqual(
+      expect.objectContaining({ elementId: 'ref', bpmnDescription: '' }),
+    );
     expect(element).not.toHaveProperty('description');
   });
 
