@@ -345,8 +345,8 @@ export const DataInventory = ({
                   }}
                   onBlur={event => {
                     const value = event.target.value;
-                    if (value !== (reference.bpmnDescription ?? '')) {
-                      void onSaveBpmnDescription?.(reference.elementId, value).then(refresh).catch(error => {
+                    if (value !== (reference.bpmnDescription ?? '') && onSaveBpmnDescription) {
+                      void onSaveBpmnDescription(reference.elementId, value).then(refresh).catch(error => {
                         setError(error instanceof Error ? error.message : 'Impossible d’enregistrer la description BPMN.');
                         void refresh();
                       });
