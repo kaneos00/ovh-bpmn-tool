@@ -59,7 +59,7 @@ Le niveau attendu ne doit jamais être stocké uniquement sur la compétence glo
 
 ### 2.1 Conservation des quatre blocs de missions
 
-La fiche de poste de référence doit présenter exactement quatre blocs, codés à partir du code court du poste/fonction (ex. `CDP-1` à `CDP-4`). Chaque bloc comporte 1 à 4 activités descriptives et 1 à 4 compétences associées.
+La fiche de poste de référence peut présenter jusqu'à quatre blocs de missions (sans obligation de remplir les quatre). Chaque bloc comporte au maximum quatre activités et les compétences associées. Les codes sont attribués aux seuls blocs effectivement créés ; leur convention définitive reste à harmoniser avec le point non arbitré fonction-type/poste/fiche.
 
 Les activités actuelles peuvent fournir une base de migration ou de reprise, mais il faudra vérifier leur rattachement à la bonne fiche et leur granularité. Ne pas renommer aveuglément les sections existantes en blocs de missions : leur sémantique et leurs cardinalités ne sont pas identiques.
 
@@ -106,7 +106,7 @@ La grille des postes permanents doit conserver ses fonctions de gestion des titu
 
 Un écran unique doit regrouper :
 - informations générales et finalité ;
-- quatre blocs de missions ;
+- au maximum quatre blocs de missions ;
 - activités descriptives dans chaque bloc ;
 - compétences associées et niveau attendu par association ;
 - compétences transversales du poste et leur niveau attendu ;
@@ -149,7 +149,7 @@ La migration peut être destructive pour les données de compétences de la base
 - Une compétence utilisée peut être désactivée sans perdre les associations ni les affichages historiques.
 - Une compétence inactive n’est pas proposée par défaut pour un nouvel usage.
 - Le niveau attendu est indépendant pour chaque association compétence ↔ bloc et compétence transversale ↔ poste.
-- La fiche de poste contient exactement quatre blocs ; chaque bloc respecte les cardinalités 1–4 activités et 1–4 compétences.
+- La fiche de poste contient au maximum quatre blocs ; chaque bloc contient au maximum quatre activités. Les cardinalités de compétences restent celles du référentiel de compétences.
 - Les tâches opérationnelles et le RACI restent dans leurs modules existants.
 - La grille métier utilise le composant DataGrid commun validé, sans copie locale de ses fonctionnalités.
 - Les postes permanents, titulaires et relations hiérarchiques existants ne sont pas régressés.
@@ -185,3 +185,17 @@ La remise à zéro de la base de test porte sur les définitions de compétences
 ## 10. État de la migration SQL
 
 Le fichier `backend/migrations/20261126_v0_10_competency_catalog_reset.sql` a été ajouté avec garde par marqueur explicite et nom exact de base. Il n'est pas encore exécuté ni intégré au Compose de Coolify : le backend courant dépend toujours de l'ancien modèle. Le branchement de la migration doit accompagner les changements d'entités et de services.
+
+
+## Addendum de cohérence fonctionnelle — décisions du 27 novembre 2026
+
+Les décisions consolidées dans [le modèle organisationnel responsabilités/activités](../functional/modele-organisation-responsabilites-activites.md#10-décisions-de-cadrage-consolidées--27-novembre-2026) prévalent sur toute formulation antérieure de ce document qui leur serait contraire :
+
+- un poste comporte **au maximum quatre responsabilités** (ou blocs de missions), sans obligation d'en remplir quatre ; chaque responsabilité comporte **au maximum quatre activités** ;
+- le référentiel d'activités organisationnelles est unique et les activités sont reliées explicitement aux éléments BPMN ; une même activité de référence peut être utilisée par plusieurs éléments BPMN dans plusieurs processus ;
+- la responsabilité organisationnelle est portée par le poste et reste distincte des rôles opérationnels RACI ; aucune entrée RACI n'est déduite automatiquement de la fiche de poste ;
+- la structure permanente retenue pour le cadrage est **Directions → Postes → Titulaires** ; les services/unités intermédiaires ne sont pas requis à ce stade ;
+- le titulaire structurel n'est pas nécessairement l'unique personne qui réalise le travail : une personne peut réaliser tout ou partie des responsabilités d'un poste et contribuer à plusieurs postes. Les affectations opérationnelles doivent être distinguées de la titularisation ;
+- le lien entre fonction-type, poste et fiche de poste reste **non arbitré**. Aucune hypothèse de partage, d'héritage ou de personnalisation ne doit être présentée comme une décision acquise.
+
+Les passages ci-dessus constituent un cadrage fonctionnel et ne décrivent pas des capacités techniques déjà livrées. Aucun audit technique V0.10, aucune modification de code et aucune migration ne sont inclus dans cette harmonisation documentaire.
