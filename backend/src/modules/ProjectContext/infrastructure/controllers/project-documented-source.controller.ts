@@ -69,7 +69,7 @@ const parser = new XMLParser({
 
 const SOURCE_KINDS: SourceKind[] = ['file', 'database', 'application', 'form'];
 
-const BPMN_DOCUMENTED_DATA_TYPES = new Set(['dataStoreReference']);
+const BPMN_DOCUMENTED_DATA_TYPES = new Set(['dataObjectReference', 'dataStoreReference']);
 const BPMN_DISPLAYED_DATA_TYPES = new Set([
   'dataObjectReference',
   'dataStoreReference',
@@ -191,7 +191,7 @@ export const extractBpmnDataElements = (
     });
 
     const result: BpmnDataElement[] = [];
-    const supported = new Set(['dataStoreReference']);
+    const supported = new Set(['dataObjectReference', 'dataStoreReference']);
     walk(parsed, (node, key) => {
       if (!supported.has(key)) return;
       const elementId = readAttribute(node, 'id');
@@ -463,9 +463,8 @@ export class ProjectDocumentedSourceController {
         const source = await sourceRepository.save(
           sourceRepository.create({
             projectId,
-            resourceId,
             createdBy: userId,
-            kind: 'database',
+            kind: element.elementType === 'dataStoreReference' ? 'database' : 'file',
             name: elementName,
             description: optionalText(element.description, 'description'),
             link: optionalText(element.link, 'link'),
@@ -507,7 +506,7 @@ export class ProjectDocumentedSourceController {
     @Param('projectId') projectId: string,
     @Body()
     body: SourceFields & {
-      resourceId: string;
+      resourceId?: string;
       elementId?: string;
       elementName?: string;
       elementType?: string;
@@ -527,11 +526,7 @@ export class ProjectDocumentedSourceController {
     if (!SOURCE_KINDS.includes(kind))
       throw new BadRequestException('Unsupported source kind');
     const resourceId = body.resourceId?.trim();
-    if (!resourceId)
-      throw new BadRequestException(
-        'resourceId is required: documented information must belong to a process',
-      );
-    await this.validateProcess(projectId, resourceId);
+    if (resourceId) await this.validateProcess(projectId, resourceId);
     const hasReferenceFields = Boolean(
       body.elementId || body.elementName || body.elementType,
     );
@@ -563,7 +558,6 @@ export class ProjectDocumentedSourceController {
       const source = await sourceRepository.save(
         sourceRepository.create({
           projectId,
-          resourceId,
           createdBy: userId,
           kind,
           name,
@@ -893,11 +887,6 @@ export class ProjectDocumentedSourceController {
         throw new NotFoundException(
           'Documented source not found in this project',
         );
-      if (source.resourceId !== target.resourceId)
-        throw new BadRequestException(
-          'Documented information can only be merged when they belong to the same process',
-        );
-
       // Several BPMN elements in one diagram may reference the same
       // documented source. Duplicate references to the same element are
       // consolidated below; distinct elements are all retained.
@@ -1016,7 +1005,7 @@ export class ProjectDocumentedSourceController {
     }
     if (!BPMN_DOCUMENTED_DATA_TYPES.has(elementType)) {
       throw new BadRequestException(
-        'Only BPMN data stores can be associated with documented sources',
+        'Only BPMN data objects and data stores can be associated with documented sources',
       );
     }
     await this.validateProcess(projectId, resourceId);
