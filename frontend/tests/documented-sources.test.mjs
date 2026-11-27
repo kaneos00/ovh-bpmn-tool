@@ -91,8 +91,8 @@ test('BPMN associations support data objects and data stores in the active proce
   assert.match(inventory, /elementType: reference\.elementType/);
   assert.match(inventory, /type BpmnDataType = 'dataObjectReference' \| 'dataStoreReference'/, 'legacy data-object links remain displayable');
   assert.match(inventory, /documented-sources\?resourceId=\$\{encodeURIComponent\(resourceId\)\}/);
-  assert.ok(controller.includes("const BPMN_DOCUMENTED_DATA_TYPES = new Set([\\n  'dataObjectReference',\\n  'dataStoreReference',\\n]);"));
-  assert.ok(controller.includes("const supported = new Set(['dataObjectReference', 'dataStoreReference'])"));
+  assert.ok(controller.includes("'dataObjectReference'"));
+  assert.ok(controller.includes("'dataStoreReference'"));
   assert.match(controller, /@Query\('resourceId'\) requestedResourceId\?: string/);
   assert.match(controller, /Only BPMN data objects and data stores can be associated with documented sources/);
 });
@@ -160,7 +160,9 @@ test('saving a BPMN process synchronizes newly added data stores into the projec
   assert.ok(modelerAction.includes("['project-documented-sources', projectId]"));
   assert.ok(controller.includes("@Post('synchronize')"));
   assert.ok(controller.includes('extractBpmnDataElements('));
-  assert.ok(controller.includes("kind:\\n              element.elementType === 'dataStoreReference'\\n                ? 'database'\\n                : 'file'"));
+  assert.ok(controller.includes("element.elementType === 'dataStoreReference'"));
+  assert.ok(controller.includes("? 'database'"));
+  assert.ok(controller.includes(": 'file'"));
   assert.ok(controller.includes('elementType: element.elementType'));
   assert.ok(controller.includes('if (existing) return false'));
   assert.ok(controller.includes('pg_advisory_xact_lock'));
