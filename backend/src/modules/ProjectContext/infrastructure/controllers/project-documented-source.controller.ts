@@ -217,9 +217,9 @@ export const extractBpmnDataElements = (
         elementName,
         elementType: key,
         bpmnDescription:
-          collectXmlText(node.documentation) ||
-          referencedDetails?.description ||
-          '',
+          node.documentation !== undefined
+            ? collectXmlText(node.documentation)
+            : referencedDetails?.description || '',
         link:
           readAttribute(node, 'link') ||
           referencedDetails?.link ||
