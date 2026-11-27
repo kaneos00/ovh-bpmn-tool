@@ -7,16 +7,17 @@ import { DocumentedSourcesGrid } from './DocumentedSourcesGrid';
 import { apiClient } from '../../../queryClient';
 
 type SourceKind = 'file' | 'database' | 'application';
+type SourceReference = { id: string };
 type Source = {
   id: string; kind: SourceKind | 'form'; name: string; description: string | null; link: string | null;
   location: string | null; access: string | null; retention: string | null; validUntil: string | null;
-  authorizedPeople: string | null; restrictions: string | null; containsPersonalData: boolean;
+  authorizedPeople: string | null; restrictions: string | null; containsPersonalData: boolean; references: SourceReference[];
 };
 type ResponseData = { sources: Source[] };
 type GridRow = {
   id: string; sourceId: string; name: string; kind: SourceKind; description: string;
   link: string; location: string; access: string; retention: string; validUntil: string;
-  authorizedPeople: string; restrictions: string; containsPersonalData: boolean;
+  authorizedPeople: string; restrictions: string; containsPersonalData: boolean; references: SourceReference[];
 };
 
 const kindLabels: Record<SourceKind, string> = { file: 'Fichier', database: 'Base de données', application: 'Application' };
@@ -43,7 +44,7 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     name: source.name, description: source.description ?? '',
     link: source.link ?? '', location: source.location ?? '', access: source.access ?? '',
     retention: source.retention ?? '', validUntil: source.validUntil ?? '', authorizedPeople: source.authorizedPeople ?? '', restrictions: source.restrictions ?? '',
-    containsPersonalData: source.containsPersonalData ?? false,
+    containsPersonalData: source.containsPersonalData ?? false, references: source.references ?? [],
   })), [data?.sources]);
 
   const refresh = async () => {
@@ -78,7 +79,7 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     { headerName: 'Données personnelles', field: 'containsPersonalData', minWidth: 175, editable: canManage, cellDataType: 'boolean', cellRenderer: 'agCheckboxCellRenderer', cellEditor: 'agCheckboxCellEditor' },
     { headerName: 'Personnes autorisées', field: 'authorizedPeople', minWidth: 190, editable: canManage },
     { headerName: 'Restrictions', field: 'restrictions', minWidth: 190, editable: canManage },
-    { headerName: 'Actions', minWidth: 130, sortable: false, filter: false, cellRenderer: (p: { data?: GridRow }) => p.data && canManage ? <Button size="sm" variant="plain" color="danger" startDecorator={<DeleteOutlineRounded />} onClick={() => setPendingDelete(p.data!)}>Supprimer</Button> : null },
+    { headerName: 'Actions', minWidth: 130, sortable: false, filter: false, cellRenderer: (p: { data?: GridRow }) => p.data && canManage && p.data.references.length === 0 ? <Button size="sm" variant="plain" color="danger" startDecorator={<DeleteOutlineRounded />} onClick={() => setPendingDelete(p.data!)}>Supprimer</Button> : null },
   ];
 
   if (query.isLoading) return <Typography level="body-sm" color="neutral">Chargement des informations documentées…</Typography>;
