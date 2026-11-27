@@ -10,14 +10,14 @@ import { apiClient } from '../../../queryClient';
 type SourceKind = 'file' | 'database' | 'application';
 type SourceReference = { id: string; resourceId: string; elementId: string; elementName: string; elementType: string; processName: string };
 type Source = {
-  id: string; resourceId: string; processName?: string; kind: SourceKind | 'form'; name: string; description: string | null; link: string | null;
+  id: string; resourceId?: string; processName?: string; kind: SourceKind | 'form'; name: string; description: string | null; link: string | null;
   location: string | null; access: string | null; retention: string | null; validUntil: string | null;
   authorizedPeople: string | null; restrictions: string | null; containsPersonalData: boolean; references: SourceReference[];
 };
 type UnlinkedReference = { resourceId: string; processName: string; elementId: string; elementName: string; elementType: string; description?: string; link?: string; location?: string; access?: string; retention?: string; authorizedPeople?: string; restrictions?: string };
 type ResponseData = { sources: Source[]; unlinkedReferences: UnlinkedReference[]; processes: { resourceId: string; processName: string }[] };
 type GridRow = {
-  id: string; sourceId: string; resourceId: string; name: string; origin: string; kind: SourceKind; description: string; references: SourceReference[];
+  id: string; sourceId: string; resourceId?: string; name: string; origin: string; kind: SourceKind; description: string; references: SourceReference[];
   link: string; location: string; access: string; retention: string; validUntil: string;
   authorizedPeople: string; restrictions: string; containsPersonalData: boolean;
 };
@@ -50,7 +50,7 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
   const rows = useMemo<GridRow[]>(() => (data?.sources ?? []).map(source => ({
     id: source.id, sourceId: source.id, resourceId: source.resourceId,
     kind: source.kind === 'form' ? 'file' : source.kind,
-    name: source.name, origin: source.processName ?? 'Processus', description: source.description ?? '', references: source.references ?? [],
+    name: source.name, origin: [...new Set((source.references ?? []).map(ref => ref.processName))].join(', ') || 'Projet', description: source.description ?? '', references: source.references ?? [],
     link: source.link ?? '', location: source.location ?? '', access: source.access ?? '',
     retention: source.retention ?? '', validUntil: source.validUntil ?? '', authorizedPeople: source.authorizedPeople ?? '', restrictions: source.restrictions ?? '',
     containsPersonalData: source.containsPersonalData ?? false,
@@ -78,28 +78,10 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
 
   const addSource = async () => {
     if (!newName.trim()) return;
-    if (!selectedProcessId || !(data?.processes ?? []).some(process => process.resourceId === selectedProcessId)) {
-      setError('Sélectionnez le processus auquel rattacher cette information documentée.');
-      return;
-    }
-    const ref = selectedReference
-      ? (data?.unlinkedReferences ?? []).find(item => `${item.resourceId}:${item.elementId}` === selectedReference && item.resourceId === selectedProcessId)
-      : undefined;
-    if (selectedReference && !ref) {
-      setError('L’objet BPMN sélectionné n’est plus disponible. Actualisez la liste puis réessayez.');
-      return;
-    }
     try {
       await apiClient.post(`/projects/${projectId}/documented-sources`, {
         name: newName.trim(),
         kind: newKind,
-        resourceId: selectedProcessId,
-        ...(ref ? {
-          resourceId: ref.resourceId,
-          elementId: ref.elementId,
-          elementName: ref.elementName,
-          elementType: ref.elementType,
-        } : {}),
       });
       setAdding(false);
       setSelectedReference(null);
@@ -187,11 +169,9 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
       <ModalDialog sx={{ width: 'min(560px, calc(100vw - 32px))' }}>
         <Typography level="title-lg">Ajouter une information documentée</Typography>
         <Stack spacing={1.5}>
-          <FormControl required><FormLabel>Processus</FormLabel><Select value={selectedProcessId} onChange={(_, value) => { setSelectedProcessId(value ?? ''); setSelectedReference(null); }} placeholder="Choisir le processus">{(data?.processes ?? []).map(process => <Option key={process.resourceId} value={process.resourceId}>{process.processName}</Option>)}</Select></FormControl>
           <FormControl required><FormLabel>Nom</FormLabel><Input value={newName} onChange={e => setNewName(e.target.value)} /></FormControl>
           <FormControl><FormLabel>Type</FormLabel><Select value={newKind} onChange={(_, value) => value && setNewKind(value as SourceKind)}><Option value="file">Fichier</Option><Option value="database">Base de données</Option><Option value="application">Application</Option></Select></FormControl>
-          <FormControl><FormLabel>Objet BPMN à associer (facultatif)</FormLabel><Select disabled={!selectedProcessId} value={selectedReference ?? ''} onChange={(_, value) => { setSelectedReference(value || null); if (value) { const ref = data?.unlinkedReferences.find(item => `${item.resourceId}:${item.elementId}` === value); if (ref && !newName.trim()) setNewName(ref.elementName); } }} placeholder="Aucun objet BPMN (facultatif)">{(data?.unlinkedReferences ?? []).filter(ref => ref.resourceId === selectedProcessId).map(ref => <Option key={`${ref.resourceId}:${ref.elementId}`} value={`${ref.resourceId}:${ref.elementId}`}>{ref.elementName} — {ref.processName}</Option>)}</Select></FormControl>
-          <Stack direction="row" justifyContent="flex-end" spacing={1}><Button variant="outlined" color="neutral" onClick={() => setAdding(false)}>Annuler</Button><Button onClick={() => void addSource()} disabled={!newName.trim() || !selectedProcessId}>Créer</Button></Stack>
+          <Stack direction="row" justifyContent="flex-end" spacing={1}><Button variant="outlined" color="neutral" onClick={() => setAdding(false)}>Annuler</Button><Button onClick={() => void addSource()} disabled={!newName.trim()}>Créer</Button></Stack>
         </Stack>
       </ModalDialog>
     </Modal>
