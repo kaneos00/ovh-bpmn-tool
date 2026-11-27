@@ -67,8 +67,8 @@ Créer des tables propres aux fiches de poste. Ne pas réutiliser `competency_bl
 - `job_position_transversal_competencies` : fiche/poste, `competencyId`, niveau attendu 1..5.
 
 Cardinalités métier :
-- exactement quatre blocs par fiche ;
-- de 1 à 4 activités descriptives par bloc ;
+- au maximum quatre blocs par fiche, sans obligation de remplir les quatre ;
+- de 0 à 4 activités par bloc (un bloc peut être créé avant que ses activités soient renseignées) ;
 - de 1 à 4 compétences par bloc ;
 - compétences transversales associées directement à la fiche, sans cinquième bloc.
 
@@ -140,3 +140,17 @@ En conséquence, la migration ne doit pas supprimer `job_function_competency_blo
 ## 9. Fichier de migration SQL
 
 Le premier SQL gardé est disponible dans `backend/migrations/20261126_v0_10_competency_catalog_reset.sql`. Il n'est pas encore branché au Dockerfile ou au Compose de Coolify : le backend doit d'abord être adapté, car il dépend encore de `blockId` et `referenceLevel`. L'intégration et l'activation seront réalisées ensemble pour éviter un déploiement avec schéma et code incompatibles.
+
+
+## Addendum de cohérence fonctionnelle — décisions du 27 novembre 2026
+
+Les décisions consolidées dans [le modèle organisationnel responsabilités/activités](../functional/modele-organisation-responsabilites-activites.md#10-décisions-de-cadrage-consolidées--27-novembre-2026) prévalent sur toute formulation antérieure de ce document qui leur serait contraire :
+
+- un poste comporte **au maximum quatre responsabilités** (ou blocs de missions), sans obligation d'en remplir quatre ; chaque responsabilité comporte **au maximum quatre activités** ;
+- le référentiel d'activités organisationnelles est unique et les activités sont reliées explicitement aux éléments BPMN ; une même activité de référence peut être utilisée par plusieurs éléments BPMN dans plusieurs processus ;
+- la responsabilité organisationnelle est portée par le poste et reste distincte des rôles opérationnels RACI ; aucune entrée RACI n'est déduite automatiquement de la fiche de poste ;
+- la structure permanente retenue pour le cadrage est **Directions → Postes → Titulaires** ; les services/unités intermédiaires ne sont pas requis à ce stade ;
+- le titulaire structurel n'est pas nécessairement l'unique personne qui réalise le travail : une personne peut réaliser tout ou partie des responsabilités d'un poste et contribuer à plusieurs postes. Les affectations opérationnelles doivent être distinguées de la titularisation ;
+- le lien entre fonction-type, poste et fiche de poste reste **non arbitré**. Aucune hypothèse de partage, d'héritage ou de personnalisation ne doit être présentée comme une décision acquise.
+
+Les passages ci-dessus constituent un cadrage fonctionnel et ne décrivent pas des capacités techniques déjà livrées. Aucun audit technique V0.10, aucune modification de code et aucune migration ne sont inclus dans cette harmonisation documentaire.
