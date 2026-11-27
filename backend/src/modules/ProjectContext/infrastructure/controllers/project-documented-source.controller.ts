@@ -407,6 +407,102 @@ export class ProjectDocumentedSourceController {
     };
   }
 
+  @Post('synchronize')
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
+  async synchronize(
+    @Param('projectId') projectId: string,
+    @Body() body: { resourceId?: string },
+    @Headers() headers: RequestHeaders,
+  ) {
+    const userId = await this.access.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Admin,
+      { allowOrganizationAdmin: true },
+    );
+    const resourceId = body.resourceId?.trim();
+    if (!resourceId)
+      throw new BadRequestException('resourceId is required');
+    const process = await this.validateProcess(projectId, resourceId);
+    const [resource, content] = await Promise.all([
+      this.resources.findOne({ where: { id: resourceId } }),
+      this.contents.findOne({
+        where: { resourceId },
+        order: { version: 'DESC', updatedAt: 'DESC' },
+      }),
+    ]);
+    if (!resource || !content)
+      return { created: 0, skipped: 0 };
+    const elements = extractBpmnDataElements(
+      content.content,
+      resourceId,
+      resource.name || process.resourceId,
+    );
+
+    let created = 0;
+    let skipped = 0;
+    for (const element of elements) {
+      const wasCreated = await this.dataSource.transaction(async (manager) => {
+        await manager.query(
+          'SELECT pg_advisory_xact_lock(hashtext($1))',
+          [projectId + ':' + resourceId + ':' + element.elementId],
+        );
+        const sourceRepository = manager.getRepository(
+          ProjectDocumentedSourceTypeOrmEntity,
+        );
+        const referenceRepository = manager.getRepository(
+          ProjectDocumentedSourceReferenceTypeOrmEntity,
+        );
+        const existing = await referenceRepository.findOne({
+          where: {
+            projectId,
+            resourceId,
+            elementId: element.elementId,
+          },
+        });
+        if (existing) return false;
+
+        const source = await sourceRepository.save(
+          sourceRepository.create({
+            projectId,
+            resourceId,
+            createdBy: userId,
+            kind: 'database',
+            name: element.elementName.slice(0, 255),
+            description: optionalText(element.description, 'description'),
+            link: optionalText(element.link, 'link'),
+            location: optionalText(element.location, 'location'),
+            access: optionalText(element.access, 'access'),
+            retention: optionalText(element.retention, 'retention'),
+            validUntil: null,
+            containsPersonalData: false,
+            authorizedPeople: optionalText(
+              element.authorizedPeople,
+              'authorizedPeople',
+            ),
+            restrictions: optionalText(element.restrictions, 'restrictions'),
+          }),
+        );
+        await referenceRepository.save(
+          referenceRepository.create({
+            projectId,
+            sourceId: source.id,
+            resourceId,
+            elementId: element.elementId,
+            elementName: element.elementName,
+            elementType: element.elementType,
+            createdBy: userId,
+          }),
+        );
+        return true;
+      });
+      if (wasCreated) created += 1;
+      else skipped += 1;
+    }
+
+    return { created, skipped };
+  }
+
   @Post()
   @UseAcl([UserGroup.RW, UserGroup.Admin])
   async create(
