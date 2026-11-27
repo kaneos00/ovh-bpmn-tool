@@ -16,11 +16,6 @@ export class ProjectDocumentedSourceTypeOrmEntity extends AbstractEntity {
   @Column('uuid')
   projectId: string;
 
-  // Optional process context for entries created from a process without a BPMN link.
-  // BPMN references may additionally connect this project-level source to other processes.
-  @Column({ type: 'uuid', nullable: true })
-  resourceId: string | null;
-
   @Column({ type: 'varchar', length: 24, default: 'file' })
   kind: ProjectDocumentedSourceKind;
 
