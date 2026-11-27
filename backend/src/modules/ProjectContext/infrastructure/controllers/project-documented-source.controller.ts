@@ -421,8 +421,7 @@ export class ProjectDocumentedSourceController {
       { allowOrganizationAdmin: true },
     );
     const resourceId = body.resourceId?.trim();
-    if (!resourceId)
-      throw new BadRequestException('resourceId is required');
+    if (!resourceId) throw new BadRequestException('resourceId is required');
     const process = await this.validateProcess(projectId, resourceId);
     const [resource, content] = await Promise.all([
       this.resources.findOne({ where: { id: resourceId } }),
@@ -431,8 +430,7 @@ export class ProjectDocumentedSourceController {
         order: { version: 'DESC', updatedAt: 'DESC' },
       }),
     ]);
-    if (!resource || !content)
-      return { created: 0, skipped: 0 };
+    if (!resource || !content) return { created: 0, skipped: 0 };
     const elements = extractBpmnDataElements(
       content.content,
       resourceId,
@@ -444,10 +442,9 @@ export class ProjectDocumentedSourceController {
     for (const element of elements) {
       const elementName = element.elementName.slice(0, 255);
       const wasCreated = await this.dataSource.transaction(async (manager) => {
-        await manager.query(
-          'SELECT pg_advisory_xact_lock(hashtext($1))',
-          [projectId + ':' + resourceId + ':' + element.elementId],
-        );
+        await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+          projectId + ':' + resourceId + ':' + element.elementId,
+        ]);
         const sourceRepository = manager.getRepository(
           ProjectDocumentedSourceTypeOrmEntity,
         );
