@@ -183,3 +183,21 @@ Le modèle cible est organisé autour de trois niveaux : **référentiel commun 
 La fiche de poste décrit ce qu'un poste recouvre ; la personne occupe un poste ; le projet attribue une ou plusieurs missions à une personne ; les tâches décrivent le travail à réaliser ; le RACI précise qui fait quoi.
 
 L'implémentation doit d'abord stabiliser le module Organisation et les fiches de poste de manière autonome. Les correspondances BPMN/RACI seront raccordées ensuite, en réutilisant les objets et moteurs existants.
+
+
+---
+
+## 10. Décisions complémentaires et points à ne pas figer — 27 novembre 2026
+
+Le modèle fonctionnel doit être lu avec la section 10 du [modèle organisationnel responsabilités/activités](./modele-organisation-responsabilites-activites.md), qui constitue la trace consolidée des arbitrages.
+
+Les précisions suivantes s'appliquent à ce document :
+
+1. Les quatre blocs de missions ne sont **pas obligatoires** : un poste comporte au maximum quatre responsabilités/blocs pertinents, et chaque responsabilité au maximum quatre activités. Toute formulation antérieure imposant exactement quatre blocs est remplacée par cette règle.
+2. La structure permanente est cadrée autour des **directions, postes et titulaires**. Les services/unités intermédiaires ne sont pas requis à ce stade.
+3. Le titulaire structurel ne doit pas être confondu avec les exécutants : une personne peut réaliser tout ou partie des responsabilités d'un poste, contribuer à plusieurs postes, et partager une activité avec d'autres personnes. Les affectations opérationnelles doivent donc être distinguées des titularisations.
+4. La responsabilité portée par le poste est une responsabilité organisationnelle permanente ; le RACI décrit les rôles opérationnels dans un contexte de processus/projet. Le RACI ne se déduit pas automatiquement de la fiche de poste.
+5. Le référentiel d'activités organisationnelles doit être unique et relié aux éléments BPMN. Une même activité de référence peut être représentée par plusieurs tâches/activités BPMN dans différents processus.
+6. La distinction fonction-type / poste / fiche de poste demeure **non arbitrée**. Les règles actuelles de partage, d'héritage ou de personnalisation ne doivent pas être considérées comme définitives avant décision explicite.
+
+Les passages de ce document qui décrivent les quatre blocs comme exactement obligatoires ou les activités comme uniquement descriptives sans lien de référence avec les activités BPMN devront être harmonisés lors de la prochaine révision fonctionnelle. Le présent complément évite de considérer ces formulations antérieures comme des décisions définitives.
