@@ -10,7 +10,7 @@ import { apiClient } from '../../../queryClient';
 type SourceKind = 'file' | 'database' | 'application';
 type SourceReference = { id: string; resourceId: string; elementId: string; elementName: string; elementType: string; processName: string };
 type Source = {
-  id: string; resourceId?: string; processName?: string; kind: SourceKind | 'form'; name: string; description: string | null; link: string | null;
+  id: string; processName?: string | null; processes?: { resourceId: string; processName: string }[]; kind: SourceKind | 'form'; name: string; description: string | null; link: string | null;
   location: string | null; access: string | null; retention: string | null; validUntil: string | null;
   authorizedPeople: string | null; restrictions: string | null; containsPersonalData: boolean; references: SourceReference[];
 };
@@ -46,9 +46,9 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
   const query = useQuery<ResponseData>(queryKey, () => apiClient.get(`/projects/${projectId}/documented-sources`), { enabled: Boolean(projectId) });
   const data = query.data;
   const rows = useMemo<GridRow[]>(() => (data?.sources ?? []).map(source => ({
-    id: source.id, sourceId: source.id, resourceId: source.resourceId,
+    id: source.id, sourceId: source.id,
     kind: source.kind === 'form' ? 'file' : source.kind,
-    name: source.name, origin: [...new Set((source.references ?? []).map(ref => ref.processName))].join(', ') || 'Projet', description: source.description ?? '', references: source.references ?? [],
+    name: source.name, origin: [...new Set([...(source.processes ?? []).map(process => process.processName), ...(source.references ?? []).map(ref => ref.processName)])].join(', ') || 'Projet', description: source.description ?? '', references: source.references ?? [],
     link: source.link ?? '', location: source.location ?? '', access: source.access ?? '',
     retention: source.retention ?? '', validUntil: source.validUntil ?? '', authorizedPeople: source.authorizedPeople ?? '', restrictions: source.restrictions ?? '',
     containsPersonalData: source.containsPersonalData ?? false,
