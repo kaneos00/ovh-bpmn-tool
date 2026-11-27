@@ -19,7 +19,6 @@ test('project workspace restores the central documented information tab', async 
   assert.doesNotMatch(registry, /Ajouter une information documentée/);
   assert.match(registry, /créées depuis les processus/);
   assert.match(registry, /onCellValueChanged/);
-  assert.match(registry, /Ajouter une information documentée/);
   assert.match(registry, /source\.processes/);
   assert.match(registry, /Rattacher à une fiche existante/);
   assert.match(registry, /targetSourceId: value/);
