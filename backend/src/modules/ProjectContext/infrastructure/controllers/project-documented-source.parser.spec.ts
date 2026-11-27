@@ -27,22 +27,31 @@ describe('extractBpmnDataElements', () => {
       'Gestion des contrats',
     );
 
-    // Only BPMN data stores are eligible for documented-information associations.
-    expect(elements).toHaveLength(1);
-    expect(elements[0]).toMatchObject({
-      resourceId: 'resource-1',
-      processName: 'Gestion des contrats',
-      elementId: 'crm-ref',
-      elementName: 'CRM',
-      elementType: 'dataStoreReference',
-      description: 'Base clients',
-      link: 'https://crm.example.test',
-      location: 'Cloud',
-      access: 'Equipe commerciale',
-      retention: '10 ans',
-      authorizedPeople: 'Commercial',
-      restrictions: 'Confidentiel',
-    });
+    expect(elements).toHaveLength(2);
+    expect(elements).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        resourceId: 'resource-1',
+        processName: 'Gestion des contrats',
+        elementId: 'contract-ref',
+        elementName: 'Contrat',
+        elementType: 'dataObjectReference',
+        description: 'Contrat signé et archivé',
+      }),
+      expect.objectContaining({
+        resourceId: 'resource-1',
+        processName: 'Gestion des contrats',
+        elementId: 'crm-ref',
+        elementName: 'CRM',
+        elementType: 'dataStoreReference',
+        description: 'Base clients',
+        link: 'https://crm.example.test',
+        location: 'Cloud',
+        access: 'Equipe commerciale',
+        retention: '10 ans',
+        authorizedPeople: 'Commercial',
+        restrictions: 'Confidentiel',
+      }),
+    ]));
   });
 
   it('ignores malformed or unsafe XML instead of breaking the project registry', () => {
@@ -58,15 +67,17 @@ describe('extractBpmnDataElements', () => {
 });
 
 describe('ProjectDocumentedSourceController.synchronize', () => {
-  it('creates one documented source and BPMN reference for a new data store, then stays idempotent', async () => {
+  it('creates one project source for each new data object and data store, then stays idempotent', async () => {
     const xml = `<?xml version="1.0"?>
       <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
         <bpmn:process id="process-1" name="Gestion clients">
           <bpmn:dataStore id="store-1" name="Base CRM" />
           <bpmn:dataStoreReference id="store-reference-1" dataStoreRef="store-1" />
+          <bpmn:dataObject id="order-data" name="Commande" />
+          <bpmn:dataObjectReference id="object-reference-1" dataObjectRef="order-data" />
         </bpmn:process>
       </bpmn:definitions>`;
-    let persistedReference: Record<string, unknown> | null = null;
+    const persistedReferences = new Map<string, Record<string, unknown>>();
     const sourceRepository = {
       create: jest.fn((value: Record<string, unknown>) => value),
       save: jest.fn(async (value: Record<string, unknown>) => ({
@@ -75,10 +86,10 @@ describe('ProjectDocumentedSourceController.synchronize', () => {
       })),
     };
     const referenceRepository = {
-      findOne: jest.fn(async () => persistedReference),
+      findOne: jest.fn(async (query: { where?: { elementId?: string } }) => persistedReferences.get(query.where?.elementId ?? '') ?? null),
       create: jest.fn((value: Record<string, unknown>) => value),
       save: jest.fn(async (value: Record<string, unknown>) => {
-        persistedReference = value;
+        persistedReferences.set(String(value.elementId), value);
         return value;
       }),
     };
@@ -134,9 +145,9 @@ describe('ProjectDocumentedSourceController.synchronize', () => {
       {},
     );
 
-    expect(first).toEqual({ created: 1, skipped: 0 });
-    expect(second).toEqual({ created: 0, skipped: 1 });
-    expect(sourceRepository.save).toHaveBeenCalledTimes(1);
+    expect(first).toEqual({ created: 2, skipped: 0 });
+    expect(second).toEqual({ created: 0, skipped: 2 });
+    expect(sourceRepository.save).toHaveBeenCalledTimes(2);
     expect(sourceRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({
         projectId: 'project-1',
@@ -146,15 +157,26 @@ describe('ProjectDocumentedSourceController.synchronize', () => {
         createdBy: 'user-1',
       }),
     );
-    expect(referenceRepository.save).toHaveBeenCalledTimes(1);
+    expect(referenceRepository.save).toHaveBeenCalledTimes(2);
     expect(referenceRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({
         projectId: 'project-1',
-        sourceId: 'source-1',
+        sourceId: expect.any(String),
         resourceId: 'process-1',
         elementId: 'store-reference-1',
         elementName: 'Base CRM',
         elementType: 'dataStoreReference',
+        createdBy: 'user-1',
+      }),
+    );
+    expect(referenceRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: 'project-1',
+        sourceId: expect.any(String),
+        resourceId: 'process-1',
+        elementId: 'object-reference-1',
+        elementName: 'Commande',
+        elementType: 'dataObjectReference',
         createdBy: 'user-1',
       }),
     );
