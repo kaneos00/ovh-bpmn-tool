@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from 'react-query';
-import { Alert, Box, Button, FormControl, FormLabel, IconButton, Input, Modal, ModalDialog, Option, Select, Stack, Typography } from '@mui/joy';
+import { Alert, Box, Button, FormControl, FormLabel, IconButton, Input, Modal, ModalDialog, Option, Select, Stack, Textarea, Typography } from '@mui/joy';
 import {
   AppsOutlined,
   AttachFileOutlined,
@@ -22,6 +22,7 @@ type SourceReference = {
   elementName: string;
   elementType: BpmnDataType;
   processName: string;
+  bpmnDescription: string;
 };
 
 type ProjectDocumentedSource = {
@@ -48,7 +49,7 @@ type UnlinkedBpmnReference = {
   elementId: string;
   elementName: string;
   elementType: BpmnDataType;
-  description?: string;
+  bpmnDescription?: string;
   link?: string;
   location?: string;
   access?: string;
@@ -76,6 +77,7 @@ type Props = {
   canManageSources?: boolean;
   onElementSelect?: (elementId: string) => void;
   onShowDiagram?: () => void;
+  onSaveBpmnDescription?: (elementId: string, description: string) => Promise<void>;
 };
 
 const isSupportedBpmnDataType = (type: string) => type === 'dataObjectReference' || type === 'dataStoreReference';
@@ -107,6 +109,7 @@ export const DataInventory = ({
   canManageSources = false,
   onElementSelect,
   onShowDiagram,
+  onSaveBpmnDescription,
 }: Props) => {
   const queryClient = useQueryClient();
   const [sources, setSources] = useState<ProjectDocumentedSource[]>([]);
@@ -311,6 +314,52 @@ export const DataInventory = ({
       },
     },
     textColumn('description', 'Description', 240),
+    {
+      headerName: 'Description BPMN',
+      minWidth: 280,
+      sortable: false,
+      editable: false,
+      autoHeight: true,
+      cellRenderer: (params: ICellRendererParams<InventoryGridRow>) => {
+        const row = params.data;
+        if (!row) return null;
+        const references = row.references.filter(item => item.resourceId === resourceId);
+        if (!references.length) return <Typography level="body-sm" color="neutral">—</Typography>;
+        return (
+          <Stack spacing={1} sx={{ py: 0.5 }}>
+            {references.map(reference => (
+              <Box key={reference.id}>
+                <Typography level="body-xs" color="neutral">{reference.elementName}</Typography>
+                <Textarea
+                  size="sm"
+                  minRows={1}
+                  maxRows={4}
+                  value={reference.bpmnDescription ?? ''}
+                  disabled={!canManageSources || !onSaveBpmnDescription}
+                  onChange={event => {
+                    const value = event.target.value;
+                    setSources(current => current.map(source => source.id !== row.id ? source : ({
+                      ...source,
+                      references: source.references.map(item => item.id === reference.id ? { ...item, bpmnDescription: value } : item),
+                    })));
+                  }}
+                  onBlur={event => {
+                    const value = event.target.value;
+                    if (value !== (reference.bpmnDescription ?? '')) {
+                      void onSaveBpmnDescription?.(reference.elementId, value).then(refresh).catch(error => {
+                        setError(error instanceof Error ? error.message : 'Impossible d’enregistrer la description BPMN.');
+                        void refresh();
+                      });
+                    }
+                  }}
+                  aria-label={`Description BPMN de ${reference.elementName}`}
+                />
+              </Box>
+            ))}
+          </Stack>
+        );
+      },
+    },
     {
       headerName: 'Données personnelles',
       field: 'containsPersonalData',
