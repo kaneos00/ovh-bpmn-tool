@@ -7,10 +7,10 @@ import { AbstractEntity } from '../../../../shared-kernel/modules/infrastructure
   ['projectId', 'sourceId', 'resourceId'],
   { unique: true },
 )
-@Index(
-  'project_documented_source_processes_process_idx',
-  ['projectId', 'resourceId'],
-)
+@Index('project_documented_source_processes_process_idx', [
+  'projectId',
+  'resourceId',
+])
 export class ProjectDocumentedSourceProcessTypeOrmEntity extends AbstractEntity {
   @Column('uuid')
   projectId: string;
