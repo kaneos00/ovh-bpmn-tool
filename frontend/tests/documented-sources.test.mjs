@@ -143,3 +143,21 @@ test('BPMN associations may cross process boundaries while the documented source
   assert.ok(projectGrid.includes('Associer un objet BPMN du projet…'));
   assert.ok(projectGrid.includes('filter(candidate => !p.data!.references.some'));
 });
+
+test('saving a BPMN process synchronizes newly added data stores into the project documented-information registry', async () => {
+  const modelerHook = await read('src/Containers/ContentModeler/hooks/useContentModeler.ts');
+  const modelerAction = await read('src/Containers/ContentModeler/ContentModeler.action.ts');
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
+
+  assert.match(modelerHook, /useActiveProject\\(\\)/);
+  assert.match(modelerHook, /projectProcessIds\\.has\\(resourceId\\)/);
+  assert.match(modelerHook, /projectId: documentedSourcesProjectId \\?\\? ''/);
+  assert.match(modelerAction, /documented-sources\\/synchronize/);
+  assert.match(modelerAction, /invalidateQueries\\([\\s\\S]*?project-documented-sources/);
+  assert.match(controller, /@Post\\('synchronize'\\)/);
+  assert.match(controller, /extractBpmnDataElements\\(/);
+  assert.match(controller, /kind: 'database'/);
+  assert.match(controller, /elementType: element\\.elementType/);
+  assert.match(controller, /if \\(existing\\) return false/);
+  assert.match(controller, /pg_advisory_xact_lock/);
+});
