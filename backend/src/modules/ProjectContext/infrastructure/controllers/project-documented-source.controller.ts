@@ -70,7 +70,10 @@ const parser = new XMLParser({
 
 const SOURCE_KINDS: SourceKind[] = ['file', 'database', 'application', 'form'];
 
-const BPMN_DOCUMENTED_DATA_TYPES = new Set(['dataObjectReference', 'dataStoreReference']);
+const BPMN_DOCUMENTED_DATA_TYPES = new Set([
+  'dataObjectReference',
+  'dataStoreReference',
+]);
 const BPMN_DISPLAYED_DATA_TYPES = new Set([
   'dataObjectReference',
   'dataStoreReference',
@@ -406,13 +409,15 @@ export class ProjectDocumentedSourceController {
           .map((membership) => ({
             resourceId: membership.resourceId,
             processName:
-              resourceById.get(membership.resourceId)?.name ?? membership.resourceId,
+              resourceById.get(membership.resourceId)?.name ??
+              membership.resourceId,
           }));
         return {
           ...source,
           processName: requestedResourceId
-            ? resourceById.get(requestedResourceId)?.name ?? requestedResourceId
-            : sourceProcesses[0]?.processName ?? null,
+            ? (resourceById.get(requestedResourceId)?.name ??
+                requestedResourceId)
+            : (sourceProcesses[0]?.processName ?? null),
           processes: sourceProcesses,
           references: referencesBySource.get(source.id) ?? [],
         };
@@ -494,7 +499,10 @@ export class ProjectDocumentedSourceController {
           sourceRepository.create({
             projectId,
             createdBy: userId,
-            kind: element.elementType === 'dataStoreReference' ? 'database' : 'file',
+            kind:
+              element.elementType === 'dataStoreReference'
+                ? 'database'
+                : 'file',
             name: elementName,
             description: optionalText(element.description, 'description'),
             link: optionalText(element.link, 'link'),
@@ -522,7 +530,12 @@ export class ProjectDocumentedSourceController {
           }),
         );
         await membershipRepository.save(
-          membershipRepository.create({ projectId, sourceId: source.id, resourceId, createdBy: userId }),
+          membershipRepository.create({
+            projectId,
+            sourceId: source.id,
+            resourceId,
+            createdBy: userId,
+          }),
         );
         return true;
       });
@@ -629,8 +642,19 @@ export class ProjectDocumentedSourceController {
         }),
       );
       if (resourceId) {
-        const existingMembership = await membershipRepository.findOne({ where: { projectId, sourceId: source.id, resourceId } });
-        if (!existingMembership) await membershipRepository.save(membershipRepository.create({ projectId, sourceId: source.id, resourceId, createdBy: userId }));
+        const existingMembership = await membershipRepository.findOne({
+          where: { projectId, sourceId: source.id, resourceId },
+        });
+        if (!existingMembership) {
+          await membershipRepository.save(
+            membershipRepository.create({
+              projectId,
+              sourceId: source.id,
+              resourceId,
+              createdBy: userId,
+            }),
+          );
+        }
       }
       return { ...source, references: [sourceReference] };
     });
@@ -750,8 +774,23 @@ export class ProjectDocumentedSourceController {
           createdBy: userId,
         }),
       );
-      const existingMembership = await membershipRepository.findOne({ where: { projectId, sourceId, resourceId: reference.resourceId } });
-      if (!existingMembership) await membershipRepository.save(membershipRepository.create({ projectId, sourceId, resourceId: reference.resourceId, createdBy: userId }));
+      const existingMembership = await membershipRepository.findOne({
+        where: {
+          projectId,
+          sourceId,
+          resourceId: reference.resourceId,
+        },
+      });
+      if (!existingMembership) {
+        await membershipRepository.save(
+          membershipRepository.create({
+            projectId,
+            sourceId,
+            resourceId: reference.resourceId,
+            createdBy: userId,
+          }),
+        );
+      }
       return savedReference;
     });
   }
@@ -825,7 +864,11 @@ export class ProjectDocumentedSourceController {
       reference.sourceId = targetSourceId;
       const savedReference = await referenceRepository.save(reference);
       const targetMembership = await membershipRepository.findOne({
-        where: { projectId, sourceId: targetSourceId, resourceId: reference.resourceId },
+        where: {
+          projectId,
+          sourceId: targetSourceId,
+          resourceId: reference.resourceId,
+        },
       });
       if (!targetMembership) {
         await membershipRepository.save(
@@ -860,8 +903,12 @@ export class ProjectDocumentedSourceController {
     await this.validateProcess(projectId, resourceId);
 
     return this.dataSource.transaction(async (manager) => {
-      const sourceRepository = manager.getRepository(ProjectDocumentedSourceTypeOrmEntity);
-      const membershipRepository = manager.getRepository(ProjectDocumentedSourceProcessTypeOrmEntity);
+      const sourceRepository = manager.getRepository(
+        ProjectDocumentedSourceTypeOrmEntity,
+      );
+      const membershipRepository = manager.getRepository(
+        ProjectDocumentedSourceProcessTypeOrmEntity,
+      );
       const source = await sourceRepository.findOne({
         where: { id: sourceId, projectId, mergedIntoId: IsNull() },
         lock: { mode: 'pessimistic_write' },
@@ -872,7 +919,12 @@ export class ProjectDocumentedSourceController {
       });
       if (existing) return existing;
       return membershipRepository.save(
-        membershipRepository.create({ projectId, sourceId, resourceId, createdBy: userId }),
+        membershipRepository.create({
+          projectId,
+          sourceId,
+          resourceId,
+          createdBy: userId,
+        }),
       );
     });
   }
@@ -903,7 +955,9 @@ export class ProjectDocumentedSourceController {
     const membership = await this.sourceProcesses.findOne({
       where: { projectId, sourceId, resourceId },
     });
-    if (!membership) throw new NotFoundException('Process membership not found');
+    if (!membership) {
+      throw new NotFoundException('Process membership not found');
+    }
     await this.sourceProcesses.delete({ id: membership.id });
     return { removed: true, sourceId, resourceId };
   }
@@ -1084,7 +1138,11 @@ export class ProjectDocumentedSourceController {
       });
       for (const membership of sourceMemberships) {
         const existingMembership = await membershipRepository.findOne({
-          where: { projectId, sourceId: targetId, resourceId: membership.resourceId },
+          where: {
+            projectId,
+            sourceId: targetId,
+            resourceId: membership.resourceId,
+          },
         });
         if (!existingMembership) {
           await membershipRepository.save(
