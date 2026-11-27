@@ -15,7 +15,7 @@ test('documented information table keeps the validated column order', async () =
     "headerName: 'Type'",
     "textColumn('description', 'Description'",
     "headerName: 'Données personnelles'",
-    "headerName: 'Objet BPMN'",
+    "headerName: 'Association BPMN'",
     "textColumn('link', 'Lien'",
     "textColumn('location', 'Emplacement'",
     "textColumn('access', 'Accès'",
@@ -62,11 +62,11 @@ test('a documented information row can be created before it has a BPMN associati
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
   const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
 
-  assert.match(inventory, /const addRow = \(\) =>/);
-  assert.match(inventory, /const id = `new-\$\{Date\.now\(\)\}`/);
-  assert.match(inventory, /setSources\(current => \[\.\.\.current, emptySource\(id, resourceId\)\]\)/);
-  assert.match(inventory, /if \(row\.id\.startsWith\('new-'\)\)/);
-  assert.match(inventory, /apiClient\.post\(\`\/projects\/\$\{projectId\}\/documented-sources\`, payload\)/);
+  assert.match(inventory, /const addSource = async \(\) =>/);
+  assert.match(inventory, /apiClient\.post\(\`\/projects\/\$\{projectId\}\/documented-sources\`, \{/);
+  assert.match(inventory, /La fiche sera ajoutée au référentiel du projet et rattachée à ce processus/);
+  assert.match(inventory, /Son association à un élément BPMN est facultative/);
+  assert.match(inventory, /Créer une information documentée dans ce processus/);
   assert.match(controller, /const hasReferenceFields = Boolean\(/);
   assert.match(controller, /const reference = hasReferenceFields/);
   assert.match(controller, /if \(!reference\) return \{ \.\.\.source, references: \[\] \}/);
@@ -74,7 +74,7 @@ test('a documented information row can be created before it has a BPMN associati
 
 test('unlinked BPMN objects remain available directly in the association column', async () => {
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
-  assert.match(inventory, /placeholder="Associer un objet BPMN…"/);
+  assert.match(inventory, /placeholder="Associer un Data Object \/ Data Store…"/);
   assert.match(inventory, /unlinkedReferences\.map\(item =>/);
   assert.match(inventory, /const associate = async/);
   assert.match(inventory, /objet\(s\) BPMN disponible\(s\) pour une association dans ce processus/);
@@ -86,7 +86,7 @@ test('BPMN associations support data objects and data stores in the active proce
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
   const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
 
-  assert.match(inventory, /filter\(reference => reference\.resourceId === resourceId\)/);
+  assert.match(inventory, /filter\(reference => reference\.resourceId === resourceId && isSupportedBpmnDataType\(reference\.elementType\)\)/);
   assert.match(inventory, /unlinkedReferences\.find\(item => item\.elementId === elementId\)/);
   assert.match(inventory, /elementType: reference\.elementType/);
   assert.match(inventory, /type BpmnDataType = 'dataObjectReference' \| 'dataStoreReference'/, 'legacy data-object links remain displayable');
@@ -143,7 +143,7 @@ test('BPMN associations may cross process boundaries while the documented source
   assert.doesNotMatch(controller, /target\.resourceId !== reference\.resourceId/);
   assert.ok(controller.includes('await this.validateReference(projectId, body)'));
   assert.ok(controller.includes('Only BPMN data objects and data stores can be associated with documented sources'));
-  assert.ok(projectGrid.includes('Associer un objet BPMN du projet…'));
+  assert.ok(projectGrid.includes('Associer un Data Object / Data Store…'));
   assert.ok(projectGrid.includes('Ajouter à un processus…'));
   assert.ok(controller.includes("@Post(':sourceId/processes')"));
   assert.ok(controller.includes("@Delete(':sourceId/processes/:resourceId')"));
