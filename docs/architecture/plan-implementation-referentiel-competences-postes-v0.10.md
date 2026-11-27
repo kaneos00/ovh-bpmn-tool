@@ -121,7 +121,7 @@ Les points suivants sont des besoins à concevoir et valider avant d’écrire l
 - rendre la compétence indépendante d’un bloc ;
 - introduire les quatre familles exclusives, dont Fonctionnelle ;
 - déplacer le niveau attendu de la définition globale vers les associations ;
-- créer ou clarifier le modèle des quatre blocs de missions de fiche de poste ;
+- créer ou clarifier le modèle des responsabilités (quatre au maximum) et de leurs activités (quatre au maximum par responsabilité) ;
 - créer les associations bloc de missions ↔ compétence avec niveau attendu ;
 - créer l’association poste/fonction ↔ compétence transversale avec niveau attendu ;
 - définir les règles de suppression, désactivation, réactivation et conservation des associations ;
@@ -137,7 +137,7 @@ La migration peut être destructive pour les données de compétences de la base
 
 1. **Modèle et stratégie de remplacement** : valider la séparation compétence globale / blocs de compétences projet / blocs de missions, puis inventorier les dépendances à préserver.
 2. **Référentiel des compétences** : modèle, API CRUD, contrôle anti-doublon, désactivation et tests.
-3. **Fiche de poste** : quatre blocs, activités, associations compétences/niveaux et compétences transversales.
+3. **Fiche de poste** : jusqu'à quatre responsabilités, leurs activités, associations compétences/niveaux et compétences transversales.
 4. **Liste des postes** : liaison explicite vers la fiche de référence et accès à la fiche consultable.
 5. **Intégration UI** : réutiliser le DataGrid commun validé ; ne pas réimplémenter tri, sélection, ordre des colonnes ou sélecteur de champs.
 6. **Validation** : tests backend, migrations sur base représentative, tests UI des parcours et CI.
@@ -178,7 +178,7 @@ La remise à zéro de la base de test porte sur les définitions de compétences
 - Nouveau catalogue global avec code unique et quatre familles.
 - Nouvelle liaison compétence ↔ bloc projet.
 - Exigences individuelles projet recréées après la migration ; niveaux portés par ces associations.
-- Tables des quatre blocs de missions et de leurs activités/compétences créées séparément.
+- Tables des responsabilités (quatre au maximum) et de leurs activités/compétences créées séparément.
 - Sauvegarde de la base de test, garde anti-production, migration, tests backend/frontend puis CI.
 
 
