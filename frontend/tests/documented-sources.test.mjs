@@ -150,7 +150,7 @@ test('saving a BPMN process synchronizes newly added data stores into the projec
   const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
 
   assert.ok(modelerHook.includes('useActiveProject()'));
-  assert.ok(modelerHook.includes('projectProcessIds.has(resourceId)'));
+  assert.ok(modelerHook.includes('process.resourceId === resourceId'));
   assert.ok(modelerHook.includes("projectId: documentedSourcesProjectId ?? ''"));
   assert.ok(modelerAction.includes('/documented-sources/synchronize'));
   assert.ok(modelerAction.includes("['project-documented-sources', projectId]"));
