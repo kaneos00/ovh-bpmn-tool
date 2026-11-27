@@ -13,6 +13,7 @@ import { ProjectRaciEntryTypeOrmEntity } from './infrastructure/entities/project
 import { ProjectRaciActorTypeOrmEntity } from './infrastructure/entities/projectRaciActor.ormEntity';
 import { ProjectDocumentedSourceTypeOrmEntity } from './infrastructure/entities/projectDocumentedSource.ormEntity';
 import { ProjectDocumentedSourceReferenceTypeOrmEntity } from './infrastructure/entities/projectDocumentedSourceReference.ormEntity';
+import { ProjectDocumentedSourceProcessTypeOrmEntity } from './infrastructure/entities/projectDocumentedSourceProcess.ormEntity';
 import { ProcessChangeProposalTypeOrmEntity } from './infrastructure/entities/processChangeProposal.ormEntity';
 import { ProcessChangeProposalEventTypeOrmEntity } from './infrastructure/entities/processChangeProposalEvent.ormEntity';
 import { ProcessChangeProposalCommentTypeOrmEntity } from './infrastructure/entities/processChangeProposalComment.ormEntity';
@@ -30,6 +31,7 @@ import { ProjectResourceAccessService } from './projectResourceAccess.service';
       ProjectRaciActorTypeOrmEntity,
       ProjectDocumentedSourceTypeOrmEntity,
       ProjectDocumentedSourceReferenceTypeOrmEntity,
+      ProjectDocumentedSourceProcessTypeOrmEntity,
       ProcessChangeProposalTypeOrmEntity,
       ProcessChangeProposalEventTypeOrmEntity,
       ProcessChangeProposalCommentTypeOrmEntity,
