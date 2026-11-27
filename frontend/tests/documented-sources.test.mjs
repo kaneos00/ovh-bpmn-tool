@@ -160,7 +160,7 @@ test('saving a BPMN process synchronizes newly added data stores into the projec
   assert.ok(modelerAction.includes("['project-documented-sources', projectId]"));
   assert.ok(controller.includes("@Post('synchronize')"));
   assert.ok(controller.includes('extractBpmnDataElements('));
-  assert.ok(controller.includes("kind: element.elementType === 'dataStoreReference' ? 'database' : 'file'"));
+  assert.match(controller, /kind:\\s*element\\.elementType === 'dataStoreReference'\\s*\\?\\s*'database'\\s*:\\s*'file'/);
   assert.ok(controller.includes('elementType: element.elementType'));
   assert.ok(controller.includes('if (existing) return false'));
   assert.ok(controller.includes('pg_advisory_xact_lock'));
