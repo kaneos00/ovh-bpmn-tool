@@ -49,7 +49,7 @@ type BpmnDataElement = {
   elementId: string;
   elementName: string;
   elementType: string;
-  description: string;
+  bpmnDescription: string;
   link: string;
   location: string;
   access: string;
@@ -216,10 +216,9 @@ export const extractBpmnDataElements = (
         elementId,
         elementName,
         elementType: key,
-        description:
+        bpmnDescription:
           collectXmlText(node.documentation) ||
           referencedDetails?.description ||
-          metadata.description ||
           '',
         link:
           readAttribute(node, 'link') ||
@@ -378,6 +377,7 @@ export class ProjectDocumentedSourceController {
         elementId: reference.elementId,
         elementName: currentElement?.elementName ?? reference.elementName,
         elementType: reference.elementType,
+        bpmnDescription: currentElement?.bpmnDescription ?? '',
       });
       referencesBySource.set(reference.sourceId, rows);
     });
@@ -505,7 +505,7 @@ export class ProjectDocumentedSourceController {
                 ? 'database'
                 : 'file',
             name: elementName,
-            description: optionalText(element.description, 'description'),
+            description: null,
             link: optionalText(element.link, 'link'),
             location: optionalText(element.location, 'location'),
             access: optionalText(element.access, 'access'),
