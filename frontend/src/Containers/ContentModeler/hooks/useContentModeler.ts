@@ -51,10 +51,16 @@ export const useContentModeler = (
     enabled: enabled && Boolean(proposalId && requestedContentId),
   });
   const { resource } = useResource(resourceId, enabled);
-  const { activeProjectId, projectProcessIds } = useActiveProject();
-  const documentedSourcesProjectId = projectProcessIds.has(resourceId)
-    ? activeProjectId
-    : null;
+  const { projects, activeProjectId } = useActiveProject();
+  const documentedSourcesProjectId = (
+    projects.find(project =>
+      project.id === activeProjectId &&
+      project.processes.some(process => process.resourceId === resourceId),
+    ) ??
+    projects.find(project =>
+      project.processes.some(process => process.resourceId === resourceId),
+    )
+  )?.id ?? null;
   const sourceResourceId = resource?.sourceResourceId ?? undefined;
   const { data: sourceContents } = useQuery({
     ...contentsQuery(sourceResourceId ?? ''),
