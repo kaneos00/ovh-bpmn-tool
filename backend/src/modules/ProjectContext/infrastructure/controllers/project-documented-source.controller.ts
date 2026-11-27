@@ -416,7 +416,7 @@ export class ProjectDocumentedSourceController {
           ...source,
           processName: requestedResourceId
             ? (resourceById.get(requestedResourceId)?.name ??
-                requestedResourceId)
+              requestedResourceId)
             : (sourceProcesses[0]?.processName ?? null),
           processes: sourceProcesses,
           references: referencesBySource.get(source.id) ?? [],
@@ -629,7 +629,12 @@ export class ProjectDocumentedSourceController {
       );
       if (resourceId) {
         await membershipRepository.save(
-          membershipRepository.create({ projectId, sourceId: source.id, resourceId, createdBy: userId }),
+          membershipRepository.create({
+            projectId,
+            sourceId: source.id,
+            resourceId,
+            createdBy: userId,
+          }),
         );
       }
       if (!reference) return { ...source, references: [] };
