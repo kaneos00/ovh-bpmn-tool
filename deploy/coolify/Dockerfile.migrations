@@ -21,3 +21,5 @@ COPY backend/migrations/20261117_v3_process_metadata.sql /opt/migrations/2026111
 COPY backend/migrations/20261118_v3_project_documented_source_validity.sql /opt/migrations/20261118_v3_project_documented_source_validity.sql
 COPY backend/migrations/20261126_v3_project_folders.sql /opt/migrations/20261126_v3_project_folders.sql
 COPY backend/migrations/20261126_v3_documented_source_process_ownership.sql /opt/migrations/20261126_v3_documented_source_process_ownership.sql
+
+COPY backend/migrations/20261127_v3_project_level_documented_sources.sql /opt/migrations/20261127_v3_project_level_documented_sources.sql
