@@ -28,11 +28,9 @@ Les processus BPMN viennent se rattacher aux activités et responsabilités conc
 
 # 2. Le point essentiel : ne pas confondre responsabilité et activité BPMN
 
-Il faut maintenir deux référentiels distincts, mais reliés.
+Il faut maintenir un **référentiel unique d'activités organisationnelles**, relié aux représentations BPMN.
 
-**Le référentiel organisationnel** décrit ce que l'entreprise doit faire et qui en porte la responsabilité.
-
-**Le référentiel des processus** décrit comment le travail est effectivement réalisé.
+L'activité organisationnelle décrit ce qui doit être réalisé dans l'organisation. Les éléments BPMN décrivent comment le travail est effectivement réalisé dans un ou plusieurs processus. Une même activité de référence peut donc être reliée à plusieurs tâches ou activités BPMN, sans recopier sa définition dans chaque processus.
 
 Prenons un exemple.
 
