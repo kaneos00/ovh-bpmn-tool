@@ -1083,7 +1083,8 @@ test('project documented information uses canonical sources and retains the proj
   assert.doesNotMatch(inventory, /Statut projet|projectStatus|À compléter/);
   assert.ok(inventory.includes('handleCellChange'));
   assert.ok(inventory.includes('onElementSelect?.(reference.elementId)'));
-  assert.doesNotMatch(inventory, /XMLSerializer|onSave|inventory:manifest/, 'documented source metadata is not written back into BPMN XML');
+  assert.doesNotMatch(inventory, /XMLSerializer|inventory:manifest/, 'fiche metadata stays outside BPMN XML');
+  assert.ok(inventory.includes('onSaveBpmnDescription'), 'only the dedicated BPMN description is synchronized with the diagram');
 
   assert.ok(details.includes("canManageSources={projectForProcess?.role === 'admin'}"));
   assert.ok(details.includes("canEdit={projectForProcess?.role === 'admin'}"));
