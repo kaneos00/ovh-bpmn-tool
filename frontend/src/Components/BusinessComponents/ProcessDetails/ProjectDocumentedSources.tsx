@@ -20,8 +20,6 @@ type GridRow = {
 };
 
 const kindLabels: Record<SourceKind, string> = { file: 'Fichier', database: 'Base de données', application: 'Application' };
-const isSupportedBpmnDataType = (type: string) => type === 'dataObjectReference' || type === 'dataStoreReference';
-const objectIcon = (type: string) => type === 'dataStoreReference' ? <StorageRounded fontSize="small" /> : <DescriptionOutlined fontSize="small" />;
 const kindIcon = (kind: SourceKind) => {
   if (kind === 'database') return <StorageRounded fontSize="small" />;
   if (kind === 'application') return <AppsRounded fontSize="small" />;
