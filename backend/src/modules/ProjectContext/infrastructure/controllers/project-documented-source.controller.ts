@@ -277,7 +277,7 @@ export class ProjectDocumentedSourceController {
       this.projectProcesses.find({ where: { projectId } }),
     ]);
     const sources = requestedResourceId
-      ? allSources.filter((source) => source.resourceId === requestedResourceId)
+      ? allSources.filter((source) => references.some((reference) => reference.sourceId === source.id && reference.resourceId === requestedResourceId))
       : allSources;
 
     const linkedResourceIds = [
@@ -386,8 +386,6 @@ export class ProjectDocumentedSourceController {
     return {
       sources: sources.map((source) => ({
         ...source,
-        processName:
-          resourceById.get(source.resourceId)?.name ?? source.resourceId,
         references: referencesBySource.get(source.id) ?? [],
       })),
       processes: links
