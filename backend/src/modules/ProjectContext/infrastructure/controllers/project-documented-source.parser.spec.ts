@@ -1,4 +1,6 @@
 import { extractBpmnDataElements } from './project-documented-source.controller';
+import { ProjectDocumentedSourceTypeOrmEntity } from '../entities/projectDocumentedSource.ormEntity';
+import { ProjectDocumentedSourceReferenceTypeOrmEntity } from '../entities/projectDocumentedSourceReference.ormEntity';
 
 describe('extractBpmnDataElements', () => {
   it('recovers documented metadata from BPMN data references and legacy source extensions', () => {
