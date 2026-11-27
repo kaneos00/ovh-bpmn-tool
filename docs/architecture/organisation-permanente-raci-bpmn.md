@@ -161,3 +161,20 @@ La page d'accueil des projets présente désormais un bloc « Mon organisation &
 - Pas de gestion RH complète, paie, rémunération, évaluations ou données sensibles.
 - Pas de synchronisation SIRH.
 - Pas de modification du viewer BPMN, des XML BPMN ou des tables sources RACI.
+
+
+## 11. Complément de cadrage métier — décisions du 27 novembre 2026
+
+Les règles fonctionnelles consolidées sont décrites dans [le modèle organisationnel responsabilités/activités](../functional/modele-organisation-responsabilites-activites.md), section 10. Elles prévalent sur les hypothèses techniques de ce document lorsqu'une divergence est identifiée.
+
+Points à prendre en compte lors de la prochaine évolution du modèle :
+
+- La structure permanente à représenter est, à ce stade, **Directions → Postes → Titulaires**. Les services/unités intermédiaires ne sont pas imposés dans le cadrage actuel.
+- Le titulaire structurel d'un poste doit être distingué des personnes qui réalisent opérationnellement ses responsabilités. Une personne peut réaliser tout ou partie des responsabilités d'un poste et contribuer à plusieurs postes ; le modèle ne doit donc pas assimiler titulaire et unique exécutant.
+- Il faut distinguer l'affectation structurelle à un poste de l'affectation opérationnelle à tout ou partie de ses responsabilités/activités. Le modèle actuel OrganizationAssignment ne suffit pas, à lui seul, à décrire cette seconde relation.
+- La responsabilité organisationnelle du poste reste distincte des rôles RACI contextuels. Aucun RACI ne doit être généré automatiquement depuis le poste.
+- La correspondance activité organisationnelle ↔ élément BPMN doit permettre la réutilisation d'une même activité de référence dans plusieurs processus ; plusieurs éléments BPMN peuvent donc référencer la même activité.
+- Le nombre de responsabilités par poste et d'activités par responsabilité est un maximum de quatre, non une obligation de remplir quatre emplacements.
+- La relation entre fonction-type, poste et fiche de poste reste explicitement **à arbitrer** ; ne pas la figer par anticipation dans les écrans ou migrations.
+
+Ce complément est un cadrage fonctionnel. Il ne prétend pas décrire des capacités déjà implémentées : les écarts avec le schéma et les API existants doivent être audités avant développement.
