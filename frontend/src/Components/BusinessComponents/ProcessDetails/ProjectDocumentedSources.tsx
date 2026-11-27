@@ -34,8 +34,6 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [adding, setAdding] = useState(false);
-  const [selectedReference, setSelectedReference] = useState<string | null>(null);
-  const [selectedProcessId, setSelectedProcessId] = useState('');
   const [newName, setNewName] = useState('');
   const [newKind, setNewKind] = useState<SourceKind>('file');
   const [error, setError] = useState('');
@@ -84,7 +82,6 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
         kind: newKind,
       });
       setAdding(false);
-      setSelectedReference(null);
       setNewName('');
       setNewKind('file');
       setError('');
@@ -119,7 +116,8 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
       <Box><Typography level="title-lg">Informations documentées</Typography><Typography level="body-sm" color="neutral">Référentiel documentaire central du projet, lié aux objets et magasins de données BPMN.</Typography></Box>
       {canManage && <Stack direction="row" spacing={1}>
-        {selectedMergeIds.length >= 2 && rows.filter(row => selectedMergeIds.includes(row.sourceId)).every(row => row.resourceId === rows.find(candidate => candidate.sourceId === selectedMergeIds[0])?.resourceId) && <Button size="sm" variant="outlined" onClick={() => { const selected = rows.filter(row => selectedMergeIds.includes(row.sourceId)); setMergeName(selected[0]?.name ?? ''); setMergeDescription(selected[0]?.description ?? ''); setMergeDialogOpen(true); }}>Fusionner ({selectedMergeIds.length})</Button>}
+        <Button size="sm" onClick={() => setAdding(true)}>Ajouter une information documentée</Button>
+        {selectedMergeIds.length >= 2 && <Button size="sm" variant="outlined" onClick={() => { const selected = rows.filter(row => selectedMergeIds.includes(row.sourceId)); setMergeName(selected[0]?.name ?? ''); setMergeDescription(selected[0]?.description ?? ''); setMergeDialogOpen(true); }}>Fusionner ({selectedMergeIds.length})</Button>}
       </Stack>}
     </Stack>
     {error && <Alert color="danger" variant="soft">{error}</Alert>}
