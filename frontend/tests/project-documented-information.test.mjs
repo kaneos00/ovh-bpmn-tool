@@ -12,7 +12,7 @@ test('project workspace restores the central documented information tab', async 
   const registry = await read('src/Components/BusinessComponents/ProcessDetails/ProjectDocumentedSources.tsx');
   assert.match(overview, /<Tab value="documented">Informations documentées<\/Tab>/);
   assert.match(overview, /<ProjectDocumentedSources projectId=\{activeProjectId!\}/);
-  for (const column of ['Nom', 'Origine', 'Type', 'Description', 'Objet BPMN', 'Lien', 'Emplacement', 'Accès', 'Durée de conservation', 'Date limite de validité', 'Données personnelles', 'Personnes autorisées', 'Restrictions']) {
+  for (const column of ['Nom', 'Processus', 'Type', 'Description', 'Objet BPMN', 'Lien', 'Emplacement', 'Accès', 'Durée de conservation', 'Date limite de validité', 'Données personnelles', 'Personnes autorisées', 'Restrictions']) {
     assert.ok(registry.includes(`headerName: '${column}'`), `missing column ${column}`);
   }
   assert.doesNotMatch(registry, /Statut projet/);
@@ -20,6 +20,8 @@ test('project workspace restores the central documented information tab', async 
   assert.match(registry, /onCellValueChanged/);
   assert.match(registry, /Ajouter une information documentée/);
   assert.match(registry, /source\.processes/);
+  assert.match(registry, /Ajouter à un processus/);
+  assert.match(registry, /documented-sources\/\$\{p\.data!.sourceId\}\/processes/);
   assert.doesNotMatch(registry, /Objets BPMN non encore inscrits au référentiel/, 'unlinked BPMN objects are available from the add dialog, not a second list');
   assert.match(registry, /resourceId: ref\.resourceId/);
   assert.match(registry, /elementType: ref\.elementType/);
