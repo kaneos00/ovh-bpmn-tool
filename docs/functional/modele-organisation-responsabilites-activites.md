@@ -237,3 +237,72 @@ Il y a deux façons de concevoir les quatre responsabilités de chaque poste :
 Je privilégierais nettement **l'option A**, avec les responsabilités adaptées à chaque poste. Les fonctions de management, de pilotage et de contrôle sont intégrées lorsqu'elles correspondent réellement à sa mission.
 
 Cela évite d'avoir des fiches de poste artificiellement standardisées et permet de conserver une organisation lisible.
+
+
+---
+
+# 10. Décisions de cadrage consolidées — 27 novembre 2026
+
+Cette section consigne les décisions prises après revue croisée de la documentation. En cas de divergence avec les formulations antérieures de ce document, les règles ci-dessous prévalent pour le cadrage fonctionnel. Les conséquences sur le modèle technique doivent être instruites avant toute évolution de code.
+
+## 10.1 Nombre de responsabilités et d'activités
+
+- Un poste comporte **au maximum quatre responsabilités**. Il n'est pas obligatoire d'en définir quatre.
+- Chaque responsabilité comporte **au maximum quatre activités**. Il n'est pas obligatoire d'en définir quatre.
+- Une fiche peut donc comporter un, deux, trois ou quatre éléments selon le contenu réel du poste. Aucun bloc artificiel ne doit être ajouté pour atteindre un quota.
+
+Cette décision remplace toute formulation antérieure imposant exactement quatre blocs de missions.
+
+## 10.2 Point à arbitrer ultérieurement : fonction-type, poste et fiche de poste
+
+**Statut : non tranché — décision volontairement reportée.**
+
+La documentation décrit à la fois des fonctions-types mutualisables, des postes concrets dans l'organisation et des fiches de poste. Elle ne permet pas encore de déterminer définitivement :
+
+- si plusieurs postes peuvent partager une même fonction-type ;
+- si la fiche de poste est une déclinaison de cette fonction-type ou la description propre de chaque poste ;
+- jusqu'où un poste peut adapter les responsabilités et activités de la fonction-type sans créer une nouvelle fonction.
+
+Aucune règle d'héritage, de copie ou de personnalisation ne doit être considérée comme définitivement décidée à ce stade. Ce point devra faire l'objet d'un arbitrage fonctionnel explicite avant de figer le modèle de données et les écrans concernés.
+
+## 10.3 Activité organisationnelle et activité BPMN
+
+Le cadrage retient **un référentiel unique d'activités organisationnelles**, sans créer un second catalogue parallèle de tâches.
+
+L'objectif est de faire correspondre une activité organisationnelle à une activité représentée dans BPMN (par exemple une tâche ou un sous-processus), avec un lien explicite et stable. Il ne faut pas imposer une correspondance strictement un-à-un à l'échelle de tous les processus : une même activité organisationnelle peut être mise en œuvre dans plusieurs processus et donc être représentée par plusieurs éléments BPMN. Ces éléments renvoient alors à la même activité de référence.
+
+Réciproquement, si un élément BPMN couvre plusieurs activités organisationnelles réellement distinctes, il faudra soit le décomposer dans le processus, soit documenter explicitement cette pluralité plutôt que de créer une équivalence artificielle.
+
+La granularité devra être cohérente : une activité organisationnelle doit être suffisamment précise pour être identifiable dans le travail décrit par BPMN, sans descendre au niveau de chaque micro-action. Le rattachement entre l'activité de référence et l'élément BPMN est explicite ; il ne repose pas uniquement sur la similarité des libellés.
+
+## 10.4 Responsabilité permanente et RACI
+
+- La responsabilité organisationnelle est portée par un **poste** : elle désigne le domaine dont ce poste est redevable.
+- Le RACI décrit les rôles opérationnels dans un processus ou un projet donné.
+- Le RACI ne remplace pas la définition des responsabilités du poste.
+- Les responsabilités du poste ne génèrent pas automatiquement les entrées RACI.
+- Les correspondances entre postes, activités BPMN et acteurs RACI sont explicites et contrôlables, sans déduction automatique.
+
+## 10.5 Structure permanente : directions, postes et titulaires
+
+Le niveau de structure retenu pour le cadrage est volontairement simple :
+
+- **Directions** : unités de rattachement de l'organisation permanente ;
+- **Postes** : positions stables, indépendantes des personnes ;
+- **Titulaires** : personnes occupant structurellement un poste, avec une affectation datée et historisée.
+
+Les services et unités intermédiaires ne sont pas imposés dans ce cadrage. Ils pourront être introduits ultérieurement si un besoin réel le justifie. La hiérarchie et le rattachement des postes doivent rester lisibles sans créer artificiellement des postes pour représenter des regroupements.
+
+Il faut distinguer strictement le titulaire d'un poste et les personnes qui réalisent effectivement ses responsabilités ou activités :
+
+- le titulaire est le rattachement structurel du poste ;
+- une personne peut réaliser **toutes ou seulement une partie** des responsabilités d'un poste, sans en être nécessairement le titulaire ;
+- une responsabilité ou une activité peut être réalisée par plusieurs personnes ;
+- une personne peut contribuer aux responsabilités de plusieurs postes ;
+- une personne peut être titulaire d'un poste et contribuer opérationnellement à des responsabilités d'autres postes.
+
+Le modèle devra donc distinguer l'**affectation structurelle au poste** de l'**affectation opérationnelle aux responsabilités/activités**. Cette dernière doit permettre de préciser le périmètre confié à la personne, sans supposer qu'elle reprend automatiquement l'intégralité du poste. Les règles de quotité ou de charge pourront être ajoutées si elles sont nécessaires à l'analyse de capacité ; elles ne sont pas présumées obligatoires pour décrire une affectation.
+
+## 10.6 Conséquence pour la suite
+
+Ces décisions stabilisent le vocabulaire et les principes métier, mais ne valent pas validation de l'architecture technique V0.10 existante. Avant toute implémentation, il faudra comparer les entités et contraintes techniques actuelles à ces règles, identifier les écarts, puis proposer les adaptations nécessaires sans faire disparaître les données existantes.
