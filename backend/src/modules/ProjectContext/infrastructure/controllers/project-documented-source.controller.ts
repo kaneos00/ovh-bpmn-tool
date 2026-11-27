@@ -23,6 +23,7 @@ import { ProjectMemberRole } from '../entities/projectMember.ormEntity';
 import { ProjectProcessTypeOrmEntity } from '../entities/projectProcess.ormEntity';
 import { ProjectDocumentedSourceTypeOrmEntity } from '../entities/projectDocumentedSource.ormEntity';
 import { ProjectDocumentedSourceReferenceTypeOrmEntity } from '../entities/projectDocumentedSourceReference.ormEntity';
+import { ProjectDocumentedSourceProcessTypeOrmEntity } from '../entities/projectDocumentedSourceProcess.ormEntity';
 import { ProjectResourceAccessService } from '../../projectResourceAccess.service';
 
 type RequestHeaders = Record<string, string | undefined>;
@@ -250,6 +251,8 @@ export class ProjectDocumentedSourceController {
     private readonly sources: Repository<ProjectDocumentedSourceTypeOrmEntity>,
     @InjectRepository(ProjectDocumentedSourceReferenceTypeOrmEntity)
     private readonly references: Repository<ProjectDocumentedSourceReferenceTypeOrmEntity>,
+    @InjectRepository(ProjectDocumentedSourceProcessTypeOrmEntity)
+    private readonly sourceProcesses: Repository<ProjectDocumentedSourceProcessTypeOrmEntity>,
   ) {}
 
   @Get()
@@ -265,7 +268,7 @@ export class ProjectDocumentedSourceController {
       ProjectMemberRole.Viewer,
       { allowOrganizationAdmin: true },
     );
-    const [allSources, references, links] = await Promise.all([
+    const [allSources, references, links, memberships] = await Promise.all([
       this.sources.find({
         where: { projectId, mergedIntoId: IsNull() },
         order: { name: 'ASC' },
@@ -275,11 +278,16 @@ export class ProjectDocumentedSourceController {
         order: { createdAt: 'ASC' },
       }),
       this.projectProcesses.find({ where: { projectId } }),
+      this.sourceProcesses.find({ where: { projectId } }),
     ]);
     const sources = requestedResourceId
       ? allSources.filter(
           (source) =>
-            source.resourceId === requestedResourceId ||
+            memberships.some(
+              (membership) =>
+                membership.sourceId === source.id &&
+                membership.resourceId === requestedResourceId,
+            ) ||
             references.some(
               (reference) =>
                 reference.sourceId === source.id &&
@@ -392,13 +400,23 @@ export class ProjectDocumentedSourceController {
     });
 
     return {
-      sources: sources.map((source) => ({
-        ...source,
-        processName: source.resourceId
-          ? resourceById.get(source.resourceId)?.name ?? source.resourceId
-          : null,
-        references: referencesBySource.get(source.id) ?? [],
-      })),
+      sources: sources.map((source) => {
+        const sourceProcesses = memberships
+          .filter((membership) => membership.sourceId === source.id)
+          .map((membership) => ({
+            resourceId: membership.resourceId,
+            processName:
+              resourceById.get(membership.resourceId)?.name ?? membership.resourceId,
+          }));
+        return {
+          ...source,
+          processName: requestedResourceId
+            ? resourceById.get(requestedResourceId)?.name ?? requestedResourceId
+            : sourceProcesses[0]?.processName ?? null,
+          processes: sourceProcesses,
+          references: referencesBySource.get(source.id) ?? [],
+        };
+      }),
       processes: links
         .map((link) => ({
           resourceId: link.resourceId,
@@ -460,6 +478,9 @@ export class ProjectDocumentedSourceController {
         const referenceRepository = manager.getRepository(
           ProjectDocumentedSourceReferenceTypeOrmEntity,
         );
+        const membershipRepository = manager.getRepository(
+          ProjectDocumentedSourceProcessTypeOrmEntity,
+        );
         const existing = await referenceRepository.findOne({
           where: {
             projectId,
@@ -472,7 +493,6 @@ export class ProjectDocumentedSourceController {
         const source = await sourceRepository.save(
           sourceRepository.create({
             projectId,
-            resourceId,
             createdBy: userId,
             kind: element.elementType === 'dataStoreReference' ? 'database' : 'file',
             name: elementName,
@@ -500,6 +520,9 @@ export class ProjectDocumentedSourceController {
             elementType: element.elementType,
             createdBy: userId,
           }),
+        );
+        await membershipRepository.save(
+          membershipRepository.create({ projectId, sourceId: source.id, resourceId, createdBy: userId }),
         );
         return true;
       });
@@ -551,6 +574,9 @@ export class ProjectDocumentedSourceController {
       const referenceRepository = manager.getRepository(
         ProjectDocumentedSourceReferenceTypeOrmEntity,
       );
+      const membershipRepository = manager.getRepository(
+        ProjectDocumentedSourceProcessTypeOrmEntity,
+      );
       if (reference) {
         const existing = await referenceRepository.findOne({
           where: {
@@ -568,7 +594,6 @@ export class ProjectDocumentedSourceController {
       const source = await sourceRepository.save(
         sourceRepository.create({
           projectId,
-          resourceId: resourceId || null,
           createdBy: userId,
           kind,
           name,
@@ -589,6 +614,11 @@ export class ProjectDocumentedSourceController {
           restrictions: optionalText(body.restrictions, 'restrictions'),
         }),
       );
+      if (resourceId) {
+        await membershipRepository.save(
+          membershipRepository.create({ projectId, sourceId: source.id, resourceId, createdBy: userId }),
+        );
+      }
       if (!reference) return { ...source, references: [] };
       const sourceReference = await referenceRepository.save(
         referenceRepository.create({
@@ -598,6 +628,10 @@ export class ProjectDocumentedSourceController {
           createdBy: userId,
         }),
       );
+      if (resourceId) {
+        const existingMembership = await membershipRepository.findOne({ where: { projectId, sourceId: source.id, resourceId } });
+        if (!existingMembership) await membershipRepository.save(membershipRepository.create({ projectId, sourceId: source.id, resourceId, createdBy: userId }));
+      }
       return { ...source, references: [sourceReference] };
     });
   }
@@ -673,6 +707,9 @@ export class ProjectDocumentedSourceController {
       const referenceRepository = manager.getRepository(
         ProjectDocumentedSourceReferenceTypeOrmEntity,
       );
+      const membershipRepository = manager.getRepository(
+        ProjectDocumentedSourceProcessTypeOrmEntity,
+      );
       // Lock the source row so deletion cannot race with a new BPMN association.
       const source = await sourceRepository.findOne({
         where: { id: sourceId, projectId, mergedIntoId: IsNull() },
@@ -705,7 +742,7 @@ export class ProjectDocumentedSourceController {
       });
       await sourceRepository.save(source);
 
-      return referenceRepository.save(
+      const savedReference = await referenceRepository.save(
         referenceRepository.create({
           ...reference,
           projectId,
@@ -713,6 +750,9 @@ export class ProjectDocumentedSourceController {
           createdBy: userId,
         }),
       );
+      const existingMembership = await membershipRepository.findOne({ where: { projectId, sourceId, resourceId: reference.resourceId } });
+      if (!existingMembership) await membershipRepository.save(membershipRepository.create({ projectId, sourceId, resourceId: reference.resourceId, createdBy: userId }));
+      return savedReference;
     });
   }
 
