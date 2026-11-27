@@ -95,3 +95,10 @@ Les responsabilités peuvent être cumulées dans une petite équipe : par exemp
 ## Limites
 
 Ce jeu de données initialise le référentiel des fonctions et compétences, les fiches d'activités, les postes permanents, les affectations et la hiérarchie. Il ne crée pas de faux comptes supplémentaires et ne modifie pas les données RACI/BPMN existantes. Les liens entre postes projet et postes permanents restent à tester avec les associations créées depuis l'interface projet.
+
+
+## Note de portée fonctionnelle — 27 novembre 2026
+
+Ce jeu de données illustre un scénario de démonstration et les objets actuellement représentés dans l'application. Il ne tranche pas la relation métier entre fonction-type, poste et fiche de poste : ce point reste explicitement ouvert dans le [modèle organisationnel de référence](./functional/modele-organisation-responsabilites-activites.md#10-décisions-de-cadrage-consolidées--27-novembre-2026). Les fiches/fonctions présentes dans les données de démonstration ne doivent donc pas être interprétées comme une décision définitive de partage ou d'héritage.
+
+Les affectations de titulaires décrites ici sont des affectations structurelles. Elles ne signifient pas que le titulaire réalise seul toutes les responsabilités du poste ; les contributions opérationnelles partielles ou transversales relèvent d'affectations distinctes, conformément au cadrage fonctionnel.
