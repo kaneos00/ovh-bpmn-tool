@@ -23,8 +23,11 @@ test('project workspace restores the central documented information tab', async 
   assert.match(registry, /Ajouter à un processus/);
   assert.match(registry, /documented-sources\/\$\{p\.data!.sourceId\}\/processes/);
   assert.doesNotMatch(registry, /Objets BPMN non encore inscrits au référentiel/, 'unlinked BPMN objects are available from the add dialog, not a second list');
-  assert.match(registry, /resourceId: ref\.resourceId/);
-  assert.match(registry, /elementType: ref\.elementType/);
+  assert.ok(registry.includes('ref.resourceId'));
+  assert.ok(registry.includes('candidate.resourceId'));
+
+  assert.ok(registry.includes('elementType: candidate.elementType'));
+
   assert.match(registry, /navigate\(\`\/\$\{ref\.resourceId\}\?elementId=/);
 });
 
