@@ -227,7 +227,7 @@ Je ferais de ce modèle le référentiel commun entre l'organigramme, les fiches
 
 ## Une dernière question de conception
 
-Il y a deux façons de concevoir les quatre responsabilités de chaque poste :
+Il y a deux façons de concevoir les responsabilités de chaque poste (dans la limite de quatre) :
 
 - **Option A – Responsabilités métier :** elles décrivent les grands domaines dont le poste est responsable. Exemple : développer le portefeuille clients, piloter les POC, gérer les partenariats.
 - **Option B – Responsabilités de management :** elles distinguent systématiquement la stratégie, le pilotage, la réalisation et le contrôle.
