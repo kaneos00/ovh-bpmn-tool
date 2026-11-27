@@ -8,7 +8,7 @@ import { DocumentedSourcesGrid } from './DocumentedSourcesGrid';
 import { apiClient } from '../../../queryClient';
 
 type SourceKind = 'file' | 'database' | 'application';
-type SourceReference = { id: string; resourceId: string; elementId: string; elementName: string; elementType: string; processName: string };
+type SourceReference = { id: string; resourceId: string; elementId: string; elementName: string; elementType: string; processName: string; bpmnDescription: string };
 type Source = {
   id: string; processName?: string | null; processes?: { resourceId: string; processName: string }[]; kind: SourceKind | 'form'; name: string; description: string | null; link: string | null;
   location: string | null; access: string | null; retention: string | null; validUntil: string | null;
@@ -119,6 +119,31 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     },
     { headerName: 'Type', field: 'kind', minWidth: 145, editable: canManage, cellEditor: 'agSelectCellEditor', cellEditorParams: { values: ['file', 'database', 'application'] }, valueFormatter: p => kindLabels[p.value as SourceKind] ?? '', cellRenderer: (p: { value?: SourceKind }) => p.value ? <Stack direction="row" spacing={0.75} alignItems="center">{kindIcon(p.value)}<span>{kindLabels[p.value]}</span></Stack> : null },
     { headerName: 'Description', field: 'description', minWidth: 220, editable: canManage },
+    {
+      headerName: 'Description BPMN',
+      minWidth: 280,
+      sortable: false,
+      editable: false,
+      autoHeight: true,
+      cellRenderer: (p: { data?: GridRow }) => p.data ? (
+        <Stack spacing={0.75}>
+          {p.data.references.length ? p.data.references.map(ref => (
+            <Stack key={ref.id} spacing={0.25}>
+              <Typography level="body-xs" color="neutral">{ref.elementName} — {ref.processName}</Typography>
+              <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>
+                {ref.bpmnDescription || '—'}
+              </Typography>
+              {canManage && (
+                <Button size="sm" variant="plain" color="primary" sx={{ alignSelf: 'flex-start' }}
+                  onClick={() => navigate(`/${ref.resourceId}?elementId=${encodeURIComponent(ref.elementId)}`)}>
+                  Modifier dans le processus
+                </Button>
+              )}
+            </Stack>
+          )) : <Typography level="body-sm" color="neutral">Aucune association BPMN</Typography>}
+        </Stack>
+      ) : null,
+    },
     {
       headerName: 'Associations BPMN',
       minWidth: 300,
