@@ -669,6 +669,31 @@ export const ProcessDetails = ({
     };
   }, [xmlContent, selectedElementId, selectedDocumentedSource]);
 
+  const saveBpmnDescription = async (elementId: string, description: string) => {
+    if (!xmlContent || !publishedContent) throw new Error('Aucun diagramme BPMN modifiable n’est chargé.');
+    const document = new DOMParser().parseFromString(xmlContent, 'application/xml');
+    if (document.getElementsByTagName('parsererror').length > 0) throw new Error('Le contenu BPMN ne peut pas être analysé.');
+    const target = Array.from(document.getElementsByTagName('*')).find(element => element.getAttribute('id') === elementId);
+    if (!target) throw new Error('L’élément BPMN associé est introuvable.');
+    // Keep an explicit empty documentation node when the user clears the text:
+    // it prevents a fallback to documentation on the referenced Data Object/Store.
+    const nodes = Array.from(target.children).filter(child => child.localName === 'documentation');
+    let documentation = nodes[0];
+    if (!documentation) {
+      const qualifiedName = target.prefix ? `${target.prefix}:documentation` : 'documentation';
+      documentation = document.createElementNS(target.namespaceURI, qualifiedName);
+      const firstElementChild = Array.from(target.childNodes).find(node => node.nodeType === Node.ELEMENT_NODE);
+      target.insertBefore(documentation, firstElementChild ?? null);
+    }
+    documentation.textContent = description;
+    nodes.slice(1).forEach(node => node.remove());
+    await saveContent(resourceId, viewerContent?.id ?? publishedContent.id, {
+      content: new XMLSerializer().serializeToString(document),
+    });
+    await queryClient.invalidateQueries(xmlContentQuery.queryKey);
+    if (projectForProcess?.id) await queryClient.invalidateQueries(['project-documented-sources', projectForProcess.id]);
+  };
+
   const explorerRequest = explorerQuery();
   const { data: explorerData } = useQuery<ExplorerData>(
     explorerRequest.queryKey,
@@ -1826,6 +1851,7 @@ export const ProcessDetails = ({
               canManageSources={projectForProcess?.role === 'admin'}
               onElementSelect={elementId => { setActiveViewerTab(0); onElementSelect?.(elementId); }}
               onShowDiagram={() => setActiveViewerTab(0)}
+              onSaveBpmnDescription={saveBpmnDescription}
             />
           </Sheet>
         </TabPanel>
