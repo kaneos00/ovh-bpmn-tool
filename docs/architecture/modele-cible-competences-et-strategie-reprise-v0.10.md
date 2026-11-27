@@ -11,7 +11,7 @@ La base utilisée pour ce chantier est une base de test. Il n'est pas nécessair
 Deux notions doivent rester distinctes :
 
 - Les `CompetencyBlock` existants sont des conteneurs utilisés par les postes projet, les exigences de compétences et les mappings d'activités.
-- Les quatre blocs de missions d'une fiche de poste décrivent les contributions habituelles du poste.
+- Les blocs de missions, dans la limite de quatre par poste, décrivent les contributions habituelles du poste.
 
 Ces deux objets ne doivent pas être fusionnés. Les blocs de compétences projet restent disponibles tant que leurs usages projet/BPMN en ont besoin ; les blocs de missions ont leurs propres tables.
 
@@ -59,7 +59,7 @@ Tables dédiées :
 - `job_position_mission_competencies` ;
 - `job_position_transversal_competencies`.
 
-Chaque fiche comporte exactement quatre blocs de missions, codés de façon stable. Chaque bloc comporte de 1 à 4 activités descriptives et de 1 à 4 compétences. Les compétences transversales sont associées directement à la fiche en fin de fiche, sans cinquième bloc.
+Chaque fiche peut comporter jusqu'à quatre blocs de missions (maximum quatre, sans obligation de remplir les quatre). Chaque bloc peut comporter jusqu'à quatre activités (maximum quatre, sans obligation d'en définir quatre) et les compétences associées selon les règles de ce document. Les compétences transversales sont associées directement à la fiche en fin de fiche, sans cinquième bloc.
 
 Le rattachement canonique reste à préciser entre `JobFunction` (fonction/famille de référence existante) et une entité explicite de fiche de poste. L'objectif est qu'une fiche de référence puisse être partagée par plusieurs postes permanents, sans duplication inutile.
 
@@ -123,3 +123,17 @@ Les exigences de niveau existent à deux granularités différentes :
 - `position_competency_requirements.requiredLevel` : niveau demandé pour une compétence précise.
 
 La refonte du catalogue ne doit pas fusionner ces deux niveaux. Seules les exigences individuelles peuvent être remises à zéro dans la base de test ; les applicabilités et niveaux des blocs projet sont conservés.
+
+
+## Addendum de cohérence fonctionnelle — décisions du 27 novembre 2026
+
+Les décisions consolidées dans [le modèle organisationnel responsabilités/activités](../functional/modele-organisation-responsabilites-activites.md#10-décisions-de-cadrage-consolidées--27-novembre-2026) prévalent sur toute formulation antérieure de ce document qui leur serait contraire :
+
+- un poste comporte **au maximum quatre responsabilités** (ou blocs de missions), sans obligation d'en remplir quatre ; chaque responsabilité comporte **au maximum quatre activités** ;
+- le référentiel d'activités organisationnelles est unique et les activités sont reliées explicitement aux éléments BPMN ; une même activité de référence peut être utilisée par plusieurs éléments BPMN dans plusieurs processus ;
+- la responsabilité organisationnelle est portée par le poste et reste distincte des rôles opérationnels RACI ; aucune entrée RACI n'est déduite automatiquement de la fiche de poste ;
+- la structure permanente retenue pour le cadrage est **Directions → Postes → Titulaires** ; les services/unités intermédiaires ne sont pas requis à ce stade ;
+- le titulaire structurel n'est pas nécessairement l'unique personne qui réalise le travail : une personne peut réaliser tout ou partie des responsabilités d'un poste et contribuer à plusieurs postes. Les affectations opérationnelles doivent être distinguées de la titularisation ;
+- le lien entre fonction-type, poste et fiche de poste reste **non arbitré**. Aucune hypothèse de partage, d'héritage ou de personnalisation ne doit être présentée comme une décision acquise.
+
+Les passages ci-dessus constituent un cadrage fonctionnel et ne décrivent pas des capacités techniques déjà livrées. Aucun audit technique V0.10, aucune modification de code et aucune migration ne sont inclus dans cette harmonisation documentaire.
