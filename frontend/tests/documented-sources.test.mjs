@@ -147,7 +147,7 @@ test('BPMN associations may cross process boundaries while the documented source
   assert.ok(projectGrid.includes('Ajouter à un processus…'));
   assert.ok(controller.includes("@Post(':sourceId/processes')"));
   assert.ok(controller.includes("@Delete(':sourceId/processes/:resourceId')"));
-  assert.ok(projectGrid.includes('filter(candidate => !p.data!.references.some'));
+  assert.match(projectGrid, /filter\(candidate => isSupportedBpmnDataType\(candidate\.elementType\) && !p\.data!\.references\.some/);
 });
 
 test('saving a BPMN process synchronizes newly added data stores into the project documented-information registry', async () => {
