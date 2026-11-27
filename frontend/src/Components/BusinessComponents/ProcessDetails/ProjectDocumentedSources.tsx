@@ -23,6 +23,7 @@ type GridRow = {
 };
 
 const kindLabels: Record<SourceKind, string> = { file: 'Fichier', database: 'Base de données', application: 'Application' };
+const isSupportedBpmnDataType = (type: string) => type === 'dataObjectReference' || type === 'dataStoreReference';
 const objectIcon = (type: string) => type === 'dataStoreReference' ? <StorageRounded fontSize="small" /> : <DescriptionOutlined fontSize="small" />;
 const kindIcon = (kind: SourceKind) => {
   if (kind === 'database') return <StorageRounded fontSize="small" />;
@@ -33,9 +34,6 @@ const kindIcon = (kind: SourceKind) => {
 export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: string; canManage: boolean }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [adding, setAdding] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newKind, setNewKind] = useState<SourceKind>('file');
   const [error, setError] = useState('');
   const [pendingDelete, setPendingDelete] = useState<GridRow | null>(null);
   const [selectedMergeIds, setSelectedMergeIds] = useState<string[]>([]);
@@ -72,23 +70,6 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Enregistrement impossible.');
       await refresh();
-    }
-  };
-
-  const addSource = async () => {
-    if (!newName.trim()) return;
-    try {
-      await apiClient.post(`/projects/${projectId}/documented-sources`, {
-        name: newName.trim(),
-        kind: newKind,
-      });
-      setAdding(false);
-      setNewName('');
-      setNewKind('file');
-      setError('');
-      await refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Création impossible.');
     }
   };
 
@@ -139,7 +120,7 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     { headerName: 'Type', field: 'kind', minWidth: 145, editable: canManage, cellEditor: 'agSelectCellEditor', cellEditorParams: { values: ['file', 'database', 'application'] }, valueFormatter: p => kindLabels[p.value as SourceKind] ?? '', cellRenderer: (p: { value?: SourceKind }) => p.value ? <Stack direction="row" spacing={0.75} alignItems="center">{kindIcon(p.value)}<span>{kindLabels[p.value]}</span></Stack> : null },
     { headerName: 'Description', field: 'description', minWidth: 220, editable: canManage },
     {
-      headerName: 'Objet BPMN',
+      headerName: 'Associations BPMN',
       minWidth: 300,
       editable: false,
       autoHeight: true,
@@ -203,10 +184,10 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
               )}
             </Stack>
           )) : <Typography level="body-sm" color="neutral">Non associé</Typography>}
-          {canManage && (data?.unlinkedReferences ?? []).some(candidate => !p.data!.references.some(ref => ref.resourceId === candidate.resourceId && ref.elementId === candidate.elementId)) && (
+          {canManage && (data?.unlinkedReferences ?? []).some(candidate => isSupportedBpmnDataType(candidate.elementType) && !p.data!.references.some(ref => ref.resourceId === candidate.resourceId && ref.elementId === candidate.elementId)) && (
             <Select
               size="sm"
-              placeholder="Associer un objet BPMN du projet…"
+              placeholder="Associer un Data Object / Data Store…"
               value={null}
               onChange={async (_, value) => {
                 const candidate = (data?.unlinkedReferences ?? []).find(item => `${item.resourceId}:${item.elementId}` === value);
@@ -226,7 +207,7 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
             >
               <Option value="" disabled>Choisir un objet BPMN</Option>
               {(data?.unlinkedReferences ?? [])
-                .filter(candidate => !p.data!.references.some(ref => ref.resourceId === candidate.resourceId && ref.elementId === candidate.elementId))
+                .filter(candidate => isSupportedBpmnDataType(candidate.elementType) && !p.data!.references.some(ref => ref.resourceId === candidate.resourceId && ref.elementId === candidate.elementId))
                 .map(candidate => (
                   <Option key={`${candidate.resourceId}:${candidate.elementId}`} value={`${candidate.resourceId}:${candidate.elementId}`}>
                     {candidate.elementName} — {candidate.processName}
@@ -253,11 +234,8 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
 
   return <Stack spacing={1.25} sx={{ minWidth: 0 }}>
     <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
-      <Box><Typography level="title-lg">Informations documentées</Typography><Typography level="body-sm" color="neutral">Référentiel documentaire central du projet, lié aux objets et magasins de données BPMN.</Typography></Box>
-      {canManage && <Stack direction="row" spacing={1}>
-        <Button size="sm" onClick={() => setAdding(true)}>Ajouter une information documentée</Button>
-        {selectedMergeIds.length >= 2 && <Button size="sm" variant="outlined" onClick={() => { const selected = rows.filter(row => selectedMergeIds.includes(row.sourceId)); setMergeName(selected[0]?.name ?? ''); setMergeDescription(selected[0]?.description ?? ''); setMergeDialogOpen(true); }}>Fusionner ({selectedMergeIds.length})</Button>}
-      </Stack>}
+      <Box><Typography level="title-lg">Référentiel des informations documentées</Typography><Typography level="body-sm" color="neutral">Vue consolidée des fiches créées depuis les processus. Une fiche peut être utilisée dans plusieurs processus et associée à des Data Objects ou Data Stores.</Typography></Box>
+      {canManage && selectedMergeIds.length >= 2 && <Button size="sm" variant="outlined" onClick={() => { const selected = rows.filter(row => selectedMergeIds.includes(row.sourceId)); setMergeName(selected[0]?.name ?? ''); setMergeDescription(selected[0]?.description ?? ''); setMergeDialogOpen(true); }}>Fusionner ({selectedMergeIds.length})</Button>}
     </Stack>
     {error && <Alert color="danger" variant="soft">{error}</Alert>}
     <DocumentedSourcesGrid<GridRow> rowData={rows} columnDefs={columns} getRowId={row => row.id} height={560} onCellValueChanged={saveCell} multiSelect={canManage} onSelectionChanged={selected => setSelectedMergeIds(selected.map(row => row.sourceId))} />
@@ -302,15 +280,6 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
         </Stack>
       </ModalDialog>
     </Modal>
-    <Modal open={adding} onClose={() => setAdding(false)}>
-      <ModalDialog sx={{ width: 'min(560px, calc(100vw - 32px))' }}>
-        <Typography level="title-lg">Ajouter une information documentée</Typography>
-        <Stack spacing={1.5}>
-          <FormControl required><FormLabel>Nom</FormLabel><Input value={newName} onChange={e => setNewName(e.target.value)} /></FormControl>
-          <FormControl><FormLabel>Type</FormLabel><Select value={newKind} onChange={(_, value) => value && setNewKind(value as SourceKind)}><Option value="file">Fichier</Option><Option value="database">Base de données</Option><Option value="application">Application</Option></Select></FormControl>
-          <Stack direction="row" justifyContent="flex-end" spacing={1}><Button variant="outlined" color="neutral" onClick={() => setAdding(false)}>Annuler</Button><Button onClick={() => void addSource()} disabled={!newName.trim()}>Créer</Button></Stack>
-        </Stack>
-      </ModalDialog>
-    </Modal>
+
   </Stack>;
 };
