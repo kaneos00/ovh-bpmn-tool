@@ -20,6 +20,8 @@ test('project workspace restores the central documented information tab', async 
   assert.match(registry, /onCellValueChanged/);
   assert.match(registry, /Ajouter une information documentée/);
   assert.match(registry, /source\.processes/);
+  assert.match(registry, /Rattacher à une fiche existante/);
+  assert.match(registry, /targetSourceId: value/);
   assert.match(registry, /Ajouter à un processus/);
   assert.match(registry, /documented-sources\/\$\{p\.data!.sourceId\}\/processes/);
   assert.doesNotMatch(registry, /Objets BPMN non encore inscrits au référentiel/, 'unlinked BPMN objects are available from the add dialog, not a second list');
