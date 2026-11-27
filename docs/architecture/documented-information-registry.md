@@ -37,9 +37,10 @@ La fiche est partagée : une modification de ses métadonnées est visible dans 
 ## 4. Modèle de données
 
 - `project_documented_sources` : fiche documentaire unique, rattachée au `projectId`.
-- `project_documented_source_references` : associations vers les éléments BPMN, avec `projectId`, `sourceId`, `resourceId` (processus), `elementId`, `elementName` et `elementType`.
+- `project_documented_source_processes` : appartenance d'une fiche à un processus, indépendante de tout lien BPMN. Elle permet notamment de conserver dans un processus une information documentée sans objet BPMN associé.
+- `project_documented_source_references` : associations entre une fiche et un élément BPMN, avec `projectId`, `sourceId`, `resourceId` (processus), `elementId`, `elementName` et `elementType`.
 
-Le `resourceId` appartient à la référence BPMN, pas à la fiche documentaire. La vue processus est obtenue en filtrant les références par `resourceId`, puis en affichant les fiches correspondantes.
+Le processus est donc porté par deux liens distincts : l'appartenance à la liste documentaire du processus et, si elle existe, l'association à un objet BPMN. Une fiche peut être présente dans plusieurs processus sans être dupliquée. La vue processus affiche l'union des fiches explicitement présentes dans ce processus et des fiches utilisées par ses objets BPMN.
 
 ## 5. Déliaison et suppression
 
@@ -50,14 +51,15 @@ Le `resourceId` appartient à la référence BPMN, pas à la fiche documentaire.
 
 ## 6. Migration et conservation
 
-La migration vers le modèle projet doit préserver les fiches existantes, y compris celles qui ont été archivées lors de l'introduction temporaire de la propriété par processus. Les associations restent rattachées à leur processus via `project_documented_source_references.resourceId`.
+La migration vers le modèle projet doit préserver les fiches existantes, y compris celles qui ont été archivées lors de l'introduction temporaire de la propriété par processus. Les anciennes appartenances `resourceId` sont converties en lignes `project_documented_source_processes` ; les associations BPMN restent rattachées à leur processus via `project_documented_source_references.resourceId`.
 
 Aucune donnée documentaire ne doit être supprimée ou fusionnée automatiquement sur la seule base du nom.
 
 ## 7. Critères de validation
 
 - La liste projet affiche chaque fiche une seule fois.
-- La vue processus affiche les fiches associées à ce processus, même si elles sont également utilisées ailleurs.
+- La vue processus affiche les fiches appartenant à ce processus, même sans association BPMN, ainsi que les fiches liées à ses objets BPMN.
+- Une fiche peut être présente sans objet BPMN dans plusieurs processus, sans être dupliquée.
 - Une fiche peut être reliée à des objets BPMN de plusieurs processus.
 - Un Data Object Reference et un Data Store Reference non associés génèrent chacun une fiche automatique.
 - Une sauvegarde répétée ne crée aucun doublon.
