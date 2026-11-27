@@ -1,4 +1,4 @@
-import queryClient from '../../queryClient';
+import queryClient, { apiClient } from '../../queryClient';
 import {
   saveContent,
   contentsQuery,
@@ -18,6 +18,22 @@ const saveContentAction = async (
   };
 
   const response = await saveContent(resourceId, contentId, contentData);
+  const projectId = String(formData.get('projectId') ?? '').trim();
+  let documentedSourcesSyncError: string | undefined;
+  if (projectId) {
+    try {
+      await apiClient.post(`/projects/${projectId}/documented-sources/synchronize`, {
+        resourceId,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ['project-documented-sources', projectId],
+      });
+    } catch (error) {
+      documentedSourcesSyncError = error instanceof Error
+        ? error.message
+        : 'Erreur inconnue';
+    }
+  }
 
   // Wait for refreshed metadata and XML before navigating to the publication
   // preview; otherwise the preview can briefly use the previous draft content.
@@ -33,7 +49,7 @@ const saveContentAction = async (
     }),
   ]);
 
-  return response;
+  return { ...response, documentedSourcesSyncError };
 };
 
 export const action = async ({
