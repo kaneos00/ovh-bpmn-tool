@@ -66,7 +66,7 @@ test('a documented information row can be created before it has a BPMN associati
   assert.match(inventory, /apiClient\.post\(\`\/projects\/\$\{projectId\}\/documented-sources\`, \{/);
   assert.match(inventory, /La fiche sera ajoutée au référentiel du projet et rattachée à ce processus/);
   assert.match(inventory, /Son association à un élément BPMN est facultative/);
-  assert.match(inventory, /Créer une information documentée dans ce processus/);
+  assert.match(inventory, /<Button size="sm" onClick=\{\(\) => setAdding\(true\)\}>Créer une information documentée<\/Button>/);
   assert.match(controller, /const hasReferenceFields = Boolean\(/);
   assert.match(controller, /const reference = hasReferenceFields/);
   assert.match(controller, /if \(!reference\) return \{ \.\.\.source, references: \[\] \}/);
@@ -143,7 +143,7 @@ test('BPMN associations may cross process boundaries while the documented source
   assert.doesNotMatch(controller, /target\.resourceId !== reference\.resourceId/);
   assert.ok(controller.includes('await this.validateReference(projectId, body)'));
   assert.ok(controller.includes('Only BPMN data objects and data stores can be associated with documented sources'));
-  assert.ok(projectGrid.includes('Associer un Data Object / Data Store…'));
+  assert.match(projectGrid, /placeholder="Associer un Data Object \/ Data Store/);
   assert.ok(projectGrid.includes('Ajouter à un processus…'));
   assert.ok(controller.includes("@Post(':sourceId/processes')"));
   assert.ok(controller.includes("@Delete(':sourceId/processes/:resourceId')"));
