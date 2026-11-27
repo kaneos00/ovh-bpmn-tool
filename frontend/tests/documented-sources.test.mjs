@@ -142,6 +142,9 @@ test('BPMN associations may cross process boundaries while the documented source
   assert.ok(controller.includes('await this.validateReference(projectId, body)'));
   assert.ok(controller.includes('Only BPMN data objects and data stores can be associated with documented sources'));
   assert.ok(projectGrid.includes('Associer un objet BPMN du projet…'));
+  assert.ok(projectGrid.includes('Ajouter à un processus…'));
+  assert.ok(controller.includes("@Post(':sourceId/processes')"));
+  assert.ok(controller.includes("@Delete(':sourceId/processes/:resourceId')"));
   assert.ok(projectGrid.includes('filter(candidate => !p.data!.references.some'));
 });
 
