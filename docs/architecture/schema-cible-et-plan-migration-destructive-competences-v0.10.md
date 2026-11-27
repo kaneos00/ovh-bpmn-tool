@@ -116,7 +116,7 @@ Les compétences transversales sont directement rattachées à la fiche, hors de
 
 ### 1.5 Sections descriptives existantes
 
-`job_function_activity_sections` et `job_function_custom_sections` ne sont pas supprimées dans cette migration. Leur usage actuel doit rester lisible tant que l'écran existant les consomme. Les nouvelles tables de blocs de missions constituent la structure métier canonique des quatre blocs ; aucune conversion automatique de `tasks: string[]` vers des tâches BPMN n'est faite.
+`job_function_activity_sections` et `job_function_custom_sections` ne sont pas supprimées dans cette migration. Leur usage actuel doit rester lisible tant que l'écran existant les consomme. Les nouvelles tables de responsabilités/blocs de missions constituent la structure métier cible, dans la limite de quatre responsabilités par poste ; aucune conversion automatique de `tasks: string[]` vers des tâches BPMN n'est faite.
 
 La suppression ou la dépréciation des anciennes sections sera traitée dans une étape UI/API ultérieure, après migration des écrans et validation fonctionnelle.
 
