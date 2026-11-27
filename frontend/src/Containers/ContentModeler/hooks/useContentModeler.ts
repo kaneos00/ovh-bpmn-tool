@@ -17,6 +17,7 @@ import Modeler from 'camunda-bpmn-js/lib/base/Modeler';
 import { paginateBpmnSvg } from '../../../shared/utils/paginatedBpmnSvg';
 import { HttpError } from '../../../shared/api/httpError';
 import { enqueueModelerImport } from '../../../shared/utils/modelerImportQueue';
+import { useActiveProject } from '../../../shared/hooks/useActiveProject';
 
 export const useContentModeler = (
   bpmnModelerInstance: Modeler,
@@ -28,7 +29,7 @@ export const useContentModeler = (
   const [searchParams] = useSearchParams();
   const requestedContentId = searchParams.get('contentId');
   const proposalId = searchParams.get('proposalId');
-  const actionData = useActionData() as Content & ActionResponse;
+  const actionData = useActionData() as (Content & ActionResponse & { documentedSourcesSyncError?: string });
   const navigate = useNavigate();
 
   const submit = useSubmit();
@@ -50,6 +51,10 @@ export const useContentModeler = (
     enabled: enabled && Boolean(proposalId && requestedContentId),
   });
   const { resource } = useResource(resourceId, enabled);
+  const { activeProjectId, projectProcessIds } = useActiveProject();
+  const documentedSourcesProjectId = projectProcessIds.has(resourceId)
+    ? activeProjectId
+    : null;
   const sourceResourceId = resource?.sourceResourceId ?? undefined;
   const { data: sourceContents } = useQuery({
     ...contentsQuery(sourceResourceId ?? ''),
@@ -252,11 +257,12 @@ export const useContentModeler = (
           action,
           contentId: content.id,
           content: contentXml.xml,
+          projectId: documentedSourcesProjectId ?? '',
         },
         { method: 'put' },
       );
     },
-    [bpmnModelerInstance, submit],
+    [bpmnModelerInstance, submit, documentedSourcesProjectId],
   );
 
   const onDiagramSave = useCallback(async () => {
@@ -335,7 +341,12 @@ export const useContentModeler = (
     if (actionData && !actionData.error) {
       const message = processActionMessages[actionData.formAction as string];
 
-      if (message) {
+      if (actionData.documentedSourcesSyncError) {
+        showAlert({
+          message: `Diagramme enregistré, mais création des informations documentées impossible : ${actionData.documentedSourcesSyncError}`,
+          severity: 'warning',
+        });
+      } else if (message) {
         showAlert({
           message,
           severity: 'success',
