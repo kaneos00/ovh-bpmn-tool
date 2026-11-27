@@ -243,15 +243,15 @@ export const DataInventory = ({
     }
   };
 
-  const deleteSource = async (row: ProjectDocumentedSource) => {
+  const removeFromProcess = async (row: ProjectDocumentedSource) => {
     if (!projectId || !canManageSources || row.references.length > 0) return;
-        setError('');
+    setError('');
     try {
-      await apiClient.remove(`/projects/${projectId}/documented-sources/${row.id}`);
+      await apiClient.remove(`/projects/${projectId}/documented-sources/${row.id}/processes/${resourceId}`);
       await refresh();
       setPendingDelete(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Impossible de supprimer cette information documentée.');
+      setError(e instanceof Error ? e.message : 'Impossible de retirer cette information de ce processus.');
     }
   };
 
@@ -443,7 +443,7 @@ export const DataInventory = ({
         const row = params.data;
         if (!row || !canManageSources || row.references.length > 0 || row.id.startsWith('new-')) return null;
         return (
-          <IconButton size="sm" variant="plain" color="danger" title="Supprimer cette information documentée non associée" aria-label={`Supprimer ${row.name}`} onClick={event => {
+          <IconButton size="sm" variant="plain" color="danger" title="Retirer cette information de ce processus" aria-label={`Retirer ${row.name} de ce processus`} onClick={event => {
             event.stopPropagation();
             setPendingDelete(row);
           }}>
@@ -479,10 +479,10 @@ export const DataInventory = ({
         <Modal open={Boolean(pendingDelete)} onClose={() => setPendingDelete(null)}>
           <ModalDialog>
             <Typography level="title-lg">Confirmer la suppression</Typography>
-            <Typography>Supprimer définitivement « {pendingDelete?.name} » ?</Typography>
+            <Typography>Retirer « {pendingDelete?.name} » de ce processus ? (La fiche restera dans le référentiel du projet.)</Typography>
             <Stack direction="row" justifyContent="flex-end" spacing={1}>
               <Button variant="outlined" color="neutral" onClick={() => setPendingDelete(null)}>Annuler</Button>
-              <Button color="danger" onClick={() => pendingDelete && void deleteSource(pendingDelete)}>Supprimer</Button>
+              <Button color="danger" onClick={() => pendingDelete && void removeFromProcess(pendingDelete)}>Retirer</Button>
             </Stack>
           </ModalDialog>
         </Modal>
