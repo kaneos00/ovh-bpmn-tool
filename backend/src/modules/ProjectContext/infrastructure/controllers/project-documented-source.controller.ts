@@ -784,6 +784,9 @@ export class ProjectDocumentedSourceController {
       const referenceRepository = manager.getRepository(
         ProjectDocumentedSourceReferenceTypeOrmEntity,
       );
+      const membershipRepository = manager.getRepository(
+        ProjectDocumentedSourceProcessTypeOrmEntity,
+      );
       const [source, target, reference] = await Promise.all([
         sourceRepository.findOne({
           where: { id: sourceId, projectId, mergedIntoId: IsNull() },
@@ -820,7 +823,21 @@ export class ProjectDocumentedSourceController {
         );
 
       reference.sourceId = targetSourceId;
-      return referenceRepository.save(reference);
+      const savedReference = await referenceRepository.save(reference);
+      const targetMembership = await membershipRepository.findOne({
+        where: { projectId, sourceId: targetSourceId, resourceId: reference.resourceId },
+      });
+      if (!targetMembership) {
+        await membershipRepository.save(
+          membershipRepository.create({
+            projectId,
+            sourceId: targetSourceId,
+            resourceId: reference.resourceId,
+            createdBy: source.createdBy,
+          }),
+        );
+      }
+      return savedReference;
     });
   }
 
@@ -991,6 +1008,29 @@ export class ProjectDocumentedSourceController {
         target.validUntil = source.validUntil;
       }
       await sourceRepository.save(target);
+
+      const membershipRepository = manager.getRepository(
+        ProjectDocumentedSourceProcessTypeOrmEntity,
+      );
+      const sourceMemberships = await membershipRepository.find({
+        where: { projectId, sourceId },
+      });
+      for (const membership of sourceMemberships) {
+        const existingMembership = await membershipRepository.findOne({
+          where: { projectId, sourceId: targetId, resourceId: membership.resourceId },
+        });
+        if (!existingMembership) {
+          await membershipRepository.save(
+            membershipRepository.create({
+              projectId,
+              sourceId: targetId,
+              resourceId: membership.resourceId,
+              createdBy: userId,
+            }),
+          );
+        }
+        await membershipRepository.delete({ id: membership.id });
+      }
 
       const sourceReferences = await referenceRepository.find({
         where: { projectId, sourceId },
