@@ -103,7 +103,7 @@ La page affiche quatre sections, toujours dans le même écran. Chaque section c
 - code calculé et stable : `[CODE_POSTE]-1` à `[CODE_POSTE]-4` ;
 - intitulé du bloc ;
 - description courte ;
-- liste de 1 à 4 activités ;
+- liste de 0 à 4 activités (maximum quatre ; une responsabilité peut être enregistrée avant que ses activités soient renseignées) ;
 - liste de 1 à 4 compétences associées.
 
 Les blocs effectivement définis (un à quatre au maximum) sont présentés sous forme de cartes compactes, éventuellement repliables, sans créer de blocs vides pour atteindre quatre.
@@ -113,7 +113,7 @@ Les blocs effectivement définis (un à quatre au maximum) sont présentés sous
 Chaque activité est une ligne éditable directement dans le bloc :
 - libellé ;
 - description courte facultative ;
-- ajout/suppression dans la limite de 1 à 4 activités par bloc.
+- ajout/suppression dans la limite de quatre activités par responsabilité ; aucune activité n'est obligatoire au stade de la saisie initiale.
 
 Les activités décrivent les contributions habituelles du poste. Elles ne sont pas un catalogue de tâches opérationnelles. Les tâches exécutables demeurent dans les processus BPMN ; leur éventuel rattachement aux blocs sera traité dans une phase ultérieure.
 
@@ -200,7 +200,7 @@ La fiche est générée depuis le référentiel ; toute modification s'effectue 
 ## 7. Points à vérifier avant implémentation
 
 L'audit V0.10 a identifié des objets existants `JobFunction`, sections d'activités, `Competency`, `CompetencyBlock` et `JobFunctionCompetencyBlock`. Avant de modifier le modèle :
-- vérifier comment les quatre blocs peuvent réutiliser les objets existants ;
+- vérifier comment les responsabilités (quatre au maximum) peuvent réutiliser les objets existants ;
 - confirmer où le niveau attendu est actuellement stocké ;
 - vérifier si une compétence peut déjà être associée à plusieurs blocs/fonctions sans duplication ;
 - vérifier comment gérer les compétences directement transversales au poste et le niveau attendu de cette association ;
