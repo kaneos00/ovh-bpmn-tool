@@ -149,15 +149,15 @@ test('saving a BPMN process synchronizes newly added data stores into the projec
   const modelerAction = await read('src/Containers/ContentModeler/ContentModeler.action.ts');
   const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
 
-  assert.match(modelerHook, /useActiveProject\\(\\)/);
-  assert.match(modelerHook, /projectProcessIds\\.has\\(resourceId\\)/);
-  assert.match(modelerHook, /projectId: documentedSourcesProjectId \\?\\? ''/);
-  assert.match(modelerAction, /documented-sources\\/synchronize/);
-  assert.match(modelerAction, /invalidateQueries\\([\\s\\S]*?project-documented-sources/);
-  assert.match(controller, /@Post\\('synchronize'\\)/);
-  assert.match(controller, /extractBpmnDataElements\\(/);
-  assert.match(controller, /kind: 'database'/);
-  assert.match(controller, /elementType: element\\.elementType/);
-  assert.match(controller, /if \\(existing\\) return false/);
-  assert.match(controller, /pg_advisory_xact_lock/);
+  assert.ok(modelerHook.includes('useActiveProject()'));
+  assert.ok(modelerHook.includes('projectProcessIds.has(resourceId)'));
+  assert.ok(modelerHook.includes("projectId: documentedSourcesProjectId ?? ''"));
+  assert.ok(modelerAction.includes('/documented-sources/synchronize'));
+  assert.ok(modelerAction.includes("['project-documented-sources', projectId]"));
+  assert.ok(controller.includes("@Post('synchronize')"));
+  assert.ok(controller.includes('extractBpmnDataElements('));
+  assert.ok(controller.includes("kind: 'database'"));
+  assert.ok(controller.includes('elementType: element.elementType'));
+  assert.ok(controller.includes('if (existing) return false'));
+  assert.ok(controller.includes('pg_advisory_xact_lock'));
 });
