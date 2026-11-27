@@ -29,30 +29,32 @@ describe('extractBpmnDataElements', () => {
     );
 
     expect(elements).toHaveLength(2);
-    expect(elements).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        resourceId: 'resource-1',
-        processName: 'Gestion des contrats',
-        elementId: 'contract-ref',
-        elementName: 'Contrat',
-        elementType: 'dataObjectReference',
-        description: 'Contrat signé et archivé',
-      }),
-      expect.objectContaining({
-        resourceId: 'resource-1',
-        processName: 'Gestion des contrats',
-        elementId: 'crm-ref',
-        elementName: 'CRM',
-        elementType: 'dataStoreReference',
-        description: 'Base clients',
-        link: 'https://crm.example.test',
-        location: 'Cloud',
-        access: 'Equipe commerciale',
-        retention: '10 ans',
-        authorizedPeople: 'Commercial',
-        restrictions: 'Confidentiel',
-      }),
-    ]));
+    expect(elements).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          resourceId: 'resource-1',
+          processName: 'Gestion des contrats',
+          elementId: 'contract-ref',
+          elementName: 'Contrat',
+          elementType: 'dataObjectReference',
+          description: 'Contrat signé et archivé',
+        }),
+        expect.objectContaining({
+          resourceId: 'resource-1',
+          processName: 'Gestion des contrats',
+          elementId: 'crm-ref',
+          elementName: 'CRM',
+          elementType: 'dataStoreReference',
+          description: 'Base clients',
+          link: 'https://crm.example.test',
+          location: 'Cloud',
+          access: 'Equipe commerciale',
+          retention: '10 ans',
+          authorizedPeople: 'Commercial',
+          restrictions: 'Confidentiel',
+        }),
+      ]),
+    );
   });
 
   it('ignores malformed or unsafe XML instead of breaking the project registry', () => {
@@ -87,7 +89,10 @@ describe('ProjectDocumentedSourceController.synchronize', () => {
       })),
     };
     const referenceRepository = {
-      findOne: jest.fn(async (query: { where?: { elementId?: string } }) => persistedReferences.get(query.where?.elementId ?? '') ?? null),
+      findOne: jest.fn(
+        async (query: { where?: { elementId?: string } }) =>
+          persistedReferences.get(query.where?.elementId ?? '') ?? null,
+      ),
       create: jest.fn((value: Record<string, unknown>) => value),
       save: jest.fn(async (value: Record<string, unknown>) => {
         persistedReferences.set(String(value.elementId), value);
@@ -166,7 +171,11 @@ describe('ProjectDocumentedSourceController.synchronize', () => {
     expect(referenceRepository.save).toHaveBeenCalledTimes(2);
     expect(membershipRepository.save).toHaveBeenCalledTimes(2);
     expect(membershipRepository.save).toHaveBeenCalledWith(
-      expect.objectContaining({ projectId: 'project-1', resourceId: 'process-1', createdBy: 'user-1' }),
+      expect.objectContaining({
+        projectId: 'project-1',
+        resourceId: 'process-1',
+        createdBy: 'user-1',
+      }),
     );
     expect(referenceRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({
