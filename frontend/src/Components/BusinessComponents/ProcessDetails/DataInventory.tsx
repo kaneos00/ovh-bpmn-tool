@@ -64,7 +64,6 @@ type ProjectDocumentedSourcesResponse = {
 
 type InventoryGridRow = ProjectDocumentedSource & {
   origin: string;
-  isNew?: boolean;
 };
 
 type Props = {
@@ -392,7 +391,7 @@ export const DataInventory = ({
                 size="sm"
                 value={null}
                 placeholder="Associer un Data Object / Data Store…"
-                disabled={row.id.startsWith('new-') || Boolean(associatingId)}
+                disabled={Boolean(associatingId)}
                 onClick={event => event.stopPropagation()}
                 onChange={(_, value) => { if (typeof value === 'string') void associate(row, value); }}
                 aria-label="Associer un objet BPMN non encore associé"
