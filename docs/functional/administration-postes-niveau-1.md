@@ -14,7 +14,7 @@ Trois rubriques principales :
 
 1. **Postes** : grille/liste des postes, recherche, filtres, création et accès à la fiche.
 2. **Compétences** : référentiel commun des compétences, avec recherche, filtres et gestion du cycle de vie.
-3. **Administration d'un poste** : formulaire unique et condensé regroupant les informations générales, les quatre blocs de missions et les compétences transversales.
+3. **Administration d'un poste** : formulaire unique et condensé regroupant les informations générales, jusqu'à quatre responsabilités/blocs de missions et les compétences transversales.
 
 La fiche de poste consultable est une vue de synthèse accessible depuis la page d'administration. Elle n'est pas un second formulaire de saisie.
 
@@ -96,7 +96,7 @@ Champs :
 - fonction de rattachement ;
 - finalité du poste (texte court).
 
-### 4.2 Quatre blocs de missions
+### 4.2 Responsabilités / blocs de missions (maximum quatre)
 
 La page affiche quatre sections, toujours dans le même écran. Chaque section comprend :
 
@@ -106,7 +106,7 @@ La page affiche quatre sections, toujours dans le même écran. Chaque section c
 - liste de 1 à 4 activités ;
 - liste de 1 à 4 compétences associées.
 
-Les quatre blocs sont les emplacements de référence du poste. Ils peuvent être présentés sous forme de cartes compactes, éventuellement repliables, sans navigation vers une page séparée.
+Les blocs effectivement définis (un à quatre au maximum) sont présentés sous forme de cartes compactes, éventuellement repliables, sans créer de blocs vides pour atteindre quatre.
 
 ### 4.3 Activités
 
@@ -173,7 +173,7 @@ Vue compacte, en lecture seule et imprimable, idéalement sur une à deux pages 
 
 1. intitulé, code et fonction ;
 2. finalité ;
-3. quatre blocs avec leurs activités ;
+3. jusqu'à quatre responsabilités/blocs avec leurs activités ;
 4. compétences associées et niveaux attendus ;
 5. autonomie, limites et interfaces si ces informations sont renseignées.
 
@@ -184,7 +184,7 @@ La fiche est générée depuis le référentiel ; toute modification s'effectue 
 - Les codes des blocs sont stables et ne changent pas lorsque leur intitulé est modifié.
 - Une compétence est globale et réutilisable ; elle appartient à une seule famille parmi Méthodologique, Technique, Fonctionnelle et Savoir-être, sans étiquette secondaire.
 - Une compétence peut être associée à un bloc ou directement au poste comme compétence transversale. Chaque association porte son propre niveau attendu.
-- Les quatre blocs appartiennent au poste ; les compétences sont partagées entre blocs et postes.
+- Les responsabilités/blocs sont rattachés au modèle de fiche qui sera arbitré ; les compétences peuvent être partagées entre blocs et postes.
 - Les activités du référentiel de poste restent descriptives ; ne pas créer un deuxième catalogue de tâches BPMN.
 - Une évolution du référentiel commun doit rester identifiable et ne pas écraser silencieusement les adaptations propres à un projet.
 - Le niveau 3 réutilisera les postes, blocs et compétences du niveau 1. Les adaptations projet seront portées par le contexte projet, sans modifier la référence commune.
@@ -209,3 +209,17 @@ L'audit V0.10 a identifié des objets existants `JobFunction`, sections d'activi
 - ne créer une migration que pour un manque confirmé par l'inspection du code, des contraintes SQL et des tests.
 
 Cette maquette ne constitue pas une affirmation que ces parcours sont déjà implémentés.
+
+
+## Addendum de cohérence fonctionnelle — décisions du 27 novembre 2026
+
+Les décisions consolidées dans [le modèle organisationnel responsabilités/activités](../functional/modele-organisation-responsabilites-activites.md#10-décisions-de-cadrage-consolidées--27-novembre-2026) prévalent sur toute formulation antérieure de ce document qui leur serait contraire :
+
+- un poste comporte **au maximum quatre responsabilités** (ou blocs de missions), sans obligation d'en remplir quatre ; chaque responsabilité comporte **au maximum quatre activités** ;
+- le référentiel d'activités organisationnelles est unique et les activités sont reliées explicitement aux éléments BPMN ; une même activité de référence peut être utilisée par plusieurs éléments BPMN dans plusieurs processus ;
+- la responsabilité organisationnelle est portée par le poste et reste distincte des rôles opérationnels RACI ; aucune entrée RACI n'est déduite automatiquement de la fiche de poste ;
+- la structure permanente retenue pour le cadrage est **Directions → Postes → Titulaires** ; les services/unités intermédiaires ne sont pas requis à ce stade ;
+- le titulaire structurel n'est pas nécessairement l'unique personne qui réalise le travail : une personne peut réaliser tout ou partie des responsabilités d'un poste et contribuer à plusieurs postes. Les affectations opérationnelles doivent être distinguées de la titularisation ;
+- le lien entre fonction-type, poste et fiche de poste reste **non arbitré**. Aucune hypothèse de partage, d'héritage ou de personnalisation ne doit être présentée comme une décision acquise.
+
+Les passages ci-dessus constituent un cadrage fonctionnel et ne décrivent pas des capacités techniques déjà livrées. Aucun audit technique V0.10, aucune modification de code et aucune migration ne sont inclus dans cette harmonisation documentaire.
