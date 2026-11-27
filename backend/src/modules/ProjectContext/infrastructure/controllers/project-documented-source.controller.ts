@@ -442,6 +442,7 @@ export class ProjectDocumentedSourceController {
     let created = 0;
     let skipped = 0;
     for (const element of elements) {
+      const elementName = element.elementName.slice(0, 255);
       const wasCreated = await this.dataSource.transaction(async (manager) => {
         await manager.query(
           'SELECT pg_advisory_xact_lock(hashtext($1))',
@@ -468,7 +469,7 @@ export class ProjectDocumentedSourceController {
             resourceId,
             createdBy: userId,
             kind: 'database',
-            name: element.elementName.slice(0, 255),
+            name: elementName,
             description: optionalText(element.description, 'description'),
             link: optionalText(element.link, 'link'),
             location: optionalText(element.location, 'location'),
@@ -489,7 +490,7 @@ export class ProjectDocumentedSourceController {
             sourceId: source.id,
             resourceId,
             elementId: element.elementId,
-            elementName: element.elementName,
+            elementName,
             elementType: element.elementType,
             createdBy: userId,
           }),
