@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from 'react-query';
 import { Alert, Box, Button, FormControl, FormLabel, Input, Modal, ModalDialog, Option, Select, Stack, Typography } from '@mui/joy';
 import { AppsRounded, DeleteOutlineRounded, DescriptionOutlined, StorageRounded } from '@mui/icons-material';
@@ -8,16 +7,14 @@ import { DocumentedSourcesGrid } from './DocumentedSourcesGrid';
 import { apiClient } from '../../../queryClient';
 
 type SourceKind = 'file' | 'database' | 'application';
-type SourceReference = { id: string; resourceId: string; elementId: string; elementName: string; elementType: string; processName: string; bpmnDescription: string };
 type Source = {
-  id: string; processName?: string | null; processes?: { resourceId: string; processName: string }[]; kind: SourceKind | 'form'; name: string; description: string | null; link: string | null;
+  id: string; kind: SourceKind | 'form'; name: string; description: string | null; link: string | null;
   location: string | null; access: string | null; retention: string | null; validUntil: string | null;
-  authorizedPeople: string | null; restrictions: string | null; containsPersonalData: boolean; references: SourceReference[];
+  authorizedPeople: string | null; restrictions: string | null; containsPersonalData: boolean;
 };
-type UnlinkedReference = { resourceId: string; processName: string; elementId: string; elementName: string; elementType: string; description?: string; link?: string; location?: string; access?: string; retention?: string; authorizedPeople?: string; restrictions?: string };
-type ResponseData = { sources: Source[]; unlinkedReferences: UnlinkedReference[]; processes: { resourceId: string; processName: string }[] };
+type ResponseData = { sources: Source[] };
 type GridRow = {
-  id: string; sourceId: string; name: string; kind: SourceKind; description: string; references: SourceReference[]; processes: { resourceId: string; processName: string }[];
+  id: string; sourceId: string; name: string; kind: SourceKind; description: string;
   link: string; location: string; access: string; retention: string; validUntil: string;
   authorizedPeople: string; restrictions: string; containsPersonalData: boolean;
 };
@@ -32,7 +29,6 @@ const kindIcon = (kind: SourceKind) => {
 };
 
 export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: string; canManage: boolean }) => {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [error, setError] = useState('');
   const [pendingDelete, setPendingDelete] = useState<GridRow | null>(null);
@@ -45,9 +41,8 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
   const data = query.data;
   const rows = useMemo<GridRow[]>(() => (data?.sources ?? []).map(source => ({
     id: source.id, sourceId: source.id,
-    processes: source.processes ?? [],
     kind: source.kind === 'form' ? 'file' : source.kind,
-    name: source.name, description: source.description ?? '', references: source.references ?? [],
+    name: source.name, description: source.description ?? '',
     link: source.link ?? '', location: source.location ?? '', access: source.access ?? '',
     retention: source.retention ?? '', validUntil: source.validUntil ?? '', authorizedPeople: source.authorizedPeople ?? '', restrictions: source.restrictions ?? '',
     containsPersonalData: source.containsPersonalData ?? false,
@@ -75,174 +70,8 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
 
   const columns: ColDef<GridRow>[] = [
     { headerName: 'Nom', field: 'name', minWidth: 220, editable: canManage },
-    {
-      headerName: 'Processus',
-      minWidth: 260,
-      sortable: false,
-      editable: false,
-      autoHeight: true,
-      cellRenderer: (p: { data?: GridRow }) => p.data ? (
-        <Stack spacing={0.5}>
-          {p.data.processes.map(process => (
-            <Stack key={process.resourceId} direction="row" spacing={0.5} alignItems="center">
-              <Button size="sm" variant="plain" color="neutral" sx={{ flex: 1, justifyContent: 'flex-start' }} onClick={() => navigate(`/${process.resourceId}`)}>{process.processName}</Button>
-              {canManage && !p.data!.references.some(reference => reference.resourceId === process.resourceId) && (
-                <Button size="sm" variant="plain" color="danger" onClick={async () => {
-                  try {
-                    await apiClient.remove(`/projects/${projectId}/documented-sources/${p.data!.sourceId}/processes/${process.resourceId}`);
-                    await refresh();
-                  } catch (e) {
-                    setError(e instanceof Error ? e.message : 'Impossible de retirer ce processus.');
-                  }
-                }}>Retirer</Button>
-              )}
-            </Stack>
-          ))}
-          {canManage && (data?.processes ?? []).some(process => !p.data!.processes.some(current => current.resourceId === process.resourceId)) && (
-            <Select size="sm" placeholder="Ajouter à un processus…" value={null} onChange={async (_, value) => {
-              if (typeof value !== 'string' || !value) return;
-              try {
-                await apiClient.post(`/projects/${projectId}/documented-sources/${p.data!.sourceId}/processes`, { resourceId: value });
-                await refresh();
-              } catch (e) {
-                setError(e instanceof Error ? e.message : 'Impossible d’ajouter cette information au processus.');
-              }
-            }}>
-              {(data?.processes ?? []).filter(process => !p.data!.processes.some(current => current.resourceId === process.resourceId)).map(process => (
-                <Option key={process.resourceId} value={process.resourceId}>{process.processName}</Option>
-              ))}
-            </Select>
-          )}
-          {p.data.processes.length === 0 && <Typography level="body-xs" color="neutral">Aucun processus</Typography>}
-        </Stack>
-      ) : null,
-    },
     { headerName: 'Type', field: 'kind', minWidth: 145, editable: canManage, cellEditor: 'agSelectCellEditor', cellEditorParams: { values: ['file', 'database', 'application'] }, valueFormatter: p => kindLabels[p.value as SourceKind] ?? '', cellRenderer: (p: { value?: SourceKind }) => p.value ? <Stack direction="row" spacing={0.75} alignItems="center">{kindIcon(p.value)}<span>{kindLabels[p.value]}</span></Stack> : null },
     { headerName: 'Description', field: 'description', minWidth: 220, editable: canManage },
-    {
-      headerName: 'Description BPMN',
-      minWidth: 280,
-      sortable: false,
-      editable: false,
-      autoHeight: true,
-      cellRenderer: (p: { data?: GridRow }) => p.data ? (
-        <Stack spacing={0.75}>
-          {p.data.references.length ? p.data.references.map(ref => (
-            <Stack key={ref.id} spacing={0.25}>
-              <Typography level="body-xs" color="neutral">{ref.elementName} — {ref.processName}</Typography>
-              <Typography level="body-sm" sx={{ whiteSpace: 'pre-wrap' }}>
-                {ref.bpmnDescription || '—'}
-              </Typography>
-              {canManage && (
-                <Button size="sm" variant="plain" color="primary" sx={{ alignSelf: 'flex-start' }}
-                  onClick={() => navigate(`/${ref.resourceId}?elementId=${encodeURIComponent(ref.elementId)}`)}>
-                  Modifier dans le processus
-                </Button>
-              )}
-            </Stack>
-          )) : <Typography level="body-sm" color="neutral">Aucune association BPMN</Typography>}
-        </Stack>
-      ) : null,
-    },
-    {
-      headerName: 'Associations BPMN',
-      minWidth: 300,
-      editable: false,
-      autoHeight: true,
-      cellRenderer: (p: { data?: GridRow }) => p.data ? (
-        <Stack spacing={0.5}>
-          {p.data.references.length ? p.data.references.map(ref => (
-            <Stack key={ref.id} spacing={0.25}>
-              <Stack direction="row" spacing={0.5} alignItems="center">
-                <Button
-                  size="sm"
-                  variant="plain"
-                  color="neutral"
-                  startDecorator={objectIcon(ref.elementType)}
-                  sx={{ justifyContent: 'flex-start', whiteSpace: 'normal', textAlign: 'left', flex: 1 }}
-                  onClick={() => navigate(`/${ref.resourceId}?elementId=${encodeURIComponent(ref.elementId)}`)}
-                >
-                  {ref.elementName} <Typography level="body-xs" color="neutral">— {ref.processName}</Typography>
-                </Button>
-                {canManage && (
-                  <Button
-                    size="sm"
-                    variant="plain"
-                    color="danger"
-                    onClick={async () => {
-                      try {
-                        await apiClient.remove(`/projects/${projectId}/documented-sources/${p.data!.sourceId}/references/${ref.id}`);
-                        await refresh();
-                      } catch (e) {
-                        setError(e instanceof Error ? e.message : 'Impossible de délier cet objet BPMN.');
-                      }
-                    }}
-                  >
-                    Délier
-                  </Button>
-                )}
-              </Stack>
-              {canManage && (data?.sources ?? []).some(source => source.id !== p.data!.sourceId) && (
-                <Select
-                  size="sm"
-                  value={null}
-                  placeholder="Rattacher à une fiche existante…"
-                  onChange={async (_, value) => {
-                    if (typeof value !== 'string' || !value) return;
-                    try {
-                      await apiClient.put(
-                        `/projects/${projectId}/documented-sources/${p.data!.sourceId}/references/${ref.id}`,
-                        { targetSourceId: value },
-                      );
-                      await refresh();
-                    } catch (e) {
-                      setError(e instanceof Error ? e.message : 'Impossible de rattacher cet objet à cette information documentée.');
-                    }
-                  }}
-                >
-                  {(data?.sources ?? [])
-                    .filter(source => source.id !== p.data!.sourceId)
-                    .map(source => (
-                      <Option key={source.id} value={source.id}>{source.name}</Option>
-                    ))}
-                </Select>
-              )}
-            </Stack>
-          )) : <Typography level="body-sm" color="neutral">Non associé</Typography>}
-          {canManage && (data?.unlinkedReferences ?? []).some(candidate => isSupportedBpmnDataType(candidate.elementType) && !p.data!.references.some(ref => ref.resourceId === candidate.resourceId && ref.elementId === candidate.elementId)) && (
-            <Select
-              size="sm"
-              placeholder="Associer un Data Object / Data Store…"
-              value={null}
-              onChange={async (_, value) => {
-                const candidate = (data?.unlinkedReferences ?? []).find(item => `${item.resourceId}:${item.elementId}` === value);
-                if (!candidate) return;
-                try {
-                  await apiClient.post(`/projects/${projectId}/documented-sources/${p.data!.sourceId}/references`, {
-                    resourceId: candidate.resourceId,
-                    elementId: candidate.elementId,
-                    elementName: candidate.elementName,
-                    elementType: candidate.elementType,
-                  });
-                  await refresh();
-                } catch (e) {
-                  setError(e instanceof Error ? e.message : 'Impossible d’associer cet objet BPMN.');
-                }
-              }}
-            >
-              <Option value="" disabled>Choisir un objet BPMN</Option>
-              {(data?.unlinkedReferences ?? [])
-                .filter(candidate => isSupportedBpmnDataType(candidate.elementType) && !p.data!.references.some(ref => ref.resourceId === candidate.resourceId && ref.elementId === candidate.elementId))
-                .map(candidate => (
-                  <Option key={`${candidate.resourceId}:${candidate.elementId}`} value={`${candidate.resourceId}:${candidate.elementId}`}>
-                    {candidate.elementName} — {candidate.processName}
-                  </Option>
-                ))}
-            </Select>
-          )}
-        </Stack>
-      ) : null,
-    },
     { headerName: 'Lien', field: 'link', minWidth: 170, editable: canManage },
     { headerName: 'Emplacement', field: 'location', minWidth: 150, editable: canManage },
     { headerName: 'Accès', field: 'access', minWidth: 140, editable: canManage },
@@ -251,7 +80,7 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     { headerName: 'Données personnelles', field: 'containsPersonalData', minWidth: 175, editable: canManage, cellDataType: 'boolean', cellRenderer: 'agCheckboxCellRenderer', cellEditor: 'agCheckboxCellEditor' },
     { headerName: 'Personnes autorisées', field: 'authorizedPeople', minWidth: 190, editable: canManage },
     { headerName: 'Restrictions', field: 'restrictions', minWidth: 190, editable: canManage },
-    { headerName: 'Actions', minWidth: 130, sortable: false, filter: false, cellRenderer: (p: { data?: GridRow }) => p.data && canManage && p.data.references.length === 0 ? <Button size="sm" variant="plain" color="danger" startDecorator={<DeleteOutlineRounded />} onClick={() => setPendingDelete(p.data!)}>Supprimer</Button> : null },
+    { headerName: 'Actions', minWidth: 130, sortable: false, filter: false, cellRenderer: (p: { data?: GridRow }) => p.data && canManage ? <Button size="sm" variant="plain" color="danger" startDecorator={<DeleteOutlineRounded />} onClick={() => setPendingDelete(p.data!)}>Supprimer</Button> : null },
   ];
 
   if (query.isLoading) return <Typography level="body-sm" color="neutral">Chargement des informations documentées…</Typography>;
@@ -259,7 +88,7 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
 
   return <Stack spacing={1.25} sx={{ minWidth: 0 }}>
     <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
-      <Box><Typography level="title-lg">Référentiel des informations documentées</Typography><Typography level="body-sm" color="neutral">Vue consolidée des fiches créées depuis les processus. Une fiche peut être utilisée dans plusieurs processus et associée à des Data Objects ou Data Stores.</Typography></Box>
+      <Box><Typography level="title-lg">Référentiel des informations documentées</Typography><Typography level="body-sm" color="neutral">Toutes les informations documentées du projet, qu’elles soient associées ou non à un processus ou à un élément BPMN.</Typography></Box>
       {canManage && selectedMergeIds.length >= 2 && <Button size="sm" variant="outlined" onClick={() => { const selected = rows.filter(row => selectedMergeIds.includes(row.sourceId)); setMergeName(selected[0]?.name ?? ''); setMergeDescription(selected[0]?.description ?? ''); setMergeDialogOpen(true); }}>Fusionner ({selectedMergeIds.length})</Button>}
     </Stack>
     {error && <Alert color="danger" variant="soft">{error}</Alert>}
