@@ -1,4 +1,7 @@
-import { extractBpmnDataElements } from './project-documented-source.controller';
+import {
+  extractBpmnDataElements,
+  ProjectDocumentedSourceController,
+} from './project-documented-source.controller';
 import { ProjectDocumentedSourceTypeOrmEntity } from '../entities/projectDocumentedSource.ormEntity';
 import { ProjectDocumentedSourceReferenceTypeOrmEntity } from '../entities/projectDocumentedSourceReference.ormEntity';
 
@@ -56,7 +59,6 @@ describe('extractBpmnDataElements', () => {
 
 describe('ProjectDocumentedSourceController.synchronize', () => {
   it('creates one documented source and BPMN reference for a new data store, then stays idempotent', async () => {
-    const { ProjectDocumentedSourceController } = await import('./project-documented-source.controller');
     const xml = `<?xml version="1.0"?>
       <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
         <bpmn:process id="process-1" name="Gestion clients">
