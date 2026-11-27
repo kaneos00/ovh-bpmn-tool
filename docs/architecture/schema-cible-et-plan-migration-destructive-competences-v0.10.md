@@ -192,7 +192,7 @@ Avant de considérer le chantier validé :
 - association d'une compétence globale à plusieurs blocs ;
 - même compétence associée à plusieurs blocs d'un poste avec niveaux indépendants ;
 - désactivation sans perte des usages ;
-- cardinalités de quatre blocs, 1–4 activités et 1–4 compétences ;
+- cardinalités : au maximum quatre responsabilités et quatre activités par responsabilité ; cardinalités de compétences à conserver selon le référentiel de compétences ;
 - tests API/ACL et CI complet.
 
 ## 7. Points non réalisés
