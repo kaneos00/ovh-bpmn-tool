@@ -26,8 +26,8 @@ type SourceReference = {
 
 type ProjectDocumentedSource = {
   id: string;
-  resourceId: string;
-  processName?: string;
+  resourceId?: string | null;
+  processName?: string | null;
   kind: SourceKind | 'form';
   name: string;
   description: string | null;
