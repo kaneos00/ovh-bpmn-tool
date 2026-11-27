@@ -51,6 +51,9 @@ INSERT INTO project_documented_source_processes
   ("projectId", "sourceId", "resourceId", "createdBy")
 SELECT reference."projectId", reference."sourceId", reference."resourceId", reference."createdBy"
 FROM project_documented_source_references AS reference
+JOIN project_processes AS process
+  ON process."projectId" = reference."projectId"
+ AND process."resourceId" = reference."resourceId"
 ON CONFLICT ("projectId", "sourceId", "resourceId") DO NOTHING;
 
 ALTER TABLE project_documented_sources
