@@ -37,7 +37,7 @@ describe('extractBpmnDataElements', () => {
           elementId: 'contract-ref',
           elementName: 'Contrat',
           elementType: 'dataObjectReference',
-          description: 'Contrat signé et archivé',
+          bpmnDescription: 'Contrat signé et archivé',
         }),
         expect.objectContaining({
           resourceId: 'resource-1',
@@ -45,7 +45,7 @@ describe('extractBpmnDataElements', () => {
           elementId: 'crm-ref',
           elementName: 'CRM',
           elementType: 'dataStoreReference',
-          description: 'Base clients',
+          bpmnDescription: '',
           link: 'https://crm.example.test',
           location: 'Cloud',
           access: 'Equipe commerciale',
@@ -55,6 +55,19 @@ describe('extractBpmnDataElements', () => {
         }),
       ]),
     );
+  });
+
+  it('keeps BPMN documentation separate from legacy fiche metadata and honors an explicit empty override', () => {
+    const xml = `<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+      <bpmn:process id="p">
+        <bpmn:dataObject id="d" name="Document"><bpmn:documentation>Documentation héritée</bpmn:documentation></bpmn:dataObject>
+        <bpmn:dataObjectReference id="ref" dataObjectRef="d"><bpmn:documentation /></bpmn:dataObjectReference>
+        <bpmn:extensionElements><source id="ref" bpmnType="file" description="Description de fiche" /></bpmn:extensionElements>
+      </bpmn:process>
+    </bpmn:definitions>`;
+    const [element] = extractBpmnDataElements(xml, 'r', 'Processus');
+    expect(element).toEqual(expect.objectContaining({ elementId: 'ref', bpmnDescription: '' }));
+    expect(element).not.toHaveProperty('description');
   });
 
   it('ignores malformed or unsafe XML instead of breaking the project registry', () => {
