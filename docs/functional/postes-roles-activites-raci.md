@@ -200,4 +200,18 @@ Les précisions suivantes s'appliquent à ce document :
 5. Le référentiel d'activités organisationnelles doit être unique et relié aux éléments BPMN. Une même activité de référence peut être représentée par plusieurs tâches/activités BPMN dans différents processus.
 6. La distinction fonction-type / poste / fiche de poste demeure **non arbitrée**. Les règles actuelles de partage, d'héritage ou de personnalisation ne doivent pas être considérées comme définitives avant décision explicite.
 
-Les passages de ce document qui décrivent les quatre blocs comme exactement obligatoires ou les activités comme uniquement descriptives sans lien de référence avec les activités BPMN devront être harmonisés lors de la prochaine révision fonctionnelle. Le présent complément évite de considérer ces formulations antérieures comme des décisions définitives.
+Les anciennes formulations imposant quatre blocs obligatoires ou limitant les activités à des descriptions sans lien avec BPMN sont remplacées par les décisions de cadrage ci-dessus.
+
+
+## Addendum de cohérence fonctionnelle — décisions du 27 novembre 2026
+
+Les décisions consolidées dans [le modèle organisationnel responsabilités/activités](../functional/modele-organisation-responsabilites-activites.md#10-décisions-de-cadrage-consolidées--27-novembre-2026) prévalent sur toute formulation antérieure de ce document qui leur serait contraire :
+
+- un poste comporte **au maximum quatre responsabilités** (ou blocs de missions), sans obligation d'en remplir quatre ; chaque responsabilité comporte **au maximum quatre activités** ;
+- le référentiel d'activités organisationnelles est unique et les activités sont reliées explicitement aux éléments BPMN ; une même activité de référence peut être utilisée par plusieurs éléments BPMN dans plusieurs processus ;
+- la responsabilité organisationnelle est portée par le poste et reste distincte des rôles opérationnels RACI ; aucune entrée RACI n'est déduite automatiquement de la fiche de poste ;
+- la structure permanente retenue pour le cadrage est **Directions → Postes → Titulaires** ; les services/unités intermédiaires ne sont pas requis à ce stade ;
+- le titulaire structurel n'est pas nécessairement l'unique personne qui réalise le travail : une personne peut réaliser tout ou partie des responsabilités d'un poste et contribuer à plusieurs postes. Les affectations opérationnelles doivent être distinguées de la titularisation ;
+- le lien entre fonction-type, poste et fiche de poste reste **non arbitré**. Aucune hypothèse de partage, d'héritage ou de personnalisation ne doit être présentée comme une décision acquise.
+
+Les passages ci-dessus constituent un cadrage fonctionnel et ne décrivent pas des capacités techniques déjà livrées. Aucun audit technique V0.10, aucune modification de code et aucune migration ne sont inclus dans cette harmonisation documentaire.
