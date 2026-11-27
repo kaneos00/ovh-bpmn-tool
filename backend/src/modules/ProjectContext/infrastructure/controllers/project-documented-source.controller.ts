@@ -841,6 +841,73 @@ export class ProjectDocumentedSourceController {
     });
   }
 
+  @Post(':sourceId/processes')
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
+  async addProcessMembership(
+    @Param('projectId') projectId: string,
+    @Param('sourceId') sourceId: string,
+    @Body() body: { resourceId?: string },
+    @Headers() headers: RequestHeaders,
+  ) {
+    const userId = await this.access.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Admin,
+      { allowOrganizationAdmin: true },
+    );
+    const resourceId = body.resourceId?.trim();
+    if (!resourceId) throw new BadRequestException('resourceId is required');
+    await this.validateProcess(projectId, resourceId);
+
+    return this.dataSource.transaction(async (manager) => {
+      const sourceRepository = manager.getRepository(ProjectDocumentedSourceTypeOrmEntity);
+      const membershipRepository = manager.getRepository(ProjectDocumentedSourceProcessTypeOrmEntity);
+      const source = await sourceRepository.findOne({
+        where: { id: sourceId, projectId, mergedIntoId: IsNull() },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!source) throw new NotFoundException('Documented source not found');
+      const existing = await membershipRepository.findOne({
+        where: { projectId, sourceId, resourceId },
+      });
+      if (existing) return existing;
+      return membershipRepository.save(
+        membershipRepository.create({ projectId, sourceId, resourceId, createdBy: userId }),
+      );
+    });
+  }
+
+  @Delete(':sourceId/processes/:resourceId')
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
+  async removeProcessMembership(
+    @Param('projectId') projectId: string,
+    @Param('sourceId') sourceId: string,
+    @Param('resourceId') resourceId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    await this.access.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Admin,
+      { allowOrganizationAdmin: true },
+    );
+    await this.validateProcess(projectId, resourceId);
+    const referenceCount = await this.references.count({
+      where: { projectId, sourceId, resourceId },
+    });
+    if (referenceCount > 0) {
+      throw new ConflictException(
+        'Cette information est encore liée à un objet BPMN de ce processus. Supprimez d’abord ce lien.',
+      );
+    }
+    const membership = await this.sourceProcesses.findOne({
+      where: { projectId, sourceId, resourceId },
+    });
+    if (!membership) throw new NotFoundException('Process membership not found');
+    await this.sourceProcesses.delete({ id: membership.id });
+    return { removed: true, sourceId, resourceId };
+  }
+
   @Delete(':sourceId')
   @UseAcl([UserGroup.RW, UserGroup.Admin])
   async deleteSource(
