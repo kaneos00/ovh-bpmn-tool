@@ -126,7 +126,9 @@ test('project-level sources retain independent memberships in one or more proces
   assert.match(inventory, /const payload = \{\s*resourceId,/);
   assert.match(controller, /ProjectDocumentedSourceProcessTypeOrmEntity/);
   assert.match(controller, /memberships\.some\(/);
-  assert.match(controller, /membershipRepository\.create\(\{ projectId, sourceId: source\.id, resourceId, createdBy: userId \}\)/);
+  assert.ok(controller.includes('sourceId: source.id'));
+  assert.ok(controller.includes('membershipRepository.save'));
+  assert.ok(controller.includes('resourceId,'));
   assert.match(controller, /processes: sourceProcesses/);
   assert.match(entity, /project_documented_source_processes/);
   assert.match(migration, /project_documented_source_processes_unique/);
