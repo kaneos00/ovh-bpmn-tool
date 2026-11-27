@@ -150,7 +150,6 @@ export const DataInventory = ({
 
   const saveRow = async (row: ProjectDocumentedSource) => {
     if (!projectId || !canManageSources || savingId) return;
-    // A newly added row stays local until its required name is entered.
     if (!row.name.trim()) return;
     setSavingId(row.id);
     setError('');
@@ -477,7 +476,7 @@ export const DataInventory = ({
             <Stack spacing={1.5}>
               <FormControl required>
                 <FormLabel>Nom de l’information</FormLabel>
-                <Input autoFocus value={newName} onChange={event => setNewName(event.target.value)} />
+                <Input value={newName} onChange={event => setNewName(event.target.value)} />
               </FormControl>
               <FormControl>
                 <FormLabel>Type</FormLabel>
