@@ -138,8 +138,105 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     },
     { headerName: 'Type', field: 'kind', minWidth: 145, editable: canManage, cellEditor: 'agSelectCellEditor', cellEditorParams: { values: ['file', 'database', 'application'] }, valueFormatter: p => kindLabels[p.value as SourceKind] ?? '', cellRenderer: (p: { value?: SourceKind }) => p.value ? <Stack direction="row" spacing={0.75} alignItems="center">{kindIcon(p.value)}<span>{kindLabels[p.value]}</span></Stack> : null },
     { headerName: 'Description', field: 'description', minWidth: 220, editable: canManage },
-    { headerName: 'Objet BPMN', minWidth: 250, editable: false, autoHeight: true,
-      cellRenderer: (p: { data?: GridRow }) => p.data ? <Stack spacing={0.25}>{p.data.references.length ? p.data.references.map(ref => <Stack key={ref.id} direction="row" spacing={0.5} alignItems="center"><Button size="sm" variant="plain" color="neutral" startDecorator={objectIcon(ref.elementType)} sx={{ justifyContent: 'flex-start', whiteSpace: 'normal', textAlign: 'left', flex: 1 }} onClick={() => navigate(`/${ref.resourceId}?elementId=${encodeURIComponent(ref.elementId)}`)}>{ref.elementName} <Typography level="body-xs" color="neutral">— {ref.processName}</Typography></Button>{canManage && <Button size="sm" variant="plain" color="danger" onClick={async () => { try { await apiClient.remove(`/projects/${projectId}/documented-sources/${p.data!.sourceId}/references/${ref.id}`); await refresh(); } catch (e) { setError(e instanceof Error ? e.message : 'Impossible de délier cet objet BPMN.'); } }}>Délier</Button>}</Stack>) : <Typography level="body-sm" color="neutral">Non associé</Typography>}{canManage && (data?.unlinkedReferences ?? []).some(candidate => !p.data!.references.some(ref => ref.resourceId === candidate.resourceId && ref.elementId === candidate.elementId)) && <Select size="sm" placeholder="Associer un objet BPMN du projet…" value={null} onChange={async (_, value) => { const candidate = (data?.unlinkedReferences ?? []).find(item => `${item.resourceId}:${item.elementId}` === value); if (!candidate) return; try { await apiClient.post(`/projects/${projectId}/documented-sources/${p.data!.sourceId}/references`, { resourceId: candidate.resourceId, elementId: candidate.elementId, elementName: candidate.elementName, elementType: candidate.elementType }); await refresh(); } catch (e) { setError(e instanceof Error ? e.message : 'Impossible d’associer cet objet BPMN.'); } }}><Option value="" disabled>Choisir un objet BPMN</Option>{(data?.unlinkedReferences ?? []).filter(candidate => !p.data!.references.some(ref => ref.resourceId === candidate.resourceId && ref.elementId === candidate.elementId)).map(candidate => <Option key={`${candidate.resourceId}:${candidate.elementId}`} value={`${candidate.resourceId}:${candidate.elementId}`}>{candidate.elementName} — {candidate.processName}</Option>)}</Select>}</Stack> : null },
+    {
+      headerName: 'Objet BPMN',
+      minWidth: 300,
+      editable: false,
+      autoHeight: true,
+      cellRenderer: (p: { data?: GridRow }) => p.data ? (
+        <Stack spacing={0.5}>
+          {p.data.references.length ? p.data.references.map(ref => (
+            <Stack key={ref.id} spacing={0.25}>
+              <Stack direction="row" spacing={0.5} alignItems="center">
+                <Button
+                  size="sm"
+                  variant="plain"
+                  color="neutral"
+                  startDecorator={objectIcon(ref.elementType)}
+                  sx={{ justifyContent: 'flex-start', whiteSpace: 'normal', textAlign: 'left', flex: 1 }}
+                  onClick={() => navigate(`/${ref.resourceId}?elementId=${encodeURIComponent(ref.elementId)}`)}
+                >
+                  {ref.elementName} <Typography level="body-xs" color="neutral">— {ref.processName}</Typography>
+                </Button>
+                {canManage && (
+                  <Button
+                    size="sm"
+                    variant="plain"
+                    color="danger"
+                    onClick={async () => {
+                      try {
+                        await apiClient.remove(`/projects/${projectId}/documented-sources/${p.data!.sourceId}/references/${ref.id}`);
+                        await refresh();
+                      } catch (e) {
+                        setError(e instanceof Error ? e.message : 'Impossible de délier cet objet BPMN.');
+                      }
+                    }}
+                  >
+                    Délier
+                  </Button>
+                )}
+              </Stack>
+              {canManage && (data?.sources ?? []).some(source => source.id !== p.data!.sourceId) && (
+                <Select
+                  size="sm"
+                  value={null}
+                  placeholder="Rattacher à une fiche existante…"
+                  onChange={async (_, value) => {
+                    if (typeof value !== 'string' || !value) return;
+                    try {
+                      await apiClient.put(
+                        `/projects/${projectId}/documented-sources/${p.data!.sourceId}/references/${ref.id}`,
+                        { targetSourceId: value },
+                      );
+                      await refresh();
+                    } catch (e) {
+                      setError(e instanceof Error ? e.message : 'Impossible de rattacher cet objet à cette information documentée.');
+                    }
+                  }}
+                >
+                  {(data?.sources ?? [])
+                    .filter(source => source.id !== p.data!.sourceId)
+                    .map(source => (
+                      <Option key={source.id} value={source.id}>{source.name}</Option>
+                    ))}
+                </Select>
+              )}
+            </Stack>
+          )) : <Typography level="body-sm" color="neutral">Non associé</Typography>}
+          {canManage && (data?.unlinkedReferences ?? []).some(candidate => !p.data!.references.some(ref => ref.resourceId === candidate.resourceId && ref.elementId === candidate.elementId)) && (
+            <Select
+              size="sm"
+              placeholder="Associer un objet BPMN du projet…"
+              value={null}
+              onChange={async (_, value) => {
+                const candidate = (data?.unlinkedReferences ?? []).find(item => `${item.resourceId}:${item.elementId}` === value);
+                if (!candidate) return;
+                try {
+                  await apiClient.post(`/projects/${projectId}/documented-sources/${p.data!.sourceId}/references`, {
+                    resourceId: candidate.resourceId,
+                    elementId: candidate.elementId,
+                    elementName: candidate.elementName,
+                    elementType: candidate.elementType,
+                  });
+                  await refresh();
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : 'Impossible d’associer cet objet BPMN.');
+                }
+              }}
+            >
+              <Option value="" disabled>Choisir un objet BPMN</Option>
+              {(data?.unlinkedReferences ?? [])
+                .filter(candidate => !p.data!.references.some(ref => ref.resourceId === candidate.resourceId && ref.elementId === candidate.elementId))
+                .map(candidate => (
+                  <Option key={`${candidate.resourceId}:${candidate.elementId}`} value={`${candidate.resourceId}:${candidate.elementId}`}>
+                    {candidate.elementName} — {candidate.processName}
+                  </Option>
+                ))}
+            </Select>
+          )}
+        </Stack>
+      ) : null,
+    },
     { headerName: 'Lien', field: 'link', minWidth: 170, editable: canManage },
     { headerName: 'Emplacement', field: 'location', minWidth: 150, editable: canManage },
     { headerName: 'Accès', field: 'access', minWidth: 140, editable: canManage },
