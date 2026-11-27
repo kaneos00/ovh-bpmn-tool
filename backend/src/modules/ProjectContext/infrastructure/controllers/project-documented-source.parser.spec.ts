@@ -87,7 +87,9 @@ describe('ProjectDocumentedSourceController.synchronize', () => {
       getRepository: jest.fn((entity: unknown) =>
         entity === ProjectDocumentedSourceTypeOrmEntity
           ? sourceRepository
-          : referenceRepository,
+          : entity === ProjectDocumentedSourceReferenceTypeOrmEntity
+            ? referenceRepository
+            : undefined,
       ),
     };
     const controller = Object.create(
