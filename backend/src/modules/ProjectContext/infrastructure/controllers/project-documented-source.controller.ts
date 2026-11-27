@@ -417,7 +417,7 @@ export class ProjectDocumentedSourceController {
     const userId = await this.access.assertProjectRole(
       projectId,
       headers,
-      ProjectMemberRole.Admin,
+      ProjectMemberRole.Modeler,
       { allowOrganizationAdmin: true },
     );
     const resourceId = body.resourceId?.trim();
