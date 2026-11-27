@@ -127,6 +127,12 @@ export const DataInventory = ({
     { enabled: Boolean(projectId), refetchOnMount: 'always' },
   );
   const projectSources = projectSourcesQuery.data?.sources ?? [];
+  const allProjectSourcesQuery = useQuery<ProjectDocumentedSourcesResponse>(
+    ['project-documented-sources', projectId],
+    () => apiClient.get(`/projects/${projectId}/documented-sources`),
+    { enabled: Boolean(projectId), refetchOnMount: 'always' },
+  );
+  const allProjectSources = allProjectSourcesQuery.data?.sources ?? [];
   const unlinkedReferences = useMemo(
     () => (projectSourcesQuery.data?.unlinkedReferences ?? []).filter(reference => reference.resourceId === resourceId && isSupportedBpmnDataType(reference.elementType)),
     [projectSourcesQuery.data?.unlinkedReferences, resourceId],
@@ -144,7 +150,7 @@ export const DataInventory = ({
 
 
   const refresh = async () => {
-    if (projectId) await queryClient.invalidateQueries(['project-documented-sources', projectId, resourceId]);
+    if (projectId) await queryClient.invalidateQueries(['project-documented-sources', projectId]);
   };
 
   const updateRow = (id: string, field: keyof ProjectDocumentedSource, value: string | null | boolean) => {
@@ -433,6 +439,36 @@ export const DataInventory = ({
                   </IconButton>
                 )}
               </Stack>
+              {canManageSources && allProjectSources.some(source => source.id !== row.id) && (
+                <Select
+                  size="sm"
+                  value={null}
+                  placeholder="Rattacher à une autre information documentée…"
+                  disabled={Boolean(associatingId) || allProjectSourcesQuery.isLoading}
+                  onClick={event => event.stopPropagation()}
+                  onChange={async (_, value) => {
+                    if (typeof value !== 'string' || !value || !projectId) return;
+                    setAssociatingId(row.id);
+                    setError('');
+                    try {
+                      await apiClient.put(
+                        `/projects/${projectId}/documented-sources/${row.id}/references/${reference.id}`,
+                        { targetSourceId: value },
+                      );
+                      await refresh();
+                    } catch (e) {
+                      setError(e instanceof Error ? e.message : 'Impossible de rattacher cet objet à cette information documentée.');
+                    } finally {
+                      setAssociatingId(null);
+                    }
+                  }}
+                  aria-label={`Rattacher ${reference.elementName} à une autre information documentée`}
+                >
+                  {allProjectSources.filter(source => source.id !== row.id).map(source => (
+                    <Option key={source.id} value={source.id}>{source.name}</Option>
+                  ))}
+                </Select>
+              )}
             ))}
             {canManageSources && unlinkedReferences.length > 0 && (
               <Select
