@@ -63,7 +63,7 @@ L'inspection confirme que :
 - `JobFunction` porte déjà la finalité (`mission`), le code, le nom et les métadonnées documentaires ;
 - plusieurs postes permanents peuvent réutiliser une même fonction de référence.
 
-Décision proposée : **les quatre blocs de missions appartiennent à `JobFunction`**, qui sert de fiche de poste/fonction de référence. Les postes permanents conservent leur lien `functionId`. Ne pas créer une fiche parallèle par `OrganizationPosition`.
+Hypothèse technique historique, **non arbitrée fonctionnellement** : le rattachement des blocs à `JobFunction` et son assimilation à une fiche de poste ne doivent pas être considérés comme une décision métier. Le lien entre fonction-type, poste et fiche de poste reste à décider. Aucune conclusion de ce document ne doit préempter cet arbitrage.
 
 Les adaptations propres à une organisation ou à un poste permanent ne sont pas introduites dans cette migration ; elles feront l'objet d'un besoin séparé si elles deviennent nécessaires.
 
@@ -80,7 +80,7 @@ Créer les tables suivantes :
 - UNIQUE (`functionId`, `code`) ;
 - UNIQUE (`functionId`, `sortOrder`).
 
-Le service garantit exactement quatre blocs par fiche, codes stables (par exemple `CDP-1` à `CDP-4`) et ordre 1 à 4. Une contrainte SQL différée/triggers pour exactement quatre blocs est à éviter à ce stade : la cardinalité sera validée par la transaction de sauvegarde globale.
+La règle fonctionnelle est un maximum de quatre blocs par poste, sans obligation de remplir les quatre. Les éventuels codes et ordres ne concernent que les blocs effectivement créés et restent à définir après arbitrage du modèle fonction-type/poste/fiche. Une contrainte SQL différée/triggers pour exactement quatre blocs est à éviter à ce stade : la cardinalité sera validée par la transaction de sauvegarde globale.
 
 #### `job_function_mission_activities`
 
@@ -90,7 +90,7 @@ Le service garantit exactement quatre blocs par fiche, codes stables (par exempl
 - `sortOrder` integer NOT NULL ;
 - UNIQUE (`missionBlockId`, `sortOrder`).
 
-Le service impose 1 à 4 activités descriptives par bloc. Elles ne constituent pas un catalogue de tâches opérationnelles.
+La règle fonctionnelle est au maximum quatre activités par responsabilité/bloc, sans obligation d'en définir quatre. Elles ne constituent pas un catalogue de tâches opérationnelles.
 
 #### `job_function_mission_competencies`
 
@@ -216,3 +216,17 @@ Il :
 - laisse les blocs projet, leur applicabilité, les mappings BPMN et RACI intacts.
 
 **Le fichier n'est pas encore intégré au conteneur de migrations ni à `compose.yaml`.** C'est intentionnel : le backend actuel lit encore `competency.blockId` et `competency.referenceLevel`. Brancher ou exécuter le SQL avant la mise à jour des entités et services rendrait l'application incompatible avec le schéma. L'intégration Coolify sera faite dans la même tranche que le backend cible, avec une activation explicite et un nom de base de test confirmé.
+
+
+## Addendum de cohérence fonctionnelle — décisions du 27 novembre 2026
+
+Les décisions consolidées dans [le modèle organisationnel responsabilités/activités](../functional/modele-organisation-responsabilites-activites.md#10-décisions-de-cadrage-consolidées--27-novembre-2026) prévalent sur toute formulation antérieure de ce document qui leur serait contraire :
+
+- un poste comporte **au maximum quatre responsabilités** (ou blocs de missions), sans obligation d'en remplir quatre ; chaque responsabilité comporte **au maximum quatre activités** ;
+- le référentiel d'activités organisationnelles est unique et les activités sont reliées explicitement aux éléments BPMN ; une même activité de référence peut être utilisée par plusieurs éléments BPMN dans plusieurs processus ;
+- la responsabilité organisationnelle est portée par le poste et reste distincte des rôles opérationnels RACI ; aucune entrée RACI n'est déduite automatiquement de la fiche de poste ;
+- la structure permanente retenue pour le cadrage est **Directions → Postes → Titulaires** ; les services/unités intermédiaires ne sont pas requis à ce stade ;
+- le titulaire structurel n'est pas nécessairement l'unique personne qui réalise le travail : une personne peut réaliser tout ou partie des responsabilités d'un poste et contribuer à plusieurs postes. Les affectations opérationnelles doivent être distinguées de la titularisation ;
+- le lien entre fonction-type, poste et fiche de poste reste **non arbitré**. Aucune hypothèse de partage, d'héritage ou de personnalisation ne doit être présentée comme une décision acquise.
+
+Les passages ci-dessus constituent un cadrage fonctionnel et ne décrivent pas des capacités techniques déjà livrées. Aucun audit technique V0.10, aucune modification de code et aucune migration ne sont inclus dans cette harmonisation documentaire.
