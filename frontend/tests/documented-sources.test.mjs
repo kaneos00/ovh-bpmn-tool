@@ -91,8 +91,8 @@ test('BPMN associations support data objects and data stores in the active proce
   assert.match(inventory, /elementType: reference\.elementType/);
   assert.match(inventory, /type BpmnDataType = 'dataObjectReference' \| 'dataStoreReference'/, 'legacy data-object links remain displayable');
   assert.match(inventory, /documented-sources\?resourceId=\$\{encodeURIComponent\(resourceId\)\}/);
-  assert.match(controller, /const BPMN_DOCUMENTED_DATA_TYPES = new Set\(\['dataStoreReference'\]\)/);
-  assert.match(controller, /const supported = new Set\(\['dataStoreReference'\]\)/);
+  assert.match(controller, /const BPMN_DOCUMENTED_DATA_TYPES = new Set\(\['dataObjectReference', 'dataStoreReference'\]\)/);
+  assert.match(controller, /const supported = new Set\(\['dataObjectReference', 'dataStoreReference'\]\)/);
   assert.match(controller, /@Query\('resourceId'\) requestedResourceId\?: string/);
   assert.match(controller, /Only BPMN data objects and data stores can be associated with documented sources/);
 });
