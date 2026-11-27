@@ -79,6 +79,8 @@ type Props = {
   onShowDiagram?: () => void;
 };
 
+const isSupportedBpmnDataType = (type: string) => type === 'dataObjectReference' || type === 'dataStoreReference';
+
 const emptySource = (id: string, resourceId: string): ProjectDocumentedSource => ({
   id,
   resourceId,
@@ -138,7 +140,7 @@ export const DataInventory = ({
   );
   const projectSources = projectSourcesQuery.data?.sources ?? [];
   const unlinkedReferences = useMemo(
-    () => (projectSourcesQuery.data?.unlinkedReferences ?? []).filter(reference => reference.resourceId === resourceId),
+    () => (projectSourcesQuery.data?.unlinkedReferences ?? []).filter(reference => reference.resourceId === resourceId && isSupportedBpmnDataType(reference.elementType)),
     [projectSourcesQuery.data?.unlinkedReferences, resourceId],
   );
 
@@ -337,7 +339,7 @@ export const DataInventory = ({
       },
     },
     {
-      headerName: 'Objet BPMN',
+      headerName: 'Association BPMN',
       minWidth: 240,
       sortable: false,
       cellRenderer: (params: ICellRendererParams<InventoryGridRow>) => {
@@ -399,7 +401,7 @@ export const DataInventory = ({
               <Select
                 size="sm"
                 value={null}
-                placeholder="Associer un objet BPMN…"
+                placeholder="Associer un Data Object / Data Store…"
                 disabled={row.id.startsWith('new-') || Boolean(associatingId)}
                 onClick={event => event.stopPropagation()}
                 onChange={(_, value) => { if (typeof value === 'string') void associate(row, value); }}
@@ -461,7 +463,7 @@ export const DataInventory = ({
           <Box>
             <Typography level="title-lg">Informations documentées</Typography>
             <Typography level="body-sm" color="neutral">
-              Référentiel des fichiers, bases de données et applications utilisés par le processus.
+              Fiches utilisées par ce processus. Créez une fiche ici, puis associez-la si besoin à un Data Object ou un Data Store. Les fiches peuvent être réutilisées dans d’autres processus.
             </Typography>
           </Box>
         </Stack>
@@ -492,7 +494,7 @@ export const DataInventory = ({
           getRowId={row => row.id}
           selectedRowId={requestedDocumentedSourceId ?? undefined}
           onAdd={canManageSources ? addRow : undefined}
-          addLabel="Ajouter une ligne : information documentée"
+          addLabel="Créer une information documentée dans ce processus"
           height={560}
         />
         {unlinkedReferences.length > 0 && (
