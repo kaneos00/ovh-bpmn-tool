@@ -30,7 +30,7 @@ test('project workspace restores the central documented information tab', async 
   assert.ok(registry.includes('ref.resourceId'));
   assert.ok(registry.includes('candidate.resourceId'));
   assert.match(await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx'), /isSupportedBpmnDataType\(reference\.elementType\)/);
-  assert.match(await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx'), /Créer une information documentée dans ce processus/);
+  assert.match(await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx'), /La fiche sera ajoutée au référentiel du projet et rattachée à ce processus/);
 
   assert.ok(registry.includes('elementType: candidate.elementType'));
 
