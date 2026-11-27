@@ -687,9 +687,11 @@ export const ProcessDetails = ({
     }
     documentation.textContent = description;
     nodes.slice(1).forEach(node => node.remove());
+    const updatedXml = new XMLSerializer().serializeToString(document);
     await saveContent(resourceId, viewerContent?.id ?? publishedContent.id, {
-      content: new XMLSerializer().serializeToString(document),
+      content: updatedXml,
     });
+    queryClient.setQueryData(xmlContentQuery.queryKey, updatedXml);
     await queryClient.invalidateQueries(xmlContentQuery.queryKey);
     if (projectForProcess?.id) await queryClient.invalidateQueries(['project-documented-sources', projectForProcess.id]);
   };
