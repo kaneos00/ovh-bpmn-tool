@@ -393,8 +393,8 @@ export const DataInventory = ({
           <Stack spacing={0.5}>
             {references.length === 0 && <Typography level="body-sm" color="neutral">Non associé</Typography>}
             {references.map(reference => (
-              <>
-              <Stack key={reference.id} direction="row" spacing={0.5} alignItems="center">
+              <React.Fragment key={reference.id}>
+              <Stack direction="row" spacing={0.5} alignItems="center">
                 <IconButton
                   size="sm"
                   variant="plain"
@@ -470,7 +470,7 @@ export const DataInventory = ({
                   ))}
                 </Select>
               )}
-              </>
+              </React.Fragment>
             ))}
             {canManageSources && unlinkedReferences.length > 0 && (
               <Select
