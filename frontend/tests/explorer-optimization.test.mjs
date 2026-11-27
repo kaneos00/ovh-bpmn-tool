@@ -24,7 +24,7 @@ test('explorer follows the process currently open instead of retaining an unrela
 test('explorer provides root-level creation actions without requiring a folder selection', async () => {
   const tree = await read('src/Components/BusinessComponents/FolderTree/FolderTree.tsx');
 
-  assert.match(tree, /navigate\('\/root\/add\?type=folder'\)/);
+  assert.match(tree, /type=folder\$\{activeProjectId \? `&projectId=/);
   assert.ok(tree.includes('navigate(`/root/add?type=process&projectId=${encodeURIComponent(activeProjectId)}`)'));
 });
 
@@ -113,7 +113,7 @@ test('project home is a first-level tree item and opens the workspace root', asy
   assert.ok(tree.includes("node?.id === 'project-home'"));
   assert.ok(tree.includes("contextMenu?.nodeId === 'project-home'"));
   assert.ok(tree.includes("onNodeClick(targetId)"));
-  assert.ok(tree.includes("navigate('/root/add?type=folder')"));
+  assert.ok(tree.includes('type=folder${activeProjectId ? `&projectId='));
   assert.ok(!tree.includes('Racine — ${activeProject.name}'));
 });
 
@@ -122,4 +122,31 @@ test('folder context menu creates child folders and project-linked processes in 
 
   assert.ok(tree.includes('type=process&projectId=${encodeURIComponent(activeProjectId!)}'));
   assert.ok(tree.includes('Créer un sous-répertoire'));
+  assert.ok(tree.includes('type=folder${activeProjectId ? `&projectId='));
+});
+
+
+test('new process creation seeds an editable BPMN draft before project attachment', async () => {
+  const action = await read('src/Containers/AddResource/AddResource.action.ts');
+  assert.ok(action.includes('`/resources/${createdResourceId}/contents`'));
+  assert.match(action, /initialBpmn/);
+  assert.ok(action.includes('`/projects/${projectId}/processes`'));
+  assert.ok(action.indexOf('initialBpmn') < action.indexOf('/processes'));
+});
+
+test('project folders are explicitly linked and visible even when empty', async () => {
+  const action = await read('src/Containers/AddResource/AddResource.action.ts');
+  const workspace = await read('src/shared/hooks/useActiveProject.ts');
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project.controller.ts');
+  assert.ok(action.includes('`/projects/${projectId}/folders`'));
+  assert.match(workspace, /folders: Array<\{ resourceId: string; name: string; parentId: string \| null \}>/);
+  assert.match(controller, /INSERT INTO project_folders/);
+  assert.match(controller, /folders: folderLinks/);
+});
+
+test('documented information panel uses the validated project grid structure', async () => {
+  const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
+  assert.match(inventory, /textColumn\('name', 'Nom', 220\)/);
+  assert.match(inventory, /headerName: 'Origine', field: 'origin'/);
+  assert.doesNotMatch(inventory, /headerName: 'Statut projet'/);
 });

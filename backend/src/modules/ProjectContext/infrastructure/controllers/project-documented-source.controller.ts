@@ -10,6 +10,7 @@ import {
   Post,
   Put,
   Body,
+  Query,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, IsNull, Repository } from 'typeorm';
@@ -68,7 +69,8 @@ const parser = new XMLParser({
 
 const SOURCE_KINDS: SourceKind[] = ['file', 'database', 'application', 'form'];
 
-const BPMN_DOCUMENTED_DATA_TYPES = new Set([
+const BPMN_DOCUMENTED_DATA_TYPES = new Set(['dataStoreReference']);
+const BPMN_DISPLAYED_DATA_TYPES = new Set([
   'dataObjectReference',
   'dataStoreReference',
 ]);
@@ -189,7 +191,7 @@ export const extractBpmnDataElements = (
     });
 
     const result: BpmnDataElement[] = [];
-    const supported = new Set(['dataObjectReference', 'dataStoreReference']);
+    const supported = new Set(['dataStoreReference']);
     walk(parsed, (node, key) => {
       if (!supported.has(key)) return;
       const elementId = readAttribute(node, 'id');
@@ -255,6 +257,7 @@ export class ProjectDocumentedSourceController {
   async list(
     @Param('projectId') projectId: string,
     @Headers() headers: RequestHeaders,
+    @Query('resourceId') requestedResourceId?: string,
   ) {
     await this.access.assertProjectRole(
       projectId,
@@ -262,19 +265,40 @@ export class ProjectDocumentedSourceController {
       ProjectMemberRole.Viewer,
       { allowOrganizationAdmin: true },
     );
-    const [sources, references, links] = await Promise.all([
+    const [allSources, references, links] = await Promise.all([
       this.sources.find({
         where: { projectId, mergedIntoId: IsNull() },
         order: { name: 'ASC' },
       }),
       this.references.find({
-        where: { projectId, elementType: In([...BPMN_DOCUMENTED_DATA_TYPES]) },
+        where: { projectId, elementType: In([...BPMN_DISPLAYED_DATA_TYPES]) },
         order: { createdAt: 'ASC' },
       }),
       this.projectProcesses.find({ where: { projectId } }),
     ]);
+    const sources = requestedResourceId
+      ? allSources.filter((source) => source.resourceId === requestedResourceId)
+      : allSources;
 
-    const resourceIds = [...new Set(links.map((link) => link.resourceId))];
+    const linkedResourceIds = [
+      ...new Set(links.map((link) => link.resourceId)),
+    ];
+    if (
+      requestedResourceId &&
+      !linkedResourceIds.includes(requestedResourceId)
+    ) {
+      throw new BadRequestException(
+        'The process is not linked to this project',
+      );
+    }
+    const resourceIds = requestedResourceId
+      ? [requestedResourceId]
+      : linkedResourceIds;
+    const scopedReferences = requestedResourceId
+      ? references.filter(
+          (reference) => reference.resourceId === requestedResourceId,
+        )
+      : references;
     const resources = resourceIds.length
       ? await this.resources.find({ where: { id: In(resourceIds) } })
       : [];
@@ -298,26 +322,49 @@ export class ProjectDocumentedSourceController {
         contentByResource.set(content.resourceId, content);
     });
 
+    // Resolve the displayed BPMN object name from the latest process XML.
+    // The persisted association keeps its stable elementId; its cached
+    // elementName must not become the source of truth after a diagram rename.
+    const bpmnElementByKey = new Map<string, BpmnDataElement>();
+    resourceIds.forEach((resourceId) => {
+      const resource = resourceById.get(resourceId);
+      const content = contentByResource.get(resourceId);
+      if (!resource || !content) return;
+      extractBpmnDataElements(
+        content.content,
+        resourceId,
+        resource.name,
+      ).forEach((element) => {
+        bpmnElementByKey.set(
+          element.resourceId + ':' + element.elementId,
+          element,
+        );
+      });
+    });
+
     const referencesBySource = new Map<
       string,
       Array<Record<string, unknown>>
     >();
-    references.forEach((reference) => {
+    scopedReferences.forEach((reference) => {
       const rows = referencesBySource.get(reference.sourceId) ?? [];
+      const currentElement = bpmnElementByKey.get(
+        reference.resourceId + ':' + reference.elementId,
+      );
       rows.push({
         id: reference.id,
         resourceId: reference.resourceId,
         processName:
           resourceById.get(reference.resourceId)?.name ?? reference.resourceId,
         elementId: reference.elementId,
-        elementName: reference.elementName,
+        elementName: currentElement?.elementName ?? reference.elementName,
         elementType: reference.elementType,
       });
       referencesBySource.set(reference.sourceId, rows);
     });
 
     const linkedKeys = new Set(
-      references.map(
+      scopedReferences.map(
         (reference) => reference.resourceId + ':' + reference.elementId,
       ),
     );
@@ -339,8 +386,19 @@ export class ProjectDocumentedSourceController {
     return {
       sources: sources.map((source) => ({
         ...source,
+        processName:
+          resourceById.get(source.resourceId)?.name ?? source.resourceId,
         references: referencesBySource.get(source.id) ?? [],
       })),
+      processes: links
+        .map((link) => ({
+          resourceId: link.resourceId,
+          processName:
+            resourceById.get(link.resourceId)?.name ?? link.resourceId,
+        }))
+        .sort((left, right) =>
+          left.processName.localeCompare(right.processName, 'fr'),
+        ),
       unlinkedReferences: unlinkedReferences.sort(
         (left, right) =>
           left.processName.localeCompare(right.processName, 'fr') ||
@@ -349,13 +407,107 @@ export class ProjectDocumentedSourceController {
     };
   }
 
+  @Post('synchronize')
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
+  async synchronize(
+    @Param('projectId') projectId: string,
+    @Body() body: { resourceId?: string },
+    @Headers() headers: RequestHeaders,
+  ) {
+    const userId = await this.access.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Modeler,
+      { allowOrganizationAdmin: true },
+    );
+    const resourceId = body.resourceId?.trim();
+    if (!resourceId) throw new BadRequestException('resourceId is required');
+    const process = await this.validateProcess(projectId, resourceId);
+    const [resource, content] = await Promise.all([
+      this.resources.findOne({ where: { id: resourceId } }),
+      this.contents.findOne({
+        where: { resourceId },
+        order: { version: 'DESC', updatedAt: 'DESC' },
+      }),
+    ]);
+    if (!resource || !content) return { created: 0, skipped: 0 };
+    const elements = extractBpmnDataElements(
+      content.content,
+      resourceId,
+      resource.name || process.resourceId,
+    );
+
+    let created = 0;
+    let skipped = 0;
+    for (const element of elements) {
+      const elementName = element.elementName.slice(0, 255);
+      const wasCreated = await this.dataSource.transaction(async (manager) => {
+        await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+          projectId + ':' + resourceId + ':' + element.elementId,
+        ]);
+        const sourceRepository = manager.getRepository(
+          ProjectDocumentedSourceTypeOrmEntity,
+        );
+        const referenceRepository = manager.getRepository(
+          ProjectDocumentedSourceReferenceTypeOrmEntity,
+        );
+        const existing = await referenceRepository.findOne({
+          where: {
+            projectId,
+            resourceId,
+            elementId: element.elementId,
+          },
+        });
+        if (existing) return false;
+
+        const source = await sourceRepository.save(
+          sourceRepository.create({
+            projectId,
+            resourceId,
+            createdBy: userId,
+            kind: 'database',
+            name: elementName,
+            description: optionalText(element.description, 'description'),
+            link: optionalText(element.link, 'link'),
+            location: optionalText(element.location, 'location'),
+            access: optionalText(element.access, 'access'),
+            retention: optionalText(element.retention, 'retention'),
+            validUntil: null,
+            containsPersonalData: false,
+            authorizedPeople: optionalText(
+              element.authorizedPeople,
+              'authorizedPeople',
+            ),
+            restrictions: optionalText(element.restrictions, 'restrictions'),
+          }),
+        );
+        await referenceRepository.save(
+          referenceRepository.create({
+            projectId,
+            sourceId: source.id,
+            resourceId,
+            elementId: element.elementId,
+            elementName,
+            elementType: element.elementType,
+            createdBy: userId,
+          }),
+        );
+        return true;
+      });
+      if (wasCreated) created += 1;
+      else skipped += 1;
+    }
+
+    return { created, skipped };
+  }
+
   @Post()
   @UseAcl([UserGroup.RW, UserGroup.Admin])
   async create(
     @Param('projectId') projectId: string,
     @Body()
     body: SourceFields & {
-      resourceId?: string;
+      resourceId: string;
       elementId?: string;
       elementName?: string;
       elementType?: string;
@@ -374,11 +526,17 @@ export class ProjectDocumentedSourceController {
     const kind = body.kind ?? 'file';
     if (!SOURCE_KINDS.includes(kind))
       throw new BadRequestException('Unsupported source kind');
+    const resourceId = body.resourceId?.trim();
+    if (!resourceId)
+      throw new BadRequestException(
+        'resourceId is required: documented information must belong to a process',
+      );
+    await this.validateProcess(projectId, resourceId);
     const hasReferenceFields = Boolean(
-      body.resourceId || body.elementId || body.elementName || body.elementType,
+      body.elementId || body.elementName || body.elementType,
     );
     const reference = hasReferenceFields
-      ? await this.validateReference(projectId, body)
+      ? await this.validateReference(projectId, { ...body, resourceId })
       : null;
 
     return this.dataSource.transaction(async (manager) => {
@@ -405,6 +563,7 @@ export class ProjectDocumentedSourceController {
       const source = await sourceRepository.save(
         sourceRepository.create({
           projectId,
+          resourceId,
           createdBy: userId,
           kind,
           name,
@@ -515,7 +674,8 @@ export class ProjectDocumentedSourceController {
         lock: { mode: 'pessimistic_write' },
       });
       if (!source) throw new NotFoundException('Documented source not found');
-
+      // A project-level documented source may be referenced from any process
+      // in the project when the BPMN data store represents the same file/database.
       const existing = await referenceRepository.findOne({
         where: {
           projectId,
@@ -597,7 +757,8 @@ export class ProjectDocumentedSourceController {
       ]);
       if (!source || !target || !reference)
         throw new NotFoundException('Documented source reference not found');
-
+      // Associations are project-scoped, not restricted to the source's
+      // owning process. The target reference itself remains process-specific.
       await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
         projectId + ':' + targetSourceId + ':' + reference.resourceId,
       ]);
@@ -732,6 +893,10 @@ export class ProjectDocumentedSourceController {
         throw new NotFoundException(
           'Documented source not found in this project',
         );
+      if (source.resourceId !== target.resourceId)
+        throw new BadRequestException(
+          'Documented information can only be merged when they belong to the same process',
+        );
 
       // Several BPMN elements in one diagram may reference the same
       // documented source. Duplicate references to the same element are
@@ -851,9 +1016,14 @@ export class ProjectDocumentedSourceController {
     }
     if (!BPMN_DOCUMENTED_DATA_TYPES.has(elementType)) {
       throw new BadRequestException(
-        'Only BPMN data objects and data stores can be documented sources',
+        'Only BPMN data stores can be associated with documented sources',
       );
     }
+    await this.validateProcess(projectId, resourceId);
+    return { resourceId, elementId, elementName, elementType };
+  }
+
+  private async validateProcess(projectId: string, resourceId: string) {
     const linkedProcess = await this.projectProcesses.findOne({
       where: { projectId, resourceId },
     });
@@ -861,6 +1031,6 @@ export class ProjectDocumentedSourceController {
       throw new BadRequestException(
         'The process is not linked to this project',
       );
-    return { resourceId, elementId, elementName, elementType };
+    return linkedProcess;
   }
 }

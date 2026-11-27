@@ -834,3 +834,134 @@ describe('ProcessChangeProposalController active workspace lookup', () => {
     ).resolves.toBeNull();
   });
 });
+
+describe('ProcessChangeProposalController test-only self-approval', () => {
+  const actorUsername = 'same-user';
+  const actorUserId = '00000000-0000-4000-8000-000000000101';
+  const proposalId = '00000000-0000-4000-8000-000000000102';
+
+  const makeController = () => {
+    const proposal = {
+      id: proposalId,
+      projectId: 'project-1',
+      sourceResourceId: 'process-1',
+      authorUserId: actorUserId,
+      validatorUserId: actorUserId,
+      status: ProcessChangeProposalStatus.Submitted,
+      decidedAt: null as Date | null,
+    };
+    const proposals = {
+      findOne: jest.fn().mockResolvedValue(proposal),
+      save: jest.fn(async (value: typeof proposal) => value),
+    };
+    const events = {
+      findOne: jest.fn().mockResolvedValue({ actorUserId }),
+      create: jest.fn((value: unknown) => value),
+      save: jest.fn(async (value: unknown) => value),
+    };
+    const comments = { count: jest.fn().mockResolvedValue(0) };
+    const members = {
+      findOne: jest.fn().mockResolvedValue({
+        projectId: 'project-1',
+        userId: actorUsername,
+        role: ProjectMemberRole.Modeler,
+      }),
+    };
+    const projectProcesses = {
+      findOne: jest.fn().mockResolvedValue({
+        projectId: 'project-1',
+        resourceId: 'process-1',
+        usage: ProjectProcessUsage.Variant,
+      }),
+    };
+    const repositories = new Map<unknown, unknown>([
+      [ProcessChangeProposalTypeOrmEntity, proposals],
+      [ProcessChangeProposalEventTypeOrmEntity, events],
+      [ProcessChangeProposalCommentTypeOrmEntity, comments],
+      [ProjectMemberTypeOrmEntity, members],
+      [ProjectProcessTypeOrmEntity, projectProcesses],
+    ]);
+    const manager = {
+      getRepository: jest.fn((entity: unknown) => repositories.get(entity)),
+    };
+    const dataSource = {
+      query: jest.fn().mockResolvedValue([{ id: actorUserId }]),
+      transaction: jest.fn(async (work: (value: unknown) => unknown) =>
+        work(manager),
+      ),
+    };
+    const access = {
+      getAuthenticatedUserId: jest.fn(() => actorUsername),
+      hasOrganizationAdminRole: jest.fn(() => false),
+      assertProjectRole: jest.fn().mockResolvedValue(actorUsername),
+    };
+    const controller = new ProcessChangeProposalController(
+      dataSource as never,
+      access as never,
+      proposals as never,
+      events as never,
+      comments as never,
+      {} as never,
+      projectProcesses as never,
+      members as never,
+      {} as never,
+    );
+    return { controller, proposal, proposals, events };
+  };
+
+  const withNodeEnv = async (value: string, run: () => Promise<void>) => {
+    const previous = process.env.NODE_ENV;
+    process.env.NODE_ENV = value;
+    try {
+      await run();
+    } finally {
+      if (previous === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = previous;
+    }
+  };
+
+  it('runs the complete proposal decision transition when the author approves in test mode', async () => {
+    await withNodeEnv('test', async () => {
+      const { controller, proposal, proposals, events } = makeController();
+
+      await expect(
+        controller.decideProposal(
+          proposalId,
+          { decision: ProcessChangeProposalStatus.Approved },
+          { 'x-user': actorUsername },
+        ),
+      ).resolves.toMatchObject({
+        id: proposalId,
+        status: ProcessChangeProposalStatus.Approved,
+      });
+
+      expect(proposal.status).toBe(ProcessChangeProposalStatus.Approved);
+      expect(proposal.decidedAt).toBeInstanceOf(Date);
+      expect(proposals.save).toHaveBeenCalledWith(proposal);
+      expect(events.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          proposalId,
+          eventType: ProcessChangeProposalStatus.Approved,
+          actorUserId,
+        }),
+      );
+    });
+  });
+
+  it('continues to reject self-approval outside test mode', async () => {
+    await withNodeEnv('production', async () => {
+      const { controller, proposals, events } = makeController();
+
+      await expect(
+        controller.decideProposal(
+          proposalId,
+          { decision: ProcessChangeProposalStatus.Approved },
+          { 'x-user': actorUsername },
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+
+      expect(proposals.save).not.toHaveBeenCalled();
+      expect(events.save).not.toHaveBeenCalled();
+    });
+  });
+});

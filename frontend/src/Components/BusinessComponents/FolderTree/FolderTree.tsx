@@ -621,7 +621,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
           {canCreateFolder && (
             <MenuItem sx={{ gap: 1.25, px: 1.25, py: 0.75, fontSize: 13 }} onClick={() => {
               setContextMenu(null);
-              navigate('/root/add?type=folder');
+              navigate(`/root/add?type=folder${activeProjectId ? `&projectId=${encodeURIComponent(activeProjectId)}` : ''}`);
             }}>
               <CreateNewFolder fontSize="small" />
               Créer un sous-répertoire
@@ -680,7 +680,7 @@ export const FolderTree = ({ selectedId, onNodeClick }: FolderTreeProps) => {
                 <Divider sx={{ my: 0.5, mx: 0.75 }} />
                 <MenuItem sx={menuItemSx} onClick={() => {
                   setContextMenu(null);
-                  navigate(`/${resourceId}/add?type=folder`);
+                  navigate(`/${resourceId}/add?type=folder${activeProjectId ? `&projectId=${encodeURIComponent(activeProjectId)}` : ''}`);
                 }}>
                   <CreateNewFolder fontSize="small" />
                   Créer un sous-répertoire

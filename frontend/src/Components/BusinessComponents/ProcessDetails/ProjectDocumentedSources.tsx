@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from 'react-query';
 import { Alert, Box, Button, FormControl, FormLabel, Input, Modal, ModalDialog, Option, Select, Stack, Typography } from '@mui/joy';
-import { AddRounded, AppsRounded, DeleteOutlineRounded, DescriptionOutlined, StorageRounded } from '@mui/icons-material';
+import { AppsRounded, DeleteOutlineRounded, DescriptionOutlined, StorageRounded } from '@mui/icons-material';
 import type { CellValueChangedEvent, ColDef } from 'ag-grid-community';
 import { DocumentedSourcesGrid } from './DocumentedSourcesGrid';
 import { apiClient } from '../../../queryClient';
@@ -10,14 +10,14 @@ import { apiClient } from '../../../queryClient';
 type SourceKind = 'file' | 'database' | 'application';
 type SourceReference = { id: string; resourceId: string; elementId: string; elementName: string; elementType: string; processName: string };
 type Source = {
-  id: string; kind: SourceKind | 'form'; name: string; description: string | null; link: string | null;
+  id: string; resourceId: string; processName?: string; kind: SourceKind | 'form'; name: string; description: string | null; link: string | null;
   location: string | null; access: string | null; retention: string | null; validUntil: string | null;
   authorizedPeople: string | null; restrictions: string | null; containsPersonalData: boolean; references: SourceReference[];
 };
 type UnlinkedReference = { resourceId: string; processName: string; elementId: string; elementName: string; elementType: string; description?: string; link?: string; location?: string; access?: string; retention?: string; authorizedPeople?: string; restrictions?: string };
-type ResponseData = { sources: Source[]; unlinkedReferences: UnlinkedReference[] };
+type ResponseData = { sources: Source[]; unlinkedReferences: UnlinkedReference[]; processes: { resourceId: string; processName: string }[] };
 type GridRow = {
-  id: string; sourceId: string; name: string; origin: string; kind: SourceKind; description: string; references: SourceReference[];
+  id: string; sourceId: string; resourceId: string; name: string; origin: string; kind: SourceKind; description: string; references: SourceReference[];
   link: string; location: string; access: string; retention: string; validUntil: string;
   authorizedPeople: string; restrictions: string; containsPersonalData: boolean;
 };
@@ -35,6 +35,7 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
   const queryClient = useQueryClient();
   const [adding, setAdding] = useState(false);
   const [selectedReference, setSelectedReference] = useState<string | null>(null);
+  const [selectedProcessId, setSelectedProcessId] = useState('');
   const [newName, setNewName] = useState('');
   const [newKind, setNewKind] = useState<SourceKind>('file');
   const [error, setError] = useState('');
@@ -47,8 +48,9 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
   const query = useQuery<ResponseData>(queryKey, () => apiClient.get(`/projects/${projectId}/documented-sources`), { enabled: Boolean(projectId) });
   const data = query.data;
   const rows = useMemo<GridRow[]>(() => (data?.sources ?? []).map(source => ({
-    id: source.id, sourceId: source.id, kind: source.kind === 'form' ? 'file' : source.kind,
-    name: source.name, origin: 'Projet', description: source.description ?? '', references: source.references ?? [],
+    id: source.id, sourceId: source.id, resourceId: source.resourceId,
+    kind: source.kind === 'form' ? 'file' : source.kind,
+    name: source.name, origin: source.processName ?? 'Processus', description: source.description ?? '', references: source.references ?? [],
     link: source.link ?? '', location: source.location ?? '', access: source.access ?? '',
     retention: source.retention ?? '', validUntil: source.validUntil ?? '', authorizedPeople: source.authorizedPeople ?? '', restrictions: source.restrictions ?? '',
     containsPersonalData: source.containsPersonalData ?? false,
@@ -76,8 +78,12 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
 
   const addSource = async () => {
     if (!newName.trim()) return;
+    if (!selectedProcessId || !(data?.processes ?? []).some(process => process.resourceId === selectedProcessId)) {
+      setError('Sélectionnez le processus auquel rattacher cette information documentée.');
+      return;
+    }
     const ref = selectedReference
-      ? (data?.unlinkedReferences ?? []).find(item => `${item.resourceId}:${item.elementId}` === selectedReference)
+      ? (data?.unlinkedReferences ?? []).find(item => `${item.resourceId}:${item.elementId}` === selectedReference && item.resourceId === selectedProcessId)
       : undefined;
     if (selectedReference && !ref) {
       setError('L’objet BPMN sélectionné n’est plus disponible. Actualisez la liste puis réessayez.');
@@ -87,6 +93,7 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
       await apiClient.post(`/projects/${projectId}/documented-sources`, {
         name: newName.trim(),
         kind: newKind,
+        resourceId: selectedProcessId,
         ...(ref ? {
           resourceId: ref.resourceId,
           elementId: ref.elementId,
@@ -111,7 +118,7 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     { headerName: 'Type', field: 'kind', minWidth: 145, editable: canManage, cellEditor: 'agSelectCellEditor', cellEditorParams: { values: ['file', 'database', 'application'] }, valueFormatter: p => kindLabels[p.value as SourceKind] ?? '', cellRenderer: (p: { value?: SourceKind }) => p.value ? <Stack direction="row" spacing={0.75} alignItems="center">{kindIcon(p.value)}<span>{kindLabels[p.value]}</span></Stack> : null },
     { headerName: 'Description', field: 'description', minWidth: 220, editable: canManage },
     { headerName: 'Objet BPMN', minWidth: 250, editable: false, autoHeight: true,
-      cellRenderer: (p: { data?: GridRow }) => p.data ? <Stack spacing={0.25}>{p.data.references.length ? p.data.references.map(ref => <Stack key={ref.id} direction="row" spacing={0.5} alignItems="center"><Button size="sm" variant="plain" color="neutral" startDecorator={objectIcon(ref.elementType)} sx={{ justifyContent: 'flex-start', whiteSpace: 'normal', textAlign: 'left', flex: 1 }} onClick={() => navigate(`/${ref.resourceId}?elementId=${encodeURIComponent(ref.elementId)}`)}>{ref.elementName} <Typography level="body-xs" color="neutral">— {ref.processName}</Typography></Button>{canManage && <Button size="sm" variant="plain" color="danger" onClick={async () => { try { await apiClient.remove(`/projects/${projectId}/documented-sources/${p.data!.sourceId}/references/${ref.id}`); await refresh(); } catch (e) { setError(e instanceof Error ? e.message : 'Impossible de délier cet objet BPMN.'); } }}>Délier</Button>}</Stack>) : <Typography level="body-sm" color="neutral">Non associé</Typography>}{canManage && (data?.unlinkedReferences ?? []).some(candidate => !p.data!.references.some(ref => ref.resourceId === candidate.resourceId && ref.elementId === candidate.elementId)) && <Select size="sm" placeholder="Associer un objet BPMN…" value={null} onChange={async (_, value) => { const candidate = (data?.unlinkedReferences ?? []).find(item => `${item.resourceId}:${item.elementId}` === value); if (!candidate) return; try { await apiClient.post(`/projects/${projectId}/documented-sources/${p.data!.sourceId}/references`, { resourceId: candidate.resourceId, elementId: candidate.elementId, elementName: candidate.elementName, elementType: candidate.elementType }); await refresh(); } catch (e) { setError(e instanceof Error ? e.message : 'Impossible d’associer cet objet BPMN.'); } }}><Option value="" disabled>Choisir un objet</Option>{(data?.unlinkedReferences ?? []).filter(candidate => !p.data!.references.some(ref => ref.resourceId === candidate.resourceId && ref.elementId === candidate.elementId)).map(candidate => <Option key={`${candidate.resourceId}:${candidate.elementId}`} value={`${candidate.resourceId}:${candidate.elementId}`}>{candidate.elementName} — {candidate.processName}</Option>)}</Select>}</Stack> : null },
+      cellRenderer: (p: { data?: GridRow }) => p.data ? <Stack spacing={0.25}>{p.data.references.length ? p.data.references.map(ref => <Stack key={ref.id} direction="row" spacing={0.5} alignItems="center"><Button size="sm" variant="plain" color="neutral" startDecorator={objectIcon(ref.elementType)} sx={{ justifyContent: 'flex-start', whiteSpace: 'normal', textAlign: 'left', flex: 1 }} onClick={() => navigate(`/${ref.resourceId}?elementId=${encodeURIComponent(ref.elementId)}`)}>{ref.elementName} <Typography level="body-xs" color="neutral">— {ref.processName}</Typography></Button>{canManage && <Button size="sm" variant="plain" color="danger" onClick={async () => { try { await apiClient.remove(`/projects/${projectId}/documented-sources/${p.data!.sourceId}/references/${ref.id}`); await refresh(); } catch (e) { setError(e instanceof Error ? e.message : 'Impossible de délier cet objet BPMN.'); } }}>Délier</Button>}</Stack>) : <Typography level="body-sm" color="neutral">Non associé</Typography>}{canManage && (data?.unlinkedReferences ?? []).some(candidate => !p.data!.references.some(ref => ref.resourceId === candidate.resourceId && ref.elementId === candidate.elementId)) && <Select size="sm" placeholder="Associer un objet BPMN du projet…" value={null} onChange={async (_, value) => { const candidate = (data?.unlinkedReferences ?? []).find(item => `${item.resourceId}:${item.elementId}` === value); if (!candidate) return; try { await apiClient.post(`/projects/${projectId}/documented-sources/${p.data!.sourceId}/references`, { resourceId: candidate.resourceId, elementId: candidate.elementId, elementName: candidate.elementName, elementType: candidate.elementType }); await refresh(); } catch (e) { setError(e instanceof Error ? e.message : 'Impossible d’associer cet objet BPMN.'); } }}><Option value="" disabled>Choisir un objet BPMN</Option>{(data?.unlinkedReferences ?? []).filter(candidate => !p.data!.references.some(ref => ref.resourceId === candidate.resourceId && ref.elementId === candidate.elementId)).map(candidate => <Option key={`${candidate.resourceId}:${candidate.elementId}`} value={`${candidate.resourceId}:${candidate.elementId}`}>{candidate.elementName} — {candidate.processName}</Option>)}</Select>}</Stack> : null },
     { headerName: 'Lien', field: 'link', minWidth: 170, editable: canManage },
     { headerName: 'Emplacement', field: 'location', minWidth: 150, editable: canManage },
     { headerName: 'Accès', field: 'access', minWidth: 140, editable: canManage },
@@ -130,8 +137,7 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
       <Box><Typography level="title-lg">Informations documentées</Typography><Typography level="body-sm" color="neutral">Référentiel documentaire central du projet, lié aux objets et magasins de données BPMN.</Typography></Box>
       {canManage && <Stack direction="row" spacing={1}>
-        {selectedMergeIds.length >= 2 && <Button size="sm" variant="outlined" onClick={() => { const selected = rows.filter(row => selectedMergeIds.includes(row.sourceId)); setMergeName(selected[0]?.name ?? ''); setMergeDescription(selected[0]?.description ?? ''); setMergeDialogOpen(true); }}>Fusionner ({selectedMergeIds.length})</Button>}
-        <Button size="sm" startDecorator={<AddRounded />} onClick={() => setAdding(true)}>Ajouter</Button>
+        {selectedMergeIds.length >= 2 && rows.filter(row => selectedMergeIds.includes(row.sourceId)).every(row => row.resourceId === rows.find(candidate => candidate.sourceId === selectedMergeIds[0])?.resourceId) && <Button size="sm" variant="outlined" onClick={() => { const selected = rows.filter(row => selectedMergeIds.includes(row.sourceId)); setMergeName(selected[0]?.name ?? ''); setMergeDescription(selected[0]?.description ?? ''); setMergeDialogOpen(true); }}>Fusionner ({selectedMergeIds.length})</Button>}
       </Stack>}
     </Stack>
     {error && <Alert color="danger" variant="soft">{error}</Alert>}
@@ -181,10 +187,11 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
       <ModalDialog sx={{ width: 'min(560px, calc(100vw - 32px))' }}>
         <Typography level="title-lg">Ajouter une information documentée</Typography>
         <Stack spacing={1.5}>
+          <FormControl required><FormLabel>Processus</FormLabel><Select value={selectedProcessId} onChange={(_, value) => { setSelectedProcessId(value ?? ''); setSelectedReference(null); }} placeholder="Choisir le processus">{(data?.processes ?? []).map(process => <Option key={process.resourceId} value={process.resourceId}>{process.processName}</Option>)}</Select></FormControl>
           <FormControl required><FormLabel>Nom</FormLabel><Input value={newName} onChange={e => setNewName(e.target.value)} /></FormControl>
           <FormControl><FormLabel>Type</FormLabel><Select value={newKind} onChange={(_, value) => value && setNewKind(value as SourceKind)}><Option value="file">Fichier</Option><Option value="database">Base de données</Option><Option value="application">Application</Option></Select></FormControl>
-          <FormControl><FormLabel>Objet BPMN à associer (facultatif)</FormLabel><Select value={selectedReference ?? ''} onChange={(_, value) => { setSelectedReference(value || null); if (value) { const ref = data?.unlinkedReferences.find(item => `${item.resourceId}:${item.elementId}` === value); if (ref && !newName.trim()) setNewName(ref.elementName); } }} placeholder="Créer sans association BPMN">{(data?.unlinkedReferences ?? []).map(ref => <Option key={`${ref.resourceId}:${ref.elementId}`} value={`${ref.resourceId}:${ref.elementId}`}>{ref.elementName} — {ref.processName}</Option>)}</Select></FormControl>
-          <Stack direction="row" justifyContent="flex-end" spacing={1}><Button variant="outlined" color="neutral" onClick={() => setAdding(false)}>Annuler</Button><Button onClick={() => void addSource()} disabled={!newName.trim()}>Créer</Button></Stack>
+          <FormControl><FormLabel>Objet BPMN à associer (facultatif)</FormLabel><Select disabled={!selectedProcessId} value={selectedReference ?? ''} onChange={(_, value) => { setSelectedReference(value || null); if (value) { const ref = data?.unlinkedReferences.find(item => `${item.resourceId}:${item.elementId}` === value); if (ref && !newName.trim()) setNewName(ref.elementName); } }} placeholder="Aucun objet BPMN (facultatif)">{(data?.unlinkedReferences ?? []).filter(ref => ref.resourceId === selectedProcessId).map(ref => <Option key={`${ref.resourceId}:${ref.elementId}`} value={`${ref.resourceId}:${ref.elementId}`}>{ref.elementName} — {ref.processName}</Option>)}</Select></FormControl>
+          <Stack direction="row" justifyContent="flex-end" spacing={1}><Button variant="outlined" color="neutral" onClick={() => setAdding(false)}>Annuler</Button><Button onClick={() => void addSource()} disabled={!newName.trim() || !selectedProcessId}>Créer</Button></Stack>
         </Stack>
       </ModalDialog>
     </Modal>

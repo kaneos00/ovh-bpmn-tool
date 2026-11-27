@@ -26,6 +26,8 @@ type SourceReference = {
 
 type ProjectDocumentedSource = {
   id: string;
+  resourceId: string;
+  processName?: string;
   kind: SourceKind | 'form';
   name: string;
   description: string | null;
@@ -61,6 +63,7 @@ type ProjectDocumentedSourcesResponse = {
 };
 
 type InventoryGridRow = ProjectDocumentedSource & {
+  origin: string;
   isNew?: boolean;
 };
 
@@ -76,8 +79,9 @@ type Props = {
   onShowDiagram?: () => void;
 };
 
-const emptySource = (id: string): ProjectDocumentedSource => ({
+const emptySource = (id: string, resourceId: string): ProjectDocumentedSource => ({
   id,
+  resourceId,
   kind: 'file',
   name: '',
   description: '',
@@ -124,13 +128,12 @@ export const DataInventory = ({
   const [sources, setSources] = useState<ProjectDocumentedSource[]>([]);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [associatingId, setAssociatingId] = useState<string | null>(null);
-  const [importingElementId, setImportingElementId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [pendingDelete, setPendingDelete] = useState<ProjectDocumentedSource | null>(null);
 
   const projectSourcesQuery = useQuery<ProjectDocumentedSourcesResponse>(
-    ['project-documented-sources', projectId],
-    () => apiClient.get(`/projects/${projectId}/documented-sources`),
+    ['project-documented-sources', projectId, resourceId],
+    () => apiClient.get(`/projects/${projectId}/documented-sources?resourceId=${encodeURIComponent(resourceId)}`),
     { enabled: Boolean(projectId), refetchOnMount: 'always' },
   );
   const projectSources = projectSourcesQuery.data?.sources ?? [];
@@ -151,7 +154,7 @@ export const DataInventory = ({
 
 
   const refresh = async () => {
-    if (projectId) await queryClient.invalidateQueries(['project-documented-sources', projectId]);
+    if (projectId) await queryClient.invalidateQueries(['project-documented-sources', projectId, resourceId]);
   };
 
   const updateRow = (id: string, field: keyof ProjectDocumentedSource, value: string | null | boolean) => {
@@ -165,6 +168,7 @@ export const DataInventory = ({
     setSavingId(row.id);
     setError('');
     const payload = {
+      resourceId,
       kind: normalizeKind(row.kind),
       name: row.name.trim(),
       description: row.description ?? '',
@@ -211,7 +215,7 @@ export const DataInventory = ({
 
   const addRow = () => {
     const id = `new-${Date.now()}`;
-    setSources(current => [...current, emptySource(id)]);
+    setSources(current => [...current, emptySource(id, resourceId)]);
   };
 
   const associate = async (row: ProjectDocumentedSource, elementId: string) => {
@@ -236,34 +240,6 @@ export const DataInventory = ({
       setError(e instanceof Error ? e.message : 'Impossible d’associer cet objet BPMN.');
     } finally {
       setAssociatingId(null);
-    }
-  };
-
-  const importLegacyReference = async (reference: UnlinkedBpmnReference) => {
-    if (!projectId || !canManageSources || importingElementId) return;
-    setImportingElementId(reference.elementId);
-    setError('');
-    try {
-      await apiClient.post(`/projects/${projectId}/documented-sources`, {
-        name: reference.elementName,
-        kind: reference.elementType === 'dataStoreReference' ? 'database' : 'file',
-        description: reference.description ?? '',
-        link: reference.link ?? '',
-        location: reference.location ?? '',
-        access: reference.access ?? '',
-        retention: reference.retention ?? '',
-        authorizedPeople: reference.authorizedPeople ?? '',
-        restrictions: reference.restrictions ?? '',
-        resourceId: reference.resourceId,
-        elementId: reference.elementId,
-        elementName: reference.elementName,
-        elementType: reference.elementType,
-      });
-      await refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Impossible d’importer cette information BPMN.');
-    } finally {
-      setImportingElementId(null);
     }
   };
 
@@ -295,6 +271,7 @@ export const DataInventory = ({
 
   const rows: InventoryGridRow[] = sources.map(source => ({
     ...source,
+    origin: source.processName ?? 'Processus',
     isNew: source.id.startsWith('new-'),
   }));
 
@@ -315,6 +292,8 @@ export const DataInventory = ({
   });
 
   const columnDefs: ColDef<InventoryGridRow>[] = [
+    textColumn('name', 'Nom', 220),
+    { headerName: 'Origine', field: 'origin', minWidth: 120, editable: false },
     {
       headerName: 'Type',
       field: 'kind',
@@ -341,7 +320,6 @@ export const DataInventory = ({
         void handleCellChange(params, 'kind');
       },
     },
-    textColumn('name', 'Nom', 190),
     textColumn('description', 'Description', 240),
     {
       headerName: 'Données personnelles',
@@ -518,24 +496,9 @@ export const DataInventory = ({
           height={560}
         />
         {unlinkedReferences.length > 0 && (
-          <Stack spacing={1}>
-            <Typography level="title-sm">Objets BPMN non inscrits au référentiel</Typography>
-            <Typography level="body-xs" color="neutral">
-              Ces informations sont présentes dans le diagramme mais ne figurent pas encore dans le registre du projet. Vous pouvez les importer avec leurs métadonnées.
-            </Typography>
-            {unlinkedReferences.map(reference => (
-              <Stack key={reference.elementId} direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 'sm', p: 1 }}>
-                <Stack spacing={0.25} sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography level="body-sm" fontWeight="md">{reference.elementName} — {reference.elementType === 'dataStoreReference' ? 'Magasin de données' : 'Objet de données'}</Typography>
-                  {reference.description && <Typography level="body-xs" color="neutral">{reference.description}</Typography>}
-                  {(reference.link || reference.location || reference.access || reference.retention || reference.authorizedPeople || reference.restrictions) && (
-                    <Typography level="body-xs" color="neutral">{[reference.link, reference.location, reference.access, reference.retention, reference.authorizedPeople, reference.restrictions].filter(Boolean).join(' · ')}</Typography>
-                  )}
-                </Stack>
-                {canManageSources && <Button size="sm" variant="outlined" loading={importingElementId === reference.elementId} disabled={Boolean(importingElementId)} onClick={() => void importLegacyReference(reference)}>Importer</Button>}
-              </Stack>
-            ))}
-          </Stack>
+          <Typography level="body-xs" color="neutral">
+            {unlinkedReferences.length} objet(s) BPMN disponible(s) pour une association dans ce processus.
+          </Typography>
         )}
       </Stack>
     </Box>

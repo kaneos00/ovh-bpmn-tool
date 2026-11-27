@@ -43,6 +43,7 @@ describe('ProjectController administration overview', () => {
   };
 
   const dataSource = {
+    query: jest.fn().mockResolvedValue([]),
     transaction: jest.fn(
       async (
         callback: (manager: {

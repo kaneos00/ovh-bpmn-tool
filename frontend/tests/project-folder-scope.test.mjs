@@ -6,7 +6,7 @@ import path from 'node:path';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-test('project explorer includes only attached processes and their folder ancestors', async () => {
+test('project explorer includes attached processes, explicit empty folders and required ancestors', async () => {
   const source = await readFile(
     path.join(root, 'src/Components/BusinessComponents/FolderTree/hooks/useFolderTree.ts'),
     'utf8',

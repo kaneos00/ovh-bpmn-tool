@@ -14,6 +14,7 @@ export type WorkspaceProject = {
   icon: string;
   role: 'viewer' | 'modeler' | 'admin';
   canSubmitRemarks: boolean;
+  folders: Array<{ resourceId: string; name: string; parentId: string | null }>;
   processes: Array<{
     resourceId: string;
     name: string;
