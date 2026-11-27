@@ -17,7 +17,7 @@ type Source = {
 type UnlinkedReference = { resourceId: string; processName: string; elementId: string; elementName: string; elementType: string; description?: string; link?: string; location?: string; access?: string; retention?: string; authorizedPeople?: string; restrictions?: string };
 type ResponseData = { sources: Source[]; unlinkedReferences: UnlinkedReference[]; processes: { resourceId: string; processName: string }[] };
 type GridRow = {
-  id: string; sourceId: string; resourceId?: string; name: string; origin: string; kind: SourceKind; description: string; references: SourceReference[];
+  id: string; sourceId: string; name: string; kind: SourceKind; description: string; references: SourceReference[]; processes: { resourceId: string; processName: string }[];
   link: string; location: string; access: string; retention: string; validUntil: string;
   authorizedPeople: string; restrictions: string; containsPersonalData: boolean;
 };
@@ -47,8 +47,9 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
   const data = query.data;
   const rows = useMemo<GridRow[]>(() => (data?.sources ?? []).map(source => ({
     id: source.id, sourceId: source.id,
+    processes: source.processes ?? [],
     kind: source.kind === 'form' ? 'file' : source.kind,
-    name: source.name, origin: [...new Set([...(source.processes ?? []).map(process => process.processName), ...(source.references ?? []).map(ref => ref.processName)])].join(', ') || 'Projet', description: source.description ?? '', references: source.references ?? [],
+    name: source.name, description: source.description ?? '', references: source.references ?? [],
     link: source.link ?? '', location: source.location ?? '', access: source.access ?? '',
     retention: source.retention ?? '', validUntil: source.validUntil ?? '', authorizedPeople: source.authorizedPeople ?? '', restrictions: source.restrictions ?? '',
     containsPersonalData: source.containsPersonalData ?? false,
@@ -93,7 +94,48 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
 
   const columns: ColDef<GridRow>[] = [
     { headerName: 'Nom', field: 'name', minWidth: 220, editable: canManage },
-    { headerName: 'Origine', field: 'origin', minWidth: 120, editable: false },
+    {
+      headerName: 'Processus',
+      minWidth: 260,
+      sortable: false,
+      editable: false,
+      autoHeight: true,
+      cellRenderer: (p: { data?: GridRow }) => p.data ? (
+        <Stack spacing={0.5}>
+          {p.data.processes.map(process => (
+            <Stack key={process.resourceId} direction="row" spacing={0.5} alignItems="center">
+              <Button size="sm" variant="plain" color="neutral" sx={{ flex: 1, justifyContent: 'flex-start' }} onClick={() => navigate(`/${process.resourceId}`)}>{process.processName}</Button>
+              {canManage && !p.data!.references.some(reference => reference.resourceId === process.resourceId) && (
+                <Button size="sm" variant="plain" color="danger" onClick={async () => {
+                  try {
+                    await apiClient.remove(`/projects/${projectId}/documented-sources/${p.data!.sourceId}/processes/${process.resourceId}`);
+                    await refresh();
+                  } catch (e) {
+                    setError(e instanceof Error ? e.message : 'Impossible de retirer ce processus.');
+                  }
+                }}>Retirer</Button>
+              )}
+            </Stack>
+          ))}
+          {canManage && (data?.processes ?? []).some(process => !p.data!.processes.some(current => current.resourceId === process.resourceId)) && (
+            <Select size="sm" placeholder="Ajouter à un processus…" value={null} onChange={async (_, value) => {
+              if (typeof value !== 'string' || !value) return;
+              try {
+                await apiClient.post(`/projects/${projectId}/documented-sources/${p.data!.sourceId}/processes`, { resourceId: value });
+                await refresh();
+              } catch (e) {
+                setError(e instanceof Error ? e.message : 'Impossible d’ajouter cette information au processus.');
+              }
+            }}>
+              {(data?.processes ?? []).filter(process => !p.data!.processes.some(current => current.resourceId === process.resourceId)).map(process => (
+                <Option key={process.resourceId} value={process.resourceId}>{process.processName}</Option>
+              ))}
+            </Select>
+          )}
+          {p.data.processes.length === 0 && <Typography level="body-xs" color="neutral">Aucun processus</Typography>}
+        </Stack>
+      ) : null,
+    },
     { headerName: 'Type', field: 'kind', minWidth: 145, editable: canManage, cellEditor: 'agSelectCellEditor', cellEditorParams: { values: ['file', 'database', 'application'] }, valueFormatter: p => kindLabels[p.value as SourceKind] ?? '', cellRenderer: (p: { value?: SourceKind }) => p.value ? <Stack direction="row" spacing={0.75} alignItems="center">{kindIcon(p.value)}<span>{kindLabels[p.value]}</span></Stack> : null },
     { headerName: 'Description', field: 'description', minWidth: 220, editable: canManage },
     { headerName: 'Objet BPMN', minWidth: 250, editable: false, autoHeight: true,
