@@ -277,7 +277,15 @@ export class ProjectDocumentedSourceController {
       this.projectProcesses.find({ where: { projectId } }),
     ]);
     const sources = requestedResourceId
-      ? allSources.filter((source) => references.some((reference) => reference.sourceId === source.id && reference.resourceId === requestedResourceId))
+      ? allSources.filter(
+          (source) =>
+            source.resourceId === requestedResourceId ||
+            references.some(
+              (reference) =>
+                reference.sourceId === source.id &&
+                reference.resourceId === requestedResourceId,
+            ),
+        )
       : allSources;
 
     const linkedResourceIds = [
@@ -386,6 +394,9 @@ export class ProjectDocumentedSourceController {
     return {
       sources: sources.map((source) => ({
         ...source,
+        processName: source.resourceId
+          ? resourceById.get(source.resourceId)?.name ?? source.resourceId
+          : null,
         references: referencesBySource.get(source.id) ?? [],
       })),
       processes: links
@@ -461,6 +472,7 @@ export class ProjectDocumentedSourceController {
         const source = await sourceRepository.save(
           sourceRepository.create({
             projectId,
+            resourceId,
             createdBy: userId,
             kind: element.elementType === 'dataStoreReference' ? 'database' : 'file',
             name: elementName,
@@ -556,6 +568,7 @@ export class ProjectDocumentedSourceController {
       const source = await sourceRepository.save(
         sourceRepository.create({
           projectId,
+          resourceId: resourceId || null,
           createdBy: userId,
           kind,
           name,
