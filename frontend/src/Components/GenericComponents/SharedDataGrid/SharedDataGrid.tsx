@@ -57,6 +57,8 @@ export type SharedDataGridProps<T extends object> = {
   addLabel?: string;
   addDisabled?: boolean;
   onRowSelected?: (row: T | null) => void;
+  onRowClicked?: (row: T | null) => void;
+  onSelectionChanged?: (rows: T[]) => void;
   onCellValueChanged?: (event: CellValueChangedEvent<T>) => void;
   toolbarContent?: React.ReactNode;
   selectionToolbar?: React.ReactNode;
@@ -317,6 +319,8 @@ export function SharedDataGrid<T extends object>({
   addLabel = 'Ajouter',
   addDisabled = false,
   onRowSelected,
+  onRowClicked,
+  onSelectionChanged,
   onCellValueChanged,
   toolbarContent,
   selectionToolbar,
@@ -576,7 +580,8 @@ export function SharedDataGrid<T extends object>({
           onColumnVisible={event => { persistColumnState(event.api); syncVisibleColumns(event.api); }}
           onColumnPinned={event => persistColumnState(event.api)}
           onCellValueChanged={event => onCellValueChanged?.(event)}
-          onSelectionChanged={event => onRowSelected?.(event.api.getSelectedRows()[0] ?? null)}
+          onSelectionChanged={event => { const selected = event.api.getSelectedRows(); onRowSelected?.(selected[0] ?? null); onSelectionChanged?.(selected); }}
+          onRowClicked={event => onRowClicked?.(event.data ?? null)}
           onRowDoubleClicked={event => {
             if (mode !== 'edit' || editTrigger !== 'doubleClick' || !event.data || event.rowIndex === null) return;
             if (selection) {
