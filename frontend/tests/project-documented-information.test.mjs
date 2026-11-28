@@ -16,8 +16,11 @@ test('project workspace exposes a pure project-level documented information regi
   for (const column of ['Nom', 'Type', 'Description', 'Lien', 'Emplacement', 'Accès', 'Durée de conservation', 'Date limite de validité', 'Données personnelles', 'Personnes autorisées', 'Restrictions']) {
     assert.ok(registry.includes(`headerName: '${column}'`), `missing column ${column}`);
   }
-  assert.doesNotMatch(registry, /headerName: 'Processus'|Associations BPMN|Description BPMN|Ajouter à un processus|Associer un Data Object|Rattacher à une fiche existante/);
-  assert.doesNotMatch(registry, /source\.processes|navigate\(/);
+  assert.match(registry, /headerName: 'Processus'/);
+  assert.match(registry, /headerName: 'Associations'/);
+  assert.match(registry, /source\.processes/);
+  assert.match(registry, /navigate\(/);
+  assert.doesNotMatch(registry, /Ajouter à un processus|Associer un Data Object|Rattacher à une fiche existante|documented-sources\/[^\s'\x60]*\/references/);
   assert.match(registry, /Toutes les informations documentées du projet/);
   assert.match(registry, /onCellValueChanged/);
   assert.match(registry, /Fusionner/);
