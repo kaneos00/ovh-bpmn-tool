@@ -7,25 +7,26 @@ import path from 'node:path';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = relativePath => readFile(path.join(root, relativePath), 'utf8');
 
-test('project workspace restores the central documented information tab', async () => {
+test('project workspace exposes a pure project-level documented information registry', async () => {
   const overview = await read('src/Containers/BpmnLayout/FolderOverview.tsx');
   const registry = await read('src/Components/BusinessComponents/ProcessDetails/ProjectDocumentedSources.tsx');
-  assert.match(overview, /<Tab value="documented">Informations documentées<\/Tab>/);
-  assert.match(overview, /<ProjectDocumentedSources projectId=\{activeProjectId!\}/);
-  for (const column of ['Nom', 'Origine', 'Type', 'Description', 'Objet BPMN', 'Lien', 'Emplacement', 'Accès', 'Durée de conservation', 'Date limite de validité', 'Données personnelles', 'Personnes autorisées', 'Restrictions']) {
+  const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
+  assert.ok(overview.includes('<Tab value="documented">Informations documentées</Tab>'));
+  assert.ok(overview.includes('<ProjectDocumentedSources projectId={activeProjectId!}'));
+  for (const column of ['Nom', 'Type', 'Description', 'Lien', 'Emplacement', 'Accès', 'Durée de conservation', 'Date limite de validité', 'Données personnelles', 'Personnes autorisées', 'Restrictions']) {
     assert.ok(registry.includes(`headerName: '${column}'`), `missing column ${column}`);
   }
-  assert.doesNotMatch(registry, /Statut projet/);
-  assert.doesNotMatch(registry, /Ajouter<\/Button>/, 'the project-level add action was intentionally removed');
+  assert.match(registry, /headerName: 'Processus'/);
+  assert.match(registry, /headerName: 'Associations'/);
+  assert.match(registry, /source\.processes/);
+  assert.match(registry, /navigate\(/);
+  assert.doesNotMatch(registry, /Ajouter à un processus|Associer un Data Object|Rattacher à une fiche existante|documented-sources\/[^\s'\x60]*\/references/);
+  assert.match(registry, /Toutes les informations documentées du projet/);
   assert.match(registry, /onCellValueChanged/);
-  assert.match(registry, /Objet BPMN à associer \(facultatif\)/, 'project sources must be creatable without a BPMN association');
-  assert.match(registry, /origin: source\.processName \?\? 'Processus'/);
-  assert.doesNotMatch(registry, /Objets BPMN non encore inscrits au référentiel/, 'unlinked BPMN objects are available from the add dialog, not a second list');
-  assert.match(registry, /resourceId: selectedProcessId/);
-  assert.match(registry, /FormLabel>Processus<\/FormLabel>/);
-  assert.match(registry, /resourceId: ref\.resourceId/);
-  assert.match(registry, /elementType: ref\.elementType/);
-  assert.match(registry, /navigate\(\`\/\$\{ref\.resourceId\}\?elementId=/);
+  assert.match(registry, /Fusionner/);
+  assert.match(inventory, /Rattacher à une autre information documentée/);
+  assert.ok(inventory.includes('Associer un Data Object / Data Store'));
+  assert.match(inventory, /onSaveBpmnDescription/);
 });
 
 test('documented source validity date is persisted without changing retention', async () => {

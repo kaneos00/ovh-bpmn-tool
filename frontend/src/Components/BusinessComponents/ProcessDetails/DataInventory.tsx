@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from 'react-query';
-import { Alert, Box, Button, IconButton, Modal, ModalDialog, Option, Select, Stack, Typography } from '@mui/joy';
+import { Alert, Box, Button, FormControl, FormLabel, IconButton, Input, Modal, ModalDialog, Option, Select, Stack, Textarea, Typography } from '@mui/joy';
 import {
   AppsOutlined,
   AttachFileOutlined,
-  DeleteOutlineOutlined,
   LinkOffOutlined,
   StorageOutlined,
 } from '@mui/icons-material';
@@ -22,12 +21,13 @@ type SourceReference = {
   elementName: string;
   elementType: BpmnDataType;
   processName: string;
+  bpmnDescription: string;
 };
 
 type ProjectDocumentedSource = {
   id: string;
-  resourceId: string;
-  processName?: string;
+  resourceId?: string | null;
+  processName?: string | null;
   kind: SourceKind | 'form';
   name: string;
   description: string | null;
@@ -48,7 +48,7 @@ type UnlinkedBpmnReference = {
   elementId: string;
   elementName: string;
   elementType: BpmnDataType;
-  description?: string;
+  bpmnDescription?: string;
   link?: string;
   location?: string;
   access?: string;
@@ -64,7 +64,6 @@ type ProjectDocumentedSourcesResponse = {
 
 type InventoryGridRow = ProjectDocumentedSource & {
   origin: string;
-  isNew?: boolean;
 };
 
 type Props = {
@@ -77,24 +76,10 @@ type Props = {
   canManageSources?: boolean;
   onElementSelect?: (elementId: string) => void;
   onShowDiagram?: () => void;
+  onSaveBpmnDescription?: (elementId: string, description: string) => Promise<void>;
 };
 
-const emptySource = (id: string, resourceId: string): ProjectDocumentedSource => ({
-  id,
-  resourceId,
-  kind: 'file',
-  name: '',
-  description: '',
-  link: '',
-  location: '',
-  access: '',
-  retention: '',
-  validUntil: null,
-  containsPersonalData: false,
-  authorizedPeople: '',
-  restrictions: '',
-  references: [],
-});
+const isSupportedBpmnDataType = (type: string) => type === 'dataObjectReference' || type === 'dataStoreReference';
 
 const normalizeKind = (kind: ProjectDocumentedSource['kind']): SourceKind => {
   if (kind === 'database') return 'database';
@@ -123,6 +108,7 @@ export const DataInventory = ({
   canManageSources = false,
   onElementSelect,
   onShowDiagram,
+  onSaveBpmnDescription,
 }: Props) => {
   const queryClient = useQueryClient();
   const [sources, setSources] = useState<ProjectDocumentedSource[]>([]);
@@ -130,6 +116,10 @@ export const DataInventory = ({
   const [associatingId, setAssociatingId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [pendingDelete, setPendingDelete] = useState<ProjectDocumentedSource | null>(null);
+  const [selectedProcessSourceId, setSelectedProcessSourceId] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newKind, setNewKind] = useState<SourceKind>('file');
 
   const projectSourcesQuery = useQuery<ProjectDocumentedSourcesResponse>(
     ['project-documented-sources', projectId, resourceId],
@@ -137,8 +127,14 @@ export const DataInventory = ({
     { enabled: Boolean(projectId), refetchOnMount: 'always' },
   );
   const projectSources = projectSourcesQuery.data?.sources ?? [];
+  const allProjectSourcesQuery = useQuery<ProjectDocumentedSourcesResponse>(
+    ['project-documented-sources', projectId],
+    () => apiClient.get(`/projects/${projectId}/documented-sources`),
+    { enabled: Boolean(projectId), refetchOnMount: 'always' },
+  );
+  const allProjectSources = allProjectSourcesQuery.data?.sources ?? [];
   const unlinkedReferences = useMemo(
-    () => (projectSourcesQuery.data?.unlinkedReferences ?? []).filter(reference => reference.resourceId === resourceId),
+    () => (projectSourcesQuery.data?.unlinkedReferences ?? []).filter(reference => reference.resourceId === resourceId && isSupportedBpmnDataType(reference.elementType)),
     [projectSourcesQuery.data?.unlinkedReferences, resourceId],
   );
 
@@ -154,7 +150,7 @@ export const DataInventory = ({
 
 
   const refresh = async () => {
-    if (projectId) await queryClient.invalidateQueries(['project-documented-sources', projectId, resourceId]);
+    if (projectId) await queryClient.invalidateQueries(['project-documented-sources', projectId]);
   };
 
   const updateRow = (id: string, field: keyof ProjectDocumentedSource, value: string | null | boolean) => {
@@ -163,7 +159,6 @@ export const DataInventory = ({
 
   const saveRow = async (row: ProjectDocumentedSource) => {
     if (!projectId || !canManageSources || savingId) return;
-    // A newly added row stays local until its required name is entered.
     if (!row.name.trim()) return;
     setSavingId(row.id);
     setError('');
@@ -182,11 +177,7 @@ export const DataInventory = ({
       restrictions: row.restrictions ?? '',
     };
     try {
-      if (row.id.startsWith('new-')) {
-        await apiClient.post(`/projects/${projectId}/documented-sources`, payload);
-      } else {
-        await apiClient.put(`/projects/${projectId}/documented-sources/${row.id}`, payload);
-      }
+      await apiClient.put(`/projects/${projectId}/documented-sources/${row.id}`, payload);
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Impossible d’enregistrer cette information documentée.');
@@ -213,17 +204,26 @@ export const DataInventory = ({
     await saveRow(updated);
   };
 
-  const addRow = () => {
-    const id = `new-${Date.now()}`;
-    setSources(current => [...current, emptySource(id, resourceId)]);
+  const addSource = async () => {
+    if (!projectId || !canManageSources || !newName.trim()) return;
+    setError('');
+    try {
+      await apiClient.post(`/projects/${projectId}/documented-sources`, {
+        resourceId,
+        name: newName.trim(),
+        kind: newKind,
+      });
+      setAdding(false);
+      setNewName('');
+      setNewKind('file');
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Impossible de créer cette information documentée.');
+    }
   };
 
   const associate = async (row: ProjectDocumentedSource, elementId: string) => {
     if (!projectId || !canManageSources || associatingId) return;
-    if (row.id.startsWith('new-')) {
-      setError('Enregistre d’abord l’information documentée avant de lui associer un objet BPMN.');
-      return;
-    }
     const reference = unlinkedReferences.find(item => item.elementId === elementId);
     if (!reference) return;
     setAssociatingId(row.id);
@@ -243,15 +243,15 @@ export const DataInventory = ({
     }
   };
 
-  const deleteSource = async (row: ProjectDocumentedSource) => {
+  const removeFromProcess = async (row: ProjectDocumentedSource) => {
     if (!projectId || !canManageSources || row.references.length > 0) return;
-        setError('');
+    setError('');
     try {
-      await apiClient.remove(`/projects/${projectId}/documented-sources/${row.id}`);
+      await apiClient.remove(`/projects/${projectId}/documented-sources/${row.id}/processes/${resourceId}`);
       await refresh();
       setPendingDelete(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Impossible de supprimer cette information documentée.');
+      setError(e instanceof Error ? e.message : 'Impossible de retirer cette information de ce processus.');
     }
   };
 
@@ -272,8 +272,8 @@ export const DataInventory = ({
   const rows: InventoryGridRow[] = sources.map(source => ({
     ...source,
     origin: source.processName ?? 'Processus',
-    isNew: source.id.startsWith('new-'),
   }));
+  const selectedProcessSource = rows.find(row => row.id === selectedProcessSourceId);
 
   const textColumn = (
     field: 'name' | 'description' | 'link' | 'location' | 'access' | 'retention' | 'authorizedPeople' | 'restrictions',
@@ -322,6 +322,52 @@ export const DataInventory = ({
     },
     textColumn('description', 'Description', 240),
     {
+      headerName: 'Description BPMN',
+      minWidth: 280,
+      sortable: false,
+      editable: false,
+      autoHeight: true,
+      cellRenderer: (params: ICellRendererParams<InventoryGridRow>) => {
+        const row = params.data;
+        if (!row) return null;
+        const references = row.references.filter(item => item.resourceId === resourceId);
+        if (!references.length) return <Typography level="body-sm" color="neutral">—</Typography>;
+        return (
+          <Stack spacing={1} sx={{ py: 0.5 }}>
+            {references.map(reference => (
+              <Box key={reference.id}>
+                <Typography level="body-xs" color="neutral">{reference.elementName}</Typography>
+                <Textarea
+                  size="sm"
+                  minRows={1}
+                  maxRows={4}
+                  value={reference.bpmnDescription ?? ''}
+                  disabled={!canManageSources || !onSaveBpmnDescription}
+                  onChange={event => {
+                    const value = event.target.value;
+                    setSources(current => current.map(source => source.id !== row.id ? source : ({
+                      ...source,
+                      references: source.references.map(item => item.id === reference.id ? { ...item, bpmnDescription: value } : item),
+                    })));
+                  }}
+                  onBlur={event => {
+                    const value = event.target.value;
+                    if (value !== (reference.bpmnDescription ?? '') && onSaveBpmnDescription) {
+                      void onSaveBpmnDescription(reference.elementId, value).then(refresh).catch(saveError => {
+                        setError(saveError instanceof Error ? saveError.message : 'Impossible d’enregistrer la description BPMN.');
+                        void refresh();
+                      });
+                    }
+                  }}
+                  aria-label={`Description BPMN de ${reference.elementName}`}
+                />
+              </Box>
+            ))}
+          </Stack>
+        );
+      },
+    },
+    {
       headerName: 'Données personnelles',
       field: 'containsPersonalData',
       minWidth: 175,
@@ -337,7 +383,7 @@ export const DataInventory = ({
       },
     },
     {
-      headerName: 'Objet BPMN',
+      headerName: 'Association BPMN',
       minWidth: 240,
       sortable: false,
       cellRenderer: (params: ICellRendererParams<InventoryGridRow>) => {
@@ -348,7 +394,8 @@ export const DataInventory = ({
           <Stack spacing={0.5}>
             {references.length === 0 && <Typography level="body-sm" color="neutral">Non associé</Typography>}
             {references.map(reference => (
-              <Stack key={reference.id} direction="row" spacing={0.5} alignItems="center">
+              <React.Fragment key={reference.id}>
+              <Stack direction="row" spacing={0.5} alignItems="center">
                 <IconButton
                   size="sm"
                   variant="plain"
@@ -394,13 +441,44 @@ export const DataInventory = ({
                   </IconButton>
                 )}
               </Stack>
+              {canManageSources && allProjectSources.some(source => source.id !== row.id) && (
+                <Select
+                  size="sm"
+                  value={null}
+                  placeholder="Rattacher à une autre information documentée…"
+                  disabled={Boolean(associatingId) || allProjectSourcesQuery.isLoading}
+                  onClick={event => event.stopPropagation()}
+                  onChange={async (_, value) => {
+                    if (typeof value !== 'string' || !value || !projectId) return;
+                    setAssociatingId(row.id);
+                    setError('');
+                    try {
+                      await apiClient.put(
+                        `/projects/${projectId}/documented-sources/${row.id}/references/${reference.id}`,
+                        { targetSourceId: value },
+                      );
+                      await refresh();
+                    } catch (e) {
+                      setError(e instanceof Error ? e.message : 'Impossible de rattacher cet objet à cette information documentée.');
+                    } finally {
+                      setAssociatingId(null);
+                    }
+                  }}
+                  aria-label={`Rattacher ${reference.elementName} à une autre information documentée`}
+                >
+                  {allProjectSources.filter(source => source.id !== row.id).map(source => (
+                    <Option key={source.id} value={source.id}>{source.name}</Option>
+                  ))}
+                </Select>
+              )}
+              </React.Fragment>
             ))}
             {canManageSources && unlinkedReferences.length > 0 && (
               <Select
                 size="sm"
                 value={null}
-                placeholder="Associer un objet BPMN…"
-                disabled={row.id.startsWith('new-') || Boolean(associatingId)}
+                placeholder="Associer un Data Object / Data Store…"
+                disabled={Boolean(associatingId)}
                 onClick={event => event.stopPropagation()}
                 onChange={(_, value) => { if (typeof value === 'string') void associate(row, value); }}
                 aria-label="Associer un objet BPMN non encore associé"
@@ -434,24 +512,6 @@ export const DataInventory = ({
     },
     textColumn('authorizedPeople', 'Personnes autorisées', 190),
     textColumn('restrictions', 'Restrictions', 200),
-    {
-      headerName: 'Actions',
-      minWidth: 125,
-      sortable: false,
-      filter: false,
-      cellRenderer: (params: ICellRendererParams<InventoryGridRow>) => {
-        const row = params.data;
-        if (!row || !canManageSources || row.references.length > 0 || row.id.startsWith('new-')) return null;
-        return (
-          <IconButton size="sm" variant="plain" color="danger" title="Supprimer cette information documentée non associée" aria-label={`Supprimer ${row.name}`} onClick={event => {
-            event.stopPropagation();
-            setPendingDelete(row);
-          }}>
-            <DeleteOutlineOutlined />
-          </IconButton>
-        );
-      },
-    },
   ];
 
   return (
@@ -461,9 +521,10 @@ export const DataInventory = ({
           <Box>
             <Typography level="title-lg">Informations documentées</Typography>
             <Typography level="body-sm" color="neutral">
-              Référentiel des fichiers, bases de données et applications utilisés par le processus.
+              Fiches utilisées par ce processus. Créez une fiche ici, puis associez-la si besoin à un Data Object ou un Data Store. Les fiches peuvent être réutilisées dans d’autres processus.
             </Typography>
           </Box>
+          {canManageSources && <Button size="sm" onClick={() => setAdding(true)}>Créer une information documentée</Button>}
         </Stack>
         {error && <Alert color="danger" variant="soft">{error}</Alert>}
         {projectSourcesQuery.isError && (
@@ -476,13 +537,39 @@ export const DataInventory = ({
             Aucun projet actif : le référentiel des informations documentées n’est pas disponible.
           </Alert>
         )}
+        <Modal open={adding} onClose={() => setAdding(false)}>
+          <ModalDialog sx={{ width: 'min(520px, calc(100vw - 32px))' }}>
+            <Typography level="title-lg">Créer une information documentée</Typography>
+            <Typography level="body-sm" color="neutral">
+              La fiche sera ajoutée au référentiel du projet et rattachée à ce processus. Son association à un élément BPMN est facultative.
+            </Typography>
+            <Stack spacing={1.5}>
+              <FormControl required>
+                <FormLabel>Nom de l’information</FormLabel>
+                <Input value={newName} onChange={event => setNewName(event.target.value)} />
+              </FormControl>
+              <FormControl>
+                <FormLabel>Type</FormLabel>
+                <Select value={newKind} onChange={(_, value) => value && setNewKind(value as SourceKind)}>
+                  <Option value="file">Fichier / document</Option>
+                  <Option value="database">Base de données</Option>
+                  <Option value="application">Application</Option>
+                </Select>
+              </FormControl>
+              <Stack direction="row" justifyContent="flex-end" spacing={1}>
+                <Button variant="outlined" color="neutral" onClick={() => setAdding(false)}>Annuler</Button>
+                <Button onClick={() => void addSource()} disabled={!newName.trim()}>Créer la fiche</Button>
+              </Stack>
+            </Stack>
+          </ModalDialog>
+        </Modal>
         <Modal open={Boolean(pendingDelete)} onClose={() => setPendingDelete(null)}>
           <ModalDialog>
             <Typography level="title-lg">Confirmer la suppression</Typography>
-            <Typography>Supprimer définitivement « {pendingDelete?.name} » ?</Typography>
+            <Typography>Retirer « {pendingDelete?.name} » de ce processus ? (La fiche restera dans le référentiel du projet.)</Typography>
             <Stack direction="row" justifyContent="flex-end" spacing={1}>
               <Button variant="outlined" color="neutral" onClick={() => setPendingDelete(null)}>Annuler</Button>
-              <Button color="danger" onClick={() => pendingDelete && void deleteSource(pendingDelete)}>Supprimer</Button>
+              <Button color="danger" onClick={() => pendingDelete && void removeFromProcess(pendingDelete)}>Retirer</Button>
             </Stack>
           </ModalDialog>
         </Modal>
@@ -490,10 +577,22 @@ export const DataInventory = ({
           rowData={rows}
           columnDefs={columnDefs}
           getRowId={row => row.id}
+          preferenceKey={`process-documented-sources-${projectId ?? 'none'}-${resourceId}`}
+          mode={canManageSources ? 'edit' : 'read'}
+          selection="single"
+          advancedFilter
           selectedRowId={requestedDocumentedSourceId ?? undefined}
-          onAdd={canManageSources ? addRow : undefined}
-          addLabel="Ajouter une ligne : information documentée"
           height={560}
+          onRowSelected={row => setSelectedProcessSourceId(row?.id ?? null)}
+          selectionToolbar={
+            <Stack direction="row" alignItems="center" spacing={1}>
+              {canManageSources && selectedProcessSource && selectedProcessSource.references.length === 0 && (
+                <Button size="sm" variant="plain" color="danger" onClick={() => setPendingDelete(selectedProcessSource)}>
+                  Retirer du processus
+                </Button>
+              )}
+            </Stack>
+          }
         />
         {unlinkedReferences.length > 0 && (
           <Typography level="body-xs" color="neutral">

@@ -23,6 +23,7 @@ import { ProjectMemberRole } from '../entities/projectMember.ormEntity';
 import { ProjectProcessTypeOrmEntity } from '../entities/projectProcess.ormEntity';
 import { ProjectDocumentedSourceTypeOrmEntity } from '../entities/projectDocumentedSource.ormEntity';
 import { ProjectDocumentedSourceReferenceTypeOrmEntity } from '../entities/projectDocumentedSourceReference.ormEntity';
+import { ProjectDocumentedSourceProcessTypeOrmEntity } from '../entities/projectDocumentedSourceProcess.ormEntity';
 import { ProjectResourceAccessService } from '../../projectResourceAccess.service';
 
 type RequestHeaders = Record<string, string | undefined>;
@@ -48,7 +49,7 @@ type BpmnDataElement = {
   elementId: string;
   elementName: string;
   elementType: string;
-  description: string;
+  bpmnDescription: string;
   link: string;
   location: string;
   access: string;
@@ -69,7 +70,10 @@ const parser = new XMLParser({
 
 const SOURCE_KINDS: SourceKind[] = ['file', 'database', 'application', 'form'];
 
-const BPMN_DOCUMENTED_DATA_TYPES = new Set(['dataStoreReference']);
+const BPMN_DOCUMENTED_DATA_TYPES = new Set([
+  'dataObjectReference',
+  'dataStoreReference',
+]);
 const BPMN_DISPLAYED_DATA_TYPES = new Set([
   'dataObjectReference',
   'dataStoreReference',
@@ -191,7 +195,7 @@ export const extractBpmnDataElements = (
     });
 
     const result: BpmnDataElement[] = [];
-    const supported = new Set(['dataStoreReference']);
+    const supported = new Set(['dataObjectReference', 'dataStoreReference']);
     walk(parsed, (node, key) => {
       if (!supported.has(key)) return;
       const elementId = readAttribute(node, 'id');
@@ -212,11 +216,10 @@ export const extractBpmnDataElements = (
         elementId,
         elementName,
         elementType: key,
-        description:
-          collectXmlText(node.documentation) ||
-          referencedDetails?.description ||
-          metadata.description ||
-          '',
+        bpmnDescription:
+          node.documentation !== undefined
+            ? collectXmlText(node.documentation)
+            : referencedDetails?.description || '',
         link:
           readAttribute(node, 'link') ||
           referencedDetails?.link ||
@@ -250,6 +253,8 @@ export class ProjectDocumentedSourceController {
     private readonly sources: Repository<ProjectDocumentedSourceTypeOrmEntity>,
     @InjectRepository(ProjectDocumentedSourceReferenceTypeOrmEntity)
     private readonly references: Repository<ProjectDocumentedSourceReferenceTypeOrmEntity>,
+    @InjectRepository(ProjectDocumentedSourceProcessTypeOrmEntity)
+    private readonly sourceProcesses: Repository<ProjectDocumentedSourceProcessTypeOrmEntity>,
   ) {}
 
   @Get()
@@ -265,7 +270,7 @@ export class ProjectDocumentedSourceController {
       ProjectMemberRole.Viewer,
       { allowOrganizationAdmin: true },
     );
-    const [allSources, references, links] = await Promise.all([
+    const [allSources, references, links, memberships] = await Promise.all([
       this.sources.find({
         where: { projectId, mergedIntoId: IsNull() },
         order: { name: 'ASC' },
@@ -275,9 +280,22 @@ export class ProjectDocumentedSourceController {
         order: { createdAt: 'ASC' },
       }),
       this.projectProcesses.find({ where: { projectId } }),
+      this.sourceProcesses.find({ where: { projectId } }),
     ]);
     const sources = requestedResourceId
-      ? allSources.filter((source) => source.resourceId === requestedResourceId)
+      ? allSources.filter(
+          (source) =>
+            memberships.some(
+              (membership) =>
+                membership.sourceId === source.id &&
+                membership.resourceId === requestedResourceId,
+            ) ||
+            references.some(
+              (reference) =>
+                reference.sourceId === source.id &&
+                reference.resourceId === requestedResourceId,
+            ),
+        )
       : allSources;
 
     const linkedResourceIds = [
@@ -359,6 +377,7 @@ export class ProjectDocumentedSourceController {
         elementId: reference.elementId,
         elementName: currentElement?.elementName ?? reference.elementName,
         elementType: reference.elementType,
+        bpmnDescription: currentElement?.bpmnDescription ?? '',
       });
       referencesBySource.set(reference.sourceId, rows);
     });
@@ -384,12 +403,25 @@ export class ProjectDocumentedSourceController {
     });
 
     return {
-      sources: sources.map((source) => ({
-        ...source,
-        processName:
-          resourceById.get(source.resourceId)?.name ?? source.resourceId,
-        references: referencesBySource.get(source.id) ?? [],
-      })),
+      sources: sources.map((source) => {
+        const sourceProcesses = memberships
+          .filter((membership) => membership.sourceId === source.id)
+          .map((membership) => ({
+            resourceId: membership.resourceId,
+            processName:
+              resourceById.get(membership.resourceId)?.name ??
+              membership.resourceId,
+          }));
+        return {
+          ...source,
+          processName: requestedResourceId
+            ? (resourceById.get(requestedResourceId)?.name ??
+              requestedResourceId)
+            : (sourceProcesses[0]?.processName ?? null),
+          processes: sourceProcesses,
+          references: referencesBySource.get(source.id) ?? [],
+        };
+      }),
       processes: links
         .map((link) => ({
           resourceId: link.resourceId,
@@ -451,6 +483,9 @@ export class ProjectDocumentedSourceController {
         const referenceRepository = manager.getRepository(
           ProjectDocumentedSourceReferenceTypeOrmEntity,
         );
+        const membershipRepository = manager.getRepository(
+          ProjectDocumentedSourceProcessTypeOrmEntity,
+        );
         const existing = await referenceRepository.findOne({
           where: {
             projectId,
@@ -463,11 +498,14 @@ export class ProjectDocumentedSourceController {
         const source = await sourceRepository.save(
           sourceRepository.create({
             projectId,
-            resourceId,
             createdBy: userId,
-            kind: 'database',
+            isAutoGenerated: true,
+            kind:
+              element.elementType === 'dataStoreReference'
+                ? 'database'
+                : 'file',
             name: elementName,
-            description: optionalText(element.description, 'description'),
+            description: null,
             link: optionalText(element.link, 'link'),
             location: optionalText(element.location, 'location'),
             access: optionalText(element.access, 'access'),
@@ -492,6 +530,14 @@ export class ProjectDocumentedSourceController {
             createdBy: userId,
           }),
         );
+        await membershipRepository.save(
+          membershipRepository.create({
+            projectId,
+            sourceId: source.id,
+            resourceId,
+            createdBy: userId,
+          }),
+        );
         return true;
       });
       if (wasCreated) created += 1;
@@ -507,7 +553,7 @@ export class ProjectDocumentedSourceController {
     @Param('projectId') projectId: string,
     @Body()
     body: SourceFields & {
-      resourceId: string;
+      resourceId?: string;
       elementId?: string;
       elementName?: string;
       elementType?: string;
@@ -527,11 +573,7 @@ export class ProjectDocumentedSourceController {
     if (!SOURCE_KINDS.includes(kind))
       throw new BadRequestException('Unsupported source kind');
     const resourceId = body.resourceId?.trim();
-    if (!resourceId)
-      throw new BadRequestException(
-        'resourceId is required: documented information must belong to a process',
-      );
-    await this.validateProcess(projectId, resourceId);
+    if (resourceId) await this.validateProcess(projectId, resourceId);
     const hasReferenceFields = Boolean(
       body.elementId || body.elementName || body.elementType,
     );
@@ -545,6 +587,9 @@ export class ProjectDocumentedSourceController {
       );
       const referenceRepository = manager.getRepository(
         ProjectDocumentedSourceReferenceTypeOrmEntity,
+      );
+      const membershipRepository = manager.getRepository(
+        ProjectDocumentedSourceProcessTypeOrmEntity,
       );
       if (reference) {
         const existing = await referenceRepository.findOne({
@@ -563,7 +608,6 @@ export class ProjectDocumentedSourceController {
       const source = await sourceRepository.save(
         sourceRepository.create({
           projectId,
-          resourceId,
           createdBy: userId,
           kind,
           name,
@@ -584,6 +628,16 @@ export class ProjectDocumentedSourceController {
           restrictions: optionalText(body.restrictions, 'restrictions'),
         }),
       );
+      if (resourceId) {
+        await membershipRepository.save(
+          membershipRepository.create({
+            projectId,
+            sourceId: source.id,
+            resourceId,
+            createdBy: userId,
+          }),
+        );
+      }
       if (!reference) return { ...source, references: [] };
       const sourceReference = await referenceRepository.save(
         referenceRepository.create({
@@ -593,6 +647,21 @@ export class ProjectDocumentedSourceController {
           createdBy: userId,
         }),
       );
+      if (resourceId) {
+        const existingMembership = await membershipRepository.findOne({
+          where: { projectId, sourceId: source.id, resourceId },
+        });
+        if (!existingMembership) {
+          await membershipRepository.save(
+            membershipRepository.create({
+              projectId,
+              sourceId: source.id,
+              resourceId,
+              createdBy: userId,
+            }),
+          );
+        }
+      }
       return { ...source, references: [sourceReference] };
     });
   }
@@ -636,6 +705,7 @@ export class ProjectDocumentedSourceController {
         'containsPersonalData',
       );
     }
+    source.isAutoGenerated = false;
     return this.sources.save(source);
   }
 
@@ -667,6 +737,9 @@ export class ProjectDocumentedSourceController {
       );
       const referenceRepository = manager.getRepository(
         ProjectDocumentedSourceReferenceTypeOrmEntity,
+      );
+      const membershipRepository = manager.getRepository(
+        ProjectDocumentedSourceProcessTypeOrmEntity,
       );
       // Lock the source row so deletion cannot race with a new BPMN association.
       const source = await sourceRepository.findOne({
@@ -700,7 +773,7 @@ export class ProjectDocumentedSourceController {
       });
       await sourceRepository.save(source);
 
-      return referenceRepository.save(
+      const savedReference = await referenceRepository.save(
         referenceRepository.create({
           ...reference,
           projectId,
@@ -708,6 +781,24 @@ export class ProjectDocumentedSourceController {
           createdBy: userId,
         }),
       );
+      const existingMembership = await membershipRepository.findOne({
+        where: {
+          projectId,
+          sourceId,
+          resourceId: reference.resourceId,
+        },
+      });
+      if (!existingMembership) {
+        await membershipRepository.save(
+          membershipRepository.create({
+            projectId,
+            sourceId,
+            resourceId: reference.resourceId,
+            createdBy: userId,
+          }),
+        );
+      }
+      return savedReference;
     });
   }
 
@@ -738,6 +829,9 @@ export class ProjectDocumentedSourceController {
       );
       const referenceRepository = manager.getRepository(
         ProjectDocumentedSourceReferenceTypeOrmEntity,
+      );
+      const membershipRepository = manager.getRepository(
+        ProjectDocumentedSourceProcessTypeOrmEntity,
       );
       const [source, target, reference] = await Promise.all([
         sourceRepository.findOne({
@@ -775,8 +869,126 @@ export class ProjectDocumentedSourceController {
         );
 
       reference.sourceId = targetSourceId;
-      return referenceRepository.save(reference);
+      const savedReference = await referenceRepository.save(reference);
+      const targetMembership = await membershipRepository.findOne({
+        where: {
+          projectId,
+          sourceId: targetSourceId,
+          resourceId: reference.resourceId,
+        },
+      });
+      if (!targetMembership) {
+        await membershipRepository.save(
+          membershipRepository.create({
+            projectId,
+            sourceId: targetSourceId,
+            resourceId: reference.resourceId,
+            createdBy: source.createdBy,
+          }),
+        );
+      }
+
+      // An automatically generated one-object fiche is redundant once its
+      // BPMN reference has been moved to an existing project fiche. Preserve
+      // it if it still has other BPMN references or process memberships.
+      if (source.isAutoGenerated) {
+        const remainingReferences = await referenceRepository.count({
+          where: { projectId, sourceId },
+        });
+        if (remainingReferences === 0) {
+          await membershipRepository.delete({
+            projectId,
+            sourceId,
+            resourceId: reference.resourceId,
+          });
+          const remainingMemberships = await membershipRepository.count({
+            where: { projectId, sourceId },
+          });
+          if (remainingMemberships === 0) {
+            await sourceRepository.delete({ id: sourceId, projectId });
+          }
+        }
+      }
+      return savedReference;
     });
+  }
+
+  @Post(':sourceId/processes')
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
+  async addProcessMembership(
+    @Param('projectId') projectId: string,
+    @Param('sourceId') sourceId: string,
+    @Body() body: { resourceId?: string },
+    @Headers() headers: RequestHeaders,
+  ) {
+    const userId = await this.access.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Admin,
+      { allowOrganizationAdmin: true },
+    );
+    const resourceId = body.resourceId?.trim();
+    if (!resourceId) throw new BadRequestException('resourceId is required');
+    await this.validateProcess(projectId, resourceId);
+
+    return this.dataSource.transaction(async (manager) => {
+      const sourceRepository = manager.getRepository(
+        ProjectDocumentedSourceTypeOrmEntity,
+      );
+      const membershipRepository = manager.getRepository(
+        ProjectDocumentedSourceProcessTypeOrmEntity,
+      );
+      const source = await sourceRepository.findOne({
+        where: { id: sourceId, projectId, mergedIntoId: IsNull() },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!source) throw new NotFoundException('Documented source not found');
+      const existing = await membershipRepository.findOne({
+        where: { projectId, sourceId, resourceId },
+      });
+      if (existing) return existing;
+      return membershipRepository.save(
+        membershipRepository.create({
+          projectId,
+          sourceId,
+          resourceId,
+          createdBy: userId,
+        }),
+      );
+    });
+  }
+
+  @Delete(':sourceId/processes/:resourceId')
+  @UseAcl([UserGroup.RW, UserGroup.Admin])
+  async removeProcessMembership(
+    @Param('projectId') projectId: string,
+    @Param('sourceId') sourceId: string,
+    @Param('resourceId') resourceId: string,
+    @Headers() headers: RequestHeaders,
+  ) {
+    await this.access.assertProjectRole(
+      projectId,
+      headers,
+      ProjectMemberRole.Admin,
+      { allowOrganizationAdmin: true },
+    );
+    await this.validateProcess(projectId, resourceId);
+    const referenceCount = await this.references.count({
+      where: { projectId, sourceId, resourceId },
+    });
+    if (referenceCount > 0) {
+      throw new ConflictException(
+        'Cette information est encore liée à un objet BPMN de ce processus. Supprimez d’abord ce lien.',
+      );
+    }
+    const membership = await this.sourceProcesses.findOne({
+      where: { projectId, sourceId, resourceId },
+    });
+    if (!membership) {
+      throw new NotFoundException('Process membership not found');
+    }
+    await this.sourceProcesses.delete({ id: membership.id });
+    return { removed: true, sourceId, resourceId };
   }
 
   @Delete(':sourceId')
@@ -893,11 +1105,6 @@ export class ProjectDocumentedSourceController {
         throw new NotFoundException(
           'Documented source not found in this project',
         );
-      if (source.resourceId !== target.resourceId)
-        throw new BadRequestException(
-          'Documented information can only be merged when they belong to the same process',
-        );
-
       // Several BPMN elements in one diagram may reference the same
       // documented source. Duplicate references to the same element are
       // consolidated below; distinct elements are all retained.
@@ -951,6 +1158,33 @@ export class ProjectDocumentedSourceController {
         target.validUntil = source.validUntil;
       }
       await sourceRepository.save(target);
+
+      const membershipRepository = manager.getRepository(
+        ProjectDocumentedSourceProcessTypeOrmEntity,
+      );
+      const sourceMemberships = await membershipRepository.find({
+        where: { projectId, sourceId },
+      });
+      for (const membership of sourceMemberships) {
+        const existingMembership = await membershipRepository.findOne({
+          where: {
+            projectId,
+            sourceId: targetId,
+            resourceId: membership.resourceId,
+          },
+        });
+        if (!existingMembership) {
+          await membershipRepository.save(
+            membershipRepository.create({
+              projectId,
+              sourceId: targetId,
+              resourceId: membership.resourceId,
+              createdBy: userId,
+            }),
+          );
+        }
+        await membershipRepository.delete({ id: membership.id });
+      }
 
       const sourceReferences = await referenceRepository.find({
         where: { projectId, sourceId },
@@ -1016,7 +1250,7 @@ export class ProjectDocumentedSourceController {
     }
     if (!BPMN_DOCUMENTED_DATA_TYPES.has(elementType)) {
       throw new BadRequestException(
-        'Only BPMN data stores can be associated with documented sources',
+        'Only BPMN data objects and data stores can be associated with documented sources',
       );
     }
     await this.validateProcess(projectId, resourceId);

@@ -15,7 +15,7 @@ test('documented information table keeps the validated column order', async () =
     "headerName: 'Type'",
     "textColumn('description', 'Description'",
     "headerName: 'Données personnelles'",
-    "headerName: 'Objet BPMN'",
+    "headerName: 'Association BPMN'",
     "textColumn('link', 'Lien'",
     "textColumn('location', 'Emplacement'",
     "textColumn('access', 'Accès'",
@@ -27,6 +27,25 @@ test('documented information table keeps the validated column order', async () =
   const positions = headers.map(header => inventory.indexOf(header));
   assert.ok(positions.every(position => position >= 0));
   assert.deepEqual(positions, [...positions].sort((a, b) => a - b));
+});
+
+test('BPMN description is independent from fiche description and follows each live BPMN association', async () => {
+  const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
+  const projectGrid = await read('src/Components/BusinessComponents/ProcessDetails/ProjectDocumentedSources.tsx');
+  const processDetails = await read('src/Components/BusinessComponents/ProcessDetails/ProcessDetails.tsx');
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
+
+  assert.match(inventory, /textColumn\('description', 'Description'/);
+  assert.match(inventory, /headerName: 'Description BPMN'/);
+  assert.match(inventory, /reference\.bpmnDescription/);
+  assert.match(inventory, /onSaveBpmnDescription\(reference\.elementId, value\)/);
+  assert.match(processDetails, /const saveBpmnDescription = async/);
+  assert.match(processDetails, /documentation\.textContent = description/);
+  assert.match(processDetails, /onSaveBpmnDescription=\{saveBpmnDescription\}/);
+  assert.match(controller, /bpmnDescription: currentElement\?\.bpmnDescription/);
+  assert.match(controller, /node\.documentation !== undefined/);
+  assert.doesNotMatch(projectGrid, /Description BPMN|ref\.bpmnDescription/);
+  assert.match(projectGrid, /Toutes les informations documentées du projet/);
 });
 
 test('validity limit is optional, editable with a date picker and persisted as a date', async () => {
@@ -62,11 +81,11 @@ test('a documented information row can be created before it has a BPMN associati
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
   const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
 
-  assert.match(inventory, /const addRow = \(\) =>/);
-  assert.match(inventory, /const id = `new-\$\{Date\.now\(\)\}`/);
-  assert.match(inventory, /setSources\(current => \[\.\.\.current, emptySource\(id, resourceId\)\]\)/);
-  assert.match(inventory, /if \(row\.id\.startsWith\('new-'\)\)/);
-  assert.match(inventory, /apiClient\.post\(\`\/projects\/\$\{projectId\}\/documented-sources\`, payload\)/);
+  assert.match(inventory, /const addSource = async \(\) =>/);
+  assert.match(inventory, /apiClient\.post\(\`\/projects\/\$\{projectId\}\/documented-sources\`, \{/);
+  assert.match(inventory, /La fiche sera ajoutée au référentiel du projet et rattachée à ce processus/);
+  assert.match(inventory, /Son association à un élément BPMN est facultative/);
+  assert.match(inventory, /<Button size="sm" onClick=\{\(\) => setAdding\(true\)\}>Créer une information documentée<\/Button>/);
   assert.match(controller, /const hasReferenceFields = Boolean\(/);
   assert.match(controller, /const reference = hasReferenceFields/);
   assert.match(controller, /if \(!reference\) return \{ \.\.\.source, references: \[\] \}/);
@@ -74,7 +93,7 @@ test('a documented information row can be created before it has a BPMN associati
 
 test('unlinked BPMN objects remain available directly in the association column', async () => {
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
-  assert.match(inventory, /placeholder="Associer un objet BPMN…"/);
+  assert.match(inventory, /placeholder="Associer un Data Object \/ Data Store…"/);
   assert.match(inventory, /unlinkedReferences\.map\(item =>/);
   assert.match(inventory, /const associate = async/);
   assert.match(inventory, /objet\(s\) BPMN disponible\(s\) pour une association dans ce processus/);
@@ -82,19 +101,19 @@ test('unlinked BPMN objects remain available directly in the association column'
   assert.doesNotMatch(inventory, /const importLegacyReference = async/);
 });
 
-test('BPMN associations are limited to data stores in the active process', async () => {
+test('BPMN associations support data objects and data stores in the active process', async () => {
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
   const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
 
-  assert.match(inventory, /filter\(reference => reference\.resourceId === resourceId\)/);
+  assert.match(inventory, /filter\(reference => reference\.resourceId === resourceId && isSupportedBpmnDataType\(reference\.elementType\)\)/);
   assert.match(inventory, /unlinkedReferences\.find\(item => item\.elementId === elementId\)/);
   assert.match(inventory, /elementType: reference\.elementType/);
   assert.match(inventory, /type BpmnDataType = 'dataObjectReference' \| 'dataStoreReference'/, 'legacy data-object links remain displayable');
   assert.match(inventory, /documented-sources\?resourceId=\$\{encodeURIComponent\(resourceId\)\}/);
-  assert.match(controller, /const BPMN_DOCUMENTED_DATA_TYPES = new Set\(\['dataStoreReference'\]\)/);
-  assert.match(controller, /const supported = new Set\(\['dataStoreReference'\]\)/);
+  assert.ok(controller.includes("'dataObjectReference'"));
+  assert.ok(controller.includes("'dataStoreReference'"));
   assert.match(controller, /@Query\('resourceId'\) requestedResourceId\?: string/);
-  assert.match(controller, /Only BPMN data stores can be associated with documented sources/);
+  assert.match(controller, /Only BPMN data objects and data stores can be associated with documented sources/);
 });
 
 test('unlinking a BPMN object removes only its reference, not the documented source', async () => {
@@ -111,37 +130,63 @@ test('documented information grid supports project multi-selection and process s
   const grid = await read('src/Components/BusinessComponents/ProcessDetails/DocumentedSourcesGrid.tsx');
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
 
-  assert.match(grid, /rowSelection=\{multiSelect \? \{ mode: 'multiRow', checkboxes: true, headerCheckbox: true, enableClickSelection: true \} : \{ mode: 'singleRow', checkboxes: false, enableClickSelection: true \}\}/);
-  assert.match(grid, /event\.api\.ensureNodeVisible\(node, 'middle'\)/);
+  const sharedGrid = await read('src/Components/GenericComponents/SharedDataGrid/SharedDataGrid.tsx');
+  assert.match(grid, /import \{ SharedDataGrid \} from '\.\.\/\.\.\/GenericComponents\/SharedDataGrid'/);
+  assert.match(grid, /selection=\{selection\}/);
+  assert.match(grid, /onSelectionChanged=\{onSelectionChanged\}/);
+  assert.match(grid, /toolbarContent=\{toolbarContent\}/);
+  assert.match(grid, /localeText=\{localeText\}/);
+  assert.match(grid, /paginationPageSize=\{paginationPageSize\}/);
+  assert.match(grid, /quickFilter=\{quickFilter\}/);
+  assert.match(sharedGrid, /rowSelection=\{selectionOptions\}/);
+  assert.match(sharedGrid, /checkboxes: true/);
+  assert.match(sharedGrid, /headerCheckbox: selection === 'multiple'/);
+  assert.match(sharedGrid, /event\.api\.ensureNodeVisible\(node, 'middle'\)/);
+  assert.match(inventory, /selection="single"/);
   assert.match(inventory, /selectedRowId=\{requestedDocumentedSourceId \?\? undefined\}/);
+  const projectGrid = await read('src/Components/BusinessComponents/ProcessDetails/ProjectDocumentedSources.tsx');
+  assert.match(projectGrid, /selectionToolbar=\{/);
+  assert.doesNotMatch(projectGrid, /headerName: 'Actions'/);
+  assert.match(projectGrid, /selectedActionRow\.references\.length === 0/);
+  assert.match(inventory, /selectionToolbar=\{/);
+  assert.doesNotMatch(inventory, /headerName: 'Actions'/);
 });
 
 
-test('documented information always belongs to one project process, independently of BPMN association', async () => {
+test('project-level sources retain independent memberships in one or more processes', async () => {
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
-  const projectGrid = await read('src/Components/BusinessComponents/ProcessDetails/ProjectDocumentedSources.tsx');
   const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
-  const entity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/projectDocumentedSource.ormEntity.ts');
+  const entity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/projectDocumentedSourceProcess.ormEntity.ts');
+  const migration = await read('../backend/migrations/20261127_v3_project_level_documented_sources.sql');
 
   assert.match(inventory, /const payload = \{\s*resourceId,/);
-  assert.match(projectGrid, /resourceId: selectedProcessId/);
-  assert.match(projectGrid, /FormLabel>Processus<\/FormLabel>/);
-  assert.match(controller, /resourceId is required: documented information must belong to a process/);
-  assert.match(controller, /allSources\.filter\(\(source\) => source\.resourceId === requestedResourceId\)/);
-  assert.doesNotMatch(controller, /project-level sources that have not yet been associated/);
-  assert.match(entity, /@Column\('uuid'\)\s+resourceId: string/);
+  assert.match(controller, /ProjectDocumentedSourceProcessTypeOrmEntity/);
+  assert.match(controller, /memberships\.some\(/);
+  assert.ok(controller.includes('sourceId: source.id'));
+  assert.ok(controller.includes('membershipRepository.save'));
+  assert.ok(controller.includes('resourceId,'));
+  assert.match(controller, /processes: sourceProcesses/);
+  assert.match(entity, /project_documented_source_processes/);
+  assert.match(migration, /project_documented_source_processes_unique/);
+  assert.match(migration, /DROP COLUMN IF EXISTS "resourceId"/);
 });
 
 test('BPMN associations may cross process boundaries while the documented source keeps its owning process', async () => {
   const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
   const projectGrid = await read('src/Components/BusinessComponents/ProcessDetails/ProjectDocumentedSources.tsx');
+  const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
   assert.ok(controller.includes('if (!reference) return { ...source, references: [] }'));
   assert.doesNotMatch(controller, /source\.resourceId !== reference\.resourceId/);
   assert.doesNotMatch(controller, /target\.resourceId !== reference\.resourceId/);
   assert.ok(controller.includes('await this.validateReference(projectId, body)'));
-  assert.ok(controller.includes('Only BPMN data stores can be associated with documented sources'));
-  assert.ok(projectGrid.includes('Associer un objet BPMN du projet…'));
-  assert.ok(projectGrid.includes('filter(candidate => !p.data!.references.some'));
+  assert.ok(controller.includes('Only BPMN data objects and data stores can be associated with documented sources'));
+  assert.doesNotMatch(projectGrid, /placeholder="Associer un Data Object \/ Data Store|Ajouter à un processus|Description BPMN|documented-sources\/[^\s'\x60]*\/references/);
+  assert.match(projectGrid, /selectedDetail\.references/);
+  assert.match(projectGrid, /selectedDetail\.processes/);
+  assert.ok(controller.includes("@Post(':sourceId/processes')"));
+  assert.ok(controller.includes("@Delete(':sourceId/processes/:resourceId')"));
+  assert.match(inventory, /Rattacher à une autre information documentée/);
+  assert.match(inventory, /targetSourceId: value/);
 });
 
 test('saving a BPMN process synchronizes newly added data stores into the project documented-information registry', async () => {
@@ -156,8 +201,26 @@ test('saving a BPMN process synchronizes newly added data stores into the projec
   assert.ok(modelerAction.includes("['project-documented-sources', projectId]"));
   assert.ok(controller.includes("@Post('synchronize')"));
   assert.ok(controller.includes('extractBpmnDataElements('));
-  assert.ok(controller.includes("kind: 'database'"));
+  assert.ok(controller.includes("element.elementType === 'dataStoreReference'"));
+  assert.ok(controller.includes("? 'database'"));
+  assert.ok(controller.includes(": 'file'"));
   assert.ok(controller.includes('elementType: element.elementType'));
   assert.ok(controller.includes('if (existing) return false'));
   assert.ok(controller.includes('pg_advisory_xact_lock'));
+});
+
+test('moving an automatically generated BPMN entry to an existing source removes the redundant row', async () => {
+  const controller = await read('../backend/src/modules/ProjectContext/infrastructure/controllers/project-documented-source.controller.ts');
+  const entity = await read('../backend/src/modules/ProjectContext/infrastructure/entities/projectDocumentedSource.ormEntity.ts');
+  const migration = await read('../backend/migrations/20261127_v3_project_level_documented_sources.sql');
+  const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
+
+  assert.match(entity, /isAutoGenerated: boolean/);
+  assert.match(controller, /isAutoGenerated: true/);
+  assert.match(controller, /source\.isAutoGenerated = false/);
+  assert.match(controller, /remainingReferences/);
+  assert.match(controller, /remainingMemberships/);
+  assert.match(migration, /ADD COLUMN IF NOT EXISTS "isAutoGenerated" boolean NOT NULL DEFAULT false/);
+  assert.match(inventory, /Rattacher à une autre information documentée/);
+  assert.match(inventory, /targetSourceId: value/);
 });
