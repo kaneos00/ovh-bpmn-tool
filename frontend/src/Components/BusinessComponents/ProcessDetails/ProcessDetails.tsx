@@ -121,7 +121,7 @@ type ProcessDetailsProps = {
   requestedDocumentedSourceId?: string | null;
 };
 
-const BPMN_DATA_SOURCE_TYPES = new Set(['dataObjectReference', 'dataStoreReference', 'dataInput', 'dataOutput']);
+const BPMN_DATA_SOURCE_TYPES = new Set(['dataObjectReference', 'dataStoreReference']);
 
 const BPMN_ACTIVITY_TYPES = new Set([
   'task',
