@@ -44,7 +44,7 @@ test('BPMN description is independent from fiche description and follows each li
   assert.match(processDetails, /onSaveBpmnDescription=\{saveBpmnDescription\}/);
   assert.match(controller, /bpmnDescription: currentElement\?\.bpmnDescription/);
   assert.match(controller, /node\.documentation !== undefined/);
-  assert.doesNotMatch(projectGrid, /Description BPMN|Associations BPMN|ref\.bpmnDescription/);
+  assert.doesNotMatch(projectGrid, /Description BPMN|ref\.bpmnDescription/);
   assert.match(projectGrid, /Toutes les informations documentées du projet/);
 });
 
@@ -130,8 +130,15 @@ test('documented information grid supports project multi-selection and process s
   const grid = await read('src/Components/BusinessComponents/ProcessDetails/DocumentedSourcesGrid.tsx');
   const inventory = await read('src/Components/BusinessComponents/ProcessDetails/DataInventory.tsx');
 
-  assert.match(grid, /rowSelection=\{multiSelect \? \{ mode: 'multiRow', checkboxes: true, headerCheckbox: true, enableClickSelection: true \} : \{ mode: 'singleRow', checkboxes: false, enableClickSelection: true \}\}/);
-  assert.match(grid, /event\.api\.ensureNodeVisible\(node, 'middle'\)/);
+  const sharedGrid = await read('src/Components/GenericComponents/SharedDataGrid/SharedDataGrid.tsx');
+  assert.match(grid, /import \{ SharedDataGrid \} from '\.\.\/\.\.\/GenericComponents\/SharedDataGrid'/);
+  assert.match(grid, /selection=\{selection\}/);
+  assert.match(grid, /onSelectionChanged=\{onSelectionChanged\}/);
+  assert.match(sharedGrid, /rowSelection=\{selectionOptions\}/);
+  assert.match(sharedGrid, /checkboxes: selection === 'multiple'/);
+  assert.match(sharedGrid, /headerCheckbox: selection === 'multiple'/);
+  assert.match(sharedGrid, /event\.api\.ensureNodeVisible\(node, 'middle'\)/);
+  assert.match(inventory, /selection="single"/);
   assert.match(inventory, /selectedRowId=\{requestedDocumentedSourceId \?\? undefined\}/);
 });
 
@@ -163,7 +170,9 @@ test('BPMN associations may cross process boundaries while the documented source
   assert.doesNotMatch(controller, /target\.resourceId !== reference\.resourceId/);
   assert.ok(controller.includes('await this.validateReference(projectId, body)'));
   assert.ok(controller.includes('Only BPMN data objects and data stores can be associated with documented sources'));
-  assert.doesNotMatch(projectGrid, /placeholder="Associer un Data Object \/ Data Store|Ajouter à un processus|Associations BPMN|Description BPMN/);
+  assert.doesNotMatch(projectGrid, /placeholder="Associer un Data Object \/ Data Store|Ajouter à un processus|Description BPMN|documented-sources\/[^\s'\x60]*\/references/);
+  assert.match(projectGrid, /selectedDetail\?\.references/);
+  assert.match(projectGrid, /selectedDetail\?\.processes/);
   assert.ok(controller.includes("@Post(':sourceId/processes')"));
   assert.ok(controller.includes("@Delete(':sourceId/processes/:resourceId')"));
   assert.match(inventory, /Rattacher à une autre information documentée/);
