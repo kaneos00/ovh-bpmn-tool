@@ -8,6 +8,7 @@ type Props<T extends object> = {
   getRowId: (row: T) => string;
   preferenceKey: string;
   mode?: 'read' | 'edit';
+  editTrigger?: 'cell' | 'doubleClick';
   selection?: false | 'single' | 'multiple';
   advancedFilter?: boolean;
   onAdd?: () => void;
@@ -19,6 +20,10 @@ type Props<T extends object> = {
   onCellValueChanged?: (event: CellValueChangedEvent<T>) => void;
   selectedRowId?: string;
   selectionToolbar?: React.ReactNode;
+  toolbarContent?: React.ReactNode;
+  localeText?: Record<string, string>;
+  paginationPageSize?: number;
+  quickFilter?: boolean;
   height?: number;
 };
 
@@ -28,6 +33,7 @@ export const DocumentedSourcesGrid = <T extends object,>({
   getRowId,
   preferenceKey,
   mode = 'read',
+  editTrigger = 'doubleClick',
   selection = 'single',
   advancedFilter = true,
   onAdd,
@@ -39,6 +45,10 @@ export const DocumentedSourcesGrid = <T extends object,>({
   onCellValueChanged,
   selectedRowId,
   selectionToolbar,
+  toolbarContent,
+  localeText,
+  paginationPageSize = 20,
+  quickFilter = true,
   height = 520,
 }: Props<T>) => (
   <SharedDataGrid<T>
@@ -47,7 +57,7 @@ export const DocumentedSourcesGrid = <T extends object,>({
     getRowId={getRowId}
     preferenceKey={preferenceKey}
     mode={mode}
-    editTrigger="doubleClick"
+    editTrigger={editTrigger}
     selection={selection}
     advancedFilter={advancedFilter}
     selectedRowId={selectedRowId}
@@ -59,7 +69,10 @@ export const DocumentedSourcesGrid = <T extends object,>({
     onSelectionChanged={onSelectionChanged}
     onCellValueChanged={onCellValueChanged}
     selectionToolbar={selectionToolbar}
+    toolbarContent={toolbarContent}
+    localeText={localeText}
     height={height}
-    paginationPageSize={20}
+    paginationPageSize={paginationPageSize}
+    quickFilter={quickFilter}
   />
 );
