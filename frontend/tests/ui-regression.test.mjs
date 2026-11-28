@@ -528,7 +528,7 @@ test('V3 central viewer exposes the validated documented information table backe
   assert.match(grid, /import \{ SharedDataGrid \} from '\.\.\/\.\.\/GenericComponents\/SharedDataGrid'/);
   assert.match(grid, /selection=\{selection\}/);
   assert.match(sharedGrid, /rowSelection=\{selectionOptions\}/);
-  assert.match(sharedGrid, /checkboxes: selection === 'multiple'/);
+  assert.match(sharedGrid, /checkboxes: true/);
   assert.match(sharedGrid, /event\.api\.ensureNodeVisible\(node, 'middle'\)/);
 });
 
@@ -1198,7 +1198,7 @@ test('documented-information search focuses the canonical inventory row and reta
   assert.ok(inventory.includes('selectedRowId={requestedDocumentedSourceId ?? undefined}'));
   assert.ok(sharedGrid.includes('event.api.ensureNodeVisible(node, \'middle\')'));
   assert.ok(grid.includes('selection={selection}'));
-  assert.ok(sharedGrid.includes("checkboxes: selection === 'multiple'"));
+  assert.ok(sharedGrid.includes("checkboxes: true"));
   assert.ok(sharedGrid.includes("headerCheckbox: selection === 'multiple'"));
   assert.ok(inventory.includes('selection="single"'));
 });
