@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from 'react-query';
 import { Alert, Box, Button, FormControl, FormLabel, Input, Modal, ModalDialog, Stack, Typography } from '@mui/joy';
 import { AppsRounded, DeleteOutlineRounded, DescriptionOutlined, StorageRounded } from '@mui/icons-material';
@@ -7,7 +8,7 @@ import { DocumentedSourcesGrid } from './DocumentedSourcesGrid';
 import { apiClient } from '../../../queryClient';
 
 type SourceKind = 'file' | 'database' | 'application';
-type SourceReference = { id: string };
+type SourceReference = { id: string; resourceId: string; elementId: string; elementName: string; elementType: string; processName: string };
 type Source = {
   id: string; kind: SourceKind | 'form'; name: string; description: string | null; link: string | null;
   location: string | null; access: string | null; retention: string | null; validUntil: string | null;
@@ -18,6 +19,7 @@ type GridRow = {
   id: string; sourceId: string; name: string; kind: SourceKind; description: string;
   link: string; location: string; access: string; retention: string; validUntil: string;
   authorizedPeople: string; restrictions: string; containsPersonalData: boolean; references: SourceReference[];
+  processCount: number; elementCount: number;
 };
 
 const kindLabels: Record<SourceKind, string> = { file: 'Fichier', database: 'Base de données', application: 'Application' };
@@ -28,6 +30,8 @@ const kindIcon = (kind: SourceKind) => {
 };
 
 export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: string; canManage: boolean }) => {
+  const navigate = useNavigate();
+  const [selectedDetail, setSelectedDetail] = useState<GridRow | null>(null);
   const queryClient = useQueryClient();
   const [error, setError] = useState('');
   const [pendingDelete, setPendingDelete] = useState<GridRow | null>(null);
@@ -45,6 +49,8 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     link: source.link ?? '', location: source.location ?? '', access: source.access ?? '',
     retention: source.retention ?? '', validUntil: source.validUntil ?? '', authorizedPeople: source.authorizedPeople ?? '', restrictions: source.restrictions ?? '',
     containsPersonalData: source.containsPersonalData ?? false, references: source.references ?? [],
+    processCount: new Set((source.references ?? []).map(reference => reference.resourceId)).size,
+    elementCount: (source.references ?? []).length,
   })), [data?.sources]);
 
   const refresh = async () => {
@@ -71,14 +77,16 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     { headerName: 'Nom', field: 'name', minWidth: 220, editable: canManage },
     { headerName: 'Type', field: 'kind', minWidth: 145, editable: canManage, cellEditor: 'agSelectCellEditor', cellEditorParams: { values: ['file', 'database', 'application'] }, valueFormatter: p => kindLabels[p.value as SourceKind] ?? '', cellRenderer: (p: { value?: SourceKind }) => p.value ? <Stack direction="row" spacing={0.75} alignItems="center">{kindIcon(p.value)}<span>{kindLabels[p.value]}</span></Stack> : null },
     { headerName: 'Description', field: 'description', minWidth: 220, editable: canManage },
+    { headerName: 'Processus', field: 'processCount', minWidth: 105, cellDataType: 'number' },
+    { headerName: 'Éléments BPMN', field: 'elementCount', minWidth: 125, cellDataType: 'number' },
     { headerName: 'Lien', field: 'link', minWidth: 170, editable: canManage },
-    { headerName: 'Emplacement', field: 'location', minWidth: 150, editable: canManage },
-    { headerName: 'Accès', field: 'access', minWidth: 140, editable: canManage },
-    { headerName: 'Durée de conservation', field: 'retention', minWidth: 180, editable: canManage },
-    { headerName: 'Date limite de validité', field: 'validUntil', minWidth: 175, editable: canManage, cellEditor: 'agDateStringCellEditor', valueFormatter: p => p.value || 'Illimitée' },
-    { headerName: 'Données personnelles', field: 'containsPersonalData', minWidth: 175, editable: canManage, cellDataType: 'boolean', cellRenderer: 'agCheckboxCellRenderer', cellEditor: 'agCheckboxCellEditor' },
-    { headerName: 'Personnes autorisées', field: 'authorizedPeople', minWidth: 190, editable: canManage },
-    { headerName: 'Restrictions', field: 'restrictions', minWidth: 190, editable: canManage },
+    { headerName: 'Emplacement', field: 'location', minWidth: 150, editable: canManage, hide: true },
+    { headerName: 'Accès', field: 'access', minWidth: 140, editable: canManage, hide: true },
+    { headerName: 'Durée de conservation', field: 'retention', minWidth: 180, editable: canManage, hide: true },
+    { headerName: 'Date limite de validité', field: 'validUntil', minWidth: 175, editable: canManage, hide: true, cellEditor: 'agDateStringCellEditor', valueFormatter: p => p.value || 'Illimitée' },
+    { headerName: 'Données personnelles', field: 'containsPersonalData', minWidth: 175, editable: canManage, hide: true, cellDataType: 'boolean', cellRenderer: 'agCheckboxCellRenderer', cellEditor: 'agCheckboxCellEditor' },
+    { headerName: 'Personnes autorisées', field: 'authorizedPeople', minWidth: 190, editable: canManage, hide: true },
+    { headerName: 'Restrictions', field: 'restrictions', minWidth: 190, editable: canManage, hide: true },
     { headerName: 'Actions', minWidth: 130, sortable: false, filter: false, cellRenderer: (p: { data?: GridRow }) => p.data && canManage && p.data.references.length === 0 ? <Button size="sm" variant="plain" color="danger" startDecorator={<DeleteOutlineRounded />} onClick={() => setPendingDelete(p.data!)}>Supprimer</Button> : null },
   ];
 
@@ -91,7 +99,31 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
       {canManage && selectedMergeIds.length >= 2 && <Button size="sm" variant="outlined" onClick={() => { const selected = rows.filter(row => selectedMergeIds.includes(row.sourceId)); setMergeName(selected[0]?.name ?? ''); setMergeDescription(selected[0]?.description ?? ''); setMergeDialogOpen(true); }}>Fusionner ({selectedMergeIds.length})</Button>}
     </Stack>
     {error && <Alert color="danger" variant="soft">{error}</Alert>}
-    <DocumentedSourcesGrid<GridRow> rowData={rows} columnDefs={columns} getRowId={row => row.id} height={560} onCellValueChanged={saveCell} multiSelect={canManage} onSelectionChanged={selected => setSelectedMergeIds(selected.map(row => row.sourceId))} />
+    <DocumentedSourcesGrid<GridRow>
+      rowData={rows} columnDefs={columns} getRowId={row => row.id}
+      preferenceKey={'project-documented-sources-' + projectId}
+      mode={canManage ? 'edit' : 'read'} selection={canManage ? 'multiple' : 'single'} advancedFilter
+      height={560} onCellValueChanged={saveCell} onRowSelected={row => setSelectedDetail(row)}
+      onSelectionChanged={selected => setSelectedMergeIds(selected.map(row => row.sourceId))}
+    />
+    <Modal open={Boolean(selectedDetail)} onClose={() => setSelectedDetail(null)}>
+      <ModalDialog sx={{ width: 'min(900px, calc(100vw - 32px))', maxHeight: '85vh', overflow: 'auto' }}>
+        <Typography level="title-lg">{selectedDetail?.name}</Typography>
+        <Typography level="body-sm" color="neutral">Associations BPMN de cette fiche documentaire. Chaque association est indépendante.</Typography>
+        <DocumentedSourcesGrid<SourceReference>
+          rowData={selectedDetail?.references ?? []}
+          columnDefs={[
+            { headerName: 'Processus', field: 'processName', minWidth: 180 },
+            { headerName: 'Élément BPMN', field: 'elementName', minWidth: 220 },
+            { headerName: 'Type', field: 'elementType', minWidth: 150, valueFormatter: p => p.value === 'dataStoreReference' ? 'Data Store' : 'Data Object' },
+            { headerName: 'Ouvrir', minWidth: 130, sortable: false, filter: false, cellRenderer: (p: { data?: SourceReference }) => p.data ? <Button size="sm" variant="plain" onClick={() => { navigate('/' + p.data!.resourceId + '?elementId=' + encodeURIComponent(p.data!.elementId)); setSelectedDetail(null); }}>Voir le processus</Button> : null },
+          ]}
+          getRowId={row => row.id} preferenceKey={'project-documented-source-associations-' + (selectedDetail?.id ?? 'none')}
+          mode="read" selection={false} advancedFilter={false} height={320}
+        />
+        <Stack direction="row" justifyContent="flex-end"><Button variant="outlined" color="neutral" onClick={() => setSelectedDetail(null)}>Fermer</Button></Stack>
+      </ModalDialog>
+    </Modal>
     <Modal open={Boolean(pendingDelete)} onClose={() => setPendingDelete(null)}>
       <ModalDialog>
         <Typography level="title-lg">Confirmer la suppression</Typography>
