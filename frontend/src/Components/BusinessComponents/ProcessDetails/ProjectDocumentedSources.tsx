@@ -10,7 +10,6 @@ import { apiClient } from '../../../queryClient';
 type SourceKind = 'file' | 'database' | 'application';
 type SourceReference = { id: string; resourceId: string; elementId: string; elementName: string; elementType: string; processName: string };
 type SourceProcess = { resourceId: string; processName: string };
-type AssociationGridRow = SourceReference & { id: string };
 type Source = {
   id: string; kind: SourceKind | 'form'; name: string; description: string | null; link: string | null;
   location: string | null; access: string | null; retention: string | null; validUntil: string | null;
