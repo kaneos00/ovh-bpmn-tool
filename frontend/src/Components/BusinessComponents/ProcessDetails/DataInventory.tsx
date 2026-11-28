@@ -594,6 +594,10 @@ export const DataInventory = ({
           rowData={rows}
           columnDefs={columnDefs}
           getRowId={row => row.id}
+          preferenceKey={`process-documented-sources-${projectId ?? 'none'}-${resourceId}`}
+          mode={canManageSources ? 'edit' : 'read'}
+          selection="single"
+          advancedFilter
           selectedRowId={requestedDocumentedSourceId ?? undefined}
           height={560}
         />
