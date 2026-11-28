@@ -54,6 +54,8 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     elementCount: (source.references ?? []).length,
   })), [data?.sources]);
 
+  const selectedActionRow = selectedMergeIds.length === 1 ? rows.find(row => row.sourceId === selectedMergeIds[0]) : undefined;
+
   const refresh = async () => {
     await queryClient.invalidateQueries(queryKey);
   };
@@ -88,7 +90,6 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     { headerName: 'Données personnelles', field: 'containsPersonalData', minWidth: 175, editable: canManage, hide: true, cellDataType: 'boolean', cellRenderer: 'agCheckboxCellRenderer', cellEditor: 'agCheckboxCellEditor' },
     { headerName: 'Personnes autorisées', field: 'authorizedPeople', minWidth: 190, editable: canManage, hide: true },
     { headerName: 'Restrictions', field: 'restrictions', minWidth: 190, editable: canManage, hide: true },
-    { headerName: 'Actions', minWidth: 130, sortable: false, filter: false, cellRenderer: (p: { data?: GridRow }) => p.data && canManage && p.data.references.length === 0 ? <Button size="sm" variant="plain" color="danger" startDecorator={<DeleteOutlineRounded />} onClick={() => setPendingDelete(p.data!)}>Supprimer</Button> : null },
   ];
 
   if (query.isLoading) return <Typography level="body-sm" color="neutral">Chargement des informations documentées…</Typography>;
@@ -97,8 +98,7 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
   return <Stack spacing={1.25} sx={{ minWidth: 0 }}>
     <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
       <Box><Typography level="title-lg">Référentiel des informations documentées</Typography><Typography level="body-sm" color="neutral">Toutes les informations documentées du projet, qu’elles soient associées ou non à un processus ou à un élément BPMN.</Typography></Box>
-      {canManage && selectedMergeIds.length >= 2 && <Button size="sm" variant="outlined" onClick={() => { const selected = rows.filter(row => selectedMergeIds.includes(row.sourceId)); setMergeName(selected[0]?.name ?? ''); setMergeDescription(selected[0]?.description ?? ''); setMergeDialogOpen(true); }}>Fusionner ({selectedMergeIds.length})</Button>}
-    </Stack>
+      </Stack>
     {error && <Alert color="danger" variant="soft">{error}</Alert>}
     <DocumentedSourcesGrid<GridRow>
       rowData={rows} columnDefs={columns} getRowId={row => row.id}
@@ -106,6 +106,12 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
       mode={canManage ? 'edit' : 'read'} selection={canManage ? 'multiple' : 'single'} advancedFilter
       height={560} onCellValueChanged={saveCell}
       onSelectionChanged={selected => setSelectedMergeIds(selected.map(row => row.sourceId))}
+      selectionToolbar={
+        <Stack direction="row" alignItems="center" spacing={1}>
+          {canManage && selectedMergeIds.length >= 2 && <Button size="sm" variant="outlined" color="neutral" onClick={() => { const selected = rows.filter(row => selectedMergeIds.includes(row.sourceId)); setMergeName(selected[0]?.name ?? ''); setMergeDescription(selected[0]?.description ?? ''); setMergeDialogOpen(true); }}>Fusionner ({selectedMergeIds.length})</Button>}
+          {canManage && selectedActionRow && selectedActionRow.references.length === 0 && <Button size="sm" variant="plain" color="danger" startDecorator={<DeleteOutlineRounded />} onClick={() => setPendingDelete(selectedActionRow)}>Supprimer</Button>}
+        </Stack>
+      }
     />
     <Modal open={Boolean(selectedDetail)} onClose={() => setSelectedDetail(null)}>
       <ModalDialog sx={{ width: 'min(900px, calc(100vw - 32px))', maxHeight: '85vh', overflow: 'auto' }}>
