@@ -102,7 +102,7 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     {error && <Alert color="danger" variant="soft">{error}</Alert>}
     <DocumentedSourcesGrid<GridRow>
       rowData={rows} columnDefs={columns} getRowId={row => row.id}
-      preferenceKey={'project-documented-sources-' + projectId}
+      preferenceKey={`project-documented-sources-${projectId}`}
       mode={canManage ? 'edit' : 'read'} selection={canManage ? 'multiple' : 'single'} advancedFilter
       height={560} onCellValueChanged={saveCell}
       onSelectionChanged={selected => setSelectedMergeIds(selected.map(row => row.sourceId))}
@@ -112,14 +112,14 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
         <Typography level="title-lg">{selectedDetail?.name}</Typography>
         <Typography level="body-sm" color="neutral">Associations BPMN de cette fiche documentaire. Chaque association est indépendante.</Typography>
         <DocumentedSourcesGrid<SourceReference>
-          rowData={selectedDetail ? [...selectedDetail.references, ...selectedDetail.processes.filter(process => !selectedDetail.references.some(reference => reference.resourceId === process.resourceId)).map(process => ({ id: 'process-' + process.resourceId, resourceId: process.resourceId, processName: process.processName, elementId: '', elementName: 'Aucun élément BPMN associé', elementType: '' }))] : []}
+          rowData={selectedDetail ? [...selectedDetail.references, ...selectedDetail.processes.filter(process => !selectedDetail.references.some(reference => reference.resourceId === process.resourceId)).map(process => ({ id: `process-${process.resourceId}`, resourceId: process.resourceId, processName: process.processName, elementId: '', elementName: 'Aucun élément BPMN associé', elementType: '' }))] : []}
           columnDefs={[
             { headerName: 'Processus', field: 'processName', minWidth: 180 },
             { headerName: 'Élément BPMN', field: 'elementName', minWidth: 220 },
-            { headerName: 'Type', field: 'elementType', minWidth: 150, valueFormatter: p => p.value === 'dataStoreReference' ? 'Data Store' : p.value === 'dataObjectReference' ? 'Data Object' : '—' },
-            { headerName: 'Ouvrir', minWidth: 130, sortable: false, filter: false, cellRenderer: (p: { data?: SourceReference }) => p.data ? <Button size="sm" variant="plain" onClick={() => { navigate('/' + p.data!.resourceId + (p.data!.elementId ? '?elementId=' + encodeURIComponent(p.data!.elementId) : '')); setSelectedDetail(null); }}>Voir le processus</Button> : null },
+            { headerName: 'Type', field: 'elementType', minWidth: 150, valueFormatter: p => { if (p.value === 'dataStoreReference') return 'Data Store'; if (p.value === 'dataObjectReference') return 'Data Object'; return '—'; } },
+            { headerName: 'Ouvrir', minWidth: 130, sortable: false, filter: false, cellRenderer: (p: { data?: SourceReference }) => p.data ? <Button size="sm" variant="plain" onClick={() => { navigate(`/${p.data!.resourceId}${p.data!.elementId ? `?elementId=${encodeURIComponent(p.data!.elementId)}` : ''}`); setSelectedDetail(null); }}>Voir le processus</Button> : null },
           ]}
-          getRowId={row => row.id} preferenceKey={'project-documented-source-associations-' + (selectedDetail?.id ?? 'none')}
+          getRowId={row => row.id} preferenceKey={`project-documented-source-associations-${selectedDetail?.id ?? 'none'}`}
           mode="read" selection={false} advancedFilter={false} height={320}
         />
         <Stack direction="row" justifyContent="flex-end"><Button variant="outlined" color="neutral" onClick={() => setSelectedDetail(null)}>Fermer</Button></Stack>
