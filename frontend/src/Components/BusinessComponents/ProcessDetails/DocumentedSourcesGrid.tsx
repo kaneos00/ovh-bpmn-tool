@@ -14,6 +14,8 @@ type Props<T extends object> = {
   addLabel?: string;
   addDisabled?: boolean;
   onRowSelected?: (row: T | null) => void;
+  onRowClicked?: (row: T | null) => void;
+  onSelectionChanged?: (rows: T[]) => void;
   onCellValueChanged?: (event: CellValueChangedEvent<T>) => void;
   selectedRowId?: string;
   selectionToolbar?: React.ReactNode;
@@ -32,6 +34,8 @@ export const DocumentedSourcesGrid = <T extends object,>({
   addLabel = 'Ajouter',
   addDisabled = false,
   onRowSelected,
+  onRowClicked,
+  onSelectionChanged,
   onCellValueChanged,
   selectedRowId,
   selectionToolbar,
@@ -51,6 +55,8 @@ export const DocumentedSourcesGrid = <T extends object,>({
     addLabel={addLabel}
     addDisabled={addDisabled}
     onRowSelected={onRowSelected}
+    onRowClicked={onRowClicked}
+    onSelectionChanged={onSelectionChanged}
     onCellValueChanged={onCellValueChanged}
     selectionToolbar={selectionToolbar}
     height={height}
