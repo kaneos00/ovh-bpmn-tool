@@ -9,16 +9,18 @@ import { apiClient } from '../../../queryClient';
 
 type SourceKind = 'file' | 'database' | 'application';
 type SourceReference = { id: string; resourceId: string; elementId: string; elementName: string; elementType: string; processName: string };
+type SourceProcess = { resourceId: string; processName: string };
+type AssociationGridRow = SourceReference & { id: string };
 type Source = {
   id: string; kind: SourceKind | 'form'; name: string; description: string | null; link: string | null;
   location: string | null; access: string | null; retention: string | null; validUntil: string | null;
-  authorizedPeople: string | null; restrictions: string | null; containsPersonalData: boolean; references: SourceReference[];
+  authorizedPeople: string | null; restrictions: string | null; containsPersonalData: boolean; references: SourceReference[]; processes: SourceProcess[];
 };
 type ResponseData = { sources: Source[] };
 type GridRow = {
   id: string; sourceId: string; name: string; kind: SourceKind; description: string;
   link: string; location: string; access: string; retention: string; validUntil: string;
-  authorizedPeople: string; restrictions: string; containsPersonalData: boolean; references: SourceReference[];
+  authorizedPeople: string; restrictions: string; containsPersonalData: boolean; references: SourceReference[]; processes: SourceProcess[];
   processCount: number; elementCount: number;
 };
 
@@ -48,8 +50,8 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     name: source.name, description: source.description ?? '',
     link: source.link ?? '', location: source.location ?? '', access: source.access ?? '',
     retention: source.retention ?? '', validUntil: source.validUntil ?? '', authorizedPeople: source.authorizedPeople ?? '', restrictions: source.restrictions ?? '',
-    containsPersonalData: source.containsPersonalData ?? false, references: source.references ?? [],
-    processCount: new Set((source.references ?? []).map(reference => reference.resourceId)).size,
+    containsPersonalData: source.containsPersonalData ?? false, references: source.references ?? [], processes: source.processes ?? [],
+    processCount: (source.processes ?? []).length,
     elementCount: (source.references ?? []).length,
   })), [data?.sources]);
 
@@ -111,12 +113,12 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
         <Typography level="title-lg">{selectedDetail?.name}</Typography>
         <Typography level="body-sm" color="neutral">Associations BPMN de cette fiche documentaire. Chaque association est indépendante.</Typography>
         <DocumentedSourcesGrid<SourceReference>
-          rowData={selectedDetail?.references ?? []}
+          rowData={selectedDetail ? [...selectedDetail.references, ...selectedDetail.processes.filter(process => !selectedDetail.references.some(reference => reference.resourceId === process.resourceId)).map(process => ({ id: 'process-' + process.resourceId, resourceId: process.resourceId, processName: process.processName, elementId: '', elementName: 'Aucun élément BPMN associé', elementType: '' }))] : []}
           columnDefs={[
             { headerName: 'Processus', field: 'processName', minWidth: 180 },
             { headerName: 'Élément BPMN', field: 'elementName', minWidth: 220 },
-            { headerName: 'Type', field: 'elementType', minWidth: 150, valueFormatter: p => p.value === 'dataStoreReference' ? 'Data Store' : 'Data Object' },
-            { headerName: 'Ouvrir', minWidth: 130, sortable: false, filter: false, cellRenderer: (p: { data?: SourceReference }) => p.data ? <Button size="sm" variant="plain" onClick={() => { navigate('/' + p.data!.resourceId + '?elementId=' + encodeURIComponent(p.data!.elementId)); setSelectedDetail(null); }}>Voir le processus</Button> : null },
+            { headerName: 'Type', field: 'elementType', minWidth: 150, valueFormatter: p => p.value === 'dataStoreReference' ? 'Data Store' : p.value === 'dataObjectReference' ? 'Data Object' : '—' },
+            { headerName: 'Ouvrir', minWidth: 130, sortable: false, filter: false, cellRenderer: (p: { data?: SourceReference }) => p.data ? <Button size="sm" variant="plain" onClick={() => { navigate('/' + p.data!.resourceId + (p.data!.elementId ? '?elementId=' + encodeURIComponent(p.data!.elementId) : '')); setSelectedDetail(null); }}>Voir le processus</Button> : null },
           ]}
           getRowId={row => row.id} preferenceKey={'project-documented-source-associations-' + (selectedDetail?.id ?? 'none')}
           mode="read" selection={false} advancedFilter={false} height={320}
