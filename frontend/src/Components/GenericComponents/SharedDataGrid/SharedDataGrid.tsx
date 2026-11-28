@@ -421,7 +421,7 @@ export function SharedDataGrid<T extends object>({
     if (!selection) return undefined;
     return {
       mode: selection === 'multiple' ? 'multiRow' : 'singleRow',
-      checkboxes: selection === 'multiple',
+      checkboxes: true,
       headerCheckbox: selection === 'multiple',
       enableClickSelection: true,
     };
