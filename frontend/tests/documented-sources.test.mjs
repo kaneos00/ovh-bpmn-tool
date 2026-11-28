@@ -135,11 +135,17 @@ test('documented information grid supports project multi-selection and process s
   assert.match(grid, /selection=\{selection\}/);
   assert.match(grid, /onSelectionChanged=\{onSelectionChanged\}/);
   assert.match(sharedGrid, /rowSelection=\{selectionOptions\}/);
-  assert.match(sharedGrid, /checkboxes: selection === 'multiple'/);
+  assert.match(sharedGrid, /checkboxes: true/);
   assert.match(sharedGrid, /headerCheckbox: selection === 'multiple'/);
   assert.match(sharedGrid, /event\.api\.ensureNodeVisible\(node, 'middle'\)/);
   assert.match(inventory, /selection="single"/);
   assert.match(inventory, /selectedRowId=\{requestedDocumentedSourceId \?\? undefined\}/);
+  const projectGrid = await read('src/Components/BusinessComponents/ProcessDetails/ProjectDocumentedSources.tsx');
+  assert.match(projectGrid, /selectionToolbar=\{/);
+  assert.doesNotMatch(projectGrid, /headerName: 'Actions'/);
+  assert.match(projectGrid, /selectedActionRow\.references\.length === 0/);
+  assert.match(inventory, /selectionToolbar=\{/);
+  assert.doesNotMatch(inventory, /headerName: 'Actions'/);
 });
 
 
