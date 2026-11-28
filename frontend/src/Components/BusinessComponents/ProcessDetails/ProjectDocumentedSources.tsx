@@ -78,7 +78,7 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
     { headerName: 'Type', field: 'kind', minWidth: 145, editable: canManage, cellEditor: 'agSelectCellEditor', cellEditorParams: { values: ['file', 'database', 'application'] }, valueFormatter: p => kindLabels[p.value as SourceKind] ?? '', cellRenderer: (p: { value?: SourceKind }) => p.value ? <Stack direction="row" spacing={0.75} alignItems="center">{kindIcon(p.value)}<span>{kindLabels[p.value]}</span></Stack> : null },
     { headerName: 'Description', field: 'description', minWidth: 220, editable: canManage },
     { headerName: 'Processus', field: 'processCount', minWidth: 105, cellDataType: 'number' },
-    { headerName: 'Éléments BPMN', field: 'elementCount', minWidth: 125, cellDataType: 'number' },
+    { headerName: 'Associations', field: 'elementCount', minWidth: 145, cellDataType: 'number', editable: false, cellRenderer: (p: { data?: GridRow; value?: number }) => p.data ? <Button size="sm" variant="plain" onClick={() => setSelectedDetail(p.data!)}>{p.value ?? 0} élément(s)</Button> : null },
     { headerName: 'Lien', field: 'link', minWidth: 170, editable: canManage },
     { headerName: 'Emplacement', field: 'location', minWidth: 150, editable: canManage, hide: true },
     { headerName: 'Accès', field: 'access', minWidth: 140, editable: canManage, hide: true },
@@ -103,7 +103,7 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
       rowData={rows} columnDefs={columns} getRowId={row => row.id}
       preferenceKey={'project-documented-sources-' + projectId}
       mode={canManage ? 'edit' : 'read'} selection={canManage ? 'multiple' : 'single'} advancedFilter
-      height={560} onCellValueChanged={saveCell} onRowClicked={row => setSelectedDetail(row)}
+      height={560} onCellValueChanged={saveCell}
       onSelectionChanged={selected => setSelectedMergeIds(selected.map(row => row.sourceId))}
     />
     <Modal open={Boolean(selectedDetail)} onClose={() => setSelectedDetail(null)}>
