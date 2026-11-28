@@ -103,7 +103,7 @@ export const ProjectDocumentedSources = ({ projectId, canManage }: { projectId: 
       rowData={rows} columnDefs={columns} getRowId={row => row.id}
       preferenceKey={'project-documented-sources-' + projectId}
       mode={canManage ? 'edit' : 'read'} selection={canManage ? 'multiple' : 'single'} advancedFilter
-      height={560} onCellValueChanged={saveCell} onRowSelected={row => setSelectedDetail(row)}
+      height={560} onCellValueChanged={saveCell} onRowClicked={row => setSelectedDetail(row)}
       onSelectionChanged={selected => setSelectedMergeIds(selected.map(row => row.sourceId))}
     />
     <Modal open={Boolean(selectedDetail)} onClose={() => setSelectedDetail(null)}>
