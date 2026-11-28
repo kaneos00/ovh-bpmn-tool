@@ -4,7 +4,6 @@ import { Alert, Box, Button, FormControl, FormLabel, IconButton, Input, Modal, M
 import {
   AppsOutlined,
   AttachFileOutlined,
-  DeleteOutlineOutlined,
   LinkOffOutlined,
   StorageOutlined,
 } from '@mui/icons-material';
@@ -117,6 +116,7 @@ export const DataInventory = ({
   const [associatingId, setAssociatingId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [pendingDelete, setPendingDelete] = useState<ProjectDocumentedSource | null>(null);
+  const [selectedProcessSourceId, setSelectedProcessSourceId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [newKind, setNewKind] = useState<SourceKind>('file');
@@ -273,6 +273,7 @@ export const DataInventory = ({
     ...source,
     origin: source.processName ?? 'Processus',
   }));
+  const selectedProcessSource = rows.find(row => row.id === selectedProcessSourceId);
 
   const textColumn = (
     field: 'name' | 'description' | 'link' | 'location' | 'access' | 'retention' | 'authorizedPeople' | 'restrictions',
@@ -511,24 +512,6 @@ export const DataInventory = ({
     },
     textColumn('authorizedPeople', 'Personnes autorisées', 190),
     textColumn('restrictions', 'Restrictions', 200),
-    {
-      headerName: 'Actions',
-      minWidth: 125,
-      sortable: false,
-      filter: false,
-      cellRenderer: (params: ICellRendererParams<InventoryGridRow>) => {
-        const row = params.data;
-        if (!row || !canManageSources || row.references.length > 0) return null;
-        return (
-          <IconButton size="sm" variant="plain" color="danger" title="Retirer cette information de ce processus" aria-label={`Retirer ${row.name} de ce processus`} onClick={event => {
-            event.stopPropagation();
-            setPendingDelete(row);
-          }}>
-            <DeleteOutlineOutlined />
-          </IconButton>
-        );
-      },
-    },
   ];
 
   return (
@@ -600,6 +583,16 @@ export const DataInventory = ({
           advancedFilter
           selectedRowId={requestedDocumentedSourceId ?? undefined}
           height={560}
+          onRowSelected={row => setSelectedProcessSourceId(row?.id ?? null)}
+          selectionToolbar={
+            <Stack direction="row" alignItems="center" spacing={1}>
+              {canManageSources && selectedProcessSource && selectedProcessSource.references.length === 0 && (
+                <Button size="sm" variant="plain" color="danger" onClick={() => setPendingDelete(selectedProcessSource)}>
+                  Retirer du processus
+                </Button>
+              )}
+            </Stack>
+          }
         />
         {unlinkedReferences.length > 0 && (
           <Typography level="body-xs" color="neutral">
