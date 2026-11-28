@@ -134,6 +134,10 @@ test('documented information grid supports project multi-selection and process s
   assert.match(grid, /import \{ SharedDataGrid \} from '\.\.\/\.\.\/GenericComponents\/SharedDataGrid'/);
   assert.match(grid, /selection=\{selection\}/);
   assert.match(grid, /onSelectionChanged=\{onSelectionChanged\}/);
+  assert.match(grid, /toolbarContent=\{toolbarContent\}/);
+  assert.match(grid, /localeText=\{localeText\}/);
+  assert.match(grid, /paginationPageSize=\{paginationPageSize\}/);
+  assert.match(grid, /quickFilter=\{quickFilter\}/);
   assert.match(sharedGrid, /rowSelection=\{selectionOptions\}/);
   assert.match(sharedGrid, /checkboxes: true/);
   assert.match(sharedGrid, /headerCheckbox: selection === 'multiple'/);
